@@ -259,7 +259,9 @@ template<class T> void GPUFlags<T>::allocate()
         {
         if (m_mapped)
             {
+            #ifdef ENABLE_MPI
             void *ptr = NULL;
+	    // need to use hooks provided by MPI library
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
                 {
@@ -268,11 +270,16 @@ template<class T> void GPUFlags<T>::allocate()
                 }
             h_data = (T *) ptr;
             cudaHostRegister(h_data, sizeof(T), cudaHostRegisterMapped);
+            #else
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocMapped);
+            #endif
+            CHECK_CUDA_ERROR();
             cudaHostGetDevicePointer(&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else
             {
+            #ifdef ENABLE_MPI
             void *ptr = NULL;
             int retval = posix_memalign(&ptr, getpagesize(), sizeof(T));
             if (retval != 0)
@@ -282,6 +289,10 @@ template<class T> void GPUFlags<T>::allocate()
                 }
             h_data = (T *) ptr;
             cudaHostRegister(h_data, sizeof(T), cudaHostRegisterDefault);
+            #else
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocDefault);
+            #endif
+            CHECK_CUDA_ERROR();
             cudaMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
             }
@@ -308,11 +319,19 @@ template<class T> void GPUFlags<T>::deallocate()
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
+        #ifdef ENABLE_MPI
         cudaHostUnregister(h_data);
-        free(h_data);
-        if (!m_mapped)
-            cudaFree(d_data);
         CHECK_CUDA_ERROR();
+        free(h_data);
+        #else
+        cudaFreeHost(h_data);
+        CHECK_CUDA_ERROR();
+        #endif
+        if (!m_mapped)
+	    {
+            cudaFree(d_data);
+            CHECK_CUDA_ERROR();
+            }
         }
     else
         {
