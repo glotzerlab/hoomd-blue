@@ -1,0 +1,9 @@
+# /bin/bash
+
+# modify the next line to list the full path where you extracted hoomd
+HOOMD_ROOT=@CMAKE_INSTALL_PREFIX@
+
+##########################################
+# don't modify anything below this line
+PYTHONPATH="${HOOMD_ROOT}/lib/hoomd/python-module:${PYTHONPATH}"
+${HOOMD_ROOT}/lib/hoomd/hoomd $*

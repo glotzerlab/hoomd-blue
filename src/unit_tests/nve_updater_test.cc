@@ -1,0 +1,319 @@
+/*
+Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
+Source Software License
+Copyright (c) 2008 Ames Laboratory Iowa State University
+All rights reserved.
+
+Redistribution and use of HOOMD, in source and binary forms, with or
+without modification, are permitted, provided that the following
+conditions are met:
+
+* Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names HOOMD's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
+CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// $Id$
+// $URL$
+
+#include <iostream>
+
+//! name the boost unit test module
+#define BOOST_TEST_MODULE NVEUpdaterTests
+#include "boost_utf_configure.h"
+
+#include <boost/test/floating_point_comparison.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
+
+#include "ConstForceCompute.h"
+#include "NVEUpdater.h"
+#ifdef USE_CUDA
+#include "NVEUpdaterGPU.h"
+#endif
+
+#include "BinnedNeighborList.h"
+#include "Initializers.h"
+#include "LJForceCompute.h"
+
+#include <math.h>
+
+using namespace std;
+using namespace boost;
+
+/*! \file nve_updater_test.cc
+	\brief Implements unit tests for NVEUpdater and descendants
+	\ingroup unit_tests
+*/
+
+//! Helper macro for checking if two floating point numbers are close
+#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
+//! Helper macro for checking if two floating point numbers are small
+#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
+
+//! Tolerance for floating point comparisons
+#ifdef SINGLE_PRECISION
+const Scalar tol = Scalar(1e-2);
+#else
+const Scalar tol = 1e-3;
+#endif
+
+//! Typedef'd NVEUpdator class factory
+typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT)> nveup_creator;
+
+//! Integrate 1 particle through time and compare to an analytical solution
+void nve_updater_integrate_tests(nveup_creator nve_creator)
+	{
+	// check that the nve updater can actually integrate particle positions and velocities correctly
+	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
+	// don't come into play
+	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4));
+	ParticleDataArrays arrays = pdata->acquireReadWrite();
+	
+	// setup a simple initial state
+	arrays.x[0] = 0.0;
+	arrays.y[0] = 1.0;
+	arrays.z[0] = 2.0;
+	arrays.vx[0] = 3.0;
+	arrays.vy[0] = 2.0;
+	arrays.vz[0] = 1.0;
+
+	arrays.x[1] = 10.0;
+	arrays.y[1] = 11.0;
+	arrays.z[1] = 12.0;
+	arrays.vx[1] = 13.0;
+	arrays.vy[1] = 12.0;
+	arrays.vz[1] = 11.0;
+	
+	pdata->release();
+	
+	Scalar deltaT = Scalar(0.0001);
+	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata, deltaT);
+	// also test the ability of the updater to add two force computes together properly
+	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata, 1.5, 0.0, 0.0));
+	nve_up->addForceCompute(fc1);
+	shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(pdata, 0.0, 2.5, 0.0));
+	nve_up->addForceCompute(fc2);
+	
+	// verify proper integration compared to x = x0 + v0 t + 1/2 a t^2, v = v0 + a t
+	// roundoff errors prevent this from keeping within 0.1% error for long
+	for (int i = 0; i < 500; i++)
+		{
+		arrays = pdata->acquireReadWrite();
+		
+		Scalar t = Scalar(i) * deltaT;
+		MY_BOOST_CHECK_CLOSE(arrays.x[0], 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vx[0], 3.0 + 1.5 * t, tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.y[0], 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vy[0], 2.0 + 2.5 * t, tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.z[0], 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vz[0], 1.0 + 0 * t, tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.x[1], 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vx[1], 13.0 + 1.5 * t, tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.y[1], 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vy[1], 12.0 + 2.5 * t, tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.z[1], 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vz[1], 11.0 + 0 * t, tol);		
+		
+		pdata->release();
+		
+		nve_up->update(i);
+		}
+	}
+	
+//! Make a few particles jump across the boundary and verify that the updater works
+void nve_updater_boundary_tests(nveup_creator nve_creator)
+	{
+	////////////////////////////////////////////////////////////////////
+	// now, lets do a more thorough test and include boundary conditions
+	// there are way too many permutations to test here, so I will simply
+	// test +x, -x, +y, -y, +z, and -z independantly
+	// build a 6 particle system with particles set to move across each boundary
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0)));
+	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
+	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
+	arrays.vx[0] = Scalar(-0.5);
+	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
+	arrays.vx[1] = Scalar(0.6);
+	arrays.x[2] = 0; arrays.y[2] = Scalar(-19.6); arrays.z[2] = 0.0;
+	arrays.vy[2] = Scalar(-0.5);
+	arrays.x[3] = 0; arrays.y[3] = Scalar(19.6); arrays.z[3] = 0.0;
+	arrays.vy[3] = Scalar(0.6);
+	arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = Scalar(-29.6);
+	arrays.vz[4] = Scalar(-0.5);
+	arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
+	arrays.vz[5] = Scalar(0.6);
+	pdata_6->release();
+	
+	Scalar deltaT = 1.0;
+	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata_6, deltaT);
+	// no forces on these particles
+	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata_6, 0, 0.0, 0.0));
+	nve_up->addForceCompute(fc1);
+	
+	// move the particles across the boundary
+	nve_up->update(0);
+	
+	// check that they go to the proper final position
+	arrays = pdata_6->acquireReadWrite();
+	MY_BOOST_CHECK_CLOSE(arrays.x[0], 9.9, tol);
+	MY_BOOST_CHECK_CLOSE(arrays.x[1], -9.8, tol);
+	MY_BOOST_CHECK_CLOSE(arrays.y[2], 19.9, tol);
+	MY_BOOST_CHECK_CLOSE(arrays.y[3], -19.8, tol);
+	MY_BOOST_CHECK_CLOSE(arrays.z[4], 29.9, tol);
+	MY_BOOST_CHECK_CLOSE(arrays.z[5], -29.8, tol);
+	
+	pdata_6->release();
+	}
+
+//! Compares the output from one NVEUpdater to another
+void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_creator2)
+	{
+	const unsigned int N = 500;
+	
+	// create two identical random particle systems to simulate
+	RandomInitializer rand_init1(N, 0.2, 0.9);
+	RandomInitializer rand_init2(N, 0.2, 0.9);
+	rand_init1.setSeed(12345);
+	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1));
+	rand_init2.setSeed(12345);
+	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2));
+
+	shared_ptr<BinnedNeighborList> nlist1(new BinnedNeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<BinnedNeighborList> nlist2(new BinnedNeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
+	
+	shared_ptr<LJForceCompute> fc1(new LJForceCompute(pdata1, nlist1, Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc2(new LJForceCompute(pdata2, nlist2, Scalar(3.0)));
+		
+	// setup some values for alpha and sigma
+	Scalar epsilon = Scalar(1.0);
+	Scalar sigma = Scalar(1.2);
+	Scalar alpha = Scalar(0.45);
+	Scalar lj1 = Scalar(48.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(24.0) * epsilon * pow(sigma,Scalar(6.0));
+	
+	// specify the force parameters
+	fc1->setParams(0,0,lj1,lj2);
+	fc2->setParams(0,0,lj1,lj2);
+
+	shared_ptr<NVEUpdater> nve1 = nve_creator1(pdata1, 0.005);
+	shared_ptr<NVEUpdater> nve2 = nve_creator2(pdata2, 0.005);
+
+	nve1->addForceCompute(fc1);
+	nve2->addForceCompute(fc2);
+
+	// step for only a few time steps and verify that they are the same
+	// we can't do much more because these things are chaotic and diverge quickly
+	for (int i = 0; i < 5; i++)
+		{
+		const ParticleDataArraysConst& arrays1 = pdata1->acquireReadOnly();
+		const ParticleDataArraysConst& arrays2 = pdata2->acquireReadOnly();
+
+		Scalar rough_tol = 2.0;
+		//cout << arrays1.x[100] << " " << arrays2.x[100] << endl;
+
+		// check position, velocity and acceleration
+		for (unsigned int j = 0; j < N; j++)
+			{
+			MY_BOOST_CHECK_CLOSE(arrays1.x[j], arrays2.x[j], rough_tol);
+			MY_BOOST_CHECK_CLOSE(arrays1.y[j], arrays2.y[j], rough_tol);
+			MY_BOOST_CHECK_CLOSE(arrays1.z[j], arrays2.z[j], rough_tol);
+			
+			MY_BOOST_CHECK_CLOSE(arrays1.vx[j], arrays2.vx[j], rough_tol);
+			MY_BOOST_CHECK_CLOSE(arrays1.vy[j], arrays2.vy[j], rough_tol);
+			MY_BOOST_CHECK_CLOSE(arrays1.vz[j], arrays2.vz[j], rough_tol);
+			
+			MY_BOOST_CHECK_CLOSE(arrays1.ax[j], arrays2.ax[j], rough_tol);
+			MY_BOOST_CHECK_CLOSE(arrays1.ay[j], arrays2.ay[j], rough_tol);
+			MY_BOOST_CHECK_CLOSE(arrays1.az[j], arrays2.az[j], rough_tol);
+			}
+		
+		pdata1->release();
+		pdata2->release();
+
+		nve1->update(i);
+		nve2->update(i);
+		}
+	}
+	
+//! NVEUpdater factory for the unit tests
+shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT)
+	{
+	return shared_ptr<NVEUpdater>(new NVEUpdater(pdata, deltaT));
+	}
+	
+#ifdef USE_CUDA
+//! NVEUpdaterGPU factory for the unit tests
+shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT)
+	{
+	return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(pdata, deltaT));
+	}
+#endif
+	
+	
+//! boost test case for base class integration tests
+BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
+	{
+	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+	nve_updater_integrate_tests(nve_creator);
+	}
+	
+//! boost test case for base class boundary tests
+BOOST_AUTO_TEST_CASE( NVEUpdater_boundary_tests )
+	{
+	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+	nve_updater_boundary_tests(nve_creator);
+	}
+	
+#ifdef USE_CUDA
+//! boost test case for base class integration tests
+BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
+	{
+	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+	nve_updater_integrate_tests(nve_creator_gpu);
+	}
+	
+//! boost test case for base class boundary tests
+BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_boundary_tests )
+	{
+	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+	nve_updater_boundary_tests(nve_creator_gpu);
+	}
+
+//! boost test case for comparing the GPU and CPU NVEUpdaters
+BOOST_AUTO_TEST_CASE( NVEUPdaterGPU_comparison_tests)
+	{
+	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+	nve_updater_compare_test(nve_creator, nve_creator_gpu);
+	}
+#endif

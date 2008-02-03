@@ -1,0 +1,862 @@
+
+/*
+Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
+Source Software License
+Copyright (c) 2008 Ames Laboratory Iowa State University
+All rights reserved.
+
+Redistribution and use of HOOMD, in source and binary forms, with or
+without modification, are permitted, provided that the following
+conditions are met:
+
+* Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names HOOMD's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
+CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+/*! 
+\page page_dev_info Information for developers
+
+Table of contents:
+- \subpage page_overview
+	- \ref sec_goals
+	- \ref sec_hardware
+	- \ref sec_code_impl_overview
+- \subpage page_building
+	- \ref sec_software_req
+	- \ref sec_building_windows
+		- \ref page_software_req_install_windows
+	- \ref sec_building_linux
+		- \ref page_software_req_install_linux	
+	- \ref sec_building_mac
+		- \ref page_software_req_install_mac
+	- \ref sec_build_options
+- \subpage page_coding_practice 
+	- \ref sec_documenting_code
+	- \ref sec_defensive_prog
+	- \ref sec_unit_testing
+	- \ref sec_profiling
+	- \ref sec_floats
+	- \ref sec_multithreaded
+	- \ref sec_libraries
+	- \ref sec_sse_instrns
+- \subpage page_particle_data
+	- \ref sec_particle_data_rationale
+	- \ref sec_particle_data_requirements
+- \subpage page_compute
+	- \ref sec_compute_rationale
+	- \ref sec_compute_requirements
+- \subpage page_updater
+	- \ref sec_updater_rationale
+	- \ref sec_updater_requirements
+- \subpage page_file_format
+	- \ref sec_file_format_rationale
+	- \ref sec_file_format_requirements
+- \subpage page_system_class_design
+	- \ref sec_system_class_rationale
+	- \ref sec_system_class_requirements
+
+*/
+
+/*!
+\page page_overview Overview
+
+\section sec_goals Goals
+
+HOOMD stands for highly-optimized object oriented molecular dynamics. The focuses are twofold.
+1) Build the fastest possible <em>general purpose</em> molecular dynamics code for a single
+workstation. Existing software
+packages are already extremely well optimized for huge clusters and supercomputers, where millions 
+and even billions of particles can be simulated. HOOMD will not even attempt to meet such a a level of
+performance. It is instead targeted at smaller, more modest systems of 100,000 particles and smaller.
+Every potential optimization aimed at the single workstation level will be employed. 2) Keeping the 
+performance targets in mind, every effort is made to create an abstract object oriented interface
+to allow for easy expansion with new force fields, analysis tools, etc...
+
+\section sec_hardware Targeted hardware
+
+CPUs are becoming more and more multi-core. Currently one can buy 8-core systems (two quad-core 
+processors) at reasonable prices. HOOMD will take advantage of these systems and make use 
+of every core in such a workstation. Additionally, graphics cards have become extremely 
+powerful general purpose computational tools. HOOMD will have a mode, optionally compiled 
+in to make use of GPUs supporting NVIDIA's CUDA. Fitting in with the object oriented design,
+every performance critical part of the simulation will have dual implementations: one for
+multi-core CPUs and one for GPUs. Through the beauty of data-hiding object oriented design,
+one portion of the simulation need not know if anther is being run on the GPU or CPU. So,
+different steps in the code can be swapped out at will, which is not so useful from a performance
+point of view, but it is very helpful in debugging. Additionally, some tasks, such as
+writing dump files, simply must be performed on the CPU. The object-oriented design 
+will seamlessly handle all required data-transfer back and forth GPU <--> CPU to make
+this happen.
+
+In accordance with these goals, HOOMD will be optimized for commonly available hardware. 
+Specifically, Intel/AMD mainstream processors will be supported running under Linux, Windows XP, 
+and Mac OS X. As such, the code must be written in a general enough fashion that it can run on 
+these systems with little or no conditional compilation. OS specific calls should be avoided 
+if at all possible to allow for other operating systems to work with minimal code modifications. 
+
+Hardware specific optimizations (i.e. SSE) can and should be employed where appropriate. 
+However, it should only be available via conditional compilation and a vanilla C++ implementation 
+should also be provided to support other hardware systems.
+
+\section sec_code_impl_overview Code implementation overview
+
+To meet the multiple OS design requirement, CMake (see www.cmake.org) will be employed. CMake 
+takes a simple text file format input that describes what source files should be compiled into 
+what executables and libraries. It can then generate makefiles for linux, XCode projects on 
+Mac OS X and Visual Studio projects on Windows. So developers that prefer a particular architecture
+can work on the code in a natural environment. 
+
+-# System: At the highest level of abstraction is the System. It abstracts a system of particles 
+	in a box and performs updates of those particles in time, saves/loads restart files, 
+	writes a log output etc...
+-# ParticleData: The most fundamental data structure which the System owns is the particle data. 
+	Data stored will include particle id tag, type, position, velocity, and acceleration. 
+	Other traits may be added, but will not be considered fundamental. 
+-# Compute: A Compute is a concept that will take the particle data and compute something useful, 
+	whether it be a single scalar for the entire system or a per particle quantity. The 
+	particle data is NOT to be modified by the compute. One compute may reference other computes.
+	- Note: Credit for the idea of the compute concept goes to LAMMPS developers, but HOOMD takes 
+		that idea and generalizes it to a whole new level.
+-# Updater: An Updater takes the particle data and updates it in some way. The simplest example of this
+	is the updating of particle positions by the velocity verlet integration. Though, any
+	other type of operation that takes the particle properties and modifies them on a per
+	time step basis is an Updater.
+-# Analyzer: An Analyzer takes the data at a given time step, performs some analysis and outputs results. 
+	Most analyzers will likely output data every M steps. An Analyzer may reference one or more computes,
+	and is not allowed to modify the particle data. 
+-# ParticleDataInitializer: An initializer takes some kind of input (data file, parameters, etc...) and 
+	generates the initial condition for the System's particles.
+
+There is a fine line between an analyzer and a compute. Computes are designed to be calculated when 
+needed and their results used in to support Updaters. Analyzers, instead, are only to produce 
+output based on the particle data, but their results cannot result in a change of the system in time.
+The typical implementation of an Analyzer would write analyzed data to a file.
+
+So where are the forces, the neighborlists, etc... that are always a part of any MD code? Of course, 
+these are just implementations of the concepts listed above. Calculating forces are the result of 
+a Compute. They use the neighborlist which is the result of another Compute. NVT integration is 
+performed in an Updater which uses the results of the force compute. Everything flows together in 
+a natural way while still keeping every class as independent as possible from the others. The only
+common link between <b>ALL</b> classes is the ParticleData. 
+<hr>
+\ref page_building "Next page"
+*/
+
+/*!
+\page page_building Building HOOMD
+
+\section sec_software_req Software Prerequisites
+
+HOOMD requires a number of prerequisite software packages and libraries to be compiled. 
+
+- Python >= 2.3 
+	- <em>optional</em>, but highly recommended to enable scripted simulations
+- boost >= 1.32.0
+- libz
+- CMake >= 2.4
+	- >= 2.4.7 is recommended on Mac OS X if doxygen is installed due to an annoying bug in CMake
+- Compiler to build source
+	- gcc 4.1 on Linux
+	- Visual Studio Express 2005 on Windows XP
+	- all code is standard c++ and should work on nearly any other (recent) compiler
+	- \b note: Visual Studio 9 (aka 2008) does not currently work because of an incompatibility with boost
+- CUDA Toolkit 1.1 and the appropriate NVIDIA display driver:
+	- <em>optional</em>, but required to enable GPU support
+- Subversion
+- Doxygen 
+	- <em>optional</em> but required to build this documentation
+
+\b Links: <br>
+Python - http://www.python.org/ <br>
+Boost - http://www.boost.org/ <br>
+libz - http://www.zlib.net/ <br>
+CMake - http://www.cmake.org/HTML/Index.html <br>
+CUDA - http://developer.nvidia.com/object/cuda.html#downloads <br>
+Subversion - http://subversion.tigris.org/ <br>
+Doxygen - http://www.stack.nl/~dimitri/doxygen/manual.html <br>
+
+\section sec_building_windows Building on Windows
+<b>1. Install prerequisite software</b><br>
+Click for detailed instructions: \subpage page_software_req_install_windows
+
+<b>2. Get source code</b>
+ - Option 1) download and unpack source code from: http://www.ameslab.gov/hoomd/
+ - Option 2) Get the latest development source with subversion 
+This command (assuming you've installed the command line svn tools)
+\code
+ $ svn co svn+ssh://username@photon.hopto.org/hoomd/trunk hoomd
+\endcode
+will create a directory \e hoomd in your current working directory which will contain
+the current development version of the source code. You can perform the same opteration
+by right clicking a folder and choosing "SVN Checkout..." when using TortoiseSVN.
+	
+Developers with commit access planning to make changes to the code must use option 2. 
+
+<b>3. Run CMake</b>
+
+You should now have a directory \b hoomd on your hard drive with a subdirectory
+\b src containing the source code. CMake must be run to generate the visual studio
+project that will compile HOOMD. 
+ -# Create a directory \e msvc inside \b hoomd
+ -# I find it convenient to also create a directory \e bin inside \b msvc
+ -# Start CMake
+ -# Set \b "C:\code\hoomd\src" (modifying to match the location of your hoomd src directory) in
+	the box labeled "Where is the Source code".
+ -# Set \b "C:\code\hoomd\msvc" (again, modified to mach the location of your hoomd directory) 
+	in the box labeled "Where to build the binaries"
+ -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
+ -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
+ -# Select the IDE you installed (most likely Visual Studio 8 2005) and click OK.
+ -# After a short wait while CMake should display a screen that looks like this: \image html cmake_windows_firstpress.png
+	If you received an error message instead, it is possible that you are missing one of the
+	prerequisite software packages or it is insalled to a non-standard location. In the second case,
+	you can click on the text box with CMAKE-SOMETHING-NOTFOUND in it and specify the full path
+	to the corresponding file or directory.
+ -# You can configure any of the build options on this screen to your liking. 
+	See \ref sec_build_options for more information on what these options do.
+	One highly recommended option is to set \b EXECUTABLE_OUTPUT_PATH to 
+	\b "C:\code\hoomd\msvc\bin" (you did create it earlier, right?). All 
+	executables compiled will be put into this directory, making them much easier to
+	find.
+ -# Click configure again to make sure all settings are up to date and then click OK
+	to generate the project file and exist CMake.
+ 	
+<b>4. Compile HOOMD</b><br>
+Open up the \b HOOMD.sln project in visual studio. Press F7 (or use the GUI build button)
+to build all executables. You can also make a single target the active project
+(right click and choose set as startup project) and press F7 to build
+only it. 
+
+Executables are produced in \b hoomd/msvc/bin (assuming you set that option). 
+Source can be modified in visual studio, but any files added to the project must 
+be done via CMake. In most cases, a file can be added simply by placing it in the 
+proper directory and then rerunning CMake.
+
+\section sec_building_linux Building on Linux
+<b>1. Install prerequisite software</b><br>
+Click for detailed instructions: \subpage page_software_req_install_linux
+
+<b>2. Get source code</b>
+ - Option 1) download and unpack source code from: http://www.ameslab.gov/hoomd/
+ - Option 2) Get the latest development source with subversion 
+This command
+\code
+ $ svn co svn+ssh://username@photon.hopto.org/hoomd/trunk hoomd
+\endcode
+will create a directory \e hoomd in your current working directory which will contain
+the current development version of the source code.
+
+<b>3. Run CMake</b><br>
+CMake needs to be run to generate the make files to compile HOOMD.
+\code
+ $ cd hoomd
+ $ mkdir bin
+ $ cd bin
+ $ ccmake ../src
+\endcode
+
+You will then see a screen that looks like this:
+\image html cmake_linux_initial.png
+
+Press the 'c' key to configure. You should now see a screen like this:
+\image html cmake_linux_firstpress.png
+
+To generate the makefiles now, press 'c' again to ensure the configure is up to date 
+and then press the 'g' key. CMake will exit back to the command line. 
+
+You can also scroll down with the arrow keys and change any of the OFF/ON options
+to control whether certain features are compiled in. You must press 'c' after 
+any change. Note that in some cases, changing an option to ON will cause other
+options to appear. There are also a few options controlled by changing text strings.
+
+See \ref sec_build_options for more information on what these options do.
+
+It is possible that some of your libraries may be in non-standard paths. If this is
+the case, CMake will report an error after you press 'c'. The offending library 
+will be labeled something like CMAKE_LIB_NOTFOUND. If you know where the library is, 
+you can specify the \b full path here and press 'c' again.  
+
+<b>4. Compile HOOMD</b><br>
+CMake generated make files for make. Just run
+\code
+ $ make -j4
+\endcode
+in the \b bin directory to compile everything and generate this documentation. The -j4 option lets
+make compile 4 files at once. It's safe to set the value to twice the number of CPU 
+cores in your system. HOOMD compiles in seconds on an 8-core 3.0GHz Xeon :)
+
+\section sec_building_mac Building on Mac OSX
+<b>1. Install prerequisite software</b><br>
+Click for detailed instructions: \subpage page_software_req_install_mac
+
+<b>2. Get source code</b>
+ - Option 1) download and unpack source code from: http://www.ameslab.gov/hoomd/
+ - Option 2) Get the latest development source with subversion 
+This command
+\code
+ $ svn co svn+ssh://username@photon.hopto.org/hoomd/trunk hoomd
+\endcode
+will create a directory \e hoomd in your current working directory which will contain
+the current development version of the source code.
+
+<b>3. Run CMake</b><br>
+First, create a directory to hold the compiled object files and executables.
+\code
+ $ cd hoomd
+ $ mkdir bin
+ $ cd bin
+\endcode
+CMake needs to be run in order to generate the build environment. You have two
+options here. If there is a particular code editor you prefer and you want to 
+compile by running \e make on the command line, just run
+\code
+ $ ccmake ../src
+\endcode
+If you would rather use XCode as an IDE, run
+\code
+ $ ccmake -G Xcode ../src
+\endcode
+to generate an XCode project file.
+
+You will then see a screen that looks like this:
+\image html cmake_mac_initial.png
+
+Press the 'c' key to configure. You should now see a screen like this, though it may be slightly different if you are generating a make file and not an XCode project:
+\image html cmake_mac_firstpress.png
+
+To generate the makefiles now (or the XCode project), press 'c' again to ensure the configure is up to date 
+and then press the 'g' key. CMake will exit back to the command line. 
+
+You can also scroll down with the arrow keys and change any of the OFF/ON options
+to control whether certain features are compiled in. You must press 'c' after 
+any change. Note that in some cases, changing an option to ON will cause other
+options to appear. There are also a few options controlled by changing text strings.
+
+See \ref sec_build_options for more information on what these options do.
+
+It is possible that some of your libraries may be in non-standard paths. If this is
+the case, CMake will report an error after you press 'c'. The offending library 
+will be labeled something like CMAKE_LIB_NOTFOUND. If you know where the library is, 
+you can specify the \b full path here and press 'c' again.  	
+
+<b>4. Compile HOOMD</b><br>
+If you generated make files, just run
+\code
+ $ make -j4
+\endcode
+in the \b bin directory to compile everything and generate this documentation. 
+The -j4 option lets make compile 4 files at once. It's safe to set the value to twice the number of CPU 
+cores in your system. HOOMD compiles in seconds on an 8-core 3.0GHz Xeon :)
+
+If you generated an XCode project, open it in XCode and click the build button
+to compile HOOMD. Note that while source code can be edited via XCode, any 
+files added to the project must be done with CMake, not the XCode project
+management. In most cases, this can be done by simply adding the file to the 
+proper directory and rerunning CMake.
+
+\section sec_build_options Build options
+Here is a list of all the build options that can be changed by CMake.
+ - \b CMAKE_BUILD_TYPE - sets the build type (Makefile generation only, XCode and 
+ 		Visual Studio can change the build type from within their GUIs)
+	- \b Debug - Compiles debug information into the library and executables. 
+		Enables asserts to check for programming mistakes. HOOMD will run 
+		\e very slow if compiled in Debug mode, but problems are easier to
+		identify.
+	- \b Release - All compiler optimizations are enabled and asserts are removed.
+		Recommended for production builds: required for any benchmarking.
+ - \b GENERATE_DOXYGEN_DOCS - enables the generation of this documentation
+ 	- Requires doxygen to be installed
+ - \b SINGLE_PRECISION - Controls precision
+ 	- When set to \b ON, all calculations are performed in single precision.
+ 	- When set to \b OFF, all calculations are performed in double precision. 
+ 	- Must be set to \b ON to enable the \b USE_CUDA option (GPUs are single precision)
+ - \b USE_CUDA - Enable compiling of the GPU accelerated computations using CUDA
+ 	- Requires the CUDA Toolkit to be installed
+ - \b USE_PYTHON - Set to \b ON to enable the building of the python module.
+ 	- Required for the use of the high-level scripting system
+ 	- Requries python to be installed, and a matching version of boost.python.
+ - \b USE_SSE - Enables compilation of SSE optimized code
+ 	- Note: not implemented yet
+ 	- Requires an SSE2 capable processor
+ - \b USE_STATIC - Controls the compiling and linking of static libraries
+ 	- When set to \b ON, \b libhoomd is compiled as a static library and all 
+ 		other libraries (i.e. boost) are linked statically if possible.
+ 	- When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
+ 		other libraries are linked dynamically if possible.
+ 	- Note: \b USE_STATIC=OFF is not supported on windows. 
+ - \b USE_TEST - Enables building of unit tests and the "make test" target
+ - \b USE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
+ 
+There are a few options for controling the CUDA compilation.
+ - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
+ - \b CUDA_BUILD_TYPE - Controls device/emulation builds
+ 	- \b Device - will compile all GPU kernels to run on the GPU hardware
+ 	- \b Emulation - will comiple all GPU kernels in a CPU emulation mode. 
+ 		This emulation mode is very slow, but does allow developers without 
+ 		G80 cards to compile and test changes to GPU-related code. Actual
+ 		kernel development is not recommended without a hardware device to 
+ 		run on.
+ - \b NVCC_USER_FLAGS - Allows additional flags to be passed to nvcc.
+ 	- Recommended usage is to use this only for -DNDEBUG when compiling in 
+ 		Release mode. Without -DNDEBUG, there will be a sync and an error check
+ 		after every single kernel execution which is only useful for debugging.
+
+<hr>
+\ref page_coding_practice "Next page"
+*/
+
+
+/*! \page page_coding_practice Coding practices
+
+\section sec_documenting_code Documentation
+
+All code should be <b>thoroughly</b> documented via doxygen (the document you are reading now) and 
+internal comments to make life as easy as possible on developers wishing to modify the source code
+or add new features. See http://www.stack.nl/~dimitri/doxygen/commands.html for information on how 
+to use doxygen comments.
+
+\section sec_defensive_prog Defensive Programming
+
+Error checking should be a top priority. Asserts will be used liberally to verify that objects
+are in the proper state upon entrance to a function call, and even the validity of values calculated
+inside inner loops. These can safely be used even in performance critical parts of the code, as asserts 
+are only compiled in debug mode. Asserts should be used to check for mainly for programming errors. 
+Any errors that might result at runtime due to a user's action should still be checked in release mode. 
+Obviously, not every possible such error can be checked without sacrificing performance, so runtime 
+error checks in an optimized build should only be performed during initialization, or once per time step
+at the most.  
+
+Warning and error messages should also be employed. One can get all fancy with the processing and 
+displaying of these message, but a simple approach is employed in HOOMD. Warnings will simply be 
+printed to stdout. Errors will be printed to stderr. If the program can continue with the error, 
+it should do so. If it is impossible to continue, an exception will be thrown.
+
+\section sec_unit_testing Unit testing
+
+Along with defensive programming, EACH AND EVERY class should be unit tested independent from 
+the rest of the code. The boost unit testing framework will be used for this. No class should 
+be used in production research code without passing very extensive tests. For instance, a compute 
+that calculates forces could be fed a very small 3 particle system and the results checked against 
+a by-hand calculation. Or an optimized version of a force computing code could be run on a large 
+system and the results compared to a simpler version of the compute operating on the same
+system (which was independently verified, of course).
+
+\section sec_profiling Profiling
+
+A simple Profiler class will be available to Computes, Updaters, and Systems. This profiler
+should be used in a coarse manner to give simple timing statistics of each part of the algorithm.
+The profiling code also provides a mechanism by which to record the number of FLOPS executed 
+and memory transferred so that a guesstimate can be made of how close portions of the code 
+are to optimal performance.
+
+Time critical portions of the code should be profiled in AMD CodeAnalyst to discover the bottlenecks.
+
+\section sec_floats Floating point numbers
+
+All code will be written with a typedef'd Scalar type. This will be either float or
+double at compile time. The reasons for this are many. 1) The GPU is single precision only,
+so we need a way to get the rest of the code in single precision. 2) It may be interesting to
+compare performance/accuracy between float and double in the CPU only code 3) This 
+will NOT be done as a template to avoid code complexity.
+
+\section sec_multithreaded Multithreaded design
+
+The design requirement to target multi-core systems necessitates the use of multi-threaded code
+Some simple performance tests were made an on 8-core machine to make an informed choice 
+for the design. The thread-model adopted aims itself at code simplicity without sacrificing
+performance. 
+
+The System class will be single threaded and play the role of a <em>boss</em> thread. As it calls
+updaters, who call their attached computes: threading will be accomplished by worker threads. That is,
+the interface presented by an Updater or a Compute is a single-threaded interface. However,
+each Compute will have launched it's own set of worker threads. When the single-threaded 
+interface function is called to begin computing results, these worker threads will be woken up,
+perform their computation while the single-threaded interface call waits for them to finish.
+In this manner, the caller doesn't know or care if the callee is using multiple threads,
+which keeps the code very abstract and very easy to understand and modify.
+
+\section sec_libraries External libraries used
+
+Threading: <b>boost.threads</b> <br>
+Compression: <b>boost iostream filters</b> <br>
+Python integration: <b>boost.python</b> <br>
+Serialization: <b>boost.serialization</b> <br>
+Shared pointers: <b>boost.shared_ptr</b> <br>
+GPU access: <b>NVIDIA CUDA</b> <br>
+XML Parsing: http://www.applied-mathematics.net/tools/xmlParser.html
+
+If you didn't get the hint, boost (www.boost.org) will be used extensively. It is a very nice c++ 
+library that provides a lot of power in a very nice and very, very abstract syntax. A minimum 
+of external libraries should be required, so users don't need to install too many in order
+to run the software. Fortunately, most recent linux distributions in the last few years have
+boost in their default install, even if it is an old version of boost.
+
+As a general practice, any time an external library is needed, boost should be checked first.
+If boost cannot do what is needed, then other libraries can be evaluated. To meet the goals
+of HOOMD, any such library chosen must have cross-platform support and preferably be installed
+by default in standard linux distributions.
+
+The pain and time needed to install boost and all the tools needed to build HOOMD on windows
+is significant, so a pre-compiled binary should be provided there.
+
+\section sec_sse_instrns SSE
+
+SSE instructions can, and should, be used where appropriate. However, as some of the targeted 
+machines do not have SSE instructions, code that performs the same calculation without SSE 
+instructions should be included. SSE code should be conditionally compiled in with the 
+define __SSE__ or __SSE2__ as needed. Additionally, SSE instructions should only be used
+if USE_SSE is defined. Some problems arose testing the code with the Pathscale compiler
+when trying to compile SSE code. Allowing the user to disable SSE entirely would allow
+HOOMD to be built with Pathscale without code modifications.
+
+<hr>
+\ref page_particle_data "Next page"
+*/
+
+/*!
+\page page_particle_data Particle data class design
+
+\section sec_particle_data_rationale Rationale
+
+The data structure that stores the particles is the fundamental building block upon 
+which the rest of the code must rest. Thus, it must be done right. Low level access 
+must be allowed to the data, but such access must be abstract enough so that the user 
+of the data doesn't need to know if the data was most recently updated on the CPU
+or GPU. Sorting algorithms must be employed to obtain optimal performance for large 
+numbers of particles. The particle data structure should therefore be able to handle
+reordering of the particles in memory without loosing track of who is who. Lastly, the particle
+data structure will also contain the simulation box setup, as this seems the best place to put it.
+
+\section sec_particle_data_requirements Requirements
+
+- Data Storage:
+	- Stores positions (x,y,z), velocities (vx,vy,vz), and accelerations (ax,ay,az) 
+		for each particle all at the current time step 
+	- Stores each particle's type and id tag
+	- To help a little bit with caching, all of these arrays should be contiguous in 
+		memory. This will also make it easier to make a copy of the particle data 
+		structure.
+- Serializable (<b>TODO</b>)
+- Non-copyable (<b>TODO</b>)
+- Provide an acquire/release mechanism for low level access to the data. Read only 
+	and read/write accesses should be separately handled. Data can be acquired 
+	either on the CPU or GPU
+- Support both single and double precision through a define
+- Stores the simulation box (xlo, xhi, ylo, ...).  All dimensions are assumed periodic. 
+	This is not a serious limitation because dimensions can always be made larger and 
+	walls added for non-periodic simulations.
+	- xlo is required to be -xhi/2, and similarly for y and z for performance reasons on the GPU
+- The particle data structure is assumed to have a constant number of particles over its lifetime. 
+- Provide a print statistics function (<b>TODO</b>)
+
+See ParticleData for the implementation of this class.
+<hr>
+\ref page_compute "Next page"
+*/
+
+/*!
+\page page_compute Compute class design
+
+\section sec_compute_rationale Rationale
+
+Much of the rationale for this class is documented in the \ref page_overview section. Here, some 
+particular choices for implementing the concept are rationalized.
+
+Since computes are allowed to reference other computes, and analyzers might just call a compute
+too, it is possible that one compute shared among others will be asked to compute its results
+more than once in a given time step. This would be a waste of resources, and should be avoided.
+It will be avoided by providing the current time step as an argument to the member function
+that performs the computation. This way, the compute can check if the time step specified in the 
+current call is the same as the last call and skip the computation. As an added benefit, time 
+dependent quantities can become part of a compute as it will always know what the current
+time step is.
+
+Statistics on memory usage, number and character of computations performed, etc ... may be useful
+for the user to see. <b>In no way</b> can this statistics tracking pose an impact to the performance
+of the compute when it is running normally. Of course, the actual call to printStats() can have any 
+amount of overhead it wishes. If the user wants detailed statistics over many time steps, they
+can write an Analyzer.
+
+A Compute is not a functor. It is an object that computes data for a particular ParticleData. 
+It can and should store tables that only need to be updated rarely to allow faster computations.
+As such, a single Compute is tied to a single ParticleData on instantiation. The reason for this
+is that any per particle tables can be initialized here and never need to be resized, making
+code simple and easy to read and modify. <b>Note:</b> This requirement may be relaxed at 
+some time in the future, probably by allowing a ParticleData to reinitialize and then send
+a reinit() signal to all computes. For now, though, the initialization on instantiation 
+requirement remains.
+
+\section sec_compute_requirements Requirements
+
+<b>Base class requirements:</b>
+- Provide a virtual compute() method that calculates the result
+	- This method should take the time step as a parameter.
+	- Some basic helper methods should be provided so that derived classes can easily tell if they have already been updated this step.
+- Serializable (<b>TODO</b>)
+- Stores a pointer to the particle data, initialized on instantiation
+- Provide a virtual print statistics function (and clear statistics, so the user can do so if they wish)
+- Store an optional pointer to a Profiler for use in profiling the compute
+- Non-copyable (<b>TODO</b>)
+ 
+<b>Derived class requirements:</b>
+- Serializable
+- Implements the compute and abstract access methods
+- Defines methods by which to access the compute's results 
+	- Care should be taken in designing this interface so the design is usable for any future child class that is run on the GPU
+
+<hr>
+\ref page_updater "Next page"
+*/
+
+/*!
+\page page_updater Updater class design
+
+\section sec_updater_rationale Rationale
+
+Much of the rationale for this class is documented in the \ref page_overview section. Here, some 
+particular choices for implementing the concept are rationalized.
+
+Much of the design decisions made for the Updater are the same as for the Compute, and the
+rationale is not repeated here. See \ref page_compute for more information.
+
+One difference is that Updaters should <b>NOT</b> be called more than once per time step.
+There should be no reason to, and updaters can assume that they are not. This is for one
+very simple reason, an updater by definition, advances the simulation to the <b>next</b>
+time step. More details on the intricacies of how this applies to multiple updaters
+in the documentation for System.
+
+\section sec_updater_requirements Requirements
+
+<b>Base class requirements:</b>
+- Provide a virtual "update" method that changes the state of the particles
+	- This method should take the time step as a parameter.
+- Serializable
+- Stores a pointer to the particle data (initialized on instantiation)
+- Store an optional pointer to a Profiler for use in profiling the compute
+- Non-copyable
+
+These requirements are implemented by the Updater class.
+
+<b>Derived class requirements:</b>
+- Serializable
+- Implements the update method
+
+<hr>
+\ref page_file_format "Next page"
+*/
+
+/*!
+\page page_file_format File format design
+
+\section sec_file_format_rationale Rationale
+
+A well defined file format is required to provide the initial configurations of particles
+for HOOMD to run. Particle positions and velocities are also typically saved to dump
+files every so many time steps. A common use case is to take an existing dump file and 
+use it as the initial configuration for a new run, so the two files should share a common
+format. One complication introduce by this use case is that it is usually a waste of 
+space to save bonds to every dump file. Thus, reusing that dump file as an input 
+would result in no bonds! The solution to this use case is not implemented in the
+HOOMDInitializer class to avoid complications. Instead, an external python script
+to merge bonds from one file into another will be provided.
+
+Depending on the needs of the user, a variety of data can be inluced into the saved
+dump file, including particle positions, bonds, velocities, and forces. The file format needs
+to be expandable so that in the future, charges and other quantities can be easily
+added without disrupting the existing file format.
+
+Files written during the simulation should be one file for each time step written. In 
+case the simulation crashes or stops prematurely, we don't want a partially buffered file
+to be not completley written to the disk. Furthermore, the time step should be appended
+to the file name with 0 padding to 10 digits so that "alphabetically" sorted file names
+will be read in the order of increasing time steps.
+
+Large particle systems need to be supported with a minimum of file size. Only as much
+data as needed should be saved. However, a string of raw numbers is not very descriptive.
+Only by knowning the parameters that produced the output can one know what the numbers mean.
+So, the file format must include metadata the describes just that without requiring a 
+reference to the parameters used to create the output. XML is widely used and easy to 
+understand, both by humans and machines, so it will be used for the metadata.
+
+As an additional requirement for reducing file size: files ending in a ".gz" extesnion
+should be transparently decompressed. Similarly, the writer should support writing to gzipped
+files (as on option). Boost gzip streams for this: http://www.boost.org/libs/iostreams/doc/classes/gzip.html
+will be used for this. 
+
+Note: The boost example code only shows how to use a filtering stream<b>buf</b>. A
+filtering_stream can be used in an identical way:
+
+\verbatim
+ifstream file("testdata.gz");
+filtering_stream<input> in;
+in.push(gzip_decompressor());
+in.push(file);
+
+in >> data; // or anythong you normally can do with an ifstream
+\endverbatim
+
+XML Parsers were evaluated, and I found a simple one that has a nice interface
+and not a lot of overhead: http://www.applied-mathematics.net/tools/xmlParser.html
+
+\section sec_file_format_requirements Requirements
+<b>File format:</b>
+-# The time step must be specified in the file
+-# Box dimensions must be inluded (with units)
+-# The number of particles in the file must be specified
+-# The number of particle types must also be specified
+-# Particle positions (with units) can optionally be included
+-# Particle velocities (with units) can optionally be inluded
+-# Particle types can optionally be included
+-# Lists of numbers (positions, velocities, types) will be given as text readable numbers
+	in the order of the particle tags. Individual numbers will be separated by whitespace.
+	The particular type of whitespace should be irrelevant.
+-# File size is important, numbers written should look like 12.123456, that is: only 6 numbers
+	after the decimal.
+-# The order of xml elements in the file should not matter.
+-# Bonds should also be specified
+	
+Here is a proposed xml file that meets these requirements. Replace xn yn zn with floating
+point numbers that are the coordinates of the particle with tag n, and the same goes for vxn, vyn, vzn.
+typen is an integer (from 0 to NTypes-1) that specifies the type of the particle with tag n.
+
+\verbatim
+<?xml version="1.0" encoding="UTF-8"?>
+<hoomd_xml>
+<configuration time_step="0" N="5" NTypes="2">
+<box units="sigma" Lx="13.456789" Ly="12.123456" Lz="45.765432" />
+<position units="sigma">
+x1 y1 z1
+x2 y2 z2
+x3 y3 z3
+x4 y4 z4
+x5 y5 z5
+</position>
+<velocity units="sigma/tau">
+vx1 vy1 vz1
+vx2 vy2 vz2
+vx3 vy3 vz3
+vx4 vy4 vz4
+vx5 vy5 vz5
+</velocity>
+<type>
+type1
+type2
+type3
+type4
+type5
+</type>
+</configuration>
+</hoomd_xml>
+\endverbatim
+
+Don't forget the requirement that the order of elements doesn't matter. The box element
+should be able to be placed just before the /configuration without bothering the reader.
+This can be accomplished with the "Find element" methods in the xml code linked to above.
+
+Requirements for the reader:
+-# Can read the file format defined above
+-# Implemented as a ParticleDataInitializer
+-# Should write status messages to cout what elements are being read from the file
+		so the user is sure things are coming from the right place.
+-# Similarly, it should print status messages to cout listing ignored elements.
+
+The reader is implemented in HOOMDInitializer
+
+Requirements for the writer
+-# Can write the file format defined above
+-# Implemented as an Analyzer
+-# Given a base file name, say "dump/atoms.dump" for example: The writer should
+	write one file per time step, appending the time step with zero padding. 
+	The example for time step 15000 would be "dump/atoms.dump.0000015000".
+-# As an option, the creater of the writer can request that dump files can be saved in 
+	a gzipped format. In this case, an additional ".gz" should be appended after the
+	time step.
+-# The box, position, velocity, and type elements need to be optionally included/excluded
+	from the file. 
+	- Note: a reasonable default is to include box, position, and type
+-# Forces can also be written to the file (TO BE IMPLEMENTED LATER)
+
+The writer is implemented in HOOMDDumpWriter
+
+An external script will be written to combine elements from separate files into one
+in order to implement the use case mentioned above.
+
+<hr>
+\ref page_dev_info "Back to Table of Contents"
+
+\page page_system_class_design System Class Design
+
+\section sec_system_class_rationale Rationale
+
+The System class ties everything together into one conglomerate. It defines
+the meaning of time step and is responsible for stepping the system
+through time. This is done for several reasons. 1) It has to be done
+somewhere :) 2) Convenience: add things to System and then call
+run to step forward so many time steps. and 3) everything is referenced
+to a central object so restart files can be implemented by
+just serializing System.
+
+The integration with python (http://trac2.assembla.com/hoomd/ticket/40) is
+likely going to require that the tracked computes, updaters, etc... 
+are named.
+
+The System class will store an abritrary number of Analyzer classes, 
+Updater classes, and Compute classes. Computes are only stored for
+reference when saving/loading restart files.
+
+It will provide a run method that runs for a specified number of time steps.
+During the run of each step
+ -# Analyzers are executed every \b period time steps
+ -# Updaters are executed every \b period time steps
+ -# The Integrator is executed advancing the simulation to tstep+1
+
+Analyzers and updaters will be executed in the same order in which they are 
+added to the System. The period for executing analyzers can be configured
+on a per analyzer basis. Updaters can also be set to only update
+every so many steps.
+
+Status information will be printed while the simulation is running. Every 
+N seconds a line will be printed noting the total run time so far, the number
+of time steps completed out of the total and an estimate on the run completion time.
+Using LAMMPS, I've always thought this kind of output would be useful.
+
+Since the profiler brings everything together, it makes sense as a place to 
+set/clear the profiler too.
+
+\section sec_system_class_requirements Requirements
+
+ - Constructed from a ParticleData reference, which it holds on to
+ - Tracks updaters/analyzers added to it and the order, allowing for addition, removal, and period changing.
+ - One Integrator can be set
+ - Provides a run method to run a certain number of time steps
+ 	- run will write out status information
+ - Serializable (\b TODO)
+ - Set profiler on all stored analyzer, updaters, and computes
+
+*/
+

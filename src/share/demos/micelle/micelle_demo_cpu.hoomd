@@ -1,0 +1,61 @@
+#! /usr/bin/env hoomd
+
+# $Id$
+# $URL$
+
+from hoomd import *
+import math;
+
+# setup parameters of simulation
+r_cut = 3.0;
+r_buff = 0.8;
+dt = 0.005;
+T = 1.0;
+input_file = find_hoomd_data_dir() + "/demos/micelle/micelle.xml";
+
+# initialize particles
+init = HOOMDInitializer(input_file);
+pdata = ParticleData(init);
+
+# setup forces
+nlist = BinnedNeighborList(pdata, r_cut, r_buff);
+init.setupNeighborListExclusions(nlist);
+nlist.setEvery(10);
+
+fc = LJForceCompute(pdata, nlist, r_cut);
+sigma = 1.0;
+alpha = 0.0;
+epsilon = 1.0;
+lj1 = 48.0 * epsilon * math.pow(sigma, 12.0);
+lj2 = alpha * 24.0 * epsilon * math.pow(sigma, 6.0);
+fc.setParams(0, 0, lj1, lj2);
+fc.setParams(0, 1, lj1, lj2);
+alpha = 1.0;
+lj2 = alpha * 24.0 * epsilon * math.pow(sigma, 6.0);
+fc.setParams(1, 1, lj1, lj2);
+
+fc_bond = BondForceCompute(pdata, 330, 0.84);
+init.setupBonds(fc_bond);
+
+# setup the particle sort
+sorter = SFCPackUpdater(pdata, 1.0);
+
+# integrator
+nvt = NVTUpdater(pdata, dt, 18000.0, T);
+nvt.addForceCompute(fc);
+nvt.addForceCompute(fc_bond);
+
+# IMD interface to VMD
+imd = IMDInterface(pdata, 12345);
+
+# setup system
+sys = System(pdata, 0);
+sys.addCompute(nlist, "nlist");
+sys.addCompute(fc, "fc");
+sys.addCompute(fc_bond, "fc_bond");
+sys.setIntegrator(nvt);
+sys.addUpdater(sorter, "sorter", 1000);
+sys.addAnalyzer(imd, "imd", 10);
+
+# run for a long time
+sys.run(10000000);

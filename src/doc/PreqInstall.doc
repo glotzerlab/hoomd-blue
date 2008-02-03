@@ -1,0 +1,444 @@
+/*
+Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
+Source Software License
+Copyright (c) 2008 Ames Laboratory Iowa State University
+All rights reserved.
+
+Redistribution and use of HOOMD, in source and binary forms, with or
+without modification, are permitted, provided that the following
+conditions are met:
+
+* Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names HOOMD's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
+CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*! \page page_software_req_install_linux Installing Software Prerequisites on Linux
+
+This page assumes that you have a standard terminal window open. Commands to run will
+be indicated as below:
+\code
+ $ echo hello
+hello
+\endcode
+" $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
+output obtained above on the next line: "hello"
+
+The process for installing software/libraries differes from linux distribution to distribution. 
+In Gentoo (http://www.gentoo.org/) 
+\code
+ $ emerge python
+\endcode
+would install python. Look at your linux distrubition's documentation to find how to install
+packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" to
+become root before installing.
+
+\section software_req_install_linux_python Python
+
+First, check if python is already installed
+\code
+ $ python -V
+Python 2.4.4
+\endcode
+Make sure that the version is 2.3 or greater. If you get
+\code
+bash: python: command not found
+\endcode
+or have a version older than 2.3, you will need to upgrade/install python. 
+Note that you will also 
+need the python development libraries which some distributions might separate into into
+python-devel or some such. The existance of the python development package can be tested
+by checking the output of 
+\code 
+ $ ls /usr/include/python2.X/Python.h
+/usr/include/python2.X/Python.h
+\endcode
+where X is replaced with the major version of python that you have (i.e. For python 2.4.4 above,
+X would be 4). If this returned 
+\code
+ls: cannot access /usr/include/python2.X/Python.h: No such file or directory
+\endcode
+then you do not have the python development libraries installed.
+
+
+
+\section software_req_install_linux_boost Boost
+
+First, check if boost is already installed
+\code
+ $ grep BOOST_LIB_VERSION /usr/include/boost/version.hpp
+//  BOOST_LIB_VERSION must be defined to be the same as BOOST_VERSION
+#define BOOST_LIB_VERSION "1_34_1"
+\endcode
+Make sure that the version is 1_32_0 or newer. If you get
+\code
+grep: /usr/include/boost/version.hpp: No such file or directory
+\endcode
+then boost is not installed. You can upgrade/install boost with your distribution's package
+manager.
+
+
+
+
+\section software_req_install_linux_libz libz
+
+Every linux distribution I have ever seen has installed libz by default. 
+If you find that it isn't on yours, turn to your package manager.
+
+\section software_req_install_linux_compiler Compiler
+
+These instructions test for the installation of gcc. Other C++ compilers can be used
+if you wish, though compilations with CUDA enabled are only supported with gcc.
+
+Test if g++ is installed.
+\code 
+g++ --version
+g++ (GCC) 4.1.2 (Gentoo 4.1.2)
+\endcode
+Any version should do. If you get
+\code
+bash: g++: command not found
+\endcode
+then you will need to install gcc using your distributions package management system.
+
+
+\section software_req_install_linux_cmake CMake
+
+It is not very likely that your linux distribution includes CMake by default, 
+but check anyways.
+\code
+ $ cmake --version
+cmake version 2.4-patch 6
+\endcode
+Make sure the version is 2.4 or later. If you have an old version or get
+\code
+bash: cmake: command not found
+\endcode
+then you will need to upgrade/install CMake. Try your distributions package 
+manager first. I.e. in Gentoo
+\code
+ $ emerge cmake
+\endcode
+
+If your distribution does not have a cmake package, 
+then you can install it into your home directory by hand. First, download
+cmake-2.4.7-Linux-i386.tar.gz from the Downloads section at http://www.cmake.org.
+Unpack the tarball to any location you prefer: this example assumes you are installing it to the 
+${HOME}/software
+\code 
+ $ mkdir ~/software
+ $ mv cmake-2.4.7-Linux-i386.tar.gz ~/software/
+ $ cd ~/software
+ $ tar -xvzf cmake-2.4.7-Linux-i386.tar.gz
+\endcode
+Then you need to put the bin directory for cmake into your path. If you use bash for a shell you can do 
+this by editing ~/.bashrc. Look for a line with PATH=... and add the cmake directory to the end separated 
+by a colon. If you can't find the line, create it like so.
+\code
+PATH=$PATH:$HOME/software/cmake-2.4.7-Linux-i386/bin
+export PATH
+\endcode
+Restart your bash shell (or open a new one) and try the version check above to test your installation.
+
+\section software_req_install_linux_cuda CUDA
+
+Even if you do not have the needed graphics hardware to run, you can still install the CUDA toolkit and 
+run run executables in emulation mode. The emulation is slow, but will allow you to develop and test
+any changes you make that affect any of the *GPU classes. 
+
+CUDA is quite new and it is not likely that there
+is a package available through your linux distribution. Go to http://developer.nvidia.com/object/cuda.html#downloads  
+and download the CUDA 1.1 toolkit for you architecture and linux distribution. If your distribution isn't listed,
+pick one that looks close, it will likely work. To install, simply go to the directory where you downloaded 
+the toolkit and run: run
+\code
+ $ bash NVIDIA_CUDA_Toolkit_1.1_rhel5_x86_64.run
+\endcode
+Note, this example lists a specific file: change the command to match the file that you downloaded. The
+file is a self-unpacking and installing script. Just accept the default location if you have root access
+to install, or install to ~/CUDA_11 or anywhere else you please, just make sure to set your LD_LIBRARY_PATH and 
+PATH as the installer indicates.
+
+If you have a CUDA capable graphics card, you will also need the proper graphics driver version. See
+the CUDA webpage linked to above for more information. Gentoo users can find an ebuild to install the
+latest drivers here: https://bugs.gentoo.org/show_bug.cgi?id=199671 just install it in your local overlay.
+
+If you wish, you can download the CUDA SDK from the same website and compile the example files to
+test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD, however.
+
+\section software_req_install_linux_subversion Subversion
+
+Subversion is used for version control. You need to install it if you have commit access and are going to 
+work on active development of HOOMD, or if you just want to download and compile the latest and greatest
+version.
+
+First, see if you already have subversion installed.
+\code
+ $ svn --version
+svn, version 1.4.4 (r25188)
+\endcode
+If you get
+\code
+-bash: svn: command not found
+\endcode
+then you will need to install it with your distrubition's package manager.
+
+*/
+
+/*! \page page_software_req_install_mac Installing Software Prerequisites on Mac OS X
+
+Here are detailed instructions on installing the prerequisite software for Mac OS X. They 
+list everything that needs to be done from a clean install of the operating system. If you
+have already installed something listed here, you can skip it of course.
+
+This page assumes that you have a standard terminal window open in some cases. Commands to run will
+be indicated as below:
+\code
+ $ echo hello
+hello
+\endcode
+" $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
+output obtained above on the next line: "hello"
+
+<b>1. Install XCode</b><br>
+Mac OS X doesn't come with a c++ compiler. You need to download and install 
+XCode from here: http://developer.apple.com/tools/xcode/ Install version 2.5 
+if you have Mac OS X 10.4, or 3.0 if you have Mac OS X 10.5.
+
+<b>2. Install python</b><br>
+If you are running Mac OS X 10.4, you need to download and install the latest 
+version of python (2.5.1) from http://www.python.org/download/ . 
+Users on 10.5 (Leopard) probably can skip this step (unknown, no 10.5 machine to test on).
+
+<b>3. Download and compile boost</b><br>
+Building boost is a fairly complicated and time consuming process.
+
+Start by downloading \b boost-1.34.1.tar.bz2 from http://www.boost.org/. Extract the tarball and 
+configure boost for building with the following commands.
+\code
+ $ tar -xjf boost_1_34_1.tar.bz2 
+ $ cd boost_1_34_1
+ $ ./configure --with-python=/Library/Frameworks/Python.framework/Versions/Current/bin/python
+Building Boost.Jam with toolset darwin... tools/jam/src/bin.macosxppc/bjam
+Detecting Python version... 2.5
+Detecting Python root... /Library/Frameworks/Python.framework/Versions/2.5
+Unicode/ICU support for Boost.Regex?... not found.
+Generating Boost.Build configuration in user-config.jam...
+Generating Makefile...
+\endcode
+
+Now, the default settings from configure generate unoptimized boost libraries. 
+We can't have that since HOOMD is all about speed, so open the Makefile
+\code
+ $ open Makefile
+\endcode
+and edit the first line from
+\code
+BJAM=./tools/jam/src/bin.macosxppc/bjam
+\endcode to
+\code
+BJAM=./tools/jam/src/bin.macosxppc/bjam optimization=speed
+\endcode
+Then save and exit the text editor.
+
+Now, run the command
+\code
+ $ make
+\endcode
+and wait a \e long time for everything to compile. At the end, you should see a message saying
+\code
+ ...updated 1426 targets...
+\endcode
+
+Now, you are ready to install the library (requires administrator privleges).
+\code
+ $ sudo make install
+\endcode
+After typing in your password and a considerably shorter wait, you should see
+\code
+ ...updated 1426 targets...
+\endcode
+again. Boost is now installed.
+
+You can delete the boost_1_34_1 directory now if you wish. It might be worth 
+saving for a little while until you have compiled HOOMD and know everything 
+is working so that you won't need to go through all the setup steps again. 
+A common error may be to forget the "sudo" in the last command which will 
+result in boost not being installed and no obvious error message as to why. 
+Just run the command again with the sudo if this is the case.
+
+<b>4. CMake</b><br>
+Download and install the CMake dmg from http://www.cmake.org/.
+
+<b>5. CUDA</b><br>
+NVIDIA does not support CUDA on Mac OS X yet. They are working on it and have demonstrated it, 
+so it should be out soon. These docs will be updated then. It is only required to build
+HOOMD with support for GPU execution.
+
+<b>6. Subversion</b><br>
+Subversion is used for version control. You need to install it if you have commit access and are going to 
+work on active development of HOOMD, or if you just want to download and compile the latest and greatest
+version.
+
+Subversion on Mac OS X is most easily installed from the dmg from here: http://downloads.open.collab.net/binaries.html
+
+<b>7. Doxygen</b><br>
+If you want to build this documentation from source, you will need to install Doxygen. There 
+is a dmg available for download at http://www.stack.nl/~dimitri/doxygen/ .
+*/
+
+/*! \page page_software_req_install_windows Installing Software Prerequisites on Windows
+
+\section software_req_install_windows_vstudio Visual Studio
+
+First things first, you will need a compiler to build C++ applications. If you don't already
+have one, that is not a problem. You can download and install a fully featured IDE and compiler, <b>Visual 
+C++ Express 2005</b> from here: http://www.microsoft.com/express/2005/ . (note, if you search 
+around you will find that there is a newer express verion, 2008, but it is not currently
+supported by NVIDIA CUDA, has problems with the current version of boost and thus should not be used).
+
+If you install the express edition, you must also follow the link from 
+http://www.microsoft.com/express/2005/ to download the <b>Windows Platform SDK</b>
+(ignore that the platform sdk says it is for windows 2003 server, it works on XP). If you
+get an option, the preferred installation path is \e "C:\Program Files\Microsoft Platform SDK".
+
+Only a few options need to be activated for the install, namely the Windows Core SDK, and
+only those componets you really need for your architecture as shown in this
+screenshot (shown for the x86 32-bit arch).
+\image html windows_platform_sdk_options.png
+
+All other installation options can be disabled (not all shown).
+
+After installing the SDK, you need to set some paths. Open Visual Studio and select
+the \b Tools menu and then select \b Options... Navigate to the section
+<b>Projects and Solutions -> VC++ Directories</b>. As shown in this image:
+\image html vstudio_directories.png
+(yours may look slightly different from this one).
+
+Using the upper right drop down box labeled \b "Show directories for" add<br>
+\b "C:\Program Files\Microsoft Platform SDK\bin" to \e Executables<br>
+\b "C:\Program Files\Microsoft Platform SDK\include" to \e Include files<br>
+and \b "C:\Program Files\Microsoft Platform SDK\lib" to \e Library files<br>
+These are accomplished in the image above with the $(PLATFORMSDK_DIR) environment variable,
+but you do not need to do the same, just type in the full path where you installed the
+platform SDK directly or use the file chooser dialog box.
+
+\section software_req_install_windows_python Python
+
+Download and install python binaries from http://www.python.org. If you choose to 
+download the boost binaries (below), you \e must install python version \b 2.5.1. 
+If you plan to build boost from source, you can install any version of python
+you like, as long as it is newer than \b 2.3.
+
+\section software_req_install_windows_boost Boost
+
+<b>Option 1: Install binaries.</b> Easy, but reading/writing \b gzip or \b bzip compressed files will not be supported.
+Also, only supports version \b 2.5.1 of python (for boost 1.34.1, may differ for the other boost
+versions, depending on which version of python boost-consulting compiled them against).
+
+Download the boost 1.34.1 installer from here http://www.boost-consulting.com/products/free.
+When you run it, you will get an option screen that looks like this:
+\image html boost_binary_install_windows.png
+Select the options as indicated. You may also be interested in the "Multithread, Debug DLL"
+and "Multithread, DLL" versions of the libraries, but only select those options if you 
+are an expert HOOMD developer and really know all the implications in linking
+HOOMD to boost dynamically.
+
+<b>Option 2: Compile from source.</b> Difficult, but enables reading and writing of compressed files and allows 
+the use of any supported version of python. These instructions are really only intended for
+advanced users and developers that will be building statically linked builds for download.
+
+Download the source code from http://www.boost.org. This document assumes you have
+downloaded boost 1.34.1. Additionally, you must download and install python before continuing. 
+Instructions are above.
+
+Download the source code for<br>
+\b bzip: http://www.bzip.org/downloads.html <br>
+\b zlib: http://www.zlib.net/ <br>
+
+The full instructions for building boost are here: http://www.boost.org/more/getting_started/windows.html. 
+A summary of the commands needed are listed below.
+
+\b 1. Download bjam: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=72941
+You will need the file \b boost-jam-3.1.16-1-ntx86.zip
+
+\b 2. Extract everything to a nice place. These instructions assume that \b boost, \b zlib
+and \b bzip2 are all extracted to \e c:\\libraries and \b bjam.exe is extracted to 
+\e c:\\libraries\\bjam.exe .
+
+\b 3. To compile, first open a build environment: 
+	Start->Microsoft Platform SDK->Open Build Environment Window->Windows XP 32-bit Build Environment->Set Windows XP 32-bit Build Environment (Retail)
+	
+\b 4. In the terminal window that opens, cd to the extracted \e boost_1_34_1 directory and
+	run the following command, then wait a \e long time for everything to compile.
+	It is easiest to copy the entire command as one line and paste it
+	(right click and choose paste in the command line window).
+	If you extracted anything to different locations, you will need to change
+	the values in the command line. 
+\code
+C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" -sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 stage
+\endcode
+	\b Note: bjam will \b NOT give any errors if any paths are specified incorrectly. 
+	Adding --debug-configuration to the end of the command line will provide some information,
+	but not enough to really tell what is going on. The only way to be certain that bzip and zlib 
+	are being compiled in is to check at
+	the end for compiled libraries containint \b zlib and \b bzip2 in their file names (it is
+	easiest to check after the install step below). Fortunately, if a path is entered incorrectly,
+	you can just rerun this command with the modified path and it will only recompile what is needed
+	so it won't take very long.
+
+Then, run the next command (below). It will install boost header files and libraries into c:\\opt (you can change
+the location by changing the value after --prefix). 
+\code
+C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" -sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 --prefix=c:\opt install
+\endcode
+For CMake to find your newly compiled boost libraries, you must set the environment 
+variable \b BOOST_ROOT to c:\\opt (or whatever you set --prefix to).
+
+\section software_req_install_windows_cuda CUDA
+Download and install the 1.1 toolkiet from http://www.nvidia.com/object/cuda_get.html#windows. There
+is no need to install the SDK. If you have a CUDA capable graphics card, you will also need
+the driver listed on that page in order to execute HOOMD on the GPU. If you do not have
+a CUDA capable graphics card, you can still install the toolkit and compile HOOMD in
+CPU emulation mode. It is quite slow, but developers can use it to test any code they 
+work on that touches GPU classes. 
+
+\section software_req_install_windows_cmake CMake
+Download the latest CMake installer from here: http://www.cmake.org/HTML/Download.html
+
+\section software_req_install_windows_subversion Subversion
+
+TortoiseSVN is a nice graphical interface to subversion that integrates into the
+windows explorer. Download from here: http://tortoisesvn.net/
+
+If you prefer a command line, you can download one from here: 
+http://subversion.tigris.org/project_packages.html#binary-packages.
+You really only need the file \b svn-1.4.5-setup.exe. 
+
+There is nothing against installing both. One useful reason to do this
+is to enable HOOMD executables to report the svnversion they were 
+compiled from. This can only be done if the command line tool is installed.
+*/

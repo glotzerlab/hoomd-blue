@@ -1,0 +1,105 @@
+# Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
+# Source Software License
+# Copyright (c) 2008 Ames Laboratory Iowa State University
+# All rights reserved.
+
+# Redistribution and use of HOOMD, in source and binary forms, with or
+# without modification, are permitted, provided that the following
+# conditions are met:
+
+# * Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+
+# * Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+
+# * Neither the name of the copyright holder nor the names HOOMD's
+# contributors may be used to endorse or promote products derived from this
+# software without specific prior written permission.
+
+# Disclaimer
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
+# CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+
+# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGE.
+
+# $Id$
+# $URL$
+
+#################################
+## Boost is a required library
+## perform some magic to honor USE_STATIC
+set(OLD_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
+if(USE_STATIC)
+
+if(UNIX)
+	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+elseif(WIN32)
+	# boost is already statically linked by default on windows
+else(UNIX)
+	message(FATAL_ERROR "I don't know how to force static linking of boost on your architecture")
+endif(UNIX)
+
+else(USE_STATIC)
+
+if(WIN32)
+	message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
+		you really want this feature, make it work yourself")
+elseif(APPLE)
+	set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
+elseif(UNIX)
+	set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+else(WIN32)
+	message(FATAL_ERROR "I don't know how to force dynamic linking of boost on your architecture")
+endif(WIN32)
+
+endif(USE_STATIC)
+
+# perform some black magic to set libraries to NOTFOUND if they don't match
+# the suffix: this way changing USE_SHARED in the GUI will case all boost libs
+# to be found again
+# not supported on win32 (all static there)
+if(NOT WIN32)
+if(BOOST_DATE_TIME_LIBRARY MATCHES "${CMAKE_FIND_LIBRARY_SUFFIXES}$")
+else(BOOST_DATE_TIME_LIBRARY MATCHES "${CMAKE_FIND_LIBRARY_SUFFIXES}$")
+
+set(BOOST_DATE_TIME_LIBRARY NOTFOUND)
+# to avoid an ugly mess of code, use the date time library as a trigger
+# to change all the other libraries
+set(BOOST_FILESYSTEM_LIBRARY NOTFOUND)
+set(BOOST_IOSTREAMS_LIBRARY NOTFOUND)
+set(BOOST_PRG_EXEC_MONITOR_LIBRARY NOTFOUND)
+set(BOOST_PROGRAM_OPTIONS_LIBRARY NOTFOUND)
+set(BOOST_PYTHON_LIBRARY NOTFOUND)
+set(BOOST_REGEX_LIBRARY NOTFOUND)
+set(BOOST_SERIALIZATION_LIBRARY NOTFOUND)
+set(BOOST_SIGNALS_LIBRARY NOTFOUND)
+set(BOOST_TEST_EXEC_MONITOR_LIBRARY NOTFOUND)
+set(BOOST_THREAD_LIBRARY NOTFOUND)
+set(BOOST_UNIT_TEST_FRAMEWORK_LIBRARY NOTFOUND)
+set(BOOST_WSERIALIZATION_LIBRARY NOTFOUND)
+
+endif(BOOST_DATE_TIME_LIBRARY MATCHES "${CMAKE_FIND_LIBRARY_SUFFIXES}$")
+
+endif(NOT WIN32)
+
+find_package(Boost REQUIRED)
+link_directories(${BOOST_LIBRARY_DIRS})
+# the user needs to see if the boost auto-linking is working on windows
+if (WIN32)
+add_definitions(-DBOOST_LIB_DIAGNOSTIC)
+endif (WIN32)
+
+set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_CMAKE_FIND_LIBRARY_SUFFIXES})

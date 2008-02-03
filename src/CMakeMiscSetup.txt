@@ -1,0 +1,86 @@
+# Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
+# Source Software License
+# Copyright (c) 2008 Ames Laboratory Iowa State University
+# All rights reserved.
+
+# Redistribution and use of HOOMD, in source and binary forms, with or
+# without modification, are permitted, provided that the following
+# conditions are met:
+
+# * Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+
+# * Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+
+# * Neither the name of the copyright holder nor the names HOOMD's
+# contributors may be used to endorse or promote products derived from this
+# software without specific prior written permission.
+
+# Disclaimer
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
+# CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+
+# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGE.
+
+# $Id$
+# $URL$
+
+#################################
+## Optional static build
+## Enabling the static build will link as many libraries as possible statically
+OPTION(USE_STATIC "Link as many libraries as possible statically" ON)
+if (USE_STATIC)
+	add_definitions(-DUSE_STATIC)
+endif(USE_STATIC)
+
+################################
+## thread safe compiling
+if(WIN32)
+	add_definitions(-D_MT)
+elseif(UNIX)
+	add_definitions(-D_REENTRANT)
+endif(WIN32)
+
+#################################
+## On windows: we need winsock
+if (WIN32)
+	find_library(WINSOCK_LIB WSock32 PATHS $ENV{PLATFORMSDK_DIR}Lib "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib" DOC "Path to WSock32.lib")
+endif (WIN32)
+
+#################################
+## Optional build of boost.python interface
+OPTION(USE_PYTHON "Build the boost.python hoomd module" OFF)
+
+##################################
+## SSE and floating point compilation options
+# msvc 2005 doesn't define __SSE__ or __SSE2__, so we define them for it
+# this of course assumes that the machine is capable of SSE2.... which almost any windows machine will be these days
+
+if (WIN32)
+add_definitions(-D__SSE__ -D__SSE2__)
+endif (WIN32)
+# SSE code will only be built if this option is enabled
+option(USE_SSE "Enable SSE optimized code" OFF)
+if(USE_SSE)
+	add_definitions (-DUSE_SSE)
+endif(USE_SSE)
+
+# allow user to compile code with single instead of double precision
+# single precision option
+option(SINGLE_PRECISION "Use single precision math" OFF)
+
+##################################
+## find the threads library
+find_package(Threads)
