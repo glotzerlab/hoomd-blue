@@ -70,9 +70,7 @@ TODO: write me
 (TODO: more detailed requirements on optimal systems, preferrably with benchmarks. Put this into the hardware guide section below)
 
 \section sec_main_toc Table of Contents
- - Hardware guide
- - Installation guide
- - User guide
+ - \subpage page_user_guide
  - \subpage page_dev_info
  - \subpage page_license
  - \subpage credits

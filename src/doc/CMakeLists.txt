@@ -70,10 +70,23 @@ else (HOOMD_SUBVERSION_BUILD)
 	set(DOXYGEN_HOOMD_VERSION ${HOOMD_VERSION})
 endif (HOOMD_SUBVERSION_BUILD)
 
+# custom html headers, footers and stylesheets have been created to make the
+# doxygen docs fit in with the main HOOMD homepage. Enable them as an option
+option(USE_DOXYGEN_HOOMD_STYLE OFF "Enable the usage of the HOOMD homepage
+stylesheet in processing the doxygen html")
+if (USE_DOXYGEN_HOOMD_STYLE)
+	set(DOXYGEN_HTML_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/header.html)
+	set(DOXYGEN_HTML_FOOTER ${CMAKE_CURRENT_SOURCE_DIR}/footer.html)
+	set(DOXYGEN_HTML_STYLESHEET ${CMAKE_CURRENT_SOURCE_DIR}/stylesheet.css)
+else (USE_DOXYGEN_HOOMD_STYLE)
+	set(DOXYGEN_HTML_HEADER "")
+	set(DOXYGEN_HTML_FOOTER "")
+	set(DOXYGEN_HTML_STYLESHEET "")
+endif (USE_DOXYGEN_HOOMD_STYLE)
+
 # configure the doxygen file
 configure_file (${HOOMD_SOURCE_DIR}/doc/Doxyfile.in ${HOOMD_BINARY_DIR}/doc/Doxyfile)
 
-#TODO  make it depend on srcs and headers
 add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/doc/html/index.html
 					COMMAND ${DOXYGEN} ${HOOMD_BINARY_DIR}/doc/Doxyfile
 					DEPENDS ${HOOMD_CPU_SRCS} ${HOOMD_GPU_SRCS}
