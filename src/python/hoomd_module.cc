@@ -36,6 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// $Id$
+// $URL$
+
 // remove silly warnings
 #ifdef WIN32
 #define _CRT_SECURE_NO_DEPRECATE
@@ -95,6 +98,7 @@ using namespace std;
 
 //! Scans for possible hoomd data directories
 /*! \returns the first one it finds
+	This function is for use by the demos and benchmarks installed with HOOMD.
 */
 string find_hoomd_data_dir()
 	{
@@ -142,6 +146,29 @@ string find_hoomd_data_dir()
 	cerr << "HOOMD data directory not found, please set the environment variable HOOMD_ROOT" << endl;
 	return string("");
 	}
+	
+//! Scans for a VMD installation
+/*! \returns Full path to the vmd executable
+	This function is for use by the demos and benchmarks installed with HOOMD.
+*/
+string find_vmd()
+	{
+	#ifdef WIN32
+	
+	#else
+	// check some likely locations
+	if (exists("/usr/bin/vmd"))
+		return "/usr/bin/vmd";
+	if (exists("/usr/local/bin/vmd"))
+		return "/usr/local/bin/vmd";
+	if (exists("/opt/vmd/bin/vmd"))
+		return "/opt/vmd/bin/vmd";
+	#endif
+	
+	// return an empty string if we didn't find it
+	return "";
+	}
+
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
@@ -152,6 +179,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	// write out the version information on the module import
 	output_version_info(false);
 	def("find_hoomd_data_dir", &find_hoomd_data_dir);
+	def("find_vmd", &find_vmd);
 
 	InstallSIGINTHandler();
 

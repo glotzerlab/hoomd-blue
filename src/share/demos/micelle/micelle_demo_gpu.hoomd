@@ -5,6 +5,7 @@
 
 from hoomd import *
 import math;
+import os;
 
 # setup parameters of simulation
 r_cut = 3.0;
@@ -56,6 +57,27 @@ sys.addCompute(fc_bond, "fc_bond");
 sys.setIntegrator(nvt);
 sys.addUpdater(sorter, "sorter", 1000);
 sys.addAnalyzer(imd, "imd", 100);
+
+###########################
+## get setup to run VMD for the user
+
+# run a few steps to fire up the IMD listener
+sys.run(10);
+
+# find the vmd executable and run it
+vmd_bin = find_vmd();
+
+if (vmd_bin == ""):
+	print "\nVMD not found. To see the live demo, you must start VMD";
+	print "and run the following commands in the VMD console:\n";
+	print "cd ", find_hoomd_data_dir() + "/demos/micelle";
+	print "play vmd_script.vmd\n";
+	raw_input("press enter to continue executing the demo");
+
+# run vmd
+if (vmd_bin != ""):
+	os.chdir(find_hoomd_data_dir() + "/demos/micelle");
+	os.spawnlp(os.P_NOWAIT, vmd_bin, vmd_bin, "-e", "vmd_script.vmd");
 
 # run for a long time
 sys.run(100000000);
