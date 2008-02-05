@@ -58,214 +58,227 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Initializers.h"
 #include <stdlib.h>
+
+#include <boost/program_options.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
+using namespace boost::program_options;
 using namespace boost;
 using namespace std;
 
-// a simple function for benchmarking the performance of a neighborlist vs the number of particles
-// if random is true, the particles are shuffled in memory to present a random memory access pattern 
-// to the neighborlist. If it is false, particles near each other in memory are likely to be neighbors
-void benchmarkN(int imin, int imax, Scalar rmax, bool sort, boost::function<shared_ptr<NeighborList> (shared_ptr<ParticleData>, Scalar)> create_list)
-	{
-	// timer to count how long we spend at each point
-	ClockSource clk;
-	int count = 0;
-
-	
-	for (int i = imin; i <= imax; i+=1)
-		{
-		// construct the particle system	
-		RandomInitializer init(i*i*i, Scalar(0.20), 0.0);
-		// SimpleCubicInitializer init(40, 1.37);
-		shared_ptr<ParticleData> pdata(new ParticleData(init));
-		
-		shared_ptr<NeighborList> nlist = create_list(pdata, rmax);
-	
-		if (sort)
-			{
-			SFCPackUpdater sorter(pdata, 1.0);
-			sorter.update(0);
-			}
-
-		// do a warmup run so memory allocations don't change the benchmark numbers
-		nlist->compute(count++);
-
-		int64_t tstart = clk.getTime();
-		int64_t tend;
-		// do at least one test, then repeat until we get at least 5s of data at this point
-		int nrepeat = 0;
-		
-		// setup to profile
-		shared_ptr<Profiler> prof(new Profiler);
-		nlist->setProfiler(prof);
-		do
-			{
-			nlist->compute(count++);
-			nrepeat++;
-			tend = clk.getTime();
-			} while((tend - tstart) < int64_t(5) * int64_t(1000000000) || nrepeat < 5);
-		
-		//cout << "nrepeat: " << nrepeat << endl;
-		double avgTime = double(tend - tstart)/1e9/double(nrepeat);
-		cout << i*i*i << " " << setprecision(7) << avgTime << ";" << endl;
-
-		// nlist->printStats();
-		
-		//cout << *prof;
-		}
-
-	}
-
-struct NeighborListCreator
-	{
-	NeighborListCreator() { }
-
-	shared_ptr<NeighborList> operator()(shared_ptr<ParticleData> pdata, Scalar rmax) const
-		{
-		shared_ptr<NeighborList> nlist(new NeighborList(pdata, rmax, 0.0));
-		nlist->setStorageMode(NeighborList::full);
-		return nlist;
-		}
-	};
-
-
-/*
-#ifdef __SSE__
-struct NeighborListSSECreator
-	{
-	NeighborListSSECreator() { }
-
-	NeighborList *operator()(ParticleData *pdata, Scalar rmax) const
-		{
-		NeighborList *nlist = new NeighborListSSE(pdata, rmax, 0.0);
-		nlist->setStorageMode(NeighborList::full);
-		return nlist;
-		}
-	};
-#endif
+/*! \file neighborlist_bmark.cc
+	\brief Executable for benchmarking all of the various Neighborlist classes
+	\details This is intended as a quick test to check the performance of Neighborlists 
+		on various machines and after performance tweaks have been made. It allows for a
+		number of command line options to change settings, but will most likely just
+		be run with the default settings most of the time.
+	\ingroup benchmarks
 */
 
-struct BinnedNeighborListCreator
+// options from command line
+//! quite mode: only display time per compute and nothing else
+bool quiet = false;
+//! number of threads (for applicable computes)
+unsigned int nthreads = 1;
+//! cutoff radius for pair forces (for applicable computes)
+Scalar r_cut = 3.0;
+//! buffer radius for pair forces (for applicable computes)
+Scalar r_buff = 0.8;
+//! block size for calculation (for applicable computes)
+unsigned int block_size = 128;
+//! number of particles to benchmark
+unsigned int N = 100000;
+//! Should the particles be sorted with SFCPACK?
+bool sort_particles = true;
+//! number of seconds to average over
+unsigned int nsec = 10;
+//! Activate profiling?
+bool profile_compute = true;
+//! Use half neighborlist?
+bool half_nlist = true;
+//! Specify packing fraction of particles for the benchmark (if applicable)
+Scalar phi_p = 0.2;
+
+
+//! Initialize the force compute from a string selecting it
+shared_ptr<NeighborList> init_force_compute(const string& nl_name, shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist)
 	{
-	BinnedNeighborListCreator() { }
+	shared_ptr<NeighborList> result;
 	
-	shared_ptr<NeighborList> operator()(shared_ptr<ParticleData> pdata, Scalar rmax) const
-		{
-		shared_ptr<NeighborList> nlist(new BinnedNeighborList(pdata, rmax, 0.0));
-		nlist->setStorageMode(NeighborList::half);
-		return nlist;
-		}
-	};
-
-#ifdef USE_CUDA
-struct NsqGPUListCreator
-	{
-	NsqGPUListCreator() { }
-	
-	shared_ptr<NeighborList> operator()(shared_ptr<ParticleData> pdata, float rmax) const
-		{
-		shared_ptr<NeighborList> nlist(new NeighborListNsqGPU(pdata, rmax, 0.0));
-		nlist->setStorageMode(NeighborList::full);
-		return nlist;
-		}
-	};
-
-struct BinnedGPUListCreator
-	{
-	BinnedGPUListCreator() { }
-	
-	shared_ptr<NeighborList> operator()(shared_ptr<ParticleData> pdata, float rmax) const
-		{
-		shared_ptr<NeighborList> nlist(new BinnedNeighborListGPU(pdata, rmax, 0.0));
-		nlist->setStorageMode(NeighborList::full);
-		return nlist;
-		}
-	};
-#endif
-
-int main()
-	{
-	int imin = 50;
-	int imax = 50;
-	Scalar r_cut = 4.0;
-	
-	// quick and dirty for now: construct a ~15000 particle system at phi=0.2
-	/*SimpleCubicInitializer init(25, 1.37823);
-	ParticleData pdata(init);
-
-	// shuffle arrays so that there are no patterns in the data
-	shuffle_particles(&pdata);
-
-	Profiler prof;
-	BinnedNeighborList nlist(&pdata, 3.7);
-	nlist.setProfiler(&prof);
-	nlist.setSSE(false);
-	nlist.setStorageMode(NeighborList::full);
-
-	for (unsigned int i = 0; i < pdata.getN() - 1; i++)
-		nlist.addExclusion(i,i+1);
-
-	for (int i = 0; i < 100; i++)
-		nlist.compute(i);
-	cout << prof;*/
-
-	/*Profiler prof2;
-	nlist.setProfiler(&prof2);
-	nlist.setStorageMode(NeighborList::half);
-	for (int i = 0; i < 100; i++)
-		nlist.compute(i+1000);
-
-	cout << prof2;*/
-
-	/*cout << "data_nsq_cpu_unsorted = [" << endl;
-	benchmarkN(imin, 20, r_cut, false, NeighborListCreator());
-	cout << "];" << endl;
-
-	cout << "data_nsq_cpu_sorted = [" << endl;
-	benchmarkN(imin, 20, r_cut, true, NeighborListCreator());
-	cout << "];" << endl;
-	
-	#ifdef __SSE__
-	cout << "data_nsq_sse_unsorted = [" << endl;
-	benchmarkN(imin, 20, r_cut, false, NeighborListSSECreator());
-	cout << "];" << endl;
-	
-	cout << "data_nsq_sse_sorted = [" << endl;
-	benchmarkN(imin, 20, r_cut, true, NeighborListSSECreator());
-	cout << "];" << endl;
-	#endif*/
-	
-	/*cout << "data_n_cpu_unsorted = [" << endl;
-	benchmarkN(imin, imax, r_cut, false, BinnedNeighborListCreator());
-	cout << "];" << endl;*/
-
-	/*cout << "data_n_cpu_sorted = [" << endl;
-	benchmarkN(imin, imax, r_cut, true, BinnedNeighborListCreator());
-	cout << "];" << endl;*/
-	
-
+	// handle creation of the various lennard=jones computes
+	if (nl_name == "BinnedNl")
+		result = shared_ptr<NeighborList>(new BinnedNeighborList(pdata, r_cut, r_buff));
+	if (nl_name == "Nl")
+		result = shared_ptr<NeighborList>(new NeighborList(pdata, r_cut, r_buff));
 	#ifdef USE_CUDA
-	
-	/*cout << "data_nsq_gpu_unsorted = [" << endl;
-	benchmarkN(imin, 30, r_cut, false, NsqGPUListCreator());
-	cout << "];" << endl;
-	
-	cout << "data_nsq_gpu_sorted = [" << endl;
-	benchmarkN(imin, 30, r_cut, true, NsqGPUListCreator());
-	cout << "];" << endl;*/
-	
-	//cout << "data_n_gpu_unsorted = [" << endl;
-	//benchmarkN(imin, imax, r_cut, false, BinnedGPUListCreator());
-	//cout << "];" << endl;
-	
-	//cout << "data_n_gpu_sorted = [" << endl;
-	benchmarkN(imin, imax, r_cut, true, BinnedGPUListCreator());
-	//cout << "];" << endl;
-	cout << endl;
+	if (nl_name == "BinnedNL.GPU")
+		result = shared_ptr<NeighborList>(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
+	if (nl_name == "Nl_NSQ.GPU")
+		result = shared_ptr<NeighborList>(new NeighborListNsqGPU(pdata, r_cut, r_buff));
 	#endif
+		
+	return result;
+	}
 	
-	return 0;
+
+//! Initializes the particle data to a random set of particles
+shared_ptr<ParticleData> init_pdata()
+	{
+	RandomInitializer rand_init(N, phi_p, 0.0);
+	shared_ptr<ParticleData> pdata(new ParticleData(rand_init));
+	if (sort_particles)
+		{
+		SFCPackUpdater sorter(pdata, Scalar(1.0));
+		sorter.update(0);
+		}
+		
+	return pdata;
 	}
 
+//! Actually performs the benchmark on the preconstructed force compute
+void benchmark(shared_ptr<NeighborList> nl)
+	{
+	// initialize profiling if requested
+	shared_ptr<Profiler> prof(new Profiler());
+	if (profile_compute && !quiet)
+		nl->setProfiler(prof);
+	
+	// timer to count how long we spend at each point
+	ClockSource clk;
+	int count = 2;
+
+	// do a warmup run so memory allocations don't change the benchmark numbers
+	nl->compute(count++);
+
+	int64_t tstart = clk.getTime();
+	int64_t tend;
+	// do at least one test, then repeat until we get at least 5s of data at this point
+	int nrepeat = 0;
+	do
+		{
+		nl->compute(count++);
+		nrepeat++;
+		tend = clk.getTime();
+		} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 5);
+	
+	// make sure all kernels have been executed when using CUDA
+	#ifdef USE_CUDA
+	cudaThreadSynchronize();
+	#endif
+	tend = clk.getTime();
+	
+	if (!quiet)
+		cout << *prof << endl;
+	
+	double avgTime = double(tend - tstart)/1e9/double(nrepeat);;
+	cout << setprecision(7) << avgTime << " s/step" << endl;
+	}
+
+//! Parses the command line and runs the benchmark
+int main(int argc, char **argv)
+	{
+
+	// the name of the ForceCompute to benchmark (gotten from user)
+	string nl_name;
+	
+	options_description desc("Allowed options");
+	desc.add_options()
+		("help,h", "Produce help message")
+		("nparticles,N", value<unsigned int>(&N)->default_value(64000), "Number of particles")
+		("phi_p", value<Scalar>(&phi_p)->default_value(0.2), "Volume fraction of particles in test system")
+		("r_cut", value<Scalar>(&r_cut)->default_value(3.0), "Cutoff radius for pair force sum")
+		("r_buff", value<Scalar>(&r_buff)->default_value(0.8), "Buffer radius for pair force sum")
+		("nthreads,t", value<unsigned int>(&nthreads)->default_value(1), "Number of threads to execute (for multithreaded computes)")
+		("block_size", value<unsigned int>(&block_size)->default_value(128), "Block size for GPU computes")
+		("quiet,q", value<bool>(&quiet)->default_value(false)->zero_tokens(), "Only output time per computation")
+		("sort", value<bool>(&sort_particles)->default_value(true), "Sort particles with SFCPACK")
+		("profile", value<bool>(&profile_compute)->default_value(true), "Profile GFLOPS and GB/s sustained")
+		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
+		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
+		("nl_name,f", value<string>(&nl_name)->default_value("Nl"), "NeighboorList to benchmark")
+		;
+	
+	// parse the command line
+	variables_map vm;
+	try
+		{
+		store(parse_command_line(argc, argv, desc), vm);
+		notify(vm);
+		}
+	catch (std::logic_error e)
+		{
+		// print help on error
+		cerr << "Error parsing command line: " << e.what() << endl;
+		cout << desc;
+		cout << "Available ForceComputes are: ";
+		cout << "Nl, BinnedNl";
+		#ifdef USE_CUDA
+		cout << ", BinnedNL.GPU, and Nl_NSQ.GPU";
+		#endif
+		cout << endl;
+		
+		exit(1);
+		}
+	
+	//if (!quiet)
+		//output_version_info(false);
+	
+	// if help is specified, print it
+	if (vm.count("help"))
+		{
+		cout << desc;
+		exit(1);
+		}
+
+	
+	
+	// initialize the particle data
+	if (!quiet)
+		cout << "Building particle data..." << endl;
+	shared_ptr<ParticleData> pdata = init_pdata();
+	
+	// initialize the neighbor list
+	if (!quiet)
+		cout << "Building neighbor list data..." << endl;	
+	shared_ptr<NeighborList> nlist(new BinnedNeighborList(pdata, r_cut, r_buff));
+	if (half_nlist)
+		nlist->setStorageMode(NeighborList::half);
+	else
+		nlist->setStorageMode(NeighborList::full);
+	nlist->setEvery(1000000000);
+	nlist->forceUpdate();
+	nlist->compute(1);
+	
+	// count the average number of neighbors
+	int64_t neigh_count = 0;
+	vector< vector< unsigned int> > list = nlist->getList();
+	for (unsigned int i = 0; i < N; i++)
+		neigh_count += list[i].size();
+	double avgNneigh = double(neigh_count) / double(N);
+	
+	/* Not needed for only benchmarking neighboor list creation
+
+	// initialize the force compute
+	shared_ptr<ForceCompute> fc = init_force_compute(fc_name, pdata, nlist);
+	if (fc == NULL)
+		{
+		cerr << "Unrecognized force compute: " << fc_name << endl;
+		exit(1);
+		}
+		
+	if (!quiet)
+		{
+		cout << "Starting benchmarking of: " << fc_name << endl;
+		cout << "nsec = " << nsec << " / N = " << N << " / phi_p = "<< phi_p << endl;
+		cout << "sort_particles = " << sort_particles << " / half_nlist = " << half_nlist << endl;
+		cout << "r_cut = " << r_cut << " / r_buff = " << r_buff << " / avg_n_neigh = " << avgNneigh << endl;
+		cout << "nthreads = " << nthreads << " / block_size = " << block_size << endl;
+		}
+
+	*/
+
+	benchmark(nlist);
+			
+	return 0;
+	}
