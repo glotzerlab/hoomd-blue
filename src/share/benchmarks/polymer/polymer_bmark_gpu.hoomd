@@ -63,3 +63,5 @@ sys.run(2000);
 sys.enableProfiler(False);
 
 sys.run(50000);
+
+raw_input("Benchmark complete: press enter to exit");
