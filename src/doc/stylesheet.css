@@ -29,7 +29,7 @@ body {
 
 /* links */
 #sidebar a {
-	color: #003366;
+	color: #003890;
 	background-color: inherit;
 	text-decoration: none;
 }
@@ -58,10 +58,10 @@ h3 {
 }*/
 
 /* images */
-/*img {
-	border: 2px solid #CCC;
+img {
+	border: 0px solid #CCC;
 }
-*/
+
 #sidebar img.float-right {
   margin: 5px 0px 10px 10px;  
 }
@@ -150,7 +150,7 @@ input.button {
 	border: 1px solid #CCC; 
 	padding: 1px; 
 	background: #FFF;
-	color: #CC0000;
+	color: #cc0000;
 }
 /* search form */
 form.search {
@@ -349,7 +349,7 @@ form.search input.searchbutton {
 /* display and additional classes  */
 .clear {	clear: both; }
 .hide {display: none; }
-.red   { color: #CC0000; }
+.red   { color: #cc0000; }
 .comments { 
 	margin: 20px 10px 5px 10px; 
 	padding: 3px 0;
@@ -436,7 +436,7 @@ TD.navtab {
 	color: #ffffff;
 }
 #main A.qindexHL:visited { text-decoration: none; background-color: #6666cc; color: #ffffff }
-#main A.el { text-decoration: none; font-weight: bold }
+#main A.el { text-decoration: none; font-weight: bold; font-size: 60%; }
 #main A.elRef { font-weight: bold }
 #main A.code:link { text-decoration: none; font-weight: normal; color: #0000FF}
 #main A.code:visited { text-decoration: none; font-weight: normal; color: #0000FF}
