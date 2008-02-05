@@ -54,35 +54,9 @@ if (WIN32 AND NOT UNIX)
 	set(CPACK_NSIS_URL_INFO_ABOUT "http://www.ameslab.gov/hoomd/")
 	set(CPACK_NSIS_CONTACT "joaander@iastate.edu")
 	set(CPACK_NSIS_DISPLAY_NAME "HOOMD")
-	
+		
 	set(CPACK_NSIS_MODIFY_PATH ON)
 	set(CPACK_PACKAGE_EXECUTABLES "hoomd;HOOMD Python Interpreter")
-	
-	# register .hoomd as a file type
-	# the cool massive quadruple backspaces are to get two backspaces after the escape and then
-	# ANOTHER two to be escaped again at the next stage of processing!
-	# (why in the world does winblows need to use \ as a path separator...)
-	
-	# The other confusing thing is the triple back spaces \" escapes the quote at this state
-	# in the processing. Then the \\ will turn into a \, so the next stage of processing sees
-	# \" to turn into " for the final file. Whew!
-	
-	set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-	WriteRegStr HKCR \\\".hoomd\\\" \\\"\\\" \\\"HOOMD.Script\\\"
-	WriteRegStr HKCR \\\"HOOMD.Script\\\" \\\"\\\" \\\"HOOMD Script File\\\"
-    WriteRegStr HKCR \\\"HOOMD.Script\\\\shell\\\" \\\"\\\" \\\"open\\\"
-    WriteRegStr HKCR \\\"HOOMD.Script\\\\shell\\\\open\\\\command\\\" \\\"\\\" '\\\"$INSTDIR\\\\bin\\\\hoomd.exe\\\" \\\"%1\\\"'
-    !define SHCNE_ASSOCCHANGED 0x8000000
-	!define SHCNF_IDLIST 0
-	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'"
-	)
-	
-	# setup the uninstall for the .hoomd file type
-	set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
-	DeleteRegKey HKCR \\\".hoomd\\\"
-	DeleteRegKey HKCR \\\"HOOMD.Script\\\"
-	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'"
-	)
 	
 else (WIN32 AND NOT UNIX)
 	set(CPACK_STRIP_FILES ${LIB_INSTALL_DIR}/hoomd ${LIB_INSTALL_DIR}/force_compute_bmark ${LIB_INSTALL_DIR}/neighborlist_bmark ${LIB_INSTALL_DIR}/pdata_gpucopy_bmark)

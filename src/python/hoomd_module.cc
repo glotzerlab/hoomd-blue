@@ -36,6 +36,11 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// remove silly warnings
+#ifdef WIN32
+#define _CRT_SECURE_NO_DEPRECATE
+#endif
+
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
@@ -107,6 +112,20 @@ string find_hoomd_data_dir()
 		}
 	
 	#ifdef WIN32
+	// access the registry key
+	string name = string("hoomd ") + string(HOOMD_VERSION);
+	string reg_path = "SOFTWARE\\Ames Laboratory Iowa State University\\" + name;
+	
+	char *value = new char[1024];
+	LONG value_size = 1024;
+	RegQueryValue(HKEY_LOCAL_MACHINE, reg_path.c_str(), value, &value_size);
+	// see if it installed where the reg key says so
+	path install_dir = path(string(value));
+	if (exists(install_dir))
+		return (install_dir).string();
+	delete[] value;
+
+	// otherwise, check the program files root
 	if (getenv("PROGRAMFILES"))
 		{
 		path program_files_dir = path(string(getenv("PROGRAMFILES")));

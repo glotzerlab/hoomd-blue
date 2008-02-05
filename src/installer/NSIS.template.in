@@ -511,6 +511,21 @@ Section "Installer Section" InstSection
   ;Create shortcuts
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
 @CPACK_NSIS_CREATE_ICONS@
+
+  ; Benchmark start menu links
+  CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Lennard-Jones Liquid (CPU).lnk" "$INSTDIR\benchmarks\lj_liquid\lj_liquid_bmark_cpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Lennard-Jones Liquid (GPU).lnk" "$INSTDIR\benchmarks\lj_liquid\lj_liquid_bmark_gpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Polymer Model (CPU).lnk" "$INSTDIR\benchmarks\polymer\polymer_bmark_cpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Polymer Model (GPU).lnk" "$INSTDIR\benchmarks\polymer\polymer_bmark_gpu.hoomd"
+  ; demo start menu links
+  CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER\demos"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Hex Phase (CPU).lnk" "$INSTDIR\demos\hex\hex_demo_cpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Hex Phase (GPU).lnk" "$INSTDIR\demos\hex\hex_demo_gpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Micelle Phase (CPU).lnk" "$INSTDIR\demos\micelle\micelle_demo_cpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Micelle Phase (GPU).lnk" "$INSTDIR\demos\micelle\micelle_demo_gpu.hoomd"
+  
+
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
   ; Write special uninstall registry entries
@@ -530,6 +545,16 @@ Section "Installer Section" InstSection
 @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
   
   !insertmacro MUI_STARTMENU_WRITE_END
+  
+    ; Install the .hoomd file type
+	WriteRegStr HKCR ".hoomd" "" "HOOMD.Script"
+	WriteRegStr HKCR "HOOMD.Script" "" "HOOMD Script File"
+	WriteRegStr HKCR "HOOMD.Script\DefaultIcon" "" "$INSTDIR\HOOMDScriptIcon.ico"
+    WriteRegStr HKCR "HOOMD.Script\shell" "" "open"
+    WriteRegStr HKCR "HOOMD.Script\shell\open\command" "" '"$INSTDIR\bin\hoomd.exe" "%1"'
+    !define SHCNE_ASSOCCHANGED 0x8000000
+	!define SHCNF_IDLIST 0
+	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
 
 SectionEnd
 
@@ -581,6 +606,12 @@ Section "Uninstall"
     "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_DIRECTORY@" "AddToPathCurrentUser"
   ;MessageBox MB_OK "Add to path: $DO_NOT_ADD_TO_PATH all users: $ADD_TO_PATH_ALL_USERS"
 
+  ; uninstall the .hoomd file type
+	DeleteRegKey HKCR ".hoomd"
+	DeleteRegKey HKCR "HOOMD.Script"
+	System::Call 'Shell32::SHChangeNotify(i ${SHCNE_ASSOCCHANGED}, i ${SHCNF_IDLIST}, i 0, i 0)'
+
+
 @CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS@
 
   ;Remove files we installed.
@@ -602,6 +633,20 @@ Section "Uninstall"
     
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
 @CPACK_NSIS_DELETE_ICONS@
+
+  ; Remove the Benchmarks
+  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Lennard-Jones Liquid (CPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Lennard-Jones Liquid (GPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Polymer Model (CPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Polymer Model (GPU).lnk"
+  RMDir "$SMPROGRAMS\$MUI_TEMP\benchmarks"
+
+  ; remove the demos from the start menu
+  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Hex Phase (CPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Hex Phase (GPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Micelle Phase (CPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Micelle Phase (GPU).lnk"
+  RMDir "$SMPROGRAMS\$MUI_TEMP\demos"
   
   ;Delete empty start menu parent diretories
   StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"

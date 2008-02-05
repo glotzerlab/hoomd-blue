@@ -51,3 +51,11 @@ install(FILES ${HOOMD_SOURCE_DIR}/LICENSE
 		DESTINATION ${DATA_INSTALL_DIR}
 		CONFIGURATIONS Release
 		)
+		
+## install the icon file in windows
+if (WIN32)
+   install(FILES ${HOOMD_SOURCE_DIR}/pics_icons/HOOMDScriptIcon.ico
+		DESTINATION ${DATA_INSTALL_DIR}
+		CONFIGURATIONS Release
+		)
+endif (WIN32)
