@@ -50,6 +50,7 @@ set(CPACK_PACKAGE_NAME "hoomd")
 set(CPACK_RESOURCE_FILE_LICENSE "${HOOMD_SOURCE_DIR}/LICENSE")
 
 if (WIN32 AND NOT UNIX)
+	set(CPACK_NSIS_INSTALLER_ICON "${HOOMD_SOURCE_DIR}/pics_icons/InstallIcon.ico")
 	set(CPACK_NSIS_URL_INFO_ABOUT "http://www.ameslab.gov/hoomd/")
 	set(CPACK_NSIS_CONTACT "joaander@iastate.edu")
 	set(CPACK_NSIS_DISPLAY_NAME "HOOMD")

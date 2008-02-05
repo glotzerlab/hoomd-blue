@@ -17,6 +17,22 @@
   Var DO_NOT_ADD_TO_PATH
   Var ADD_TO_PATH_ALL_USERS
   Var ADD_TO_PATH_CURRENT_USER
+  
+; Installer icon
+!define MUI_ICON "@CPACK_NSIS_INSTALLER_ICON@"
+
+; Use the nicer looking Orange theme
+!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\orange-uninstall-nsis.ico"
+ 
+; MUI Settings / Header
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_RIGHT
+!define MUI_HEADERIMAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Header\orange-r-nsis.bmp"
+!define MUI_HEADERIMAGE_UNBITMAP "${NSISDIR}\Contrib\Graphics\Header\orange-uninstall-r-nsis.bmp"
+ 
+; MUI Settings / Wizard
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\orange-nsis.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\orange-uninstall-nsis.bmp"
 
 ;--------------------------------
 ;Include Modern UI
@@ -84,7 +100,6 @@ FunctionEnd
 ;--------------------------------
 ;Interface Settings
 
-  !define MUI_HEADERIMAGE
   !define MUI_ABORTWARNING
 
 ;--------------------------------
