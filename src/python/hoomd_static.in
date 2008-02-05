@@ -1,7 +1,9 @@
 # /bin/bash
 
-# modify the next line to list the full path where you extracted hoomd
-HOOMD_ROOT=@CMAKE_INSTALL_PREFIX@
+if test "${HOOMD_ROOT+set}" != set ; then
+	# modify the next line to list the full path where you extracted hoomd
+	HOOMD_ROOT=@CMAKE_INSTALL_PREFIX@
+fi
 
 ##########################################
 # don't modify anything below this line
