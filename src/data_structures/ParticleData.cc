@@ -113,33 +113,30 @@ WallDataArrays::WallDataArrays() : ox(NULL), oy(NULL), oz(NULL), nx(NULL), ny(NU
 	{
 	}
 
-WallDataArrays::WallDataArrays(BoxDim box /*, Scalar offset */)
+WallDataArrays::WallDataArrays(BoxDim box , Scalar offset )
 	{
 	WallDataArrays();
-	
-	//Hastily thrown together code, don't even know if it works, or what the right way 
-	//to go about this is.
 
-	ox = (Scalar *__restrict__)malloc(sizeof(Scalar) * 6);
-	oy = (Scalar *__restrict__)malloc(sizeof(Scalar) * 6);
-	oz = (Scalar *__restrict__)malloc(sizeof(Scalar) * 6);
-	nx = (Scalar *__restrict__)malloc(sizeof(Scalar) * 6);
-	ny = (Scalar *__restrict__)malloc(sizeof(Scalar) * 6);
-	nz = (Scalar *__restrict__)malloc(sizeof(Scalar) * 6);
+	//Construct the vectors
+	ox = vector<Scalar>(6,0);
+	oy = vector<Scalar>(6,0);
+	oz = vector<Scalar>(6,0);
+	nx = vector<Scalar>(6,0);
+	ny = vector<Scalar>(6,0);
+	nz = vector<Scalar>(6,0);
 
 	numWalls = 6;
 	
-	// TODO: add offsets
 	//bottom wall
 	ox[0] = (box.xhi + box.xlo) / 2.0;
-	oy[0] = box.ylo /* + offset */;
+	oy[0] = box.ylo + offset;
 	oz[0] = (box.zhi + box.zlo) / 2.0;
 	nx[0] = 0;
 	ny[0] = 1;
 	nz[0] = 0;
 	//top wall
 	ox[1] = (box.xhi + box.xlo) / 2.0;
-	oy[1] = box.yhi /* - offset */;
+	oy[1] = box.yhi - offset;
 	oz[1] = (box.zhi + box.zlo) / 2.0;
 	nx[1] = 0;
 	ny[1] = -1;
@@ -148,27 +145,27 @@ WallDataArrays::WallDataArrays(BoxDim box /*, Scalar offset */)
 	//front wall
 	ox[2] = (box.xhi + box.xlo) / 2.0;
 	oy[2] = (box.yhi + box.ylo) / 2.0;
-	oz[2] = box.zlo;
+	oz[2] = box.zlo + offset;
 	nx[2] = 0;
 	ny[2] = 0;
 	nz[2] = 1;
 	//back wall
 	ox[3] = (box.xhi + box.xlo) / 2.0;
 	oy[3] = (box.yhi + box.ylo) / 2.0;
-	oz[3] = box.zhi;	
+	oz[3] = box.zhi - offset;
 	nx[3] = 0;
 	ny[3] = 0;
 	nz[3] = -1;
 	
 	//right wall
-	ox[4] = box.xhi;
+	ox[4] = box.xhi - offset;
 	oy[4] = (box.yhi + box.ylo) / 2.0;
 	oz[4] = (box.zhi + box.zlo) / 2.0;
 	nx[4] = -1;
 	ny[4] = 0;
 	nz[4] = 0;
 	//left wall
-	ox[5] = box.xlo;
+	ox[5] = box.xlo + offset;
 	oy[5] = (box.yhi + box.ylo) / 2.0;
 	oz[5] = (box.zhi + box.zlo) / 2.0;
 	nx[5] = 1;
@@ -177,10 +174,13 @@ WallDataArrays::WallDataArrays(BoxDim box /*, Scalar offset */)
 	
 	}
 
-void WallData::addWall(Scalar ox_p2, Scalar oy_p2, Scalar oz_p2, Scalar nx_p2, Scalar ny_p2, Scalar nz_p2) {
+void WallData::addWall(Scalar ox_p, Scalar oy_p, Scalar oz_p, Scalar nx_p, Scalar ny_p, Scalar nz_p) {
 
 }
 
+  //End Wall stuff
+ ////////////////////////
+////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleDataArrays constructors

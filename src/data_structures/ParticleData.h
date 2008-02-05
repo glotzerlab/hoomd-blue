@@ -59,6 +59,9 @@ typedef double Scalar;
 #endif
 
 #include <stdlib.h>
+#include <vector>
+
+using namespace std;
 
 #ifdef USE_CUDA
 #include "gpu_pdata.h"
@@ -177,44 +180,76 @@ struct ParticleDataArraysConst
 	unsigned int const * __restrict__ tag;  //!< Forward-lookup tag. 
 	};	
 	
+
+  //////////////////////////////////////////////////////////////////////
+ //////////////////////////////////////////////////////////////////////
+// WallStuff starts here
+
 //! similar to ParticleData, only for walls
 struct WallDataArrays {
 
 	//!The number of walls contained in the struct
 	unsigned int numWalls;
-
-	//!The x coordinate for the origin of the planes
-	Scalar * __restrict__ ox;
-	//!The y coordinate for the origin of the planes
-	Scalar * __restrict__ oy;
-	//!The z coordinate for the origin of the planes
-	Scalar * __restrict__ oz;
+	
+	//! The x coordinate for the origin of the planes
+	vector<Scalar> ox;
+	//! The y coordinate for the origin of the planes
+	vector<Scalar> oy;
+	//! The z coordinate for the origin of the planes
+	vector<Scalar> oz;
 				
-	//!The x direction for the normal of the planes
-	Scalar * __restrict__ nx;
-	//!The y direction for the normal of the planes
-	Scalar * __restrict__ ny;
-	//!The z direction for the normal of the planes
-	Scalar * __restrict__ nz;
+	//! The x direction for the normal of the planes
+	vector<Scalar> nx;
+	//! The y direction for the normal of the planes
+	vector<Scalar> ny;
+	//! The z direction for the normal of the planes
+	vector<Scalar> nz;
 				
 	//! constructs useless walls
 	WallDataArrays();
 				
 	//! constructs walls along the boundries of a Box
-	WallDataArrays(BoxDim);
+	WallDataArrays(BoxDim, Scalar);
 };
-	
+
+
+//! Class for storing information about wall forces in simulation
+/*!
+
+
+*/
 class WallData {
 
 	public:
+		//! Creates useless walls
 		WallData() : m_walls() {}
-		WallData(BoxDim box) : m_walls(box) {}
+		//! Creates walls surrounding a box
+		/*!	Walls are created on all six sides of the box.
+			The offset parameter moves the walls into the 
+			box to prevent edge cases from causing headaches.
+
+			The default of 0.3 was chosen because it is half the size of a blue molecule
+			in a simulation.
+			\ingroup data_structs
+		*/
+		WallData(BoxDim box, Scalar offset = 0.3) : m_walls(box, offset) {}
+		//! Destructor, yay!
 		~WallData() {}
+		//! Get the struct containing all of the data about the walls
 		WallDataArrays getWallArrays() { return m_walls; }
+		//! Returns the number of walls contained in the walldata
+		unsigned int getNumWalls() { return m_walls.numWalls; }
+		//! Adds a wall to a simulation.
+		/*!	This is mostly for debugging purposes
+		*/
 		void addWall(Scalar ox_p, Scalar oy_p, Scalar oz_p, Scalar nx_p, Scalar ny_p, Scalar nz_p);
 	private:
 		WallDataArrays m_walls;
 };
+
+  //End Wall stuff
+ //////////////////////////////////////
+//////////////////////////////////////
 
 //! Abstract interface for initializing a ParticleData
 /*! A ParticleDataInitializer should only be used with the appropriate constructor
