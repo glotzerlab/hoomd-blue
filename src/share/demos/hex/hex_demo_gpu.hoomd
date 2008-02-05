@@ -77,7 +77,7 @@ if (vmd_bin == ""):
 # run vmd
 if (vmd_bin != ""):
 	os.chdir(find_hoomd_data_dir() + "/demos/hex");
-	os.spawnlp(os.P_NOWAIT, vmd_bin, vmd_bin, "-e", "vmd_script.vmd");
+	os.spawnl(os.P_NOWAIT, vmd_bin, vmd_bin, "-e", "vmd_script.vmd");
 
 # run for a long time
 sys.run(100000000);

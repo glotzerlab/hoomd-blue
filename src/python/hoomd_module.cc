@@ -122,12 +122,16 @@ string find_hoomd_data_dir()
 	
 	char *value = new char[1024];
 	LONG value_size = 1024;
-	RegQueryValue(HKEY_LOCAL_MACHINE, reg_path.c_str(), value, &value_size);
+	LONG err_code = RegQueryValue(HKEY_LOCAL_MACHINE, reg_path.c_str(), value, &value_size);
 	// see if it installed where the reg key says so
-	path install_dir = path(string(value));
-	if (exists(install_dir))
-		return (install_dir).string();
+	if (err_code == ERROR_SUCCESS)
+		{
+		path install_dir = path(string(value));
+		if (exists(install_dir))
+			return (install_dir).string();
+		}
 	delete[] value;
+
 
 	// otherwise, check the program files root
 	if (getenv("PROGRAMFILES"))
@@ -155,6 +159,26 @@ string find_vmd()
 	{
 	#ifdef WIN32
 	
+	// find VMD through the registry
+	string reg_path = "SOFTWARE\\University of Illinois\\VMD\\1.8.6";
+	
+	char *value = new char[1024];
+	DWORD value_size = 1024;
+	HKEY vmd_root_key;
+	LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
+	if (err_code == ERROR_SUCCESS)
+		{
+		err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
+		// see if it installed where the reg key says so
+		if (err_code == ERROR_SUCCESS)
+			{
+			path install_dir = path(string(value));
+			if (exists(install_dir / "vmd.exe"))
+				return (install_dir / "vmd.exe").string();
+			}
+		}
+	delete[] value;
+
 	#else
 	// check some likely locations
 	if (exists("/usr/bin/vmd"))
