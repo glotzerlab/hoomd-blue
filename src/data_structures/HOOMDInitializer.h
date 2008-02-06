@@ -56,8 +56,11 @@ class HOOMDInitializer : public ParticleDataInitializer
 	{
 	public:
 		//! Loads in the file and parses the data
-		HOOMDInitializer(const std::string &fname);
+		//HOOMDInitializer(const std::string &fname);
 		
+		//! Loads in the file and parses the data, sets loud to on or off
+		HOOMDInitializer(const std::string &fname, bool loud_p = false);
+
 		//! Frees memory
 		virtual ~HOOMDInitializer();
 		

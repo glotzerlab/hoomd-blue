@@ -54,12 +54,12 @@ using namespace boost::python;
 
 /*! \param fname File name with the data to load
 */
-HOOMDInitializer::HOOMDInitializer(const std::string &fname)
+HOOMDInitializer::HOOMDInitializer(const std::string &fname, bool loud_p)
  	{
 	m_particles = NULL;
 	m_bonds = NULL;
 	m_nparticle_types = 0;
-	loud = false;
+	loud = loud_p;
 	readFile(fname);
 	}
 		
