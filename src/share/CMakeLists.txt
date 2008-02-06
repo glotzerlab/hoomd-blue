@@ -52,6 +52,15 @@ install(FILES ${HOOMD_SOURCE_DIR}/LICENSE
 		CONFIGURATIONS Release
 		)
 		
+## install the icon, mime type and application menu entry in linux
+if (NOT WIN32 AND NOT APPLE)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons ${CMAKE_CURRENT_SOURCE_DIR}/mime ${CMAKE_CURRENT_SOURCE_DIR}/applications
+		DESTINATION share
+		CONFIGURATIONS Release
+		PATTERN ".svn" EXCLUDE
+		)
+endif (NOT WIN32 AND NOT APPLE)	
+		
 ## install the icon file in windows
 if (WIN32)
    install(FILES ${HOOMD_SOURCE_DIR}/pics_icons/HOOMDScriptIcon.ico

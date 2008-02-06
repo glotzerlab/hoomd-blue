@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+	<mime-type type="application/x-hoomd">
+		<comment>HOOMD Python Script</comment>
+		<glob pattern="*.hoomd"/>
+	</mime-type>
+</mime-info>
