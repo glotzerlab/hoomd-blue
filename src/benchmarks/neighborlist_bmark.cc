@@ -102,7 +102,7 @@ Scalar phi_p = 0.2;
 
 
 //! Initialize the force compute from a string selecting it
-shared_ptr<NeighborList> init_force_compute(const string& nl_name, shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist)
+shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, shared_ptr<ParticleData> pdata)
 	{
 	shared_ptr<NeighborList> result;
 	
@@ -117,7 +117,9 @@ shared_ptr<NeighborList> init_force_compute(const string& nl_name, shared_ptr<Pa
 	if (nl_name == "Nl_NSQ.GPU")
 		result = shared_ptr<NeighborList>(new NeighborListNsqGPU(pdata, r_cut, r_buff));
 	#endif
-		
+	
+	result->setStorageMode(NeighborList::full);
+
 	return result;
 	}
 	
@@ -137,8 +139,8 @@ shared_ptr<ParticleData> init_pdata()
 	}
 
 //! Actually performs the benchmark on the preconstructed force compute
-void benchmark(shared_ptr<NeighborList> nl)
-	{
+void benchmark(shared_ptr<NeighborList> nl) {
+
 	// initialize profiling if requested
 	shared_ptr<Profiler> prof(new Profiler());
 	if (profile_compute && !quiet)
@@ -155,12 +157,12 @@ void benchmark(shared_ptr<NeighborList> nl)
 	int64_t tend;
 	// do at least one test, then repeat until we get at least 5s of data at this point
 	int nrepeat = 0;
-	do
-		{
+	do {
+		nl->forceUpdate();
 		nl->compute(count++);
 		nrepeat++;
 		tend = clk.getTime();
-		} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 5);
+	} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 50);
 	
 	// make sure all kernels have been executed when using CUDA
 	#ifdef USE_CUDA
@@ -173,7 +175,7 @@ void benchmark(shared_ptr<NeighborList> nl)
 	
 	double avgTime = double(tend - tstart)/1e9/double(nrepeat);;
 	cout << setprecision(7) << avgTime << " s/step" << endl;
-	}
+}
 
 //! Parses the command line and runs the benchmark
 int main(int argc, char **argv)
@@ -235,17 +237,26 @@ int main(int argc, char **argv)
 	
 	// initialize the particle data
 	if (!quiet)
-		cout << "Building particle data..." << endl;
+		cout << "Building particle data...";
+
 	shared_ptr<ParticleData> pdata = init_pdata();
+	cout << "done." << endl;
 	
 	// initialize the neighbor list
 	if (!quiet)
-		cout << "Building neighbor list data..." << endl;	
-	shared_ptr<NeighborList> nlist(new BinnedNeighborList(pdata, r_cut, r_buff));
-	if (half_nlist)
-		nlist->setStorageMode(NeighborList::half);
-	else
-		nlist->setStorageMode(NeighborList::full);
+		cout << "Building neighbor list data...";	
+	shared_ptr<NeighborList> nlist = init_neighboorlist_compute(nl_name, pdata);
+
+	cout << "done." << endl;
+	
+	nlist->setStorageMode(NeighborList::full);
+	
+	if (nl_name == "Nl" || nl_name == "BinnedNl"){
+		if (half_nlist)
+			nlist->setStorageMode(NeighborList::half);
+		else
+			nlist->setStorageMode(NeighborList::full);
+	}
 	nlist->setEvery(1000000000);
 	nlist->forceUpdate();
 	nlist->compute(1);
