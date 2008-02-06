@@ -82,9 +82,9 @@ bool quiet = false;
 //! number of threads (for applicable computes)
 unsigned int nthreads = 1;
 //! cutoff radius for pair forces (for applicable computes)
-Scalar r_cut = 3.0;
+Scalar r_cut = 3.8;
 //! buffer radius for pair forces (for applicable computes)
-Scalar r_buff = 0.8;
+Scalar r_buff = 0.0;
 //! block size for calculation (for applicable computes)
 unsigned int block_size = 128;
 //! number of particles to benchmark
@@ -118,8 +118,6 @@ shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, share
 		result = shared_ptr<NeighborList>(new NeighborListNsqGPU(pdata, r_cut, r_buff));
 	#endif
 	
-	result->setStorageMode(NeighborList::full);
-
 	return result;
 	}
 	
@@ -162,7 +160,7 @@ void benchmark(shared_ptr<NeighborList> nl) {
 		nl->compute(count++);
 		nrepeat++;
 		tend = clk.getTime();
-	} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 50);
+	} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 5);
 	
 	// make sure all kernels have been executed when using CUDA
 	#ifdef USE_CUDA
@@ -189,8 +187,8 @@ int main(int argc, char **argv)
 		("help,h", "Produce help message")
 		("nparticles,N", value<unsigned int>(&N)->default_value(64000), "Number of particles")
 		("phi_p", value<Scalar>(&phi_p)->default_value(0.2), "Volume fraction of particles in test system")
-		("r_cut", value<Scalar>(&r_cut)->default_value(3.0), "Cutoff radius for pair force sum")
-		("r_buff", value<Scalar>(&r_buff)->default_value(0.8), "Buffer radius for pair force sum")
+		("r_cut", value<Scalar>(&r_cut)->default_value(3.8), "Cutoff radius for pair force sum")
+		//("r_buff", value<Scalar>(&r_buff)->default_value(0.8), "Buffer radius for pair force sum")
 		("nthreads,t", value<unsigned int>(&nthreads)->default_value(1), "Number of threads to execute (for multithreaded computes)")
 		("block_size", value<unsigned int>(&block_size)->default_value(128), "Block size for GPU computes")
 		("quiet,q", value<bool>(&quiet)->default_value(false)->zero_tokens(), "Only output time per computation")
@@ -198,7 +196,7 @@ int main(int argc, char **argv)
 		("profile", value<bool>(&profile_compute)->default_value(true), "Profile GFLOPS and GB/s sustained")
 		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
 		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
-		("nl_name,f", value<string>(&nl_name)->default_value("Nl"), "NeighboorList to benchmark")
+		("nl_name,f", value<string>(&nl_name)->default_value("BinnedNl"), "NeighboorList to benchmark")
 		;
 	
 	// parse the command line
@@ -249,15 +247,13 @@ int main(int argc, char **argv)
 
 	cout << "done." << endl;
 	
-	nlist->setStorageMode(NeighborList::full);
-	
 	if (nl_name == "Nl" || nl_name == "BinnedNl"){
 		if (half_nlist)
 			nlist->setStorageMode(NeighborList::half);
 		else
 			nlist->setStorageMode(NeighborList::full);
 	}
-	nlist->setEvery(1000000000);
+	nlist->setEvery(1);
 	nlist->forceUpdate();
 	nlist->compute(1);
 	
