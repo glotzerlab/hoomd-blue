@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 		else
 			nlist->setStorageMode(NeighborList::full);
 	}
-	nlist->setEvery(1);
+
 	nlist->forceUpdate();
 	nlist->compute(1);
 	
