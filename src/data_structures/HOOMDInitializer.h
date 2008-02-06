@@ -81,12 +81,17 @@ class HOOMDInitializer : public ParticleDataInitializer
 		
 		//! Calls BondForceCompute::addBond for each bond read from the input file
 		void setupBonds(boost::shared_ptr<BondForceCompute> fc_bond);
+
+		//! Makes the ininializer output more descriptive
+		void setLoud(bool verb) {loud = verb;}
 	private:
 		//! Helper function to read the input file
 		void readFile(const std::string &fname);
 		 
 		BoxDim m_box;	//!< Simulation box read from the file
 
+		bool loud; //!< Whether or not to print very descriptive output
+		
 		struct particle //!< particle data
 			{
 			particle() : x(0.0), y(0.0), z(0.0), vx(0.0), vy(0.0), vz(0.0), type(0)

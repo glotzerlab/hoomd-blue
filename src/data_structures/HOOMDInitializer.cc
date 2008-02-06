@@ -59,7 +59,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 	m_particles = NULL;
 	m_bonds = NULL;
 	m_nparticle_types = 0;
-	
+	loud = false;
 	readFile(fname);
 	}
 		
@@ -113,11 +113,9 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
 	}
 
 /*!	\param fname Name of the XML file to input the data of the particles
-
-*/
-void HOOMDInitializer::readFile(const string &fname)
-	{
 	
+*/
+void HOOMDInitializer::readFile(const string &fname){
 
 	 // Create a Root Node and a child node
 	 XMLNode xMainNode;
@@ -126,8 +124,8 @@ void HOOMDInitializer::readFile(const string &fname)
 	 // Open the file and search for the Root element "HOOMD_xml" 
 	 xMainNode=XMLNode::openFileHelper(fname.c_str(),"HOOMD_xml");
 	
-	 cout<<endl<<endl;
-	 cout<<"Reading "<<fname.c_str()<<endl;
+	 cout<< endl << endl;
+	 cout<< "Reading " << fname.c_str() << endl;
 	 int num_children;
   	 num_children = xMainNode.nChildNode();
 	 bool position_flag=false;
@@ -151,17 +149,20 @@ void HOOMDInitializer::readFile(const string &fname)
 			{	
 				cout << endl;
 					
-				//cout <<" number of elements for this node config is "<<xNode.nAttribute()<<endl;
+				if (loud) cout <<" number of elements for this node config is "<<xNode.nAttribute()<<endl;
 
-				cout <<"CONFIGURATION DETAILS "<<endl;
+				if (loud) cout <<"CONFIGURATION DETAILS "<<endl;
 				
-				cout << "Time step           -  " <<xNode.getAttribute("time_step")<<endl;
+				cout << "Reading Time step..." << endl;
+				
+				if (loud) cout << "Time step           -  " << xNode.getAttribute("time_step") << endl;
 				m_timestep = atoi(xNode.getAttribute("time_step"));
 				
 				if(xNode.isAttributeSet("N"))
 				{
 				
-					cout << "Number of particles -  " <<xNode.getAttribute("N")<<endl;
+					cout << "Reading number of particles..." << endl;
+					cout << "	Number of particles read -  " <<xNode.getAttribute("N")<<endl;
 					m_N = atoi(xNode.getAttribute("N")) ;
 				
 					// Allocate memory for all particles 
@@ -173,14 +174,19 @@ void HOOMDInitializer::readFile(const string &fname)
 					throw runtime_error("Error in reading Number of particles from XML file ");
 				}
 				
-				cout << "Types of particles  -  " << xNode.getAttribute("NTypes")<<endl;
+				cout << "Reading types of particles..." << endl;
+
+				if (loud) cout << "Types of particles  -  " << xNode.getAttribute("NTypes")<<endl;
 				m_nparticle_types  = atoi(xNode.getAttribute("NTypes"))  ;
 				
 				
 				if(xNode.isAttributeSet("NBonds"))
 				{
 					bond_flag=true;
-					cout << "Number of bonds     - " << xNode.getAttribute("NBonds")<<endl<<endl;
+					
+					cout << "Reading Number of bonds..." << endl;
+
+					if (loud) cout << "Number of bonds     - " << xNode.getAttribute("NBonds")<<endl<<endl;
 					m_nbonds  = atoi(xNode.getAttribute("NBonds"))  ;
 					// Allocate memory for bonds 
 					m_bonds = new bond[m_nbonds];
@@ -207,8 +213,10 @@ void HOOMDInitializer::readFile(const string &fname)
 				Scalar Lx,Ly,Lz;
 				istringstream temp;
 								
-				cout << "SIMULATION BOX DIMENSIONS " << endl;
-				cout <<"Box = "<< xNode.getAttribute("Lx")<<" x "<< xNode.getAttribute("Ly")<<" x "<<xNode.getAttribute("Lz")<<"  "<<xNode.getAttribute("Units")<< endl<<endl ;
+				cout << "Reading Box dimentions..." << endl;
+				
+				if (loud) cout << "SIMULATION BOX DIMENSIONS " << endl;
+				if (loud) cout <<"Box = "<< xNode.getAttribute("Lx")<<" x "<< xNode.getAttribute("Ly")<<" x "<<xNode.getAttribute("Lz")<<"  "<<xNode.getAttribute("Units")<< endl<<endl ;
 				//Lx = Scalar ((xNode.getAttribute("Lx")));
 				//Ly = Scalar ((xNode.getAttribute("Ly")));
 				//Lz = Scalar ((xNode.getAttribute("Lz")));
@@ -243,7 +251,7 @@ void HOOMDInitializer::readFile(const string &fname)
 			if(!xNode.isEmpty())
 			{ 
 				cout << "Reading Position details..." << endl ; 
-				//cout << "unit                - " << xNode.getAttribute("Units")<<endl;
+				if (loud) cout << "unit                - " << xNode.getAttribute("Units")<<endl;
 				f.str(xNode.getText());
 				for (i = 0 ; i< m_N;i++)
 				{
@@ -254,7 +262,7 @@ void HOOMDInitializer::readFile(const string &fname)
 					}
 				f >> m_particles[i].x >> m_particles[i].y >> m_particles[i].z ; 
 				}
-			//cout<<"** Retrieved information on POSITION of all particles ** "<< endl<<endl ;
+			if (loud) cout<<"** Retrieved information on POSITION of all particles ** "<< endl<<endl ;
 			}
 			else
 			{
@@ -270,7 +278,7 @@ void HOOMDInitializer::readFile(const string &fname)
 			{ 
 				f.clear();
 				cout << "Reading Velocity details ... " << endl ;
-				//cout << "unit                - " << xNode.getAttribute("Units")<<endl;
+				if (loud) cout << "unit                - " << xNode.getAttribute("Units")<<endl;
 				f.str(xNode.getText());
 				for (i = 0 ; i< m_N;i++)
 				{
@@ -281,7 +289,7 @@ void HOOMDInitializer::readFile(const string &fname)
 					}
 					f >> m_particles[i].vx >> m_particles[i].vy >> m_particles[i].vz ;	
 				}
-				//cout<<"** Retrieved information on VELOCITY of all particles ** "<< endl<<endl;
+				if (loud) cout<<"** Retrieved information on VELOCITY of all particles ** "<< endl<<endl;
 			}
 			/*
 			else
@@ -299,7 +307,7 @@ void HOOMDInitializer::readFile(const string &fname)
 			{ 
 				f.clear();
 				cout << "Reading Bond details ... " << endl ;
-				//cout << "unit                - " << xNode.getAttribute("Units")<<endl;
+				if (loud) cout << "unit                - " << xNode.getAttribute("Units")<<endl;
 				f.str(xNode.getText());
 				for (i = 0 ; i< m_nbonds;i++)
 				{
@@ -311,7 +319,7 @@ void HOOMDInitializer::readFile(const string &fname)
 					
 					f >> m_bonds[i].tag_a >> m_bonds[i].tag_b;	
 				}
-				//cout<<"** Retrieved information on Bonds of all particles ** "<< endl<<endl;
+				if (loud) cout<<"** Retrieved information on Bonds of all particles ** "<< endl<<endl;
 			}
 			/*
 			else
@@ -342,7 +350,7 @@ void HOOMDInitializer::readFile(const string &fname)
 					}
 					f >> m_particles[i].type ;
 				}
-				//cout<<"** Retrieved information on TYPES of all particles ** "<< endl<<endl;
+				if (loud) cout<<"** Retrieved information on TYPES of all particles ** "<< endl<<endl;
 			}
 			else
 			{
@@ -351,32 +359,32 @@ void HOOMDInitializer::readFile(const string &fname)
 				{
 					m_particles[i].type=0; // Set the values of type of particles to zero ( default ) 
 				}
-				cout<<"TYPES of all particles set to default value - zero "<< endl<<endl;
+				cout << "TYPES of all particles set to default value - zero "<< endl<<endl;
 			}
 		}
 		else
 		{	
-			cout<<endl;
-			cout<<"Ingnoring "<<xNode.getName()<<"..."<<endl<<endl;
+			cout<< endl;
+			cout<< "Ingnoring "<<xNode.getName()<<"..."<<endl<<endl;
 						
 		}
 		
 		
 	}
 	
-	if(configuration_flag == false)
+	if(!configuration_flag)
 	{
-		cout<<endl;
+		cout << endl;
 		//cerr<<"Mandatory Details missing in the XML file"<<endl;
-		cerr<<"The Input XMl files does not have configuration details of particles "<<endl;
+		cerr <<"The Input XMl files does not have configuration details of particles "<<endl;
 		throw runtime_error("Error in reading configuration details of particles");
 		
 	}
 
-	if(box_flag == false)
+	if(!box_flag)
 	{
-		cout<<endl;
-		cerr<<"The Input XMl files does not have box dimenstion details "<<endl;
+		cout << endl;
+		cerr << "The Input XMl files does not have box dimenstion details "<<endl;
 		throw runtime_error("Error in reading Box dimension details of particles");
 	}
 
@@ -385,8 +393,8 @@ void HOOMDInitializer::readFile(const string &fname)
 
 	if(position_flag == false)
 	{
-		cout<<endl;
-		cerr<<"The Input XMl files does not have Position details of particles like X , Y , Z  coordinates "<<endl;
+		cout << endl;
+		cerr << "The Input XMl files does not have Position details of particles like X , Y , Z  coordinates "<<endl;
 		throw runtime_error("Error in reading position details of particles");
 	}
 
@@ -402,10 +410,10 @@ void HOOMDInitializer::readFile(const string &fname)
 
 	
 
-	cout<<endl;
-	cout<<" ===  END === "<<endl;
+	cout << endl;
+	cout << " ===  END === " << endl;
 
-	}
+}
 
 
 		
