@@ -285,7 +285,7 @@ int main(int argc, char **argv)
 
 	*/
 
-	//If a user selects a slow nlist creator warn them!!!!
+	//If a user selects a slow nlist creator, warn them!!!!
 	if ((nl_name == "Nl" || nl_name == "Nl_NSQ.GPU") && N >= 8000) {
 		cout << "Warning! The selected NeighborList creation method is very slow." << endl;
 		cout << "  Expect this benchmark to take a long time." << endl;
