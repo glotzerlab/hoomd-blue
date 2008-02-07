@@ -124,7 +124,7 @@ void HOOMDInitializer::readFile(const string &fname){
 	// Open the file and search for the Root element "HOOMD_xml" 
 	xMainNode=XMLNode::openFileHelper(fname.c_str(),"HOOMD_xml");
 	
-	cout<< endl << endl;
+	cout<< endl;
 	cout<< "Reading " << fname.c_str() << endl;
 	
 	cout << "\nGathering info from file...";

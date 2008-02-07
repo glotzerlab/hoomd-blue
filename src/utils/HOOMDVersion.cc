@@ -85,8 +85,6 @@ void output_version_info(bool verbose)
 	#ifdef USE_CUDA_BUG_WORKAROUND
 	cout << "WARNING: CUDA Bug workaround is in place. GPU performance is 1/2 of what it should be." << endl;
 	#endif
-	
-	cout << endl;
 
 	// if verbose output was requested, let the user know how everything was configured for the build
 	if (verbose)
