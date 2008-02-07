@@ -112,7 +112,10 @@ string find_hoomd_data_dir()
 		{
 		path hoomd_root_dir = path(string(getenv("HOOMD_ROOT")));
 		if (exists(hoomd_root_dir / "share" / "hoomd"))
-			return (hoomd_root_dir / "share" / "hoomd").string();
+			{
+			string result = (hoomd_root_dir / "share" / "hoomd").string();
+			return result;
+			}
 		}
 	
 	#ifdef WIN32
