@@ -69,7 +69,7 @@ ForceCompute(pdata), m_r_cut(r_cut)
 	// sanity check
 	assert(m_lj1 != NULL && m_lj2 != NULL);
 	
-	//Make walls
+	// Make walls
 	// WallData is located within pdata
 	
 	// initialize the parameters to 0;
