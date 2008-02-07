@@ -228,7 +228,11 @@ int main(int argc, char **argv)
 		("profile", value<bool>(&profile_compute)->default_value(true), "Profile GFLOPS and GB/s sustained")
 		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
 		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
+		#ifdef USE_CUDA
+		("fc_name,f", value<string>(&fc_name)->default_value("LJ.GPU"), "ForceCompute to benchmark")
+		#else
 		("fc_name,f", value<string>(&fc_name)->default_value("LJ"), "ForceCompute to benchmark")
+		#endif
 		;
 	
 	// parse the command line
@@ -275,11 +279,9 @@ int main(int argc, char **argv)
 	if (!quiet)
 		cout << "Building neighbor list data..." << endl;	
 	shared_ptr<NeighborList> nlist(new BinnedNeighborList(pdata, r_cut, r_buff));
-	#ifndef USE_CUDA
 	if (half_nlist)
 		nlist->setStorageMode(NeighborList::half);
 	else
-	#endif
 		nlist->setStorageMode(NeighborList::full);
 	nlist->setEvery(1000000000);
 	nlist->forceUpdate();
