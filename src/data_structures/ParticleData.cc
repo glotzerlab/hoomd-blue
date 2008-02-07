@@ -175,7 +175,17 @@ WallDataArrays::WallDataArrays(BoxDim box , Scalar offset )
 	}
 
 void WallData::addWall(Scalar ox_p, Scalar oy_p, Scalar oz_p, Scalar nx_p, Scalar ny_p, Scalar nz_p) {
-
+	
+	m_walls.numWalls++;
+	
+	m_walls.ox.push_back(ox_p);
+	m_walls.oy.push_back(oy_p);
+	m_walls.oz.push_back(oz_p);
+	
+	m_walls.nx.push_back(nx_p);
+	m_walls.ny.push_back(ny_p);
+	m_walls.nz.push_back(nz_p);
+	
 }
 
   //End Wall stuff
