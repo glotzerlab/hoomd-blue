@@ -54,10 +54,10 @@ using namespace std;
 void output_version_info(bool verbose)
 	{
 	// output the version info differently if this is tagged as a subversion build or not
-	if (HOOMD_SVNVERSION)
+	if (HOOMD_SUBVERSION_BUILD)
 		cout << "HOOMD svnversion " << HOOMD_SVNVERSION << endl;
 	else
-		cout << "HOOMD version " << HOOMD_VERSION << endl;
+		cout << "HOOMD " << HOOMD_VERSION << endl;
 	
 	// output the compiled date and copyright information
 	cout << "Compiled: " << COMPILE_DATE << endl;
