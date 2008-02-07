@@ -209,7 +209,7 @@ struct WallDataArrays {
 	WallDataArrays();
 				
 	//! constructs walls along the boundries of a Box
-	WallDataArrays(BoxDim, Scalar);
+	WallDataArrays(BoxDim dim, Scalar offset);
 };
 
 
@@ -230,6 +230,7 @@ class WallData {
 
 			The default of 0.3 was chosen because it is half the size of a blue molecule
 			in a simulation.
+
 			\ingroup data_structs
 		*/
 		WallData(BoxDim box, Scalar offset = 0.3) : m_walls(box, offset) {}
@@ -281,6 +282,8 @@ class ParticleDataInitializer
 		
 		//! Initializes the particle data arrays
 		virtual void initArrays(const ParticleDataArrays &pdata) const = 0;
+
+		virtual WallData getWalls() const { return NULL; }
 	};
 	
 //! Manages all of the data arrays for the particles
@@ -329,7 +332,8 @@ class ParticleData
 		const BoxDim& getBox() const;
 		//! Set the simulation box
 		void setBox(const BoxDim &box);
-
+		//! Set the simulation walls
+		void setWalls(WallData walls_p) { m_wallData = walls_p; }
 		WallData getWalls() { return m_wallData; }
 		
 		//! Get the number of particles

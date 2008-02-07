@@ -244,7 +244,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	m_prof = boost::shared_ptr<Profiler>();
 
 	m_last_sorted_tstep = 0;
-	
+
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef USE_CUDA
 	hostToDeviceCopy();
@@ -297,7 +297,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init) : m_data(NULL), 
 		}
 		
 	setBox(init.getBox());
-
+	setWalls(init.getWalls());
 	init.initArrays(m_arrays);
 	
 	// it is an error for particles to be initialized outside of their box

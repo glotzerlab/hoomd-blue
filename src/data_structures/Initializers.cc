@@ -263,7 +263,7 @@ RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar ph
 	
 	Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
 	m_box = BoxDim(L);
-
+	m_walls = WallData(m_box);
 	}
 	
 RandomInitializerWithWalls::~RandomInitializerWithWalls() {
@@ -271,18 +271,10 @@ RandomInitializerWithWalls::~RandomInitializerWithWalls() {
 
 }
 
-void RandomInitializerWithWalls::initArrays(const ParticleDataArrays &pdata) const {
-	
-	//this.super(pdata);
 
-	//TODO init walldata arrays somehow
-
-}
-
-//TODO make this initializer work
-WallData RandomInitializerWithWalls::getWalls()
+WallData RandomInitializerWithWalls::getWalls() const
 	{
-	return WallData();
+	return m_walls;
 	}
 
 

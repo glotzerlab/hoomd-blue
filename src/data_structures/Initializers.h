@@ -122,10 +122,10 @@ class RandomInitializerWithWalls : public RandomInitializer
 		//! Empty Destructor
 		virtual ~RandomInitializerWithWalls() ;
 		
-		virtual WallData getWalls();
+		virtual WallData getWalls() const;
 
-		//! Initializes the particle data arrays
-		virtual void initArrays(const ParticleDataArrays &pdata) const;
+	protected:
+		WallData m_walls;
 	};
 	
 #ifdef USE_PYTHON
