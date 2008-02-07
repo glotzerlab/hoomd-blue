@@ -72,10 +72,11 @@ support CUDA http://www.nvidia.com/object/cuda_home.html.
 
 \section sec_install_hoomd_windows Installing HOOMD in Windows XP
 
- -# Before you can install HOOMD, you must install both Python 2.5 and the
-NVIDIA CUDA Toolkit 1.1. Both have self-extracting windows installers.<br>
-http://www.python.org/download/
-http://www.nvidia.com/object/cuda_get.html#windows
+<b>Before you can install HOOMD</b>
+ -# Install Python 2.5 using the installer at http://www.python.org/download/
+ -# Install the NVIDIA CUDA Toolkit version 1.1 using the installer at http://www.nvidia.com/object/cuda_get.html#windows
+ -# Install CUDA capable NVIDIA drivers from the same page. Laptop users, see
+ http://forums.nvidia.com/index.php?showtopic=58191
  -# Download the HOOMD installer from http://www.ameslab.gov/hoomd
  -# Uninstall any previous version of HOOMD before continuing
  -# Double click on the installer and follow the on screen steps
@@ -91,6 +92,7 @@ In order to visualize the demos, you must have VMD 1.8.6 installed: http://www.k
 \section sec_install_hoomd_linux Installing HOOMD in Linux
 
  -# Install the NVIDIA CUDA Toolket 1.1 : http://www.nvidia.com/object/cuda_get.html#linux
+ -# Install CUDA capable NVIDIA drivers from the same page.
  -# Before you download HOOMD, check which python version you have by running 
  	\code
  python -V
@@ -144,7 +146,7 @@ Note: to visualize the live demos, you need to have VMD 1.8.6 installed: http://
 
 \section sec_using_hoomd Using HOOMD
 
-While HOOMD 0.6.0 is capable of running MD simulations, (as you can see in the benhcmarks and demos) 
+While HOOMD 0.6.0 is capable of running MD simulations, (as you can see in the benchmarks and demos) 
 in this release is not intended for most users to do so. Just open up benchmarks/polymer/polymer_bmark_gpu.hoomd
 in a text editor and you will see why: it is complicated to setup a simulation run currently. HOOMD 0.7.0 will
 improve on this with an user-friendly scripting system. Once it is complete, it will be documented here.
