@@ -283,7 +283,7 @@ class ParticleDataInitializer
 		//! Initializes the particle data arrays
 		virtual void initArrays(const ParticleDataArrays &pdata) const = 0;
 
-		virtual WallData getWalls() const { return NULL; }
+		virtual WallData getWalls() const { return WallData(); }
 	};
 	
 //! Manages all of the data arrays for the particles

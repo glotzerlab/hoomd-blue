@@ -70,8 +70,7 @@ ForceCompute(pdata), m_r_cut(r_cut)
 	assert(m_lj1 != NULL && m_lj2 != NULL);
 	
 	//Make walls
-	// TODO: move wall data into particle data and make a class
-	//m_pdata.setWalls(WallData(pdata->getBox()));
+	// WallData is located within pdata
 	
 	// initialize the parameters to 0;
 	memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes);
