@@ -196,7 +196,11 @@ int main(int argc, char **argv)
 		("profile", value<bool>(&profile_compute)->default_value(true), "Profile GFLOPS and GB/s sustained")
 		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
 		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
-		("nl_name,f", value<string>(&nl_name)->default_value("BinnedNl"), "NeighboorList to benchmark")
+		#ifdef USE_CUDA
+		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNl.GPU"), "NeighboorList to benchmark")
+		#else
+		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNl"), "NeighboorList to benchmark")
+		#endif
 		;
 	
 	// parse the command line

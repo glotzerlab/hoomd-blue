@@ -275,9 +275,11 @@ int main(int argc, char **argv)
 	if (!quiet)
 		cout << "Building neighbor list data..." << endl;	
 	shared_ptr<NeighborList> nlist(new BinnedNeighborList(pdata, r_cut, r_buff));
+	#ifndef USE_CUDA
 	if (half_nlist)
 		nlist->setStorageMode(NeighborList::half);
 	else
+	#endif
 		nlist->setStorageMode(NeighborList::full);
 	nlist->setEvery(1000000000);
 	nlist->forceUpdate();
