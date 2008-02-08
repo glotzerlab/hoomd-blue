@@ -22,7 +22,7 @@ this will need to be updated whenever the main site one changes
 
 body {
 	margin: 0; padding: 0;
-	font: 70%/1.5 Verdana, Tahoma, Arial, Helvetica, sans-serif;
+	font: small Arial, Sans-Serif;
 	color: #333; 
 	background: #FFF url(../images/bg.gif) repeat-x;	
 }
