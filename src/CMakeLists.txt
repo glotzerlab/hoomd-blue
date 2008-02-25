@@ -65,10 +65,10 @@ endif (WIN32)
 ################################
 ## Version information
 set(HOOMD_VERSION_MAJOR "0")
-set(HOOMD_VERSION_MINOR "6")
+set(HOOMD_VERSION_MINOR "7")
 set(HOOMD_VERSION_PATCH "0")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
-set(HOOMD_SUBVERSION_BUILD "0")
+set(HOOMD_SUBVERSION_BUILD "1")
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION}")
 
 # Setup a number of misc options and libraries
