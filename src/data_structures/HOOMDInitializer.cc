@@ -128,7 +128,7 @@ void HOOMDInitializer::readFile(const string &fname){
 	cout<< "Reading " << fname.c_str() << endl;
 	
 	cout << "\nGathering info from file...";
-
+	
 	int num_children;
   	num_children = xMainNode.nChildNode();
 	bool position_flag=false;
@@ -333,8 +333,6 @@ void HOOMDInitializer::readFile(const string &fname){
 			*/
 			
 		}
-
-
 	
 		// Check if there is a child node "Type" to extract the x,y,z coordinates of all particles 
 		else if(name=="Type")
@@ -368,11 +366,8 @@ void HOOMDInitializer::readFile(const string &fname){
 		else
 		{	
 			cout<< endl;
-			cout<< "Ingnoring "<<xNode.getName()<<"..."<<endl<<endl;
-						
+			cout<< "Ingnoring "<<xNode.getName()<<"..."<<endl<<endl;				
 		}
-		
-		
 	}
 	
 	if(!configuration_flag)
@@ -391,9 +386,6 @@ void HOOMDInitializer::readFile(const string &fname){
 		throw runtime_error("Error in reading Box dimension details of particles");
 	}
 
-	
-	
-
 	if(position_flag == false)
 	{
 		cout << endl;
@@ -410,8 +402,6 @@ void HOOMDInitializer::readFile(const string &fname){
 		throw runtime_error("Error in reading Bond details of particles");
 
 	}*/
-
-	
 
 	cout << "done" << endl << endl;
 	cout << "Read from file: " << getNumParticles() << " particles, ";

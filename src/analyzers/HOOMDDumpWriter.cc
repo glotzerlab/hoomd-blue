@@ -97,9 +97,6 @@ void HOOMDDumpWriter::setTypeFlag(bool type_flag)
 }
 
 
-
-
-
 /*! \param timestep Current time step of the simulation
 
 	To output all the information about the particle to an XML file at that particular time step.
@@ -124,9 +121,6 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	Scalar Lx,Ly,Lz;
 	string filetype;
 
-	
-	
-	
 	if (m_compression_flag == true)
 		filetype=".gz";
 	else if (m_compression_flag == false )
