@@ -59,7 +59,7 @@ using namespace std;
 		delete the neighborlist when done.
 */
 LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: LJForceCompute(pdata, nlist, r_cut), m_params_changed(true), m_ljparams(NULL), m_block_size(128)
+	: LJForceCompute(pdata, nlist, r_cut), m_params_changed(true), m_ljparams(NULL), m_block_size(448)
 	{
 	if (m_ntypes > MAX_NTYPES)
 		{

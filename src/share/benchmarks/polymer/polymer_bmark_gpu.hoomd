@@ -33,7 +33,7 @@ alpha = 1.0;
 lj2 = alpha * 24.0 * epsilon * math.pow(sigma, 6.0);
 fc.setParams(1, 1, lj1, lj2);
 
-fc.setBlockSize(256);
+fc.setBlockSize(448);
 
 fc_bond = BondForceComputeGPU(pdata, 330, 0.84);
 init.setupBonds(fc_bond);
@@ -52,7 +52,7 @@ sys.addCompute(nlist, "nlist");
 sys.addCompute(fc, "fc");
 sys.addCompute(fc_bond, "fc_bond");
 sys.setIntegrator(nvt);
-sys.addUpdater(sorter, "sorter", 1000);
+sys.addUpdater(sorter, "sorter", 500);
 
 # warm up
 sys.run(2000);
