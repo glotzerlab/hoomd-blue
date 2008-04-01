@@ -118,9 +118,6 @@ cudaError_t gpu_select_ljparam_data(gpu_ljparam_data *ljparams, bool force)
 	return retval;
 	}
 
-//! Hardcode the warp size for the divergence avoiding code
-#define WARP_SIZE 32
-
 //! Kernel for calculating lj forces
 /*! This kerenel is called to calculate the lennard-jones forces on all N particles
 
@@ -138,14 +135,14 @@ cudaError_t gpu_select_ljparam_data(gpu_ljparam_data *ljparams, bool force)
 	This version dynamically avoids divergent warps
 	It is also assumed that the neighborlist is padded out to have a number of columsn a 
 	multiple of the block size so that reads can be simply done in a big block
-	\bug Performance is extremely slow due to an implemented workaround for the annoying timeout bug
-	\todo Remove limitation on excessively padded neighbor list
-	\todo Remove the warp divergence avoiding code (it is here as part of the bug workaround)
 */
 extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, gpu_nlist_array nlist, float r_cutsq, gpu_boxsize box)
 	{
 	// start by identifying which particle we are to handle
 	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	
+	if (pidx >= pdata.N)
+		return;
 	
 	// load in the length of the list (each thread loads it individually, 
 	// we are going to dynamically avoid divergent warps by finding the maximum
@@ -158,15 +155,8 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	// but reading it from the texture gives a slightly better performance, possibly because it "warms up" the
 	// texture cache for the next read
 	float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	if (pidx < pdata.N)
-		{
-		#ifdef USE_CUDA_BUG_WORKAROUND
-		pos = pdata.pos[pidx];
-		#else
-		pos = tex1Dfetch(pdata_pos_tex, pidx);
-		#endif
-		}
-
+	pos = tex1Dfetch(pdata_pos_tex, pidx);
+	
 	// initialize the force to 0
 	float fx = 0.0f;
 	float fy = 0.0f;
@@ -186,73 +176,68 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		period = 1;
 	
 	// loop over neighbors
-	for (int neigh_idx = 0; neigh_idx < n_neigh/*sdata[start]*/; neigh_idx++)
+	// to prevent triggering a bug in the GPU hardware, each thread loops over the maximum
+	// possible number of neighbors. Then an if in the thread body prevents computations 
+	// from being performed on invalid neighbors
+	for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
 		{
-		int cur_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + pidx];
-	
-		// get the neighbor's position
-		float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-		if (pidx < pdata.N)
+		if (neigh_idx < n_neigh)
 			{
-			#ifdef USE_CUDA_BUG_WORKAROUND
-			neigh_pos = pdata.pos[cur_neigh];
-			#else
+			int cur_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + pidx];
+		
+			// get the neighbor's position
+			float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 			neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
-			#endif
-			}
-
-		float nx = neigh_pos.x;
-		float ny = neigh_pos.y;
-		float nz = neigh_pos.z;
-		int neigh_typ = __float_as_int(neigh_pos.w);
 	
-		// calculate dr (with periodic boundary conditions)
-		float dx = pos.x - nx;
-		float dy = pos.y - ny;
-		float dz = pos.z - nz;
+			float nx = neigh_pos.x;
+			float ny = neigh_pos.y;
+			float nz = neigh_pos.z;
+			int neigh_typ = __float_as_int(neigh_pos.w);
 		
-		if (period)
-			{
-			dx -= box.Lx * rintf(dx * box.Lxinv);
-			dy -= box.Ly * rintf(dy * box.Lyinv);
-			dz -= box.Lz * rintf(dz * box.Lzinv);
-			}
+			// calculate dr (with periodic boundary conditions)
+			float dx = pos.x - nx;
+			float dy = pos.y - ny;
+			float dz = pos.z - nz;
 			
-		float rsq = dx*dx + dy*dy + dz*dz;
-		
-		float r2inv;
-		if (rsq >= r_cutsq/* || neigh_idx >= sdata[blockDim.x + threadIdx.x]*/)
-			r2inv = 0.0f;
-		else
-			r2inv = 1.0f / rsq;
-
-		int ptype = __float_as_int(pos.w);
-		int typ_pair = neigh_typ * MAX_NTYPES + ptype;
-
-		// note that the code for calculating the force was borrowed from lammps
-		float r6inv = r2inv*r2inv*r2inv;
-		// the lj1 and lj2 params are encoded into the x and y components of the params array
-		float lj1 = c_ljparams.lj1[typ_pair];
-		float lj2 = c_ljparams.lj2[typ_pair];
-		float fforce = r2inv * r6inv * (lj1  * r6inv - lj2);
-		
-		// add up the forces
-		fx += dx * fforce;
-		fy += dy * fforce;
-		fz += dz * fforce;
+			if (period)
+				{
+				dx -= box.Lx * rintf(dx * box.Lxinv);
+				dy -= box.Ly * rintf(dy * box.Lyinv);
+				dz -= box.Lz * rintf(dz * box.Lzinv);
+				}
+				
+			float rsq = dx*dx + dy*dy + dz*dz;
+			
+			float r2inv;
+			if (rsq >= r_cutsq)
+				r2inv = 0.0f;
+			else
+				r2inv = 1.0f / rsq;
+	
+			int ptype = __float_as_int(pos.w);
+			int typ_pair = neigh_typ * MAX_NTYPES + ptype;
+	
+			// note that the code for calculating the force was borrowed from lammps
+			float r6inv = r2inv*r2inv*r2inv;
+			// the lj1 and lj2 params are encoded into the x and y components of the params array
+			float lj1 = c_ljparams.lj1[typ_pair];
+			float lj2 = c_ljparams.lj2[typ_pair];
+			float fforce = r2inv * r6inv * (lj1  * r6inv - lj2);
+			
+			// add up the forces
+			fx += dx * fforce;
+			fy += dy * fforce;
+			fz += dz * fforce;
+			}
 		}
 	
 	// now that the force calculation is complete, write out the result if we are a valid particle
-	if (pidx < pdata.N)
-		{
-		float4 force;
-		force.x = fx;
-		force.y = fy;
-		force.z = fz;
-		force.w = 0.0f;
-		d_forces[pidx] = force;
-		}
-	
+	float4 force;
+	force.x = fx;
+	force.y = fy;
+	force.z = fz;
+	force.w = 0.0f;
+	d_forces[pidx] = force;
 	}
 
 
