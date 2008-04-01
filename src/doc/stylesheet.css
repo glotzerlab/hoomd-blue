@@ -436,7 +436,7 @@ TD.navtab {
 	color: #ffffff;
 }
 #main A.qindexHL:visited { text-decoration: none; background-color: #6666cc; color: #ffffff }
-#main A.el { text-decoration: none; font-weight: bold; font-size: 60%; }
+#main A.el { text-decoration: none; font-weight: bold; font-size: small; }
 #main A.elRef { font-weight: bold }
 #main A.code:link { text-decoration: none; font-weight: normal; color: #0000FF}
 #main A.code:visited { text-decoration: none; font-weight: normal; color: #0000FF}
