@@ -478,7 +478,7 @@ extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array 
 	float py = my_pos.y;
 	float pz = my_pos.z;
 	
-	uint4 exclude = tex1Dfetch(nlist_exclude_tex, my_pidx);
+	//uint4 exclude = tex1Dfetch(nlist_exclude_tex, my_pidx);
 
 	// the shared data will hold the particle positions of all the particles in the neighboring bins as well as the 
 	// particle index of the particle (stored as an int to be accessed with __float_as_int)
@@ -550,8 +550,8 @@ extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array 
 
 					float dr = dx*dx + dy*dy + dz*dz;
 					
-					int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
-					if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
+					//int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
+					if (dr < r_maxsq && (my_pidx != cur_neigh)/* && not_excluded*/)
 						{
 						nlist.list[my_pidx + (1 + n_neigh)*nlist.pitch] = cur_neigh;
 						n_neigh++;
