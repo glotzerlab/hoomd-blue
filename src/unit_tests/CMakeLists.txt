@@ -63,6 +63,8 @@ if (VALGRIND)
 	set(VALGRIND_COMMON_ARGS "--leak-check=full;--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/cudart_valgrind.supp;--error-exitcode=1")
 endif (VALGRIND)
 
+enable_testing()
+
 ###################################
 ## Setup all of the test executables in a for loop
 foreach (CUR_TEST utils_test pdata_test neighborlist_test bond_force_test

@@ -456,18 +456,20 @@ void BinnedNeighborListGPU::updateListFromBins()
 	gpu_boxsize box = m_pdata->getBoxGPU(); 
 	
 	// create a temporary copy of r_max sqaured
-	int block_size = m_curNmax;
+	/*int block_size = m_curNmax;
 	if ((block_size & 31) != 0)
 		block_size += 32 - (block_size & 31);
 
 	#ifdef USE_CUDA_BUG_WORKAROUND
 	block_size = m_Nmax;
-	#endif
+	#endif*/
+	
 	
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
-	gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, block_size);
+	//gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, block_size);
 	//gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_Nmax);
+	gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_curNmax);
 	
 	m_pdata->release();
 
@@ -539,6 +541,8 @@ void BinnedNeighborListGPU::printStats()
 	NeighborList::printStats();
 
 	cout << "Nmax = " << m_Nmax << " / curNmax = " << m_curNmax << endl;
+	int Nbins = m_gpu_bin_data.h_array.Mx * m_gpu_bin_data.h_array.My * m_gpu_bin_data.h_array.Mz;
+	cout << "bins Nmax = " << m_gpu_bin_data.h_array.Nmax << " / Nbins = " << Nbins << endl;
 	}
 
 #ifdef USE_PYTHON

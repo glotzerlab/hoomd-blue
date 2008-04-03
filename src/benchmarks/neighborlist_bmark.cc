@@ -170,6 +170,8 @@ void benchmark(shared_ptr<NeighborList> nl) {
 	
 	if (!quiet)
 		cout << *prof << endl;
+		
+	nl->printStats();
 	
 	double avgTime = double(tend - tstart)/1e9/double(nrepeat);;
 	cout << setprecision(7) << avgTime << " s/step" << endl;

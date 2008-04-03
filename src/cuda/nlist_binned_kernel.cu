@@ -455,7 +455,7 @@ extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array 
 
 
 // non-unrolled version 
-extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, gpu_boxsize box)
+/*extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, gpu_boxsize box)
 	{
 	// each block is going to compute the neighborlist for all of the particles in blockIdx.x
 	int my_bin = blockIdx.x;
@@ -551,7 +551,7 @@ extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array 
 					float dr = dx*dx + dy*dy + dz*dz;
 					
 					//int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
-					if (dr < r_maxsq && (my_pidx != cur_neigh)/* && not_excluded*/)
+					if (dr < r_maxsq && (my_pidx != cur_neigh))
 						{
 						nlist.list[my_pidx + (1 + n_neigh)*nlist.pitch] = cur_neigh;
 						n_neigh++;
@@ -568,7 +568,7 @@ extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array 
 		nlist.list[my_pidx] = n_neigh;
 		nlist.last_updated_pos[my_pidx] = pdata.pos[my_pidx];
 		}
-	}
+	}*/
 
 // non-unrolled version (with idx full) 
 /*__global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, gpu_boxsize box)
@@ -656,7 +656,7 @@ extern "C" __global__ void updateFromBins(gpu_pdata_arrays pdata, gpu_bin_array 
 		nlist.last_updated_pos[my_pidx] = my_pos2;
 	}*/
 
-void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax)
+/*void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax)
 	{
 	assert(bins);
     assert(pdata);
@@ -675,6 +675,138 @@ void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *b
     // run the kernel
     updateFromBins<<< grid, threads, M*sizeof(float)*4 >>>(*pdata, bins->d_array, nlist->d_array, r_maxsq, *box);
     CUT_CHECK_ERROR("Kernel execution failed");
-    }
+    }*/
+
+/////////////////////// OLD METHOD ABOVE
+/////////////////////// NEW METHOD BELOW
+
+
+extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, unsigned int actual_Nmax, gpu_boxsize box)
+	{
+	// each thread is going to compute the neighbor list for a single particle
+	int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
+	
+	// quit early if we are past the end of the array
+	if (my_pidx >= pdata.N)
+		return;
+	
+	// first, determine which bin this particle belongs to
+	float4 my_pos = tex1Dfetch(pdata_pos_tex, my_pidx);
+	
+	// make even bin dimensions
+	float binx = (box.Lx) / float(bins.Mx);
+	float biny = (box.Ly) / float(bins.My);
+	float binz = (box.Lz) / float(bins.Mz);
+
+	// precompute scale factors to eliminate division in inner loop
+	float scalex = 1.0f / binx;
+	float scaley = 1.0f / biny;
+	float scalez = 1.0f / binz;
+	
+	unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
+	unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley);
+	unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*scalez);
+
+	// need to handle the case where the particle is exactly at the box hi
+	if (ib == bins.Mx)
+		ib = 0;
+	if (jb == bins.My)
+		jb = 0;
+	if (kb == bins.Mz)
+		kb = 0;
+			
+	int my_bin = ib*(bins.Mz*bins.My) + jb * bins.Mz + kb;	
+
+	// each thread will determine the neighborlist of a single particle
+	int n_neigh = 0;	// count number of neighbors found so far
+	
+	// we will need to loop over all neighboring bins. In order to do that, we need to know what bin we are actually in!
+	// this could be a messy bunch of modulus operations, so we just read it out of an array that has been pre-computed for us :)
+	uint4 coords = tex1Dfetch(nlist_bincoord_tex, my_bin);
+	int my_i = coords.x;
+	int my_j = coords.y;
+	int my_k = coords.z;
+	
+	// loop through the 27 neighboring bins
+	for (int cur_i = int(my_i) - 1; cur_i <= int(my_i) + 1; cur_i++)
+		{
+		for (int cur_j = int(my_j) - 1; cur_j <= int(my_j) + 1; cur_j++)
+			{
+			for (int cur_k = int(my_k) - 1; cur_k <= int(my_k) + 1; cur_k++)
+				{
+				// apply boundary conditions to the current bin
+				int a = cur_i;
+				if (a < 0) 
+					a += bins.Mx;
+				if (a >= bins.Mx)
+					a -= bins.Mx;
+
+				int b = cur_j;
+				if (b < 0) 
+					b += bins.My;
+				if (b >= bins.My)
+					b -= bins.My;
+
+				int c = cur_k;
+				if (c < 0) 
+					c += bins.Mz;
+				if (c >= bins.Mz)
+					c -= bins.Mz;
+					
+				// now: we finally know the current bin to compare to
+				int neigh_bin = a*bins.Mz*bins.My + b*bins.Mz + c;
+				
+				// now, we are set to loop through the array
+				for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
+					{
+					unsigned int cur_neigh = tex2D(nlist_idxlist_tex, cur_offset, neigh_bin);
+					
+					if (cur_neigh != EMPTY_BIN)
+						{
+						float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+					
+						float dx = my_pos.x - neigh_pos.x;
+						dx = dx - box.Lx * rintf(dx * box.Lxinv);
+	
+						float dy = my_pos.y - neigh_pos.y;
+						dy = dy - box.Ly * rintf(dy * box.Lyinv);
+	
+						float dz = my_pos.z - neigh_pos.z;
+						dz = dz - box.Lz * rintf(dz * box.Lzinv);
+	
+						float dr = dx*dx + dy*dy + dz*dz;
+						
+						if (dr < r_maxsq && (my_pidx != cur_neigh))
+							{
+							nlist.list[my_pidx + (1 + n_neigh)*nlist.pitch] = cur_neigh;
+							n_neigh++;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+	nlist.list[my_pidx] = n_neigh;
+	nlist.last_updated_pos[my_pidx] = my_pos;
+	}
+	
+void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax)
+	{
+	assert(bins);
+	assert(pdata);
+	assert(nlist);
+	
+    // setup the grid to run the kernel
+	int block_size = 320;
+	int nblocks = (int)ceil((double)pdata->N/ (double)block_size);
+	
+    dim3 grid(nblocks, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+	// run the kernel
+	updateFromBins_new<<< grid, threads>>>(*pdata, bins->d_array, nlist->d_array, r_maxsq, curNmax, *box);
+	CUT_CHECK_ERROR("Kernel execution failed");
+	}
 
 // vim:syntax=cpp
