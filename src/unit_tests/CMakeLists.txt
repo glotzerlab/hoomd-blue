@@ -81,7 +81,7 @@ foreach (CUR_TEST utils_test pdata_test neighborlist_test bond_force_test
 	# unfortunately, this needs to be handled differently in visual studio
 	if (MSVC)
 		add_test(${CUR_TEST} ${EXECUTABLE_OUTPUT_PATH}/${CUR_TEST})
-	elseif (MSVC)
+	else (MSVC)
 		add_test(${CUR_TEST} ${CUR_TEST_EXE})
 		# add a valgrind executed test if requested
 		if (USE_VALGRIND)
