@@ -158,8 +158,15 @@ void HOOMDInitializer::readFile(const string &fname){
 				
 				if (loud) cout << "Reading Time step..." << endl;
 				
-				if (loud) cout << "Time step           -  " << xNode.getAttribute("time_step") << endl;
-				m_timestep = atoi(xNode.getAttribute("time_step"));
+				if (xNode.isAttributeSet("time_step"))
+				{
+					if (loud) cout << "Time step           -  " << xNode.getAttribute("time_step") << endl;
+					m_timestep = atoi(xNode.getAttribute("time_step"));
+				}
+				else
+				{
+					m_timestep = 0;
+				}
 				
 				if(xNode.isAttributeSet("N"))
 				{
