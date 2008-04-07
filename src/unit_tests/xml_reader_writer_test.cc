@@ -50,7 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDInitializer.h"
 
 #include <iostream>
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 using namespace boost::filesystem;
 #include <boost/shared_ptr.hpp>
 using namespace boost;

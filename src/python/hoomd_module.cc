@@ -84,7 +84,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDVersion.h"
 
 #include <boost/python.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 using namespace boost::filesystem;
 using namespace boost::python;
