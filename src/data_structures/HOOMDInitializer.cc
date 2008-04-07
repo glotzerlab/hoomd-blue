@@ -127,8 +127,6 @@ void HOOMDInitializer::readFile(const string &fname){
 	cout<< endl;
 	cout<< "Reading " << fname.c_str() << endl;
 	
-	cout << "\nGathering info from file...";
-	
 	int num_children;
   	num_children = xMainNode.nChildNode();
 	bool position_flag=false;
@@ -200,10 +198,6 @@ void HOOMDInitializer::readFile(const string &fname){
 					m_nbonds  = atoi(xNode.getAttribute("NBonds"))  ;
 					// Allocate memory for bonds 
 					m_bonds = new bond[m_nbonds];
-				}
-				else
-				{
-					cout << "Total Number of Bond forces in the simulation is not present in the XML file "<<endl<<endl;
 				}
 
 			}
@@ -372,8 +366,7 @@ void HOOMDInitializer::readFile(const string &fname){
 		}
 		else
 		{	
-			cout<< endl;
-			cout<< "Ingnoring "<<xNode.getName()<<"..."<<endl<<endl;				
+			cout<< "Ignoring "<<xNode.getName()<<"..." << endl;				
 		}
 	}
 	
@@ -410,7 +403,6 @@ void HOOMDInitializer::readFile(const string &fname){
 
 	}*/
 
-	cout << "done" << endl << endl;
 	cout << "Read from file: " << getNumParticles() << " particles, ";
 	cout << getNumParticleTypes() << " particle types, and ";
 	cout << m_nbonds << " bonds." << endl;
