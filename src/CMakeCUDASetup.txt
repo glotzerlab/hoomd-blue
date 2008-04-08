@@ -58,19 +58,3 @@ if(SINGLE_PRECISION)
 	# this line makes sure that cuda is disabled when single_precision is disabled
 	#set(USE_CUDA OFF CACHE BOOL "Enable the compilation of the CUDA GPU code - requires single precision" FORCE)
 endif(SINGLE_PRECISION)
-
-## option to enable a workaround to the CUDA bug
-if (USE_CUDA)
-	option(USE_CUDA_BUG_WORKAROUND "Enable the use of the annoying CUDA bug workaround")
-	
-	if (NVCC_USER_FLAGS STREQUAL -DUSE_CUDA_BUG_WORKAROUND)
-		set (NVCC_USER_FLAGS "" CACHE STRING 
-					"Forced by the enabling of USE_CUDA_BUG_WORKAROUND" FORCE)
-	endif (NVCC_USER_FLAGS STREQUAL -DUSE_CUDA_BUG_WORKAROUND)
-	
-	if (USE_CUDA_BUG_WORKAROUND)
-		add_definitions (-DUSE_CUDA_BUG_WORKAROUND)
-		set (NVCC_USER_FLAGS "-DUSE_CUDA_BUG_WORKAROUND" CACHE STRING 
-					"Forced by the enabling of USE_CUDA_BUG_WORKAROUND" FORCE)
-	endif (USE_CUDA_BUG_WORKAROUND)
-endif (USE_CUDA)

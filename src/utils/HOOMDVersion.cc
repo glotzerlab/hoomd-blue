@@ -92,7 +92,6 @@ void output_version_info(bool verbose)
 		// set all the options to a default and modify them within ifdefs
 		string use_cuda = "no";
 		string use_python = "no";
-		string use_sse = "no";
 		string precision = "double";
 		string use_static = "no";
 
@@ -102,10 +101,6 @@ void output_version_info(bool verbose)
 
 		#ifdef USE_PYTHON
 		use_python = "yes";
-		#endif
-
-		#ifdef USE_SSE
-		use_sse = "yes";
 		#endif
 
 		#ifdef SINGLE_PRECISION
@@ -118,7 +113,6 @@ void output_version_info(bool verbose)
 
 		cout << "CUDA enabled:             " << use_cuda << endl;
 		cout << "python module enabled:    " << use_python << endl;
-		cout << "SSE instructions enabled: " << use_sse << endl;
 		cout << "Floating point precision: " << precision << endl;
 		cout << "Static library build:     " << use_static << endl;
 

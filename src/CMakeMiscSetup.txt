@@ -71,11 +71,6 @@ OPTION(USE_PYTHON "Build the boost.python hoomd module" OFF)
 if (WIN32)
 add_definitions(-D__SSE__ -D__SSE2__)
 endif (WIN32)
-# SSE code will only be built if this option is enabled
-option(USE_SSE "Enable SSE optimized code" OFF)
-if(USE_SSE)
-	add_definitions (-DUSE_SSE)
-endif(USE_SSE)
 
 # allow user to compile code with single instead of double precision
 # single precision option

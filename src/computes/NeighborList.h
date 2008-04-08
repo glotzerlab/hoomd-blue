@@ -223,24 +223,6 @@ class NeighborList : public Compute
 void export_NeighborList();
 #endif
 
-#ifdef USE_SSE
-#ifdef __SSE__
-//! Provides an SSE optimized NeighborList
-/*! Neighbors are still computed using an O(N^2) algorithm, but the comparisons go much faster 
-	on x86 and amd64 hardware thanks to the use of SSE instructions.
-*/
-class NeighborListSSE : public NeighborList
-	{
-	public:
-		//! Constructs the compute
-		NeighborListSSE(ParticleData *pdata, Scalar r_cut, Scalar r_buff);
-
-	protected:
-		//! Compute the neighbor list using SSE instructions
-		virtual void computeSimple();
-	};
-#endif
 #endif
 
-#endif
 
