@@ -39,6 +39,5 @@ if [ -z "${HOOMD_ROOT}" ] ; then
 	echo "Please specify the environment variable HOOMD_ROOT."
 fi
 
-PYTHONPATH="${HOOMD_ROOT}/lib/hoomd/python-module:${PYTHONPATH}"
 export HOOMD_ROOT
 ${HOOMD_ROOT}/lib/hoomd/hoomd $*

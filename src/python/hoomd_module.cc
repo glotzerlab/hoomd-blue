@@ -104,7 +104,7 @@ using namespace std;
 string find_hoomd_data_dir()
 	{
 	// try checking offsets from the environment variable first:
-	// it is search first so as to override any other potential location
+	// it is searched first so as to override any other potential location
 	if (getenv("HOOMD_ROOT"))
 		{
 		path hoomd_root_dir = path(string(getenv("HOOMD_ROOT")));
@@ -120,11 +120,6 @@ string find_hoomd_data_dir()
 			string result = (hoomd_root_dir / "share").string();
 			return result;
 			}
-		}
-	else
-		{
-		if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / ".hoomd_data_dir"))
-			return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
 		}
 
 	#ifdef WIN32
@@ -161,6 +156,10 @@ string find_hoomd_data_dir()
 	if (exists("/opt/hoomd/share/.hoomd_data_dir"))
 		return "/opt/hoomd/share";
 	#endif
+
+	// as a final fallback: try the source directory
+	if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / ".hoomd_data_dir"))
+		return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
 	
 	cerr << "HOOMD data directory not found, please set the environment variable HOOMD_ROOT" << endl;
 	return string("");
