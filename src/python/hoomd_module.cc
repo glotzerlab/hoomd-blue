@@ -103,22 +103,30 @@ using namespace std;
 */
 string find_hoomd_data_dir()
 	{
-	// check likely installation locations
-	// default to the source path first, since we would want it to override any
-	// other version that exists
-	if (exists(path(HOOMD_SOURCE_DIR) / "share"))
-		return (path(HOOMD_SOURCE_DIR) / "share").string();
-	
+	// try checking offsets from the environment variable first:
+	// it is search first so as to override any other potential location
 	if (getenv("HOOMD_ROOT"))
 		{
 		path hoomd_root_dir = path(string(getenv("HOOMD_ROOT")));
-		if (exists(hoomd_root_dir / "share" / "hoomd"))
+		// try root/share/hoomd (for /usr/local /usr etc)
+		if (exists(hoomd_root_dir / "share" / "hoomd" / ".hoomd_data_dir"))
 			{
 			string result = (hoomd_root_dir / "share" / "hoomd").string();
 			return result;
 			}
+		// try root/share (for /opt/hoomd style install)
+		if (exists(hoomd_root_dir / "share" / ".hoomd_data_dir"))
+			{
+			string result = (hoomd_root_dir / "share").string();
+			return result;
+			}
 		}
-	
+	else
+		{
+		if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / ".hoomd_data_dir"))
+			return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
+		}
+
 	#ifdef WIN32
 	// access the registry key
 	string name = string("hoomd ") + string(HOOMD_VERSION);
@@ -131,7 +139,7 @@ string find_hoomd_data_dir()
 	if (err_code == ERROR_SUCCESS)
 		{
 		path install_dir = path(string(value));
-		if (exists(install_dir))
+		if (exists(install_dir / ".hoomd_data_dir"))
 			return (install_dir).string();
 		}
 	delete[] value;
@@ -141,14 +149,17 @@ string find_hoomd_data_dir()
 	if (getenv("PROGRAMFILES"))
 		{
 		path program_files_dir = path(string(getenv("PROGRAMFILES")));
-		if (exists(program_files_dir / "hoomd"))
+		if (exists(program_files_dir / "hoomd" / ".hoomd_data_dir"))
 			return (program_files_dir / "hoomd").string();
 		}
 	#else
-	if (exists("/usr/share/hoomd"))
+	// check a few likely installation locations
+	if (exists("/usr/share/hoomd/.hoomd_data_dir"))
 		return "/usr/share/hoomd";
-	if (exists("/usr/local/share/hoomd"))
+	if (exists("/usr/local/share/hoomd/.hoomd_data_dir"))
 		return "/usr/local/share/hoomd";
+	if (exists("/opt/hoomd/share/.hoomd_data_dir"))
+		return "/opt/hoomd/share";
 	#endif
 	
 	cerr << "HOOMD data directory not found, please set the environment variable HOOMD_ROOT" << endl;

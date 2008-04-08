@@ -69,6 +69,13 @@ if (NOT USE_STATIC)
 		)
 endif (NOT USE_STATIC)
 
+# install the hoomd_script python module
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python-module
+	DESTINATION ${LIB_INSTALL_DIR}
+	CONFIGURATIONS Release
+	PATTERN ".svn" EXCLUDE
+	)
+
 #################################
 ## Create source file groups
 source_group(utils FILES ${UTILS_SRCS})

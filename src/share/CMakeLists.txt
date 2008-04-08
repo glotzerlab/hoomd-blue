@@ -38,7 +38,7 @@
 # $URL$
 
 ## install the share directory
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks ${CMAKE_CURRENT_SOURCE_DIR}/demos
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/benchmarks ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/demos
 		DESTINATION ${DATA_INSTALL_DIR}
 		CONFIGURATIONS Release
 		PATTERN "*.hoomd"
@@ -47,7 +47,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks ${CMAKE_CURRENT_SOURCE_
 		)
 		
 ## install the license file
-install(FILES ${HOOMD_SOURCE_DIR}/LICENSE
+install(FILES ${HOOMD_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/.hoomd_data_dir
 		DESTINATION ${DATA_INSTALL_DIR}
 		CONFIGURATIONS Release
 		)
