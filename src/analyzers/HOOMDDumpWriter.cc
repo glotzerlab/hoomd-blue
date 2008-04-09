@@ -53,9 +53,6 @@ using namespace boost::python;
 #include "HOOMDDumpWriter.h"
 
 using namespace std;
-#if BOOST_VERSION >= 103400
-using namespace boost::iostreams;
-#endif
 
 /*! \param pdata Particle data to read when dumping files
 	\param base_fname The base name of the file xml file to output the information
@@ -63,70 +60,43 @@ using namespace boost::iostreams;
 
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
-HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname, bool compression_flag)
-	: Analyzer(pdata), m_base_fname(base_fname),m_compression_flag(compression_flag)
+HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname)
+	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_velocity(false), m_output_type(false)
 	{
 	}
 
-/*! 
-	\param position_flag Set to true to output particle positions to the XML file on the next call to analyze()
-
+/*! \param enable Set to true to enable the writing of particle positions to the files in analyze()
 */
-void HOOMDDumpWriter::setPositionFlag(bool position_flag)
-{
-	m_position_flag = position_flag;
+void HOOMDDumpWriter::setOutputPosition(bool enable)
+	{
+	m_output_position = enable;
+	}
 
-}
 /*!  
 	\param velocity_flag Set to true to output particle velocities to the XML file on the next call to analyze()
 
 */
-void HOOMDDumpWriter::setVelocityFlag (bool velocity_flag)
-{
-	m_velocity_flag = velocity_flag;
-
-}
-/*!   
-	\param type_flag Set to true to output particle types to the XML file on the next call to analyze()
-
+void HOOMDDumpWriter::setOutputVelocity(bool enable)
+	{
+	m_output_velocity = enable;
+	}
+/*! \param type_flag Set to true to output particle types to the XML file on the next call to analyze()
 */
-void HOOMDDumpWriter::setTypeFlag(bool type_flag)
-{
-	m_type_flag = type_flag;
-
-}
-
+void HOOMDDumpWriter::setOutputType(bool enable)
+	{
+	m_output_type = enable;
+	}
 
 /*! \param timestep Current time step of the simulation
-
-	To output all the information about the particle to an XML file at that particular time step.
-	
-	The folowing data are outputed unconditionally 
-	-Time step
-	-Number of particles at that time step
-	-Number of particle types
-	-Length, Width and Height of the simulation box
-
-	The following following data are outputed on user request 
-	(see setPositionFlag() setVelocityFlag() and setTypeFlag())
-	-Position of  each particle
-	-Velocity of each particle
-	-Type of each particle
+	Writes a snapshot of the current state of the ParticleData to a hoomd_xml file.
 */
 void HOOMDDumpWriter::analyze(unsigned int timestep)
 	{
 	ostringstream full_fname;
-	ostringstream temp;
-	//int Lx,Ly,Lz;
 	Scalar Lx,Ly,Lz;
-	string filetype;
-
-	if (m_compression_flag == true)
-		filetype=".gz";
-	else if (m_compression_flag == false )
-		filetype=".xml";
+	string filetype = ".xml";
 	
-	// Ten zero padded along with the timestep
+	// Generate a filename with the timestep padded to ten zeros
 	full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
 
 	// open the file for writing
@@ -135,7 +105,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	if (!f.good())
 		{
 		cerr << "Unable to open dump file for writing: " << full_fname.str() << endl;
-		throw runtime_error("Error writting HOOMD dump file");
+		throw runtime_error("Error writting hoomd_xml dump file");
 		}
 
 	// acquire the particle data
@@ -146,104 +116,94 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	Lz=Scalar(box.zhi-box.zlo);
 	
 	f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" <<endl;
-	f << "<HOOMD_xml>" << endl;
-		//f << " <Configuration time_step=\""<< timestep <<"\" N=\""<< arrays.nparticles <<"\" NTypes=\""<< m_ntypes <<"\" />" << endl;
-		f << "<Configuration time_step=\""<< timestep <<"\" N=\""<< arrays.nparticles <<"\" NTypes=\""<< m_pdata->getNTypes() <<"\"/>" << endl;
-		
-		f << "<Box Units=\"sigma\" " << " Lx=\""<< Lx << "\" Ly=\""<< Ly << "\" Lz=\""<< Lz << "\"/>" << endl;
+	f << "<hoomd_xml>" << endl;
+	f << "<configuration time_step=\"" << timestep << "\">" << endl;
 	
-		// If the position flag is true output the position of all particles to an xml file 
-		if(m_position_flag == true)
+	f << "<box units=\"sigma\" " << " Lx=\""<< Lx << "\" Ly=\""<< Ly << "\" Lz=\""<< Lz << "\"/>" << endl;
+
+	// If the position flag is true output the position of all particles to the file 
+	if (m_output_position)
 		{
-			f << "<Position units=\"sigma\">" << endl;
-
-				for (unsigned int j = 0; j < arrays.nparticles; j++)
-				{
-					int i;
-					i= arrays.rtag[j];
-						
-					// Fred bug Fixed 
-					Scalar x = (arrays.x[i]); // - box.xlo) / (box.xhi - box.xlo);
-					Scalar y = (arrays.y[i]); // - box.ylo) / (box.yhi - box.ylo);
-					Scalar z = (arrays.z[i]); // - box.zlo) / (box.zhi - box.zlo);
-					
-					f << x <<" "<< y <<" "<< z <<endl;
-
-					if (!f.good())
-					{
-						cerr << "Unexpected error writing HOOMD dump file" << endl;
-						throw runtime_error("Error writting HOOMD dump file");
-					}
-							
-				 }
-	   
-		  f <<"</Position>"<<endl;
-	
-		}
-		// If the velocity flag is true output the velocity of all particles to an xml file
-		if(m_velocity_flag == true)
-		{
-
-		 f <<"<Velocity units=\"sigma/tau\">"<<endl;
-	
-			for (unsigned int j = 0; j < arrays.nparticles; j++)
+		f << "<position units=\"sigma\">" << endl;
+		for (unsigned int j = 0; j < arrays.nparticles; j++)
 			{
-		
-				int i;
-				i= arrays.rtag[j];
+			// use the rtag data to output the particles in the order they were read in
+			int i;
+			i= arrays.rtag[j];
 				
+			Scalar x = (arrays.x[i]);
+			Scalar y = (arrays.y[i]);
+			Scalar z = (arrays.z[i]);
 			
-				Scalar vx = arrays.vx[i];
-				Scalar vy = arrays.vy[i];
-				Scalar vz = arrays.vz[i];
-				f << vx << " " << vy << " " << vz << endl;
-				if (!f.good())
-				{
-					cerr << "Unexpected error writing HOOMD dump file" << endl;
-					throw runtime_error("Error writting HOOMD dump file");
-				}
-													
+			f << x << " " << y << " "<< z << endl;
 
+			if (!f.good())
+				{
+				cerr << "Unexpected error writing HOOMD dump file" << endl;
+				throw runtime_error("Error writting HOOMD dump file");
+				}
 			}
-			f <<"</Velocity>" <<endl;
-		
-		  }
-		// If the Type flag is true output the types of all particles to an xml file
-		if(m_type_flag == true)
-		{
-			f <<"<Type>" <<endl;
-				for (unsigned int j = 0; j < arrays.nparticles; j++)
-				{
-			
-					int i;
-					i= arrays.rtag[j];
-					f << arrays.type[i]  <<endl;
-					
-				}
-				
-			f <<"</Type>" <<endl;
+		f <<"</position>"<<endl;
 		}
-	
-		f << "</HOOMD_xml>" <<endl;
 
-		if (!f.good())
+	// If the velocity flag is true output the velocity of all particles to the file
+	if (m_output_velocity)
 		{
-			cerr << "Unexpected error writing HOOMD dump file" << endl;
-			throw runtime_error("Error writting HOOMD dump file");
+		f <<"<velocity units=\"sigma/tau\">" << endl;
+
+		for (unsigned int j = 0; j < arrays.nparticles; j++)
+			{
+			// use the rtag data to output the particles in the order they were read in
+			int i;
+			i= arrays.rtag[j];				
+		
+			Scalar vx = arrays.vx[i];
+			Scalar vy = arrays.vy[i];
+			Scalar vz = arrays.vz[i];
+			f << vx << " " << vy << " " << vz << endl;
+			if (!f.good())
+				{
+				cerr << "Unexpected error writing HOOMD dump file" << endl;
+				throw runtime_error("Error writting HOOMD dump file");
+				}
+			}
+
+		f <<"</velocity>" <<endl;
 		}
-	
-		f.close();
-		m_pdata->release();
+
+	// If the Type flag is true output the types of all particles to an xml file
+	if	(m_output_type)
+		{
+		f <<"<type>" <<endl;
+		for (unsigned int j = 0; j < arrays.nparticles; j++)
+			{
+			int i;
+			i= arrays.rtag[j];
+			f << arrays.type[i] << endl;
+			}
+		f <<"</type>" <<endl;
+		}
+	f << "</configuration>" << endl;
+	f << "</hoomd_xml>" <<endl;
+
+	if (!f.good())
+		{
+		cerr << "Unexpected error writing HOOMD dump file" << endl;
+		throw runtime_error("Error writting HOOMD dump file");
+		}
+
+	f.close();
+	m_pdata->release();
 	}
 
 #ifdef USE_PYTHON
 void export_HOOMDDumpWriter()
 	{
 	class_<HOOMDDumpWriter, boost::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-		("HOOMDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string, bool >())
-		.def("setPositionFlag", &HOOMDDumpWriter::setPositionFlag)
-		.def("setVelocityFlag", &HOOMDDumpWriter::setVelocityFlag)
-		.def("setTypeFlag", &HOOMDDumpWriter::setTypeFlag)
+		("HOOMDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string >())
+		.def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
+		.def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)
+		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
 		;
 	}
 #endif

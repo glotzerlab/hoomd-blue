@@ -43,13 +43,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 
-#include <boost/version.hpp>
-#if BOOST_VERSION >= 103400
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
-//#include <boost/iostreams/filter/gzip.hpp>
-#endif 
-
 #include "Analyzer.h"
 
 #ifndef __HOOMD_DUMP_WRITER_H__
@@ -80,24 +73,22 @@ class HOOMDDumpWriter : public Analyzer
 	{
 	public:
 		//! Construct the writer
-		HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname, bool compression_flag);
+		HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname);
 		
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);
-		//! To set the position flag according to the user request 
-		void setPositionFlag(bool position_flag);
-		//! To set the velocity flag according to the user request 
-		void setVelocityFlag(bool velocity_flag);
-		//! To set the type flag according to the user request 
-		void setTypeFlag(bool type_flag);
+		//! Enables/disables the writing of particle positions
+		void setOutputPosition(bool enable);
+		//! Enables/disables the writing of particle velocities
+		void setOutputVelocity(bool enable);
+		//! Enables/disables the writing of particle types
+		void setOutputType(bool enable);
 
 	private:
-		std::string m_base_fname;  //!< String used to store the file name of the XML file
-		bool m_compression_flag ;  //!< Compression Flag - By default compression disabled 
-		bool m_position_flag;      //!< Position Flag - Used to decide if the position of the particles has to be outputted or to an XML file 
-		bool m_velocity_flag;	   //!< Velocity Flag - Used to decide if the Velocities of the particles has to be outputted or to an XML file
-		bool m_type_flag;		   //!< Type Flag - Used to decide if the Type of the particle has to be outputted or not to an XML file
-
+		std::string m_base_fname;	//!< String used to store the file name of the XML file
+		bool m_output_position;		//!< true if the particle positions should be written
+		bool m_output_velocity;		//!< true if the particle velocities should be written
+		bool m_output_type;			//!< true if the particle types should be written
 	};
 	
 #ifdef USE_PYTHON

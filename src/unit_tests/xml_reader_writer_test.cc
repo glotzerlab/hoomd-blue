@@ -95,12 +95,12 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	pdata->release();
 	
 	// create the writer
-	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test", false));
+	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test"));
 	
 	// first file written will have all outputs disabled
-	writer->setPositionFlag(false);
-	writer->setVelocityFlag(false);
-	writer->setTypeFlag(false);
+	writer->setOutputPosition(false);
+	writer->setOutputVelocity(false);
+	writer->setOutputType(false);
 
 	// first test
 		{
@@ -122,26 +122,30 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<HOOMD_xml>");
+		BOOST_CHECK_EQUAL(line, "<hoomd_xml>");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "<Configuration time_step=\"0\" N=\"1\" NTypes=\"5\"/>");
+		BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "<Box Units=\"sigma\"  Lx=\"2.5\" Ly=\"4.5\" Lz=\"12.1\"/>");
+		BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  Lx=\"2.5\" Ly=\"4.5\" Lz=\"12.1\"/>");
 		BOOST_REQUIRE(!f.bad());
-		
+
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "</HOOMD_xml>");
+		BOOST_CHECK_EQUAL(line,  "</configuration>");
+		BOOST_REQUIRE(!f.bad());
+
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
 		BOOST_REQUIRE(!f.bad());
 		f.close();
 		}
 		
 	// second test: test position
 		{
-		writer->setPositionFlag(true);
+		writer->setOutputPosition(true);
 		
 		// make sure the first output file is deleted
 		remove_all("test.0000000010.xml");
@@ -162,7 +166,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<Position units=\"sigma\">");
+		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -170,18 +174,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "</Position>");
+		BOOST_CHECK_EQUAL(line, "</position>");
 		
+		getline(f, line); // </configuration
 		getline(f, line); // </HOOMD_xml
 		f.close();
 		}
 		
 	// third test: test velocity
 		{
-		writer->setPositionFlag(false);
-		writer->setVelocityFlag(true);
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(true);
 		
-				// make sure the first output file is deleted
+		// make sure the first output file is deleted
 		remove_all("test.0000000020.xml");
 		BOOST_REQUIRE(!exists("test.0000000020.xml"));	
 		
@@ -197,7 +202,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<Velocity units=\"sigma/tau\">");
+		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -205,15 +210,15 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "</Velocity>");
+		BOOST_CHECK_EQUAL(line, "</velocity>");
 		f.close();
 		}
 		
 	// fourth test: the type array
 		{
-		writer->setPositionFlag(false);
-		writer->setVelocityFlag(false);
-		writer->setTypeFlag(true);
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(false);
+		writer->setOutputType(true);
 		
 		// make sure the first output file is deleted
 		remove_all("test.0000000030.xml");
@@ -231,7 +236,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<Type>");
+		BOOST_CHECK_EQUAL(line, "<type>");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -239,7 +244,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "</Type>");
+		BOOST_CHECK_EQUAL(line, "</type>");
 		f.close();
 		}	
 
@@ -283,12 +288,12 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 	pdata->release();
 	
 	// create the writer
-	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test", false));
+	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test"));
 	
 	// write the file with all outputs enabled
-	writer->setPositionFlag(true);
-	writer->setVelocityFlag(true);
-	writer->setTypeFlag(true);
+	writer->setOutputPosition(true);
+	writer->setOutputVelocity(true);
+	writer->setOutputType(true);
 	
 	// now the big mess: check the file line by line		
 		{
@@ -310,19 +315,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<HOOMD_xml>");
+		BOOST_CHECK_EQUAL(line, "<hoomd_xml>");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "<Configuration time_step=\"100\" N=\"6\" NTypes=\"10\"/>");
+		BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "<Box Units=\"sigma\"  Lx=\"100.5\" Ly=\"120.5\" Lz=\"130.5\"/>");
+		BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  Lx=\"100.5\" Ly=\"120.5\" Lz=\"130.5\"/>");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<Position units=\"sigma\">");
+		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		// check all the positions
@@ -351,12 +356,12 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "</Position>");
+		BOOST_CHECK_EQUAL(line,  "</position>");
 		BOOST_REQUIRE(!f.bad());
 		
 		// check all velocities
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<Velocity units=\"sigma/tau\">");
+		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -384,11 +389,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "</Velocity>");
+		BOOST_CHECK_EQUAL(line, "</velocity>");
 		
 		// check all types
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<Type>");
+		BOOST_CHECK_EQUAL(line, "<type>");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -416,10 +421,14 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "</Type>");		
+		BOOST_CHECK_EQUAL(line, "</type>");	
 
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "</HOOMD_xml>");
+		BOOST_CHECK_EQUAL(line,  "</configuration>");
+		BOOST_REQUIRE(!f.bad());
+
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
 		BOOST_REQUIRE(!f.bad());
 		f.close();
 		remove_all("test.0000000100.xml");
@@ -432,34 +441,35 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 	// create a test input file
 	ofstream f("test_input.xml");
 f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
-<HOOMD_xml>\n\
- <Configuration time_step=\"150000000\" N=\"6\" NTypes =\"10\" />\n\
- <Box Units =\"sigma\"  Lx=\"20.05\" Ly= \"32.12345\" Lz=\"45.098\" />\n\
- <Position units =\"sigma\" >\n\
+<hoomd_xml>\n\
+ <configuration time_step=\"150000000\">\n\
+ <box Units =\"sigma\"  Lx=\"20.05\" Ly= \"32.12345\" Lz=\"45.098\" />\n\
+ <position units =\"sigma\" >\n\
    1.4 2.567890 3.45\n\
    2.4 3.567890 4.45\n\
    3.4 4.567890 5.45\n\
    4.4 5.567890 6.45\n\
    5.4 6.567890 7.45\n\
    6.4 7.567890 8.45\n\
- </Position>\n\
- <Velocity units =\"sigma/tau\">\n\
+ </position>\n\
+ <velocity units =\"sigma/tau\">\n\
    10.12 12.1567 1.056\n\
    20.12 22.1567 2.056\n\
    30.12 32.1567 3.056\n\
    40.12 42.1567 4.056\n\
    50.12 52.1567 5.056\n\
    60.12 62.1567 6.056\n\
-  </Velocity>\n\
- <Type>\n\
+  </velocity>\n\
+ <type>\n\
    5\n\
    4\n\
    3\n\
    2\n\
    1\n\
    0\n\
- </Type>\n\
-</HOOMD_xml>" << endl;
+ </type>\n\
+ </configuration>\n\
+</hoomd_xml>" << endl;
 	f.close();
 
 	// now that we have created a test file, load it up into a pdata
@@ -469,7 +479,7 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 	// verify all parameters
 	BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)150000000);
 	BOOST_CHECK_EQUAL(pdata->getN(), (unsigned int)6);
-	BOOST_CHECK_EQUAL(pdata->getNTypes(), (unsigned int)10);
+	BOOST_CHECK_EQUAL(pdata->getNTypes(), (unsigned int)6);
 	MY_BOOST_CHECK_CLOSE(pdata->getBox().xhi - pdata->getBox().xlo, 20.05, tol);
 	MY_BOOST_CHECK_CLOSE(pdata->getBox().yhi - pdata->getBox().ylo, 32.12345, tol);
 	MY_BOOST_CHECK_CLOSE(pdata->getBox().zhi - pdata->getBox().zlo, 45.098, tol);

@@ -1,8 +1,8 @@
 <?xml version ="1.0" encoding ="UTF-8" ?>
-<HOOMD_xml>
-<Configuration time_step="0" N="9500" NTypes ="2" NBonds ="9000" />
-<Box Units ="sigma"  Lx="49.914" Ly= "49.914" Lz="49.914" />
-<Position units ="sigma" >
+<hoomd_xml>
+<configuration time_step="0">
+<box Units ="sigma"  Lx="49.914" Ly= "49.914" Lz="49.914" />
+<position units ="sigma" >
 3.943529 4.884501 12.317140
 3.985539 5.450660 13.107670
 3.521055 6.212838 13.516340
@@ -9503,7 +9503,7 @@
 -22.552410 18.280010 11.336150
 -21.920100 18.046630 11.987540
 -21.189840 18.095720 12.610150
-</Position><Type>
+</position><type>
 0
 0
 0
@@ -19004,8 +19004,8 @@
 0
 0
 0
-</Type>
-<Bonds>
+</type>
+<bond>
 0 1
 1 2
 2 3
@@ -28006,5 +28006,6 @@
 9496 9497
 9497 9498
 9498 9499
-</Bonds>
-</HOOMD_xml>
+</bond>
+</configuration>
+</hoomd_xml>
