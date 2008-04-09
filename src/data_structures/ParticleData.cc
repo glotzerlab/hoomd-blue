@@ -731,10 +731,10 @@ void ParticleData::allocate(unsigned int N)
 	m_uninterleave_pitch = single_xarray_bytes/4;
 	m_single_xarray_bytes = single_xarray_bytes;
 	
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.pos), sizeof(float4)*N) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.vel), sizeof(float4)*N) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.accel), sizeof(float4)*N) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.charge), sizeof(float)*N) );
+	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.pos), single_xarray_bytes * 4) );
+	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.vel), single_xarray_bytes * 4) );
+	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.accel), single_xarray_bytes * 4) );
+	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.charge), single_xarray_bytes) );
 	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.tag), sizeof(unsigned int)*N) );
 	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.rtag), sizeof(unsigned int)*N) );
 	

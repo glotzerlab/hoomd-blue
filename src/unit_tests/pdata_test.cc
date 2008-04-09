@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE( Random_test )
 	{
 	// create a fairly dense system with a minimum distance of 0.8
 	Scalar min_dist = 0.8;
-	RandomInitializer rand_init(1000, 0.4, min_dist);
+	RandomInitializer rand_init(500, 0.4, min_dist);
 	ParticleData pdata(rand_init);
 	ParticleDataArraysConst	arrays = pdata.acquireReadOnly();
 	
