@@ -170,6 +170,7 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 
 	// recompute the forces at the same timestep, they should be updated
 	fc_3->compute(1);
+	force_arrays = fc_3->acquire();
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 93.09822608552962, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -93.09822608552962, tol);
 	}
