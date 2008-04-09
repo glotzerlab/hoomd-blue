@@ -442,33 +442,41 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 	ofstream f("test_input.xml");
 f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 <hoomd_xml>\n\
- <configuration time_step=\"150000000\">\n\
- <box Units =\"sigma\"  Lx=\"20.05\" Ly= \"32.12345\" Lz=\"45.098\" />\n\
- <position units =\"sigma\" >\n\
-   1.4 2.567890 3.45\n\
-   2.4 3.567890 4.45\n\
-   3.4 4.567890 5.45\n\
-   4.4 5.567890 6.45\n\
-   5.4 6.567890 7.45\n\
-   6.4 7.567890 8.45\n\
- </position>\n\
- <velocity units =\"sigma/tau\">\n\
-   10.12 12.1567 1.056\n\
-   20.12 22.1567 2.056\n\
-   30.12 32.1567 3.056\n\
-   40.12 42.1567 4.056\n\
-   50.12 52.1567 5.056\n\
-   60.12 62.1567 6.056\n\
-  </velocity>\n\
- <type>\n\
-   5\n\
-   4\n\
-   3\n\
-   2\n\
-   1\n\
-   0\n\
- </type>\n\
- </configuration>\n\
+<configuration time_step=\"150000000\">\n\
+<box Units =\"sigma\"  Lx=\"20.05\" Ly= \"32.12345\" Lz=\"45.098\" />\n\
+<position units =\"sigma\" >\n\
+1.4 2.567890 3.45\n\
+2.4 3.567890 4.45\n\
+3.4 4.567890 5.45\n\
+4.4 5.567890 6.45\n\
+5.4 6.567890 7.45\n\
+6.4 7.567890 8.45\n\
+</position>\n\
+<velocity units =\"sigma/tau\">\n\
+10.12 12.1567 1.056\n\
+20.12 22.1567 2.056\n\
+30.12 32.1567 3.056\n\
+40.12 42.1567 4.056\n\
+50.12 52.1567 5.056\n\
+60.12 62.1567 6.056\n\
+</velocity>\n\
+<type>\n\
+5\n\
+4\n\
+3\n\
+2\n\
+1\n\
+0\n\
+</type>\n\
+<charge>\n\
+0.0\n\
+10.0\n\
+20.0\n\
+30.0\n\
+40.0\n\
+50.0\n\
+</charge>\n\
+</configuration>\n\
 </hoomd_xml>" << endl;
 	f.close();
 
@@ -494,6 +502,8 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 		MY_BOOST_CHECK_CLOSE(arrays.vx[i], Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.vy[i], Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.vz[i], Scalar(i+1) + Scalar(0.056), tol);
+
+		MY_BOOST_CHECK_CLOSE(arrays.charge[i], Scalar(i)*Scalar(10.0), tol);
 		
 		BOOST_CHECK_EQUAL(arrays.type[i], (unsigned int)(5-i));
 		BOOST_CHECK_EQUAL(arrays.tag[i], (unsigned int)i);

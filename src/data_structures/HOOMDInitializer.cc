@@ -69,6 +69,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 	m_parser_map["velocity"] = bind(&HOOMDInitializer::parseVelocityNode, this, _1);
 	m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
 	m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
+	m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
 
 	// read in the file
 	readFile(fname);
@@ -126,7 +127,15 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
 			pdata.vz[i] = m_vel_array[i].z;
 			}
 		}
-	
+
+	if (m_charge_array.size() != 0)
+		{
+		assert(m_charge_array.size() == m_pos_array.size());
+		
+		for (unsigned int i = 0; i < m_pos_array.size(); i++)
+			pdata.charge[i] = m_charge_array[i];
+		}
+
 	if (m_type_array.size() != 0)
 		{
 		assert(m_type_array.size() == m_pos_array.size());
@@ -213,6 +222,11 @@ void HOOMDInitializer::readFile(const string &fname)
 	if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
 		{
 		cout << "Error " << m_type_array.size() << " type values != " << m_pos_array.size() << " positions" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	if (m_charge_array.size() != 0 && m_charge_array.size() != m_pos_array.size())
+		{
+		cout << "Error " << m_charge_array.size() << " charge values != " << m_pos_array.size() << " positions" << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 
