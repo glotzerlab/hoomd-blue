@@ -62,6 +62,8 @@ using namespace boost::python;
 #include "gpu_utils.h"
 #endif
 
+using namespace boost::signals;
+
 ///////////////////////////////////////////////////////////////////////////
 // BoxDim constructors
 
@@ -254,8 +256,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	// default constructed shared ptr is null as desired
 	m_prof = boost::shared_ptr<Profiler>();
 
-	m_last_sorted_tstep = 0;
-
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef USE_CUDA
 	hostToDeviceCopy();
@@ -321,8 +321,6 @@ ParticleData::ParticleData(const ParticleDataInitializer& init) : m_data(NULL), 
 	// default constructed shared ptr is null as desired
 	m_prof = boost::shared_ptr<Profiler>();
 
-	m_last_sorted_tstep = 0;
-	
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef USE_CUDA
 	hostToDeviceCopy();
@@ -356,7 +354,7 @@ void ParticleData::setBox(const BoxDim &box)
 	{
 	m_box = box;
 	assert(inBox());
-	
+		
 	#ifdef USE_CUDA
 	// setup the box
 	m_gpu_box.Lx = m_box.xhi - m_box.xlo;
@@ -366,6 +364,8 @@ void ParticleData::setBox(const BoxDim &box)
 	m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
 	m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
 	#endif
+
+	m_boxchange_signal();
 	}
 
 	
@@ -609,6 +609,38 @@ void ParticleData::release()
 	m_acquired = false;
 	}
 	
+/*! \param func Function to call when the particles are resorted
+	\return Connection to manage the signal/slot connection
+	Calls are performed by using boost::signals. The function passed in
+	\a func will be called every time the ParticleData is notified of a particle
+	sort via notifyParticleSort().
+	\note If the caller class is destroyed, it needs to disconnect the signal connection
+	via \b con.disconnect where \b con is the return value of this function.
+*/
+boost::signals::connection ParticleData::connectParticleSort(const boost::function<void ()> &func)
+	{
+	return m_sort_signal.connect(func);
+	}
+
+/*! \b ANY time particles are rearranged in memory, this function must be called.
+	\note The call must be made after calling release()
+*/
+void ParticleData::notifyParticleSort()
+	{
+	m_sort_signal();
+	}
+
+/*! \param func Function to call when the box size changes
+	\return Connection to manage the signal/slot connection
+	Calls are performed by using boost::signals. The function passed in
+	\a func will be called every time the the box size is changed via setBox()
+	\note If the caller class is destroyed, it needs to disconnect the signal connection
+	via \b con.disconnect where \b con is the return value of this function.
+*/
+boost::signals::connection ParticleData::connectBoxChange(const boost::function<void ()> &func)
+	{
+	return m_boxchange_signal.connect(func);
+	}
 	
 /*! \param N Number of particles to allocate memory for
 	\pre No memory is allocated and the pointers in m_arrays point nowhere
@@ -980,8 +1012,6 @@ void export_ParticleData()
 		#endif
 		.def("release", &ParticleData::release)
 		.def("setProfiler", &ParticleData::setProfiler)
-		.def("getLastSortedTstep", &ParticleData::getLastSortedTstep)
-		.def("setLastSortedTstep", &ParticleData::setLastSortedTstep)
 		.def("__str__", &print_ParticleData)
 		;
 	}

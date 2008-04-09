@@ -40,6 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
 #include <vector>
 
 #include "Updater.h"

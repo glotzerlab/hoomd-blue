@@ -48,6 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #endif
 
+#include <boost/bind.hpp>
+
 #include "NeighborList.h"
 
 #include <sstream>
@@ -55,6 +57,8 @@ using namespace boost::python;
 
 #include <iostream>
 #include <stdexcept>
+
+using namespace boost;
 using namespace std;
 
 /*! \file NeighborList.cc
@@ -109,6 +113,8 @@ NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, 
 	m_data_location = cpugpu;
 	hostToDeviceCopy();
 	#endif
+
+	m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
 	}
 
 NeighborList::~NeighborList()
@@ -120,6 +126,8 @@ NeighborList::~NeighborList()
 	#ifdef USE_CUDA
 	gpu_free_nlist_data(&m_gpu_nlist);
 	#endif
+
+	m_sort_connection.disconnect();
 	}
 
 /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
@@ -135,7 +143,6 @@ void NeighborList::setEvery(unsigned int every)
 */
 void NeighborList::compute(unsigned int timestep)
 	{
-	checkForceUpdate();
 	// skip if we shouldn't compute this step
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;
@@ -592,15 +599,6 @@ void NeighborList::printStats()
 	n_neigh_avg /= Scalar(m_pdata->getN());
 
 	cout << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
-	}
-
-/*! \post sets m_force_update to true if the ParticleData has been sorted since the last
-	neighbor list update.
-	*/
-void NeighborList::checkForceUpdate()
-	{
-	if (m_last_updated_tstep <= m_pdata->getLastSortedTstep())
-		m_force_update = true;
 	}
 
 /*! Loops through the particles and finds all of the particles \c j who's distance is less than

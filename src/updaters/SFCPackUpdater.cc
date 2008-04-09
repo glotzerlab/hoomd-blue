@@ -86,10 +86,10 @@ void SFCPackUpdater::update(unsigned int timestep)
 	// apply that sort order to the particles
 	applySortOrder();
 
-	m_pdata->setLastSortedTstep(timestep);
-	
 	if (m_prof)
 		m_prof->pop();
+
+	m_pdata->notifyParticleSort();
 	}
 	
 void SFCPackUpdater::applySortOrder()
@@ -156,8 +156,14 @@ void SFCPackUpdater::applySortOrder()
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		scal_tmp[i] = arrays.az[m_sort_order[i]];
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		arrays.az[i] = scal_tmp[i];	
-		
+		arrays.az[i] = scal_tmp[i];
+
+	// sort charge
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		scal_tmp[i] = arrays.charge[m_sort_order[i]];
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		arrays.charge[i] = scal_tmp[i];
+
 	// sort type
 	unsigned int *int_tmp = new unsigned int[m_pdata->getN()];
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
@@ -173,9 +179,9 @@ void SFCPackUpdater::applySortOrder()
 		
 	// rebuild rtag
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		arrays.rtag[arrays.tag[i]] = i;		
+		arrays.rtag[arrays.tag[i]] = i;	
 	
-	delete[] scal_tmp;	
+	delete[] scal_tmp;
 	delete[] int_tmp;
 	
 	m_pdata->release();

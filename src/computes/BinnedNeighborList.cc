@@ -74,7 +74,6 @@ BinnedNeighborList::BinnedNeighborList(boost::shared_ptr<ParticleData> pdata, Sc
 */
 void BinnedNeighborList::compute(unsigned int timestep)
 	{
-	checkForceUpdate();
 	// skip if we shouldn't compute this step
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;

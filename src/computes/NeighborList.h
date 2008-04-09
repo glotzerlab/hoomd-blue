@@ -40,7 +40,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
 #include <vector>
+
 #include "Compute.h"
 
 //#incldue <string.h>
@@ -176,6 +178,8 @@ class NeighborList : public Compute
 
 		int64_t m_updates;			//!< Number of particles updated (non-forced)
 		int64_t m_forced_updates;	//!< Number of forced particle updates
+
+		boost::signals::connection m_sort_connection;	//!< Connection to the ParticleData sort signal
 		
 		Scalar *m_last_x;		//!< x coordinates of last updated particle positions
 		Scalar *m_last_y;		//!< y coordinates of last updated particle positions
@@ -214,8 +218,6 @@ class NeighborList : public Compute
 		//! Performs the computations for the simple neighbor list algorithm
 		virtual void computeSimple();
 
-		//! Temporary helper function to test if we need a forced update because of a sorted pdata
-		void checkForceUpdate();
 	};
 	
 #ifdef USE_PYTHON

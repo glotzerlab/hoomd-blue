@@ -47,6 +47,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __PARTICLE_DATA_H__
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
+#include <boost/function.hpp>
 
 // The requirements state that we need to handle both single and double precision through
 // a define
@@ -380,23 +382,15 @@ class ParticleData
 		*/		 			
 		void setProfiler(boost::shared_ptr<Profiler> prof) { m_prof=prof; }
 	
-		//! Gets the last time step particles were resorted
-		/*! \returns Last time step when the particles were resorted
-		 */ 
-		unsigned int getLastSortedTstep() const
-			{ 
-			return m_last_sorted_tstep; 
-			}
-			
-		//! Sets the last sorted time step
-		/*! \param t Time step to set
-		 	Anything that rearranges the order of the particles in the arrays 
-		 	<em>must</em> call this method.
-		 	\note This API is likely to removed before too long and replaced with
-		 		signals and slots. 
-		 */
-		void setLastSortedTstep(unsigned int t) { m_last_sorted_tstep = t; }
-		
+		//! Connects a function to be called every time the particles are rearranged in memory
+		boost::signals::connection connectParticleSort(const boost::function<void ()> &func);
+
+		//! Notify listeners that the particles have been rearranged in memory
+		void notifyParticleSort();
+
+		//! Connects a function to be called every time the box size is changed
+		boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
+
 	protected:
 		BoxDim m_box;		//!< The simulation box
 		void *m_data;		//!< Raw data allocated
@@ -405,7 +399,8 @@ class ParticleData
 		
 		bool m_acquired;		//!< Flag to track if data has been acquired
 		
-		unsigned int m_last_sorted_tstep;	//!< Tracks the last timestep this particle data was sorted
+		boost::signal<void ()> m_sort_signal;	//!< Signal that is triggered when particles are sorted in memory
+		boost::signal<void ()> m_boxchange_signal;	//!< Signal that is triggered when the box size changes
 		
 		ParticleDataArrays m_arrays;	//!< Pointers into m_data for particle access
 		ParticleDataArraysConst m_arrays_const;	//!< Pointers into m_data for const particle access
