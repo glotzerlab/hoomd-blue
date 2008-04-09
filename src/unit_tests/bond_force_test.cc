@@ -116,6 +116,26 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -force_arrays.fz[1], tol);
 
+	// rearrange the two particles in memory and see if they are properly updated
+	arrays = pdata_2->acquireReadWrite();
+	arrays.x[0] = Scalar(0.9);
+	arrays.x[1] = Scalar(0.0);
+	arrays.tag[0] = 1;
+	arrays.tag[1] = 0;
+	arrays.rtag[0] = 1;
+	arrays.rtag[1] = 0;
+	pdata_2->release();
+
+	// notify that we made the sort
+	pdata_2->notifyParticleSort();
+	// recompute at the same timestep, the forces should still be updated
+	fc_2->compute(1);
+	
+	// this time there should be a force
+	force_arrays = fc_2->acquire();
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.45, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.45, tol);
+
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
 	// there are way too many permutations to test here, so I will simply

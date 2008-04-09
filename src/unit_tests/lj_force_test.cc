@@ -153,6 +153,25 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 93.09822608552962, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	
+	// swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
+	arrays = pdata_3->acquireReadWrite();
+	arrays.x[2] = arrays.y[2] = arrays.z[2] = 0.0;
+	arrays.x[0] = Scalar(2.0*pow(2.0,1.0/6.0)); arrays.y[0] = arrays.z[0] = 0.0;
+
+	arrays.tag[0] = 2;
+	arrays.tag[2] = 0;
+	arrays.rtag[0] = 2;
+	arrays.rtag[2] = 0;
+	pdata_3->release();
+	
+	// notify the particle data that we changed the order
+	pdata_3->notifyParticleSort();
+
+	// recompute the forces at the same timestep, they should be updated
+	fc_3->compute(1);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 93.09822608552962, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -93.09822608552962, tol);
 	}
 
 //! Tests the ability of a LJForceCompute to handle periodic boundary conditions

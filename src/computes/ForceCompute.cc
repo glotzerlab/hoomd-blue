@@ -47,7 +47,9 @@ using namespace std;
 #include <boost/python.hpp>
 using namespace boost::python;
 #endif
+
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 using namespace boost;
 
 #ifdef USE_CUDA
@@ -65,7 +67,7 @@ ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL)
 	\post \c fx, \c fy, \c fz pointers in m_arrays are set
 	\post All forces are initialized to 0
 */
-ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdata)
+ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdata), m_particles_sorted(false)
 	{
 	assert(pdata);
 	assert(pdata->getN());
@@ -123,6 +125,9 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	deviceToHostCopy();
 	m_data_location = cpugpu;
 	#endif
+
+	// connect to the ParticleData to recieve notifications when particles change order in memory
+	m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
 	}	
 	
 /*! Frees allocated memory
@@ -147,6 +152,8 @@ ForceCompute::~ForceCompute()
 	CUDA_SAFE_CALL( cudaFree(m_d_forces) );
 	CUDA_SAFE_CALL( cudaFree(m_d_staging) );
 	#endif
+
+	m_sort_connection.disconnect();
 	}
 	
 /*! Access the computed forces on the CPU, this may require copying data from the GPU
@@ -281,10 +288,11 @@ void ForceCompute::deviceToHostCopy()
 void ForceCompute::compute(unsigned int timestep)
 	{
 	// skip if we shouldn't compute this step
-	if (!shouldCompute(timestep))
+	if (!m_particles_sorted && !shouldCompute(timestep))
 		return;
 		
 	computeForces(timestep);
+	m_particles_sorted = false;
 	}
 	
 #ifdef USE_PYTHON

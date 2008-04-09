@@ -40,6 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
 
 #include "Compute.h"
 
@@ -100,11 +101,18 @@ class ForceCompute : public Compute
 		virtual void compute(unsigned int timestep);
 
 	protected:
+		bool m_particles_sorted;	//!< Flag set to true when particles are resorted in memory
+
+		//! Helper function called when particles are sorted
+		void setParticlesSorted()	{ m_particles_sorted = true; }
+
 		Scalar * __restrict__ m_fx;	//!< x-component of the force
 		Scalar * __restrict__ m_fy; //!< y-component of the force
 		Scalar * __restrict__ m_fz; //!< z-component of the force
 		int m_nbytes;	//!< stores the number of bytes of memory allocated
 		
+		boost::signals::connection m_sort_connection;	//!< Connection to the signal notifying when particles are resorted
+
 		ForceDataArrays m_arrays;	//!< Structure-of-arrays for quick returning via acquire
 
 		#ifdef USE_CUDA
