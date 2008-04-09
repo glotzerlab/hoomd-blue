@@ -997,7 +997,7 @@ string print_ParticleData(ParticleData *pdata)
 
 void export_ParticleData()
 	{
-	class_<ParticleData>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
+	class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
 		.def(init<const ParticleDataInitializer&>())
 		.def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
 		.def("setBox", &ParticleData::setBox)
