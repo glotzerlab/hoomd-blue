@@ -164,6 +164,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	MY_BOOST_CHECK_CLOSE(arrays.ax[0], 0.0, tol);
 	MY_BOOST_CHECK_CLOSE(arrays.ay[0], 0.0, tol);
 	MY_BOOST_CHECK_CLOSE(arrays.az[0], 0.0, tol);
+	MY_BOOST_CHECK_CLOSE(arrays.charge[0], 0.0, tol);
 	BOOST_CHECK(arrays.type[0] == 0);
 	BOOST_CHECK(arrays.rtag[0] == 0);
 	BOOST_CHECK(arrays.tag[0] == 0);
@@ -178,6 +179,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	arrays.ax[0] = 21.0;
 	arrays.ay[0] = 22.0;
 	arrays.az[0] = 23.0;
+	arrays.charge[0] = 24.0;
 	arrays.type[0] = 1;
 	
 	a.release();
@@ -194,6 +196,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	MY_BOOST_CHECK_CLOSE(arrays_const.ax[0], 21.0, tol);
 	MY_BOOST_CHECK_CLOSE(arrays_const.ay[0], 22.0, tol);
 	MY_BOOST_CHECK_CLOSE(arrays_const.az[0], 23.0, tol);
+	MY_BOOST_CHECK_CLOSE(arrays_const.charge[0], 24.0, tol);
 	BOOST_CHECK(arrays_const.type[0] == 1);
 	BOOST_CHECK(arrays_const.rtag[0] == 0);
 	BOOST_CHECK(arrays_const.tag[0] == 0);	
@@ -216,6 +219,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 		MY_BOOST_CHECK_CLOSE(arrays_const.ax[i], 0.0, tol);
 		MY_BOOST_CHECK_CLOSE(arrays_const.ay[i], 0.0, tol);
 		MY_BOOST_CHECK_CLOSE(arrays_const.az[i], 0.0, tol);
+		MY_BOOST_CHECK_CLOSE(arrays_const.charge[i], 0.0, tol);
 		BOOST_CHECK(arrays_const.type[i] == 0);
 		BOOST_CHECK(arrays_const.rtag[i] == i);
 		BOOST_CHECK(arrays_const.tag[i] == i);
@@ -248,6 +252,8 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 		arrays.ax[i] = float(i);
 		arrays.ay[i] = float(i) * 2.0f;
 		arrays.az[i] = float(i) * 3.0f;
+
+		arrays.charge[i] = float(i) * 4.0f;
 		arrays.type[i] = i;
 		}
 	pdata.release();
@@ -273,6 +279,9 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 		MY_BOOST_CHECK_CLOSE(arrays.ax[i], float(i), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.ay[i], float(i) * 2.0f, tol);
 		MY_BOOST_CHECK_CLOSE(arrays.az[i], float(i) * 3.0f, tol);
+
+		// check the charge
+		MY_BOOST_CHECK_CLOSE(arrays.charge[i], float(i) * 4.0f, tol);
 
 		BOOST_CHECK(arrays.type[i] == i);
 		}

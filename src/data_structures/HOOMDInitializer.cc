@@ -363,6 +363,27 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 		}
 	}
 
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a <charge> node and fills out m_charge_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseChargeNode(const XMLNode &node)
+	{
+	// check that this is actually a position node
+	assert(string(node.getName()) == string("charge"));
+
+	// extract the data from the node
+	istringstream parser;
+	parser.str(node.getText());
+	while (parser.good())
+		{
+		Scalar charge;
+		parser >> charge;
+		
+		m_charge_array.push_back(charge);
+		}
+	}
+
 		
 void HOOMDInitializer::setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist)
 	{

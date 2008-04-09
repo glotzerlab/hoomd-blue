@@ -96,6 +96,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		void parseTypeNode(const XMLNode& node);
 		//! Helper function to parse the bonds node
 		void parseBondNode(const XMLNode& node);
+		//! Parse charge node
+		void parseChargeNode(const XMLNode& node);
 
 		std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map;	//!< Map for dispatching parsers based on node type
 		 
@@ -118,6 +120,7 @@ class HOOMDInitializer : public ParticleDataInitializer
 		std::vector< vec > m_pos_array;				//!< positions of all particles loaded
 		std::vector< vec > m_vel_array;				//!< velocities of all particles loaded
 		std::vector< unsigned int > m_type_array;	//!< type values for all particles loaded
+		std::vector< Scalar > m_charge_array;		//!< charge of the particles loaded
 					
 		struct bond				//!< bond on the particles
 			{
