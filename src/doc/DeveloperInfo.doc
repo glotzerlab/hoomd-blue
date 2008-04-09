@@ -257,6 +257,12 @@ Source can be modified in visual studio, but any files added to the project must
 be done via CMake. In most cases, a file can be added simply by placing it in the 
 proper directory and then rerunning CMake.
 
+If you have a system with more than 1 CPU core, you can greatly improve the performance
+of the build by making use of all cores. In VS2005, navigate to the menu item <b>Tools</b>-><b>Options</b>. 
+In the left tab, select <b>Projects And Solutions</b>-><b>Build and Run</b>. Set the value for the
+<b>maximum number of parallel project builds</b> to be the total number of CPU cores in your system.
+There is more information at http://msdn2.microsoft.com/en-us/library/y0xettzf.aspx .
+
 \section sec_building_linux Building on Linux
 <b>1. Install prerequisite software</b><br>
 Click for detailed instructions: \subpage page_software_req_install_linux
