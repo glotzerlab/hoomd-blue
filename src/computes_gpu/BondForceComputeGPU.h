@@ -79,7 +79,6 @@ class BondForceComputeGPU : public BondForceCompute
 		
 	protected:
 		bool m_dirty;	//!< Dirty flag to track if the bond table has changed
-		unsigned int last_updated_step;	//!< Last timestep the bond table was updated on the device
 		int m_block_size;				//!< Block size to run calculation on
 		gpu_bondtable_data m_gpu_bondtable;	//!< The actual bond table data
 				

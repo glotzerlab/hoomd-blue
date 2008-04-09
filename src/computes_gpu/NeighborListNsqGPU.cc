@@ -69,7 +69,6 @@ NeighborListNsqGPU::~NeighborListNsqGPU()
 		 
 void NeighborListNsqGPU::compute(unsigned int timestep)
 	{
-	checkForceUpdate();
 	// skip if we shouldn't compute this step
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;

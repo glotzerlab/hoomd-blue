@@ -54,7 +54,7 @@ endif (USE_CUDA)
 # link the library to its dependancies (but only on non win32 since the linking
 # is automatic there
 if(NOT WIN32)
-	target_link_libraries(${HOOMD_LIB} ${BOOST_THREAD_LIBRARY})
+	target_link_libraries(${HOOMD_LIB} ${BOOST_THREAD_LIBRARY} ${BOOST_SIGNALS_LIBRARY})
 endif(NOT WIN32)
 
 if(WIN32)

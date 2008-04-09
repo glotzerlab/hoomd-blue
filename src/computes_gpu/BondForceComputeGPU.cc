@@ -50,7 +50,7 @@ using namespace std;
 	\param r_0 Equilibrium length for the force computation
 */
 BondForceComputeGPU::BondForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar K, Scalar r_0)
-	: BondForceCompute(pdata, K, r_0), m_dirty(true), last_updated_step(0), m_block_size(64)
+	: BondForceCompute(pdata, K, r_0), m_dirty(true), m_block_size(64)
 	{
 	gpu_alloc_bondtable_data(&m_gpu_bondtable, m_pdata->getN(), 1);
 	}
@@ -168,11 +168,10 @@ void BondForceComputeGPU::computeForces(unsigned int timestep)
 		}
 		
 	// the bond table on the GPU needs to be updated if we are dirty or the particles have been resorted
-	if (m_dirty || last_updated_step < m_pdata->getLastSortedTstep())
+	if (m_dirty)
 		{
 		updateBondTable();
 		m_dirty = false;
-		last_updated_step = timestep;
 		}
 	
 	if (m_prof)
