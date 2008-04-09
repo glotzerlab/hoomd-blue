@@ -862,7 +862,7 @@ void ParticleData::deviceToHostCopy()
 	CUDA_SAFE_CALL( cudaMemcpy(m_arrays.ax, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost) );
 
 	// copy charge
-	CUDA_SAFE_CALL( cudaMemcpy(m_arrays.charge, m_gpu_pdata.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice) );
+	CUDA_SAFE_CALL( cudaMemcpy(m_arrays.charge, m_gpu_pdata.charge, m_single_xarray_bytes, cudaMemcpyDeviceToHost) );
 	
 	// copy the tag and rtag data
 	CUDA_SAFE_CALL(cudaMemcpy(m_arrays.tag, m_gpu_pdata.tag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost) ); 
