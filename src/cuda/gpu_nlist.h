@@ -130,7 +130,7 @@ void gpu_generate_nlist_data_test(gpu_nlist_data *nlist);
 //! Generate the neighborlist (N^2 algorithm)
 void gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_data *nlist, float r_maxsq);
 //! Generate the neighborlist from bins (O(N) algorithm)
-void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax);
+void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax, int block_size);
 	
 //! Check if the neighborlist needs updating
 int gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_data *nlist, float r_buffsq);

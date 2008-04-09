@@ -317,7 +317,10 @@ shared_ptr<LJForceCompute> threaded_lj_creator(shared_ptr<ParticleData> pdata, s
 shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
 	nlist->setStorageMode(NeighborList::full);
-	return shared_ptr<LJForceCompute>(new LJForceComputeGPU(pdata, nlist, r_cut));
+	shared_ptr<LJForceComputeGPU> lj(new LJForceComputeGPU(pdata, nlist, r_cut));
+	// the default block size kills valgrind :) reduce it
+	lj->setBlockSize(64);
+	return lj;
 	}
 #endif
 	

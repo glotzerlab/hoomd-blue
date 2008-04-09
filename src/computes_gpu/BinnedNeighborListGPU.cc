@@ -73,6 +73,9 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	m_curNmax = 0;
 	m_avgNmax = Scalar(0.0);
 
+	// default block size is the highest performance in testing
+	m_block_size = 320;
+
 	// bogus values for last value
 	m_last_Mx = INT_MAX;
 	m_last_My = INT_MAX;
@@ -454,21 +457,9 @@ void BinnedNeighborListGPU::updateListFromBins()
 	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU(); 
 	
-	// create a temporary copy of r_max sqaured
-	/*int block_size = m_curNmax;
-	if ((block_size & 31) != 0)
-		block_size += 32 - (block_size & 31);
-
-	#ifdef USE_CUDA_BUG_WORKAROUND
-	block_size = m_Nmax;
-	#endif*/
-	
-	
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
-	//gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, block_size);
-	//gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_Nmax);
-	gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_curNmax);
+	gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_curNmax, m_block_size);
 	
 	m_pdata->release();
 

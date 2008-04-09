@@ -791,14 +791,14 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	nlist.last_updated_pos[my_pidx] = my_pos;
 	}
 	
-void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax)
+void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax, int block_size)
 	{
 	assert(bins);
 	assert(pdata);
 	assert(nlist);
-	
+	assert(block_size > 0);
+
     // setup the grid to run the kernel
-	int block_size = 320;
 	int nblocks = (int)ceil((double)pdata->N/ (double)block_size);
 	
     dim3 grid(nblocks, 1, 1);

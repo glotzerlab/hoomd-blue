@@ -308,7 +308,10 @@ shared_ptr<NeighborList> gpu_nsq_nlist_creator(shared_ptr<ParticleData> pdata, S
 	}
 shared_ptr<NeighborList> gpu_binned_nlist_creator(shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)
 	{
-	return shared_ptr<NeighborList>(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
+	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
+	// the default block size kills valgrind :) reduce it
+	nlist->setBlockSize(64);
+	return nlist;
 	}
 #endif
 
