@@ -59,7 +59,7 @@ if(NOT PASSED_FIRST_CONFIGURE)
 	
 	elseif(MSVC80)
 		# default flags for visual studio 2005
-		set(CMAKE_CXX_FLAGS "/DWIN32 /D_WINDOWS /W3 /Zm1000 /EHa /GR" CACHE STRING "Flags used by all build types." FORCE)
+		set(CMAKE_CXX_FLAGS "/DWIN32 /D_WINDOWS /W3 /Zm1000 /EHa /GR /MP" CACHE STRING "Flags used by all build types." FORCE)
 		set(CMAKE_CXX_FLAGS_RELEASE "/arch:SSE2 /Oi /Ot /Oy /fp:fast /MD /Ox /Ob2 /D NDEBUG" CACHE STRING "Flags used by the compiler during release builds." FORCE)
 		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/arch:SSE2 /Oi /Ot /Oy /fp:fast /MD /Zi /Ox /Ob1 /D NDEBUG" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 		set(CMAKE_CXX_FLAGS_MINSIZEREL "/arch:SSE2 /Oi /Ot /Oy /fp:fast /MD /O1 /Ob1 /D NDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
