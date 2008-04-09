@@ -43,6 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu_forces.h"
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
 
 /*! \file BondForceComputeGPU.h
 	\brief Declares a class for computing harmonic bonds on the GPU
@@ -81,7 +82,11 @@ class BondForceComputeGPU : public BondForceCompute
 		bool m_dirty;	//!< Dirty flag to track if the bond table has changed
 		int m_block_size;				//!< Block size to run calculation on
 		gpu_bondtable_data m_gpu_bondtable;	//!< The actual bond table data
-				
+		boost::signals::connection m_sort_connection;	
+		
+		//! Helper function to set the dirty flag when particles are resort
+		void setDirty() { m_dirty = true; }
+
 		//! Helper function to update the bond table on the device
 		void updateBondTable();
 		

@@ -43,6 +43,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #endif
 
+#include <boost/bind.hpp>
+using namespace boost;
+
 using namespace std;
 
 /*! \param pdata ParticleData to compute bond forces on
@@ -53,11 +56,15 @@ BondForceComputeGPU::BondForceComputeGPU(boost::shared_ptr<ParticleData> pdata, 
 	: BondForceCompute(pdata, K, r_0), m_dirty(true), m_block_size(64)
 	{
 	gpu_alloc_bondtable_data(&m_gpu_bondtable, m_pdata->getN(), 1);
+	
+	// attach to the signal for notifications of particle sorts
+	m_sort_connection = m_pdata->connectParticleSort(bind(&BondForceComputeGPU::setDirty, this));
 	}
 	
 BondForceComputeGPU::~BondForceComputeGPU()
 	{
 	gpu_free_bondtable_data(&m_gpu_bondtable);
+	m_sort_connection.disconnect();
 	}
 		
 /*! \sa BondForceCompute::addBond()
