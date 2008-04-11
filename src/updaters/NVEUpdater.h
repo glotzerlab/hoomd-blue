@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-/*! \file Updater.h
+/*! \file NVEUpdater.h
 	\brief Declares an updater that implements NVE dynamics
 */
 

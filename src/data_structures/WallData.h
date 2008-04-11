@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-/*! \file ParticleData.h
+/*! \file WallData.h
  	\brief Contains declarations for WallData.
  */
 

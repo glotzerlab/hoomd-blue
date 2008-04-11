@@ -104,8 +104,8 @@ class NeighborList : public Compute
 		//! Simple enum for the storage modes
 		enum storageMode
 			{
-			half,
-			full
+			half,	//!< Only neighbors i,j are stored where i < j
+			full	//!< All neighbors are stored
 			};
 
 		static const unsigned int EXCLUDE_EMPTY = 0xffffffff; //!< Signifies this element of the exclude list is empty
