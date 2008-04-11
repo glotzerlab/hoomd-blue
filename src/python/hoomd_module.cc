@@ -54,6 +54,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstForceCompute.h"
 #include "BondForceCompute.h"
 #include "LJForceCompute.h"
+#include "LJWallForceCompute.h"
 #include "LJForceComputeThreaded.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
@@ -236,6 +237,7 @@ BOOST_PYTHON_MODULE(hoomd)
 
 	// initializers
 	export_RandomInitializer();
+	export_RandomInitializerWithWalls();
 	export_SimpleCubicInitializer();
 	export_HOOMDInitializer();
 	
@@ -246,6 +248,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_BondForceCompute();
 	export_LJForceCompute();
 	export_LJForceComputeThreaded();
+	export_LJWallForceCompute();
 	export_TempCompute();
 	export_NeighborList();
 	export_BinnedNeighborList();

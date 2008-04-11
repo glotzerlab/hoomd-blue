@@ -217,3 +217,13 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 	#endif
 	m_pdata->release();
 	}
+
+#ifdef USE_PYTHON
+void export_LJWallForceCompute()
+	{
+	class_<LJWallForceCompute, boost::shared_ptr<LJWallForceCompute>, bases<ForceCompute>, boost::noncopyable >
+		("LJWallForceCompute", init< boost::shared_ptr<ParticleData>, Scalar >())
+		.def("setParams", &LJWallForceCompute::setParams)
+		;
+	}
+#endif
