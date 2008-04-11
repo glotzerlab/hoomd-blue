@@ -59,6 +59,8 @@ class LJWallForceCompute :	public ForceCompute
 		~LJWallForceCompute();
 		//! Sets force parameters
 		virtual void setParams(unsigned int typ, Scalar lj1, Scalar lj2);
+		//! Sets the cuttoff
+		void setRCut(Scalar r_cut);
 
 	protected:
 		//! Computes forces

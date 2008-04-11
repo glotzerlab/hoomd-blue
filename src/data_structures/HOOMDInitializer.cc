@@ -70,6 +70,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 	m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
 	m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
 	m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
+	m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
 
 	// read in the file
 	readFile(fname);
@@ -143,6 +144,15 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
 		for (unsigned int i = 0; i < m_pos_array.size(); i++)
 			pdata.type[i] = m_type_array[i];
 		}
+	}
+
+/*! \param wall_data WallData to initialize with the data read from the file
+*/
+void HOOMDInitializer::initWallData(boost::shared_ptr<WallData> wall_data) const
+	{
+	// copy the walls over from our internal list
+	for (unsigned int i = 0; i < m_walls.size(); i++)
+		wall_data->addWall(m_walls[i]);
 	}
 
 /*!	\param fname File name of the hoomd_xml file to read in
@@ -231,13 +241,17 @@ void HOOMDInitializer::readFile(const string &fname)
 		}
 
 	// notify the user of what we have accomplished
-	cout << "Read " << getNumParticles() << " positions";
+	cout << "--- hoomd_xml file read summary" << endl;
+	cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
 	if (m_vel_array.size() > 0)
-		cout << ", " << m_vel_array.size() << " velocities";
-	cout << ", with " << getNumParticleTypes() <<  " particle types";
+		cout << m_vel_array.size() << " velocities" << endl;
+	cout << getNumParticleTypes() <<  " particle types" << endl;
 	if (m_bonds.size() > 0)
-		cout << " and " << m_bonds.size() << " bonds";
-	cout << "." << endl;
+		cout << m_bonds.size() << " bonds" << endl;
+	if (m_charge_array.size() > 0)
+		cout << m_charge_array.size() << " charges" << endl;
+	if (m_walls.size() > 0)
+		cout << m_walls.size() << " walls" << endl;
 	}
 
 /*! \param node XMLNode passed from the top level parser in readFile
@@ -315,7 +329,7 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 */
 void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 	{
-	// check that this is actually a position node
+	// check that this is actually a velocity node
 	assert(string(node.getName()) == string("velocity"));
 
 	// units is currently unused, but will be someday: warn the user if they forget it
@@ -338,7 +352,7 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 */
 void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 	{
-	// check that this is actually a position node
+	// check that this is actually a type node
 	assert(string(node.getName()) == string("type"));
 
 	// extract the data from the node
@@ -363,7 +377,7 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 */
 void HOOMDInitializer::parseBondNode(const XMLNode &node)
 	{
-	// check that this is actually a position node
+	// check that this is actually a bond node
 	assert(string(node.getName()) == string("bond"));
 
 	// extract the data from the node
@@ -383,7 +397,7 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 */
 void HOOMDInitializer::parseChargeNode(const XMLNode &node)
 	{
-	// check that this is actually a position node
+	// check that this is actually a charge node
 	assert(string(node.getName()) == string("charge"));
 
 	// extract the data from the node
@@ -395,6 +409,74 @@ void HOOMDInitializer::parseChargeNode(const XMLNode &node)
 		parser >> charge;
 		
 		m_charge_array.push_back(charge);
+		}
+	}
+
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b wall node and fills out m_walls. The number
+	of walls is dtermined dynamically.
+*/
+void HOOMDInitializer::parseWallNode(const XMLNode& node)
+	{
+	// check that this is actually a wall node
+	assert(string(node.getName()) == string("wall"));
+
+	for (int cur_node=0; cur_node < node.nChildNode(); cur_node++)
+		{
+		// check to make sure this is a node type we understand
+		XMLNode child_node = node.getChildNode(cur_node);
+		if (string(child_node.getName()) != string("coord"))
+			{
+			cout << "Ignoring <" << child_node.getName() << "> node in <wall> node";
+			}
+		else
+			{
+			// extract x,y,z, nx, ny, nz
+			Scalar ox,oy,oz,nx,ny,nz;
+			if (!child_node.isAttributeSet("ox"))
+				{
+				cout << "ox not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			ox = atof(child_node.getAttribute("ox"));
+
+			if (!child_node.isAttributeSet("oy"))
+				{
+				cout << "oy not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			oy = atof(child_node.getAttribute("oy"));
+
+			if (!child_node.isAttributeSet("oz"))
+				{
+				cout << "oz not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			oz = atof(child_node.getAttribute("oz"));
+
+			if (!child_node.isAttributeSet("nx"))
+				{
+				cout << "nx not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			nx = atof(child_node.getAttribute("nx"));
+
+			if (!child_node.isAttributeSet("ny"))
+				{
+				cout << "ny not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			ny = atof(child_node.getAttribute("ny"));
+
+			if (!child_node.isAttributeSet("nz"))
+				{
+				cout << "nz not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			nz = atof(child_node.getAttribute("nz"));
+
+			m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
+			}
 		}
 	}
 

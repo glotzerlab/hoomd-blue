@@ -42,6 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "NeighborList.h"
 #include "BondForceCompute.h"
+#include "WallData.h"
 #include "xmlParser.h"
 
 #include <string>
@@ -77,6 +78,9 @@ class HOOMDInitializer : public ParticleDataInitializer
 		
 		//! Initializes the particle data arrays
 		virtual void initArrays(const ParticleDataArrays &pdata) const;
+
+		//! Initialize the walls
+		virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
 		
 		//! Adds a neighbor list exclusion for each bond read from the input file
 		void setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist);
@@ -98,6 +102,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		void parseBondNode(const XMLNode& node);
 		//! Parse charge node
 		void parseChargeNode(const XMLNode& node);
+		//! Parse wall node
+		void parseWallNode(const XMLNode& node);
 
 		std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map;	//!< Map for dispatching parsers based on node type
 		 
@@ -127,7 +133,9 @@ class HOOMDInitializer : public ParticleDataInitializer
 		std::vector< vec > m_vel_array;				//!< velocities of all particles loaded
 		std::vector< unsigned int > m_type_array;	//!< type values for all particles loaded
 		std::vector< Scalar > m_charge_array;		//!< charge of the particles loaded
-					
+		std::vector< Wall > m_walls;				//!< walls loaded from the file			
+
+
 		struct bond				//!< bond on the particles
 			{
 			//! Default constructor

@@ -476,6 +476,10 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 40.0\n\
 50.0\n\
 </charge>\n\
+<wall>\n\
+<coord ox=\"1.0\" oy=\"2.0\" oz=\"3.0\" nx=\"4.0\" ny=\"5.0\" nz=\"6.0\"/>\n\
+<coord ox=\"7.0\" oy=\"8.0\" oz=\"9.0\" nx=\"10.0\" ny=\"11.0\" nz=\"-12.0\"/>\n\
+</wall>\n\
 </configuration>\n\
 </hoomd_xml>" << endl;
 	f.close();
@@ -510,6 +514,27 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 		BOOST_CHECK_EQUAL(arrays.rtag[i], (unsigned int)i);
 		}
 	pdata->release();
+
+	// check the walls
+	BOOST_REQUIRE_EQUAL(pdata->getWallData()->getNumWalls(), 2);
+	Wall wall1 = pdata->getWallData()->getWall(0);
+	MY_BOOST_CHECK_CLOSE(wall1.origin_x, 1.0, tol);
+	MY_BOOST_CHECK_CLOSE(wall1.origin_y, 2.0, tol);
+	MY_BOOST_CHECK_CLOSE(wall1.origin_z, 3.0, tol);
+	// normals are made unit length when loaded, so these values differ from the ones in the file
+	MY_BOOST_CHECK_CLOSE(wall1.normal_x, 0.455842306, tol);
+	MY_BOOST_CHECK_CLOSE(wall1.normal_y, 0.569802882, tol);
+	MY_BOOST_CHECK_CLOSE(wall1.normal_z, 0.683763459, tol);
+
+	Wall wall2 = pdata->getWallData()->getWall(1);
+	MY_BOOST_CHECK_CLOSE(wall2.origin_x, 7.0, tol);
+	MY_BOOST_CHECK_CLOSE(wall2.origin_y, 8.0, tol);
+	MY_BOOST_CHECK_CLOSE(wall2.origin_z, 9.0, tol);
+	// normals are made unit length when loaded, so these values differ from the ones in the file
+	MY_BOOST_CHECK_CLOSE(wall2.normal_x, 0.523423923, tol);
+	MY_BOOST_CHECK_CLOSE(wall2.normal_y, 0.575766315, tol);
+	MY_BOOST_CHECK_CLOSE(wall2.normal_z, -0.628108707, tol);
+
 
 	// clean up after ourselves
 	remove_all("test_input.xml");

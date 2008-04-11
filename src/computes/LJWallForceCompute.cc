@@ -109,6 +109,13 @@ void LJWallForceCompute::setParams(unsigned int typ, Scalar lj1, Scalar lj2)
 	m_lj2[typ] = lj2;
 	}
 
+/*! \param r_cut New cuttoff to specify
+*/
+void LJWallForceCompute::setRCut(Scalar r_cut)
+	{
+	m_r_cut = r_cut;
+	}
+
 void LJWallForceCompute::computeForces(unsigned int timestep)
 	{
 	// get numparticle var for easier access
@@ -210,5 +217,3 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 	#endif
 	m_pdata->release();
 	}
-
-
