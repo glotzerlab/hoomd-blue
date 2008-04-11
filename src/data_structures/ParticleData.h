@@ -90,6 +90,9 @@ using namespace std;
 /*! @}
 */
 
+// Forward declaration of WallData
+class WallData;
+
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
 	that box. Inside is defined as x >= xlo && x < xhi, and similarly for y and z. 
@@ -215,7 +218,11 @@ class ParticleDataInitializer
 		//! Initializes the particle data arrays
 		virtual void initArrays(const ParticleDataArrays &pdata) const = 0;
 
-		virtual WallData getWalls() const { return WallData(); }
+		//! Initialize the simulation walls
+		/*! \param wall_data Shared pointer to the WallData to initialize
+			This base class defines an empty method, as walls are optional
+		*/
+		virtual void initWallData(boost::shared_ptr<WallData> wall_data) const {}
 	};
 	
 //! Manages all of the data arrays for the particles
@@ -264,9 +271,8 @@ class ParticleData
 		const BoxDim& getBox() const;
 		//! Set the simulation box
 		void setBox(const BoxDim &box);
-		//! Set the simulation walls
-		void setWalls(WallData walls_p) { m_wallData = walls_p; }
-		WallData getWalls() { return m_wallData; }
+		//! Access the wall data defined for the simulation box
+		boost::shared_ptr<WallData> getWallData() { return m_wallData; }
 		
 		//! Get the number of particles
 		/*! \return Number of particles in the box
@@ -334,7 +340,7 @@ class ParticleData
 		ParticleDataArraysConst m_arrays_const;	//!< Pointers into m_data for const particle access
 		boost::shared_ptr<Profiler> m_prof;		//!< Pointer to the profiler. NULL if there is no profiler.
 		
-		WallData m_wallData;	//!< Data about the walls in a simulation
+		boost::shared_ptr<WallData> m_wallData;	//!< Walls specified for the simulation box
 		
 		#ifdef USE_CUDA
 		

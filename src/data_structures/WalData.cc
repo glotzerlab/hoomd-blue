@@ -43,3 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\brief Contains all code for WallData.
  */
 
+#include "WallData.h"
+
+/*! \param wall Wall to add to the system
+*/
+void WallData::addWall(const Wall& wall)
+	{
+	m_walls.push_back(wall);
+	}

@@ -102,13 +102,19 @@ class HOOMDInitializer : public ParticleDataInitializer
 		std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map;	//!< Map for dispatching parsers based on node type
 		 
 		BoxDim m_box;	//!< Simulation box read from the file
-		bool m_box_read;
+		bool m_box_read;	//!< Stores the box we read in
 
 		struct vec //!< simple vec for storing particle data
 			{
+			//! Default construtor
 			vec() : x(0.0), y(0.0), z(0.0)
 				{
 				}
+			//! Constructs a vec with given components
+			/*! \param xp x-component
+				\param yp y-component
+				\param zp z-component
+			*/
 			vec(Scalar xp, Scalar yp, Scalar zp) : x(xp), y(yp), z(zp)
 				{
 				}
@@ -124,9 +130,15 @@ class HOOMDInitializer : public ParticleDataInitializer
 					
 		struct bond				//!< bond on the particles
 			{
+			//! Default constructor
 			bond() : tag_a(0), tag_b(0)
 				{
 				}
+
+			//! Construct a bond between two particles
+			/*! \param a tag of the first particle in the bond
+				\param b tag of the second particle in the bond
+			*/
 			bond(unsigned int a, unsigned int b) : tag_a(a), tag_b(b)
 				{
 				}

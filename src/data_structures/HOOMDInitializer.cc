@@ -241,7 +241,7 @@ void HOOMDInitializer::readFile(const string &fname)
 	}
 
 /*! \param node XMLNode passed from the top level parser in readFile
-	This function extracts all of the information in the attributes of the <box> node
+	This function extracts all of the information in the attributes of the \b box node
 */
 void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 	{
@@ -287,7 +287,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 	}
 
 /* \param node XMLNode passed from the top level parser in readFile
-	This function extracts all of the data in a <position> node and fills out m_pos_array. The number
+	This function extracts all of the data in a \b position node and fills out m_pos_array. The number
 	of particles in the array is determined dynamically.
 */
 void HOOMDInitializer::parsePositionNode(const XMLNode &node)
@@ -310,7 +310,7 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 	}
 
 /* \param node XMLNode passed from the top level parser in readFile
-	This function extracts all of the data in a <velocity> node and fills out m_vel_array. The number
+	This function extracts all of the data in a \b velocity node and fills out m_vel_array. The number
 	of particles in the array is determined dynamically.
 */
 void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
@@ -333,7 +333,7 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 	}
 
 /* \param node XMLNode passed from the top level parser in readFile
-	This function extracts all of the data in a <type> node and fills out m_type_array. The number
+	This function extracts all of the data in a \b type node and fills out m_type_array. The number
 	of particles in the array is determined dynamically.
 */
 void HOOMDInitializer::parseTypeNode(const XMLNode &node)
@@ -358,7 +358,7 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 	}
 
 /* \param node XMLNode passed from the top level parser in readFile
-	This function extracts all of the data in a <bond> node and fills out m_bonds. The number
+	This function extracts all of the data in a \b bond node and fills out m_bonds. The number
 	of bonds in the array is determined dynamically.
 */
 void HOOMDInitializer::parseBondNode(const XMLNode &node)
@@ -378,7 +378,7 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 	}
 
 /* \param node XMLNode passed from the top level parser in readFile
-	This function extracts all of the data in a <charge> node and fills out m_charge_array. The number
+	This function extracts all of the data in a \b charge node and fills out m_charge_array. The number
 	of particles in the array is determined dynamically.
 */
 void HOOMDInitializer::parseChargeNode(const XMLNode &node)

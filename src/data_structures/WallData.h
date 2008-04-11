@@ -43,59 +43,85 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\brief Contains declarations for WallData.
  */
 
-//! 
-struct WallDataArrays 
-	{
-	//! The x coordinate for the origin of the planes
-	vector<Scalar> ox;
-	//! The y coordinate for the origin of the planes
-	vector<Scalar> oy;
-	//! The z coordinate for the origin of the planes
-	vector<Scalar> oz;
-				
-	//! The x direction for the normal of the planes
-	vector<Scalar> nx;
-	//! The y direction for the normal of the planes
-	vector<Scalar> ny;
-	//! The z direction for the normal of the planes
-	vector<Scalar> nz;
-				
-	//! constructs an empty structure
-	WallDataArrays();
-	};
+#include <math.h>
+#include "ParticleData.h"
 
+#ifndef __WALLDATA_H__
+#define __WALLDATA_H__
 
-//! Class for storing information about wall forces in simulation
-/*!
-
+//! Simple structure representing a single wall
+/*! Walls are represented by an origin and a unit length normal.
 	\ingroup data_structs
 */
-class WallData {
+struct Wall
+	{
+	//! Constructor
+	/*!	\param ox Origin x-component
+		\param oy Origin y-component
+		\param oz Origin z-component
+		\param nx Origin x-component
+		\param ny Normal y-component
+		\param nz Normal z-component
+	*/
+	Wall(Scalar ox=0.0, Scalar oy=0.0, Scalar oz=0.0, Scalar nx=1.0, Scalar ny=0.0, Scalar nz=0.0)
+		: origin_x(ox), origin_y(oy), origin_z(oz)
+		{
+		// normalize nx,ny,nz
+		Scalar len = sqrt(nx*nx + ny*ny + nz*nz);
+		normal_x = nx / len;
+		normal_y = ny / len;
+		normal_z = nz / len;
+		}
 
+	Scalar origin_x;	//!< x-component of the origin
+	Scalar origin_y;	//!< y-component of the origin
+	Scalar origin_z;	//!< z-component of the origin
+
+	Scalar normal_x;	//!< x-component of the normal
+	Scalar normal_y;	//!< y-component of the normal
+	Scalar normal_z;	//!< z-component of the normal
+	};
+
+//! Stores information about all the walls defined in the simulation
+/*!	WallData is responsible for storing all of the walls in the simulation. 
+	Walls are specified by the Wall struct and any number can be added. 
+
+	On the CPU, walls can be accessed with getWall()
+
+	An optimized data structure for the GPU will be written later.
+	It will most likely take the form of a 2D texture.
+	\ingroup data_structs
+*/
+class WallData 
+	{
 	public:
-		//! Creates useless walls
+		//! Creates an empty structure with no walls
 		WallData() : m_walls() {}
-		//! Creates walls surrounding a box
-		/*!	Walls are created on all six sides of the box.
-			The offset parameter moves the walls into the 
-			box to prevent edge cases from causing headaches.
-
-			The default of 0.3 was chosen because it is half the size of a blue molecule
-			in a simulation.
-
-			
+		
+		//! Get the number of walls in the data
+		/*! \return Number of walls
 		*/
-		WallData(BoxDim box, Scalar offset = 0.3) : m_walls(box, offset) {}
-		//! Destructor, yay!
-		~WallData() {}
-		//! Get the struct containing all of the data about the walls
-		WallDataArrays getWallArrays() { return m_walls; }
-		//! Returns the number of walls contained in the walldata
-		unsigned int getNumWalls() { return m_walls.numWalls; }
-		//! Adds a wall to a simulation.
-		/*!	This is mostly for debugging purposes
+		unsigned int getNumWalls() const
+			{
+			return m_walls.size();
+			}
+		
+		//! Access a specific wall
+		/*! \param idx Index of the wall to retrieve
+			\return Wall stored at index \a idx
 		*/
-		void addWall(Scalar ox_p, Scalar oy_p, Scalar oz_p, Scalar nx_p, Scalar ny_p, Scalar nz_p);
+		const Wall& getWall(unsigned int idx) const
+			{
+			assert(idx < m_walls.size());
+			return m_walls[idx];
+			}
+		
+		//! Adds a wall to the data structure
+		void addWall(const Wall& wall);
+
 	private:
-		WallDataArrays m_walls;
-};
+		//! Storage for the walls
+		std::vector<Wall> m_walls;
+	};
+
+#endif

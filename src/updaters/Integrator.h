@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-/*! \file Inegrator.h
+/*! \file Integrator.h
 	\brief Declares the Integrator base class
 */
 

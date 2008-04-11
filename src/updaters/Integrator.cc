@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-/*! \file Inegrator.cc
+/*! \file Integrator.cc
 	\brief Defines the Integrator base class
 */
 

@@ -56,7 +56,6 @@ using namespace std;
 
 /*! \param pdata Particle data to read when dumping files
 	\param base_fname The base name of the file xml file to output the information
-	\param compression_flag  Flag to enable/disable compression
 
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
@@ -73,14 +72,14 @@ void HOOMDDumpWriter::setOutputPosition(bool enable)
 	}
 
 /*!  
-	\param velocity_flag Set to true to output particle velocities to the XML file on the next call to analyze()
+	\param enable Set to true to output particle velocities to the XML file on the next call to analyze()
 
 */
 void HOOMDDumpWriter::setOutputVelocity(bool enable)
 	{
 	m_output_velocity = enable;
 	}
-/*! \param type_flag Set to true to output particle types to the XML file on the next call to analyze()
+/*! \param enable Set to true to output particle types to the XML file on the next call to analyze()
 */
 void HOOMDDumpWriter::setOutputType(bool enable)
 	{

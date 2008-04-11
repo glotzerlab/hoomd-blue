@@ -58,11 +58,13 @@ using namespace boost::python;
 #endif
 
 #include "ParticleData.h"
+#include "WallData.h"
 #ifdef USE_CUDA
 #include "gpu_utils.h"
 #endif
 
 using namespace boost::signals;
+using namespace boost;
 
 ///////////////////////////////////////////////////////////////////////////
 // BoxDim constructors
@@ -106,93 +108,6 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
 	zlo = -Len_z/Scalar(2.0);
 	zhi = Len_z/Scalar(2.0);
 	}
-
-//////////////////////////////
-/////////////////////////////
-//WallData Code
-
-WallDataArrays::WallDataArrays() : ox(NULL), oy(NULL), oz(NULL), nx(NULL), ny(NULL), nz(NULL), numWalls(0)
-	{
-	}
-
-WallDataArrays::WallDataArrays(BoxDim box , Scalar offset )
-	{
-	WallDataArrays();
-
-	//Construct the vectors
-	ox = vector<Scalar>(6,0);
-	oy = vector<Scalar>(6,0);
-	oz = vector<Scalar>(6,0);
-	nx = vector<Scalar>(6,0);
-	ny = vector<Scalar>(6,0);
-	nz = vector<Scalar>(6,0);
-
-	numWalls = 6;
-	
-	//bottom wall
-	ox[0] = (box.xhi + box.xlo) / 2.0;
-	oy[0] = box.ylo + offset;
-	oz[0] = (box.zhi + box.zlo) / 2.0;
-	nx[0] = 0;
-	ny[0] = 1;
-	nz[0] = 0;
-	//top wall
-	ox[1] = (box.xhi + box.xlo) / 2.0;
-	oy[1] = box.yhi - offset;
-	oz[1] = (box.zhi + box.zlo) / 2.0;
-	nx[1] = 0;
-	ny[1] = -1;
-	nz[1] = 0;
-
-	//front wall
-	ox[2] = (box.xhi + box.xlo) / 2.0;
-	oy[2] = (box.yhi + box.ylo) / 2.0;
-	oz[2] = box.zlo + offset;
-	nx[2] = 0;
-	ny[2] = 0;
-	nz[2] = 1;
-	//back wall
-	ox[3] = (box.xhi + box.xlo) / 2.0;
-	oy[3] = (box.yhi + box.ylo) / 2.0;
-	oz[3] = box.zhi - offset;
-	nx[3] = 0;
-	ny[3] = 0;
-	nz[3] = -1;
-	
-	//right wall
-	ox[4] = box.xhi - offset;
-	oy[4] = (box.yhi + box.ylo) / 2.0;
-	oz[4] = (box.zhi + box.zlo) / 2.0;
-	nx[4] = -1;
-	ny[4] = 0;
-	nz[4] = 0;
-	//left wall
-	ox[5] = box.xlo + offset;
-	oy[5] = (box.yhi + box.ylo) / 2.0;
-	oz[5] = (box.zhi + box.zlo) / 2.0;
-	nx[5] = 1;
-	ny[5] = 0;
-	nz[5] = 0;
-	
-	}
-
-void WallData::addWall(Scalar ox_p, Scalar oy_p, Scalar oz_p, Scalar nx_p, Scalar ny_p, Scalar nz_p) {
-	
-	m_walls.numWalls++;
-	
-	m_walls.ox.push_back(ox_p);
-	m_walls.oy.push_back(oy_p);
-	m_walls.oz.push_back(oz_p);
-	
-	m_walls.nx.push_back(nx_p);
-	m_walls.ny.push_back(ny_p);
-	m_walls.nz.push_back(nz_p);
-	
-}
-
-  //End Wall stuff
- ////////////////////////
-////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleDataArrays constructors
@@ -256,6 +171,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	// default constructed shared ptr is null as desired
 	m_prof = boost::shared_ptr<Profiler>();
 
+	// allocate walls
+	m_wallData = shared_ptr<WallData>(new WallData());
+
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef USE_CUDA
 	hostToDeviceCopy();
@@ -307,15 +225,19 @@ ParticleData::ParticleData(const ParticleDataInitializer& init) : m_data(NULL), 
 		m_arrays.rtag[i] = i;
 		m_arrays.tag[i] = i;
 		}
+
+	// allocate walls
+	m_wallData = shared_ptr<WallData>(new WallData());
 		
 	setBox(init.getBox());
-	setWalls(init.getWalls());
 	init.initArrays(m_arrays);
+	init.initWallData(m_wallData);
 	
 	// it is an error for particles to be initialized outside of their box
 	if (!inBox())
 		{
-		throw runtime_error("Not all particles were found inside the given box.");
+		cout << "Not all particles were found inside the given box" << endl;
+		throw runtime_error("Error initializing ParticleData");
 		}
 	
 	// default constructed shared ptr is null as desired
