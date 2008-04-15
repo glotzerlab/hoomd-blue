@@ -50,6 +50,10 @@ else (WIN32)
 			${BOOST_SIGNALS_LIBRARY}
 			${CMAKE_THREAD_LIBS_INIT})
 
+	if(BOOST_SYSTEM_LIBRARY)
+		set(LIBS ${LIBS} ${BOOST_SYSTEM_LIBRARY})
+	endif(BOOST_SYSTEM_LIBRARY)
+
 endif (WIN32)
 
 ####################################

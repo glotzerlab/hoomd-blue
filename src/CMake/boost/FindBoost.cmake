@@ -85,6 +85,7 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
   # Add in some path suffixes. These will have to be updated whenever
   # a new Boost version comes out.
   set(BOOST_PATH_SUFFIX
+    boost-1_35
     boost-1_34_1
     boost-1_34_0
     boost-1_34
@@ -199,6 +200,7 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
     set(BOOST_LIBRARIES_SUFFIXES
 	-mt
 	-mt-s
+	-mt-1_35
 	-mt-1_34_1
 	-mt-1_34_0
 	-mt-1_33_1
@@ -335,6 +337,16 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
           ${BOOST_LIBRARIES_SEARCH_DIRS}
       )
     endif (NOT BOOST_THREAD_LIBRARY)
+    
+	if (NOT BOOST_SYSTEM_LIBRARY)
+      find_library(BOOST_SYSTEM_LIBRARY
+        NAMES
+          boost_system${TMP_BOOST_LIBRARIES_SUFFIX}
+          boost_system-mt
+        PATHS
+          ${BOOST_LIBRARIES_SEARCH_DIRS}
+      )
+    endif (NOT BOOST_SYSTEM_LIBRARY)
 
     if (NOT BOOST_UNIT_TEST_FRAMEWORK_LIBRARY)
       set (_boost_unit_test_lib_name "")
