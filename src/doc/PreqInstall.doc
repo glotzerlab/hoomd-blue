@@ -263,6 +263,10 @@ BJAM=./tools/jam/src/bin.macosxppc/bjam
 BJAM=./tools/jam/src/bin.macosxppc/bjam optimization=speed
 \endcode
 Then save and exit the text editor.
+If you are compiling boost 1.35, you need to make the following change instead:
+\code
+BJAM_CONFIG=variant=release threading=multi link=shared,static
+\endcode
 
 Now, run the command
 \code
