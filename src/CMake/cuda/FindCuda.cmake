@@ -164,9 +164,12 @@ ENDIF(NOT CUDA_NVCC)
       CUDA_NVCC_INCLUDE_ARGS
       )
   ENDIF(NOT FOUND_CUDA_NVCC_INCLUDE)
-  
+
 # ENDIF(NOT FOUND_CUDA_NVCC_INCLUDE)
 
+# set the CUDA version by reading cuda.h
+file(READ ${CUDA_INCLUDE}/cuda.h CUDA_H_)
+string(REGEX REPLACE ".*define CUDA_VERSION ([0123456789]+).*" "\\1" CUDA_VERSION "${CUDA_H_}")
   
 # CUDA_TARGET_LINK
 IF (NOT CUDA_TARGET_LINK)
@@ -297,8 +300,13 @@ MACRO(CUDA_add_custom_commands cuda_target)
     # strip CMAKE_SOURCE_DIR from the head of ${file}
 	STRING(REGEX REPLACE "${CMAKE_SOURCE_DIR}/" "" stripped_file ${file})
 
-    # Add a custom target to generate a cpp file.
-    SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.c")
+    # Add a custom target to generate a cpp file (CUDA 2.0 needs .cc files and CUDA 1.1 needs .c files)
+	if (${CUDA_VERSION} GREATER 1999)
+	    SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.cc")
+	else(${CUDA_VERSION} GREATER 1999)
+	    SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.c")
+	endif(${CUDA_VERSION} GREATER 1999)
+
     SET(generated_target "${stripped_file}_target")
     
     FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/cuda)
