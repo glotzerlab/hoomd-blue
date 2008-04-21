@@ -15,7 +15,7 @@ fi
 # first check the install location
 if [ -z "${HOOMD_ROOT}" ] ; then
 	# check that the path is an actual hoomd root
-	if [ -f "@CMAKE_INSTALL_PREFIX@/share/hoomd/.hoomd_data_dir" ]
+	if [ -f "@CMAKE_INSTALL_PREFIX@/share/hoomd/hoomd_data_dir" ]
 	then
 		HOOMD_ROOT=@CMAKE_INSTALL_PREFIX@
 	fi
@@ -27,7 +27,7 @@ if [ -z "${HOOMD_ROOT}" ] ; then
 	# strip the /bin/hoomd from the found exe
 	tmp_root=`echo $hoomd_exe | sed 's/\/bin\/hoomd//'`
 	# check that the path is an actual hoomd root
-	if [ -f "$tmp_root/share/hoomd/.hoomd_data_dir" ]
+	if [ -f "$tmp_root/share/hoomd/hoomd_data_dir" ]
 	then
 		HOOMD_ROOT=$tmp_root
 	fi
@@ -39,6 +39,6 @@ if [ -z "${HOOMD_ROOT}" ] ; then
 	echo "Please specify the environment variable HOOMD_ROOT."
 fi
 
-PYTHONPATH="${HOOMD_ROOT}/lib/hoomd/python-module:${PYTHONPATH}"
+export PYTHONPATH="${HOOMD_ROOT}/lib/hoomd/python-module:${PYTHONPATH}"
 export HOOMD_ROOT
 python $*
