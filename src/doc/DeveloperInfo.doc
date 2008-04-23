@@ -1078,4 +1078,7 @@ TODO: Document a list of reserved words that includes all names imported
 by from hoomd_script import *, or injected into __main__ by an
 automatic creation.
 
+<b>9. System.run</b>
+We can't forget the run command!
+
 */

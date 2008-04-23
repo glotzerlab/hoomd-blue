@@ -53,7 +53,7 @@ endif(USE_CUDA)
 if(USE_PYTHON)
 	set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " USE_PYTHON")
 else(USE_PYTHON)
-	set(DOXYGEN_ADDITIONAL_EXCLUSIONS "${DOXYGEN_ADDITIONAL_EXCLUSIONS} */python/*")
+	set(DOXYGEN_ADDITIONAL_EXCLUSIONS "${DOXYGEN_ADDITIONAL_EXCLUSIONS} */python/* */lib/python-module/*")
 endif(USE_PYTHON)
 
 # disable DOT in doxygen if dot is not found
@@ -95,6 +95,7 @@ add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/doc/html/index.html
 					${HOOMD_SOURCE_DIR}/doc/*.doc
 					${HOOMD_SOURCE_DIR}/unit_tests/*.cc
 					${HOOMD_SOURCE_DIR}/benchmarks/*.cc
+					${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script/*.py
 					${HOOMD_SOURCE_DIR}/doc/Doxyfile.in)
 
 add_custom_target (doc ALL DEPENDS ${HOOMD_BINARY_DIR}/doc/html/index.html)
