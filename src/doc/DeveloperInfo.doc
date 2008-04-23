@@ -932,11 +932,12 @@ Commands:<br>
 \b Returns: ParticleData initialized with the data in \a file_name<br>
 
 
-\c create_random( \a N, \a phi_P, \a min_dist )<br>
+\c create_random( \a N, \a phi_P, \a min_dist, \a wall_offset )<br>
 \b Arguments<br>
 	\a N: number of particles to create<br>
 	\a phi_P: volume fraction of particles in the box<br>
 	\a min_dist: minimum distance apart placed particles will be<br>
+	\a wall_offset: if specified (default is None), walls are created at the specified offset<br>
 \b Post: <br>
 \c globals.particle_data is set to a ParticleData initialized by RandomInitializer<br>
 \c globals.system is initialized as a System attached to the particle data<br>
@@ -990,13 +991,91 @@ Analyzers will be handled in an identical way as the updaters.
 <b>5. Forces</b>
 Like the Updaters and Analyzers, ForceComputes will have python mirror classes.
 As mentioned previously, one complication is that they will need to register themselves
-with the integrator when created. A disable method should be provided so that
+with the integrator when created. But, if no integrator is defined, ForeComputes
+need to add themselves to a queue (\c globals.force_computes) so that the Integrator
+can add them when it is initialized. This list needs to be maintained even if the
+Integrator is already defined so that a disabled and then recreated Integrator
+can re-add all the force computes. The ForceCompute mirror class must also
+include a test of whether it has been disabled.
+
+A disable method should be provided so that
 forces can be disabled if desired. Instantiation of a forcecompute also needs to 
 register itself with the System for later retrival. As with the Updaters and
 Analyzers, a name parameter in the constructor will result in the retrival of
 the ForceCompute from the System.
 
+Coefficients will be defined by a dictionary. One slick advantage is that parameters
+can then be identified by \e name instead of a type id number. This will be
+very convenient for simulations with large numbers of types. Pair coefficients
+will be specified in a \c pair_coeff class with the underlying data structure
+being a dictionary of dictionaries. For example, to specify parameters for the
+A-B LJ interaction: coeff[('A', 'B')] = dict(epsilon=1.1, sigma=1.0, alpha=0.5);
 
+To facilitate checking that the user has filled out all needed pairs, we need a 
+few things: 1) ParticleData maps types to id's and provides a list of type names.
+2) \c pair_coeff provides an \c is_complete method that checks if all type 
+pairs are specified (counting 'A'-'B' as 'B'-'A') and that all names in the
+dictionaries are OK. It should check that required values are submitted
+(i.e. epsilon and sigma) and warn the user if extra values are specified (possible
+typos). For convenience, a get method should be provided that tries to lookup
+'A'-'B' if 'B'-'A' is not found. It should not be considered an error to specify
+parameters for types that do not exist: this could allow one to write one big 
+force field pair_coeff (and import it) even when only running with a few types in a 
+particular simullations. The only requirement should be that all types 
+that ParticleData says exists are there.
+
+Bond coefficients will be held by a similar data structure, but indexed
+by bond name. coeff['Hbond'] = dict(k=330, r_0=0.84)
+
+<b>6. Shared/Automatically created computes/updaters/analyzers</b>
+
+For convenience and for the best possible matchup with LAMMPS, things
+like the log writer, neighbor list, and particle sorter will need to
+be created automagically by the script library. These will be stored in
+the \c globals module for access by hoomd_script. But, for the most
+consistent user experience with modifying parameters of these
+automatically created objects, they will need to inject themselves
+into main. Case in in point, setting neighbor list parameters:<br>
+1) The proper OO way: globals.nlist.set_params(r_cut = 2.6)<br>
+2) More user friendly way: nlist.set_params(r_cut = 2.6)<br>
+
+The second option can work by having the creator import __main__
+and set __main__.nlist = created nlist. The more user friendly way
+is needed because they will be doing:<br>
+pair = pair.lj(r_cut=3.0)<br>
+pair.set_params(r_cut=2.6)<br>
+elsewhere. The extra "globals" might confuse some users. Yes,
+creating variables in the __main__ namespace is ugly and
+frowned upon, but I feel it is justified.
+
+To facilitate the capability for the user to override the 
+automatically created objects, they can create them. However,
+this \b must be done before the object would have otherwise been
+automatically created. An error should be generated if, say, 
+more than one neighborlist is created.
+
+<b>7. Packages/modules</b>
+The whole hoomd_script package is designed to be imported into the __main__
+script as "from hoomd_script import *"
+
+The following modules will be defined
+ -# init: Methods that initialize the System
+ -# globals: Home for all global variables
+ -# integrate: All Integrators
+ -# update: All Updaters that are not Integrators
+ -# dump: Analyzers that dump configurations
+ -# analyze: All other Analyzers
+ -# pair: Pair potentials
+ -# bond: Bond potentials
+ -# force: Other misc forces
+ -# coeff_manager: pair, type, and bond coefficient managers
+
+?? Need a place for the execution configuration and log writer....
+no ideas currently. There must be some other things I'm missing, too.
+ 
+<b>8. Reserved words</b>
+TODO: Document a list of reserved words that includes all names imported
+by from hoomd_script import *, or injected into __main__ by an
+automatic creation.
 
 */
-
