@@ -436,7 +436,8 @@ void System::setupProfiling()
 		m_profiler = boost::shared_ptr<Profiler>();
 		
 	// set the profiler on everything
-	m_integrator->setProfiler(m_profiler);
+	if (m_integrator)
+		m_integrator->setProfiler(m_profiler);
 	m_pdata->setProfiler(m_profiler);
 	
 	// analyzers
