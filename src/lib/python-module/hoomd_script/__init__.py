@@ -50,7 +50,8 @@ from hoomd import *
 # More details to add later...
 
 ## Internal python variable 
-__all__ = ["globals", "init", "run"];
+__all__ = ["analyze", "bond", "dump", "force", "globals", "init", 
+			"integreate", "pair", "update", "run"];
 
 ## \brief Runs the simulation for a given number of time steps
 #

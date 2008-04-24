@@ -66,6 +66,8 @@ import globals
 # if any initialization command is called after read_xml().
 #
 def read_xml(file_name):
+	print "init.read_xml(file_name=", file_name, ")";
+
 	# check if initialization has already occured
 	if (globals.particle_data != None):
 		print "Error: Cannot initialize more than once";
@@ -107,6 +109,8 @@ def read_xml(file_name):
 # if any initialization command is called after create_random().
 #
 def create_random(N, phi_p, min_dist=1.0, wall_offset=None):
+	print "init.create_random(N=", N, ",phi_p=", phi_p, ",min_dist=", min_dist, ",wall_offset=", wall_offset, ")";
+
 	# check if initialization has already occured
 	if (globals.particle_data != None):
 		print "Error: Cannot initialize more than once";

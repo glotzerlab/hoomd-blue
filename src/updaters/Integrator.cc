@@ -103,6 +103,23 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 	#endif
 	}
 	
+/*! Call removeForceComputes() to completely wipe out the list of force computes
+	that the integrator uses to sum forces.
+*/
+void Integrator::removeForceComputes()
+	{
+	m_forces.clear();
+	
+	#ifdef USE_CUDA
+	// reinitialize the memory on the device
+	float4 *h_force_data_ptrs[32];
+	for (int i = 0; i < 32; i++)
+		h_force_data_ptrs[i] = NULL;
+		
+	CUDA_SAFE_CALL( cudaMemcpy((void*)m_d_force_data_ptrs, (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice) );
+	#endif
+	}
+	
 /*! \param deltaT New time step to set
 */
 void Integrator::setDeltaT(Scalar deltaT)
@@ -233,6 +250,7 @@ void export_Integrator()
 	class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
 		("Integrator", init< boost::shared_ptr<ParticleData>, Scalar >())
 		.def("addForceCompute", &Integrator::addForceCompute)
+		.def("removeForceComputes", &Integrator::removeForceComputes)
 		.def("setDeltaT", &Integrator::setDeltaT)
 		;
 	}

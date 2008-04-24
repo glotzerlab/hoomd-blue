@@ -104,6 +104,9 @@ class Integrator : public Updater
 		//! Add a ForceCompute to the list
 		void addForceCompute(boost::shared_ptr<ForceCompute> fc);
 		
+		//! Removes all ForceComputes from the list
+		void removeForceComputes();
+		
 		//! Change the timestep
 		void setDeltaT(Scalar deltaT);
 		

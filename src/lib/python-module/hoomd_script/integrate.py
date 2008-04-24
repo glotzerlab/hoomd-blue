@@ -40,4 +40,68 @@
 ## \package hoomd_script.integrate
 # \brief Commands that integrate the equations of motion
 #
+# Commands beginning with integrate. specify the integrator to use when
+# advancing particles forward in time. By default, no integrator is
+# specified. An integrator can specified anywhere before executing the 
+# run() command, which will use the last integrator set in advancing
+# particles forward in time. If a number of integrators are created,
+# the last one is the only one to take effect. For example:
+# \code
+# integrate.nvt(T=1.2, tau=0.5)
+# integrate.nve() 
+# run(100)
+# \endcode
+# In this example, the nvt integration is ignored as the creation of the
+# nve integrator overwrote it.
+#
+# However, it is valid to run() a number of time steps with one integrator
+# and then switch to another for the next run().
+#
+# Some integrators provide parameters that can be changed between runs.
+# In order to access the integrator to change it, it needs to be saved
+# in a variable. For example:
+# \code
+# integrator = integrate.nvt(T=1.2, tau=0.5)
+# run(100)
+# integrator.set_params(T=1.0)
+# run(100)
+# \endcode
+# This code snippet runs the first 100 time steps with T=1.2 and the next 100 with T=1.0
+
+from hoomd import *
+import globals
+
+## \internal
+# \brief Base class for integrators
+#
 # Details
+class _integrator:
+	## Constructs the integrator
+	# \param self Python-required class variable
+	# This doesn't really do much bet set some member variables to None
+	def __init__(self):
+		# check if initialization has occured
+		if (globals.system == None):
+			print "Error: Cannot create integrator before initialization";
+			raise RuntimeError('Error creating integrator');
+		
+		self.cpp_integrator = None;
+		
+	## \var cpp_integrator
+	# Stores the C++ side Integrator managed by this class
+		
+	
+	
+## NVT Integration via the Nos&eacute;-Hoover thermostat
+#
+# Details
+class nvt(_integrator):
+	pass
+	
+## NVE Integration via Velocity-Verlet
+#
+# Details
+class nve(_integrator):
+	pass
+	
+
