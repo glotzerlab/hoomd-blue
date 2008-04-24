@@ -38,6 +38,6 @@
 # $URL$
 
 ## \package hoomd_script.force
-# \brief Commands that create misc. forces
+# \brief Commands that create misc forces
 #
 # Details
