@@ -55,4 +55,10 @@ particle_data = None;
 ## Global variable that holds the System shared by all parts of hoomd_script
 system = None;
 
+## Global variable that tracks the all of the force computes specified in the script so far
+forces = [];
+
+## Global variable tracking the last _integrator set
+integrator = None;
+
 

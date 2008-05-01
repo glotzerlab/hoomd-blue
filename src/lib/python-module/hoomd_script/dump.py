@@ -41,3 +41,62 @@
 # \brief Commands that dump particles to files
 #
 # Details
+
+import hoomd;
+import globals;
+import analyze;
+
+## Writes simulation snapshots in the hoomd_xml format
+#
+# Every \a period time steps, a new file will be created. The state of the 
+# particles at that timestep is written to the file in the hoomd_xml format.
+class xml(analyze._analyzer):
+	## Initialize the hoomd_xml writer
+	#
+	# \param self Python-required class instance variable
+	# \param filename Base of the time name
+	# \param period Number of time steps between file dumps
+	# 
+	# \b Examples:<br>
+	# dump.xml(filename="atoms.dump", period=1000)<br>
+	# xml = dump.xml(filename="particles", period=1e5)<br>
+	#
+	# By default, only particle positions are output to the dump files. This can be changed
+	# with set_params().
+	def __init__(self, filename, period):
+		print "dump.xml(filename =", filename, ")";
+	
+		# initialize base class
+		analyze._analyzer.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.particle_data, filename);
+		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+
+	## Change xml write parameters
+	#
+	# \param self Python-required class instance variable
+	# \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
+	# \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
+	# \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
+	# 
+	# \b Examples:<br>
+	# xml.set_params(type=False)<br>
+	# xml.set_params(position=False, type=False, velocity=True)<br>
+	# xml.set_params(type=True, position=True)<br>
+	def set_params(self, position=None, velocity=None, type=None):
+		print "xml.set_params(position=", position, ", velocity=",velocity,", type=", type, ")";
+	
+		# check that proper initialization has occured
+		if self.cpp_analyzer == None:
+			print "Bug in hoomd_script: cpp_analyzer not set, please report";
+			raise RuntimeError('Error setting xml parameters');
+			
+		if position != None:
+			self.cpp_analyzer.outputPosition(position);
+
+		if velocity != None:
+			self.cpp_analyzer.outputVelocity(velocity);
+			
+		if type != None:
+			self.cpp_analyzer.outputType(type);

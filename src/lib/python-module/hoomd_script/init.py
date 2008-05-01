@@ -37,8 +37,9 @@
 # $Id$
 # $URL$
 
-import hoomd
-import globals
+import hoomd;
+import globals;
+import update;
 
 ## \package hoomd_script.init
 # \brief Data initialization commands
@@ -109,7 +110,7 @@ def read_xml(file_name):
 # if any initialization command is called after create_random().
 #
 def create_random(N, phi_p, min_dist=1.0, wall_offset=None):
-	print "init.create_random(N=", N, ",phi_p=", phi_p, ",min_dist=", min_dist, ",wall_offset=", wall_offset, ")";
+	print "init.create_random(N =", N, ", phi_p =", phi_p, ", min_dist =", min_dist, ", wall_offset =", wall_offset, ")";
 
 	# check if initialization has already occured
 	if (globals.particle_data != None):
@@ -138,6 +139,8 @@ def create_random(N, phi_p, min_dist=1.0, wall_offset=None):
 # be done here. For example, setting up the SFCPackUpdater, initializing
 # the log writer, etc...
 #
-# Currently does nothing
+# Currently only creates the sorter
 def _perform_common_init_tasks():
-	pass
+	# create the sorter, using the evil import __main__ trick to provide the user with a default variable
+	import __main__;
+	__main__.sorter = update.sort();

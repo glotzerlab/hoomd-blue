@@ -49,9 +49,10 @@ from hoomd import *
 #
 # More details to add later...
 
-## Internal python variable 
+## \internal
+# \brief Internal python variable 
 __all__ = ["analyze", "bond", "dump", "force", "globals", "init", 
-			"integreate", "pair", "update", "run"];
+			"integrate", "pair", "update", "run"];
 
 ## \brief Runs the simulation for a given number of time steps
 #
@@ -75,10 +76,16 @@ __all__ = ["analyze", "bond", "dump", "force", "globals", "init",
 # cases, it also doesn't make sense to execute run() until after pair forces, bond forces,
 # and an \ref integrate "integrator" have been created.
 def run(tsteps):
+	print "run(", tsteps, ")";
 	# check if initialization has occured
 	if (globals.system == None):
 		print "Error: Cannot run before initialization";
 		raise RuntimeError('Error running');
+		
+	if (globals.integrator == None):
+		print "Warning: Starting a run without an integrator set";
+	else:
+		globals.integrator.update_forces();
 	
 	globals.system.run(int(tsteps));
 
