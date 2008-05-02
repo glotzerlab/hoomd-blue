@@ -174,8 +174,32 @@ class _analyzer:
 	def set_period(self, period):
 		print "analyzer.set_period(", period, ")";
 		globals.system.setAnalyzerPeriod(self.analyzer_name, period);
-		
-		
-		
+
 # set default counter
 _analyzer.cur_id = 0;
+
+
+## Sends simulation snapshots to VMD in real-time
+#
+# analyze.imd listens on a specified TCP/IP port for connections from VMD.
+# Once that connection is established, it begins transmitting simulation snapshots
+# to VMD every \a period time steps.
+class imd(_analyzer):
+	## Initialize the IMD interface
+	#
+	# \param self Python-required class instance variable
+	# \param port TCP/IP port to listen on
+	# \param period Number of time steps between file dumps
+	# 
+	# \b Examples:<br>
+	# analyze.imd(port=54321, period=100)<br>
+	# imd = analyze.imd(port=12345, period=1000)<br>
+	def __init__(self, port, period):
+		print "analyze.imd(port =", port, ")";
+		
+		# initialize base class
+		_analyzer.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_analyzer = hoomd.IMDInterface(globals.particle_data, port);
+		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
