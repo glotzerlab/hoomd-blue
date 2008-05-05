@@ -540,6 +540,7 @@ void export_BinnedNeighborListGPU()
 	{
 	class_<BinnedNeighborListGPU, boost::shared_ptr<BinnedNeighborListGPU>, bases<NeighborList>, boost::noncopyable >
 		("BinnedNeighborListGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		.def("setBlockSize", &BinnedNeighborListGPU::setBlockSize)
 		;
 	}	
 #endif

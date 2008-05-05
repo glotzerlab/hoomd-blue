@@ -45,6 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <iomanip>
+#include <stdexcept>
 
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
@@ -107,16 +108,26 @@ shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, share
 	shared_ptr<NeighborList> result;
 	
 	// handle creation of the various lennard=jones computes
-	if (nl_name == "BinnedNl")
+	if (nl_name == "BinnedNL")
 		result = shared_ptr<NeighborList>(new BinnedNeighborList(pdata, r_cut, r_buff));
-	if (nl_name == "Nl")
+	if (nl_name == "NL_NSQ")
 		result = shared_ptr<NeighborList>(new NeighborList(pdata, r_cut, r_buff));
 	#ifdef USE_CUDA
 	if (nl_name == "BinnedNL.GPU")
-		result = shared_ptr<NeighborList>(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
-	if (nl_name == "Nl_NSQ.GPU")
+		{
+		shared_ptr<BinnedNeighborListGPU> tmp = shared_ptr<BinnedNeighborListGPU>(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
+		tmp->setBlockSize(block_size);
+		result = tmp;
+		}
+	if (nl_name == "NL_NSQ.GPU")
 		result = shared_ptr<NeighborList>(new NeighborListNsqGPU(pdata, r_cut, r_buff));
 	#endif
+
+	if (!result)
+		{
+		cout << "Error: " << nl_name << " is an unknown neighborlist" << endl;
+		throw runtime_error("Error creating neighborlist");
+		}
 	
 	return result;
 	}
@@ -199,9 +210,9 @@ int main(int argc, char **argv)
 		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
 		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
 		#ifdef USE_CUDA
-		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNl.GPU"), "NeighboorList to benchmark")
+		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNL.GPU"), "NeighboorList to benchmark")
 		#else
-		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNl"), "NeighboorList to benchmark")
+		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNL"), "NeighboorList to benchmark")
 		#endif
 		;
 	
@@ -218,9 +229,9 @@ int main(int argc, char **argv)
 		cerr << "Error parsing command line: " << e.what() << endl;
 		cout << desc;
 		cout << "Available ForceComputes are: ";
-		cout << "Nl, BinnedNl";
+		cout << "NL_NSQ, BinnedNL";
 		#ifdef USE_CUDA
-		cout << ", BinnedNL.GPU, and Nl_NSQ.GPU";
+		cout << ", BinnedNL.GPU, and NL_NSQ.GPU";
 		#endif
 		cout << endl;
 		
