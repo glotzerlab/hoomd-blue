@@ -52,8 +52,6 @@ using namespace boost::filesystem;
 #include <iostream>
 using namespace std;
 
-#include <cuda_runtime_api.h>
-
 /*! \file hoomd.cc
 	\brief Executable for running python scripts with the hoomd module builtin
 */
