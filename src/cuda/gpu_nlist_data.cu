@@ -208,6 +208,12 @@ void gpu_alloc_bin_data(gpu_bin_data *bins, unsigned int Mx, unsigned int My, un
 	// want pitch in elements, not bytes
 	Nmax = pitch / sizeof(unsigned int);
 	CUDA_SAFE_CALL( cudaMemset( (void*) bins->d_array.idxlist, 0, pitch * Mx*My*Mz) );
+	CUDA_SAFE_CALL( cudaMallocArray(&bins->d_array.idxlist_array, &nlist_idxlist_tex.channelDesc, Nmax, Mx*My*Mz) );
+	
+	nlist_idxlist_tex.normalized = false;
+	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
+	
+	CUDA_SAFE_CALL( cudaBindTextureToArray(nlist_idxlist_tex, bins->d_array.idxlist_array) );	
 	
 	// allocate the bin coord array
 	CUDA_SAFE_CALL( cudaMalloc( (void**) &bins->d_array.bin_coord, Mx*My*Mz*sizeof(uint4)) );
@@ -235,6 +241,7 @@ void gpu_alloc_bin_data(gpu_bin_data *bins, unsigned int Mx, unsigned int My, un
 		}
 	// copy it to the device. This only needs to be done once
 	CUDA_SAFE_CALL( cudaMemcpy(bins->d_array.bin_coord, bins->h_array.bin_coord, sizeof(uint4)*Mx*My*Mz, cudaMemcpyHostToDevice) );
+	CUDA_SAFE_CALL( cudaBindTexture(0, nlist_bincoord_tex, bins->d_array.bin_coord, sizeof(uint4)*Mx*My*Mz) );
 
 	// assign allocated pitch
 	bins->d_array.Nmax = bins->h_array.Nmax = Nmax;
@@ -246,6 +253,7 @@ void gpu_free_bin_data(gpu_bin_data *bins)
 	assert(bins);
 	// free the device memory
 	CUDA_SAFE_CALL( cudaFree(bins->d_array.idxlist) );
+	CUDA_SAFE_CALL( cudaFreeArray(bins->d_array.idxlist_array) );
 	CUDA_SAFE_CALL( cudaFree(bins->d_array.bin_coord) );
 	// free the hsot memory
 	CUDA_SAFE_CALL( cudaFreeHost(bins->h_array.idxlist) );
@@ -264,6 +272,8 @@ void gpu_copy_bin_data_htod(gpu_bin_data *bins)
 
 	CUDA_SAFE_CALL( cudaMemcpy(bins->d_array.idxlist, bins->h_array.idxlist, 
 			nbytes, cudaMemcpyHostToDevice) );
+	CUDA_SAFE_CALL( cudaMemcpyToArray(bins->d_array.idxlist_array, 0, 0, bins->h_array.idxlist, nbytes,
+			cudaMemcpyHostToDevice) );
 	}
 
 void gpu_copy_bin_data_dtoh(gpu_bin_data *bins)
@@ -319,7 +329,7 @@ int gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_
 			sizeof(int), cudaMemcpyHostToDevice) );
 	
 	// run the kernel
-    int M = 128;
+    int M = 256;
     dim3 grid( (pdata->N/M) + 1, 1, 1);
     dim3 threads(M, 1, 1);
 

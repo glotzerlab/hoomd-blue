@@ -80,4 +80,4 @@ if (vmd_bin != ""):
 	os.spawnl(os.P_NOWAIT, vmd_bin, vmd_bin, "-e", "vmd_script.vmd");
 
 # run for a long time
-sys.run(100000000);
+sys.run(500000);

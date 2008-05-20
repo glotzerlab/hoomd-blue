@@ -73,6 +73,9 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	m_curNmax = 0;
 	m_avgNmax = Scalar(0.0);
 
+	// default block size is the highest performance in testing
+	m_block_size = 256;
+
 	// bogus values for last value
 	m_last_Mx = INT_MAX;
 	m_last_My = INT_MAX;
@@ -92,7 +95,6 @@ BinnedNeighborListGPU::~BinnedNeighborListGPU()
 */
 void BinnedNeighborListGPU::compute(unsigned int timestep)
 	{
-	checkForceUpdate();
 	// skip if we shouldn't compute this step
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;
@@ -455,19 +457,9 @@ void BinnedNeighborListGPU::updateListFromBins()
 	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU(); 
 	
-	// create a temporary copy of r_max sqaured
-	int block_size = m_curNmax;
-	if ((block_size & 31) != 0)
-		block_size += 32 - (block_size & 31);
-
-	#ifdef USE_CUDA_BUG_WORKAROUND
-	block_size = m_Nmax;
-	#endif
-	
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
-	gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, block_size);
-	//gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_Nmax);
+	gpu_nlist_binned(&pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_curNmax, m_block_size);
 	
 	m_pdata->release();
 
@@ -539,6 +531,8 @@ void BinnedNeighborListGPU::printStats()
 	NeighborList::printStats();
 
 	cout << "Nmax = " << m_Nmax << " / curNmax = " << m_curNmax << endl;
+	int Nbins = m_gpu_bin_data.h_array.Mx * m_gpu_bin_data.h_array.My * m_gpu_bin_data.h_array.Mz;
+	cout << "bins Nmax = " << m_gpu_bin_data.h_array.Nmax << " / Nbins = " << Nbins << endl;
 	}
 
 #ifdef USE_PYTHON
@@ -546,6 +540,7 @@ void export_BinnedNeighborListGPU()
 	{
 	class_<BinnedNeighborListGPU, boost::shared_ptr<BinnedNeighborListGPU>, bases<NeighborList>, boost::noncopyable >
 		("BinnedNeighborListGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		.def("setBlockSize", &BinnedNeighborListGPU::setBlockSize)
 		;
 	}	
 #endif

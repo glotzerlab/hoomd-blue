@@ -9,7 +9,7 @@ import math;
 # setup parameters of simulation
 rho = 0.381971863;
 r_cut = 3.0;
-r_buff = 0.8;
+r_buff = 1.0;
 dt = 0.005;
 T = 1.2;
 
@@ -32,7 +32,7 @@ epsilon = 1.0;
 lj1 = 48.0 * epsilon * math.pow(sigma, 12.0);
 lj2 = alpha * 24.0 * epsilon * math.pow(sigma, 6.0);
 fc.setParams(0, 0, lj1, lj2);
-fc.setBlockSize(256);
+fc.setBlockSize(448);
 
 # setup the particle sort
 sorter = SFCPackUpdater(pdata, 1.0);
@@ -46,7 +46,7 @@ sys = System(pdata, 0);
 sys.addCompute(nlist, "nlist");
 sys.addCompute(fc, "fc");
 sys.setIntegrator(nvt);
-sys.addUpdater(sorter, "sorter", 1000);
+sys.addUpdater(sorter, "sorter", 500);
 
 # warm up
 sys.run(2000);

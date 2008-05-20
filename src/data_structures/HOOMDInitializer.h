@@ -42,9 +42,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "NeighborList.h"
 #include "BondForceCompute.h"
+#include "WallData.h"
 #include "xmlParser.h"
 
 #include <string>
+#include <vector>
+#include <map>
+
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #ifndef __HOOMD_INITIALIZER_H__
 #define __HOOMD_INITIALIZER_H__
@@ -56,13 +62,7 @@ class HOOMDInitializer : public ParticleDataInitializer
 	{
 	public:
 		//! Loads in the file and parses the data
-		//HOOMDInitializer(const std::string &fname);
-		
-		//! Loads in the file and parses the data, sets loud to on or off
-		HOOMDInitializer(const std::string &fname, bool loud_p = false);
-
-		//! Frees memory
-		virtual ~HOOMDInitializer();
+		HOOMDInitializer(const std::string &fname);
 		
 		//! Returns the number of particles to be initialized
 		virtual unsigned int getNumParticles() const;
@@ -74,55 +74,90 @@ class HOOMDInitializer : public ParticleDataInitializer
 		virtual unsigned int getTimeStep() const;
 
 		//! Returns the box the particles will sit in
-		virtual BoxDim getBox() const;		
+		virtual BoxDim getBox() const;
 		
 		//! Initializes the particle data arrays
 		virtual void initArrays(const ParticleDataArrays &pdata) const;
+
+		//! Initialize the walls
+		virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
 		
 		//! Adds a neighbor list exclusion for each bond read from the input file
 		void setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist);
 		
 		//! Calls BondForceCompute::addBond for each bond read from the input file
 		void setupBonds(boost::shared_ptr<BondForceCompute> fc_bond);
-
-		//! Makes the ininializer output more descriptive
-		void setLoud(bool verb) {loud = verb;}
 	private:
 		//! Helper function to read the input file
 		void readFile(const std::string &fname);
+		//! Helper function to parse the box node
+		void parseBoxNode(const XMLNode& node);
+		//! Helper function to parse the position node
+		void parsePositionNode(const XMLNode& node);
+		//! Helper function to parse the velocity node
+		void parseVelocityNode(const XMLNode& node);
+		//! Helper function to parse the type node
+		void parseTypeNode(const XMLNode& node);
+		//! Helper function to parse the bonds node
+		void parseBondNode(const XMLNode& node);
+		//! Parse charge node
+		void parseChargeNode(const XMLNode& node);
+		//! Parse wall node
+		void parseWallNode(const XMLNode& node);
+
+		std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map;	//!< Map for dispatching parsers based on node type
 		 
 		BoxDim m_box;	//!< Simulation box read from the file
+		bool m_box_read;	//!< Stores the box we read in
 
-		bool loud; //!< Whether or not to print very descriptive output
-		
-		struct particle //!< particle data
+		struct vec //!< simple vec for storing particle data
 			{
-			particle() : x(0.0), y(0.0), z(0.0), vx(0.0), vy(0.0), vz(0.0), type(0)
+			//! Default construtor
+			vec() : x(0.0), y(0.0), z(0.0)
 				{
 				}
-			Scalar x;	//!< Particle X -coordinates 
-			Scalar y;	//!< Particle Y -coordinates 
-			Scalar z;	//!< Particle Z -coordinates 
-			Scalar vx;	//!< Velocity of the particle on x axis 
-			Scalar vy;	//!< Velocity of the particle on y axis 
-			Scalar vz;	//!< Velocity of the particle on z axis 
-			unsigned int type;     //!< Particle Type
+			//! Constructs a vec with given components
+			/*! \param xp x-component
+				\param yp y-component
+				\param zp z-component
+			*/
+			vec(Scalar xp, Scalar yp, Scalar zp) : x(xp), y(yp), z(zp)
+				{
+				}
+			Scalar x;	//!< x-component
+			Scalar y;	//!< y-component
+			Scalar z;	//!< z-component
 			};
-		
-		particle *m_particles;	//!< Particle data read in from the file
-					
+			
+		std::vector< vec > m_pos_array;				//!< positions of all particles loaded
+		std::vector< vec > m_vel_array;				//!< velocities of all particles loaded
+		std::vector< unsigned int > m_type_array;	//!< type values for all particles loaded
+		std::vector< Scalar > m_charge_array;		//!< charge of the particles loaded
+		std::vector< Wall > m_walls;				//!< walls loaded from the file			
+
+
 		struct bond				//!< bond on the particles
 			{
+			//! Default constructor
+			bond() : tag_a(0), tag_b(0)
+				{
+				}
+
+			//! Construct a bond between two particles
+			/*! \param a tag of the first particle in the bond
+				\param b tag of the second particle in the bond
+			*/
+			bond(unsigned int a, unsigned int b) : tag_a(a), tag_b(b)
+				{
+				}
 			unsigned int tag_a;		//!< First particle in the bond
 			unsigned int tag_b;		//!< Second particle in the bond
 			};
 
-		bond *m_bonds;	//!< Bonds read in from the file
+		std::vector< bond > m_bonds;	//!< Bonds read in from the file
 	
-		unsigned int m_nparticle_types; //!< Types of particles in the Simulation Box
-		unsigned int m_N;				//!< Number of particles in the Simulation  box
-		unsigned int m_nbonds;			//!< Number of bonds
-		unsigned int m_timestep;			//!< The time stamp 
+		unsigned int m_nparticle_types; //!< Number of particle types identified
+		unsigned int m_timestep;		//!< The time stamp 
 	};
 	
 #ifdef USE_PYTHON

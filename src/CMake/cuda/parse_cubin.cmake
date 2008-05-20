@@ -54,13 +54,13 @@ IF (${file_text} MATCHES ".+")
 
           # Check to see if the kernel name starts with "_"
           SET(skip FALSE)
-          IF (${entry} MATCHES "^_")
+          # IF (${entry} MATCHES "^_")
             # Skip the rest of this block.
-            #MESSAGE("Skipping ${entry}")
-            SET(skip TRUE)
-          ELSE (${entry} MATCHES "^_")
+            # MESSAGE("Skipping ${entry}")
+            # SET(skip TRUE)
+          # ELSE (${entry} MATCHES "^_")
             MESSAGE("Kernel:    ${entry}")  
-          ENDIF (${entry} MATCHES "^_")
+          # ENDIF (${entry} MATCHES "^_")
 
         ENDIF(${entry} MATCHES "[^g]name = ([^ ]+)")
 

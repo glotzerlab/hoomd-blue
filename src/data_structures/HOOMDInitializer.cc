@@ -52,30 +52,39 @@ using namespace std;
 using namespace boost::python;
 #endif
 
+using namespace boost;
+
 /*! \param fname File name with the data to load
 */
-HOOMDInitializer::HOOMDInitializer(const std::string &fname, bool loud_p)
+HOOMDInitializer::HOOMDInitializer(const std::string &fname)
  	{
-	m_particles = NULL;
-	m_bonds = NULL;
+	// initialize member variables
 	m_nparticle_types = 0;
-	loud = loud_p;
+	m_timestep = 0;
+	m_box_read = false;
+
+	// initialize the parser map
+	m_parser_map["box"] = bind(&HOOMDInitializer::parseBoxNode, this, _1);
+	m_parser_map["position"] = bind(&HOOMDInitializer::parsePositionNode, this, _1);
+	m_parser_map["velocity"] = bind(&HOOMDInitializer::parseVelocityNode, this, _1);
+	m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
+	m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
+	m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
+	m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
+
+	// read in the file
 	readFile(fname);
 	}
 		
-HOOMDInitializer::~HOOMDInitializer()
-	{
-	delete[] m_particles;
-	delete[] m_bonds;
-	}
-
 unsigned int HOOMDInitializer::getNumParticles() const
 	{
-	return m_N;
+	assert(m_pos_array.size() > 0);
+	return m_pos_array.size();
 	}
 		
 unsigned int HOOMDInitializer::getNumParticleTypes() const
 	{
+	assert(m_nparticle_types > 0);
 	return m_nparticle_types;
 	}
 
@@ -85,9 +94,9 @@ BoxDim HOOMDInitializer::getBox() const
 	}
 
 unsigned int HOOMDInitializer::getTimeStep() const
-{
-	return m_timestep ;
-}
+	{
+	return m_timestep;
+	}
 
 
 /* ! \param pdata The particle data 
@@ -95,345 +104,394 @@ unsigned int HOOMDInitializer::getTimeStep() const
 */
 void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
 	{
+	assert(m_pos_array.size() > 0 && m_pos_array.size() == pdata.nparticles);
+
 	// loop through all the particles and set them up
-	for (unsigned int i = 0; i < m_N; i++)
+	for (unsigned int i = 0; i < m_pos_array.size(); i++)
 		{
-		pdata.x[i] = m_particles[i].x;
-		pdata.y[i] = m_particles[i].y;
-		pdata.z[i] = m_particles[i].z;
-		
-		pdata.vx[i] = m_particles[i].vx;
-		pdata.vy[i] = m_particles[i].vy;
-		pdata.vz[i] = m_particles[i].vz;
-		
-		pdata.type[i] = m_particles[i].type;
+		pdata.x[i] = m_pos_array[i].x;
+		pdata.y[i] = m_pos_array[i].y;
+		pdata.z[i] = m_pos_array[i].z;
+
 		pdata.tag[i] = i;
 		pdata.rtag[i] = i;
 		}
+
+	if (m_vel_array.size() != 0)
+		{
+		assert(m_vel_array.size() == m_pos_array.size());
+
+		for (unsigned int i = 0; i < m_pos_array.size(); i++)
+			{
+			pdata.vx[i] = m_vel_array[i].x;
+			pdata.vy[i] = m_vel_array[i].y;
+			pdata.vz[i] = m_vel_array[i].z;
+			}
+		}
+
+	if (m_charge_array.size() != 0)
+		{
+		assert(m_charge_array.size() == m_pos_array.size());
+		
+		for (unsigned int i = 0; i < m_pos_array.size(); i++)
+			pdata.charge[i] = m_charge_array[i];
+		}
+
+	if (m_type_array.size() != 0)
+		{
+		assert(m_type_array.size() == m_pos_array.size());
+		
+		for (unsigned int i = 0; i < m_pos_array.size(); i++)
+			pdata.type[i] = m_type_array[i];
+		}
 	}
 
-/*!	\param fname Name of the XML file to input the data of the particles
-	
+/*! \param wall_data WallData to initialize with the data read from the file
 */
-void HOOMDInitializer::readFile(const string &fname){
+void HOOMDInitializer::initWallData(boost::shared_ptr<WallData> wall_data) const
+	{
+	// copy the walls over from our internal list
+	for (unsigned int i = 0; i < m_walls.size(); i++)
+		wall_data->addWall(m_walls[i]);
+	}
 
+/*!	\param fname File name of the hoomd_xml file to read in
+	\post Internal data arrays and members are filled out from which futre calls
+	like initArrays will use to intialize the ParticleData
+*/
+void HOOMDInitializer::readFile(const string &fname)
+	{
 	// Create a Root Node and a child node
-	XMLNode xMainNode;
-	XMLNode xNode;
+	XMLNode root_node;
 
-	// Open the file and search for the Root element "HOOMD_xml" 
-	xMainNode=XMLNode::openFileHelper(fname.c_str(),"HOOMD_xml");
+	// Open the file and read the root element "hoomd_xml"
+	cout<< "Reading " << fname << "..." << endl;
+	XMLResults results;
+	root_node = XMLNode::parseFile(fname.c_str(),"HOOMD_xml", &results);
+
+    // handle errors
+    if (results.error != eXMLErrorNone)
+		{
+        // create message
+        if (results.error==eXMLErrorFirstTagNotFound) 
+			throw runtime_error(string("Root node of ") + fname + " is not <hoomd_xml>");
+		
+		ostringstream error_message;
+		error_message << XMLNode::getError(results.error) << " in file " << fname << " at line " << results.nLine << " col " << results.nColumn;
+		throw runtime_error(error_message.str());
+		}
+
+	// the file was parsed successfully by the XML reader. Extract the information now
+	// start by checking the number of configurations in the file
+	int num_configurations = root_node.nChildNode("configuration");
+	if (num_configurations == 0)
+		throw runtime_error("No <configuration> specified in the XML file");
+	if (num_configurations > 1)
+		throw runtime_error("Sorry, the input XML file must have only one configuration");
 	
-	cout<< endl;
-	cout<< "Reading " << fname.c_str() << endl;
-	
-	cout << "\nGathering info from file...";
-
-	int num_children;
-  	num_children = xMainNode.nChildNode();
-	bool position_flag=false;
-	bool configuration_flag=false;
-	bool box_flag=false;
-	bool bond_flag = false;
-
-	for(int j=0;j<num_children;j++)
-	{
-		xNode = xMainNode.getChildNode(j);
-		std::string name = xNode.getName();
-		unsigned int i;
-		istringstream f;
-		
-
-		// Find the Child Node "Configuration"  to extract the time_step 
-		if(name=="Configuration")
+	// extract the only configuration node
+	XMLNode configuration_node = root_node.getChildNode("configuration");
+	// extract the time step
+	if (configuration_node.isAttributeSet("time_step"))
 		{
-			configuration_flag = true;
-			if(!xNode.isEmpty())
-			{	
-				if (loud) cout << endl;
-					
-				if (loud) cout <<" number of elements for this node config is "<<xNode.nAttribute()<<endl;
-
-				if (loud) cout <<"CONFIGURATION DETAILS "<<endl;
-				
-				if (loud) cout << "Reading Time step..." << endl;
-				
-				if (loud) cout << "Time step           -  " << xNode.getAttribute("time_step") << endl;
-				m_timestep = atoi(xNode.getAttribute("time_step"));
-				
-				if(xNode.isAttributeSet("N"))
-				{
-				
-					if (loud) cout << "Reading number of particles..." << endl;
-					if (loud) cout << "	Number of particles read -  " <<xNode.getAttribute("N")<<endl;
-					m_N = atoi(xNode.getAttribute("N")) ;
-				
-					// Allocate memory for all particles 
-					m_particles = new particle[m_N];
-				}
-				else
-				{
-					cout<<"Number of particles used in the simulation is not specified in the XML file "<<endl;
-					throw runtime_error("Error in reading Number of particles from XML file ");
-				}
-				
-				if (loud) cout << "Reading types of particles..." << endl;
-
-				if (loud) cout << "Types of particles  -  " << xNode.getAttribute("NTypes")<<endl;
-				m_nparticle_types  = atoi(xNode.getAttribute("NTypes"))  ;
-				
-				
-				if(xNode.isAttributeSet("NBonds"))
-				{
-					bond_flag=true;
-					
-					if (loud) cout << "Reading Number of bonds..." << endl;
-
-					if (loud) cout << "Number of bonds     - " << xNode.getAttribute("NBonds")<<endl<<endl;
-					m_nbonds  = atoi(xNode.getAttribute("NBonds"))  ;
-					// Allocate memory for bonds 
-					m_bonds = new bond[m_nbonds];
-				}
-				else
-				{
-					cout << "Total Number of Bond forces in the simulation is not present in the XML file "<<endl<<endl;
-				}
-
-			}
-			else
-			{
-				cerr<<"The Input XML files does not have Configuration Details like Number of particles, Types of particles and time step "<<endl;
-				throw runtime_error("Error in reading Configuration Details of particles");
-			}
-		}
-		
-		// Get the Simulation Box details from the XML file 	
-		else if(name=="Box")
-		{
-			box_flag = true;
-			if(!xNode.isEmpty())
-			{ 
-				Scalar Lx,Ly,Lz;
-				istringstream temp;
-								
-				if (loud) cout << "Reading Box dimentions..." << endl;
-				
-				if (loud) cout << "SIMULATION BOX DIMENSIONS " << endl;
-				if (loud) cout <<"Box = "<< xNode.getAttribute("Lx")<<" x "<< xNode.getAttribute("Ly")<<" x "<<xNode.getAttribute("Lz")<<"  "<<xNode.getAttribute("Units")<< endl<<endl ;
-				//Lx = Scalar ((xNode.getAttribute("Lx")));
-				//Ly = Scalar ((xNode.getAttribute("Ly")));
-				//Lz = Scalar ((xNode.getAttribute("Lz")));
-				
-				//Fred Fixed Bug 
-				temp.str(xNode.getAttribute("Lx"));
-				temp >> Lx;
-				temp.clear();
-
-				temp.str(xNode.getAttribute("Ly"));
-				temp >> Ly;
-				temp.clear();
-
-
-				temp.str(xNode.getAttribute("Lz"));
-				temp >> Lz;
-				temp.clear();
-		
-				m_box = BoxDim(Lx,Ly,Lz);
-			}
-			else 
-			{
-				cerr<<"The Input XMl files does not have Simulation Box details like LX , LY , LZ "<<endl;
-				throw runtime_error("Error in reading Simulation Box Details of particles");
-			}
-		}
-		
-		// Check "Position" node to extract the x,y,z coordinates of all particles 
-		else if(name=="Position")
-		{
-			position_flag = true;
-			if(!xNode.isEmpty())
-			{ 
-				if (loud) cout << "Reading Position details..." << endl ; 
-				if (loud) cout << "unit                - " << xNode.getAttribute("Units")<<endl;
-				f.str(xNode.getText());
-				for (i = 0 ; i< m_N;i++)
-				{
-					if (!f.good())
-					{
-						cerr << "Unexpected error in reading Position of particles" << endl;
-						throw runtime_error("Error in reading position of particles");
-					}
-				f >> m_particles[i].x >> m_particles[i].y >> m_particles[i].z ; 
-				}
-			if (loud) cout<<"** Retrieved information on POSITION of all particles ** "<< endl<<endl ;
-			}
-			else
-			{
-				cerr<<"The Input XMl files does not have Position details of particles like X , Y , Z  coordinates "<<endl;
-				throw runtime_error("Error in reading position details of particles");
-			}
+		m_timestep = atoi(configuration_node.getAttribute("time_step"));
 		}
 
-		// Check if there is a child node "Velocity" to extract the vx,vy,vz of all particles
-		else if(name=="Velocity")
+	// loop through all child nodes of the configuration
+	for (int cur_node=0; cur_node < configuration_node.nChildNode(); cur_node++)
 		{
-			if(!xNode.isEmpty())
-			{ 
-				f.clear();
-				if (loud) cout << "Reading Velocity details ... " << endl ;
-				if (loud) cout << "unit                - " << xNode.getAttribute("Units")<<endl;
-				f.str(xNode.getText());
-				for (i = 0 ; i< m_N;i++)
-				{
-					if (!f.good())
-					{
-						cerr << "Unexpected error in reading Velocity of particles" << endl;
-						throw runtime_error("Error in reading velocity of particles");
-					}
-					f >> m_particles[i].vx >> m_particles[i].vy >> m_particles[i].vz ;	
-				}
-				if (loud) cout<<"** Retrieved information on VELOCITY of all particles ** "<< endl<<endl;
-			}
-			/*
-			else
-			{	
-				cerr<<"The Input XMl files does not have velocity details of particles like vx, vy , vz  "<<endl;
-				throw runtime_error("Error in reading velocity details of particles");
-			}
-			*/
-		}
-
-		// Check if there is a child node "Bonds" 
-		else if(name=="Bonds" && bond_flag==true)
-		{
-			if(!xNode.isEmpty())
-			{ 
-				f.clear();
-				if (loud) cout << "Reading Bond details ... " << endl ;
-				if (loud) cout << "unit                - " << xNode.getAttribute("Units")<<endl;
-				f.str(xNode.getText());
-				for (i = 0 ; i< m_nbonds;i++)
-				{
-					if (!f.good())
-					{
-						cerr << "Unexpected error in reading Bond details  of particles" << endl;
-						throw runtime_error("Error in reading Bond detals of particles");
-					}
-					
-					f >> m_bonds[i].tag_a >> m_bonds[i].tag_b;	
-				}
-				if (loud) cout<<"** Retrieved information on Bonds of all particles ** "<< endl<<endl;
-			}
-			/*
-			else
-			{	
-				cout<<"The Input XMl files does have either Number of bonds or Bond details of particles "<<endl;
-				//throw runtime_error("Error in reading Bond detail of particles");
-			}
-			*/
-			
-		}
-
-
-	
-		// Check if there is a child node "Type" to extract the x,y,z coordinates of all particles 
-		else if(name=="Type")
-		{
-			if(!xNode.isEmpty())
-			{ 
-				f.clear();
-				if (loud) cout << "Reading Type details ... " << endl ;
-				f.str(xNode.getText());
-				for (i = 0 ; i< m_N;i++)
-				{
-					if (!f.good())
-					{
-						cerr << "Unexpected error in reading Types of particles" << endl;
-						throw runtime_error("Error in reading types of particles");
-					}
-					f >> m_particles[i].type ;
-				}
-				if (loud) cout<<"** Retrieved information on TYPES of all particles ** "<< endl<<endl;
-			}
-			else
-			{
-				if (loud) cout << "TYPE DETAILS" << endl ;
-				for (i = 0 ; i< m_N;i++)
-				{
-					m_particles[i].type=0; // Set the values of type of particles to zero ( default ) 
-				}
-				if (loud) cout << "TYPES of all particles set to default value - zero "<< endl<<endl;
-			}
-		}
+		// extract the name and call the appropriate node parser, if it exists
+		XMLNode node = configuration_node.getChildNode(cur_node);
+		string name = node.getName();
+		std::map< std::string, boost::function< void (const XMLNode&) > >::iterator parser;
+		parser = m_parser_map.find(name);
+		if (parser != m_parser_map.end())
+			parser->second(node);
 		else
-		{	
-			cout<< endl;
-			cout<< "Ingnoring "<<xNode.getName()<<"..."<<endl<<endl;
-						
+			cout << "Parser for node <" << name << "> not defined, ignoring" << endl;
 		}
+	
+	// check for required items in the file
+	if (!m_box_read)
+		{
+		cout << "A <box> node is required to define the dimensions of the simulation box" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	if (m_pos_array.size() == 0)
+		{
+		cout << "No particles defined in <position> node" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+
+	// check for potential user errors
+	if (m_vel_array.size() != 0 && m_vel_array.size() != m_pos_array.size())
+		{
+		cout << "Error " << m_vel_array.size() << " velocities != " << m_pos_array.size() << " positions" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
+		{
+		cout << "Error " << m_type_array.size() << " type values != " << m_pos_array.size() << " positions" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	if (m_charge_array.size() != 0 && m_charge_array.size() != m_pos_array.size())
+		{
+		cout << "Error " << m_charge_array.size() << " charge values != " << m_pos_array.size() << " positions" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+
+	// notify the user of what we have accomplished
+	cout << "--- hoomd_xml file read summary" << endl;
+	cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
+	if (m_vel_array.size() > 0)
+		cout << m_vel_array.size() << " velocities" << endl;
+	cout << getNumParticleTypes() <<  " particle types" << endl;
+	if (m_bonds.size() > 0)
+		cout << m_bonds.size() << " bonds" << endl;
+	if (m_charge_array.size() > 0)
+		cout << m_charge_array.size() << " charges" << endl;
+	if (m_walls.size() > 0)
+		cout << m_walls.size() << " walls" << endl;
+	}
+
+/*! \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the information in the attributes of the \b box node
+*/
+void HOOMDInitializer::parseBoxNode(const XMLNode &node)
+	{
+	// first, verify that this is the box node
+	assert(string(node.getName()) == string("box"));
+	
+	// temporary values for extracting attributes as Scalars
+	Scalar Lx,Ly,Lz;
+	istringstream temp;
+	
+	// use string streams to extract Lx, Ly, Lz
+	// throw exceptions if these attributes are not set
+	if (!node.isAttributeSet("Lx"))
+		{
+		cout << "Lx not set in <box> node" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	temp.str(node.getAttribute("Lx"));
+	temp >> Lx;
+	temp.clear();
+
+	if (!node.isAttributeSet("Ly"))
+		{
+		cout << "Ly not set in <box> node" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	temp.str(node.getAttribute("Ly"));
+	temp >> Ly;
+	temp.clear();
+
+	if (!node.isAttributeSet("Lz")) 
+		{
+		cout << "Lz not set in <box> node" << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	temp.str(node.getAttribute("Lz"));
+	temp >> Lz;
+	temp.clear();
+
+	// initialize the BoxDim and set the flag telling that we read the <box> node
+	m_box = BoxDim(Lx,Ly,Lz);
+	m_box_read = true;
+	}
+
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b position node and fills out m_pos_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parsePositionNode(const XMLNode &node)
+	{
+	// check that this is actually a position node
+	assert(string(node.getName()) == string("position"));
+
+	// units is currently unused, but will be someday: warn the user if they forget it
+	if (!node.isAttributeSet("units")) cout << "Warning: units not specified in <position> node" << endl;
+
+	// extract the data from the node
+	istringstream parser;
+	parser.str(node.getText());
+	while (parser.good())
+		{
+		Scalar x,y,z;
+		parser >> x >> y >> z;
+		m_pos_array.push_back(vec(x,y,z));
+		}
+	}
+
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b velocity node and fills out m_vel_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
+	{
+	// check that this is actually a velocity node
+	assert(string(node.getName()) == string("velocity"));
+
+	// units is currently unused, but will be someday: warn the user if they forget it
+	if (!node.isAttributeSet("units")) cout << "Warning: units not specified in <velocity> node" << endl;
+
+	// extract the data from the node
+	istringstream parser;
+	parser.str(node.getText());
+	while (parser.good())
+		{
+		Scalar x,y,z;
+		parser >> x >> y >> z;
+		m_vel_array.push_back(vec(x,y,z));
+		}
+	}
+
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b type node and fills out m_type_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseTypeNode(const XMLNode &node)
+	{
+	// check that this is actually a type node
+	assert(string(node.getName()) == string("type"));
+
+	// extract the data from the node
+	istringstream parser;
+	parser.str(node.getText());
+	while (parser.good())
+		{
+		unsigned int type;
+		parser >> type;
 		
+		m_type_array.push_back(type);
+
+		// dynamically determine the number of particle types
+		if (type+1 > m_nparticle_types)
+			m_nparticle_types = type+1;
+		}
+	}
+
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b bond node and fills out m_bonds. The number
+	of bonds in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseBondNode(const XMLNode &node)
+	{
+	// check that this is actually a bond node
+	assert(string(node.getName()) == string("bond"));
+
+	// extract the data from the node
+	istringstream parser;
+	parser.str(node.getText());
+	while (parser.good())
+		{
+		unsigned int a, b;
+		parser >> a >> b;
+		m_bonds.push_back(bond(a, b));
+		}
+	}
+
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b charge node and fills out m_charge_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseChargeNode(const XMLNode &node)
+	{
+	// check that this is actually a charge node
+	assert(string(node.getName()) == string("charge"));
+
+	// extract the data from the node
+	istringstream parser;
+	parser.str(node.getText());
+	while (parser.good())
+		{
+		Scalar charge;
+		parser >> charge;
 		
-	}
-	
-	if(!configuration_flag)
-	{
-		cout << endl;
-		//cerr<<"Mandatory Details missing in the XML file"<<endl;
-		cerr <<"The Input XMl files does not have configuration details of particles "<<endl;
-		throw runtime_error("Error in reading configuration details of particles");
-		
+		m_charge_array.push_back(charge);
+		}
 	}
 
-	if(!box_flag)
+/* \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b wall node and fills out m_walls. The number
+	of walls is dtermined dynamically.
+*/
+void HOOMDInitializer::parseWallNode(const XMLNode& node)
 	{
-		cout << endl;
-		cerr << "The Input XMl files does not have box dimenstion details "<<endl;
-		throw runtime_error("Error in reading Box dimension details of particles");
+	// check that this is actually a wall node
+	assert(string(node.getName()) == string("wall"));
+
+	for (int cur_node=0; cur_node < node.nChildNode(); cur_node++)
+		{
+		// check to make sure this is a node type we understand
+		XMLNode child_node = node.getChildNode(cur_node);
+		if (string(child_node.getName()) != string("coord"))
+			{
+			cout << "Ignoring <" << child_node.getName() << "> node in <wall> node";
+			}
+		else
+			{
+			// extract x,y,z, nx, ny, nz
+			Scalar ox,oy,oz,nx,ny,nz;
+			if (!child_node.isAttributeSet("ox"))
+				{
+				cout << "ox not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			ox = atof(child_node.getAttribute("ox"));
+
+			if (!child_node.isAttributeSet("oy"))
+				{
+				cout << "oy not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			oy = atof(child_node.getAttribute("oy"));
+
+			if (!child_node.isAttributeSet("oz"))
+				{
+				cout << "oz not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			oz = atof(child_node.getAttribute("oz"));
+
+			if (!child_node.isAttributeSet("nx"))
+				{
+				cout << "nx not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			nx = atof(child_node.getAttribute("nx"));
+
+			if (!child_node.isAttributeSet("ny"))
+				{
+				cout << "ny not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			ny = atof(child_node.getAttribute("ny"));
+
+			if (!child_node.isAttributeSet("nz"))
+				{
+				cout << "nz not set in <coord> node" << endl;
+				throw runtime_error("Error extracting data from hoomd_xml file");
+				}
+			nz = atof(child_node.getAttribute("nz"));
+
+			m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
+			}
+		}
 	}
-
-	
-	
-
-	if(position_flag == false)
-	{
-		cout << endl;
-		cerr << "The Input XMl files does not have Position details of particles like X , Y , Z  coordinates "<<endl;
-		throw runtime_error("Error in reading position details of particles");
-	}
-
-
-	// bonds are optional
-	/*if(bond_flag ==false)
-	{
-		cout<<endl;
-		cerr<<"The Input XMl files does not have all the bond details needed "<<endl;
-		throw runtime_error("Error in reading Bond details of particles");
-
-	}*/
-
-	
-
-	cout << "done" << endl << endl;
-	cout << "Read from file: " << getNumParticles() << " particles, ";
-	cout << getNumParticleTypes() << " particle types, and ";
-	cout << m_nbonds << " bonds." << endl;
-	cout << " === END INITIALIZATION === " << endl;
-
-}
-
 
 		
 void HOOMDInitializer::setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist)
 	{
 	// loop through all the bonds and add an exclusion for each
-	for (unsigned int i = 0; i < m_nbonds; i++)
+	for (unsigned int i = 0; i < m_bonds.size(); i++)
 		nlist->addExclusion(m_bonds[i].tag_a, m_bonds[i].tag_b);
 	}
 	
 void HOOMDInitializer::setupBonds(boost::shared_ptr<BondForceCompute> fc_bond)
 	{
 	// loop through all the bonds and add a bond for each
-	for (unsigned int i = 0; i < m_nbonds; i++)	
+	for (unsigned int i = 0; i < m_bonds.size(); i++)	
 		fc_bond->addBond(m_bonds[i].tag_a, m_bonds[i].tag_b);
 	}
 

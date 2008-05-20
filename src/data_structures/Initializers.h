@@ -113,19 +113,25 @@ class RandomInitializer : public ParticleDataInitializer
 	};
 
 
-
+//! Creates a random particle system with walls defined on all 6 faces of the cube
+/*! A \a wall_buffer argument is specified in the the call to the constructor which shifts the edge of the
+	simulation box out that distance from the walls.
+*/
 class RandomInitializerWithWalls : public RandomInitializer
 	{
 	public:
 		//! Set the parameters
-		RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist);
+		RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer);
 		//! Empty Destructor
 		virtual ~RandomInitializerWithWalls() ;
-		
-		virtual WallData getWalls() const;
-
+		//! Returns the box the particles will sit in
+		virtual BoxDim getBox() const;
+		//! Initialize the walls
+		virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
 	protected:
-		WallData m_walls;
+		Scalar m_wall_buffer;	//!< Buffer distance between the wall and the edge of the box
+		BoxDim m_real_box;	//!< Stores the actual dimensions of the box where the walls are defined
+
 	};
 	
 #ifdef USE_PYTHON

@@ -40,5 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define _GPU_NLIST_NVCC_H_
 
 texture<uint4, 1, cudaReadModeElementType> nlist_exclude_tex;
+texture<unsigned int, 2, cudaReadModeElementType> nlist_idxlist_tex;
+texture<uint4, 1, cudaReadModeElementType> nlist_bincoord_tex;
 
 #endif

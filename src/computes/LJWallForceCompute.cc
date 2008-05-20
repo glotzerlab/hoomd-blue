@@ -47,123 +47,126 @@ using namespace boost::python;
 #endif
 
 #include "LJWallForceCompute.h"
+#include "WallData.h"
 #include <stdexcept>
 
 using namespace std;
 
+/*! \param pdata ParticleData to compute forces on
+	\param r_cut Cuttoff distance beyond which the force is zero.
+*/
 LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar r_cut):
 ForceCompute(pdata), m_r_cut(r_cut)
 	{
-	
 	if (r_cut < 0.0) 
 		throw runtime_error("Negative r_cut in LJWallForceCompute doesn't make sense.");
 		
 	// initialize the number of types value
-	m_ntypes = m_pdata->getNTypes();
-	assert(m_ntypes > 0);
+	unsigned int ntypes = m_pdata->getNTypes();
+	assert(ntypes > 0);
 	
 	// allocate data for lj1 and lj2
-	m_lj1 = new Scalar[m_ntypes];
-	m_lj2 = new Scalar[m_ntypes];
+	m_lj1 = new Scalar[ntypes];
+	m_lj2 = new Scalar[ntypes];
 	
 	// sanity check
 	assert(m_lj1 != NULL && m_lj2 != NULL);
 	
-	// Make walls
-	// WallData is located within pdata
-	
 	// initialize the parameters to 0;
-	memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes);
-	memset((void*)m_lj2, 0, sizeof(Scalar)*m_ntypes);
+	memset((void*)m_lj1, 0, sizeof(Scalar)*ntypes);
+	memset((void*)m_lj2, 0, sizeof(Scalar)*ntypes);
 	}
 
-LJWallForceCompute::~LJWallForceCompute(void)
+/*! Frees used memory
+*/
+LJWallForceCompute::~LJWallForceCompute()
 	{
 	delete[] m_lj1;
 	delete[] m_lj2;
 	m_lj1 = NULL;
 	m_lj2 = NULL;
-
 	}
 
-//coppied from LJForceCompute
-void LJWallForceCompute::setParams(unsigned int typ1, Scalar lj1, Scalar lj2)
+/*! \param typ Particle type index to set parameters for
+	\param lj1 lj1 parameter
+	\param lj2 lj2 parameter
+
+	\note \a lj1 are \a lj2 are low level parameters used in the calculation. In order to specify
+	these for a normal lennard jones formula (with alpha), they should be set to the following.
+	\a lj1 = 48.0 * epsilon * pow(sigma,12.0)
+	\a lj2 = alpha * 24.0 * epsilon * pow(sigma,6.0);
+*/
+void LJWallForceCompute::setParams(unsigned int typ, Scalar lj1, Scalar lj2)
 	{
-	if (typ1 >= m_ntypes)
-	{
-	cerr << "Trying to set LJ params for a non existant type! " << typ1 << endl;
-	throw runtime_error("Invalid type specification in LJForceCompute::setParams");
-	}
+	if (typ >= m_pdata->getNTypes())
+		{
+		cerr << "Trying to set LJ params for a non existant type! " << typ << endl;
+		throw runtime_error("Invalid type specification in LJForceCompute::setParams");
+		}
 	
-	// set lj1 in both symmetric positions in the matrix	
-	m_lj1[typ1] = lj1;
-	m_lj2[typ1] = lj2;
+	// set the parameters
+	m_lj1[typ] = lj1;
+	m_lj2[typ] = lj2;
 	}
 
-void LJWallForceCompute::computeForces(unsigned int timestep){
-	
+/*! \param r_cut New cuttoff to specify
+*/
+void LJWallForceCompute::setRCut(Scalar r_cut)
+	{
+	m_r_cut = r_cut;
+	}
+
+void LJWallForceCompute::computeForces(unsigned int timestep)
+	{
 	// get numparticle var for easier access
 	unsigned int numParticles = m_pdata->getN();
-	unsigned int numWalls = m_pdata->getWalls().getWallArrays().numWalls;
+	boost::shared_ptr<WallData> wall_data = m_pdata->getWallData();
+	unsigned int numWalls = wall_data->getNumWalls();
 
-	// allocate space for forces to be stored
-	//zero forces because most particles won't be close to a wall
-	memset(m_fx, 0, sizeof(Scalar) * numParticles);
-	memset(m_fy, 0, sizeof(Scalar) * numParticles);
-	memset(m_fz, 0, sizeof(Scalar) * numParticles);
-
-	//Initialize some force variables to be used as temporary
-	//storage in each iteration
-	Scalar fx, fy, fz;
-
+	// precalculate r_cut squqred
 	Scalar r_cut_sq = m_r_cut * m_r_cut;
 
-	const ParticleDataArraysConst &particles=  m_pdata->acquireReadOnly();
-	
-	BoxDim box = m_pdata->getBox();
-
 	// precalculate box lengths for use in the periodic imaging
+	BoxDim box = m_pdata->getBox();
 	Scalar Lx = box.xhi - box.xlo;
 	Scalar Ly = box.yhi - box.ylo;
 	Scalar Lz = box.zhi - box.zlo;
 
-	  //here we go, main calc loop
-	 // loop over every particle in the sim, 
-	//calculate forces and store them int m_fx,y,z
-	for (unsigned int i = 0; i < numParticles; i++){
+	// access the particle data
+	const ParticleDataArraysConst &particles=  m_pdata->acquireReadOnly();
+	
+	// here we go, main calc loop
+	// loop over every particle in the sim, 
+	// calculate forces and store them int m_fx,y,z
+	for (unsigned int i = 0; i < numParticles; i++)
+		{
+		// Initialize some force variables to be used as temporary
+		// storage in each iteration, initialized to 0 from which the force will be computed
+		Scalar fx = 0.0, fy = 0.0, fz = 0.0;
 
-		//Grab particle data from all the arrays for this loop
+		// Grab particle data from all the arrays for this loop
 		Scalar px = particles.x[i];
 		Scalar py = particles.y[i];
 		Scalar pz = particles.z[i];
-		unsigned int typei = particles.type[i];
+		unsigned int type = particles.type[i];
 
-
-		  //for each wall that exists in the simulation
-		 //calculate the force that it exerts on a particle
-		//the sum of the forces from each wall is the resulting force
-		for (unsigned int j = 0; j < numWalls; j++){
-			
-			// Grab wall data for the current wall
-			Scalar nx = m_pdata->getWalls().getWallArrays().nx[j];
-			Scalar ny = m_pdata->getWalls().getWallArrays().ny[j];
-			Scalar nz = m_pdata->getWalls().getWallArrays().nz[j];
-			Scalar ox = m_pdata->getWalls().getWallArrays().ox[j];
-			Scalar oy = m_pdata->getWalls().getWallArrays().oy[j];
-			Scalar oz = m_pdata->getWalls().getWallArrays().oz[j];
+		// for each wall that exists in the simulation
+		// calculate the force that it exerts on a particle
+		// the sum of the forces from each wall is the resulting force
+		for (unsigned int cur_wall_idx = 0; cur_wall_idx < numWalls; cur_wall_idx++)
+			{
+			const Wall& cur_wall = wall_data->getWall(cur_wall_idx);
 		
 			// calculate distance from point to plane
 			// http://mathworld.wolfram.com/Point-PlaneDistance.html
-			Scalar distFromWall = nx * (px - ox) + ny * (py - oy) + nz * (pz - oz);
+			Scalar distFromWall = cur_wall.normal_x * (px - cur_wall.origin_x) 
+								+ cur_wall.normal_y * (py - cur_wall.origin_y) 
+								+ cur_wall.normal_z * (pz - cur_wall.origin_z);
 
-			// access the lj1 and lj2 rows for the current particle type
-			Scalar * __restrict__ lj1_row = &(m_lj1[typei*m_ntypes]);
-			Scalar * __restrict__ lj2_row = &(m_lj2[typei*m_ntypes]);
-			
 			// use the distance to create a vector pointing from the plane to the particle
-			Scalar dx = nx * distFromWall;
-			Scalar dy = ny * distFromWall;
-			Scalar dz = nz * distFromWall;
+			Scalar dx = cur_wall.normal_x * distFromWall;
+			Scalar dy = cur_wall.normal_y * distFromWall;
+			Scalar dz = cur_wall.normal_z * distFromWall;
 			
 			// continue with the evaluation of the LJ force copied from LJForceCompute
 			// apply periodic boundary conditions
@@ -194,28 +197,34 @@ void LJWallForceCompute::computeForces(unsigned int timestep){
 				// compute the force magnitude/r
 				Scalar r2inv = Scalar(1.0)/rsq;
 				Scalar r6inv = r2inv * r2inv * r2inv;
-				Scalar forcelj = r6inv * (lj1_row[typei]*r6inv - lj2_row[typei]);
+				Scalar forcelj = r6inv * (m_lj1[type]*r6inv - m_lj2[type]);
 				Scalar fforce = forcelj * r2inv;
 			                                
-				// calculate the force vector
-				fx = dx*fforce;
-				fy = dy*fforce;
-				fz = dz*fforce;
+				// accumulate the force vector
+				fx += dx*fforce;
+				fy += dy*fforce;
+				fz += dz*fforce;
 				}
-			else
-				fx = fy = fz = Scalar(0.0);
-
-			m_fx[i] += fx;
-			m_fy[i] += fy;
-			m_fz[i] += fz;
+			}
+		
+		m_fx[i] = fx;
+		m_fy[i] = fy;
+		m_fz[i] = fz;
 		}
-
-	}
 	
 	#ifdef USE_CUDA
 	m_data_location = cpu;
 	#endif
 	m_pdata->release();
-}
+	}
 
+#ifdef USE_PYTHON
+void export_LJWallForceCompute()
+	{
+	class_<LJWallForceCompute, boost::shared_ptr<LJWallForceCompute>, bases<ForceCompute>, boost::noncopyable >
+		("LJWallForceCompute", init< boost::shared_ptr<ParticleData>, Scalar >())
+		.def("setParams", &LJWallForceCompute::setParams)
+		;
+	}
+#endif
 

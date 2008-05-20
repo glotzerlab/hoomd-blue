@@ -56,6 +56,7 @@ using namespace boost::python;
 #endif
 
 #include "Initializers.h"
+#include "WallData.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -249,9 +250,11 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
 /*! \param N number of particles to create
 	\param phi_p Packing fraction of particles in the box
 	\param min_dist Minimum distance two particles will be placed apart
+	\param wall_buffer Distance from the edge of the box to place the walls
 	\note assumes particles have a diameter of 1
 */
-RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist) : RandomInitializer(N, phi_p, min_dist)
+RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer) 
+	: RandomInitializer(N, phi_p, min_dist), m_wall_buffer(wall_buffer)
 	{
 	// sanity checks
 	if (N == 0)
@@ -262,21 +265,45 @@ RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar ph
 		throw runtime_error("RandomInitializer: min_dist <= 0 doesn't make sense");
 	
 	Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
-	m_box = BoxDim(L);
-	m_walls = WallData(m_box);
+	// artificially shrink the box dimensions by 10% so that the super class doesn't put
+	// particles too close to the walls
+	m_box = BoxDim(L*0.9);
+	// save the real box for specifying the walls
+	m_real_box = BoxDim(L);
 	}
 	
-RandomInitializerWithWalls::~RandomInitializerWithWalls() {
-	
-
-}
-
-
-WallData RandomInitializerWithWalls::getWalls() const
+RandomInitializerWithWalls::~RandomInitializerWithWalls() 
 	{
-	return m_walls;
 	}
 
+//! Returns the box the particles will sit in
+BoxDim RandomInitializerWithWalls::getBox() const
+	{
+	// the real box dimensions we need to return need to be increased by m_wall_buffer*2
+	Scalar L = (m_real_box.xhi - m_real_box.xlo) + m_wall_buffer*2;
+	return BoxDim(L);
+	}
+
+/*! \param wall_data Shared pointer to the WallData to initialize
+	Walls are created on all 6 sides of the box, spaced in from the edge by a distance of \a wall_buffer
+	specified in the constructor.
+*/
+void RandomInitializerWithWalls::initWallData(boost::shared_ptr<WallData> wall_data) const
+	{
+	// add all walls
+	// left
+	wall_data->addWall(Wall(m_real_box.xlo, 0.0, 0.0, 1.0, 0.0, 0.0));
+	// right
+	wall_data->addWall(Wall(m_real_box.xhi, 0.0, 0.0, -1.0, 0.0, 0.0));
+	// bottom
+	wall_data->addWall(Wall(0.0, m_real_box.ylo, 0.0, 0.0, 1.0, 0.0));
+	// top
+	wall_data->addWall(Wall(0.0, m_real_box.yhi, 0.0, 0.0, -1.0, 0.0));
+	// front
+	wall_data->addWall(Wall(0.0, 0.0, m_real_box.zlo, 0.0, 0.0, 1.0));
+	// back
+	wall_data->addWall(Wall(0.0, 0.0, m_real_box.zhi, 0.0, 0.0, -1.0));
+	}
 
 
 #ifdef USE_PYTHON
@@ -296,7 +323,7 @@ void export_RandomInitializer()
 
 void export_RandomInitializerWithWalls()
 	{
-	class_< RandomInitializerWithWalls, bases<ParticleDataInitializer> >("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar>())
+	class_< RandomInitializerWithWalls, bases<ParticleDataInitializer> >("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar, Scalar>())
 		;
 	// no need to .def methods, they are all inherited
 	}

@@ -46,29 +46,36 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __LJWallForceCompute__
 #define __LJWallForceCompute__
 
+//! Computes an LJ-type force between each particle and each wall in the simulation
+/*! 
+	\ingroup computes
+*/
 class LJWallForceCompute :	public ForceCompute
 	{
 	public:
+		//! Constructor
 		LJWallForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar r_cut);
-
-		~LJWallForceCompute(void);
-
-		virtual void setParams(unsigned int typ1, Scalar lj1, Scalar lj2);
-
-		virtual void computeForces(unsigned int timestep);
+		//! Destructor
+		~LJWallForceCompute();
+		//! Sets force parameters
+		virtual void setParams(unsigned int typ, Scalar lj1, Scalar lj2);
+		//! Sets the cuttoff
+		void setRCut(Scalar r_cut);
 
 	protected:
-		Scalar m_r_cut;	//!< Cuttoff distance beyond which the force is set to 0
-		unsigned int m_ntypes;	//!< Store the width and height of lj1 and lj2 here
+		//! Computes forces
+		virtual void computeForces(unsigned int timestep);
 
-		// this memory layout is shamelessly stolen from lammps
-		// except that lammps also stores all of the parameters epsilon, sigma, and alpha
-		// it needs to in order to do mixing of these values. My code architecture is different.
-		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
-		// level concepts like mixing. That is for the caller to handle. So, I only store 
-		// lj1 and lj2 here
+		Scalar m_r_cut;			//!< Cuttoff distance beyond which the force is set to 0
+
 		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
 	};
+
+#ifdef USE_PYTHON
+//! Exports the LJWallForceCompute class to python
+void export_LJWallForceCompute();
+#endif
+
 
 #endif

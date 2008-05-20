@@ -64,6 +64,9 @@ class BinnedNeighborListGPU : public NeighborList
 		
 		//! Prints statistics on the neighbor list
 		virtual void printStats();
+		
+		//! Sets the block size of the calculation on the GPU
+		void setBlockSize(int block_size) { m_block_size = block_size; }
 
 	protected:
 		std::vector< unsigned int > m_bin_sizes;	//!< Stores the size of each bin
@@ -80,6 +83,8 @@ class BinnedNeighborListGPU : public NeighborList
 		Scalar m_avgNmax; //!< Average number of particles per bin
 
 		gpu_bin_data m_gpu_bin_data;	//!< The binned particle data
+		int m_block_size;
+		
 
 		//! Puts the particles into their bins
 		//void updateBinsSorted();

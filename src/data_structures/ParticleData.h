@@ -47,6 +47,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __PARTICLE_DATA_H__
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
+#include <boost/function.hpp>
 
 // The requirements state that we need to handle both single and double precision through
 // a define
@@ -87,6 +89,9 @@ using namespace std;
 
 /*! @}
 */
+
+// Forward declaration of WallData
+class WallData;
 
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
@@ -148,6 +153,7 @@ struct ParticleDataArrays
 	Scalar * __restrict__ ax;	//!< array of x-component of acceleration
 	Scalar * __restrict__ ay;	//!< array of y-component of acceleration
 	Scalar * __restrict__ az;	//!< array of z-component of acceleration
+	Scalar * __restrict__ charge;	//!< array of charges
 	
 	unsigned int * __restrict__ type; //!< Type index of each particle
 	unsigned int * __restrict__ rtag; //!< Reverse-lookup tag.
@@ -174,84 +180,13 @@ struct ParticleDataArraysConst
 	Scalar const * __restrict__ ax;	//!< array of x-component of acceleration
 	Scalar const * __restrict__ ay;	//!< array of y-component of acceleration
 	Scalar const * __restrict__ az;	//!< array of z-component of acceleration
+	Scalar const * __restrict__ charge;	//!< array of charges
 	
 	unsigned int const * __restrict__ type; //!< Type index of each particle
 	unsigned int const * __restrict__ rtag; //!< Reverse-lookup tag.
 	unsigned int const * __restrict__ tag;  //!< Forward-lookup tag. 
-	};	
+	};
 	
-
-  //////////////////////////////////////////////////////////////////////
- //////////////////////////////////////////////////////////////////////
-// WallStuff starts here
-
-//! similar to ParticleData, only for walls
-struct WallDataArrays {
-
-	//!The number of walls contained in the struct
-	unsigned int numWalls;
-	
-	//! The x coordinate for the origin of the planes
-	vector<Scalar> ox;
-	//! The y coordinate for the origin of the planes
-	vector<Scalar> oy;
-	//! The z coordinate for the origin of the planes
-	vector<Scalar> oz;
-				
-	//! The x direction for the normal of the planes
-	vector<Scalar> nx;
-	//! The y direction for the normal of the planes
-	vector<Scalar> ny;
-	//! The z direction for the normal of the planes
-	vector<Scalar> nz;
-				
-	//! constructs useless walls
-	WallDataArrays();
-				
-	//! constructs walls along the boundries of a Box
-	WallDataArrays(BoxDim dim, Scalar offset);
-};
-
-
-//! Class for storing information about wall forces in simulation
-/*!
-
-
-*/
-class WallData {
-
-	public:
-		//! Creates useless walls
-		WallData() : m_walls() {}
-		//! Creates walls surrounding a box
-		/*!	Walls are created on all six sides of the box.
-			The offset parameter moves the walls into the 
-			box to prevent edge cases from causing headaches.
-
-			The default of 0.3 was chosen because it is half the size of a blue molecule
-			in a simulation.
-
-			\ingroup data_structs
-		*/
-		WallData(BoxDim box, Scalar offset = 0.3) : m_walls(box, offset) {}
-		//! Destructor, yay!
-		~WallData() {}
-		//! Get the struct containing all of the data about the walls
-		WallDataArrays getWallArrays() { return m_walls; }
-		//! Returns the number of walls contained in the walldata
-		unsigned int getNumWalls() { return m_walls.numWalls; }
-		//! Adds a wall to a simulation.
-		/*!	This is mostly for debugging purposes
-		*/
-		void addWall(Scalar ox_p, Scalar oy_p, Scalar oz_p, Scalar nx_p, Scalar ny_p, Scalar nz_p);
-	private:
-		WallDataArrays m_walls;
-};
-
-  //End Wall stuff
- //////////////////////////////////////
-//////////////////////////////////////
-
 //! Abstract interface for initializing a ParticleData
 /*! A ParticleDataInitializer should only be used with the appropriate constructor
 	of ParticleData(). That constructure calls the methods of this class to determine
@@ -283,7 +218,11 @@ class ParticleDataInitializer
 		//! Initializes the particle data arrays
 		virtual void initArrays(const ParticleDataArrays &pdata) const = 0;
 
-		virtual WallData getWalls() const { return WallData(); }
+		//! Initialize the simulation walls
+		/*! \param wall_data Shared pointer to the WallData to initialize
+			This base class defines an empty method, as walls are optional
+		*/
+		virtual void initWallData(boost::shared_ptr<WallData> wall_data) const {}
 	};
 	
 //! Manages all of the data arrays for the particles
@@ -332,9 +271,8 @@ class ParticleData
 		const BoxDim& getBox() const;
 		//! Set the simulation box
 		void setBox(const BoxDim &box);
-		//! Set the simulation walls
-		void setWalls(WallData walls_p) { m_wallData = walls_p; }
-		WallData getWalls() { return m_wallData; }
+		//! Access the wall data defined for the simulation box
+		boost::shared_ptr<WallData> getWallData() { return m_wallData; }
 		
 		//! Get the number of particles
 		/*! \return Number of particles in the box
@@ -378,23 +316,15 @@ class ParticleData
 		*/		 			
 		void setProfiler(boost::shared_ptr<Profiler> prof) { m_prof=prof; }
 	
-		//! Gets the last time step particles were resorted
-		/*! \returns Last time step when the particles were resorted
-		 */ 
-		unsigned int getLastSortedTstep() const
-			{ 
-			return m_last_sorted_tstep; 
-			}
-			
-		//! Sets the last sorted time step
-		/*! \param t Time step to set
-		 	Anything that rearranges the order of the particles in the arrays 
-		 	<em>must</em> call this method.
-		 	\note This API is likely to removed before too long and replaced with
-		 		signals and slots. 
-		 */
-		void setLastSortedTstep(unsigned int t) { m_last_sorted_tstep = t; }
-		
+		//! Connects a function to be called every time the particles are rearranged in memory
+		boost::signals::connection connectParticleSort(const boost::function<void ()> &func);
+
+		//! Notify listeners that the particles have been rearranged in memory
+		void notifyParticleSort();
+
+		//! Connects a function to be called every time the box size is changed
+		boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
+
 	protected:
 		BoxDim m_box;		//!< The simulation box
 		void *m_data;		//!< Raw data allocated
@@ -403,13 +333,14 @@ class ParticleData
 		
 		bool m_acquired;		//!< Flag to track if data has been acquired
 		
-		unsigned int m_last_sorted_tstep;	//!< Tracks the last timestep this particle data was sorted
+		boost::signal<void ()> m_sort_signal;	//!< Signal that is triggered when particles are sorted in memory
+		boost::signal<void ()> m_boxchange_signal;	//!< Signal that is triggered when the box size changes
 		
 		ParticleDataArrays m_arrays;	//!< Pointers into m_data for particle access
 		ParticleDataArraysConst m_arrays_const;	//!< Pointers into m_data for const particle access
 		boost::shared_ptr<Profiler> m_prof;		//!< Pointer to the profiler. NULL if there is no profiler.
 		
-		WallData m_wallData;	//!< Data about the walls in a simulation
+		boost::shared_ptr<WallData> m_wallData;	//!< Walls specified for the simulation box
 		
 		#ifdef USE_CUDA
 		

@@ -40,7 +40,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
 #include <vector>
+
 #include "Compute.h"
 
 //#incldue <string.h>
@@ -102,8 +104,8 @@ class NeighborList : public Compute
 		//! Simple enum for the storage modes
 		enum storageMode
 			{
-			half,
-			full
+			half,	//!< Only neighbors i,j are stored where i < j
+			full	//!< All neighbors are stored
 			};
 
 		static const unsigned int EXCLUDE_EMPTY = 0xffffffff; //!< Signifies this element of the exclude list is empty
@@ -176,6 +178,8 @@ class NeighborList : public Compute
 
 		int64_t m_updates;			//!< Number of particles updated (non-forced)
 		int64_t m_forced_updates;	//!< Number of forced particle updates
+
+		boost::signals::connection m_sort_connection;	//!< Connection to the ParticleData sort signal
 		
 		Scalar *m_last_x;		//!< x coordinates of last updated particle positions
 		Scalar *m_last_y;		//!< y coordinates of last updated particle positions
@@ -214,8 +218,6 @@ class NeighborList : public Compute
 		//! Performs the computations for the simple neighbor list algorithm
 		virtual void computeSimple();
 
-		//! Temporary helper function to test if we need a forced update because of a sorted pdata
-		void checkForceUpdate();
 	};
 	
 #ifdef USE_PYTHON
@@ -223,24 +225,6 @@ class NeighborList : public Compute
 void export_NeighborList();
 #endif
 
-#ifdef USE_SSE
-#ifdef __SSE__
-//! Provides an SSE optimized NeighborList
-/*! Neighbors are still computed using an O(N^2) algorithm, but the comparisons go much faster 
-	on x86 and amd64 hardware thanks to the use of SSE instructions.
-*/
-class NeighborListSSE : public NeighborList
-	{
-	public:
-		//! Constructs the compute
-		NeighborListSSE(ParticleData *pdata, Scalar r_cut, Scalar r_buff);
-
-	protected:
-		//! Compute the neighbor list using SSE instructions
-		virtual void computeSimple();
-	};
-#endif
 #endif
 
-#endif
 
