@@ -45,7 +45,7 @@ sys = System(pdata, 0);
 sys.addCompute(nlist, "nlist");
 sys.addCompute(fc, "fc");
 sys.setIntegrator(nvt);
-sys.addUpdater(sorter, "sorter", 1000);
+sys.addUpdater(sorter, "sorter", 500);
 
 # warm up
 sys.run(20);
