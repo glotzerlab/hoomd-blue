@@ -50,7 +50,7 @@ Table of contents:
 	- \ref sec_software_req
 	- \ref sec_building_windows
 		- \ref page_software_req_install_windows
-	- \ref sec_building_linux
+	- \ref sec_build_linux
 		- \ref page_software_req_install_linux	
 	- \ref sec_building_mac
 		- \ref page_software_req_install_mac
@@ -210,7 +210,7 @@ Click for detailed instructions: \subpage page_software_req_install_windows
  - Option 2) Get the latest development source with subversion 
 This command (assuming you've installed the command line svn tools)
 \code
- $ svn co svn+ssh://username@photon.hopto.org/hoomd/trunk hoomd
+ $ svn co https://svn2.assembla.com/svn/hoomd/trunk hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
 the current development version of the source code. You can perform the same opteration
@@ -264,7 +264,8 @@ In the left tab, select <b>Projects And Solutions</b>-><b>Build and Run</b>. Set
 <b>maximum number of parallel project builds</b> to be the total number of CPU cores in your system.
 There is more information at http://msdn2.microsoft.com/en-us/library/y0xettzf.aspx .
 
-\section sec_building_linux Building on Linux
+\section sec_build_linux Building on Linux
+
 <b>1. Install prerequisite software</b><br>
 Click for detailed instructions: \subpage page_software_req_install_linux
 
@@ -273,7 +274,7 @@ Click for detailed instructions: \subpage page_software_req_install_linux
  - Option 2) Get the latest development source with subversion 
 This command
 \code
- $ svn co svn+ssh://username@photon.hopto.org/hoomd/trunk hoomd
+ $ svn co https://svn2.assembla.com/svn/hoomd/trunk hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
 the current development version of the source code.
@@ -326,7 +327,7 @@ Click for detailed instructions: \subpage page_software_req_install_mac
  - Option 2) Get the latest development source with subversion 
 This command
 \code
- $ svn co svn+ssh://username@photon.hopto.org/hoomd/trunk hoomd
+ $ svn https://svn2.assembla.com/svn/hoomd/trunk hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
 the current development version of the source code.
