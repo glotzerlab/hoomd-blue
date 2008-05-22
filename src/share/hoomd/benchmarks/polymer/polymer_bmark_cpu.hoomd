@@ -53,13 +53,13 @@ sys.setIntegrator(nvt);
 sys.addUpdater(sorter, "sorter", 500);
 
 # warm up
-sys.run(20);
+sys.run(2000);
 
 # quick bmark
 sys.enableProfiler(True);
-sys.run(20);
+sys.run(2000);
 sys.enableProfiler(False);
 
-sys.run(500);
+sys.run(50000);
 
 raw_input("Benchmark complete: press enter to exit");
