@@ -104,10 +104,18 @@ ENDIF(NOT CUDA_BUILD_TYPE)
 # Emulation if the card isn't present.
 IF (CUDA_BUILD_TYPE MATCHES "Emulation")
   # Emulation.
-  SET(nvcc_flags --device-emulation -D_DEVICEEMU -g)
+  if(WIN32)
+	SET(nvcc_flags --device-emulation -D_DEVICEEMU -g -ccbin "C:\\Program Files (x86)\\Microsoft Visual Studio 8\\VC\\bin")
+  else(WIN32)
+    SET(nvcc_flags --device-emulation -D_DEVICEEMU -g)
+  endif(WIN32)
 ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
   # Device present.
-  SET(nvcc_flags "")
+  if(WIN32)
+     SET(nvcc_flags -ccbin "C:\\Program Files (x86)\\Microsoft Visual Studio 8\\VC\\bin")
+  else(WIN32)
+     SET(nvcc_flags "")
+  endif(WIN32)
 ENDIF(CUDA_BUILD_TYPE MATCHES "Emulation")
 
 SET(CUDA_BUILD_CUBIN TRUE CACHE BOOL "Generate and parse .cubin files in Device mode.")

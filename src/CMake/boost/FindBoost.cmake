@@ -159,12 +159,14 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
     if (MSVC80)
       if (CMAKE_BUILD_TYPE STREQUAL Debug)
         set(BOOST_LIBRARIES_SUFFIXES
+		  -vc80-mt-gd-1_35
           -vc80-mt-gd-1_34_1
           -vc80-mt-gd-1_34
           -vc80-mt-gd-1_33_1
         )
       else (CMAKE_BUILD_TYPE STREQUAL Debug)
         set(BOOST_LIBRARIES_SUFFIXES
+		  -vc80-mt-gd-1_35
           -vc80-mt-1_34_1
           -vc80-mt-1_34
           -vc80-mt-1_33_1
