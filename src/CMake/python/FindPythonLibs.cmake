@@ -54,7 +54,7 @@ FIND_LIBRARY(PYTHON_LIBRARY
     [HKEY_LOCAL_MACHINE\\SOFTWARE\\Python\\PythonCore\\1.5\\InstallPath]/libs
 
   PATH_SUFFIXES
-  	""
+    ""
     python2.5/config
     python2.4/config
     python2.3/config
@@ -97,6 +97,7 @@ FIND_PATH(PYTHON_INCLUDE_PATH
     [HKEY_LOCAL_MACHINE\\SOFTWARE\\Python\\PythonCore\\1.5\\InstallPath]/include
 
   PATH_SUFFIXES
+    ""
     python2.5
     python2.4
     python2.3
