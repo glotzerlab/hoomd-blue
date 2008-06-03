@@ -516,7 +516,7 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 	pdata->release();
 
 	// check the walls
-	BOOST_REQUIRE_EQUAL(pdata->getWallData()->getNumWalls(), 2);
+	BOOST_REQUIRE_EQUAL(pdata->getWallData()->getNumWalls(), (unsigned int)2);
 	Wall wall1 = pdata->getWallData()->getWall(0);
 	MY_BOOST_CHECK_CLOSE(wall1.origin_x, 1.0, tol);
 	MY_BOOST_CHECK_CLOSE(wall1.origin_y, 2.0, tol);

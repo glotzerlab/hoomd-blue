@@ -267,7 +267,7 @@ RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar ph
 	Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
 	// artificially shrink the box dimensions by 10% so that the super class doesn't put
 	// particles too close to the walls
-	m_box = BoxDim(L*0.9);
+	m_box = BoxDim(L*Scalar(0.9));
 	// save the real box for specifying the walls
 	m_real_box = BoxDim(L);
 	}

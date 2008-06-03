@@ -94,14 +94,6 @@ struct gpu_bondtable_array
 	unsigned int pitch;
 	};
 
-//! A larger strucutre that stores both the gpu data and the cpu mirror
-struct gpu_bondtable_data
-	{
-	gpu_bondtable_array d_array;
-	gpu_bondtable_array h_array;
-	unsigned int N;
-	};
-
 ///////////////////////////// LJ params
 
 //! Allocate ljparams
@@ -111,19 +103,12 @@ void gpu_free_ljparam_data(gpu_ljparam_data *ljparams);
 //! Make the parameters active on the device
 cudaError_t gpu_select_ljparam_data(gpu_ljparam_data *ljparams, bool force);
 //! Perform the lj force calculation
-cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_data *nlist, float r_cutsq, int M);
+cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_cutsq, int M);
 
 //////////////////////////// Bond table stuff
 
-//! Allocate memory
-void gpu_alloc_bondtable_data(gpu_bondtable_data *blist, unsigned int N, unsigned int height);
-//! Free memory
-void gpu_free_bondtable_data(gpu_bondtable_data *blist);
-//! Copy data to the device
-void gpu_copy_bontable_data_htod(gpu_bondtable_data *blist);
 //! Sum bond forces
-cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_data *blist, float K, float r_0, int M);
-
+cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float K, float r_0, int block_size);
 }
 
 #endif

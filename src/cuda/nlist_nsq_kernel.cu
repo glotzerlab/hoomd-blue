@@ -40,8 +40,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 #include "gpu_nlist.h"
 #include "gpu_pdata.h"
-#include "gpu_utils.h"
 #include <stdio.h>
+
+#ifdef WIN32
+#include <cassert>
+#else
+#include <assert.h>
+#endif
 
 /*! \file nlist_nsq_kernel.cu
 	\brief Contains kernel code that implements the O(N^2) kernel on the GPU
@@ -147,19 +152,24 @@ extern "C" __global__ void generateNlistNSQ(gpu_pdata_arrays pdata, gpu_nlist_ar
 	}
 
 // driver function for the kernel
-void gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_data *nlist, float r_maxsq)
-    {
-    assert(pdata);
-    assert(nlist);
+cudaError_t gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_maxsq)
+	{
+	assert(pdata);
+	assert(nlist);
+	
+	// setup the grid to run the kernel
+	int M = NLIST_BLOCK_SIZE;
+	dim3 grid( (pdata->N/M) + 1, 1, 1);
+	dim3 threads(M, 1, 1);
+	
+	// run the kernel
+	generateNlistNSQ<<< grid, threads >>>(*pdata, *nlist, r_maxsq, *box);
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif	
+	}
 
-    // setup the grid to run the kernel
-    int M = NLIST_BLOCK_SIZE;
-    dim3 grid( (pdata->N/M) + 1, 1, 1);
-    dim3 threads(M, 1, 1);
-
-    // run the kernel
-    generateNlistNSQ<<< grid, threads >>>(*pdata, nlist->d_array, r_maxsq, *box);
-    CUT_CHECK_ERROR("Kernel execution failed");
-    }
-    
 // vim:syntax=cpp

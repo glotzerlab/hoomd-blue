@@ -158,7 +158,7 @@ void BondForceCompute::computeForces(unsigned int timestep)
 	memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());	
 	
 	// for each of the bonds
-	const unsigned int size = m_bonds.size(); 
+	const unsigned int size = (unsigned int)m_bonds.size(); 
 	for (unsigned int i = 0; i < size; i++)
 		{
 		// lookup the tag of each of the particles participating in the bond

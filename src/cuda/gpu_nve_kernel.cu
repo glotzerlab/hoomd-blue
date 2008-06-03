@@ -40,7 +40,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "gpu_pdata.h"
-#include "gpu_utils.h"
 #include "gpu_updaters.h"
 #include "gpu_integrator.h"
 
@@ -55,6 +54,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file gpu_nve_kernel.cu
 	\brief Contains kernel code for the NVE integrator on the GPU
 */
+
+//! The texture for reading the pdata pos array
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
+texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 
 extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float deltaT, gpu_boxsize box)
 	{
@@ -101,7 +105,7 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		}	
 	}
 
-void nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT)
+cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT)
 	{
     assert(pdata);
 
@@ -110,9 +114,28 @@ void nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT)
     dim3 grid( (pdata->N/M) + 1, 1, 1);
     dim3 threads(M, 1, 1);
 
+	// bind the textures
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
+	error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
+	error = cudaBindTexture(0, pdata_accel_tex, pdata->accel, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
     // run the kernel
     nve_pre_step_kernel<<< grid, threads >>>(*pdata, deltaT, *box);
-    CUT_CHECK_ERROR("Kernel execution failed");
+	
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif
 	}
 
 
@@ -137,7 +160,7 @@ extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **forc
 		}
 	}
 	
-void nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT)
+cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT)
 	{
     assert(pdata);
 
@@ -146,7 +169,18 @@ void nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces,
     dim3 grid( (pdata->N/M) + 1, 1, 1);
     dim3 threads(M, 1, 1);
 
+	// bind the texture
+	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
     // run the kernel
     nve_step_kernel<<< grid, threads >>>(*pdata, force_data_ptrs, num_forces, deltaT);
-    CUT_CHECK_ERROR("Kernel execution failed");
+
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif
 	}

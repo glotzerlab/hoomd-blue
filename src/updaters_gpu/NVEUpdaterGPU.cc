@@ -42,6 +42,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NVEUpdaterGPU.h"
 #include "gpu_updaters.h"
 
+#include <boost/bind.hpp>
+using namespace boost;
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -54,6 +57,13 @@ using namespace std;
 */
 NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : NVEUpdater(pdata, deltaT)
 	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// at least one GPU is needed
+	if (exec_conf.gpu.size() == 0)
+		{
+		cout << "Creating a NVEUpdaterGPU with no GPU in the execution configuration" << endl;
+		throw std::runtime_error("Error initializing NVEUpdaterGPU");
+		}
 	}
 
 /*! \param timestep Current time step of the simulation
@@ -81,11 +91,13 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	if (m_prof)
 		m_prof->push("Half-step 1");
 		
-	nve_pre_step(&d_pdata, &box, m_deltaT);
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+		
+	exec_conf.gpu[0]->call(bind(nve_pre_step, &d_pdata, &box, m_deltaT));
 	
 	if (m_prof)
 		{
-		cudaThreadSynchronize();
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(m_pdata->getN() * 36, m_pdata->getN() * 16 * 5);
 		}
 	
@@ -108,13 +120,13 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	nve_step(&d_pdata, m_d_force_data_ptrs, m_forces.size(), m_deltaT);
+	exec_conf.gpu[0]->call(bind(nve_step, &d_pdata, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT));
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
 	if (m_prof)
 		{
-		cudaThreadSynchronize();
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(m_pdata->getN() * 9, m_pdata->getN() * 16 * (3 + m_forces.size()));	
 		m_prof->pop();
 		}

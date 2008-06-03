@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 )
+#endif
+
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include <vector>
@@ -104,3 +109,8 @@ void export_SFCPackUpdater();
 #endif
 		
 #endif
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif
+

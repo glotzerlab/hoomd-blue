@@ -402,7 +402,7 @@ void System::run(unsigned int nsteps)
 	m_last_status_tstep = m_cur_tstep;
 
 	// calculate averate TPS
-	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime()) * 1e9;
+	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime()) * Scalar(1e9);
 	cout << "Average TPS: " << TPS << endl;
 		
 	// write out the profile data

@@ -1,3 +1,4 @@
+
 /*
 Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 Source Software License
@@ -39,26 +40,28 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-/*! \ingroup hoomd_lib
-	@{
-*/
+#define BLOCK_SIZE 512
 
-/*! \defgroup cuda_code Low level CUDA code
-	\brief Extremely low level code that interfaces with the GPU
-	\details See \ref page_dev_info for more information
-*/
+//! Goofy test kernel that just wastes time: it is for benchmarking GPUWorker
+extern "C" __global__ void kernel(int *data)
+	{
+	int idx = threadIdx.x + blockIdx.x * blockDim.x;
+	
+	int in = data[idx];
+	for (int i = 0; i < 1000; i++)
+		in *= 2;
+	data[idx] = in;
+	}
 
-/*! @}
-*/
+extern "C" cudaError_t kernel_caller(int *data, int N)
+	{
+	kernel<<<N/BLOCK_SIZE, BLOCK_SIZE>>>(data);
 
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif
+	}
 
-#include "gpu_forces.cu"
-#include "gpu_nlist_data.cu"
-#include "gpu_pdata.cu"
-#include "nlist_nsq_kernel.cu"
-#include "gpu_nve_kernel.cu"
-#include "nlist_binned_kernel.cu"
-#include "gpu_nvt_kernel.cu"
-#include "bondforce_kernel.cu"
-#include "gpu_integrator.cu"
-#include "ljforcesum_kernel.cu"

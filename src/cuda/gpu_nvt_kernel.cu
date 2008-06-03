@@ -40,8 +40,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "gpu_pdata.h"
-#include "gpu_utils.h"
 #include "gpu_updaters.h"
+#include "gpu_integrator.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -50,6 +50,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <stdio.h>
+
+//! The texture for reading the pdata pos array
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
+texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 
 extern __shared__ float nvt_sdata[];
 
@@ -141,7 +146,7 @@ extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_d
 		}
 	}
 
-void nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float deltaT)
+cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float deltaT)
 	{
     assert(pdata);
 	assert(d_nvt_data);
@@ -151,9 +156,27 @@ void nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt
     dim3 grid( d_nvt_data->NBlocks, 1, 1);
     dim3 threads(M, 1, 1);
 
-    // run the kernel
+	// bind the textures
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
+	error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
+	error = cudaBindTexture(0, pdata_accel_tex, pdata->accel, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+    
+	// run the kernel
     nvt_pre_step_kernel<<< grid, threads, M * sizeof(float) >>>(*pdata, *d_nvt_data, deltaT, *box);
-    CUT_CHECK_ERROR("Kernel execution failed");
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif
 	}
 
 
@@ -192,7 +215,7 @@ extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data 
 	}
 
 
-void nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float deltaT, float Q, float T)
+cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float deltaT, float Q, float T)
 	{
     assert(pdata);
 	assert(d_nvt_data);
@@ -202,14 +225,25 @@ void nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_
     dim3 grid( d_nvt_data->NBlocks, 1, 1);
     dim3 threads(M, 1, 1);
 
+	// bind the texture
+	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
     // run the kernel
     nvt_step_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_nvt_data, force_data_ptrs, num_forces, deltaT, Q, T, 3.0f * pdata->N);
-    CUT_CHECK_ERROR("Kernel execution failed");
 	
 	// swap the double buffered Xi
 	float *tmp = d_nvt_data->Xi;
 	d_nvt_data->Xi = d_nvt_data->Xi_dbl;
 	d_nvt_data->Xi_dbl = tmp;
+	
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif	
 	}
 	
 
@@ -246,7 +280,7 @@ extern "C" __global__ void nvt_reduce_ksum_kernel(gpu_nvt_data d_nvt_data)
 		*d_nvt_data.Ksum = Ksum;
 	}
 	
-void nvt_reduce_ksum(gpu_nvt_data *d_nvt_data)
+cudaError_t nvt_reduce_ksum(gpu_nvt_data *d_nvt_data)
 	{
 	assert(d_nvt_data);
 
@@ -257,41 +291,13 @@ void nvt_reduce_ksum(gpu_nvt_data *d_nvt_data)
 
     // run the kernel
     nvt_reduce_ksum_kernel<<< grid, threads, M*sizeof(float) >>>(*d_nvt_data);
-    CUT_CHECK_ERROR("Kernel execution failed");
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif
 	}	
 
-
-/*! \todo check that block_size is a power of 2
-	\todo allow initialization of Xi
-*/
-void nvt_alloc_data(gpu_nvt_data *d_nvt_data, int N, int block_size)
-	{
-	assert(d_nvt_data);
-	d_nvt_data->block_size = block_size;
-	d_nvt_data->NBlocks = N / block_size + 1;
-
-	CUDA_SAFE_CALL( cudaMalloc((void**) &d_nvt_data->partial_Ksum, d_nvt_data->NBlocks * sizeof(float)) );
-	CUDA_SAFE_CALL( cudaMalloc((void**) &d_nvt_data->Ksum, sizeof(float)) );
-	CUDA_SAFE_CALL( cudaMalloc((void**) &d_nvt_data->Xi, sizeof(float)) );
-	CUDA_SAFE_CALL( cudaMalloc((void**) &d_nvt_data->Xi_dbl, sizeof(float)) );
-
-	// initialize Xi to 1.0
-	float Xi = 1.0;
-	CUDA_SAFE_CALL( cudaMemcpy(d_nvt_data->Xi, &Xi, sizeof(float), cudaMemcpyHostToDevice) );
-	}
-
-void nvt_free_data(gpu_nvt_data *d_nvt_data)
-	{
-	assert(d_nvt_data);
-
-	CUDA_SAFE_CALL( cudaFree(d_nvt_data->partial_Ksum) );
-	d_nvt_data->partial_Ksum = NULL;
-	CUDA_SAFE_CALL( cudaFree(d_nvt_data->Ksum) );
-	d_nvt_data->Ksum = NULL;
-	CUDA_SAFE_CALL( cudaFree(d_nvt_data->Xi) );
-	d_nvt_data->Xi = NULL;
-	CUDA_SAFE_CALL( cudaFree(d_nvt_data->Xi_dbl) );
-	d_nvt_data->Xi_dbl = NULL;
-	}
 
 // vim:syntax=cpp

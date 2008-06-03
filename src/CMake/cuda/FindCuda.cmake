@@ -118,7 +118,7 @@ ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
   endif(WIN32)
 ENDIF(CUDA_BUILD_TYPE MATCHES "Emulation")
 
-SET(CUDA_BUILD_CUBIN TRUE CACHE BOOL "Generate and parse .cubin files in Device mode.")
+SET(CUDA_BUILD_CUBIN FALSE CACHE BOOL "Generate and parse .cubin files in Device mode.")
 SET(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
 
 # Search for the cuda distribution.

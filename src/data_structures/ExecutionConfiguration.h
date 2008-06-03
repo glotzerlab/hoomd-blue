@@ -36,11 +36,36 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _GPU_NLIST_NVCC_H_
-#define _GPU_NLIST_NVCC_H_
+// $Id$
+// $URL$
 
-texture<uint4, 1, cudaReadModeElementType> nlist_exclude_tex;
-texture<unsigned int, 2, cudaReadModeElementType> nlist_idxlist_tex;
-texture<uint4, 1, cudaReadModeElementType> nlist_bincoord_tex;
+#ifndef __EXECUTION_CONFIGURATION__
+#define __EXECUTION_CONFIGURATION__
 
+#include "GPUWorker.h"
+
+#include <vector>
+#include <boost/shared_ptr.hpp>
+
+/*! \file ExecutionConfiguration.h
+	\brief Declares ExecutionConfiguration and related classes
+*/
+
+//! Defines the execution configuration for the simulation
+/*! \ingroup data_structs
+	This is just a skeleton of what ExecutionConfiguration will eventually be.
+	It currently only contains a list of GPUWorkers that the system is
+	to use in executing the simulation. Current code only uses one GPU,
+	so the vector is used for future expansion purposes. 
+*/
+struct ExecutionConfiguration
+	{
+	//! Default constructor
+	ExecutionConfiguration();
+	
+	#ifdef USE_CUDA
+	std::vector< boost::shared_ptr<GPUWorker> > gpu;
+	#endif
+	};
+	
 #endif

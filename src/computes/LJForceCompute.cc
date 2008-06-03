@@ -200,7 +200,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = full_list[i];
-		const unsigned int size = list.size();
+		const unsigned int size = (unsigned int)list.size();
 		
 		for (unsigned int j = 0; j < size; j++)
 			{

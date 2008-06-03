@@ -49,6 +49,9 @@ using namespace std;
 using namespace boost::python;
 #endif
 
+#include <boost/bind.hpp>
+using namespace boost;
+
 /*! \param pdata Particle data the neighborlist is to compute neighbors for
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffer distance around the cuttoff within which particles are included
@@ -60,6 +63,20 @@ using namespace boost::python;
 NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) 
 	: NeighborList(pdata, r_cut, r_buff)
 	{
+	// check the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// only one GPU is currently supported
+	if (exec_conf.gpu.size() == 0)
+		{
+		cout << "Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl;
+		throw std::runtime_error("Error initializing NeighborListNsqGPU");
+		}
+	if (exec_conf.gpu.size() != 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing NeighborListNsqGPU");
+		}
+	
 	m_storage_mode = full;
 	}
 
@@ -69,6 +86,9 @@ NeighborListNsqGPU::~NeighborListNsqGPU()
 		 
 void NeighborListNsqGPU::compute(unsigned int timestep)
 	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	assert(exec_conf.gpu.size() == 1);
+	
 	// skip if we shouldn't compute this step
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;
@@ -93,16 +113,16 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 		gpu_boxsize box = m_pdata->getBoxGPU();
 
 		// create a temporary copy of r_max sqaured
-   		Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);			
+   		Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 		
     	if (m_prof)
         	m_prof->push("Build list");
 		
 		// calculate the nlist
-		gpu_nlist_nsq(&pdata, &box, &m_gpu_nlist, r_max_sq);
+		exec_conf.gpu[0]->call(bind(gpu_nlist_nsq, &pdata, &box, &m_gpu_nlist, r_max_sq));
 
 		m_data_location = gpu;
-    
+
 		// amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
 		int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;
 		// number of flops is 21 for each N*N

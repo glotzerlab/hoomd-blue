@@ -64,8 +64,12 @@ if (USE_CUDA)
 add_executable(pdata_gpucopy_bmark pdata_gpucopy_bmark.cc)
 target_link_libraries(pdata_gpucopy_bmark ${LIBS})
 
+cuda_add_executable(gpu_worker_bmark gpu_worker_bmark.cc
+${CMAKE_CURRENT_SOURCE_DIR}/gpu_worker_bmark_kernel.cu)
+target_link_libraries(gpu_worker_bmark ${LIBS})
+
 # install the executables
-install(TARGETS pdata_gpucopy_bmark
+install(TARGETS pdata_gpucopy_bmark gpu_worker_bmark
 	RUNTIME DESTINATION ${LIB_INSTALL_DIR}
 	CONFIGURATIONS Release
 	)

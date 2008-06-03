@@ -50,9 +50,11 @@ using namespace boost::python;
 
 #include "Integrator.h"
 
+#include <boost/bind.hpp>
+using namespace boost;
+
 #ifdef USE_CUDA
 #include "gpu_integrator.h"
-#include "gpu_utils.h"
 #endif
 
 using namespace std;
@@ -66,16 +68,32 @@ Integrator::Integrator(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : U
 		cout << "Timestep <= 0.0, I hope you know what you are doing." << endl;
 
 	#ifdef USE_CUDA
-	// allocate and initialize force data pointers
-	CUDA_SAFE_CALL( cudaMalloc((void **)((void *)&m_d_force_data_ptrs), sizeof(float4*)*32) );
-	CUDA_SAFE_CALL( cudaMemset((void*)m_d_force_data_ptrs, 0, sizeof(float4*)*32) );
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// only one GPU is currently supported
+	if (exec_conf.gpu.size() != 0 && exec_conf.gpu.size() > 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing Integrator");
+		}
+	#endif	
+
+
+	#ifdef USE_CUDA
+	// allocate and initialize force data pointers (if running on a GPU)
+	if (!exec_conf.gpu.empty())
+		{
+		exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_force_data_ptrs), sizeof(float4*)*32));
+		exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_d_force_data_ptrs, 0, sizeof(float4*)*32));
+		}
 	#endif
 	}
 
 Integrator::~Integrator()
 	{
 	#ifdef USE_CUDA
-	CUDA_SAFE_CALL( cudaFree((void *)m_d_force_data_ptrs) );
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (!exec_conf.gpu.empty())
+		exec_conf.gpu[0]->call(bind(cudaFree, (void *)m_d_force_data_ptrs));
 	#endif
 	}
 
@@ -87,19 +105,23 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 	m_forces.push_back(fc);
 	
 	#ifdef USE_CUDA
-	// reinitialize the memory on the device
-
-	// fill out the memory on the host
-	// this only needs to be done once since the output of acquireGPU is
-	// guarunteed not to change later
-	float4 *h_force_data_ptrs[32];
-	for (int i = 0; i < 32; i++)
-		h_force_data_ptrs[i] = NULL;
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (!exec_conf.gpu.empty())
+		{
+		// reinitialize the memory on the device
 	
-	for (unsigned int i = 0; i < m_forces.size(); i++)
-		h_force_data_ptrs[i] = m_forces[i]->acquireGPU();
-	
-	CUDA_SAFE_CALL( cudaMemcpy((void*)m_d_force_data_ptrs, (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice) );
+		// fill out the memory on the host
+		// this only needs to be done once since the output of acquireGPU is
+		// guarunteed not to change later
+		float4 *h_force_data_ptrs[32];
+		for (int i = 0; i < 32; i++)
+			h_force_data_ptrs[i] = NULL;
+		
+		for (unsigned int i = 0; i < m_forces.size(); i++)
+			h_force_data_ptrs[i] = m_forces[i]->acquireGPU();
+		
+		exec_conf.gpu[0]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs, (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
+		}
 	#endif
 	}
 	
@@ -111,12 +133,16 @@ void Integrator::removeForceComputes()
 	m_forces.clear();
 	
 	#ifdef USE_CUDA
-	// reinitialize the memory on the device
-	float4 *h_force_data_ptrs[32];
-	for (int i = 0; i < 32; i++)
-		h_force_data_ptrs[i] = NULL;
-		
-	CUDA_SAFE_CALL( cudaMemcpy((void*)m_d_force_data_ptrs, (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice) );
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (!exec_conf.gpu.empty())
+		{	
+		// reinitialize the memory on the device
+		float4 *h_force_data_ptrs[32];
+		for (int i = 0; i < 32; i++)
+			h_force_data_ptrs[i] = NULL;
+			
+		exec_conf.gpu[0]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs, (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
+		}
 	#endif
 	}
 	
@@ -198,6 +224,13 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 */
 void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::string& profiler_name, bool sum_accel)
 	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (exec_conf.gpu.empty())
+		{
+		cout << "Error: Integrator asked to compute GPU accelerations but there is no GPU in the execution configuration" << endl;
+		throw runtime_error("Error computing accelerations");
+		}
+	
 	// compute the forces
 	for (unsigned int i = 0; i < m_forces.size(); i++)
 		{
@@ -221,14 +254,14 @@ void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::strin
 		gpu_pdata_arrays d_pdata = m_pdata->acquireReadWriteGPU();
 
 		// sum up all the forces
-		integrator_sum_forces(&d_pdata, m_d_force_data_ptrs, m_forces.size());
+		exec_conf.gpu[0]->call(bind(integrator_sum_forces, &d_pdata, m_d_force_data_ptrs, (int)m_forces.size()));
 		
 		// done
 		m_pdata->release();
 		
 		if (m_prof)
 			{
-			cudaThreadSynchronize();
+			exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 			m_prof->pop(6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(1+m_forces.size()));
 			m_prof->pop();
 			}

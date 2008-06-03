@@ -76,6 +76,16 @@ using namespace std;
 NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) 
 	: Compute(pdata), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_force_update(true), m_updates(0), m_forced_updates(0)
 	{
+	#ifdef USE_CUDA
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// only one GPU is currently supported
+	if (exec_conf.gpu.size() != 0 && exec_conf.gpu.size() > 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing NeighborList");
+		}
+	#endif
+	
 	// check for two sensless errors the user could make
 	if (m_r_cut < 0.0)
 		throw runtime_error("Requested cuttoff radius for neighborlist less than zero");
@@ -109,9 +119,16 @@ NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, 
 	// there really should be a better way to determine the initial height, but we will just
 	// choose a given value for now (choose it initially small to test the auto-expansion 
 	// code
-	gpu_alloc_nlist_data(&m_gpu_nlist, pdata->getN(), 256);
-	m_data_location = cpugpu;
-	hostToDeviceCopy();
+	if (!exec_conf.gpu.empty())
+		{
+		allocateGPUData(256);
+		m_data_location = cpugpu;
+		hostToDeviceCopy();
+		}
+	else
+		{
+		m_data_location = cpu;
+		}
 	#endif
 
 	m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
@@ -124,11 +141,73 @@ NeighborList::~NeighborList()
 	delete[] m_last_z;
 	
 	#ifdef USE_CUDA
-	gpu_free_nlist_data(&m_gpu_nlist);
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (!exec_conf.gpu.empty())
+		freeGPUData();
 	#endif
 
 	m_sort_connection.disconnect();
 	}
+
+#ifdef USE_CUDA
+void NeighborList::allocateGPUData(int height)
+	{
+	size_t pitch;
+	const int N = m_pdata->getN();
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	assert(exec_conf.gpu.size() == 1);
+	
+	// allocate and zero device memory
+	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_nlist.list), &pitch, N*sizeof(unsigned int), height));
+	// want pitch in elements, not bytes
+	m_gpu_nlist.pitch = (int)pitch / sizeof(int);
+	m_gpu_nlist.height = height;
+	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_nlist.list, 0, pitch * height));
+	
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist.last_updated_pos), m_gpu_nlist.pitch*sizeof(float4)));
+	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_nlist.last_updated_pos, 0, m_gpu_nlist.pitch * sizeof(float4)));
+
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist.needs_update), sizeof(int)));
+	
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist.exclusions), m_gpu_nlist.pitch*sizeof(uint4)));
+	exec_conf.gpu[0]->call(bind(cudaMemset, (void*) m_gpu_nlist.exclusions, 0xff, m_gpu_nlist.pitch * sizeof(uint4)));
+
+	// allocate and zero host memory
+	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_nlist), pitch * height));
+	memset((void*)m_host_nlist, 0, pitch*height);
+	
+	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_exclusions), N * sizeof(uint4)));
+	memset((void*)m_host_exclusions, 0xff, N * sizeof(uint4));
+	}
+	
+void NeighborList::freeGPUData()
+	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	assert(exec_conf.gpu.size() == 1);
+	
+	assert(m_host_nlist);
+	assert(m_host_exclusions);
+	
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_nlist));
+	m_host_nlist = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions));
+	m_host_exclusions = NULL;
+
+	assert(m_gpu_nlist.list);
+	assert(m_gpu_nlist.exclusions);
+	assert(m_gpu_nlist.last_updated_pos);
+	assert(m_gpu_nlist.needs_update);
+
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_nlist.list));
+	m_gpu_nlist.list = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_nlist.exclusions));
+	m_gpu_nlist.exclusions = NULL;	
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_nlist.last_updated_pos));
+	m_gpu_nlist.last_updated_pos = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_nlist.needs_update));
+	m_gpu_nlist.needs_update = NULL;
+	}
+#endif
 
 /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
 	to require a neighbor list upate.
@@ -218,8 +297,8 @@ const std::vector< std::vector<unsigned int> >& NeighborList::getList()
 		default:
 			// anything other than the above is an undefined state!
 			assert(false);
-			return m_list;	
-			break;			
+			return m_list;
+			break;
 		}
 
 	#else
@@ -256,7 +335,7 @@ Scalar NeighborList::estimateNNeigh()
 	in a very time consuming copy to the device. It is meant only as a debugging/testing
 	path and not for production simulations.
 */
-gpu_nlist_data NeighborList::getListGPU()
+gpu_nlist_array NeighborList::getListGPU()
 	{
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
@@ -294,41 +373,46 @@ void NeighborList::hostToDeviceCopy()
 	{
 	if (m_prof)
 		m_prof->push("NLIST C2G");
-		
+	
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	assert(exec_conf.gpu.size() == 1);
+	
 	// start by determining if we need to make the device list larger or not
 	// find the maximum neighborlist height
 	unsigned int max_h = 0;
 	for (unsigned int i = 0; i < m_pdata->getN(); i++)
 		{
 		if (m_list[i].size() > max_h)
-			max_h = m_list[i].size();
+			max_h = (unsigned int)m_list[i].size();
 		}
 			
 	// if the largest nlist is bigger than the capacity of the device nlist,
 	// make it 10% bigger (note that the capacity of the device list is height-1 since
 	// the number of neighbors is stored in the first row)
-	if (max_h > m_gpu_nlist.h_array.height - 1)
+	if (max_h > m_gpu_nlist.height - 1)
 		{
-		gpu_free_nlist_data(&m_gpu_nlist);
-		gpu_alloc_nlist_data(&m_gpu_nlist, m_pdata->getN(), (unsigned int)(float(max_h)*1.1));
+		freeGPUData();
+		allocateGPUData((unsigned int)(float(max_h+1)*1.1));
 		}
 	
 	// now we are good to copy the data over
 	// start by zeroing the list
-	memset(m_gpu_nlist.h_array.list, 0, sizeof(unsigned int) * m_gpu_nlist.h_array.pitch * m_gpu_nlist.h_array.height);
+	memset(m_host_nlist, 0, sizeof(unsigned int) * m_gpu_nlist.pitch * m_gpu_nlist.height);
 	
 	for (unsigned int i = 0; i < m_pdata->getN(); i++)
 		{
 		// fill out the first row with the length of each list
-		m_gpu_nlist.h_array.list[i] = m_list[i].size();
+		m_host_nlist[i] = (unsigned int)m_list[i].size();
 		
 		// now fill out the data
 		for (unsigned int j = 0; j < m_list[i].size(); j++)
-			m_gpu_nlist.h_array.list[(j+1)*m_gpu_nlist.h_array.pitch + i] = m_list[i][j];
+			m_host_nlist[(j+1)*m_gpu_nlist.pitch + i] = m_list[i][j];
 		}
 	
 	// now that the host array is filled out, copy it to the card
-	gpu_copy_nlist_data_htod(&m_gpu_nlist);
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_nlist.list, m_host_nlist,
+		sizeof(unsigned int) * m_gpu_nlist.height * m_gpu_nlist.pitch,
+		cudaMemcpyHostToDevice));
 	
 	if (m_prof)
 		m_prof->pop();
@@ -342,18 +426,23 @@ void NeighborList::deviceToHostCopy()
 	if (m_prof)
 		m_prof->push("NLIST G2C");
 		
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	assert(exec_conf.gpu.size() == 1);
+		
 	// copy data back from the card
-	gpu_copy_nlist_data_dtoh(&m_gpu_nlist);
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_host_nlist, m_gpu_nlist.list,
+			sizeof(unsigned int) * m_gpu_nlist.height * m_gpu_nlist.pitch,
+			cudaMemcpyDeviceToHost));
 	
-	// clear out version of the list
+	// clear out host version of the list
 	for (unsigned int i = 0; i < m_pdata->getN(); i++)
 		{
 		m_list[i].clear();
 		
 		// now loop over all elements in the array
-		unsigned int size = m_gpu_nlist.h_array.list[i];
+		unsigned int size = m_host_nlist[i];
 		for (unsigned int j = 0; j < size; j++)
-			m_list[i].push_back(m_gpu_nlist.h_array.list[(j+1)*m_gpu_nlist.h_array.pitch + i]);
+			m_list[i].push_back(m_host_nlist[(j+1)*m_gpu_nlist.pitch + i]);
 		}
 	
 	if (m_prof)
@@ -365,6 +454,9 @@ void NeighborList::deviceToHostCopy()
 */
 void NeighborList::updateExclusionData()
 	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	assert(exec_conf.gpu.size() == 1);
+	
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 	
 	// setup each of the exclusions
@@ -372,29 +464,32 @@ void NeighborList::updateExclusionData()
 		{
 		unsigned int i = arrays.rtag[tag_i];
 		if (m_exclusions[tag_i].e1 == EXCLUDE_EMPTY)
-			m_gpu_nlist.h_array.exclusions[i].x = EXCLUDE_EMPTY;
+			m_host_exclusions[i].x = EXCLUDE_EMPTY;
 		else
-			m_gpu_nlist.h_array.exclusions[i].x = arrays.rtag[m_exclusions[tag_i].e1];
+			m_host_exclusions[i].x = arrays.rtag[m_exclusions[tag_i].e1];
 			
 		if (m_exclusions[tag_i].e2 == EXCLUDE_EMPTY)
-			m_gpu_nlist.h_array.exclusions[i].y = EXCLUDE_EMPTY;
+			m_host_exclusions[i].y = EXCLUDE_EMPTY;
 		else
-			m_gpu_nlist.h_array.exclusions[i].y = arrays.rtag[m_exclusions[tag_i].e2];
+			m_host_exclusions[i].y = arrays.rtag[m_exclusions[tag_i].e2];
 
 		if (m_exclusions[tag_i].e3 == EXCLUDE_EMPTY)
-			m_gpu_nlist.h_array.exclusions[i].z = EXCLUDE_EMPTY;
+			m_host_exclusions[i].z = EXCLUDE_EMPTY;
 		else
-			m_gpu_nlist.h_array.exclusions[i].z = arrays.rtag[m_exclusions[tag_i].e3];
+			m_host_exclusions[i].z = arrays.rtag[m_exclusions[tag_i].e3];
 
 		if (m_exclusions[tag_i].e4 == EXCLUDE_EMPTY)
-			m_gpu_nlist.h_array.exclusions[i].w = EXCLUDE_EMPTY;
+			m_host_exclusions[i].w = EXCLUDE_EMPTY;
 		else
-			m_gpu_nlist.h_array.exclusions[i].w = arrays.rtag[m_exclusions[tag_i].e4];
+			m_host_exclusions[i].w = arrays.rtag[m_exclusions[tag_i].e4];
 		}
-	gpu_copy_exclude_data_htod(&m_gpu_nlist);
+		
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_nlist.exclusions, m_host_exclusions,
+			sizeof(uint4) * m_pdata->getN(),
+			cudaMemcpyHostToDevice));
 	
 	m_pdata->release();
-	}		
+	}
 
 #endif
 	
@@ -586,7 +681,7 @@ void NeighborList::printStats()
 
 	for (unsigned int i = 0; i < m_pdata->getN(); i++)
 		{
-		unsigned int n_neigh = m_list[i].size();
+		unsigned int n_neigh = (unsigned int)m_list[i].size();
 		if (n_neigh < n_neigh_min)
 			n_neigh_min = n_neigh;
 		if (n_neigh > n_neigh_max)
@@ -770,4 +865,3 @@ void export_NeighborList()
 	}
 
 #endif
-

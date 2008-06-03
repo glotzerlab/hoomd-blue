@@ -274,13 +274,6 @@ int main(int argc, char **argv)
 	nlist->forceUpdate();
 	nlist->compute(1);
 	
-	// count the average number of neighbors
-	int64_t neigh_count = 0;
-	vector< vector< unsigned int> > list = nlist->getList();
-	for (unsigned int i = 0; i < N; i++)
-		neigh_count += list[i].size();
-	double avgNneigh = double(neigh_count) / double(N);
-	
 	/* Not needed for only benchmarking neighboor list creation
 
 	// initialize the force compute

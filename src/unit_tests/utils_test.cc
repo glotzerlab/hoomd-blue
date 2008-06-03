@@ -69,7 +69,8 @@ BOOST_AUTO_TEST_CASE( ClockSource_test )
 	int64_t t1 = c2.getTime();
 	Sleep(1000);
 	int64_t t2 = c2.getTime();
-	BOOST_CHECK(abs(int(t2 - t1 - 1000000000)) <= 10000000);
+
+	BOOST_CHECK(abs(int(t2 - t1 - int64_t(1000000000))) <= 20000000);
 	
 	// unfortunately, testing of microsecond timing with a sleep routine is out of the question
 	// the following test code tests the ability of the timer to read nearby values

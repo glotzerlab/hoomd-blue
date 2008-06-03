@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the ParticleData class and associated utilities
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 )
+#endif
+
 #ifndef __PARTICLE_DATA_H__
 #define __PARTICLE_DATA_H__
 
@@ -70,6 +75,7 @@ using namespace std;
 #endif
 
 #include "Profiler.h"
+#include "ExecutionConfiguration.h"
 
 // windows doesn't understand __restrict__, it is __restrict instead
 #ifdef WIN32
@@ -261,11 +267,11 @@ class ParticleData
 	{
 	public:
 		//! Construct with N particles in the given box
-		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1);
+		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, ExecutionConfiguration exec_conf=ExecutionConfiguration());
 		//! Construct from an initializer
-		ParticleData(const ParticleDataInitializer& init);
+		ParticleData(const ParticleDataInitializer& init, ExecutionConfiguration exec_conf=ExecutionConfiguration());
 		//! Destructor
-		virtual ~ParticleData();		
+		virtual ~ParticleData();
 			
 		//! Get the simulation box
 		const BoxDim& getBox() const;
@@ -273,6 +279,8 @@ class ParticleData
 		void setBox(const BoxDim &box);
 		//! Access the wall data defined for the simulation box
 		boost::shared_ptr<WallData> getWallData() { return m_wallData; }
+		//! Access the execution configuration
+		const ExecutionConfiguration& getExecConf() { return m_exec_conf; }
 		
 		//! Get the number of particles
 		/*! \return Number of particles in the box
@@ -325,15 +333,16 @@ class ParticleData
 		//! Connects a function to be called every time the box size is changed
 		boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
 
-	protected:
-		BoxDim m_box;		//!< The simulation box
-		void *m_data;		//!< Raw data allocated
-		size_t m_nbytes;	//!< Number of bytes allocated
-		unsigned int m_ntypes; //!< Number of particle types
+	private:
+		BoxDim m_box;								//!< The simulation box
+		const ExecutionConfiguration m_exec_conf;	//!< The execution configuration
+		void *m_data;								//!< Raw data allocated
+		size_t m_nbytes;							//!< Number of bytes allocated
+		unsigned int m_ntypes; 						//!< Number of particle types
 		
-		bool m_acquired;		//!< Flag to track if data has been acquired
+		bool m_acquired;							//!< Flag to track if data has been acquired
 		
-		boost::signal<void ()> m_sort_signal;	//!< Signal that is triggered when particles are sorted in memory
+		boost::signal<void ()> m_sort_signal;		//!< Signal that is triggered when particles are sorted in memory
 		boost::signal<void ()> m_boxchange_signal;	//!< Signal that is triggered when the box size changes
 		
 		ParticleDataArrays m_arrays;	//!< Pointers into m_data for particle access
@@ -354,7 +363,7 @@ class ParticleData
 		
 		DataLocation m_data_location;	//!< Where the most recently modified particle data lives
 		gpu_pdata_arrays m_gpu_pdata;	//!< Stores the pointers to memory on the GPU
-		gpu_boxsize m_gpu_box;		//!< Mirror structure of m_box for the GPU
+		gpu_boxsize m_gpu_box;			//!< Mirror structure of m_box for the GPU
 		float *m_d_staging;				//!< Staging array (device memory) where uninterleaved data is coped to/from.
 		unsigned int m_uninterleave_pitch;	//!< Remember the pitch between x,y,z,type in the uninterleaved data
 		unsigned int m_single_xarray_bytes;	//!< Remember the number of bytes allocated for a single float array
@@ -384,3 +393,8 @@ void export_ParticleData();
 #endif
 
 #endif
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif
+

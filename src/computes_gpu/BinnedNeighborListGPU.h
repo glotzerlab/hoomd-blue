@@ -82,12 +82,13 @@ class BinnedNeighborListGPU : public NeighborList
 		unsigned int m_curNmax; //!< Number of particles in the largest bin
 		Scalar m_avgNmax; //!< Average number of particles per bin
 
-		gpu_bin_data m_gpu_bin_data;	//!< The binned particle data
-		int m_block_size;
+		gpu_bin_array m_gpu_bin_data;	//!< The binned particle data
+		unsigned int *m_host_idxlist;	//!< Host bins
+		uint4 *m_host_bin_coord;				//!< Host bin coordinates
+		int m_block_size;				//!< Block size to use when performing the calculations on the GPU
 		
 
 		//! Puts the particles into their bins
-		//void updateBinsSorted();
 		void updateBinsUnsorted();
 	
 		//! Updates the neighborlist using the binned data
@@ -95,6 +96,12 @@ class BinnedNeighborListGPU : public NeighborList
 
 		//! Test if the list needs updating
 		virtual bool needsUpdating(unsigned int timestep);
+		
+		//! Helper function to allocate bin data
+		void allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax);
+		
+		//! Helper function to free bin data
+		void freeGPUBinData();
 	};
 	
 #ifdef USE_PYTHON

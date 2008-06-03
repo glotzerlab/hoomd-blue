@@ -53,17 +53,37 @@ using namespace std;
 	\param r_0 Equilibrium length for the force computation
 */
 BondForceComputeGPU::BondForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar K, Scalar r_0)
-	: BondForceCompute(pdata, K, r_0), m_dirty(true), m_block_size(64)
+	: BondForceCompute(pdata, K, r_0), m_dirty(true), m_block_size(64), m_bondlist(NULL)
 	{
-	gpu_alloc_bondtable_data(&m_gpu_bondtable, m_pdata->getN(), 1);
+	// init pointers
+	m_gpu_bondtable.list = NULL;
+	m_gpu_bondtable.height = 0;
+	m_gpu_bondtable.pitch = 0;
 	
+	// check the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// only one GPU is currently supported
+	if (exec_conf.gpu.size() == 0)
+		{
+		cout << "Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl;
+		throw std::runtime_error("Error initializing BondForceComputeGPU");
+		}
+	if (exec_conf.gpu.size() != 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing BondForceComputeGPU");
+		}
+	
+	// allocate the initial bond table with height 1
+	allocateBondTable(1);
+		
 	// attach to the signal for notifications of particle sorts
 	m_sort_connection = m_pdata->connectParticleSort(bind(&BondForceComputeGPU::setDirty, this));
 	}
 	
 BondForceComputeGPU::~BondForceComputeGPU()
 	{
-	gpu_free_bondtable_data(&m_gpu_bondtable);
+	freeBondTable();
 	m_sort_connection.disconnect();
 	}
 		
@@ -111,7 +131,7 @@ void BondForceComputeGPU::updateBondTable()
 		}
 	
 	// re allocate memory if needed
-	if (num_bonds_max+1 > m_gpu_bondtable.h_array.height)
+	if (num_bonds_max+1 > m_gpu_bondtable.height)
 		{
 		reallocateBondTable(num_bonds_max+1);
 		}
@@ -119,9 +139,9 @@ void BondForceComputeGPU::updateBondTable()
 	// now, update the actual table
 	// zero the number of bonds counter
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		m_gpu_bondtable.h_array.list[i] = 0;
+		m_bondlist[i] = 0;
 
-	int pitch = m_gpu_bondtable.h_array.pitch;
+	int pitch = m_gpu_bondtable.pitch;
 	for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
 		{
 		unsigned int tag1 = m_bonds[cur_bond].m_tag1;
@@ -130,20 +150,20 @@ void BondForceComputeGPU::updateBondTable()
 		int idx2 = arrays.rtag[tag2];
 		
 		// get the number of bonds for each particle
-		int num1 = m_gpu_bondtable.h_array.list[idx1];
-		int num2 = m_gpu_bondtable.h_array.list[idx2];
+		int num1 = m_bondlist[idx1];
+		int num2 = m_bondlist[idx2];
 		
 		// add the new bonds to the table
-		m_gpu_bondtable.h_array.list[(num1 + 1)*pitch + idx1] = idx2;
-		m_gpu_bondtable.h_array.list[(num2 + 1)*pitch + idx2] = idx1;
+		m_bondlist[(num1 + 1)*pitch + idx1] = idx2;
+		m_bondlist[(num2 + 1)*pitch + idx2] = idx1;
 		
 		// increment the number of bonds
-		m_gpu_bondtable.h_array.list[idx1]++;
-		m_gpu_bondtable.h_array.list[idx2]++;
+		m_bondlist[idx1]++;
+		m_bondlist[idx2]++;
 		}
 		
 	// copy the bond table to the device
-	gpu_copy_bontable_data_htod(&m_gpu_bondtable);
+	copyBondTable();
 	
 	m_pdata->release();
 	}
@@ -156,8 +176,57 @@ void BondForceComputeGPU::updateBondTable()
 */
 void BondForceComputeGPU::reallocateBondTable(int height)
 	{
-	gpu_free_bondtable_data(&m_gpu_bondtable);
-	gpu_alloc_bondtable_data(&m_gpu_bondtable, m_pdata->getN(), height);
+	freeBondTable();
+	allocateBondTable(height);
+	}
+	
+/*! \param height New height for the bond table
+*/
+void BondForceComputeGPU::allocateBondTable(int height)
+	{
+	// make sure the arrays have been deallocated
+	assert(m_bondlist == NULL);
+	assert(m_gpu_bondtable.list == NULL);
+	
+	unsigned int N = m_pdata->getN();
+	size_t pitch;
+	
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
+	// allocate and zero device memory
+	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bondtable.list), &pitch, N*sizeof(unsigned int), height));
+	
+	// want pitch in elements, not bytes
+	m_gpu_bondtable.pitch = (int)pitch / sizeof(int);
+	m_gpu_bondtable.height = height;
+	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_bondtable.list, 0, pitch * height));
+	
+	// allocate and zero host memory
+	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_bondlist), pitch * height));
+	memset((void*)m_bondlist, 0, pitch*height);
+	}
+
+void BondForceComputeGPU::freeBondTable()
+	{
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
+	
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bondtable.list));
+	m_gpu_bondtable.list = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_bondlist));
+	m_bondlist = NULL;
+	}
+		
+//! Copies the bond table to the device
+void BondForceComputeGPU::copyBondTable()
+	{
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
+	
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bondtable.list, m_bondlist, 
+			sizeof(unsigned int) * m_gpu_bondtable.height * m_gpu_bondtable.pitch, 
+			cudaMemcpyHostToDevice) );
 	}
 	
 /*! Internal method for computing the forces on the GPU. 
@@ -186,19 +255,22 @@ void BondForceComputeGPU::computeForces(unsigned int timestep)
 		m_prof->pop();
 		m_prof->push("Compute");
 		}
+		
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
 	// the bond table is up to date: we are good to go. Call the kernel
 	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
-	gpu_bondforce_sum(m_d_forces, &pdata, &box, &m_gpu_bondtable, m_K, m_r_0, m_block_size);
+	exec_conf.gpu[0]->call(bind(gpu_bondforce_sum, m_d_forces, &pdata, &box, &m_gpu_bondtable, m_K, m_r_0, m_block_size));
 		
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
 	
 	if (m_prof)
 		{
-		cudaThreadSynchronize();
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(20*m_pdata->getN() + 20*m_bonds.size()*2, 31 * m_bonds.size()*2);
 		}
 		

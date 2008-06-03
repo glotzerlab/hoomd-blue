@@ -72,10 +72,15 @@ enable_testing()
 
 ###################################
 ## Setup all of the test executables in a for loop
-foreach (CUR_TEST utils_test pdata_test neighborlist_test bond_force_test
+set(TEST_LIST utils_test pdata_test neighborlist_test bond_force_test
 	lj_force_test lj_wall_compute_test nve_updater_test nvt_updater_test temp_rescale_updater_test
 	xml_reader_writer_test system_test)
 
+if(USE_CUDA)
+	set(TEST_LIST ${TEST_LIST} gpu_worker_test)
+endif(USE_CUDA)
+
+foreach (CUR_TEST ${TEST_LIST})
 	# add and link the unit test executable
 	add_executable(${CUR_TEST} ${CUR_TEST}.cc)
 	target_link_libraries(${CUR_TEST} ${LIBS})

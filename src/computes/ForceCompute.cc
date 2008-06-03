@@ -52,10 +52,6 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#ifdef USE_CUDA
-#include "gpu_utils.h"
-#endif
-
 /*! \post \c fx, \c fy, \c fz are all set to NULL
 */
 ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL)
@@ -71,6 +67,16 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	{
 	assert(pdata);
 	assert(pdata->getN());
+	
+	#ifdef USE_CUDA
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// only one GPU is currently supported
+	if (exec_conf.gpu.size() != 0 && exec_conf.gpu.size() > 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing ParticleData");
+		}
+	#endif	
 				
 	// allocate the memory here in the same way as with the ParticleData: put all 3
 	// arrays back to back. 256-byte align the data so that uninterleaved <-> interleaved
@@ -84,7 +90,10 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	// total all bytes from scalar arrays
 	m_nbytes = single_xarray_bytes * 3;
 	
-	CUDA_SAFE_CALL( cudaMallocHost( (void **)((void *)&m_data), m_nbytes) );	
+	if (!exec_conf.gpu.empty())
+		exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_data), m_nbytes));	
+	else
+		m_data = (Scalar *)malloc(m_nbytes);
 	#else
 	// start by adding up the number of bytes needed for the Scalar arrays
 	unsigned int single_xarray_bytes = sizeof(Scalar) * pdata->getN();
@@ -119,11 +128,16 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	m_uninterleave_pitch = single_xarray_bytes/4;
 	m_single_xarray_bytes = single_xarray_bytes;
 
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_d_forces), single_xarray_bytes*4) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_d_staging), single_xarray_bytes*4) );
-
-	deviceToHostCopy();
-	m_data_location = cpugpu;
+	if (!exec_conf.gpu.empty())
+		{
+		exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_forces), single_xarray_bytes*4) );
+		exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging), single_xarray_bytes*4) );
+		
+		deviceToHostCopy();
+		m_data_location = cpugpu;
+		}
+	else
+		m_data_location = cpu;
 	#endif
 
 	// connect to the ParticleData to recieve notifications when particles change order in memory
@@ -138,7 +152,11 @@ ForceCompute::~ForceCompute()
 		
 	// free the data, which needs to be condtionally compiled for CUDA and non CUDA builds
 	#ifdef USE_CUDA
-	CUDA_SAFE_CALL( cudaFreeHost(m_data) );
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (!exec_conf.gpu.empty())
+		exec_conf.gpu[0]->call(bind(cudaFreeHost, m_data));
+	else
+		free(m_data);
 	#else
 	free(m_data);
 	#endif
@@ -149,8 +167,11 @@ ForceCompute::~ForceCompute()
 	m_arrays.fz = m_fz = NULL;
 	
 	#ifdef USE_CUDA
-	CUDA_SAFE_CALL( cudaFree(m_d_forces) );
-	CUDA_SAFE_CALL( cudaFree(m_d_staging) );
+	if (!exec_conf.gpu.empty())
+		{
+		exec_conf.gpu[0]->call(bind(cudaFree, m_d_forces));
+		exec_conf.gpu[0]->call(bind(cudaFree, m_d_staging));
+		}
 	#endif
 
 	m_sort_connection.disconnect();
@@ -210,7 +231,14 @@ const ForceDataArrays& ForceCompute::acquire()
 	the data has been copied to the GPU.
 */
 float4 *ForceCompute::acquireGPU()
-    {
+	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (exec_conf.gpu.empty())
+		{
+		cout << "Acquiring forces on GPU, but there is no GPU in the exection configuration" << endl;
+		throw runtime_error("Error acquiring GPU forces");
+		}
+	
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
 	switch (m_data_location)
@@ -247,14 +275,16 @@ void ForceCompute::hostToDeviceCopy()
 	{
 	if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
 	
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
 	// copy force data to the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_d_staging, m_data, m_single_xarray_bytes*3, cudaMemcpyHostToDevice) );
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_data, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 	// interleave the data
-	CUDA_SAFE_CALL( gpu_interleave_float4(m_d_forces, m_d_staging, m_pdata->getN(), m_uninterleave_pitch) );	
+	exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_d_forces, m_d_staging, m_pdata->getN(), m_uninterleave_pitch));
 	
 	if (m_prof)
 		{
-		cudaThreadSynchronize(); 
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(0, m_single_xarray_bytes*3);
 		}
 	}
@@ -265,14 +295,16 @@ void ForceCompute::deviceToHostCopy()
 	{
 	if (m_prof) m_prof->push("ForceCompute - GPU->GPU");
 
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+
 	// uninterleave the data
-	CUDA_SAFE_CALL( gpu_uninterleave_float4(m_d_staging, m_d_forces, m_pdata->getN(), m_uninterleave_pitch) );
+	exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_d_forces, m_pdata->getN(), m_uninterleave_pitch));
 	// copy force data from the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_data, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost) );
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_data, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost));
 	
 	if (m_prof)
 		{
-		cudaThreadSynchronize(); 
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(0, m_single_xarray_bytes*3);
 		}
 	}

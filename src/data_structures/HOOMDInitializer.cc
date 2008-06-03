@@ -79,7 +79,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 unsigned int HOOMDInitializer::getNumParticles() const
 	{
 	assert(m_pos_array.size() > 0);
-	return m_pos_array.size();
+	return (unsigned int)m_pos_array.size();
 	}
 		
 unsigned int HOOMDInitializer::getNumParticleTypes() const
@@ -438,42 +438,42 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
 				cout << "ox not set in <coord> node" << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
-			ox = atof(child_node.getAttribute("ox"));
+			ox = (Scalar)atof(child_node.getAttribute("ox"));
 
 			if (!child_node.isAttributeSet("oy"))
 				{
 				cout << "oy not set in <coord> node" << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
-			oy = atof(child_node.getAttribute("oy"));
+			oy = (Scalar)atof(child_node.getAttribute("oy"));
 
 			if (!child_node.isAttributeSet("oz"))
 				{
 				cout << "oz not set in <coord> node" << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
-			oz = atof(child_node.getAttribute("oz"));
+			oz = (Scalar)atof(child_node.getAttribute("oz"));
 
 			if (!child_node.isAttributeSet("nx"))
 				{
 				cout << "nx not set in <coord> node" << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
-			nx = atof(child_node.getAttribute("nx"));
+			nx = (Scalar)atof(child_node.getAttribute("nx"));
 
 			if (!child_node.isAttributeSet("ny"))
 				{
 				cout << "ny not set in <coord> node" << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
-			ny = atof(child_node.getAttribute("ny"));
+			ny = (Scalar)atof(child_node.getAttribute("ny"));
 
 			if (!child_node.isAttributeSet("nz"))
 				{
 				cout << "nz not set in <coord> node" << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
-			nz = atof(child_node.getAttribute("nz"));
+			nz = (Scalar)atof(child_node.getAttribute("nz"));
 
 			m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
 			}

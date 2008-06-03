@@ -308,7 +308,7 @@ void BinnedNeighborList::updateListFromBins()
 					const vector<Scalar>& bin_list_z = m_binned_z[bin];
 					const vector<unsigned int>& bin_list_tag = m_binned_tag[bin];
 					
-					const unsigned int bin_size = bin_list.size();
+					const unsigned int bin_size = (unsigned int)bin_list.size();
 					// count up the number of calculations we make
 					n_calc += bin_size;
 					for (unsigned int k = 0; k < bin_size; k++)
@@ -404,7 +404,7 @@ void BinnedNeighborList::printStats()
 	
 	for (unsigned int i = 0; i < m_bins.size(); i++)
 		{
-		int s = m_bins[i].size();
+		int s = (int)m_bins[i].size();
 		if (s < min_b)
 			min_b = s;
 		if (s > max_b)

@@ -40,8 +40,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "gpu_nlist.h"
-#include "gpu_nlist_nvcc.h"
-#include "gpu_utils.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -53,240 +51,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Contains code for working with the neighbor list data structure on the GPU
 */
 
-/*! \post The neighborlist memory is allocated both on the host and the device, and initialized to 0
-*/
-void gpu_alloc_nlist_data(gpu_nlist_data *nlist, unsigned int N, unsigned int height)
-	{
-	assert(nlist);
-	// pad N up 512 elements so that when the device reads past the end of the array, it isn't reading junk memory
-	unsigned int padded_N = N + 512;
-	size_t pitch;
-	
-	// allocate and zero device memory
-	CUDA_SAFE_CALL( cudaMallocPitch( (void**) &nlist->d_array.list, &pitch, padded_N*sizeof(unsigned int), height));
-	// want pitch in elements, not bytes
-	nlist->d_array.pitch = pitch / sizeof(int);
-	nlist->d_array.height = height;
-	CUDA_SAFE_CALL( cudaMemset( (void*) nlist->d_array.list, 0, pitch * height) );
-	
-	CUDA_SAFE_CALL( cudaMalloc( (void**) &nlist->d_array.last_updated_pos, nlist->d_array.pitch*sizeof(float4)) );
-	CUDA_SAFE_CALL( cudaMemset( (void*) nlist->d_array.last_updated_pos, 0, nlist->d_array.pitch * sizeof(float4)) );
-
-	CUDA_SAFE_CALL( cudaMalloc( (void**) &nlist->d_array.needs_update, sizeof(int)) );
-	
-	CUDA_SAFE_CALL( cudaMalloc( (void**) &nlist->d_array.exclusions, nlist->d_array.pitch*sizeof(uint4)) );
-	CUDA_SAFE_CALL( cudaMemset( (void*) nlist->d_array.exclusions, 0xff, nlist->d_array.pitch * sizeof(uint4)) );
-
-	// allocate and zero host memory
-	CUDA_SAFE_CALL( cudaMallocHost( (void**)&nlist->h_array.list, pitch * height) );
-	memset((void*)nlist->h_array.list, 0, pitch*height);
-	
-	CUDA_SAFE_CALL( cudaMallocHost( (void**)&nlist->h_array.exclusions, N * sizeof(uint4)) );
-	memset((void*)nlist->h_array.exclusions, 0xff, N * sizeof(uint4));
-		
-	nlist->h_array.pitch = pitch / sizeof(int);
-	nlist->h_array.height = height;
-	
-	nlist->N = N;
-	
-	///****************** TEMPORARY: needs to be moved to a select function
-	nlist_exclude_tex.addressMode[0] = cudaAddressModeClamp;
-	nlist_exclude_tex.addressMode[1] = cudaAddressModeClamp;
-	nlist_exclude_tex.filterMode = cudaFilterModePoint;
-	nlist_exclude_tex.normalized = false;
-	// Bind the array to the texture
-   	cudaBindTexture(0, nlist_exclude_tex, nlist->d_array.exclusions, sizeof(uint4) * N);
-	
-	}
-	
-/*! \post memory is freed and pointers are set to NULL
-*/
-void gpu_free_nlist_data(gpu_nlist_data *nlist)
-	{
-	assert(nlist);
-	
-	CUDA_SAFE_CALL( cudaFreeHost(nlist->h_array.list) );
-	nlist->h_array.list = NULL;
-	CUDA_SAFE_CALL( cudaFreeHost(nlist->h_array.exclusions) );
-	nlist->h_array.exclusions = NULL;
-
-	CUDA_SAFE_CALL( cudaFree(nlist->d_array.list) );
-	nlist->d_array.list = NULL;
-	CUDA_SAFE_CALL( cudaFree(nlist->d_array.exclusions) );
-	nlist->d_array.exclusions = NULL;	
-	CUDA_SAFE_CALL( cudaFree(nlist->d_array.last_updated_pos) );
-	nlist->d_array.last_updated_pos = NULL;
-	CUDA_SAFE_CALL( cudaFree(nlist->d_array.needs_update) );
-	nlist->d_array.needs_update = NULL;
-	}
-
-/*! \post The neighbor list host array (h_array) is copied to 
- 			device memory (d_array)
- */
-void gpu_copy_nlist_data_htod(gpu_nlist_data *nlist)
-	{
-	assert(nlist);
-
-	CUDA_SAFE_CALL( cudaMemcpy(nlist->d_array.list, nlist->h_array.list, 
-			sizeof(unsigned int) * nlist->d_array.height * nlist->d_array.pitch, 
-			cudaMemcpyHostToDevice) );
-	}
-	
-	
-/*! \post The neighbor list device array (d_array) is copied to 
- 			host memory (h_array)
- */
-void gpu_copy_nlist_data_dtoh(gpu_nlist_data *nlist)
-	{
-	assert(nlist);
-	
-	CUDA_SAFE_CALL( cudaMemcpy(nlist->h_array.list, nlist->d_array.list, 
-			sizeof(unsigned int) * nlist->d_array.height * nlist->d_array.pitch, 
-			cudaMemcpyDeviceToHost) );
-	}
-	
-	
-/*! \todo document me
-*/
-void gpu_copy_exclude_data_htod(gpu_nlist_data *nlist)
-	{
-	assert(nlist);
-
-	CUDA_SAFE_CALL( cudaMemcpy(nlist->d_array.exclusions, nlist->h_array.exclusions, 
-			sizeof(uint4) * nlist->N, 
-			cudaMemcpyHostToDevice) );
-	}
-
-
-__global__ void nlist_data_test_fill(gpu_nlist_array nlist)
-	{
-	// start by identifying the particle index of this particle
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
-
-	for (int i = 0; i < nlist.height; i++)
-		nlist.list[i*nlist.pitch + pidx] = 2*pidx + i;
-	}
-
-/*! \post The neighborlist device memory is filled out with a test pattern.
- 			See the code of nlist_data_test_fill() for details on what that pattern is.
- 			This is intended to be used for unit testing only.
- */
-void gpu_generate_nlist_data_test(gpu_nlist_data *nlist)
-	{
-	assert(nlist);
-	
-	// setup the grid to run the kernel
-	int M = 128;
-	dim3 grid(nlist->N/M+1, 1, 1);
-	dim3 threads(M, 1, 1);
-	
-	// run the kernel
-	nlist_data_test_fill<<< grid, threads >>>(nlist->d_array);
-	CUT_CHECK_ERROR("Kernel execution failed");
-	}
-	
-
 /////////////////////////////////////////////////////////
 // bin data
-
-void gpu_alloc_bin_data(gpu_bin_data *bins, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
-	{		
-	assert(bins);
-	// setup the dimensions
-	bins->d_array.Mx = bins->h_array.Mx = Mx;
-	bins->d_array.My = bins->h_array.My = My;
-	bins->d_array.Mz = bins->h_array.Mz = Mz;
-
-	// use mallocPitch to make sure that memory accesses are coalesced	
-	size_t pitch;
-
-	// allocate and zero device memory
-	if (Mx*My*Mz*Nmax >= 500000*128)
-		printf("Allocating abnormally large cell list: %d %d %d %d\n", Mx, My, Mz, Nmax);
-
-	CUDA_SAFE_CALL( cudaMallocPitch( (void**) &bins->d_array.idxlist, &pitch, Nmax*sizeof(unsigned int), Mx*My*Mz));
-	// want pitch in elements, not bytes
-	Nmax = pitch / sizeof(unsigned int);
-	CUDA_SAFE_CALL( cudaMemset( (void*) bins->d_array.idxlist, 0, pitch * Mx*My*Mz) );
-	CUDA_SAFE_CALL( cudaMallocArray(&bins->d_array.idxlist_array, &nlist_idxlist_tex.channelDesc, Nmax, Mx*My*Mz) );
-	
-	nlist_idxlist_tex.normalized = false;
-	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
-	
-	CUDA_SAFE_CALL( cudaBindTextureToArray(nlist_idxlist_tex, bins->d_array.idxlist_array) );	
-	
-	// allocate the bin coord array
-	CUDA_SAFE_CALL( cudaMalloc( (void**) &bins->d_array.bin_coord, Mx*My*Mz*sizeof(uint4)) );
-
-	// allocate and zero host memory
-	CUDA_SAFE_CALL( cudaMallocHost( (void**)&bins->h_array.idxlist, pitch * Mx*My*Mz) );
-	memset((void*)bins->h_array.idxlist, 0, pitch*Mx*My*Mz);
-	
-	// allocate the bin coord array
-	bins->h_array.bin_coord = (uint4*)malloc(sizeof(uint4) * Mx*My*Mz);
-	// initialize the coord array
-	for (int i = 0; i < Mx; i++)
-		{
-		for (int j = 0; j < My; j++)
-			{
-			for (int k = 0; k < Mz; k++)
-				{
-				int bin = i*Mz*My + j*Mz + k;
-				bins->h_array.bin_coord[bin].x = i;
-				bins->h_array.bin_coord[bin].y = j;
-				bins->h_array.bin_coord[bin].z = k;
-				bins->h_array.bin_coord[bin].w = 0;
-				}
-			}
-		}
-	// copy it to the device. This only needs to be done once
-	CUDA_SAFE_CALL( cudaMemcpy(bins->d_array.bin_coord, bins->h_array.bin_coord, sizeof(uint4)*Mx*My*Mz, cudaMemcpyHostToDevice) );
-	CUDA_SAFE_CALL( cudaBindTexture(0, nlist_bincoord_tex, bins->d_array.bin_coord, sizeof(uint4)*Mx*My*Mz) );
-
-	// assign allocated pitch
-	bins->d_array.Nmax = bins->h_array.Nmax = Nmax;
-	//printf("allocated Nmax = %d / allocated nbins = %d\n", Nmax, Mx*My*Mz);
-	}
-
-void gpu_free_bin_data(gpu_bin_data *bins)
-	{
-	assert(bins);
-	// free the device memory
-	CUDA_SAFE_CALL( cudaFree(bins->d_array.idxlist) );
-	CUDA_SAFE_CALL( cudaFreeArray(bins->d_array.idxlist_array) );
-	CUDA_SAFE_CALL( cudaFree(bins->d_array.bin_coord) );
-	// free the hsot memory
-	CUDA_SAFE_CALL( cudaFreeHost(bins->h_array.idxlist) );
-	free(bins->h_array.bin_coord);
-
-	// set pointers to NULL so no one will think they are valid 
-	bins->d_array.idxlist = NULL;
-	bins->h_array.idxlist = NULL;
-	}
-
-void gpu_copy_bin_data_htod(gpu_bin_data *bins)
-	{
-	assert(bins);
-
-	unsigned int nbytes = bins->d_array.Mx * bins->d_array.My * bins->d_array.Mz * bins->d_array.Nmax * sizeof(unsigned int);
-
-	CUDA_SAFE_CALL( cudaMemcpy(bins->d_array.idxlist, bins->h_array.idxlist, 
-			nbytes, cudaMemcpyHostToDevice) );
-	CUDA_SAFE_CALL( cudaMemcpyToArray(bins->d_array.idxlist_array, 0, 0, bins->h_array.idxlist, nbytes,
-			cudaMemcpyHostToDevice) );
-	}
-
-void gpu_copy_bin_data_dtoh(gpu_bin_data *bins)
-	{
-	assert(bins);
-
-	unsigned int nbytes = bins->d_array.Mx * bins->d_array.My * bins->d_array.Mz * bins->d_array.Nmax * sizeof(unsigned int);
-
-	CUDA_SAFE_CALL( cudaMemcpy(bins->h_array.idxlist, bins->d_array.idxlist, 
-			nbytes, cudaMemcpyDeviceToHost) );
-	}
-
-
 
 //////////////////////////////////////////////////////////
 __global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata, gpu_nlist_array nlist, float r_buffsq, gpu_boxsize box)
@@ -318,28 +84,40 @@ __global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata, gpu_
 	}
 
 //! Check if the neighborlist needs updating
-int gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_data *nlist, float r_buffsq)
+cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_buffsq, int *result)
 	{
 	assert(pdata);
 	assert(nlist);
+	assert(result);
 	
 	// start by zeroing the value on the device
-	int result = 0;
-	CUDA_SAFE_CALL( cudaMemcpy(nlist->d_array.needs_update, &result, 
-			sizeof(int), cudaMemcpyHostToDevice) );
+	*result = 0;
+	cudaError_t error = cudaMemcpy(nlist->needs_update, result,
+			sizeof(int), cudaMemcpyHostToDevice);
 	
 	// run the kernel
-    int M = 256;
-    dim3 grid( (pdata->N/M) + 1, 1, 1);
-    dim3 threads(M, 1, 1);
+	int M = 256;
+	dim3 grid( (pdata->N/M) + 1, 1, 1);
+	dim3 threads(M, 1, 1);
 
-    // run the kernel
-    gpu_nlist_needs_update_check_kernel<<< grid, threads >>>(*pdata, nlist->d_array, r_buffsq, *box);
-    CUT_CHECK_ERROR("Kernel execution failed");
-
-	CUDA_SAFE_CALL( cudaMemcpy(&result, nlist->d_array.needs_update,
-			sizeof(int), cudaMemcpyDeviceToHost) );
-	return result;
+	// run the kernel
+	if (error == cudaSuccess)
+		{
+		gpu_nlist_needs_update_check_kernel<<< grid, threads >>>(*pdata, *nlist, r_buffsq, *box);
+		#ifdef NDEBUG
+		error = cudaSuccess;
+		#else
+		cudaThreadSynchronize();
+		error = cudaGetLastError();
+		#endif
+		}
+	
+	if (error == cudaSuccess)
+		{
+		error = cudaMemcpy(result, nlist->needs_update,
+			sizeof(int), cudaMemcpyDeviceToHost);
+		}
+	return error;
 	}
 
 // vim:syntax=cpp

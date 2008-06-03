@@ -40,7 +40,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "LJForceComputeGPU.h"
-#include "gpu_utils.h"
 
 #include <stdexcept>
 
@@ -49,6 +48,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #endif
 
+#include <boost/bind.hpp>
+
+using namespace boost;
 using namespace std;
 
 /*! \param pdata Particle Data to compute forces on
@@ -61,6 +63,20 @@ using namespace std;
 LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
 	: LJForceCompute(pdata, nlist, r_cut), m_params_changed(true), m_ljparams(NULL), m_block_size(448)
 	{
+	// check the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// only one GPU is currently supported
+	if (exec_conf.gpu.size() == 0)
+		{
+		cout << "Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl;
+		throw std::runtime_error("Error initializing NeighborListNsqGPU");
+		}
+	if (exec_conf.gpu.size() != 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing NeighborListNsqGPU");
+		}	
+	
 	if (m_ntypes > MAX_NTYPES)
 		{
 		cerr << "LJForceComputeGPU cannot handle " << m_ntypes << " types" << endl;
@@ -69,7 +85,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 
 	// allocate the param data on the GPU and make sure it is up to date
 	m_ljparams = gpu_alloc_ljparam_data();
-	CUDA_SAFE_CALL(gpu_select_ljparam_data(m_ljparams, true));
+	exec_conf.gpu[0]->call(bind(gpu_select_ljparam_data, m_ljparams, true));
 	}
 	
 
@@ -130,6 +146,9 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 */
 void LJForceComputeGPU::computeForces(unsigned int timestep)
 	{
+	// check the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
+	
 	// start by updating the neighborlist
 	m_nlist->compute(timestep);
 	
@@ -144,7 +163,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	
 	// access the neighbor list, which just selects the neighborlist into the device's memory, copying
 	// it there if needed
-	gpu_nlist_data nlist = m_nlist->getListGPU();
+	gpu_nlist_array nlist = m_nlist->getListGPU();
 
 	// access the particle data, like the neighborlist, this is just putting the pointers into the 
 	// right constant memory and copying data to those pointers if needed
@@ -184,13 +203,13 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	// actually perform the calculation
 	if (m_params_changed)
 		{
-		CUDA_SAFE_CALL(gpu_select_ljparam_data(m_ljparams, m_params_changed));
+		exec_conf.gpu[0]->call(bind(gpu_select_ljparam_data, m_ljparams, m_params_changed));
 		m_params_changed = false;
 		}
 	
 	if (m_prof)
 		m_prof->push("Compute");
-	CUDA_SAFE_CALL(gpu_ljforce_sum(m_d_forces, &pdata, &box, &nlist, m_r_cut * m_r_cut, m_block_size));
+	exec_conf.gpu[0]->call(bind(gpu_ljforce_sum, m_d_forces, &pdata, &box, &nlist, m_r_cut * m_r_cut, m_block_size));
 
 	// FLOPS: 34 for each calc
 	int64_t flops = (34)*n_calc;
@@ -208,7 +227,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 
 	if (m_prof)
 		{
-		cudaThreadSynchronize();
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(flops, mem_transfer);
 		m_prof->pop();
 		}

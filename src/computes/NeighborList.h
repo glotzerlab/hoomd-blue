@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 )
+#endif
+
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include <vector>
@@ -150,7 +155,7 @@ class NeighborList : public Compute
 		
 		#ifdef USE_CUDA
 		//! Acquire the list on the GPU
-		gpu_nlist_data getListGPU();
+		gpu_nlist_array getListGPU();
 		#endif
 		
 		//! Set the storage mode
@@ -201,7 +206,9 @@ class NeighborList : public Compute
 			};
 		
 		DataLocation m_data_location;	//!< Where the neighborlist data currently lives
-		gpu_nlist_data m_gpu_nlist;		//!< Stores pointers and dimensions of GPU data structures
+		gpu_nlist_array m_gpu_nlist;		//!< Stores pointers and dimensions of GPU data structures
+		unsigned int *m_host_nlist;
+		uint4 *m_host_exclusions;
 		
 		//! Helper function to move data from the host to the device
 		void hostToDeviceCopy();
@@ -217,6 +224,12 @@ class NeighborList : public Compute
 		 
 		//! Performs the computations for the simple neighbor list algorithm
 		virtual void computeSimple();
+		
+		//! Helper function to allocate data
+		void allocateGPUData(int height);
+		
+		//! Helper function to free data
+		void freeGPUData();
 
 	};
 	
@@ -227,4 +240,6 @@ void export_NeighborList();
 
 #endif
 
-
+#ifdef WIN32
+#pragma warning( pop )
+#endif

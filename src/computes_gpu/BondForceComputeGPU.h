@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 )
+#endif
+
 #include "BondForceCompute.h"
 #include "gpu_forces.h"
 
@@ -81,7 +86,9 @@ class BondForceComputeGPU : public BondForceCompute
 	protected:
 		bool m_dirty;	//!< Dirty flag to track if the bond table has changed
 		int m_block_size;				//!< Block size to run calculation on
-		gpu_bondtable_data m_gpu_bondtable;	//!< The actual bond table data
+		gpu_bondtable_array m_gpu_bondtable;	//!< The actual bond table data
+		unsigned int *m_bondlist;
+		
 		boost::signals::connection m_sort_connection;	
 		
 		//! Helper function to set the dirty flag when particles are resort
@@ -93,6 +100,15 @@ class BondForceComputeGPU : public BondForceCompute
 		//! Helper function to reallocate the bond table on the device
 		void reallocateBondTable(int height);
 		
+		//! Helper function to allocate the bond table
+		void allocateBondTable(int height);
+		
+		//! Helper function to free the bond table
+		void freeBondTable();
+		
+		//! Copies the bond table to the device
+		void copyBondTable();
+		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
 	};
@@ -103,3 +119,8 @@ void export_BondForceComputeGPU();
 #endif
 
 #endif
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif
+

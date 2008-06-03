@@ -41,6 +41,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gpu_integrator.h"
 
+#ifdef WIN32
+#include <cassert>
+#else
+#include <assert.h>
+#endif
+
 /*! \file gpu_integrator.cu
 	\brief Contains kernel and driver code for summing forces on the GPU
 */

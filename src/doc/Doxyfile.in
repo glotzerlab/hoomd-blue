@@ -184,7 +184,7 @@ SEARCH_INCLUDES        = NO
 INCLUDE_PATH           = 
 INCLUDE_FILE_PATTERNS  = 
 PREDEFINED             = ${DOXYGEN_PREDEFINED}
-EXPAND_AS_DEFINED      = 
+EXPAND_AS_DEFINED      =
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::additions related to external references   

@@ -40,8 +40,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 #include "gpu_nlist.h"
 #include "gpu_pdata.h"
-#include "gpu_nlist_nvcc.h"
-#include "gpu_utils.h"
 #include <stdio.h>
 
 #ifdef WIN32
@@ -49,6 +47,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #include <assert.h>
 #endif
+
+// textures used in this kernel: commented out because textures are managed globally currently
+texture<unsigned int, 2, cudaReadModeElementType> nlist_idxlist_tex;
+texture<uint4, 1, cudaReadModeElementType> nlist_bincoord_tex;
+
+//! Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 /*! \file nlist_binned_kernel.cu
 	\brief Contains code for the kernel that implements the binned O(N) neighbor list on the GPU
@@ -791,22 +796,43 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	nlist.last_updated_pos[my_pidx] = my_pos;
 	}
 	
-void gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_data *bins, gpu_nlist_data *nlist, float r_maxsq, int curNmax, int block_size)
+cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_array *bins, gpu_nlist_array *nlist, float r_maxsq, int curNmax, int block_size)
 	{
 	assert(bins);
 	assert(pdata);
 	assert(nlist);
 	assert(block_size > 0);
 
-    // setup the grid to run the kernel
+	// setup the grid to run the kernel
 	int nblocks = (int)ceil((double)pdata->N/ (double)block_size);
 	
-    dim3 grid(nblocks, 1, 1);
-    dim3 threads(block_size, 1, 1);
+	dim3 grid(nblocks, 1, 1);
+	dim3 threads(block_size, 1, 1);
+
+	// bind the textures
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+
+	error = cudaBindTexture(0, nlist_bincoord_tex, bins->bin_coord, sizeof(uint4)*bins->Mx*bins->My*bins->Mz);
+	if (error != cudaSuccess)
+		return error;
+
+	nlist_idxlist_tex.normalized = false;
+	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
+	error = cudaBindTextureToArray(nlist_idxlist_tex, bins->idxlist_array);
+	if (error != cudaSuccess)
+		return error;
 
 	// run the kernel
-	updateFromBins_new<<< grid, threads>>>(*pdata, bins->d_array, nlist->d_array, r_maxsq, curNmax, *box);
-	CUT_CHECK_ERROR("Kernel execution failed");
+	updateFromBins_new<<< grid, threads>>>(*pdata, *bins, *nlist, r_maxsq, curNmax, *box);
+	
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif
 	}
 
 // vim:syntax=cpp

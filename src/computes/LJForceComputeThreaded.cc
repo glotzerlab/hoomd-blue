@@ -372,7 +372,7 @@ void LJForceComputeThreaded::computeForceChunk(Scalar * __restrict__ fx, Scalar 
 		
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = (*m_tmp_nlist)[i];
-		const unsigned int size = list.size();
+		const unsigned int size = (unsigned int)list.size();
 
 		// increment our calculation counter
 		n_calc += size;

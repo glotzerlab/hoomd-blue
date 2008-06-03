@@ -47,6 +47,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #endif
 
+#include <boost/bind.hpp>
+using namespace boost;
+
 using namespace std;
 
 /*! \param pdata Particle data to update
@@ -56,12 +59,53 @@ using namespace std;
 */
 NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T) : NVTUpdater(pdata, deltaT, Q, T)
 	{
-	nvt_alloc_data(&d_nvt_data, m_pdata->getN(), 128);
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// at least one GPU is needed
+	if (exec_conf.gpu.size() == 0)
+		{
+		cout << "Creating a NVTUpdaterGPU with no GPU in the execution configuration" << endl;
+		throw std::runtime_error("Error initializing NVTUpdaterGPU");
+		}
+		
+	allocateNVTData(128);
 	}
 
 NVTUpdaterGPU::~NVTUpdaterGPU()
 	{
-	nvt_free_data(&d_nvt_data);
+	freeNVTData();
+	}
+
+/*! \param block_size block size to allocate data for
+*/
+void NVTUpdaterGPU::allocateNVTData(int block_size)
+	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
+	d_nvt_data.block_size = block_size;
+	d_nvt_data.NBlocks = m_pdata->getN() / block_size + 1;
+
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.partial_Ksum), d_nvt_data.NBlocks * sizeof(float)));
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Ksum), sizeof(float)));
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Xi), sizeof(float)));
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Xi_dbl), sizeof(float)));
+
+	// initialize Xi to 1.0
+	float Xi = 1.0;
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, d_nvt_data.Xi, &Xi, sizeof(float), cudaMemcpyHostToDevice));
+	}
+
+void NVTUpdaterGPU::freeNVTData()
+	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.partial_Ksum));
+	d_nvt_data.partial_Ksum = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.Ksum));
+	d_nvt_data.Ksum = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.Xi));
+	d_nvt_data.Xi = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.Xi_dbl));
+	d_nvt_data.Xi_dbl = NULL;
 	}
 
 /*! \param timestep Current time step of the simulation
@@ -69,8 +113,6 @@ NVTUpdaterGPU::~NVTUpdaterGPU()
 void NVTUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
-	if (m_forces.size() > 2 && m_forces.size() != 0)
-		cout << "NVTUpdaterGPU currently only supports 1 or 2 forces" << endl;
 	
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
@@ -91,11 +133,12 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	if (m_prof)
 		m_prof->push("Half-step 1");
 		
-	nvt_pre_step(&d_pdata, &box, &d_nvt_data, m_deltaT);
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.gpu[0]->call(bind(nvt_pre_step, &d_pdata, &box, &d_nvt_data, m_deltaT));
 	
 	if (m_prof)
 		{
-		cudaThreadSynchronize();
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(36*m_pdata->getN(), 80 * m_pdata->getN());
 		}
 	
@@ -116,11 +159,11 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_prof->push("Reducing");
 		}
 		
-	nvt_reduce_ksum(&d_nvt_data);
+	exec_conf.gpu[0]->call(bind(nvt_reduce_ksum, &d_nvt_data));
 	
 	if (m_prof)
 		{
-		cudaThreadSynchronize();
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop();
 		}
 	
@@ -129,16 +172,18 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	nvt_step(&d_pdata, &d_nvt_data, m_d_force_data_ptrs, m_forces.size(), m_deltaT, m_Q, m_T);
+	exec_conf.gpu[0]->call(bind(nvt_step, &d_pdata, &d_nvt_data, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT, m_Q, m_T));
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
 	if (m_prof)
 		{
-		cudaThreadSynchronize();
+		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(15 * m_pdata->getN(), m_pdata->getN() * 16 * (3 + m_forces.size()));	
 		m_prof->pop();
 		}
+		
+	exec_conf.gpu[0]->sync();
 	}
 	
 #ifdef USE_PYTHON

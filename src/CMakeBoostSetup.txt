@@ -97,9 +97,18 @@ endif(NOT WIN32)
 
 find_package(Boost REQUIRED)
 link_directories(${BOOST_LIBRARY_DIRS})
-# the user needs to see if the boost auto-linking is working on windows
+# also enable stdcall boost::bind support on windows for CUDA runtime API calls
 if (WIN32)
-add_definitions(-DBOOST_LIB_DIAGNOSTIC)
+
+# the user needs to see if the boost auto-linking is working on windows
+# Disabled because it is getting annoying. Renable if you need to debug
+# add_definitions(-DBOOST_LIB_DIAGNOSTIC)
+
+# stdcall isn't needed in 64 bit
+if (NOT CMAKE_CL_64)
+add_definitions(-DBOOST_BIND_ENABLE_STDCALL)
+endif (NOT CMAKE_CL_64)
+
 endif (WIN32)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_CMAKE_FIND_LIBRARY_SUFFIXES})

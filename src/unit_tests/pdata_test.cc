@@ -51,15 +51,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "boost_utf_configure.h"
 
 #include <boost/test/floating_point_comparison.hpp>
+#include <boost/bind.hpp>
 
 #include "ParticleData.h"
 #include "Initializers.h"
 
-#ifdef USE_CUDA
-#include "gpu_utils.h"
-#endif
-
 using namespace std;
+using namespace boost;
 
 //! Need a simple define for checking two close values whether they are double or single
 #define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
@@ -259,7 +257,9 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 	pdata.release();
 	// try accessing the data on the GPU
 	gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU();
-	gpu_pdata_texread_test(&d_pdata);
+	const ExecutionConfiguration& exec_conf = pdata.getExecConf();
+	BOOST_REQUIRE_EQUAL(exec_conf.gpu.size(), (unsigned int)1);
+	exec_conf.gpu[0]->call(bind(gpu_pdata_texread_test, &d_pdata));
 	pdata.release();
 
 	pdata.acquireReadOnly();

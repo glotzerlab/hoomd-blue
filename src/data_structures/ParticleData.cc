@@ -59,9 +59,8 @@ using namespace boost::python;
 
 #include "ParticleData.h"
 #include "WallData.h"
-#ifdef USE_CUDA
-#include "gpu_utils.h"
-#endif
+
+#include <boost/bind.hpp>
 
 using namespace boost::signals;
 using namespace boost;
@@ -138,14 +137,22 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	\post \c type is allocated and given the default value of type[i] = 0
 	\post Arrays are not currently acquired
 */ 
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types)	
-	: m_box(box), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
+ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, ExecutionConfiguration exec_conf)	
+	: m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
 	{
 	// check the input for errors
 	if (m_ntypes == 0)
 		{
 		throw runtime_error("Number of particle types must be greater than 0.");
 		}
+		
+	#ifdef USE_CUDA
+	if (m_exec_conf.gpu.size() != 0 && m_exec_conf.gpu.size() > 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing ParticleData");
+		}
+	#endif
 	
 	// allocate memory
 	allocate(N);
@@ -174,20 +181,26 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	// allocate walls
 	m_wallData = shared_ptr<WallData>(new WallData());
 
-	// if this is a GPU build, initialize the graphics card mirror data structure
+	// if this is a GPU build, initialize the graphics card mirror data structures
 	#ifdef USE_CUDA
-	hostToDeviceCopy();
-	CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
-	// now the data is copied to both the cpu and gpu and is unmodified, set the initial state
-	m_data_location = cpugpu;
-
-	// setup the box
-	m_gpu_box.Lx = m_box.xhi - m_box.xlo;
-	m_gpu_box.Ly = m_box.yhi - m_box.ylo;
-	m_gpu_box.Lz = m_box.zhi - m_box.zlo;
-	m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
-	m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
-	m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
+	if (!m_exec_conf.gpu.empty())
+		{
+		hostToDeviceCopy();
+		// now the data is copied to both the cpu and gpu and is unmodified, set the initial state
+		m_data_location = cpugpu;
+	
+		// setup the box
+		m_gpu_box.Lx = m_box.xhi - m_box.xlo;
+		m_gpu_box.Ly = m_box.yhi - m_box.ylo;
+		m_gpu_box.Lz = m_box.zhi - m_box.zlo;
+		m_gpu_box.Lxinv = 1.0f / m_gpu_box.Lx;
+		m_gpu_box.Lyinv = 1.0f / m_gpu_box.Ly;
+		m_gpu_box.Lzinv = 1.0f / m_gpu_box.Lz;
+		}
+	else
+		{
+		m_data_location = cpu;
+		}
 
 	#endif
 	}
@@ -196,7 +209,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	uses it to fill out the position and velocity data.
 	\param init Initializer to use
 */
-ParticleData::ParticleData(const ParticleDataInitializer& init) : m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
+ParticleData::ParticleData(const ParticleDataInitializer& init, ExecutionConfiguration exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
 	{
 	m_ntypes = init.getNumParticleTypes();
 	// check the input for errors
@@ -204,6 +217,14 @@ ParticleData::ParticleData(const ParticleDataInitializer& init) : m_data(NULL), 
 		{
 		throw runtime_error("Number of particle types must be greater than 0.");
 		}
+		
+	#ifdef USE_CUDA
+	if (m_exec_conf.gpu.size() != 0 && m_exec_conf.gpu.size() > 1)
+		{
+		cout << "More than one GPU is not currently supported";
+		throw std::runtime_error("Error initializing ParticleData");
+		}
+	#endif
 	
 	// allocate memory
 	allocate(init.getNumParticles());
@@ -245,10 +266,16 @@ ParticleData::ParticleData(const ParticleDataInitializer& init) : m_data(NULL), 
 
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef USE_CUDA
-	hostToDeviceCopy();
-	CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
-	// now the data is copied to both the cpu and gpu and is unmodified, set the initial state
-	m_data_location = cpugpu;
+	if (!m_exec_conf.gpu.empty())
+		{
+		hostToDeviceCopy();
+		// now the data is copied to both the cpu and gpu and is unmodified, set the initial state
+		m_data_location = cpugpu;
+		}
+	else
+		{
+		m_data_location = cpu;
+		}
 	
 	#endif
 	}
@@ -406,8 +433,7 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
 	
 #ifdef USE_CUDA
 
-/*! Acquire access to the particle data, for read only access on the gpu. Also activates the 
-	texture unit for pdata_pos_tex to point to these arrays.
+/*! Acquire access to the particle data, for read only access on the gpu.
 	
  	\return Pointers to GPU device memory where the particle data can be accessed 
 	\sa acquireReadOnly
@@ -419,6 +445,12 @@ gpu_pdata_arrays ParticleData::acquireReadOnlyGPU()
 	assert(!m_acquired);
 	m_acquired = true;
 	
+	if (m_exec_conf.gpu.size() == 0)
+		{
+		cout << "Reqesting GPU pdata, but no GPU in the Execution Configuration";
+		throw runtime_error("Error acquiring GPU data");
+		}
+		
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
 	switch (m_data_location)
@@ -427,23 +459,15 @@ gpu_pdata_arrays ParticleData::acquireReadOnlyGPU()
 			// if the data is on the cpu, we need to copy it over to the gpu
 			hostToDeviceCopy();
 			
-			// make sure the texture is bound
-			CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
 			// now we are in the cpugpu state
 			m_data_location = cpugpu;
 			return m_gpu_pdata;
 			break;
 		case cpugpu:
-			// if the data is up to date on both the cpu and gpu, life is easy, just make sure
-			// that the texture is bound
-			CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
 			// state remains the same
 			return m_gpu_pdata;
 			break;
 		case gpu:
-			// if the data resides on the gpu, life is easy, just make sure that 
-			// the texture is bound
-			CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
 			// state remains the same
 			return m_gpu_pdata;
 			break;
@@ -455,9 +479,8 @@ gpu_pdata_arrays ParticleData::acquireReadOnlyGPU()
 		}
 	}
 
-/*! Acquire access to the particle data, for read/write access on the gpu. Also activates the 
-	texture unit for pdata_pos_tex to point to these arrays.
-	
+/*! Acquire access to the particle data, for read/write access on the gpu. 
+
  	\return Pointers to GPU device memory where the particle data can be accessed 
 	\sa acquireReadOnly
 	\sa release
@@ -468,33 +491,30 @@ gpu_pdata_arrays ParticleData::acquireReadWriteGPU()
 	assert(!m_acquired);
 	m_acquired = true;
 	
+	if (m_exec_conf.gpu.size() == 0)
+		{
+		cout << "Reqesting GPU pdata, but no GPU in the Execution Configuration";
+		throw runtime_error("Error acquiring GPU data");
+		}
+	
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
 	switch (m_data_location)
 		{
 		case cpu:
 			// if the data is on the cpu, we need to copy it over to the gpu and 
-			// make sure the texture is bound
 			hostToDeviceCopy();
-			CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
-			
+						
 			// now we are in the gpu state
 			m_data_location = gpu;
 			return m_gpu_pdata;
 			break;
 		case cpugpu:
-			// if the data is up to date on both the cpu and gpu, life is easy, just make sure
-			// that the texture is bound
-
-			CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
 			// state goes to gpu
 			m_data_location = gpu;
 			return m_gpu_pdata;
 			break;
 		case gpu:
-			// if the data resides on the gpu, life is easy, just make sure that 
-			// the texture is bound
-			CUDA_SAFE_CALL( gpu_bind_pdata_textures(&m_gpu_pdata) );
 			// state remains the same
 			return m_gpu_pdata;
 			break;
@@ -502,7 +522,7 @@ gpu_pdata_arrays ParticleData::acquireReadWriteGPU()
 			// anything other than the above is an undefined state!
 			assert(false);
 			return m_gpu_pdata;	
-			break;				
+			break;
 		}
 	}	
 		
@@ -620,7 +640,14 @@ void ParticleData::allocate(unsigned int N)
 	//////////////////////////////////////////////////////
 	// allocate the memory on the CPU, use pinned memory if compiling for the GPU
 	#ifdef USE_CUDA
-	CUDA_SAFE_CALL( cudaMallocHost( &m_data, m_nbytes) );
+	if (!m_exec_conf.gpu.empty())
+		{
+		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, &m_data, m_nbytes));
+		}
+	else
+		{
+		m_data = malloc(m_nbytes);
+		}
 	#else
 	m_data = malloc(m_nbytes);
 	#endif
@@ -649,19 +676,23 @@ void ParticleData::allocate(unsigned int N)
 	#ifdef USE_CUDA
 	//////////////////////////////////////////////////////////
 	// allocate memory on the GPU
-	m_gpu_pdata.N = N;
-	m_uninterleave_pitch = single_xarray_bytes/4;
-	m_single_xarray_bytes = single_xarray_bytes;
+	if (!m_exec_conf.gpu.empty())
+		{
+		m_gpu_pdata.N = N;
+		m_uninterleave_pitch = single_xarray_bytes/4;
+		m_single_xarray_bytes = single_xarray_bytes;
 	
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.pos), single_xarray_bytes * 4) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.vel), single_xarray_bytes * 4) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.accel), single_xarray_bytes * 4) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.charge), single_xarray_bytes) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.tag), sizeof(unsigned int)*N) );
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_gpu_pdata.rtag), sizeof(unsigned int)*N) );
-	
-	// allocate temporary holding area for uninterleaved data
-	CUDA_SAFE_CALL( cudaMalloc( (void **)((void *)&m_d_staging), single_xarray_bytes*4) );
+		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.pos), single_xarray_bytes * 4));
+		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.vel), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.accel), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.charge), single_xarray_bytes) );
+		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.tag), sizeof(unsigned int)*N) );
+		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.rtag), sizeof(unsigned int)*N));
+		
+		// allocate temporary holding area for uninterleaved data
+		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging), single_xarray_bytes*4));
+		}
+		
 	#endif
 	}
 	
@@ -674,16 +705,23 @@ void ParticleData::deallocate()
 		
 	// free the data
 	#ifdef USE_CUDA
-	CUDA_SAFE_CALL( cudaFreeHost(m_data) );
-	
-	CUDA_SAFE_CALL( cudaFree(m_gpu_pdata.pos) );
-	CUDA_SAFE_CALL( cudaFree(m_gpu_pdata.vel) );
-	CUDA_SAFE_CALL( cudaFree(m_gpu_pdata.accel) );
-	CUDA_SAFE_CALL( cudaFree(m_gpu_pdata.charge) );
-	CUDA_SAFE_CALL( cudaFree(m_gpu_pdata.tag) );
-	CUDA_SAFE_CALL( cudaFree(m_gpu_pdata.rtag) );
-	
-	CUDA_SAFE_CALL( cudaFree(m_d_staging) );	
+	if (!m_exec_conf.gpu.empty())
+		{	
+		m_exec_conf.gpu[0]->call(bind(cudaFreeHost, m_data));
+		
+		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.pos));
+		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.vel));
+		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.accel));
+		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.charge));
+		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.tag));
+		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.rtag));
+		
+		m_exec_conf.gpu[0]->call(bind(cudaFree, m_d_staging));
+		}
+	else
+		{
+		free(m_data);
+		}
 	#else
 	free(m_data);
 	#endif
@@ -751,8 +789,11 @@ bool ParticleData::inBox()
 */
 void ParticleData::hostToDeviceCopy()
 	{
-	if (m_prof) m_prof->push("PDATA C2G");
+	// we should never be called unless 1 gpu is in the exec conf... verify
+	assert(m_exec_conf.gpu.size() == 1);
 	
+	if (m_prof) m_prof->push("PDATA C2G");
+		
 	const int N = m_arrays.nparticles;	
 	
 	// because of the way memory was allocated, we can copy lots of pieces in huge chunks
@@ -760,30 +801,30 @@ void ParticleData::hostToDeviceCopy()
 	// inside allocate
 	
 	// copy position data to the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_d_staging, m_arrays.x, m_single_xarray_bytes*4, cudaMemcpyHostToDevice) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_arrays.x, m_single_xarray_bytes*4, cudaMemcpyHostToDevice));
 	// interleave the data
-	CUDA_SAFE_CALL( gpu_interleave_float4(m_gpu_pdata.pos, m_d_staging, N, m_uninterleave_pitch) );
+	m_exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_gpu_pdata.pos, m_d_staging, N, m_uninterleave_pitch));
 
 	// copy velocity data to the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_d_staging, m_arrays.vx, m_single_xarray_bytes*3, cudaMemcpyHostToDevice) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_arrays.vx, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 	//interleave the data
-	CUDA_SAFE_CALL( gpu_interleave_float4(m_gpu_pdata.vel, m_d_staging, N, m_uninterleave_pitch) );
+	m_exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_gpu_pdata.vel, m_d_staging, N, m_uninterleave_pitch));
 	
 	// copy acceleration data to the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_d_staging, m_arrays.ax, m_single_xarray_bytes*3, cudaMemcpyHostToDevice) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_arrays.ax, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 	//interleave the data
-	CUDA_SAFE_CALL( gpu_interleave_float4(m_gpu_pdata.accel, m_d_staging, N, m_uninterleave_pitch) );
+	m_exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_gpu_pdata.accel, m_d_staging, N, m_uninterleave_pitch));
 	
 	// copy charge
-	CUDA_SAFE_CALL( cudaMemcpy(m_gpu_pdata.charge, m_arrays.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_pdata.charge, m_arrays.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 
 	// copy the tag and rtag data
-	CUDA_SAFE_CALL(cudaMemcpy(m_gpu_pdata.tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice) ); 
-	CUDA_SAFE_CALL(cudaMemcpy(m_gpu_pdata.rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_pdata.tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice)); 
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_pdata.rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
 	
 	if (m_prof)
 		{
-		cudaThreadSynchronize(); 
+		m_exec_conf.gpu[0]->call(bind(cudaThreadSynchronize)); 
 		m_prof->pop(0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 		}
 	}
@@ -793,6 +834,9 @@ void ParticleData::hostToDeviceCopy()
 void ParticleData::deviceToHostCopy()
 	{
 	if (m_prof) m_prof->push("PDATA G2C");
+	
+	// we should never be called unless 1 gpu is in the exec conf... verify
+	assert(m_exec_conf.gpu.size() == 1);
 
 	const int N = m_arrays.nparticles;
 
@@ -801,30 +845,30 @@ void ParticleData::deviceToHostCopy()
 	// inside allocate
 
 	// uninterleave the data
-	CUDA_SAFE_CALL( gpu_uninterleave_float4(m_d_staging, m_gpu_pdata.pos, N, m_uninterleave_pitch) );
+	m_exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_gpu_pdata.pos, N, m_uninterleave_pitch));
 	// copy position data from the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_arrays.x, m_d_staging, m_single_xarray_bytes*4, cudaMemcpyDeviceToHost) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.x, m_d_staging, m_single_xarray_bytes*4, cudaMemcpyDeviceToHost));
 
 	// uninterleave the data
-	CUDA_SAFE_CALL( gpu_uninterleave_float4(m_d_staging, m_gpu_pdata.vel, N, m_uninterleave_pitch) );
+	m_exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_gpu_pdata.vel, N, m_uninterleave_pitch));
 	// copy velocity data from the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_arrays.vx, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.vx, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost));
 
 	// uninterleave the data
-	CUDA_SAFE_CALL( gpu_uninterleave_float4(m_d_staging, m_gpu_pdata.accel, N, m_uninterleave_pitch) );
+	m_exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_gpu_pdata.accel, N, m_uninterleave_pitch));
 	// copy velocity data from the staging area
-	CUDA_SAFE_CALL( cudaMemcpy(m_arrays.ax, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.ax, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost));
 
 	// copy charge
-	CUDA_SAFE_CALL( cudaMemcpy(m_arrays.charge, m_gpu_pdata.charge, m_single_xarray_bytes, cudaMemcpyDeviceToHost) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.charge, m_gpu_pdata.charge, m_single_xarray_bytes, cudaMemcpyDeviceToHost));
 	
 	// copy the tag and rtag data
-	CUDA_SAFE_CALL(cudaMemcpy(m_arrays.tag, m_gpu_pdata.tag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost) ); 
-	CUDA_SAFE_CALL(cudaMemcpy(m_arrays.rtag, m_gpu_pdata.rtag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost) );
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.tag, m_gpu_pdata.tag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost)); 
+	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.rtag, m_gpu_pdata.rtag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost));
 
 	if (m_prof) 
 		{
-		cudaThreadSynchronize();
+		m_exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 		}
 	}

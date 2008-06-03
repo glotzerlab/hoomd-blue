@@ -40,7 +40,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "gpu_pdata.h"
-#include "gpu_utils.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -51,36 +50,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file gpu_pdata.cu
  	\brief Contains code and kernels for methods defined in gpu_pdata.h
 */
-
-/*! \pre Memory pointers inside \a pdata point to allocated memory
-	\post \c pdata_pos_tex is bound to pdata->pos
-	\param pdata Particle data to bind to the texture
-	\returns Result of cudaBindTexture
-*/
-cudaError_t gpu_bind_pdata_textures(gpu_pdata_arrays *pdata)
-	{
-	assert(pdata);
-	cudaError_t error, retval;
-	
-	// start off assuming there is no error
-	retval = cudaSuccess;
-	
-	/*pdata_pos_tex.addressMode[0] = cudaAddressModeClamp;
-	pdata_pos_tex.addressMode[1] = cudaAddressModeClamp;
-	pdata_pos_tex.filterMode = cudaFilterModePoint;
-	pdata_pos_tex.normalized = false;*/
-	// Bind the array to the texture
-	error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
-	if (error != cudaSuccess)
-		retval = error;
-	error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
-	if (error != cudaSuccess)
-		retval = error;
-	error =  cudaBindTexture(0, pdata_accel_tex, pdata->accel, sizeof(float4) * pdata->N);
-	if (error != cudaSuccess)
-		retval = error;
-	return retval;	
-	}
 
 //! Kernel for un-interleaving float4 input into float output
 /*! \param d_out Device pointer to write un-interleaved output
@@ -263,6 +232,9 @@ cudaError_t gpu_generate_pdata_test(gpu_pdata_arrays *pdata)
 	return cudaGetLastError();
 	}
 
+//! Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+
 //! Kernel for testing texture read capability
 /*! \param pdata Particle data to write to
 	\post \c pdata.vel[i] holds the value read from \c pdata_pos_tex at location \c i
@@ -294,6 +266,11 @@ cudaError_t gpu_pdata_texread_test(gpu_pdata_arrays *pdata)
 	int M = 128;
 	dim3 grid(pdata->N/M+1, 1, 1);
 	dim3 threads(M, 1, 1);
+
+	// bind the textures
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
 	
 	// run the kernel
 	pdata_texread_test<<< grid, threads >>>(*pdata);

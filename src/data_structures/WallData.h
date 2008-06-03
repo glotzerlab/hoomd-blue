@@ -103,7 +103,7 @@ class WallData
 		*/
 		unsigned int getNumWalls() const
 			{
-			return m_walls.size();
+			return (unsigned int)m_walls.size();
 			}
 		
 		//! Access a specific wall

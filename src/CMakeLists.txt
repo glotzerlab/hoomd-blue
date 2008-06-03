@@ -44,7 +44,6 @@ project (HOOMD)
 set(CMAKE_MODULE_PATH 
 	"${CMAKE_CURRENT_SOURCE_DIR}/CMake/cuda"
 	"${CMAKE_CURRENT_SOURCE_DIR}/CMake/boost" 
-	"${CMAKE_CURRENT_SOURCE_DIR}/CMake/python" 
 	"${CMAKE_MODULE_PATH}")
 	
 # setup flags to specify installation directories for files, these differ in

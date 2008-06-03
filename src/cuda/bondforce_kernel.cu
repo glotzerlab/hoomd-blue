@@ -41,7 +41,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gpu_forces.h"
 #include "gpu_pdata.h"
-#include "gpu_utils.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -54,11 +53,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Contains code that implements the bond force sum on the GPU.
 */
 
+//! Texture for reading particle positions
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+
 // this is a copied and pasted ljforces kernel modified to do bond forces
 extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, gpu_bondtable_array blist, float K, float r_0, gpu_boxsize box)
 	{
 	// start by identifying which particle we are to handle
 	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	
+	if (pidx >= pdata.N)
+		return;
 	
 	// load in the length of the list (each thread loads it individually) 
 	int n_bonds = blist.list[pidx];
@@ -105,45 +110,46 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 		}
 		
 	// now that the force calculation is complete, write out the result if we are a valid particle
-	if (pidx < pdata.N)
-		{
-		float4 force;
-		force.x = fx;
-		force.y = fy;
-		force.z = fz;
-		force.w = 0.0f;
-		d_forces[pidx] = force;
-		}
-	
+	float4 force;
+	force.x = fx;
+	force.y = fy;
+	force.z = fz;
+	force.w = 0.0f;
+	d_forces[pidx] = force;
 	}
 
 
 /*! \param d_forces Device memory to write forces to
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
-	\param blist List of bonds stored on the GPU
+	\param btable List of bonds stored on the GPU
 	\param K Stiffness parameter of the bond
 	\param r_0 Equilibrium bond length
-	\param M Block size to use when performing calculations
+	\param block_size Block size to use when performing calculations
 	
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_data *blist, float K, float r_0, int M)
+cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float K, float r_0, int block_size)
 	{
 	assert(pdata);
-	assert(blist);
-	// check that M is valid
-	assert(M != 0);
-	assert((M & 31) == 0);
-	assert(M <= 512);
+	assert(btable);
+	// check that block_size is valid
+	assert(block_size != 0);
+	assert((block_size & 31) == 0);
+	assert(block_size <= 512);
 
 	// setup the grid to run the kernel
-	dim3 grid( (int)ceil((double)pdata->N/ (double)M), 1, 1);
-	dim3 threads(M, 1, 1);
+	dim3 grid( (int)ceil((double)pdata->N/ (double)block_size), 1, 1);
+	dim3 threads(block_size, 1, 1);
+
+	// bind the textures
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
 
 	// run the kernel
-	calcBondForces_kernel<<< grid, threads>>>(d_forces, *pdata, blist->d_array, K, r_0, *box);
+	calcBondForces_kernel<<< grid, threads>>>(d_forces, *pdata, *btable, K, r_0, *box);
 	
 	#ifdef NDEBUG
 	return cudaSuccess;

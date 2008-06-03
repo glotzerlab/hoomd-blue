@@ -50,13 +50,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\ingroup cuda_code
 */
 
-#ifdef NVCC
-//! The texture for reading the pdata pos array
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
-#endif
-
 extern "C" {
 
 //! Structure of arrays of the particle data as it resides on the GPU
@@ -65,13 +58,6 @@ extern "C" {
 	is encoded in the 4th float in the position float4 as an integer. Device code
 	can decode this type data with __float_as_int();
 	
-	A second part of the particle data that lives on the device, not included in this structure
-	is the texture that references the particle positions. The texture is a simple 1D texture
-	bound to device memory. However, since this C structure is a portion of a c++ master, 
-	it is possible that two c++ classes may exist at the same time. But there is only one
-	texture reference, so master classes should be certain to call gpu_bind_pdata_tex()
-	before calling any kernel that needs to use it.
-
 	All the pointers in this structure will be allocated on the device.
 */
 struct gpu_pdata_arrays
@@ -100,9 +86,6 @@ struct gpu_boxsize
 	float Lzinv;//!< 1.0f/Lz
 	};
 	
-//! Binds the texture on the device to this data array
-cudaError_t gpu_bind_pdata_textures(gpu_pdata_arrays *pdata);
-
 //! Helper kernel for un-interleaving data
 cudaError_t gpu_uninterleave_float4(float *d_out, float4 *d_in, int N, int pitch);
 //! Helper kernel for interleaving data

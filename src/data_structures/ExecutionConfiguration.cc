@@ -39,40 +39,45 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "NVTUpdater.h"
-#include "gpu_updaters.h"
+#include "ExecutionConfiguration.h"
 
-#include <boost/shared_ptr.hpp>
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#endif
 
-#ifndef __NVTUPDATER_GPU_H__
-#define __NVTUPDATER_GPU_H__
+#include <stdexcept>
+#include <iostream>
 
-//! NVT
-/*! \ingroup updaters
+using namespace std;
+using namespace boost;
+
+/*! \file ExecutionConfiguration.cc
+	\brief Defines ExecutionConfiguration and related classes
 */
-class NVTUpdaterGPU : public NVTUpdater
-	{
-	public:
-		//! Constructor
-		NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T);
-		virtual ~NVTUpdaterGPU();
 
-		//! Take one timestep forward
-		virtual void update(unsigned int timestep);
-		
-	private:
-		gpu_nvt_data d_nvt_data;	//!< Temp data on the device needed to implement NVT
-
-		//! Helper function to allocate data
-		void allocateNVTData(int block_size);
-		
-		//! Helper function to free data
-		void freeNVTData();
-	};
+/*! Code previous to the creation of ExecutionConfiguration always used
+	CUDA device 0 by default. To maintain continuity, a default constructed
+	ExecutionConfiguration will do the same.
 	
-#ifdef USE_PYTHON
-//! Exports the NVTUpdater class to python
-void export_NVTUpdaterGPU();
-#endif
-
-#endif
+	When the full multi-gpu code is written, ExecutionConfiguration will 
+	by default use all of the GPUs found in the device. This will provide the
+	user with the default fastest performance with no need for command line options.
+*/
+ExecutionConfiguration::ExecutionConfiguration()
+	{
+	#ifdef USE_CUDA
+	int dev_count;
+	cudaError_t error = cudaGetDeviceCount(&dev_count);
+	if (error != cudaSuccess)
+		{
+		cout << "Error getting CUDA capable device count! Continuing with 0 GPUs." << endl;
+		return;
+		}
+	else
+		{
+		if (dev_count > 0)
+			gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(0)));
+		}
+	#endif
+	} 
+		

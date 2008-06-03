@@ -140,7 +140,7 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
 	int child_max_width = 0;
 	for (i = m_children.begin(); i != m_children.end(); ++i)
 		{
-		int child_width = (*i).first.size();
+		int child_width = (int)(*i).first.size();
 		if (child_width > child_max_width)
 			child_max_width = child_width;
 		}
@@ -239,7 +239,7 @@ void Profiler::output(std::ostream &o)
 	m_root.m_elapsed_time = m_clk.getTime() - m_root.m_start_time;
 	
 	// startup the recursive output process
-	m_root.output(o, m_name, 0, m_root.m_elapsed_time, m_name.size());
+	m_root.output(o, m_name, 0, m_root.m_elapsed_time, (int)m_name.size());
 	}	
 	
 std::ostream& operator<<(ostream &o, Profiler& prof)
