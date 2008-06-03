@@ -59,13 +59,13 @@ class NVTUpdater : public Integrator
 	{
 	public:
 		//! Constructor
-		NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T);
+		NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
 		
 	protected:
-		Scalar m_Q;			//!< Q value for Nose-Hoover
+		Scalar m_tau;		//!< tau value for Nose-Hoover
 		Scalar m_T;			//!< Temperature set point
 		Scalar m_Xi;		//!< Friction coeff
 		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet

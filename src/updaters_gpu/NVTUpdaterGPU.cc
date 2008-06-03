@@ -54,10 +54,10 @@ using namespace std;
 
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
-	\param Q Mass of the extra degree of freedom in the system
+	\param tau NVT period
 	\param T Temperature set point
 */
-NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T) : NVTUpdater(pdata, deltaT, Q, T)
+NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : NVTUpdater(pdata, deltaT, tau, T)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// at least one GPU is needed
@@ -172,7 +172,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	exec_conf.gpu[0]->call(bind(nvt_step, &d_pdata, &d_nvt_data, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT, m_Q, m_T));
+	exec_conf.gpu[0]->call(bind(nvt_step, &d_pdata, &d_nvt_data, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT, m_tau, m_T));
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step

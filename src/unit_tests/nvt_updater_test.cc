@@ -1127,7 +1127,8 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator)
 	Scalar deltaT = Scalar(0.005);
 	Scalar Q = Scalar(2.0);
 	Scalar T = Scalar(1.5/3.0);
-	shared_ptr<NVTUpdater> nvt_up = nvt_creator(pdata, deltaT, Q, T);
+	Scalar tau = sqrt(Q / (Scalar(3.0) * T));
+	shared_ptr<NVTUpdater> nvt_up = nvt_creator(pdata, deltaT, tau, T);
 	
 	// see what happens with a constant force
 	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata, 0.0, 0.0, 0.75));
@@ -1175,8 +1176,8 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 	fc1->setParams(0,0,lj1,lj2);
 	fc2->setParams(0,0,lj1,lj2);
 
-	shared_ptr<NVTUpdater> nvt1 = nvt_creator1(pdata1, 0.005, 18000, 1.2);
-	shared_ptr<NVTUpdater> nvt2 = nvt_creator2(pdata2, 0.005, 18000, 1.2);
+	shared_ptr<NVTUpdater> nvt1 = nvt_creator1(pdata1, 0.005, 0.5, 1.2);
+	shared_ptr<NVTUpdater> nvt2 = nvt_creator2(pdata2, 0.005, 0.5, 1.2);
 
 	nvt1->addForceCompute(fc1);
 	nvt2->addForceCompute(fc2);

@@ -38,7 +38,7 @@ fc.setBlockSize(448);
 sorter = SFCPackUpdater(pdata, 1.0);
 
 # integrator
-nvt = NVTUpdaterGPU(pdata, dt, 18000.0, T);
+nvt = NVTUpdaterGPU(pdata, dt, 0.5, T);
 nvt.addForceCompute(fc);
 
 # setup system

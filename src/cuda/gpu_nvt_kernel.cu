@@ -180,7 +180,7 @@ cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data
 	}
 
 
-extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float deltaT, float Q, float T, float g)
+extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float deltaT, float tau, float T, float g)
 	{
 	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -190,7 +190,8 @@ extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data 
 		{
 		Xi = *d_nvt_data.Xi;
 		float Ksum = *d_nvt_data.Ksum;
-		Xi += deltaT / Q * (Ksum - g * T);
+		float T_current = Ksum / g;
+		Xi += deltaT / (tau*tau) * (T_current / T - 1.0f);
 		}
 	__syncthreads();
 

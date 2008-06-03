@@ -40,7 +40,7 @@ init.setupBonds(fc_bond);
 sorter = SFCPackUpdater(pdata, 1.0);
 
 # integrator
-nvt = NVTUpdater(pdata, dt, 18000.0, T);
+nvt = NVTUpdater(pdata, dt, 0.5, T);
 nvt.addForceCompute(fc);
 nvt.addForceCompute(fc_bond);
 

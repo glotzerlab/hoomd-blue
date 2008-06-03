@@ -51,13 +51,13 @@ using namespace std;
 
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
-	\param Q Mass of the extra degree of freedom in the system
+	\param tau NVT period
 	\param T Temperature set point
 */
-NVTUpdater::NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T) : Integrator(pdata, deltaT), m_Q(Q), m_T(T), m_accel_set(false)
+NVTUpdater::NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : Integrator(pdata, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
 	{
-	if (m_Q <= 0.0)
-		cout << "Q <= 0.0, I hope you know what you are doing." << endl;
+	if (m_tau <= 0.0)
+		cout << "tau <= 0.0, I hope you know what you are doing." << endl;
 	if (m_T <= 0.0)
 		cout << "T <= 0.0, I hope you know what you are doing." << endl;
 	m_Xi = 1.0;
@@ -118,8 +118,8 @@ void NVTUpdater::update(unsigned int timestep)
 	
 	// update Xi
 	Scalar g = Scalar(3*m_pdata->getN());
-	m_Xi += m_deltaT / m_Q * (Ksum - g*m_T);
-	//cout << "Xi=" << m_Xi << " / " << "Q=" << m_Q << " / Ksum=" << Ksum << " / T=" << m_T << endl;
+	Scalar T_current = Ksum / g;
+	m_Xi += m_deltaT / (m_tau*m_tau) * (T_current/m_T - Scalar(1.0));
 		
 	// We aren't done yet! Need to fix the periodic boundary conditions
 	// this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
