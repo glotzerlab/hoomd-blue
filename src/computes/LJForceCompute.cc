@@ -178,7 +178,6 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
 
 	// for each particle
-	// NOTE: The outline of this loop shamelessly follow the way LAMMPS calculates the forces
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		// access the particle's position

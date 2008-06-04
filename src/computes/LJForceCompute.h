@@ -87,9 +87,6 @@ class LJForceCompute : public ForceCompute
 		Scalar m_r_cut;	//!< Cuttoff radius beyond which the force is set to 0
 		unsigned int m_ntypes;	//!< Store the width and height of lj1 and lj2 here
 		
-		// this memory layout is shamelessly stolen from lammps
-		// except that lammps also stores all of the parameters epsilon, sigma, and alpha
-		// it needs to in order to do mixing of these values. My code architecture is different.
 		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
 		// level concepts like mixing. That is for the caller to handle. So, I only store 
 		// lj1 and lj2 here

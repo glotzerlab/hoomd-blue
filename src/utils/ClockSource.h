@@ -71,7 +71,7 @@ struct timezone
 	int tz_dsttime;
 	};
 
-// code for gettimeofday shamelessly stolen from 
+// code used under the LGPL license from
 // http://www.winehq.org/pipermail/wine-devel/2003-June/018082.html
 //! Emulation for gettimeofday in windows
 /*! \param tv timeval to return current time in
