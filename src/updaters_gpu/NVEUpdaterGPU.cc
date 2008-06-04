@@ -93,7 +93,7 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 		
-	exec_conf.gpu[0]->call(bind(nve_pre_step, &d_pdata, &box, m_deltaT));
+	exec_conf.gpu[0]->call(bind(nve_pre_step, &d_pdata, &box, m_deltaT, m_limit, m_limit_val));
 	
 	if (m_prof)
 		{
@@ -120,7 +120,7 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	exec_conf.gpu[0]->call(bind(nve_step, &d_pdata, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT));
+	exec_conf.gpu[0]->call(bind(nve_step, &d_pdata, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step

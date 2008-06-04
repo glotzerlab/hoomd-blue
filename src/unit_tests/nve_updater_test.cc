@@ -150,6 +150,64 @@ void nve_updater_integrate_tests(nveup_creator nve_creator)
 		}
 	}
 	
+//! Check that the particle movement limit works
+void nve_updater_limit_tests(nveup_creator nve_creator)
+	{
+	// create a simple 1 particle system
+	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 1));
+	ParticleDataArrays arrays = pdata->acquireReadWrite();
+	
+	// setup a simple initial state
+	arrays.x[0] = 0.0;
+	arrays.y[0] = 1.0;
+	arrays.z[0] = 2.0;
+	arrays.vx[0] = 0.0;
+	arrays.vy[0] = 0.0;
+	arrays.vz[0] = 0.0;
+
+	pdata->release();
+	
+	Scalar deltaT = Scalar(0.0001);
+	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata, deltaT);
+	// set the limit
+	Scalar limit = 0.1;
+	nve_up->setLimit(limit);
+
+	// create an insanely large force to test the limiting method
+	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata, 1e9, 2e9, 3e9));
+	nve_up->addForceCompute(fc1);
+	
+	// expected movement vectors
+	Scalar dx = limit / sqrt(14.0);
+	Scalar dy = 2.0 * limit / sqrt(14.0);
+	Scalar dz = 3.0 * limit / sqrt(14.0);
+	
+	Scalar vx = limit / sqrt(14.0) / deltaT;
+	Scalar vy = 2.0 * limit / sqrt(14.0) / deltaT;
+	Scalar vz = 3.0 * limit / sqrt(14.0) / deltaT;
+	
+	// verify proper integration compared to x = x0 + dx * i
+	nve_up->update(0);
+	for (int i = 1; i < 500; i++)
+		{
+		arrays = pdata->acquireReadWrite();
+		
+		MY_BOOST_CHECK_CLOSE(arrays.x[0], 0.0 + dx * Scalar(i), tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vx[0], vx, tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.y[0], 1.0 + dy * Scalar(i), tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vy[0], vy, tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.z[0], 2.0 + dz * Scalar(i), tol);
+		MY_BOOST_CHECK_CLOSE(arrays.vz[0], vz, tol);
+		
+		pdata->release();
+		
+		nve_up->update(i);
+		}
+	}
+	
+	
 //! Make a few particles jump across the boundary and verify that the updater works
 void nve_updater_boundary_tests(nveup_creator nve_creator)
 	{
@@ -287,6 +345,13 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 	nve_updater_integrate_tests(nve_creator);
 	}
 	
+//! boost test case for base class limit tests
+BOOST_AUTO_TEST_CASE( NVEUpdater_limit_tests )
+	{
+	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+	nve_updater_limit_tests(nve_creator);
+	}	
+	
 //! boost test case for base class boundary tests
 BOOST_AUTO_TEST_CASE( NVEUpdater_boundary_tests )
 	{
@@ -301,6 +366,13 @@ BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator_gpu);
 	}
+	
+//! boost test case for base class limit tests
+BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_limit_tests )
+	{
+	nveup_creator nve_creator = bind(gpu_nve_creator, _1, _2);
+	nve_updater_limit_tests(nve_creator);
+	}		
 	
 //! boost test case for base class boundary tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_boundary_tests )

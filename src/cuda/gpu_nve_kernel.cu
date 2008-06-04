@@ -60,7 +60,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
 texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 
-extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float deltaT, gpu_boxsize box)
+extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float deltaT, bool limit, float limit_val, gpu_boxsize box)
 	{
 	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
 	// do velocity verlet update
@@ -79,13 +79,28 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
 		float4 accel = tex1Dfetch(pdata_accel_tex, pidx);
 		
-		px += vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
+		float dx = vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
+		float dy = vel.y * deltaT + (1.0f/2.0f) * accel.y * deltaT * deltaT;
+		float dz = vel.z * deltaT + (1.0f/2.0f) * accel.z * deltaT * deltaT;
+		
+		// limit the movement of the particles
+		if (limit)
+			{
+			float len = sqrtf(dx*dx + dy*dy + dz*dz);
+			if (len > limit_val)
+				{
+				dx = dx / len * limit_val;
+				dy = dy / len * limit_val;
+				dz = dz / len * limit_val;
+				}
+			}
+		
+		px += dx;
+		py += dy;
+		pz += dz;
+		
 		vel.x += (1.0f/2.0f) * accel.x * deltaT;
-		
-		py += vel.y * deltaT + (1.0f/2.0f) * accel.y * deltaT * deltaT;
 		vel.y += (1.0f/2.0f) * accel.y * deltaT;
-		
-		pz += vel.z * deltaT + (1.0f/2.0f) * accel.z * deltaT * deltaT;
 		vel.z += (1.0f/2.0f) * accel.z * deltaT;
 		
 		// time to fix the periodic boundary conditions
@@ -105,7 +120,7 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		}	
 	}
 
-cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT)
+cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT, bool limit, float limit_val)
 	{
     assert(pdata);
 
@@ -128,7 +143,7 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 		return error;
 
     // run the kernel
-    nve_pre_step_kernel<<< grid, threads >>>(*pdata, deltaT, *box);
+    nve_pre_step_kernel<<< grid, threads >>>(*pdata, deltaT, limit, limit_val, *box);
 	
 	#ifdef NDEBUG
 	return cudaSuccess;
@@ -139,7 +154,7 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 	}
 
 
-extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces, float deltaT)
+extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
 	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
 	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
@@ -153,6 +168,17 @@ extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **forc
 		vel.y += (1.0f/2.0f) * accel.y * deltaT;
 		vel.z += (1.0f/2.0f) * accel.z * deltaT;
 		
+		if (limit)
+			{
+			float vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+			if ( (vel_len*deltaT) > limit_val)
+				{
+				vel.x = vel.x / vel_len * limit_val / deltaT;
+				vel.y = vel.y / vel_len * limit_val / deltaT;
+				vel.z = vel.z / vel_len * limit_val / deltaT;
+				}
+			}
+		
 		// write out data
 		pdata.vel[pidx] = vel;
 		// since we calculate the acceleration, we need to write it for the next step
@@ -160,7 +186,7 @@ extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **forc
 		}
 	}
 	
-cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT)
+cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
     assert(pdata);
 
@@ -175,7 +201,7 @@ cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_
 		return error;
 
     // run the kernel
-    nve_step_kernel<<< grid, threads >>>(*pdata, force_data_ptrs, num_forces, deltaT);
+    nve_step_kernel<<< grid, threads >>>(*pdata, force_data_ptrs, num_forces, deltaT, limit, limit_val);
 
 	#ifdef NDEBUG
 	return cudaSuccess;

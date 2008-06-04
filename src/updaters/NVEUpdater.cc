@@ -52,8 +52,26 @@ using namespace std;
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
 */
-NVEUpdater::NVEUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : Integrator(pdata, deltaT), m_accel_set(false)
+NVEUpdater::NVEUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : Integrator(pdata, deltaT), m_accel_set(false), m_limit(false), m_limit_val(1.0)
 	{
+	}
+
+/*! Once the limit is set, future calls to update() will never move a particle 
+	a distance larger than limit in a single time step
+*/
+void NVEUpdater::setLimit(Scalar limit)
+	{
+	assert(limit > 0.0);
+	
+	m_limit = true;
+	m_limit_val = limit;
+	}
+		
+/*! Disables the limit, allowing particles to move normally
+*/
+void NVEUpdater::removeLimit()
+	{
+	m_limit = false;
 	}
 
 /*! Uses velocity verlet
@@ -99,16 +117,28 @@ void NVEUpdater::update(unsigned int timestep)
 	// v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
-		if (abs(arrays.ax[j] > 1e6))
-			cout << "timestep: " << timestep << " particle j: " << j << " accel: " << arrays.ax[j] << endl;
-
-		arrays.x[j] += arrays.vx[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT*m_deltaT;
+		Scalar dx = arrays.vx[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT*m_deltaT;
+		Scalar dy = arrays.vy[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT*m_deltaT;
+		Scalar dz = arrays.vz[j]*m_deltaT + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT*m_deltaT;
+		
+		// limit the movement of the particles
+		if (m_limit)
+			{
+			Scalar len = sqrt(dx*dx + dy*dy + dz*dz);
+			if (len > m_limit_val)
+				{
+				dx = dx / len * m_limit_val;
+				dy = dy / len * m_limit_val;
+				dz = dz / len * m_limit_val;
+				}
+			}
+		
+		arrays.x[j] += dx;
+		arrays.y[j] += dy;
+		arrays.z[j] += dz;
+		
 		arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-		
-		arrays.y[j] += arrays.vy[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT*m_deltaT;
 		arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-		
-		arrays.z[j] += arrays.vz[j]*m_deltaT + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT*m_deltaT;
 		arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
 		}
 		
@@ -173,10 +203,20 @@ void NVEUpdater::update(unsigned int timestep)
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
 		arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-		
 		arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-		
 		arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
+		
+		// limit the movement of the particles
+		if (m_limit)
+			{
+			Scalar vel = sqrt(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			if ( (vel*m_deltaT) > m_limit_val)
+				{
+				arrays.vx[j] = arrays.vx[j] / vel * m_limit_val / m_deltaT;
+				arrays.vy[j] = arrays.vy[j] / vel * m_limit_val / m_deltaT;
+				arrays.vz[j] = arrays.vz[j] / vel * m_limit_val / m_deltaT;
+				}
+			}
 		}
 
 	m_pdata->release();
@@ -194,7 +234,7 @@ void export_NVEUpdater()
 	{
 	class_<NVEUpdater, boost::shared_ptr<NVEUpdater>, bases<Integrator>, boost::noncopyable>
 		("NVEUpdater", init< boost::shared_ptr<ParticleData>, Scalar >())
-		;
-		// no .defs needed, everything is inherited
+		.def("setLimit", &NVEUpdater::setLimit)
+		.def("removeLimit", &NVEUpdater::removeLimit);
 	}
 #endif

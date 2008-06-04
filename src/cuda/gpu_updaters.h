@@ -55,10 +55,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 
 //! Does the first part of the NVE update
-cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT);
+cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT, bool limit, float limit_val);
 
 //! Does the second part of the NVE update
-cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT);
+cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
 
 /////////////////////////////////////// NVT stuff
 //! Data structure storing needed intermediate values for NVT integration

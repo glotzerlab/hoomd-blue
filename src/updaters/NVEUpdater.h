@@ -65,12 +65,19 @@ class NVEUpdater : public Integrator
 		//! Constructor
 		NVEUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT);
 		
+		//! Sets the movement limit
+		void setLimit(Scalar limit);
+		
+		//! Removes the limit
+		void removeLimit();
+		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
 		
 	protected:
 		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
-		
+		bool m_limit;		//!< True if we should limit the distance a particle moves in one step
+		Scalar m_limit_val;	//!< The maximum distance a particle is to move in one step
 	};
 	
 #ifdef USE_PYTHON
