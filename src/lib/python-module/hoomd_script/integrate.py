@@ -176,23 +176,33 @@ class nvt(_integrator):
 ## NVE Integration via Velocity-Verlet
 #
 # integrate.nve performs constant volume, constant energy simulations using the standard
-# Velocity-Verlet method.
+# Velocity-Verlet method. For poor initial conditions that include overlapping atoms, a 
+# limit can be specified to the movement a particle is allowed to make in one time step. 
+# After a few thousand time steps with the limit set, the system should be in a safe state 
+# to continue with unconstrained integration.
 class nve(_integrator):
 	## Specifies the NVE integrator
 	# \param self Python-required class instance variable
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
 	#
 	# \b Examples:<br>
 	# integrate.nve(dt=0.005)<br>
 	# integrator = integrate.nvt(dt=5e-3)<br>
-	def __init__(self, dt):
-		print "integrate.nve(dt=", dt, ")";
+	# integrate.nve(dt=0.005, limit=0.01)<br>
+	def __init__(self, dt, limit=None):
+		print "integrate.nve(dt=", dt, ", limit=", limit, ")";
 		
 		# initialize base class
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
 		self.cpp_integrator = hoomd.NVEUpdater(globals.particle_data, dt);
+		
+		# set the limit
+		if limit != None:
+			self.cpp_integrator.setLimit(limit);
+		
 		globals.system.setIntegrator(self.cpp_integrator);
 	
 	## Changes parameters of an existing integrator

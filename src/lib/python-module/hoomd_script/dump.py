@@ -64,7 +64,7 @@ class xml(analyze._analyzer):
 	# By default, only particle positions are output to the dump files. This can be changed
 	# with set_params().
 	def __init__(self, filename, period):
-		print "dump.xml(filename =", filename, ")";
+		print "dump.xml(filename =", filename, ", period=", period, ")";
 	
 		# initialize base class
 		analyze._analyzer.__init__(self);
@@ -100,3 +100,76 @@ class xml(analyze._analyzer):
 			
 		if type != None:
 			self.cpp_analyzer.outputType(type);
+			
+## Writes a simulation snapshot in the mol2 format
+#
+# At the first time step run() after initializing the dump, the state of the 
+# particles at that timestep is written to the file in the .mol2 file format.
+# The intended usage is to generate a single structure file that can be used by
+# VMD for reading in particle names and bond topology Use in conjunction with
+# dump.dcd for reading the full simulation trajectory into VMD.
+class mol2(analyze._analyzer):
+	## Initialize the mol2 writer
+	#
+	# \param self Python-required class instance variable
+	# \param filename File name to write to
+	# 
+	# \b Examples:<br>
+	# dump.mol2(filename="structure.mol2")<br>
+	def __init__(self, filename):
+		print "dump.mol2(filename =", filename, ")";
+	
+		# initialize base class
+		analyze._analyzer.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.particle_data, filename);
+		# run it with a ludicrous period so that it is really only run once
+		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(1e9));
+	
+## Writes simulation snapshots in the DCD format
+#
+# Every \a period time steps a new simulation snapshot is written to the 
+# specified file in the DCD file format. DCD only stores particle positions
+# but is decently space efficient and extremely fast to read and write. VMD
+# and load 100's of MiB of trajectory data in mere seconds.
+#
+# Use in conjunction with dump.mol2 so that VMD has information on the
+# particle names and bond topology.
+#
+# Due to constraints of the DCD file format, once you stop writing to
+# a file via disable(), you cannot continue writing to the same file.
+# Nore can you change the period of the dump. Either of these tasks 
+# can be performed by creating a new dump file with the needed settings.
+class dcd(analyze._analyzer):
+	## Initialize the dcd writer
+	#
+	# \param self Python-required class instance variable
+	# \param filename File name to write to
+	# \param period Number of time steps between file dumps
+	# 
+	# \b Examples:<br>
+	# dump.dcd(filename="trajectory.dcd", period=1000)<br>
+	# dcd = dump.dcd(filename"data/dump.dcd", period=1000)
+	def __init__(self, filename, period):
+		print "dump.dcd(filename =", filename, ", period=", period, ")";
+		
+		# initialize base class
+		analyze._analyzer.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_analyzer = hoomd.DCDDumpWriter(globals.particle_data, filename, int(period));
+		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
+	
+	def enable(self):
+		print "updater.enable()";
+		
+		if self.enabled == False:
+			print "Error: you cannot re-enable DCD output after it has been disabled";
+			raise RuntimeError('Error enabling updater');
+	
+	def set_period(self, period):
+		print "updater.set_period(", period, ")";
+		
+		print "Error: you cannot change the period of a dcd dump writer";
+		raise RuntimeError('Error changing updater period');

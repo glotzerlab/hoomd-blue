@@ -89,6 +89,7 @@ def read_xml(file_name):
 #
 # \param N Number of particles to create
 # \param phi_p Packing fraction of particles in the simulation box
+# \param name Name of the particle type to create
 # \param min_dist Minimum distance particles will be separated by
 # \param wall_offset (optional) If specified, walls are created a distance of 
 #	\a wall_offset in from the edge of the simulation box
@@ -109,8 +110,8 @@ def read_xml(file_name):
 # Initialization can only occur once. An error will be generated
 # if any initialization command is called after create_random().
 #
-def create_random(N, phi_p, min_dist=1.0, wall_offset=None):
-	print "init.create_random(N =", N, ", phi_p =", phi_p, ", min_dist =", min_dist, ", wall_offset =", wall_offset, ")";
+def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
+	print "init.create_random(N =", N, ", phi_p =", phi_p, ", name = ", name, ", min_dist =", min_dist, ", wall_offset =", wall_offset, ")";
 
 	# check if initialization has already occured
 	if (globals.particle_data != None):
@@ -119,9 +120,9 @@ def create_random(N, phi_p, min_dist=1.0, wall_offset=None):
 
 	# read in the data
 	if wall_offset == None:
-		initializer = hoomd.RandomInitializer(N, phi_p, min_dist);
+		initializer = hoomd.RandomInitializer(N, phi_p, min_dist, name);
 	else:
-		initializer = hoomd.RandomInitializerWithWalls(N, phi_p, min_dist, wall_offset);
+		initializer = hoomd.RandomInitializerWithWalls(N, phi_p, min_dist, wall_offset, name);
 		
 	globals.particle_data = hoomd.ParticleData(initializer);
 

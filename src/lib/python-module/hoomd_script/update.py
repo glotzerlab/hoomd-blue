@@ -142,7 +142,7 @@ class _updater:
 		# check that we have been initialized properly
 		if self.cpp_updater == None:
 			"Bug in hoomd_script: cpp_updater not set, please report";
-			raise RuntimeError('Error disabling updater');
+			raise RuntimeError('Error enabling updater');
 			
 		# check if we are already disabled
 		if self.enabled:
