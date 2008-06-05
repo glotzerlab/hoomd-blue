@@ -259,8 +259,8 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
 	const unsigned int N = 500;
 	
 	// create two identical random particle systems to simulate
-	RandomInitializer rand_init1(N, 0.2, 0.9);
-	RandomInitializer rand_init2(N, 0.2, 0.9);
+	RandomInitializer rand_init1(N, 0.2, 0.9, "A");
+	RandomInitializer rand_init2(N, 0.2, 0.9, "A");
 	rand_init1.setSeed(12345);
 	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1));
 	rand_init2.setSeed(12345);

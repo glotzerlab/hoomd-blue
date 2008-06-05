@@ -50,6 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDInitializer.h"
 
 #include <iostream>
+#include <sstream>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 using namespace boost::filesystem;
@@ -509,7 +510,11 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 
 		MY_BOOST_CHECK_CLOSE(arrays.charge[i], Scalar(i)*Scalar(10.0), tol);
 		
-		BOOST_CHECK_EQUAL(arrays.type[i], (unsigned int)(5-i));
+		// checking that the type is correct becomes tricky because types are identified by 
+		// string
+		ostringstream type_name;
+		type_name << 5-i;	// the expected type is the integer 5-i
+		BOOST_CHECK_EQUAL(arrays.type[i], pdata->getTypeByName(type_name.str()));
 		BOOST_CHECK_EQUAL(arrays.tag[i], (unsigned int)i);
 		BOOST_CHECK_EQUAL(arrays.rtag[i], (unsigned int)i);
 		}

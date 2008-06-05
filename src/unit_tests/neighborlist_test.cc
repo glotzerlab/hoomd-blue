@@ -242,7 +242,7 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator)
 void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creator_typ nlist_creator2)
 	{
 	// construct the particle system
-	SimpleCubicInitializer init(10, Scalar(1.37823));
+	SimpleCubicInitializer init(10, Scalar(1.37823), "A");
 	
 	shared_ptr<ParticleData> pdata(new ParticleData(init));
 		

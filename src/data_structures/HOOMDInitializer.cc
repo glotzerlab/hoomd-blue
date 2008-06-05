@@ -59,7 +59,6 @@ using namespace boost;
 HOOMDInitializer::HOOMDInitializer(const std::string &fname)
  	{
 	// initialize member variables
-	m_nparticle_types = 0;
 	m_timestep = 0;
 	m_box_read = false;
 
@@ -84,8 +83,8 @@ unsigned int HOOMDInitializer::getNumParticles() const
 		
 unsigned int HOOMDInitializer::getNumParticleTypes() const
 	{
-	assert(m_nparticle_types > 0);
-	return m_nparticle_types;
+	assert(m_type_mapping.size() > 0);
+	return m_type_mapping.size();
 	}
 
 BoxDim HOOMDInitializer::getBox() const
@@ -360,14 +359,11 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 	parser.str(node.getText());
 	while (parser.good())
 		{
-		unsigned int type;
+		// dynamically determine the particle types
+		string type;
 		parser >> type;
 		
-		m_type_array.push_back(type);
-
-		// dynamically determine the number of particle types
-		if (type+1 > m_nparticle_types)
-			m_nparticle_types = type+1;
+		m_type_array.push_back(getTypeId(type));
 		}
 	}
 
@@ -480,6 +476,23 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
 		}
 	}
 
+/*! \param name Name to get type id of
+	If \a name has already been added, this returns the type index of that name.
+	If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getTypeId(const std::string& name)
+	{
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_type_mapping.size(); i++)
+		{
+		if (m_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_type_mapping.push_back(name);
+	return m_type_mapping.size()-1;
+	}
+
 		
 void HOOMDInitializer::setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist)
 	{
@@ -493,6 +506,11 @@ void HOOMDInitializer::setupBonds(boost::shared_ptr<BondForceCompute> fc_bond)
 	// loop through all the bonds and add a bond for each
 	for (unsigned int i = 0; i < m_bonds.size(); i++)	
 		fc_bond->addBond(m_bonds[i].tag_a, m_bonds[i].tag_b);
+	}
+	
+std::vector<std::string> HOOMDInitializer::getTypeMapping() const
+	{
+	return m_type_mapping;
 	}
 
 #ifdef USE_PYTHON

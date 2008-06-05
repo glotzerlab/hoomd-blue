@@ -67,7 +67,7 @@ using namespace boost::python;
 	\param M Number of particles along a side of the cube
 	\param spacing Separation between particles
 */
-SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing) : m_M(M), m_spacing(spacing), box(M * spacing)
+SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name) : m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
 	{
 	}
 
@@ -122,7 +122,17 @@ void SimpleCubicInitializer::initArrays(const ParticleDataArrays &pdata) const
 	assert(c == pdata.nparticles);
 	}
 
-
+/*! \returns A type mapping with a single particle m_type_name
+*/
+std::vector<std::string> SimpleCubicInitializer::getTypeMapping() const
+	{
+	// create the type mapping
+	vector<string> type_mapping;
+	type_mapping.push_back(m_type_name);
+	
+	// return it
+	return type_mapping;
+	}
 
 /////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
@@ -132,7 +142,7 @@ void SimpleCubicInitializer::initArrays(const ParticleDataArrays &pdata) const
 	\param min_dist Minimum distance two particles will be placed apart
 	\note assumes particles have a diameter of 1
 */
-RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist) : m_N(N), m_phi_p(phi_p), m_min_dist(min_dist)
+RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name) : m_N(N), m_phi_p(phi_p), m_min_dist(min_dist), m_type_name(type_name)
 	{
 	// sanity checks
 	if (N == 0)
@@ -243,6 +253,18 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
 		pdata.z[i] = z;
 		}
 	}
+	
+/*! \returns A type mapping with a single particle m_type_name
+*/
+std::vector<std::string> RandomInitializer::getTypeMapping() const
+	{
+	// create the type mapping
+	vector<string> type_mapping;
+	type_mapping.push_back(m_type_name);
+	
+	// return it
+	return type_mapping;
+	}
 
 /////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
@@ -253,8 +275,8 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
 	\param wall_buffer Distance from the edge of the box to place the walls
 	\note assumes particles have a diameter of 1
 */
-RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer) 
-	: RandomInitializer(N, phi_p, min_dist), m_wall_buffer(wall_buffer)
+RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer, const std::string &type_name) 
+	: RandomInitializer(N, phi_p, min_dist, type_name), m_wall_buffer(wall_buffer)
 	{
 	// sanity checks
 	if (N == 0)
@@ -309,21 +331,21 @@ void RandomInitializerWithWalls::initWallData(boost::shared_ptr<WallData> wall_d
 #ifdef USE_PYTHON
 void export_SimpleCubicInitializer()
 	{
-	class_< SimpleCubicInitializer, bases<ParticleDataInitializer> >("SimpleCubicInitializer", init<unsigned int, Scalar>())
+	class_< SimpleCubicInitializer, bases<ParticleDataInitializer> >("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
 		;
 	// no need to .def methods, they are all inherited
 	}
 	
 void export_RandomInitializer()
 	{
-	class_< RandomInitializer, bases<ParticleDataInitializer> >("RandomInitializer", init<unsigned int, Scalar, Scalar>())
+	class_< RandomInitializer, bases<ParticleDataInitializer> >("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
 		;
 	// no need to .def methods, they are all inherited
 	}
 
 void export_RandomInitializerWithWalls()
 	{
-	class_< RandomInitializerWithWalls, bases<ParticleDataInitializer> >("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar, Scalar>())
+	class_< RandomInitializerWithWalls, bases<ParticleDataInitializer> >("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar, Scalar, string>())
 		;
 	// no need to .def methods, they are all inherited
 	}

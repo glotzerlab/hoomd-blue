@@ -136,7 +136,7 @@ shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, share
 //! Initializes the particle data to a random set of particles
 shared_ptr<ParticleData> init_pdata()
 	{
-	RandomInitializer rand_init(N, phi_p, 0.0);
+	RandomInitializer rand_init(N, phi_p, 0.0, "A");
 	shared_ptr<ParticleData> pdata(new ParticleData(rand_init));
 	if (sort_particles)
 		{

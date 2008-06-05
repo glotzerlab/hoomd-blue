@@ -67,6 +67,7 @@ typedef double Scalar;
 
 #include <stdlib.h>
 #include <vector>
+#include <string>
 
 using namespace std;
 
@@ -229,6 +230,9 @@ class ParticleDataInitializer
 			This base class defines an empty method, as walls are optional
 		*/
 		virtual void initWallData(boost::shared_ptr<WallData> wall_data) const {}
+		
+		//! Intialize the type mapping
+		virtual std::vector<std::string> getTypeMapping() const = 0;
 	};
 	
 //! Manages all of the data arrays for the particles
@@ -333,6 +337,12 @@ class ParticleData
 		//! Connects a function to be called every time the box size is changed
 		boost::signals::connection connectBoxChange(const boost::function<void ()> &func);
 
+		//! Gets the particle type index given a name
+		unsigned int getTypeByName(const std::string &name);
+		
+		//! Gets the name of a given particle type index
+		std::string getNameByType(unsigned int type);
+		
 	private:
 		BoxDim m_box;								//!< The simulation box
 		const ExecutionConfiguration m_exec_conf;	//!< The execution configuration
@@ -341,6 +351,7 @@ class ParticleData
 		unsigned int m_ntypes; 						//!< Number of particle types
 		
 		bool m_acquired;							//!< Flag to track if data has been acquired
+		std::vector<std::string> m_type_mapping;	//!< Mapping between particle type indices and names
 		
 		boost::signal<void ()> m_sort_signal;		//!< Signal that is triggered when particles are sorted in memory
 		boost::signal<void ()> m_boxchange_signal;	//!< Signal that is triggered when the box size changes

@@ -87,6 +87,9 @@ class HOOMDInitializer : public ParticleDataInitializer
 		
 		//! Calls BondForceCompute::addBond for each bond read from the input file
 		void setupBonds(boost::shared_ptr<BondForceCompute> fc_bond);
+		
+		//! Initialize the type name mapping
+		std::vector<std::string> getTypeMapping() const;
 	private:
 		//! Helper function to read the input file
 		void readFile(const std::string &fname);
@@ -104,6 +107,9 @@ class HOOMDInitializer : public ParticleDataInitializer
 		void parseChargeNode(const XMLNode& node);
 		//! Parse wall node
 		void parseWallNode(const XMLNode& node);
+		
+		//! Helper function for identifying the particle type id
+		unsigned int getTypeId(const std::string& name);
 
 		std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map;	//!< Map for dispatching parsers based on node type
 		 
@@ -156,8 +162,9 @@ class HOOMDInitializer : public ParticleDataInitializer
 
 		std::vector< bond > m_bonds;	//!< Bonds read in from the file
 	
-		unsigned int m_nparticle_types; //!< Number of particle types identified
-		unsigned int m_timestep;		//!< The time stamp 
+		unsigned int m_timestep;		//!< The time stamp
+		
+		std::vector<std::string> m_type_mapping;	//!< The created mapping between particle types and ids
 	};
 	
 #ifdef USE_PYTHON

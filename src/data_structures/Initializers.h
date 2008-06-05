@@ -57,7 +57,7 @@ class SimpleCubicInitializer : public ParticleDataInitializer
 	{
 	public:
 		//! Set the parameters
-		SimpleCubicInitializer(unsigned int M, Scalar spacing);
+		SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name);
 		//! Empty Destructor
 		virtual ~SimpleCubicInitializer() { }
 		
@@ -72,10 +72,14 @@ class SimpleCubicInitializer : public ParticleDataInitializer
 		
 		//! Initializes the particle data arrays
 		virtual void initArrays(const ParticleDataArrays &pdata) const;
+		
+		//! Initialize the type name mapping
+		std::vector<std::string> getTypeMapping() const;
 	private:
 		unsigned int m_M;	//!< Number of particles wide to make the box
 		Scalar m_spacing;	//!< Spacing between particles
 		BoxDim box;			//!< Precalculated box
+		std::string m_type_name;	//!< Name of the particle type created
 	};
 
 //! Inits a ParticleData with randomly placed particles in a cube
@@ -87,7 +91,7 @@ class RandomInitializer : public ParticleDataInitializer
 	{
 	public:
 		//! Set the parameters
-		RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist);
+		RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name);
 		//! Empty Destructor
 		virtual ~RandomInitializer() { }
 		
@@ -105,11 +109,15 @@ class RandomInitializer : public ParticleDataInitializer
 
 		//! Sets the random seed to use in the generation
 		void setSeed(unsigned int seed);
+		
+		//! Initialize the type name mapping
+		std::vector<std::string> getTypeMapping() const;
 	protected:
 		unsigned int m_N;	//!< Number of particles to generate
 		Scalar m_phi_p;		//!< Packing fraction to generate the particles at
 		Scalar m_min_dist;	//!< Minimum distance to separate particles by
 		BoxDim m_box;		//!< Box to put the particles in
+		std::string m_type_name;	//!< Name of the particle type created
 	};
 
 
@@ -121,7 +129,7 @@ class RandomInitializerWithWalls : public RandomInitializer
 	{
 	public:
 		//! Set the parameters
-		RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer);
+		RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer, const std::string &type_name);
 		//! Empty Destructor
 		virtual ~RandomInitializerWithWalls() ;
 		//! Returns the box the particles will sit in

@@ -266,7 +266,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 	const unsigned int N = 5000;
 	
 	// create a random particle system to sum forces on
-	RandomInitializer rand_init(N, 0.2, 0.9);
+	RandomInitializer rand_init(N, 0.2, 0.9, "A");
 	shared_ptr<ParticleData> pdata(new ParticleData(rand_init));
 	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(pdata, Scalar(3.0), Scalar(0.8)));
 	

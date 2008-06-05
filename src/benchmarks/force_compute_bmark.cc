@@ -157,7 +157,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 //! Initializes the particle data to a random set of particles
 shared_ptr<ParticleData> init_pdata()
 	{
-	RandomInitializer rand_init(N, phi_p, 0.0);
+	RandomInitializer rand_init(N, phi_p, 0.0, "A");
 	shared_ptr<ParticleData> pdata(new ParticleData(rand_init));
 	if (sort_particles)
 		{

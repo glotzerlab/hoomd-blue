@@ -296,7 +296,7 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 	Scalar tol = Scalar(1e-6);
 
 	// make a simple one-particle box
-	SimpleCubicInitializer one(1, 2.0);
+	SimpleCubicInitializer one(1, 2.0, "ABC");
 	ParticleData one_data(one);
 	ParticleDataArraysConst arrays_const = one_data.acquireReadOnly();
 	BOOST_CHECK(arrays_const.nparticles == 1);
@@ -305,8 +305,11 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 	MY_BOOST_CHECK_CLOSE(arrays_const.z[0], -1.0, tol);
 	one_data.release();
 	
+	BOOST_CHECK_EQUAL(one_data.getNameByType(0), "ABC");
+	BOOST_CHECK_EQUAL(one_data.getTypeByName("ABC"), (unsigned int)0);
+	
 	// now try an 8-particle one
-	SimpleCubicInitializer eight(2, 2.0);
+	SimpleCubicInitializer eight(2, 2.0, "A");
 	ParticleData eight_data(eight);
 	
 	arrays_const = eight_data.acquireReadOnly();
@@ -344,8 +347,12 @@ BOOST_AUTO_TEST_CASE( Random_test )
 	{
 	// create a fairly dense system with a minimum distance of 0.8
 	Scalar min_dist = 0.8;
-	RandomInitializer rand_init(500, 0.4, min_dist);
+	RandomInitializer rand_init(500, 0.4, min_dist, "ABC");
 	ParticleData pdata(rand_init);
+	
+	BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
+	BOOST_CHECK_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);
+	
 	ParticleDataArraysConst	arrays = pdata.acquireReadOnly();
 	
 	// check that the distances between particles are OK

@@ -136,6 +136,8 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	\post \c tag is allocated and given the default initialization tag[i] = i
 	\post \c type is allocated and given the default value of type[i] = 0
 	\post Arrays are not currently acquired
+	
+	Type mappings assign particle types "A", "B", "C", ....
 */ 
 ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, ExecutionConfiguration exec_conf)	
 	: m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
@@ -180,6 +182,15 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 
 	// allocate walls
 	m_wallData = shared_ptr<WallData>(new WallData());
+
+	// setup the type mappings
+	for (unsigned int i = 0; i < m_ntypes; i++)
+		{
+		char name[2];
+		name[0] = 'A' + i;
+		name[1] = '\0';
+		m_type_mapping.push_back(string(name));
+		}
 
 	// if this is a GPU build, initialize the graphics card mirror data structures
 	#ifdef USE_CUDA
@@ -260,7 +271,10 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, ExecutionConfigu
 		cout << "Not all particles were found inside the given box" << endl;
 		throw runtime_error("Error initializing ParticleData");
 		}
-	
+		
+	// assign the type mapping
+	m_type_mapping	= init.getTypeMapping();
+		
 	// default constructed shared ptr is null as desired
 	m_prof = boost::shared_ptr<Profiler>();
 
@@ -583,6 +597,44 @@ boost::signals::connection ParticleData::connectBoxChange(const boost::function<
 	{
 	return m_boxchange_signal.connect(func);
 	}
+	
+/*! \param name Type name to get the index of
+	\return Type index of the corresponding type name
+	\note Throws an exception if the type name is not found
+*/
+unsigned int ParticleData::getTypeByName(const std::string &name)
+	{
+	assert(m_type_mapping.size() == m_ntypes);
+	// search for the name
+	for (unsigned int i = 0; i < m_type_mapping.size(); i++)
+		{
+		if (m_type_mapping[i] == name)
+			return i;
+		}
+		
+	cout << "Type " << name << " not found!";
+	throw runtime_error("Error mapping type name");	
+	return 0;
+	}
+		
+/*! \param type Type index to get the name of
+	\returns Type name of the requested type
+	\note Type indices must range from 0 to getNTypes or this method throws an exception.
+*/
+std::string ParticleData::getNameByType(unsigned int type)
+	{
+	assert(m_type_mapping.size() == m_ntypes);
+	// check for an invalid request
+	if (type >= m_ntypes)
+		{
+		cout << "Requesting type name for non-existant type " << type << endl;
+		throw runtime_error("Error mapping type name");
+		}
+		
+	// return the name
+	return m_type_mapping[type];
+	}
+
 	
 /*! \param N Number of particles to allocate memory for
 	\pre No memory is allocated and the pointers in m_arrays point nowhere
@@ -933,6 +985,12 @@ class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapp
 		void initArrays(const ParticleDataArrays &pdata) const
 			{
 			this->get_override("initArrays")(pdata);
+			}
+			
+		//! Calls the overidden ParticleDataInitializer::getTypeMapping()
+		std::vector<std::string> getTypeMapping() const
+			{
+			return this->get_override("getTypeMapping")();
 			}
 	};
 	
