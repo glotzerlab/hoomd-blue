@@ -37,7 +37,117 @@
 # $Id$
 # $URL$
 
+import globals;
+
 ## \package hoomd_script.force
 # \brief Commands that create misc forces
 #
 # Details
+
+## \internal
+# \brief Base class for forces
+#
+# A force in hoomd_script reflects a ForceCompute in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd_script
+# writers. 1) The instance of the c++ analyzer itself is tracked and added to the
+# System 2) methods are provided for disabling the force from being added to the
+# net force on each particle
+class _force:
+	## \internal
+	# \brief Constructs the force
+	#
+	# \param self Python-required class instance variable
+	#
+	# Initializes the cpp_analyzer to None.
+	# Assigns a name to the force in force_name;
+	def __init__(self):
+		# check if initialization has occured
+		if globals.system == None:
+			print "Error: Cannot create force before initialization";
+			raise RuntimeError('Error creating force');
+		
+		self.cpp_force = None;
+
+		# increment the id counter
+		id = _force.cur_id;
+		_force.cur_id += 1;
+		
+		self.force_name = "force%d" % (id);
+		self.enabled = True;
+		globals.forces.append(self);
+
+	## \var enabled
+	# \internal
+	# \brief True if the force is enabled
+
+	## \var cpp_force
+	# \internal
+	# \brief Stores the C++ side ForceCompute managed by this class
+	
+	## \var force_name
+	# \internal
+	# \brief The Force's name as it is assigned to the System
+
+	## Disables the force
+	#
+	# \param self Python-required class instance variable
+	#
+	# \b Examples:<br>
+	# force.disable()
+	#
+	# Executing the disable command will remove the force from the simulation.
+	# Any run() command exected after disabling a force will not calculate or 
+	# use the force during the simulation. A disabled force can be re-enabled
+	# with enable()
+	#
+	# To use this command, you must have saved the force in a variable, as 
+	# shown in this example:
+	# \code
+	# force = pair.some_force()
+	# # ... later in the script
+	# force.disable()
+	# \endcode
+	def disable(self):
+		print "force.disable()";
+		
+		# check that we have been initialized properly
+		if self.cpp_force == None:
+			"Bug in hoomd_script: cpp_force not set, please report";
+			raise RuntimeError('Error disabling force');
+			
+		# check if we are already disabled
+		if not self.enabled:
+			print "Warning: Ignoring command to disable a force that is already disabled";
+			return;
+		
+		globals.system.removeCompute(self.force_name);
+		self.enabled = False;
+		globals.forces.remove(self);
+
+	## Enables the force
+	#
+	# \param self Python-required class instance variable
+	#
+	# \b Examples:<br>
+	# analyzer.enable()
+	#
+	# See disable() for a detailed description.
+	def enable(self):
+		print "force.enable()";
+		
+		# check that we have been initialized properly
+		if self.cpp_force == None:
+			"Bug in hoomd_script: cpp_force not set, please report";
+			raise RuntimeError('Error enabling force');
+			
+		# check if we are already disabled
+		if self.enabled:
+			print "Warning: Ignoring command to enable a force that is already enabled";
+			return;
+			
+		globals.system.addCompute(self.cpp_force, self.analyzer_name);
+		self.enabled = True;
+		globals.forces.append(self);
+
+# set default counter
+_force.cur_id = 0;

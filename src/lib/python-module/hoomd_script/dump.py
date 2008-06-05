@@ -132,14 +132,14 @@ class mol2(analyze._analyzer):
 # Every \a period time steps a new simulation snapshot is written to the 
 # specified file in the DCD file format. DCD only stores particle positions
 # but is decently space efficient and extremely fast to read and write. VMD
-# and load 100's of MiB of trajectory data in mere seconds.
+# can load 100's of MiB of trajectory data in mere seconds.
 #
 # Use in conjunction with dump.mol2 so that VMD has information on the
 # particle names and bond topology.
 #
 # Due to constraints of the DCD file format, once you stop writing to
-# a file via disable(), you cannot continue writing to the same file.
-# Nore can you change the period of the dump. Either of these tasks 
+# a file via disable(), you cannot continue writing to the same file,
+# nor can you change the period of the dump at any time. Either of these tasks 
 # can be performed by creating a new dump file with the needed settings.
 class dcd(analyze._analyzer):
 	## Initialize the dcd writer

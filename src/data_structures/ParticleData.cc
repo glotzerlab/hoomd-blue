@@ -1027,6 +1027,8 @@ void export_ParticleData()
 		.def("setBox", &ParticleData::setBox)
 		.def("getN", &ParticleData::getN)
 		.def("getNTypes", &ParticleData::getNTypes)
+		.def("getNameByType", &ParticleData::getNameByType)
+		.def("getTypeByName", &ParticleData::getTypeByName)
 		.def("acquireReadOnly", &ParticleData::acquireReadOnly, return_value_policy<copy_const_reference>())
 		.def("acquireReadWrite", &ParticleData::acquireReadWrite, return_value_policy<copy_const_reference>())
 		#ifdef USE_CUDA

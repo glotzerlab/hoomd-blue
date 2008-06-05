@@ -64,7 +64,7 @@ class _analyzer:
 	def __init__(self):
 		# check if initialization has occured
 		if globals.system == None:
-			print "Error: Cannot create updater before initialization";
+			print "Error: Cannot create analyzer before initialization";
 			raise RuntimeError('Error creating analyzer');
 		
 		self.cpp_analyzer = None;
@@ -107,7 +107,7 @@ class _analyzer:
 	# To use this command, you must have saved the analyzer in a variable, as 
 	# shown in this example:
 	# \code
-	# analyzer = analyzer.some_updater()
+	# analyzer = analyzer.some_analyzer()
 	# # ... later in the script
 	# analyzer.disable()
 	# \endcode
@@ -117,15 +117,15 @@ class _analyzer:
 		# check that we have been initialized properly
 		if self.cpp_analyzer == None:
 			"Bug in hoomd_script: cpp_analyzer not set, please report";
-			raise RuntimeError('Error disabling updater');
+			raise RuntimeError('Error disabling analyzer');
 			
 		# check if we are already disabled
 		if not self.enabled:
 			print "Warning: Ignoring command to disable an analyzer that is already disabled";
 			return;
 		
-		self.prev_period = globals.system.getAnalyzerPeriod(self.updater_name);
-		globals.system.removeAnalyzer(self.updater_name);
+		self.prev_period = globals.system.getAnalyzerPeriod(self.analyzer_name);
+		globals.system.removeAnalyzer(self.analyzer_name);
 		self.enabled = False;
 
 	## Enables the analyzer
@@ -142,7 +142,7 @@ class _analyzer:
 		# check that we have been initialized properly
 		if self.cpp_analyzer == None:
 			"Bug in hoomd_script: cpp_analyzer not set, please report";
-			raise RuntimeError('Error disabling updater');
+			raise RuntimeError('Error disabling analyzer');
 			
 		# check if we are already disabled
 		if self.enabled:
