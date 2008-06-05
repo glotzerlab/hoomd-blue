@@ -62,6 +62,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "HOOMDDumpWriter.h"
+#include "MOL2DumpWriter.h"
 #include "DCDDumpWriter.h"
 #include "Updater.h"
 #include "Integrator.h"
@@ -265,6 +266,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_IMDInterface();
 	export_HOOMDDumpWriter();
 	export_DCDDumpWriter();
+	export_MOL2DumpWriter();
 	
 	// updaters
 	export_Updater();

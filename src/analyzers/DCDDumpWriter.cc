@@ -130,7 +130,6 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 */
 void DCDDumpWriter::write_file_header(std::fstream &file)
 	{
-	cout << "Writing file header" << endl;
 	// the first 4 bytes in the file must be 84
 	write_int(file, 84);
 	
