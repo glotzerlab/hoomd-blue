@@ -120,6 +120,7 @@ class _integrator:
 					raise RuntimeError('Error updating forces');		
 				else:
 					self.cpp_integrator.addForceCompute(f.cpp_force);
+					f.update_coeffs();
 
 
 

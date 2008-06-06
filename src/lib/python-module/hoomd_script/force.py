@@ -145,9 +145,16 @@ class _force:
 			print "Warning: Ignoring command to enable a force that is already enabled";
 			return;
 			
-		globals.system.addCompute(self.cpp_force, self.analyzer_name);
+		globals.system.addCompute(self.cpp_force, self.force_name);
 		self.enabled = True;
 		globals.forces.append(self);
-
+		
+	## \internal
+	# \brief updates force coefficients
+	def update_coeffs(self):
+		pass
+		raise RuntimeError("_force.update_coeffs should not be called");
+		# does nothing: this is for derived classes to implement
+	
 # set default counter
 _force.cur_id = 0;

@@ -61,4 +61,7 @@ forces = [];
 ## Global variable tracking the last _integrator set
 integrator = None;
 
+## Global variable trackign the system's neighborlist
+neighbor_list = None;
+
 
