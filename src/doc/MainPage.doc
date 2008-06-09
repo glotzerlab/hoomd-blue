@@ -120,9 +120,6 @@ Justin Nelson, ISU - <b>additional development</b><br>
 <hr>
 <h1>Source code</h1>
 <hr>
-\b gettimeofday in ClockSource.h is adapted from http://www.winehq.org/pipermail/wine-devel/2003-June/018082.html - Used under the LGPL version 2.1<br>
-Copyright (c) 2003, Steven Edwards<br>
-<hr>
 \b FindBoost.cmake is adapted from the one in the CMake-Modules Project at http://code.google.com/p/cmake-modules/source - Used under the New BSD License<br>
 Copyright (c) 2007, CMake-Modules Project<br>
 All rights reserved.<br>

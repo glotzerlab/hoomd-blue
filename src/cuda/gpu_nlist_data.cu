@@ -47,7 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file gpu_nlist.h
+/*! \file gpu_nlist.cu
 	\brief Contains code for working with the neighbor list data structure on the GPU
 */
 

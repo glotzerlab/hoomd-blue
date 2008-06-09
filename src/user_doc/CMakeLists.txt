@@ -34,31 +34,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-# $URL$
+# $Id: CMakeLists.txt 1029 2008-06-03 20:30:06Z joaander $
+# $URL: http://svn2.assembla.com/svn/hoomd/branches/gpu-iface-rewrite/src/doc/CMakeLists.txt $
 
 find_package(Doxygen)
 
 if (DOXYGEN)
-
-# configure exclusions based on USE_* options
-set(DOXYGEN_PREDEFINED "")
-
-# policy change: always build all documentation even on platforms that don't have CUDA/Python
-# uncomment the next 9 commented lines to restore the old policy
-
-#set(DOXYGEN_ADDITIONAL_EXCLUSIONS "")
-#if(USE_CUDA)
-	set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " USE_CUDA=1")
-#else(USE_CUDA)
-#	set(DOXYGEN_ADDITIONAL_EXCLUSIONS " */cuda/* */computes_gpu/*")
-#endif(USE_CUDA)
-
-#if(USE_PYTHON)
-	set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \\\nUSE_PYTHON=1")
-#else(USE_PYTHON)
-#	set(DOXYGEN_ADDITIONAL_EXCLUSIONS "${DOXYGEN_ADDITIONAL_EXCLUSIONS} */python/* */lib/python-module/*")
-#endif(USE_PYTHON)
 
 # disable DOT in doxygen if dot is not found
 if(DOXYGEN_DOT_PATH)
@@ -89,19 +70,15 @@ else (USE_DOXYGEN_HOOMD_STYLE)
 endif (USE_DOXYGEN_HOOMD_STYLE)
 
 # configure the doxygen file
-configure_file (${HOOMD_SOURCE_DIR}/doc/Doxyfile.in ${HOOMD_BINARY_DIR}/doc/Doxyfile)
+configure_file (${HOOMD_SOURCE_DIR}/user_doc/Doxyfile.in ${HOOMD_BINARY_DIR}/user_doc/Doxyfile)
 
-add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/doc/html/index.html
-					COMMAND ${DOXYGEN} ${HOOMD_BINARY_DIR}/doc/Doxyfile
+add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/user_doc/html/index.html
+					COMMAND ${DOXYGEN} ${HOOMD_BINARY_DIR}/user_doc/Doxyfile
 					DEPENDS ${HOOMD_CPU_SRCS} ${HOOMD_GPU_SRCS}
-					${HOOMD_SOURCE_DIR}/cuda/*.cu
-					${HOOMD_SOURCE_DIR}/cuda/*.h
-					${HOOMD_SOURCE_DIR}/doc/*.doc
-					${HOOMD_SOURCE_DIR}/unit_tests/*.cc
-					${HOOMD_SOURCE_DIR}/benchmarks/*.cc
+					${HOOMD_SOURCE_DIR}/user_doc/*.doc
 					${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script/*.py
-					${HOOMD_SOURCE_DIR}/doc/Doxyfile.in)
+					${HOOMD_SOURCE_DIR}/user_doc/Doxyfile.in)
 
-add_custom_target (doc ALL DEPENDS ${HOOMD_BINARY_DIR}/doc/html/index.html)
+add_custom_target (user_doc ALL DEPENDS ${HOOMD_BINARY_DIR}/user_doc/html/index.html)
 
 endif (DOXYGEN)
