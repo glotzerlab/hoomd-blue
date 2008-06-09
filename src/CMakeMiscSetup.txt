@@ -71,7 +71,7 @@ endif (WIN32)
 
 #################################
 ## Optional build of boost.python interface
-OPTION(USE_PYTHON "Build the boost.python hoomd module" OFF)
+OPTION(USE_PYTHON "Build the boost.python hoomd module" ON)
 
 ##################################
 ## SSE and floating point compilation options
@@ -84,7 +84,7 @@ endif (WIN32)
 
 # allow user to compile code with single instead of double precision
 # single precision option
-option(SINGLE_PRECISION "Use single precision math" OFF)
+option(SINGLE_PRECISION "Use single precision math" ON)
 
 ##################################
 ## find the threads library

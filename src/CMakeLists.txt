@@ -112,9 +112,10 @@ add_subdirectory (share)
 
 ###############################
 ## allow for optional inclusion of the doxygen build
-OPTION(GENERATE_DOXYGEN_DOCS "Enable generation of source code documentation with doxygen (if installed)" ON)
-if(GENERATE_DOXYGEN_DOCS)
+OPTION(USE_DOXYGEN "Enable generation of source code documentation with doxygen (if installed)" OFF)
+if(USE_DOXYGEN)
 	add_subdirectory (doc)
-endif(GENERATE_DOXYGEN_DOCS)
+	add_subdirectory (user_doc)
+endif(USE_DOXYGEN)
 
 add_subdirectory (installer)
