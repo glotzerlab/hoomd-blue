@@ -395,3 +395,30 @@ BOOST_AUTO_TEST_CASE( Random_test )
 		
 	pdata.release();
 	}
+	
+/*#include "RandomGenerator.h"
+#include "MOL2DumpWriter.h"
+BOOST_AUTO_TEST_CASE( Generator_test )
+	{
+	vector<string> types;
+	for (int i = 0; i < 6; i++)
+		types.push_back("A");
+	for (int i = 0; i < 7; i++)
+		types.push_back("B");
+	for (int i = 0; i < 6; i++)
+		types.push_back("A");
+		
+	boost::shared_ptr<PolymerParticleGenerator> poly(new PolymerParticleGenerator(1.2, types, 100));
+	BoxDim box(40);
+	RandomGenerator generator(box, 1);
+	generator.setSeparationRadius("A", 0.5);
+	generator.setSeparationRadius("B", 0.5);
+	generator.addGenerator(1286, poly);
+	
+	generator.generate();
+	
+	boost::shared_ptr<ParticleData> pdata(new ParticleData(generator));
+	MOL2DumpWriter dump(pdata, string("test.mol2"));
+	dump.analyze(0);
+	}
+*/
