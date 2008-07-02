@@ -408,17 +408,23 @@ BOOST_AUTO_TEST_CASE( Generator_test )
 	for (int i = 0; i < 6; i++)
 		types.push_back("A");
 		
+	vector<string> types2;
+	for (int i = 0; i < 7; i++)
+		types2.push_back("B");
+		
 	boost::shared_ptr<PolymerParticleGenerator> poly(new PolymerParticleGenerator(1.2, types, 100));
+	boost::shared_ptr<PolymerParticleGenerator> poly2(new PolymerParticleGenerator(1.2, types2, 100));
 	BoxDim box(40);
 	RandomGenerator generator(box, 1);
 	generator.setSeparationRadius("A", 0.5);
 	generator.setSeparationRadius("B", 0.5);
-	generator.addGenerator(1286, poly);
+	generator.addGenerator(20, poly);
+	generator.addGenerator(20, poly2);
 	
 	generator.generate();
 	
 	boost::shared_ptr<ParticleData> pdata(new ParticleData(generator));
 	MOL2DumpWriter dump(pdata, string("test.mol2"));
 	dump.analyze(0);
-	}
-*/
+	}*/
+

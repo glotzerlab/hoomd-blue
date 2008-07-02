@@ -239,4 +239,10 @@ class RandomGenerator : public ParticleDataInitializer
 		//! Helper function for identifying the particle type id
 		unsigned int getTypeId(const std::string& name);
 	};
+
+#ifdef USE_PYTHON
+//! Exports RandomGenerator and related classes to python
+void export_RandomGenerator();
+#endif
+	
 #endif

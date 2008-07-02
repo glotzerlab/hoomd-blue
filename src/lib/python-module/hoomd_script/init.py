@@ -132,6 +132,126 @@ def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 	_perform_common_init_tasks();
 	return globals.particle_data;
 
+## Generates randomly positioned polymers
+#
+# \param box BoxDim specifying the simulation box to generate the polymers in
+# \parm polymers Specification for the different polymers to create (see below)
+# \param separation Separation radii for different particle types (see below)
+# \param seed Random seed to use
+#
+# A lot of information must be passed into the generator so that the desired polymer
+# system is generated. This requires packing a lot of information into only a few
+# arguments. Any number of polymers can be generated, of the same or different types.
+# \a polymers is the argument that specifies this. For each polymer, there is a 
+# bond length, particle type list, bond list, and count.
+#
+# The syntax is best shown by example. The below line specifies a that 600 block copolymers
+# A6B7A6 with a bond length of 1.2 be generated.
+# \code
+# polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=600)
+# \endcode
+# Here is an example for a second polymer, specifying just 100 polymers made of 4 B beads
+# \code
+# polymer2 = dict(bond_len=1.2, type=['B']*4, bond="TODO", count=100)
+# \endcode
+# The \a polymers argument can be given a list of any number of polymer types specified
+# as above. \a count randomly generated polymers of each polymer in the list will be
+# generated in the system.
+# 
+# \a separation \b must contain one entry for each particle type in the polymers
+# (only 'A' and 'B' in the examples above). It is OK to specify more particles in
+# separation than are needed. The value given is the radius of each
+# particle of that type. The generated polymer system will have no two overlapping 
+# particles.
+#
+# \b Examples:<br>
+# init.create_random_polymers(box=hoomd.BoxDim(25), polymers=[polymer1, polymer2], separation=dict(A=0.5, B=0.5));
+# init.create_random_polymers(box=hoomd.BoxDim(20), polymers=[polymer1], separation=dict(A=0.5, B=0.5), seed=52);
+# init.create_random_polymers(box=hoomd.BoxDim(19), polymers=[polymer2], separation=dict(A=0.3, B=0.3), seed=12345);
+#
+# With all other parameters the same, create_random_polymers will always create the
+# same system if \a seed is the same. Set a different \a seed (any integer) to create
+# a different random system with the same parameters. Note that different versions
+# of HOOMD \e may generate different systems even with the same seed due to programming
+# changes.
+#
+# \note For relatively dense systems (packing fraction 0.2 and higher) the simple random
+# generation algorithm may fail and print an error message. There are two methods to solve this.
+# First, you can lower the separation radii allowing particles to be placed closer together.
+# Then setup integrate.nve with the \a limit option set to a relatively small value. A few
+# thousand timesteps should relax the system so that continuing the simulation can be
+# continued without the limit or with a different integrator. For extremely troublesome systems,
+# generate at a low density and shrink the box (TODO, write box shrink updater) to the desired 
+# final size.
+#
+def create_random_polymers(box, polymers, separation, seed=1):
+	print "init.create_random_polymers(box =", box, ", polymers =", polymers, ", separation = ", separation, ", seed =", seed, ")";
+	
+	# check if initialization has already occured
+	if (globals.particle_data != None):
+		print "Error: Cannot initialize more than once";
+		raise RuntimeError("Error creating random polymers");
+	
+	if type(polymers) != type([]) or len(polymers) == 0:
+		print "Argument error: polymers specified incorrectly. See the hoomd_script documentation"
+		raise RuntimeError("Error creating random polymers");
+	 
+	if type(separation) != type(dict()) or len(separation) == 0:
+		print "Argument error: polymers specified incorrectly. See the hoomd_script documentation"
+		raise RuntimeError("Error creating random polymers");
+	
+	# create the generator
+	generator = hoomd.RandomGenerator(box, seed);
+	
+	# make a list of types used for an eventual check vs the types in separation for completeness
+	types_used = [];
+	
+	# build the polymer generators
+	for poly in polymers:
+		type_list = [];
+		# check that all fields are specified
+		if not 'bond_len' in poly:
+			print 'Polymer specification missing bond_len';
+			raise RuntimeError("Error creating random polymers");
+		if not 'type' in poly:
+			print 'Polymer specification missing type';
+			raise RuntimeError("Error creating random polymers");
+		if not 'count' in poly:	
+			print 'Polymer specification missing count';
+			raise RuntimeError("Error creating random polymers");
+		
+		# build type list
+		type_vector = hoomd.std_vector_string();
+		for t in poly['type']:
+			type_vector.append(t);
+			if not t in types_used:
+				types_used.append(t);
+		
+		# create the generator
+		generator.addGenerator(poly['count'], hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, 100));
+		
+		
+	# check that all used types are in the separation list
+	for t in types_used:
+		if not t in separation:
+			print "No separation radius specified for type ", t;
+			raise RuntimeError("Error creating random polymers");
+			
+	# set the separation radii
+	for t,r in separation.items():
+		generator.setSeparationRadius(t, r);
+		
+	# generate the particles
+	generator.generate();
+	
+	globals.particle_data = hoomd.ParticleData(generator);
+	
+	# initialize the system
+	globals.system = hoomd.System(globals.particle_data, 0);
+	
+	_perform_common_init_tasks();
+	return globals.particle_data;
+
 
 ## Performs common initialization tasks
 #

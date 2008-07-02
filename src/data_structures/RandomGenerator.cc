@@ -46,6 +46,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 
+#ifdef USE_PYTHON
+#include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+using namespace boost::python;
+#endif
+
 using namespace std;
 
 /*! \file RandomGenerator.cc
@@ -589,3 +595,52 @@ bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particle
 	// we've tried and we've failed
 	return false;
 	}
+	
+	
+	
+#ifdef USE_PYTHON
+class ParticleGeneratorWrap : public ParticleGenerator, public wrapper<ParticleGenerator>
+	{
+	public:
+		//! Calls overidden ParticleGenerator::getNumToGenerate()
+		unsigned int getNumToGenerate()
+			{
+			return this->get_override("getNumToGenerate")();
+			}
+			
+		//! Calls overidden ParticleGenerator::generateParticles()
+		/*! \param particles Place generated particles here after a GeneratedParticles::canPlace() check
+			\param starT_idx Starting index to generate particles at
+			Derived classes must implement this method. RandomGenerator will 
+			call it to generate the particles. Particles should be placed at indices
+			\a start_idx, \a start_idx + 1, ... \a start_idx + getNumToGenerate()-1
+		*/
+		void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx)
+			{
+			this->get_override("generateParticle")(particles, rnd, start_idx);
+			}
+	};
+		
+
+void export_RandomGenerator()
+	{
+    class_<std::vector<string> >("std_vector_string")
+        .def(vector_indexing_suite<std::vector<string> >())
+    ;
+	
+	class_< RandomGenerator, bases<ParticleDataInitializer> >("RandomGenerator", init<const BoxDim&, unsigned int>())
+		// virtual methods from ParticleDataInitializer are inherited
+		.def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
+		.def("addGenerator", &RandomGenerator::addGenerator)
+		.def("generate", &RandomGenerator::generate)
+		;
+		
+	class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())
+		// no methods exposed to python
+		;
+		
+	class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, unsigned int >())
+		// all methods are internal C++ methods
+		;
+	}
+#endif

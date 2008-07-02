@@ -49,6 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
+#include "RandomGenerator.h"
 #include "Compute.h"
 #include "ForceCompute.h"
 #include "ConstForceCompute.h"
@@ -242,6 +243,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_RandomInitializerWithWalls();
 	export_SimpleCubicInitializer();
 	export_HOOMDInitializer();
+	export_RandomGenerator();
 	
 	// computes
 	export_Compute();
