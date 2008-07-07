@@ -38,6 +38,10 @@
 ## $URL$
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4 FATAL_ERROR)
+if(COMMAND cmake_policy)
+	cmake_policy(SET CMP0003 NEW)
+endif(COMMAND cmake_policy)
+
 
 project (HOOMD)
 # Specify cmake modules path to use our custom modules
