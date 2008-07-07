@@ -83,8 +83,6 @@ class _integrator:
 	## \internal
 	# \brief Constructs the integrator
 	#
-	# \param self Python-required class instance variable
-	#
 	# This doesn't really do much bet set some member variables to None
 	def __init__(self):
 		# check if initialization has occured
@@ -103,8 +101,6 @@ class _integrator:
 	
 	## \internal
 	# \brief Updates the integrators in the reflected c++ class
-	#
-	# \param self Python-required class instance variable
 	def update_forces(self):
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
@@ -130,7 +126,6 @@ class _integrator:
 # Nos&eacute;-Hoover thermostat. 
 class nvt(_integrator):
 	## Specifies the NVT integrator
-	# \param self Python-required class instance variable
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
 	# \param T Temperature set point for the Nos&eacute;-Hoover thermostat
 	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. It is related to the Nos&eacute; mass Q by TODO
@@ -149,7 +144,6 @@ class nvt(_integrator):
 		globals.system.setIntegrator(self.cpp_integrator);
 	
 	## Changes parameters of an existing integrator
-	# \param self Python-required class instance variable
 	# \param dt New time step delta (if set)
 	# \param T New temperature (if set)
 	# \param tau New coupling constant (if set)
@@ -183,7 +177,6 @@ class nvt(_integrator):
 # to continue with unconstrained integration.
 class nve(_integrator):
 	## Specifies the NVE integrator
-	# \param self Python-required class instance variable
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
 	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
 	#
@@ -207,7 +200,6 @@ class nve(_integrator):
 		globals.system.setIntegrator(self.cpp_integrator);
 	
 	## Changes parameters of an existing integrator
-	# \param self Python-required class instance variable
 	# \param dt New time step (if set)
 	#
 	# \b Examples (assuming the integrator was saved in the variable \a integrator):<br>

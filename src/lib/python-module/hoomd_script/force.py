@@ -56,8 +56,6 @@ class _force:
 	## \internal
 	# \brief Constructs the force
 	#
-	# \param self Python-required class instance variable
-	#
 	# Initializes the cpp_analyzer to None.
 	# Assigns a name to the force in force_name;
 	def __init__(self):
@@ -89,8 +87,6 @@ class _force:
 	# \brief The Force's name as it is assigned to the System
 
 	## Disables the force
-	#
-	# \param self Python-required class instance variable
 	#
 	# \b Examples:<br>
 	# force.disable()
@@ -125,8 +121,6 @@ class _force:
 		globals.forces.remove(self);
 
 	## Enables the force
-	#
-	# \param self Python-required class instance variable
 	#
 	# \b Examples:<br>
 	# analyzer.enable()

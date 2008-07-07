@@ -135,7 +135,7 @@ def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 ## Generates randomly positioned polymers
 #
 # \param box BoxDim specifying the simulation box to generate the polymers in
-# \parm polymers Specification for the different polymers to create (see below)
+# \param polymers Specification for the different polymers to create (see below)
 # \param separation Separation radii for different particle types (see below)
 # \param seed Random seed to use
 #

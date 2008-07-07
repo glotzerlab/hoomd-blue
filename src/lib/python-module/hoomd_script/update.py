@@ -57,8 +57,6 @@ class _updater:
 	## \internal
 	# \brief Constructs the updater
 	#
-	# \param self Python-required class instance variable
-	#
 	# Initializes the cpp_updater to None.
 	# Assigns a name to the updater in updater_name;
 	def __init__(self):
@@ -94,8 +92,6 @@ class _updater:
 
 	## Disables the updater
 	#
-	# \param self Python-required class instance variable
-	#
 	# \b Examples:<br>
 	# updater.disable()
 	#
@@ -130,8 +126,6 @@ class _updater:
 
 	## Enables the updater
 	#
-	# \param self Python-required class instance variable
-	#
 	# \b Examples:<br>
 	# updater.enable()
 	#
@@ -154,7 +148,6 @@ class _updater:
 		
 	## Changes the period between updater executions
 	#
-	# \param self Python-required class instance variable
 	# \param period New period to set
 	#
 	# \b Examples:<br>
@@ -204,8 +197,6 @@ class _updater:
 class sort(_updater):
 	## Initialize the sorter
 	#
-	# \param self Python-required class instance variable
-	# 
 	# Users should not initialize the sorter directly. One in created for you
 	# when any init.create_* or init.read_* commands are issued to initialize the 
 	# system. The created sorter can be accessed via the built-in variable sorter.
@@ -223,7 +214,6 @@ class sort(_updater):
 
 	## Change sorter parameters
 	#
-	# \param self Python-required class instance variable
 	# \param bin_width New bin width (if set)
 	# 
 	# \b Examples:<br>
@@ -250,7 +240,6 @@ class sort(_updater):
 class rescale_temp(_updater):
 	## Initialize the rescaler
 	#
-	# \param self Python-required class instance variable
 	# \param T Temperature set point
 	# \param period Velocities will be rescaled every \a period time steps
 	# 
@@ -270,7 +259,6 @@ class rescale_temp(_updater):
 
 	## Change rescale_temp parameters
 	#
-	# \param self Python-required class instance variable
 	# \param T New temperature set point
 	# 
 	# \b Examples:<br>

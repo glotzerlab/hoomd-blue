@@ -53,7 +53,6 @@ import analyze;
 class xml(analyze._analyzer):
 	## Initialize the hoomd_xml writer
 	#
-	# \param self Python-required class instance variable
 	# \param filename Base of the time name
 	# \param period Number of time steps between file dumps
 	# 
@@ -75,7 +74,6 @@ class xml(analyze._analyzer):
 
 	## Change xml write parameters
 	#
-	# \param self Python-required class instance variable
 	# \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
 	# \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
 	# \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
@@ -111,7 +109,6 @@ class xml(analyze._analyzer):
 class mol2(analyze._analyzer):
 	## Initialize the mol2 writer
 	#
-	# \param self Python-required class instance variable
 	# \param filename File name to write to
 	# 
 	# \b Examples:<br>
@@ -144,7 +141,6 @@ class mol2(analyze._analyzer):
 class dcd(analyze._analyzer):
 	## Initialize the dcd writer
 	#
-	# \param self Python-required class instance variable
 	# \param filename File name to write to
 	# \param period Number of time steps between file dumps
 	# 

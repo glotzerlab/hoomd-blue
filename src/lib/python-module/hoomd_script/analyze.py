@@ -57,8 +57,6 @@ class _analyzer:
 	## \internal
 	# \brief Constructs the analyzer
 	#
-	# \param self Python-required class instance variable
-	#
 	# Initializes the cpp_analyzer to None.
 	# Assigns a name to the analyzer in analyzer_name;
 	def __init__(self):
@@ -94,8 +92,6 @@ class _analyzer:
 
 	## Disables the analyzer
 	#
-	# \param self Python-required class instance variable
-	#
 	# \b Examples:<br>
 	# analyzer.disable()
 	#
@@ -130,8 +126,6 @@ class _analyzer:
 
 	## Enables the analyzer
 	#
-	# \param self Python-required class instance variable
-	#
 	# \b Examples:<br>
 	# analyzer.enable()
 	#
@@ -154,7 +148,6 @@ class _analyzer:
 		
 	## Changes the period between analyzer executions
 	#
-	# \param self Python-required class instance variable
 	# \param period New period to set
 	#
 	# \b Examples:<br>
@@ -187,7 +180,6 @@ _analyzer.cur_id = 0;
 class imd(_analyzer):
 	## Initialize the IMD interface
 	#
-	# \param self Python-required class instance variable
 	# \param port TCP/IP port to listen on
 	# \param period Number of time steps between file dumps
 	# 
