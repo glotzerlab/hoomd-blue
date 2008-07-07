@@ -39,6 +39,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file Profiler.cc
+	\brief Defines the Profiler class
+*/
 
 #include <iomanip>
 #include <sstream>

@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file ClockSource.cc
+	\brief Defines the ClockSource class
+*/
+
 #include "ClockSource.h"
 
 #include <sstream>
