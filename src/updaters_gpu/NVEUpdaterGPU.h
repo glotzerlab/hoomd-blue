@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file NVEUpdaterGPU.h
+	\brief Declares the NVEUpdaterGPU class
+*/
+
 #include "NVEUpdater.h"
 
 #include <boost/shared_ptr.hpp>

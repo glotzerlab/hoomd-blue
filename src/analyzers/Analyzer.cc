@@ -39,13 +39,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file Analyzer.cc
+	\brief Defines the base class Analyzer
+*/
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
 #endif
 
 #include "Analyzer.h"
-
 
 /*! \param pdata Particle data this compute will act on. Must not be NULL.
 	\post The Compute is constructed with the given particle data and a NULL profiler.

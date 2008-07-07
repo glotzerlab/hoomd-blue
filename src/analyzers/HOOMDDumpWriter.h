@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file HOOMDDumpWriter.h
+	\brief Declares the HOOMDDumpWriter class
+*/
+
 #include <string>
 
 #include <boost/shared_ptr.hpp>

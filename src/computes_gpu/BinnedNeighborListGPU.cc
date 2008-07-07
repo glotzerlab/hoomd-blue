@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file BinnedNeighborListGPU.cc
+	\brief Defines the BinnedNeighborListGPU class
+*/
+
 #include "BinnedNeighborListGPU.h"
 
 #include <cuda_runtime.h>

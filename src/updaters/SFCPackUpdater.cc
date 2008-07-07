@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file SFCPackUpdater.cc
+	\brief Defines the SFCPackUpdater class
+*/
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;

@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file NVTUpdaterGPU.h
+	\brief Declares the NVTUpdaterGPU class
+*/
+
 #include "NVTUpdater.h"
 #include "gpu_updaters.h"
 

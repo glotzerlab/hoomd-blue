@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file HOOMDInitializer.cc
+	\brief Defines the HOOMDInitializer class
+*/
+
 #include "HOOMDInitializer.h"
 
 #include <fstream>

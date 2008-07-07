@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file MOL2DumpWriter.h
+	\brief Declares the MOL2DumpWriter class
+*/
+
 #include <string>
 
 #include <boost/shared_ptr.hpp>

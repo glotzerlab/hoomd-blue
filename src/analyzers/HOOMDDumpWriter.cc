@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file HOOMDDumpWriter.cc
+	\brief Defines the HOOMDDumpWriter class
+*/
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;

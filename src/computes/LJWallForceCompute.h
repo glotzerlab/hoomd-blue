@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file LJWallForceCompute.h
+	\brief Declares the LJWallForceCompute class
+*/
+
 #include <boost/shared_ptr.hpp>
 
 #include "ForceCompute.h"

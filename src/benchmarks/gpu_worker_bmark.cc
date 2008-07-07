@@ -39,6 +39,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file gpu_worker_bmark.cc
+	\brief Executable for benchmarking the GPUWorker class
+	\details This is just a quick and dirty file to test the latency and overhead of
+		GPUWorker.
+	\ingroup benchmarks
+*/
+
+
 #include <cuda_runtime.h>
 #include <iostream>
 #include <boost/bind.hpp>

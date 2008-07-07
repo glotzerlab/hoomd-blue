@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file ForceCompute.cc
+	\brief Defines the ForceCompute class
+*/
+
 #include "ForceCompute.h"
 #include <iostream>
 using namespace std;

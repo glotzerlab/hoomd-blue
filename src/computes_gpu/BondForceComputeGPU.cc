@@ -36,6 +36,13 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// $Id$
+// $URL$
+
+/*! \file BondForceComputeGPU.cc
+	\brief Declares the BondForceComputeGPU class
+*/
+
 #include "BondForceComputeGPU.h"
 
 #ifdef USE_PYTHON

@@ -39,6 +39,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file pdata_gpucopy_bmark.cc
+ 	\brief Benchmarks CPU <-> GPU particle data copies
+ 	\details This is indended a quick test of the performance of the copies
+ 		to verify that everything is working properly. 
+ 		
+ 	\note This executable is only compiled when USE_CUDA is enabled.
+ 	\ingroup benchmarks
+*/
+
 #include "Profiler.h"
 #include "ParticleData.h"
 #include <iostream>
@@ -51,15 +60,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost;
 using namespace boost::program_options;
 using namespace std;
-
-/*! \file pdata_gpucopy_bmark.cc
- 	\brief Benchmarks CPU <-> GPU particle data copies
- 	\details This is indended a quick test of the performance of the copies
- 		to verify that everything is working properly. 
- 		
- 	\note This executable is only compiled when USE_CUDA is enabled.
- 	\ingroup benchmarks
-*/
 
 //! perform cpu -> gpu copy benchmarks
 void cpu2gpu_bmark(unsigned int N)

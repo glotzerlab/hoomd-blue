@@ -39,7 +39,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$ 
 
-
+/*! \file LJWallForceCompute.cc
+	\brief Defines the LJWallForceCompute class
+*/
 
 #ifdef USE_PYTHON
 #include <boost/python.hpp>

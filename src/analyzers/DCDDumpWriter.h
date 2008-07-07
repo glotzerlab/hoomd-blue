@@ -47,6 +47,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include "Analyzer.h"
 
+/*! \file DCDDumpWriter.h
+	\brief Declares the DCDDumpWriter class
+*/
+
 // The DCD Dump writer is based on code from the molfile plugin to VMD
 // and is use under the following license
 

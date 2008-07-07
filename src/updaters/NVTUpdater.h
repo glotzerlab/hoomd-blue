@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file NVTUpdater.h
+	\brief Declares the NVTUpdater class
+*/
+
 #include "Updater.h"
 #include "Integrator.h"
 #include <vector>

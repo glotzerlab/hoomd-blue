@@ -39,6 +39,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file force_compute_bmark.cc
+	\brief Executable for benchmarking all of the various ForceCompute classes
+	\details This is intended as a quick test to check the performance of ForceComputes 
+		on various machines and after performance tweaks have been made. It allows for a
+		number of command line options to change settings, but will most likely just
+		be run with the default settings most of the time.
+	\ingroup benchmarks
+*/
+
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -69,15 +78,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::program_options;
 using namespace boost;
 using namespace std;
-
-/*! \file force_compute_bmark.cc
-	\brief Executable for benchmarking all of the various ForceCompute classes
-	\details This is intended as a quick test to check the performance of ForceComputes 
-		on various machines and after performance tweaks have been made. It allows for a
-		number of command line options to change settings, but will most likely just
-		be run with the default settings most of the time.
-	\ingroup benchmarks
-*/
 
 // options from command line
 //! quite mode: only display time per compute and nothing else

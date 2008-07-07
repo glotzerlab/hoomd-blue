@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file NeighborListNsqGPU.h
+	\brief Declares the NeighborListNsqGPU class
+*/
+
 #include <vector>
 #include "NeighborList.h"
 #include "gpu_nlist.h"

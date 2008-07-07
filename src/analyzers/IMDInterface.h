@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file IMDInterface.h
+	\brief Declares the IMDInterface class
+*/
+er
 #include <boost/shared_ptr.hpp>
 
 #include "Analyzer.h"

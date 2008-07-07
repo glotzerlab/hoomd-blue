@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file SFCPackUpdater.h
+	\brief Declares the SFCPackUpdater class
+*/
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 )

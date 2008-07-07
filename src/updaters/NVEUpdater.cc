@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file NVEUpdater.cc
+	\brief Defines the NVEUpdater class
+*/
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;

@@ -40,6 +40,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file gpu_worker_bmark_kernel.cu
+	\brief GPU kernel to use in the gpu_worker_bmark benchmark
+*/
+
+//! Block size the kernel runs at
 #define BLOCK_SIZE 512
 
 //! Goofy test kernel that just wastes time: it is for benchmarking GPUWorker

@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file DCDDumpWriter.cc
+	\brief Defines the DCDDumpWriter class and related helper functions
+*/
+
 #include <stdexcept>
 
 #include "DCDDumpWriter.h"
@@ -51,7 +55,9 @@ using namespace boost::python;
 
 using namespace std;
 
+//! File position of NFILE in DCD header
 #define NFILE_POS 8L
+//! File position of NSTEP in DCD header
 #define NSTEP_POS 20L
 
 /*! Constructs the DCDDumpWriter. After construction, settings are set. No file operations are

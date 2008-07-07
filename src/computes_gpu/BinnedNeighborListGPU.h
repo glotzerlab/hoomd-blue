@@ -36,8 +36,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id $
-// $URL $
+// $Id$
+// $URL$
+
+/*! \file BinnedNeighborListGPU.h
+	\brief Declares the BinnedNeighborListGPU class
+*/
 
 #include "NeighborList.h"
 #include "gpu_nlist.h"

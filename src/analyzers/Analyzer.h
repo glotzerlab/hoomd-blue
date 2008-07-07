@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file Analyzer.h
+	\brief Declares a base class for all analyers
+*/
+
 #ifndef __ANALYZER_H__
 #define __ANALYZER_H__
 

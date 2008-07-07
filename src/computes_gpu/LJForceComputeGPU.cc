@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file LJForceComputeGPU.cc
+	\brief Defines the LJForceComputeGPU class
+*/
+
 #include "LJForceComputeGPU.h"
 
 #include <stdexcept>

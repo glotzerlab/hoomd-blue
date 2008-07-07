@@ -39,6 +39,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+/*! \file gpu_worker_test.cc
+	\brief Unit tests for the GPUWorker class
+*/
+
 #include <iostream>
 
 //! Name the boost unit test module

@@ -36,8 +36,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: HOOMDInitializer.h 506 2007-08-10 15:46:09Z joaander $
-// $URL: svn+ssh://fstanley@photon.hopto.org/hoomd/trunk/src/data_structures/HOOMDInitializer.h $
+// $Id$
+// $URL$
+
+/*! \file HOOMDInitializer.h
+	\brief Declares the HOOMDInitializer class
+*/
 
 #include "ParticleData.h"
 #include "NeighborList.h"
