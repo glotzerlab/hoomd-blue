@@ -42,7 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \file IMDInterface.h
 	\brief Declares the IMDInterface class
 */
-er
+
 #include <boost/shared_ptr.hpp>
 
 #include "Analyzer.h"
