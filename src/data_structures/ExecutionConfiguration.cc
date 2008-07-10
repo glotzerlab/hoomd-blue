@@ -45,6 +45,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
+#ifdef USE_PYTHON
+#include <boost/python.hpp>
+using namespace boost::python;
+#endif
+
 #include <stdexcept>
 #include <iostream>
 
@@ -71,13 +76,69 @@ ExecutionConfiguration::ExecutionConfiguration()
 	if (error != cudaSuccess)
 		{
 		cout << "Error getting CUDA capable device count! Continuing with 0 GPUs." << endl;
+		exec_mode = CPU;
 		return;
 		}
 	else
 		{
 		if (dev_count > 0)
+			{
 			gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(0)));
+			exec_mode = GPU;
+			}
+		else
+			exec_mode = CPU;
 		}
 	#endif
-	} 
+	}
+
+/*! \param mode Execution mode to set (cpu or gpu)
+	\param gpu_id GPU to execute on
+	
+	No GPU is initialized if mode==cpu
+*/
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int gpu_id)
+	{
+	exec_mode = mode;
+	
+	#ifdef USE_CUDA
+	if (exec_mode == GPU)
+		{
+		int dev_count;
+		cudaError_t error = cudaGetDeviceCount(&dev_count);
+		if (error != cudaSuccess)
+			{
+			cout << "Error getting CUDA capable device count!" << endl;
+			throw runtime_error("Error initializing execution configuration");
+			return;
+			}
+		else
+			{
+			if ((unsigned int)dev_count > gpu_id)
+				gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id)));
+			else
+				{
+				cout << "GPU " << gpu_id << " was requested, but only " << dev_count << " was/were found" << endl;
+				throw runtime_error("Error initializing execution configuration");
+				}
+			}
+		}
+	#endif
+	}
+
+
+#ifdef USE_PYTHON
+void export_ExecutionConfiguration()
+	{
+	scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
+		("ExecutionConfiguration", init< >())
+		.def(init<ExecutionConfiguration::executionMode, unsigned int>())
+		.def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
+		;
 		
+	enum_<ExecutionConfiguration::executionMode>("executionMode")
+		.value("GPU", ExecutionConfiguration::GPU)
+		.value("CPU", ExecutionConfiguration::CPU)
+	;
+	}
+#endif

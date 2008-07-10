@@ -271,9 +271,9 @@ class ParticleData
 	{
 	public:
 		//! Construct with N particles in the given box
-		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, ExecutionConfiguration exec_conf=ExecutionConfiguration());
+		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
 		//! Construct from an initializer
-		ParticleData(const ParticleDataInitializer& init, ExecutionConfiguration exec_conf=ExecutionConfiguration());
+		ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
 		//! Destructor
 		virtual ~ParticleData();
 			

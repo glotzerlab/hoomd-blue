@@ -37,9 +37,14 @@
 # $Id$
 # $URL$
 
+from optparse import OptionParser;
+
 import hoomd;
 import globals;
 import update;
+
+## Parsed command line options
+_options = {};
 
 ## \package hoomd_script.init
 # \brief Data initialization commands
@@ -68,6 +73,9 @@ import update;
 #
 def read_xml(file_name):
 	print "init.read_xml(file_name=", file_name, ")";
+	
+	# parse command line
+	_parse_command_line();
 
 	# check if initialization has already occured
 	if (globals.particle_data != None):
@@ -76,7 +84,7 @@ def read_xml(file_name):
 
 	# read in the data
 	initializer = hoomd.HOOMDInitializer(file_name);
-	globals.particle_data = hoomd.ParticleData(initializer);
+	globals.particle_data = hoomd.ParticleData(initializer, _create_exec_conf());
 	
 	# TEMPORARY HACK for bond initialization
 	globals.initializer = initializer;
@@ -115,7 +123,10 @@ def read_xml(file_name):
 #
 def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 	print "init.create_random(N =", N, ", phi_p =", phi_p, ", name = ", name, ", min_dist =", min_dist, ", wall_offset =", wall_offset, ")";
-
+	
+	# parse command line
+	_parse_command_line();
+	
 	# check if initialization has already occured
 	if (globals.particle_data != None):
 		print "Error: Cannot initialize more than once";
@@ -127,7 +138,7 @@ def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 	else:
 		initializer = hoomd.RandomInitializerWithWalls(N, phi_p, min_dist, wall_offset, name);
 		
-	globals.particle_data = hoomd.ParticleData(initializer);
+	globals.particle_data = hoomd.ParticleData(initializer, _create_exec_conf());
 
 	# initialize the system
 	globals.system = hoomd.System(globals.particle_data, 0);
@@ -190,6 +201,9 @@ def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 def create_random_polymers(box, polymers, separation, seed=1):
 	print "init.create_random_polymers(box =", box, ", polymers =", polymers, ", separation = ", separation, ", seed =", seed, ")";
 	
+	# parse command line
+	_parse_command_line();
+		
 	# check if initialization has already occured
 	if (globals.particle_data != None):
 		print "Error: Cannot initialize more than once";
@@ -247,7 +261,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	# generate the particles
 	generator.generate();
 	
-	globals.particle_data = hoomd.ParticleData(generator);
+	globals.particle_data = hoomd.ParticleData(generator, _create_exec_conf());
 	
 	# TEMPORARY HACK for bond initialization
 	globals.initializer = generator;
@@ -271,3 +285,44 @@ def _perform_common_init_tasks():
 	# create the sorter, using the evil import __main__ trick to provide the user with a default variable
 	import __main__;
 	__main__.sorter = update.sort();
+
+## Parses command line options
+#
+# \internal
+# Parses all hoomd_script command line options into the module variable _options
+def _parse_command_line():
+	global _options;
+	
+	parser = OptionParser();
+	parser.add_option("-e", "--mode", dest="mode", help="Execution mode (cpu or gpu)");
+	parser.add_option("-g", "--gpu", dest="gpu", help="GPU to execute on");
+	(_options, args) = parser.parse_args();
+	
+	if _options.mode:
+		if not (_options.mode == "cpu" or _options.mode == "gpu"):
+			parser.error("--exec must be either cpu or gpu");
+	
+## Initializes the execution configuration
+#
+# \internal
+# Given an initializer, create a particle data with a properly configured ExecutionConfiguration
+def _create_exec_conf():
+	global _options;
+	
+	# if no command line options were specified, create a default ExecutionConfiguration
+	if not _options.mode:
+		exec_conf = hoomd.ExecutionConfiguration();
+	else:
+		if _options.gpu:
+			gpu_id = int(_options.gpu);
+		
+		# create the specified configuration
+		if _options.mode == "cpu":
+			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id);
+		elif _options.mode == "gpu":
+			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id);
+		else:
+			raise RuntimeError("Invalid value for _options.exec in initialization");
+		
+	return exec_conf;
+		

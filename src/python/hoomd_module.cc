@@ -47,6 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
+#include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
 #include "RandomGenerator.h"
@@ -237,6 +238,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_BoxDim();
 	export_ParticleDataInitializer();
 	export_ParticleData();
+	export_ExecutionConfiguration();
 
 	// initializers
 	export_RandomInitializer();

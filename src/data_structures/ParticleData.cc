@@ -139,7 +139,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	
 	Type mappings assign particle types "A", "B", "C", ....
 */ 
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, ExecutionConfiguration exec_conf)	
+ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, const ExecutionConfiguration& exec_conf)	
 	: m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
 	{
 	// check the input for errors
@@ -220,7 +220,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	uses it to fill out the position and velocity data.
 	\param init Initializer to use
 */
-ParticleData::ParticleData(const ParticleDataInitializer& init, ExecutionConfiguration exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
+ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration& exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
 	{
 	m_ntypes = init.getNumParticleTypes();
 	// check the input for errors
@@ -1023,6 +1023,8 @@ void export_ParticleData()
 	{
 	class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
 		.def(init<const ParticleDataInitializer&>())
+		.def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
+		.def(init<unsigned int, const BoxDim&, unsigned int, const ExecutionConfiguration&>())
 		.def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
 		.def("setBox", &ParticleData::setBox)
 		.def("getN", &ParticleData::getN)
@@ -1038,6 +1040,7 @@ void export_ParticleData()
 		#endif
 		.def("release", &ParticleData::release)
 		.def("setProfiler", &ParticleData::setProfiler)
+		.def("getExecConf", &ParticleData::getExecConf, return_internal_reference<>())
 		.def("__str__", &print_ParticleData)
 		;
 	}

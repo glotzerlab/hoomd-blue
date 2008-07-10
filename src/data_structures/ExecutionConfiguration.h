@@ -56,16 +56,36 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	This is just a skeleton of what ExecutionConfiguration will eventually be.
 	It currently only contains a list of GPUWorkers that the system is
 	to use in executing the simulation. Current code only uses one GPU,
-	so the vector is used for future expansion purposes. 
+	so the vector is used for future expansion purposes.
+	
+	The execution mode is specified in exec_mode. This is only to be taken as a hint,
+	different compute classes are free to execute on either the CPU or GPU. The only
+	requirement is that those executing on the GPU must use the gpu workers in the vector.
 */
 struct ExecutionConfiguration
 	{
+	//! Simple enum for the execution modes
+	enum executionMode
+		{
+		GPU,	//!< Execute on the GPU
+		CPU	//!< Execute on the CPU
+		};
+	
 	//! Default constructor
 	ExecutionConfiguration();
 	
+	//! Single GPU selection constructor
+	ExecutionConfiguration(executionMode mode, unsigned int gpu_id);
+	
+	executionMode exec_mode;	//!< Execution mode specified in the constructor
 	#ifdef USE_CUDA
-	std::vector< boost::shared_ptr<GPUWorker> > gpu;
+	std::vector< boost::shared_ptr<GPUWorker> > gpu;	//!< GPUs to execute on
 	#endif
 	};
+
+#ifdef USE_PYTHON
+//! Exports ExecutionConfiguration to python
+void export_ExecutionConfiguration();
+#endif
 	
 #endif
