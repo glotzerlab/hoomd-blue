@@ -215,6 +215,10 @@ class nlist:
 		self.cpp_nlist = hoomd.BinnedNeighborList(globals.particle_data, r_cut, 0.8)
 		self.cpp_nlist.setEvery(10);
 		
+		# set the exclusions (TEMPORARY HACK for bonds)
+		if globals.initializer:
+			globals.initializer.setupNeighborListExclusions(self.cpp_nlist);
+		
 		# save the parameters we set
 		self.r_cut = r_cut;
 		self.r_buff = 0.8;
@@ -237,7 +241,7 @@ class nlist:
 	# the neighbor list may not be updated when it needs to be. The default of 10 is appropriate for 
 	# Lennard-Jones liquid simulations at reduced T=1.2. \a check_period should be set so that no particle
 	# moves a distance no more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
-	# \b build is counted and printed in the neighbor list statistics at the end of a run.
+	# \b build is counted and printed in the neighbor list statistics at the end of a run().
 	#
 	# A single global neighbor list is created for the entire simulation. Change parameters by using
 	# the built-in variable \b nlist.

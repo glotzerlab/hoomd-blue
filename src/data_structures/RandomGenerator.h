@@ -44,6 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "ParticleData.h"
+#include "BondForceCompute.h"
+#include "NeighborList.h"
 
 #include <string>
 #include <vector>
@@ -97,6 +99,9 @@ class GeneratedParticles
 		//! Get the box
 		const BoxDim& getBox() { return m_box; }
 		
+		//! Add a bond
+		void addBond(unsigned int a, unsigned int b);
+		
 	private:
 		friend class RandomGenerator;
 	
@@ -110,6 +115,26 @@ class GeneratedParticles
 		Scalar m_scaley;		//!< Scale factor to convert y to a bin coord
 		Scalar m_scalez;		//!< Scale factor to convert z to a bin coord
 		std::map< std::string, Scalar > m_radii;	//!< Separation radii accessed by particle type
+		
+		struct bond		//!< Structure representing a single bond
+			{
+			//! Default constructor
+			bond() : tag_a(0), tag_b(0)
+				{
+				}
+
+			//! Construct a bond between two particles
+			/*! \param a tag of the first particle in the bond
+				\param b tag of the second particle in the bond
+			*/
+			bond(unsigned int a, unsigned int b) : tag_a(a), tag_b(b)
+				{
+				}
+			unsigned int tag_a;		//!< First particle in the bond
+			unsigned int tag_b;		//!< Second particle in the bond
+			};
+
+		std::vector< bond > m_bonds;	//!< Bonds read in from the file		
 	};
 	
 //! Abstract interface for classes that generate particles
@@ -217,6 +242,12 @@ class RandomGenerator : public ParticleDataInitializer
 		
 		//! Initialize the type name mapping
 		std::vector<std::string> getTypeMapping() const;
+		
+		//! Adds a neighbor list exclusion for each bond read from the input file
+		void setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist);
+		
+		//! Calls BondForceCompute::addBond for each bond read from the input file
+		void setupBonds(boost::shared_ptr<BondForceCompute> fc_bond);		
 		
 		//! Sets the separation radius for a particle
 		void setSeparationRadius(string type, Scalar radius);

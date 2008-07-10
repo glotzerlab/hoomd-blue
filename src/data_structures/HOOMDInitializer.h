@@ -146,7 +146,7 @@ class HOOMDInitializer : public ParticleDataInitializer
 		std::vector< Wall > m_walls;				//!< walls loaded from the file			
 
 
-		struct bond				//!< bond on the particles
+		struct bond				//!< Structure representing a single bond
 			{
 			//! Default constructor
 			bond() : tag_a(0), tag_b(0)

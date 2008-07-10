@@ -362,6 +362,16 @@ void GeneratedParticles::undoPlace(unsigned int idx)
 		}
 	}
 	
+/*! \param a Tag of the first particle in the bond
+	\param b Tag of the second particle in the bond
+	
+	Adds a bond between particles with tags \a and \b
+*/
+void GeneratedParticles::addBond(unsigned int a, unsigned int b)
+	{
+	m_bonds.push_back(bond(a,b));
+	}
+	
 /*! \param box Box dimensions to generate in
 	\param seed Random number generator seed
 */
@@ -403,7 +413,21 @@ std::vector<std::string> RandomGenerator::getTypeMapping() const
 	{
 	return m_type_mapping;
 	}
-		
+	
+void RandomGenerator::setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist)
+	{
+	// loop through all the bonds and add an exclusion for each
+	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
+		nlist->addExclusion(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+	}
+	
+void RandomGenerator::setupBonds(boost::shared_ptr<BondForceCompute> fc_bond)
+	{
+	// loop through all the bonds and add a bond for each
+	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)	
+		fc_bond->addBond(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+	}
+
 /*! \param type Name of the particle type to set the radius for
 	\param radius Radius to set
 */
@@ -531,6 +555,9 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 		if (generateNextParticle(particles, rnd, 1, start_idx, p))
 			{
 			// success! we are done
+			// create the bonds for this polymer now (polymers are simply linear for now)
+			for (unsigned int i = start_idx; i < m_types.size()-1; i++)
+				particles.addBond(i, i+1);
 			return;
 			}
 		
@@ -596,8 +623,6 @@ bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particle
 	return false;
 	}
 	
-	
-	
 #ifdef USE_PYTHON
 class ParticleGeneratorWrap : public ParticleGenerator, public wrapper<ParticleGenerator>
 	{
@@ -633,6 +658,8 @@ void export_RandomGenerator()
 		.def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
 		.def("addGenerator", &RandomGenerator::addGenerator)
 		.def("generate", &RandomGenerator::generate)
+		.def("setupNeighborListExclusions", &RandomGenerator::setupNeighborListExclusions)
+		.def("setupBonds", &RandomGenerator::setupBonds) 
 		;
 		
 	class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())

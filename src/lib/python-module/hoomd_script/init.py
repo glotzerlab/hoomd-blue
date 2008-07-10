@@ -77,6 +77,9 @@ def read_xml(file_name):
 	# read in the data
 	initializer = hoomd.HOOMDInitializer(file_name);
 	globals.particle_data = hoomd.ParticleData(initializer);
+	
+	# TEMPORARY HACK for bond initialization
+	globals.initializer = initializer;
 
 	# initialize the system
 	globals.system = hoomd.System(globals.particle_data, initializer.getTimeStep());
@@ -245,6 +248,9 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	generator.generate();
 	
 	globals.particle_data = hoomd.ParticleData(generator);
+	
+	# TEMPORARY HACK for bond initialization
+	globals.initializer = generator;
 	
 	# initialize the system
 	globals.system = hoomd.System(globals.particle_data, 0);

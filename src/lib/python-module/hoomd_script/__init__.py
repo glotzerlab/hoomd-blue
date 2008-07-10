@@ -37,8 +37,7 @@
 # $Id$
 # $URL$
 
-
-from hoomd import *
+import hoomd;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
@@ -52,7 +51,7 @@ from hoomd import *
 ## \internal
 # \brief Internal python variable 
 __all__ = ["analyze", "bond", "dump", "force", "globals", "init", 
-			"integrate", "pair", "update", "run"];
+			"integrate", "pair", "update", "run", "hoomd"];
 
 ## \brief Runs the simulation for a given number of time steps
 #
