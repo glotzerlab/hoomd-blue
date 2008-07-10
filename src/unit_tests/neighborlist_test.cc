@@ -355,8 +355,8 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborListGPU_tests )
 	nlist_creator_typ gpu_creator = bind(gpu_binned_nlist_creator, _1, _2, _3);
 	
 	neighborlist_basic_tests(gpu_creator);
-	//neighborlist_exclusion_tests(gpu_creator);
-	//neighborlist_comparison_test(base_creator, gpu_creator);
+	neighborlist_exclusion_tests(gpu_creator);
+	neighborlist_comparison_test(base_creator, gpu_creator);
 	}
 #endif
 

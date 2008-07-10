@@ -178,68 +178,68 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		period = 1;
 	
 	// loop over neighbors
-	// to prevent triggering a bug in the GPU hardware, each thread loops over the maximum
-	// possible number of neighbors. Then an if in the thread body prevents computations 
-	// from being performed on invalid neighbors
-	for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+	int neigh_idx = 0;
+	while (neigh_idx < n_neigh)
 		{
-		if (neigh_idx < n_neigh)
+		int cur_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + pidx];
+		
+		// get the neighbor's position
+		float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+		neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+	
+		float nx = neigh_pos.x;
+		float ny = neigh_pos.y;
+		float nz = neigh_pos.z;
+		int neigh_typ = __float_as_int(neigh_pos.w);
+		
+		// calculate dr (with periodic boundary conditions)
+		float dx = pos.x - nx;
+		float dy = pos.y - ny;
+		float dz = pos.z - nz;
+			
+		if (period)
 			{
-			int cur_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + pidx];
-		
-			// get the neighbor's position
-			float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-			neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
-	
-			float nx = neigh_pos.x;
-			float ny = neigh_pos.y;
-			float nz = neigh_pos.z;
-			int neigh_typ = __float_as_int(neigh_pos.w);
-		
-			// calculate dr (with periodic boundary conditions)
-			float dx = pos.x - nx;
-			float dy = pos.y - ny;
-			float dz = pos.z - nz;
-			
-			if (period)
-				{
-				dx -= box.Lx * rintf(dx * box.Lxinv);
-				dy -= box.Ly * rintf(dy * box.Lyinv);
-				dz -= box.Lz * rintf(dz * box.Lzinv);
-				}
-				
-			float rsq = dx*dx + dy*dy + dz*dz;
-			
-			float r2inv;
-			if (rsq >= r_cutsq)
-				r2inv = 0.0f;
-			else
-				r2inv = 1.0f / rsq;
-	
-			int ptype = __float_as_int(pos.w);
-			int typ_pair = neigh_typ * MAX_NTYPES + ptype;
-	
-			// note that the code for calculating the force was borrowed from lammps
-			float r6inv = r2inv*r2inv*r2inv;
-			// the lj1 and lj2 params are encoded into the x and y components of the params array
-			float lj1 = c_ljparams.lj1[typ_pair];
-			float lj2 = c_ljparams.lj2[typ_pair];
-			float fforce = r2inv * r6inv * (lj1  * r6inv - lj2);
-			
-			// add up the forces
-			fx += dx * fforce;
-			fy += dy * fforce;
-			fz += dz * fforce;
+			dx -= box.Lx * rintf(dx * box.Lxinv);
+			dy -= box.Ly * rintf(dy * box.Lyinv);
+			dz -= box.Lz * rintf(dz * box.Lzinv);
 			}
-		}
+				
+		float rsq = dx*dx + dy*dy + dz*dz;
+			
+		float r2inv;
+		if (rsq >= r_cutsq)
+			r2inv = 0.0f;
+		else
+			r2inv = 1.0f / rsq;
 	
-	// now that the force calculation is complete, write out the result if we are a valid particle
-	float4 force;
-	force.x = fx;
-	force.y = fy;
-	force.z = fz;
-	force.w = 0.0f;
-	d_forces[pidx] = force;
+		int ptype = __float_as_int(pos.w);
+		int typ_pair = neigh_typ * MAX_NTYPES + ptype;
+	
+		// note that the code for calculating the force was borrowed from lammps
+		float r6inv = r2inv*r2inv*r2inv;
+		// the lj1 and lj2 params are encoded into the x and y components of the params array
+		float lj1 = c_ljparams.lj1[typ_pair];
+		float lj2 = c_ljparams.lj2[typ_pair];
+		float fforce = r2inv * r6inv * (lj1  * r6inv - lj2);
+			
+		// add up the forces
+		fx += dx * fforce;
+		fy += dy * fforce;
+		fz += dz * fforce;
+		
+		if (neigh_idx+1 == n_neigh)
+			{
+			// now that the force calculation is complete, write out the result if we are a valid particle
+			float4 force;
+			force.x = fx;
+			force.y = fy;
+			force.z = fz;
+			force.w = 0.0f;
+			d_forces[pidx] = force;
+			return;
+			}
+		neigh_idx = neigh_idx + 1;
+		}	
 	}
 
 

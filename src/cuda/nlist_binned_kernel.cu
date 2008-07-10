@@ -51,6 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // textures used in this kernel: commented out because textures are managed globally currently
 texture<unsigned int, 2, cudaReadModeElementType> nlist_idxlist_tex;
 texture<uint4, 1, cudaReadModeElementType> nlist_bincoord_tex;
+texture<uint4, 1, cudaReadModeElementType> nlist_exclude_tex;
 
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
@@ -697,6 +698,7 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	
 	// first, determine which bin this particle belongs to
 	float4 my_pos = tex1Dfetch(pdata_pos_tex, my_pidx);
+	uint4 exclude = tex1Dfetch(nlist_exclude_tex, my_pidx);
 	
 	// make even bin dimensions
 	float binx = (box.Lx) / float(bins.Mx);
@@ -780,8 +782,9 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 						dz = dz - box.Lz * rintf(dz * box.Lzinv);
 	
 						float dr = dx*dx + dy*dy + dz*dz;
+						int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
 						
-						if (dr < r_maxsq && (my_pidx != cur_neigh))
+						if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
 							{
 							nlist.list[my_pidx + (1 + n_neigh)*nlist.pitch] = cur_neigh;
 							n_neigh++;
@@ -818,6 +821,10 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	if (error != cudaSuccess)
 		return error;
 
+	error = cudaBindTexture(0, nlist_exclude_tex, nlist->exclusions, sizeof(uint4) * pdata->N);
+	if (error != cudaSuccess)
+		return error;
+	
 	nlist_idxlist_tex.normalized = false;
 	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
 	error = cudaBindTextureToArray(nlist_idxlist_tex, bins->idxlist_array);
