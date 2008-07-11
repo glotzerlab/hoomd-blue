@@ -113,12 +113,20 @@ endif (NOT USE_STATIC)
 ########################
 ## now setup the hoomd executable
 
+## An update to to CentOS5's python broke linking of the hoomd exe. According
+## to an ancient post online, adding -lutil fixed this in python 2.2
+set(ADDITIONAL_LIBS "")
+if (UNIX AND NOT APPLE)
+	find_library(UTIL_LIB util /usr/lib)
+	set(ADDITIONAL_LIBS ${UTIL_LIB})
+endif (UNIX AND NOT APPLE)
+	
 # setup the libraries to link to
 # only add the boost library if not win32, since it provides an auto-linking mechanism
 if (WIN32)
     set(LIBS ${HOOMD_PYTHON_MODULE} ${WINSOCK_LIB} ${PYTHON_LIBRARIES})
 else (WIN32)
-    set(LIBS ${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${PYTHON_LIBRARIES})
+    set(LIBS ${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${PYTHON_LIBRARIES} ${ADDITIONAL_LIBS})
 endif (WIN32)
 
 # setup the python runner executable
