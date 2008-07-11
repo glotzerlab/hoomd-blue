@@ -66,7 +66,14 @@ class harmonic(force._force):
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_force = hoomd.BondForceCompute(globals.particle_data, K, r0);
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.BondForceCompute(globals.particle_data, K, r0);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_force = hoomd.BondForceComputeGPU(globals.particle_data, K, r0);
+		else:
+			print "Invalid execution mode";
+			raise RuntimeError("Error creating bond forces");
+		
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
 		# add the bonds

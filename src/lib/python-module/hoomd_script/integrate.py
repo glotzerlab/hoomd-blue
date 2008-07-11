@@ -140,7 +140,14 @@ class nvt(_integrator):
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
-		self.cpp_integrator = hoomd.NVTUpdater(globals.particle_data, dt, tau, T);
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NVTUpdater(globals.particle_data, dt, tau, T);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.particle_data, dt, tau, T);
+		else:
+			print "Invalid execution mode";
+			raise RuntimeError("Error creating NVT integrator");
+			
 		globals.system.setIntegrator(self.cpp_integrator);
 	
 	## Changes parameters of an existing integrator
@@ -191,7 +198,13 @@ class nve(_integrator):
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
-		self.cpp_integrator = hoomd.NVEUpdater(globals.particle_data, dt);
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NVEUpdater(globals.particle_data, dt);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NVEUpdaterGPU(globals.particle_data, dt);
+		else:
+			print "Invalid execution mode";
+			raise RuntimeError("Error creating NVE integrator");
 		
 		# set the limit
 		if limit != None:

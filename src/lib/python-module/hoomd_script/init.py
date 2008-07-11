@@ -315,6 +315,8 @@ def _create_exec_conf():
 	else:
 		if _options.gpu:
 			gpu_id = int(_options.gpu);
+		else:
+			gpu_id = 0;
 		
 		# create the specified configuration
 		if _options.mode == "cpu":

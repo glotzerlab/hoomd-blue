@@ -563,11 +563,11 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 		
 		// failure, rollback
 		particles.undoPlace(start_idx);
-		cout << "Trying particle " << start_idx << " again" << endl;
+		cout << "Polymer generator: Trying particle " << start_idx << " again" << endl;
 		}
 		
 	// we've failed to place a polymer, this is an unrecoverable error
-	throw runtime_error("Failed to place a polymer");
+	throw runtime_error("Polymer generator: Failed to place a polymer");
 	}
 
 /*! \param particles Data to place particles in

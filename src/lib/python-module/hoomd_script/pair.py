@@ -212,7 +212,14 @@ class nlist:
 			raise RuntimeError('Error creating neighbor list');
 		
 		# create the C++ mirror class
-		self.cpp_nlist = hoomd.BinnedNeighborList(globals.particle_data, r_cut, 0.8)
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_nlist = hoomd.BinnedNeighborList(globals.particle_data, r_cut, 0.8)
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.particle_data, r_cut, 0.8)
+		else:
+			print "Invalid execution mode";
+			raise RuntimeError("Error creating neighbor list");
+			
 		self.cpp_nlist.setEvery(10);
 		
 		# set the exclusions (TEMPORARY HACK for bonds)
@@ -305,7 +312,16 @@ class lj(force._force):
 		neighbor_list = _update_global_nlist(r_cut);
 		
 		# create the c++ mirror class
-		self.cpp_force = hoomd.LJForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.LJForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+			self.cpp_force = hoomd.LJForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+		else:
+			print "Invalid execution mode";
+			raise RuntimeError("Error creatinglj pair force");
+			
+			
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
 		# setup the coefficent matrix
