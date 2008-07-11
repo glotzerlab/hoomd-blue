@@ -470,7 +470,7 @@ void RandomGenerator::generate()
 	
 	// start the random number generator
 	boost::mt19937 rnd;
-	//rnd.seed(m_seed);
+	rnd.seed(boost::mt19937::result_type(m_seed));
 	
 	// perform the generation
 	unsigned int start_idx = 0;
