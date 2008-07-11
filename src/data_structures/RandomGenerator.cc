@@ -44,6 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <stdexcept>
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #ifdef USE_PYTHON
@@ -53,6 +54,10 @@ using namespace boost::python;
 #endif
 
 using namespace std;
+
+// windows defines a macro min and max
+#undef min
+#undef max
 
 /*! \file RandomGenerator.cc
  	\brief Contains definitions for RandomGenerator and related classes.
@@ -465,7 +470,7 @@ void RandomGenerator::generate()
 	
 	// start the random number generator
 	boost::mt19937 rnd;
-	rnd.seed(m_seed);
+	//rnd.seed(m_seed);
 	
 	// perform the generation
 	unsigned int start_idx = 0;

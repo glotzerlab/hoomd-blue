@@ -85,6 +85,7 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
   # Add in some path suffixes. These will have to be updated whenever
   # a new Boost version comes out.
   set(BOOST_PATH_SUFFIX
+	boost-1_35_0
     boost-1_35
     boost-1_34_1
     boost-1_34_0
@@ -115,6 +116,7 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
       $ENV{BOOST_ROOT}/include
       $ENV{BOOST_ROOT}
       C:/boost/include
+      $ENV{PROGRAMFILES}/boost/boost_1_35_0
       $ENV{PROGRAMFILES}/boost/boost_1_34_1
       $ENV{PROGRAMFILES}/boost/boost_1_34_0
       $ENV{PROGRAMFILES}/boost/boost_1_33_1
@@ -131,6 +133,7 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
       $ENV{BOOSTLIBDIR}
       $ENV{BOOST_ROOT}/lib
       C:/boost/lib
+      $ENV{PROGRAMFILES}/boost/boost_1_35_0/lib
       $ENV{PROGRAMFILES}/boost/boost_1_34_1/lib
       $ENV{PROGRAMFILES}/boost/boost_1_34_0/lib
       $ENV{PROGRAMFILES}/boost/boost_1_33_1/lib
@@ -143,12 +146,14 @@ else (BOOST_LIBRARIES AND BOOST_INCLUDE_DIRS)
     if (MSVC71)
       if (CMAKE_BUILD_TYPE STREQUAL Debug)
         set(BOOST_LIBRARIES_SUFFIXES
+		  -vc71-mt-gd-1_35
           -vc71-mt-gd-1_34_1
           -vc71-mt-gd-1_34
           -vc71-mt-gd-1_33_1
         )
       else (CMAKE_BUILD_TYPE STREQUAL Debug)
         set(BOOST_LIBRARIES_SUFFIXES
+		  -vc71-mt-1_35
           -vc71-mt-1_34_1
           -vc71-mt-1_34
           -vc71-mt-1_33_1

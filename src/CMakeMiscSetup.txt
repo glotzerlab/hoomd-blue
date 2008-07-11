@@ -64,7 +64,8 @@ if (WIN32)
 	else(CMAKE_CL_64)
 	find_library(WINSOCK_LIB WSock32 PATHS
 		$ENV{PLATFORMSDK_DIR}Lib "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib" 
-		"$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib" 
+		"$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib"
+		"$ENV{PROGRAMFILES}/Microsoft Platform SDK for Windows Server 2003 R2/Lib"
 		DOC "Path to WSock32.lib")
 	endif(CMAKE_CL_64)
 endif (WIN32)
