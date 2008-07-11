@@ -89,6 +89,8 @@ ExecutionConfiguration::ExecutionConfiguration()
 		else
 			exec_mode = CPU;
 		}
+	#else
+	exec_mode=CPU;
 	#endif
 	}
 
