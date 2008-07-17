@@ -203,6 +203,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	
 	# parse command line
 	_parse_command_line();
+	my_exec_conf = _create_exec_conf();
 		
 	# check if initialization has already occured
 	if (globals.particle_data != None):
@@ -261,7 +262,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	# generate the particles
 	generator.generate();
 	
-	globals.particle_data = hoomd.ParticleData(generator, _create_exec_conf());
+	globals.particle_data = hoomd.ParticleData(generator, my_exec_conf);
 	
 	# TEMPORARY HACK for bond initialization
 	globals.initializer = generator;
