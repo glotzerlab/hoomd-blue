@@ -168,7 +168,7 @@ void BondForceComputeGPU::updateBondTable()
 		m_bondlist[idx1]++;
 		m_bondlist[idx2]++;
 		}
-		
+	
 	// copy the bond table to the device
 	copyBondTable();
 	

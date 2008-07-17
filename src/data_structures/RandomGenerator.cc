@@ -561,7 +561,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 			{
 			// success! we are done
 			// create the bonds for this polymer now (polymers are simply linear for now)
-			for (unsigned int i = start_idx; i < m_types.size()-1; i++)
+			for (unsigned int i = start_idx; i < start_idx+m_types.size()-1; i++)
 				particles.addBond(i, i+1);
 			return;
 			}
