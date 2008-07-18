@@ -70,3 +70,6 @@ neighbor_list = None;
 # themselves to this variable
 ## (Temporary hack) Global variable tracking the initializer used
 initializer = None;
+
+## temporary hack to get bond information to the mol2 dump
+bond_compute = None;

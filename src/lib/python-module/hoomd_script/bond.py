@@ -73,7 +73,9 @@ class harmonic(force._force):
 		else:
 			print "Invalid execution mode";
 			raise RuntimeError("Error creating bond forces");
-		
+
+		globals.bond_compute = self.cpp_force;
+
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
 		# add the bonds

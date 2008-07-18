@@ -72,10 +72,9 @@ class BondForceCompute : public ForceCompute
 		
 		//! Add a bond
 		virtual void addBond(unsigned int tag1, unsigned int tag2);
-	
-	protected:
-		Scalar m_K;		//!< K parameter
-		Scalar m_r_0;	//!< r_0 parameter
+
+		//! Get the number of bonds
+		unsigned int getNumBonds() { return m_bonds.size(); }
 		
 		//! A simple struct for storing the two particles of a bonded pair
 		struct BondPair
@@ -89,6 +88,15 @@ class BondForceCompute : public ForceCompute
 			unsigned int m_tag1;	//!< Tag of the first particle in the bond
 			unsigned int m_tag2;	//!< Tag of the second particle in the bond
 			};
+
+		//! Get a given bond
+		BondForceCompute::BondPair getBond(unsigned int i) { return m_bonds[i]; }
+		
+
+	protected:
+		Scalar m_K;		//!< K parameter
+		Scalar m_r_0;	//!< r_0 parameter
+		
 		
 		std::vector< BondPair > m_bonds;	//!< A list of all the bonds to compute
 		

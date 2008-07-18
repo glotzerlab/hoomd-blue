@@ -48,6 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "Analyzer.h"
+#include "BondForceCompute.h"
 
 #ifndef __MOL2_DUMP_WRITER_H__
 #define __MOL2_DUMP_WRITER_H__
@@ -64,8 +65,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 class MOL2DumpWriter : public Analyzer
 	{
 	public:
+		// NOTE: temporary hack in place to get bond output to the mol2 file
 		//! Construct the writer
-		MOL2DumpWriter(boost::shared_ptr<ParticleData> pdata, std::string fname);
+		MOL2DumpWriter(boost::shared_ptr<ParticleData> pdata, std::string fname, boost::shared_ptr<BondForceCompute> bond);
 		
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);
@@ -73,6 +75,7 @@ class MOL2DumpWriter : public Analyzer
 	private:
 		std::string m_fname;	//!< String used to store the file name of the output file
 		bool m_written;
+		boost::shared_ptr<BondForceCompute> m_bond;
 	};
 	
 #ifdef USE_PYTHON
