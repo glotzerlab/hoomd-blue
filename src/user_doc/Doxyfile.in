@@ -534,8 +534,11 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = ${HOOMD_SOURCE_DIR}/user_doc/user_guide.doc \
-                         ${HOOMD_SOURCE_DIR}/user_doc/license.doc \
+INPUT                  = ${HOOMD_SOURCE_DIR}/user_doc/installation_guide.doc \
+                         ${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc \
+						 ${HOOMD_SOURCE_DIR}/doc/PreqInstall.doc \
+						 ${HOOMD_SOURCE_DIR}/user_doc/quick_start.doc \
+						 ${HOOMD_SOURCE_DIR}/user_doc/license.doc \
                          ${HOOMD_SOURCE_DIR}/user_doc/credits.doc \
                          ${HOOMD_SOURCE_DIR}/user_doc/intro.doc \
                          ${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script

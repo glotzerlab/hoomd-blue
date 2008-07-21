@@ -2,9 +2,10 @@
 
 Welcome to the documentation for HOOMD!
 
-- \subpage page_system_guide
-- \subpage page_user_guide
-- \subpage page_license
-- \subpage page_credits
+-# \subpage page_install_guide
+-# \subpage page_quick_start
+-# \subpage page_compile_guide
+-# \subpage page_license
+-# \subpage page_credits
 
 */

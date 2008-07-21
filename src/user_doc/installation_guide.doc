@@ -36,7 +36,16 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*! \page page_system_guide Hardware/Software Requirements
+/*! \page page_install_guide Installation Guide
+
+\b Contents:
+ - \ref sec_system_req
+ - \ref sec_install_hoomd_windows
+ - \ref sec_install_hoomd_linux
+ 
+<hr>
+
+\section sec_system_req System Requirements
 
 Note: The CPU code in HOOMD is standards compliant C++ and should compile
 on any architecture, contact the developers if you run into any problems
@@ -67,62 +76,51 @@ support CUDA http://www.nvidia.com/object/cuda_home.html.
  - \b CUDA toolkit 1.1 installed: http://www.nvidia.com/object/cuda_home.html
  	- Note: Vista currently requires a \b beta version of CUDA, download it here  http://forums.nvidia.com/index.php?showtopic=65067
 
-*/
-
-/*! \page page_user_guide User Guide
-
-\b Contents:
- - \ref sec_install_hoomd_windows
- - \ref sec_install_hoomd_linux
- - \ref sec_using_hoomd
+<hr>
 
 \section sec_install_hoomd_windows Installing HOOMD in Windows XP
 
 <b>Before you can install HOOMD</b>
  -# Install Python 2.5 using the installer at http://www.python.org/download/
- -# Install the NVIDIA CUDA Toolkit version 1.1 using the installer at http://www.nvidia.com/object/cuda_get.html#windows
- -# Install CUDA capable NVIDIA drivers from the same page. Laptop users, see
+ -# Install the NVIDIA CUDA Toolkit version 1.1 using the installer at http://www.nvidia.com/object/cuda_get.html
+ 	- Note: Vista users install version 2.0 beta 2
+ -# Install the latest drivers for your GPU. Go to http://www.nvidia.com and select \b download \b drivers. Laptop users, see
  http://forums.nvidia.com/index.php?showtopic=58191
+ 	- Vista users must install the driver linked at http://www.nvidia.com/object/cuda_get.html
  -# Download the HOOMD installer from http://www.ameslab.gov/hoomd
  -# Uninstall any previous version of HOOMD before continuing
  -# Double click on the installer and follow the on screen steps
  
 HOOMD should now show up on your <b>Start menu</b> and the \a .hoomd file type 
 is registered to execute the script when you double click on one.
-The commands \b hoomd, \b force_compute_bmark, and \b neighborlist_compute_bmark
-should also now bin in your PATH for execution from a <b>command line</b>.
+The command \b hoomd, can also be run on the <b>command line</b> to start the HOOMD python interpreter.
 
 The start menu includes links to benchmark scripts as well as several live demos.
 In order to visualize the demos, you must have VMD 1.8.6 installed: http://www.ks.uiuc.edu/Research/vmd/
 
+<hr>
+
 \section sec_install_hoomd_linux Installing HOOMD in Linux
 
- -# Install the NVIDIA CUDA Toolket 1.1 : http://www.nvidia.com/object/cuda_get.html#linux
- -# Install CUDA capable NVIDIA drivers from the same page.
+ -# Install the NVIDIA CUDA Toolkit 1.1 for your linux distrubution: http://www.nvidia.com/object/cuda_get.html
+ -# Install the latest drivers for your GPU. Go to http://www.nvidia.com and select \b download \b drivers.
  -# Before you download HOOMD, check which python version you have by running 
  	\code
  python -V
  	\endcode
  	in a terminal.
- -# Download the appropriate HOOMD package from http://www.ameslab.gov/hoomd
+ -# Download the matching HOOMD package from http://www.ameslab.gov/hoomd
  -# Extract it using your favorite tool or by running
  	\code
- tar -xvjf hoomd-0.6.0-Linux-x86_64-Python2.4.tar.bz2
+ tar -xvjf hoomd-0.6.1-Linux-x86_64-Python2.4.tar.bz2
  	\endcode
  	in a terminal (modify the filename to match the one you downloaded of course).
- -# Lets say I extracted the file into the \a software directory in my home directory.
-  	Then, ${EXTRACTED_LOCATION} would be /home/joaander/software/hoomd-0.6.0-Linux-x86_64
-  	Below, replace ${EXTRACTED_LOCATION} with the location you extracted HOOMD to.
- -# Open ${EXTRACTED_LOCATION}/bin/hoomd in your favorite text editor. Find the line
-  	starting with HOOMD_ROOT=
-  \code
-# modify the next line to list the full path where you extracted hoomd
-HOOMD_ROOT= ... some path here ...
-  \endcode
-  Modify this line to read HOOMD_ROOT=${EXTRACTED_LOCATION} (replacing ${EXTRACTED_LOCATION} with the real directory name of course)
- -# Last step. Add ${EXTRACTED_LOCATION}/bin to your $PATH. 
-  http://www.newlinuxuser.com/howto-add-a-directory-to-my-path-statementvariable/
-  You will probably need to log out and back in for the path setting to take effect.
+ -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
+    i.e. /home/joaander/software/hoomd-0.6.1-Linux-x86_64
+ -# Add EXTRACTED_LOCATION/bin to your $PATH. 
+  See http://www.newlinuxuser.com/howto-add-a-directory-to-my-path-statementvariable/
+  for instructions. You will probably need to log out and back in for the path setting 
+  to take effect.
 
 After installation is complete, you should be able to run 
 \code
@@ -135,30 +133,19 @@ Python 2.4.4 (#1, Nov  4 2007, 17:29:36)
 Type "help", "copyright", "credits" or "license" for more information.
 >>> 
 \endcode
-Wait a second. Python? This is correct behavior, though. HOOMD is really just a python
+The python version is printed because HOOMD is really just a python
 module. Job scripts are python scripts, and the hoomd executable is just a front end 
-to python. As a user, you don't need to know how to write python code to use HOOMD.
+to python. Writing a job script for HOOMD requires only a \b minimum of python language
+knowledge: anyone who can use the command shell should have no trouble learning to write
+scripts for HOOMD.
 
-For now, you can execute \b benchmarks and <b>live demos</b>. You will find them in ${EXTRACTED_LOCATION}/share/hoomd
+To test your installation further, yo can execute packaged \b benchmarks and <b>live demos</b>. 
+You will find them in EXTRACTED_LOCATION/share/hoomd
 For example, to run the polymer benchmark on the GPU:
 \code
-cd ${EXTRACTED_LOCATION}/share/hoomd/benchmarks/polymer
-./polymer_bmark_gpu.hoomd
+cd EXTRACTED_LOCATION/share/hoomd/benchmarks/polymer
+./polymer_bmark.hoomd --mode=gpu
 \endcode
-You will also find \b force_compute_bmark and \b neighborlist_bmark in ${EXTRACTED_LOCATION}/share/hoomd/lib/hoomd .
-These can be used to benchmark specific algorithms in HOOMD.
 
 Note: to visualize the live demos, you need to have VMD 1.8.6 installed: http://www.ks.uiuc.edu/Research/vmd/
-
-\section sec_using_hoomd Using HOOMD
-
-While HOOMD 0.6.0 is capable of running MD simulations, (as you can see in the benchmarks and demos) 
-in this release is not intended for most users to do so. Just open up benchmarks/polymer/polymer_bmark_gpu.hoomd
-in a text editor and you will see why: it is complicated to setup a simulation run currently. HOOMD 0.7.0 will
-improve on this with an user-friendly scripting system. Once it is complete, it will be documented here.
-
-Sorry, but the benchmarks and demos are all that version 0.6.0 is meant to do. We are working hard
-to get 0.7.0 done as soon as possible. Check out the <a href="http://trac2.assembla.com/hoomd/roadmap">roadmap</a>
-page to monitor our progress.
-
 */

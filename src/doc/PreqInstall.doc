@@ -361,9 +361,9 @@ you like, as long as it is newer than \b 2.3.
 
 <b>Option 1: Install binaries.</b> Easy, but reading/writing \b gzip or \b bzip compressed files will not be supported.
 Also, only supports version \b 2.5.1 of python (for boost 1.34.1, may differ for the other boost
-versions, depending on which version of python boost-consulting compiled them against).
+versions, depending on which version of python boostpro compiled them against).
 
-Download the boost 1.34.1 installer from here http://www.boost-consulting.com/products/free.
+Download the boost 1.34.1 installer from here http://www.boostpro.com/products/free .
 When you run it, you will get an option screen that looks like this:
 \image html boost_binary_install_windows.png
 Select the options as indicated. You may also be interested in the "Multithread, Debug DLL"
@@ -376,8 +376,8 @@ the use of any supported version of python. These instructions are really only i
 advanced users and developers that will be building statically linked builds for download.
 
 Download the source code from http://www.boost.org. This document assumes you have
-downloaded boost 1.34.1. Additionally, you must download and install python before continuing. 
-Instructions are above.
+downloaded boost 1.34.1 (these instructions are known not to work for 1.35 without modifications which will
+be added eventually). Additionally, you must download and install python before continuing. Instructions are above.
 
 Download the source code for<br>
 \b bzip: http://www.bzip.org/downloads.html <br>
