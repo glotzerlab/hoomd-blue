@@ -39,8 +39,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \page page_system_guide Hardware/Software Requirements
 
 Note: The CPU code in HOOMD is standards compliant C++ and should compile
-on any architecture, contact the developers if you need HOOMD on a
-different architecture. The rest of this document assumes you want to run
+on any architecture, contact the developers if you run into any problems
+on a system not listed here. The rest of this page assumes you want to run
 HOOMD on a GPU, thus limiting the options to those systems that
 support CUDA http://www.nvidia.com/object/cuda_home.html.
 
@@ -48,18 +48,24 @@ support CUDA http://www.nvidia.com/object/cuda_home.html.
  - \b CPU: Any x86 or x86_64 processor
  - \b RAM: At least 1GB is recommended, but HOOMD should run on systems with less.
  - \b GPU: Any CUDA capable card: http://www.nvidia.com/object/cuda_home.html
- 	- \b Recommended: Tesla, 8800 GTX, 8800 GTS 512MB, 8800 GT
+ 	- \b Recommended (in rough order of performance expected, see http://www.ameslab.gov/hoomd/benchmarks.html for actual
+		performance numbers): 
+		- GTX 280
+		- GTX 260
+		- Tesla 800 series
+		- 8800 GTX
+		- 8800 GTS 512MB
+		- 8800 GT
  - \b Motherboard: 16x PCIe slot for the graphics card. If you are installing the card
  	in a second slot, double check you motherboard manual first. Many motherboards
- 	will decrease the 2nd slot to 8x with 2 cards installed. While HOOMD will still
+ 	will decrease the slots to 8x with 2 cards installed. While HOOMD will still
  	run in such a configuration, it is not recommended for performance reasons.
  	
 \section sec_software_user_req Software Requirements
- - \b OS: Windows XP, Linux
- 	- \b Note: Mac OS X support will be available once CUDA is released for it
- 	- \b Note: Vista support will be available once CUDA is released for it
+ - \b OS: Linux, Mac OS X, Windows Vista, or Windows XP
  - \b Python installed: http://www.python.org
  - \b CUDA toolkit 1.1 installed: http://www.nvidia.com/object/cuda_home.html
+ 	- Note: Vista currently requires a \b beta version of CUDA, download it here  http://forums.nvidia.com/index.php?showtopic=65067
 
 */
 
