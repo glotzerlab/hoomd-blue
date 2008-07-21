@@ -1,14 +1,12 @@
-/*! 
+/*!
+\page testPage testing
+This is a test page
+*/
 
-\mainpage
+/*! \mainpage
 
 Welcome to the documentation for HOOMD!
 
-\section sec_main_toc Table of Contents
- - \subpage page_system_guide
- - \subpage page_user_guide
- - \subpage page_license
- - \subpage page_credits
+\subpage testPage
+
 */
-
-
