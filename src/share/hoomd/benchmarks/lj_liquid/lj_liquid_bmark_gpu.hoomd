@@ -19,7 +19,7 @@ volume = rho * N;
 spacing = M / math.pow(volume, 1.0/3.0);
 
 # initialize particles
-init = SimpleCubicInitializer(M, spacing);
+init = SimpleCubicInitializer(M, spacing, "A");
 pdata = ParticleData(init);
 
 # setup forces
