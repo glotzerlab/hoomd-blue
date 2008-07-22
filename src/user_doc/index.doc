@@ -1,0 +1,49 @@
+/*! \mainpage
+
+Welcome to the documentation for HOOMD!
+
+-# \subpage page_install_guide
+-# \subpage page_quick_start
+-# \subpage page_command_line_options
+-# \subpage page_command_list
+-# \subpage page_example_scripts
+-# \subpage page_compile_guide
+-# \subpage page_license
+-# \subpage page_credits
+
+*/
+
+/*! \page page_command_list Command Index
+
+Click on an individual command in the list to go to its documentation. Click on the package link at the beginning of each list 
+to get a general overview of all commands in that package.
+
+Initialization commands (\link hoomd_script.init init\endlink):
+ - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
+ - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
+ - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>\copybrief hoomd_script::init::create_random_polymers() </i>
+
+Pair forces (\link hoomd_script.pair pair\endlink):
+ - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
+
+Bond forces (\link hoomd_script.bond bond\endlink):
+ - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>\copybrief hoomd_script::bond::harmonic </i>
+
+Integration methods (\link hoomd_script.integrate integrate\endlink): 
+ - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
+ - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
+
+Change particle or system properties during each time step (\link hoomd_script.update update\endlink):
+ - \link hoomd_script.update.rescale_temp update.rescale_temp\endlink - <i>\copybrief hoomd_script::update::rescale_temp </i>
+ - \link hoomd_script.update.sort update.sort\endlink - <i>\copybrief hoomd_script::update::sort </i>
+
+Real time analysis of data (\link hoomd_script.analyze analyze\endlink):
+ - \link hoomd_script.analyze.imd analyze.imd\endlink - <i>\copybrief hoomd_script::analyze::imd </i>
+
+File output for offline analysis (\link hoomd_script.dump dump\endlink):
+ - \link hoomd_script.dump.xml dump.xml\endlink - <i>\copybrief hoomd_script::dump::xml </i>
+ - \link hoomd_script.dump.mol2 dump.mol2\endlink - <i>\copybrief hoomd_script::dump::mol2 </i>
+ - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>\copybrief hoomd_script::dump::dcd </i>
+ 
+
+*/

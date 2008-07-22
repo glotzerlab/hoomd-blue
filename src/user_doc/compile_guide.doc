@@ -204,7 +204,7 @@ Click for detailed instructions: \subpage page_software_req_install_mac
  - Option 2) Get the latest development source with subversion 
 This command
 \code
- $ svn https://svn2.assembla.com/svn/hoomd/trunk hoomd
+ $ svn co https://svn2.assembla.com/svn/hoomd/trunk hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
 the current development version of the source code.

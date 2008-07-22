@@ -202,20 +202,20 @@ Parts of the command
  - \b ( - Python required syntax to note the start of an argument list
  - <b>N=100, phi_p=0.01, name='A'</b> - Arguments (more on these below)
  - \b ) - Python required syntax to note the end of an argument list
- - <enter> - Python required syntax to execute the command
+ - \<enter\> - Python required syntax to execute the command
  
 About the arguments<br>
-Multiple arguments of the form \cname=value are separated by commas. Whitespace is ignored
+Multiple arguments of the form \c name=value are separated by commas. Whitespace is ignored
 so \c name \c = \c value works too. The order of arguments doesn't matter (as long as
 you specify them by name). I.e. all of the following are identical:
 \code 
 init.create_random(N=100, name='A', phi_p=0.01)
 init.create_random(phi_p = 0.01, N = 100, name = 'A')
 init.create_random(phi_p=0.01, name='A', N=100)
-\code
+\endcode
 
-Check the documentation for a specific command to see what the arguments are and what they mean:
-Documentation for \link hoomd_script.init.create_random init.create_random\endlink<br><br>. Here 
+Check the documentation for a specific command to see what the arguments are and what they mean (
+i.e. see \link hoomd_script.init.create_random init.create_random\endlink). Here 
 is a copy of the documentation for init.create_random:
 \code
 init.create_random  	
@@ -239,7 +239,7 @@ that argument has a default value associated with it. If you are happy with the 
 argument in the list. In our example, we have always been setting \c name='A' anyways so using
 \code
 init.create_random(N=100, phi_p=0.01)
-\endcod
+\endcode
 is identical.
 
 Those arguments that are listed without the = sign (N, phi_P here) have no default value and \b must be specified. Python
