@@ -91,13 +91,13 @@ class xml(analyze._analyzer):
 			raise RuntimeError('Error setting xml parameters');
 			
 		if position != None:
-			self.cpp_analyzer.outputPosition(position);
+			self.cpp_analyzer.setOutputPosition(position);
 
 		if velocity != None:
-			self.cpp_analyzer.outputVelocity(velocity);
+			self.cpp_analyzer.setOutputVelocity(velocity);
 			
 		if type != None:
-			self.cpp_analyzer.outputType(type);
+			self.cpp_analyzer.setOutputType(type);
 			
 ## Writes a simulation snapshot in the mol2 format
 #

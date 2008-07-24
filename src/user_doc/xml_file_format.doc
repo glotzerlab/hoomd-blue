@@ -1,0 +1,18 @@
+/*! \page page_xml_file_format XML File Format
+
+Both \link hoomd_script.init.read_xml init.read_xml\endlink and \link hoomd_script.dump.xml dump.xml\endlink
+work with the same XML file format for specifying the system of particles. The format requires a minimal 
+amount of meta-information in an easy to understand human-readable format. One of the key advantages of using 
+XML is that it is also easily machine readable and commonly used, so many parsers exist for it.
+
+The basic outline of a HOOMD xml file looks like this
+\code
+<?xml version="1.0" encoding="UTF-8"?>
+<hoomd_xml>
+<configuration time_step="0">
+	<!-- data nodes go here --!>
+</configuration>
+</hoomd_xml>
+\endcode
+
+*/

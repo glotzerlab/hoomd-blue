@@ -182,7 +182,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 			{
 			int i;
 			i= arrays.rtag[j];
-			f << arrays.type[i] << endl;
+			f << m_pdata->getNameByType(arrays.type[i]) << endl;
 			}
 		f <<"</type>" <<endl;
 		}

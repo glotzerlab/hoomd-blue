@@ -542,6 +542,7 @@ INPUT                  = ${HOOMD_SOURCE_DIR}/user_doc/installation_guide.doc \
 						 ${HOOMD_SOURCE_DIR}/user_doc/examples.doc \
 						 ${HOOMD_SOURCE_DIR}/user_doc/license.doc \
                          ${HOOMD_SOURCE_DIR}/user_doc/credits.doc \
+						 ${HOOMD_SOURCE_DIR}/user_doc/xml_file_format.doc \
                          ${HOOMD_SOURCE_DIR}/user_doc/index.doc \
                          ${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script
 

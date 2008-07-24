@@ -4,8 +4,9 @@ Welcome to the documentation for HOOMD!
 
 -# \subpage page_install_guide
 -# \subpage page_quick_start
--# \subpage page_command_line_options
 -# \subpage page_command_list
+-# \subpage page_xml_file_format
+-# \subpage page_command_line_options
 -# \subpage page_example_scripts
 -# \subpage page_compile_guide
 -# \subpage page_license

@@ -1,5 +1,19 @@
 /*! \page page_example_scripts Example Scripts
 
+Examples:
+ - \ref sec_example_dump<br>
+ 	<i>The simulation trajectory is written to a file which can be viewed in visualization software such as VMD</i>
+ - \ref sec_example_imd<br>
+ 	<i>A running simulation is connected to VMD which displays the current system state updated in real-time</i>
+ - \ref sec_example_polygen<br>
+ 	<i>The polymer generator can generate complicated initial conditions for bead-spring polymer systems</i>
+ - \ref sec_example_hoomd_xml<br>
+ 	<i>None of the built-in generators works for you? Write an input file describing the initial condition and load it in.</i>
+ - \ref sec_example_output_input<br>
+ 	<i>HOOMD can write the current state of the simulation in a file suitable for reading as an input file.</i>
+
+<hr>
+
 \section sec_example_dump Example 1: Using dump files
 
 This simple example is a simple adaptation of the quick start script.
@@ -88,19 +102,35 @@ is of the current state of the simulation, updated in \b real-time.
 
 \section sec_example_polygen Example 3: Using the polymer generator
 
+Here is a more complicated script that generates a system of bead-spring polymers which self-assebmle
+into a hex phase if run for several hours on a GPU. The polymers are A6B7A6 block copolymers
+in an implicit solvent. The script also shows a few examples of how writing python
+code in the script can be handy: here the concentration \c phi_P is a parameter and 
+math operations are performed to calculate the length of the box.
 
+For more information on the model in this script, see<br>
+"Micellar crystals in solution from molecular dynamics simulations"<br>
+J. Chem. Phys. \b 128, 184906 (2008); DOI:10.1063/1.2913522<br>
+http://link.aip.org/link/?JCPSA6/128/184906/1
+
+Any of the polymer systems in the paper could be easily run just by changing a few parameters in 
+this script.
 \code
 from hoomd_script import *
 import math
 
 # parameters
 phi_P = 0.25
+n_poly = 600
+T = 1.2
+polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=n_poly)
 
-# generate polymer system
-polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=600)
+# perform some simple math to find the length of the box
 N = len(polymer1['type']) * polymer1['count'];
 L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
-init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], separation=dict(A=0.45, B=0.45), seed=52);
+
+# generate the polymer system
+init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], separation=dict(A=0.35, B=0.35), seed=12);
 
 # force field setup
 bond.harmonic(K=330.0, r0=0.84)
@@ -109,12 +139,26 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
 
+# dump every 100,000 steps
 dump.mol2(filename="polymers.mol2");
 dump.dcd(filename="dump.dcd", period=100000);
 
 # integrate NVT for a bunch of time steps
-integrate.nvt(dt=0.005, T=1.2, tau=0.5)
-run(5000000)
+integrate.nvt(dt=0.005, T=T, tau=0.5)
+run(10000000)
 \endcode
+
+<hr>
+
+\section sec_example_hoomd_xml Example 4: Using arbitrary input files
+
+TODO: waiting on ticket #103 before writing this example.
+
+<hr>
+
+\section sec_example_output_input Example 5: Using dump files as input
+
+TODO: waiting on ticket #103 before writing this example.
+
 
 */
