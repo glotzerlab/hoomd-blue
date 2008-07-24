@@ -309,20 +309,13 @@ MACRO(CUDA_add_custom_commands cuda_target)
 	STRING(REGEX REPLACE "${CMAKE_SOURCE_DIR}/" "" stripped_file ${file})
 
     # Add a custom target to generate a cpp file (CUDA 2.0 needs .cc files and CUDA 1.1 needs .c files)
-	if (${CUDA_VERSION} GREATER 1999)
-	    SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.cc")
-	else(${CUDA_VERSION} GREATER 1999)
-	    SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.c")
-	endif(${CUDA_VERSION} GREATER 1999)
+	SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.cpp")
 
     SET(generated_target "${stripped_file}_target")
     
     FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/cuda)
 
     SET(source_file ${file})
-
-    # Note that -cuda generates a .c file not a c++ file.
-    SET_SOURCE_FILES_PROPERTIES(${source_file} PROPERTIES CPLUSPLUS ON)
 
     # MESSAGE("${CUDA_NVCC} ${source_file} ${CUDA_NVCC_FLAGS} ${nvcc_flags} -cuda -o ${generated_file} ${CUDA_NVCC_INCLUDE_ARGS}")
     
