@@ -107,14 +107,14 @@ IF (CUDA_BUILD_TYPE MATCHES "Emulation")
   if(WIN32)
 	SET(nvcc_flags --device-emulation -D_DEVICEEMU -g -ccbin "C:\\Program Files (x86)\\Microsoft Visual Studio 8\\VC\\bin")
   else(WIN32)
-    SET(nvcc_flags --device-emulation -D_DEVICEEMU -g)
+    SET(nvcc_flags --device-emulation -D_DEVICEEMU -g --host-compilation C++)
   endif(WIN32)
 ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
   # Device present.
   if(WIN32)
-     SET(nvcc_flags -ccbin "C:\\Program Files (x86)\\Microsoft Visual Studio 8\\VC\\bin")
+     SET(nvcc_flags --host-compilation C++ -ccbin "C:\\Program Files (x86)\\Microsoft Visual Studio 8\\VC\\bin")
   else(WIN32)
-     SET(nvcc_flags "")
+     SET(nvcc_flags --host-compilation C++)
   endif(WIN32)
 ENDIF(CUDA_BUILD_TYPE MATCHES "Emulation")
 
@@ -175,10 +175,6 @@ ENDIF(NOT CUDA_NVCC)
 
 # ENDIF(NOT FOUND_CUDA_NVCC_INCLUDE)
 
-# set the CUDA version by reading cuda.h
-file(READ ${CUDA_INCLUDE}/cuda.h CUDA_H_)
-string(REGEX REPLACE ".*define CUDA_VERSION ([0123456789]+).*" "\\1" CUDA_VERSION "${CUDA_H_}")
-  
 # CUDA_TARGET_LINK
 IF (NOT CUDA_TARGET_LINK)
 
