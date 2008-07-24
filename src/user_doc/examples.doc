@@ -1,6 +1,6 @@
 /*! \page page_example_scripts Example Scripts
 
-\section sec_example_dump Example 1: Usage of dumps
+\section sec_example_dump Example 1: Using dump files
 
 This simple example is a simple adaptation of the quick start script.
 It performs a simulation of a Lennard-Jones liquid, dumping snapshots 
@@ -49,7 +49,7 @@ on the command line.
 
 <hr>
 
-\section sec_example_dump Example 2: Usage of IMD
+\section sec_example_imd Example 2: Using IMD
 
 Here is the same simulation again, this time configured for real-time display
 in VMD using the IMD interface.
@@ -86,6 +86,35 @@ is of the current state of the simulation, updated in \b real-time.
 
 <hr>
 
+\section sec_example_polygen Example 3: Using the polymer generator
 
+
+\code
+from hoomd_script import *
+import math
+
+# parameters
+phi_P = 0.25
+
+# generate polymer system
+polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=600)
+N = len(polymer1['type']) * polymer1['count'];
+L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
+init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], separation=dict(A=0.45, B=0.45), seed=52);
+
+# force field setup
+bond.harmonic(K=330.0, r0=0.84)
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+dump.mol2(filename="polymers.mol2");
+dump.dcd(filename="dump.dcd", period=100000);
+
+# integrate NVT for a bunch of time steps
+integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+run(5000000)
+\endcode
 
 */
