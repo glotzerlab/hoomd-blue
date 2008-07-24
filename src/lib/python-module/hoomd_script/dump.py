@@ -120,7 +120,11 @@ class mol2(analyze._analyzer):
 		analyze._analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.particle_data, filename, globals.bond_compute);
+		if globals.bond_compute:
+			self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.particle_data, filename, globals.bond_compute);
+		else:
+			self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.particle_data, filename);
+
 		# run it with a ludicrous period so that it is really only run once
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(1e9));
 	

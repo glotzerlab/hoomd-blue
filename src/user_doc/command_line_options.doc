@@ -1,1 +1,36 @@
-/*! \page page_command_line Command line options
+/*! \page page_command_line_options Command line options
+	
+<h2>Controlling where a simulation is executed</h2>
+Any simulation in HOOMD can be run on the CPU or GPU.  To control which, 
+set the \c --mode option on the script command line. Valid settings are \c cpu
+and \c gpu.
+\code
+hoomd some_script.hoomd --mode=cpu
+\endcode
+When \c --mode is set to \c gpu and no other options are specified, HOOMD
+runs on the first GPU (number 0) in the system. This may not be desirable
+if another GPU in the system is faster or a simulation is already running 
+on GPU 0 (HOOMD will run correctly with more than one simulation on a GPU as 
+long as there is enough memory, but the performance penalty is severe).
+You can select which GPU to run on using the \c --gpu command line option.
+\code
+hoomd some_script.hoomd --gpu=1
+\endcode
+Note that specifying \c --gpu implies \c --mode=gpu. To find out which id
+is assigned to each GPU in your system, download the CUDA SDK for your system
+from http://www.nvidia.com/object/cuda_get.html and run the \c deviceQuery sample.
+
+If you run a script without any options
+\code
+hoomd some_script.hoomd
+\endcode
+HOOMD first checks if there are any GPUs in the system. If it finds one or more,
+it runs on GPU 0. If none are found, it runs on the CPU.
+
+You can always run
+\code
+hoomd some_script.hoomd --help
+\endcode
+to get a full list of the available command line options some of which
+may not be listed here.
+*/

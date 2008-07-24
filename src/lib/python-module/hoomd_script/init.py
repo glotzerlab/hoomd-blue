@@ -43,7 +43,8 @@ import hoomd;
 import globals;
 import update;
 
-## Parsed command line options
+## \internal
+# \brief Parsed command line options
 _options = {};
 
 ## \package hoomd_script.init
@@ -299,9 +300,18 @@ def _parse_command_line():
 	parser.add_option("-g", "--gpu", dest="gpu", help="GPU to execute on");
 	(_options, args) = parser.parse_args();
 	
+	# chedk for valid mode setting
 	if _options.mode:
 		if not (_options.mode == "cpu" or _options.mode == "gpu"):
-			parser.error("--exec must be either cpu or gpu");
+			parser.error("--mode must be either cpu or gpu");
+	
+	# check for sane options
+	if _options.mode == "cpu" and _options.gpu:
+		parser.error("It doesn't make sense to specify --mode=cpu and a value for --gpu")
+
+	# set the mode to gpu if the gpu # was set
+	if _options.gpu and not _options.mode:
+		_options.mode = "gpu"
 	
 ## Initializes the execution configuration
 #

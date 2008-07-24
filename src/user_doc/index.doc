@@ -13,7 +13,7 @@ Welcome to the documentation for HOOMD!
 
 */
 
-/*! \page page_command_list Command Index
+/*! \page page_command_list Index of Script Commands
 
 Click on an individual command in the list to go to its documentation. Click on the package link at the beginning of each list 
 to get a general overview of all commands in that package.

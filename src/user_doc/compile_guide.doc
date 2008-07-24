@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /*! 
-\page page_compile_guide Compiling HOOMD (for developers/advanced users)
+\page page_compile_guide Compiling HOOMD
 
 Table of contents:
  - \ref sec_software_req

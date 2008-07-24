@@ -65,6 +65,11 @@ support CUDA http://www.nvidia.com/object/cuda_home.html.
 		- 8800 GTX
 		- 8800 GTS 512MB
 		- 8800 GT
+	- \b NOTE! Some board manufacturers sell \em Factory \em Overclocked boards. 
+	  These may work fine in games where a few bit errors just change the color
+	  of an onscreen pixel slighly, but GPGPU applications are extremely 
+	  sensitive to such errors. HOOMD and other CUDA apps are \b known \b to \b crash
+	  on overclocked GPUs.
  - \b Motherboard: 16x PCIe slot for the graphics card. If you are installing the card
  	in a second slot, double check you motherboard manual first. Many motherboards
  	will decrease the slots to 8x with 2 cards installed. While HOOMD will still
