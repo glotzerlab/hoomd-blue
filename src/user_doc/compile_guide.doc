@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 Table of contents:
  - \ref sec_software_req
  - \ref sec_building_windows
- - \ref sec_build_linux
+ - \ref sec_compiling_linux
  - \ref sec_building_mac
  - \ref sec_build_options
 
@@ -104,9 +104,9 @@ You should now have a directory \b hoomd on your hard drive with a subdirectory
 project that will compile HOOMD. 
  -# Create a directory \e msvc inside \b hoomd
  -# Start CMake
- -# Set \b "C:\code\hoomd\src" (modifying to match the location of your hoomd src directory) in
+ -# Set \b C:\\code\\hoomd\\src (modifying to match the location of your hoomd src directory) in
 	the box labeled "Where is the Source code".
- -# Set \b "C:\code\hoomd\msvc" (again, modified to mach the location of your hoomd directory) 
+ -# Set \b C:\\code\\hoomd\\msvc (again, modified to mach the location of your hoomd directory) 
 	in the box labeled "Where to build the binaries"
  -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
  -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
@@ -120,7 +120,7 @@ project that will compile HOOMD.
 	See \ref sec_build_options for more information on what these options do.
  -# Click configure again to make sure all settings are up to date and then click OK
 	to generate the project file and exit CMake.
- 	
+
 <b>4. Compile HOOMD</b><br>
 Open up the \b HOOMD.sln project in visual studio. Press F7 (or use the GUI build button)
 to build all executables. You can also make a single target the active project
@@ -132,14 +132,14 @@ be done via CMake. In most cases, a file can be added simply by placing it in th
 proper directory and then rerunning CMake.
 
 If you have a system with more than 1 CPU core, you can greatly improve the performance
-of the build by making use of all cores. In VS2005, navigate to the menu item <b>Tools</b>-><b>Options</b>. 
-In the left tab, select <b>Projects And Solutions</b>-><b>Build and Run</b>. Set the value for the
+of the build by making use of all cores. In VS2005, navigate to the menu item <b>Tools</b>-\><b>Options</b>. 
+In the left tab, select <b>Projects And Solutions</b>-\><b>Build and Run</b>. Set the value for the
 <b>maximum number of parallel project builds</b> to be the total number of CPU cores in your system.
 There is more information at http://msdn2.microsoft.com/en-us/library/y0xettzf.aspx .
 
 <hr>
 
-\section sec_build_linux Building on Linux
+\section sec_compiling_linux Compiling on linux
 
 <b>1. Install prerequisite software</b><br>
 Click for detailed instructions: \subpage page_software_req_install_linux

@@ -327,7 +327,7 @@ supported by NVIDIA CUDA, has problems with the current version of boost and thu
 If you install the express edition, you must also follow the link from 
 http://www.microsoft.com/express/2005/ to download the <b>Windows Platform SDK</b>
 (ignore that the platform sdk says it is for windows 2003 server, it works on XP). If you
-get an option, the preferred installation path is \e "C:\Program Files\Microsoft Platform SDK".
+get an option, the preferred installation path is <i>C:\\Program Files\\Microsoft Platform SDK</i>.
 
 Only a few options need to be activated for the install, namely the Windows Core SDK, and
 only those componets you really need for your architecture as shown in this
@@ -343,9 +343,9 @@ the \b Tools menu and then select \b Options... Navigate to the section
 (yours may look slightly different from this one).
 
 Using the upper right drop down box labeled \b "Show directories for" add<br>
-\b "C:\Program Files\Microsoft Platform SDK\bin" to \e Executables<br>
-\b "C:\Program Files\Microsoft Platform SDK\include" to \e Include files<br>
-and \b "C:\Program Files\Microsoft Platform SDK\lib" to \e Library files<br>
+<b>C:\\Program Files\\Microsoft Platform SDK\\bin</b> to \e Executables<br>
+<b>C:\\Program Files\\Microsoft Platform SDK\\include</b> to \e Include files<br>
+and <b>C:\\Program Files\\Microsoft Platform SDK\lib</b> to \e Library files<br>
 These are accomplished in the image above with the $(PLATFORMSDK_DIR) environment variable,
 but you do not need to do the same, just type in the full path where you installed the
 platform SDK directly or use the file chooser dialog box.
@@ -390,8 +390,8 @@ A summary of the commands needed are listed below.
 You will need the file \b boost-jam-3.1.16-1-ntx86.zip
 
 \b 2. Extract everything to a nice place. These instructions assume that \b boost, \b zlib
-and \b bzip2 are all extracted to \e c:\\libraries and \b bjam.exe is extracted to 
-\e c:\\libraries\\bjam.exe .
+and \b bzip2 are all extracted to <i>c:\\libraries</i> and \b bjam.exe is extracted to 
+<i> c:\\libraries\\bjam.exe </i>.
 
 \b 3. To compile, first open a build environment: 
 	Start->Microsoft Platform SDK->Open Build Environment Window->Windows XP 32-bit Build Environment->Set Windows XP 32-bit Build Environment (Retail)
