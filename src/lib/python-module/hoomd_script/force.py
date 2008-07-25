@@ -94,7 +94,7 @@ class _force:
 	# \endcode
 	#
 	# Executing the disable command will remove the force from the simulation.
-	# Any run() command exected after disabling a force will not calculate or 
+	# Any run() command executed after disabling a force will not calculate or 
 	# use the force during the simulation. A disabled force can be re-enabled
 	# with enable()
 	#

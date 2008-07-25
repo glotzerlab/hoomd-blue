@@ -100,7 +100,7 @@ class _analyzer:
 	# \endcode
 	#
 	# Executing the disable command will remove the analyzer from the system.
-	# Any run() command exected after disabling an analyzer will not use that 
+	# Any run() command executed after disabling an analyzer will not use that 
 	# analyzer during the simulation. A disabled analyzer can be re-enabled
 	# with enable()
 	#

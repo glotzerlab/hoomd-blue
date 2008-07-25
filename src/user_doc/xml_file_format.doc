@@ -143,9 +143,9 @@ A
 The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
 except that only one type is specified for each particle. A particle type can be \b any
 string you want that does not include whitespace (as whitespace is used to signify
-the next particle in the list). Internally, HOOMD assigns no meaning whatsover to the 
+the next particle in the list). Internally, HOOMD assigns no meaning whatsoever to the 
 value of the string you specify so name your particles in ways that are meaningful to you.
-When performing tasks such as setting the coefficents of a \link hoomd_script.pair pair\endlink 
+When performing tasks such as setting the coefficients of a \link hoomd_script.pair pair\endlink 
 force, the type strings given are simply matched up to those specified in the xml file.
 
 If specifying both position and type in an input file, be certain to include the same number of
@@ -178,7 +178,7 @@ that, you must specify a bond force (see \link hoomd_script.bond bond\endlink).
 
 The \<wall\> node specifies any number of walls in the simulation box. Walls have no
 meaning unless a wall force such as \link hoomd_script.wall.lj wall.lj\endlink is specified 
-in the simualtion. <br>
+in the simulation. <br>
 \link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
 \link hoomd_script.init.read_xml init.read_xml\endlink does not require this node
 

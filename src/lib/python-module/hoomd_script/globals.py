@@ -45,7 +45,7 @@
 # 
 # User scripts are not intended to access these variables. However,
 # there may be some special cases where it is needed. Any variable
-# defined here can be accessed in a user script by preprending
+# defined here can be accessed in a user script by prepending
 # "globals." to the variable name. For example, to access the 
 # global ParticleData, a user script can access \c globals.particle_data .
 

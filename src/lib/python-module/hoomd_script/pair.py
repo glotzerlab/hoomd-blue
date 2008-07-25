@@ -127,12 +127,12 @@ class coeff:
 	# these coefficients for, see the corresponding documentation.
 	#
 	# All possible type pairs as defined in the simulation box must be specified before
-	# executing run(). You will recieve an error if you fail to do so. It is not an error,
+	# executing run(). You will receive an error if you fail to do so. It is not an error,
 	# however, to specify coefficients for particle types that do not exist in the simulation.
 	# This can be useful in defining a %force field for many different types of particles even
 	# when some simulations only include a subset.
 	#
-	# There is no need to specify coeffiencs for both pairs 'A','B' and 'B','A'. Specifying
+	# There is no need to specify coefficients for both pairs 'A','B' and 'B','A'. Specifying
 	# only one is sufficient.
 	#
 	# \b Examples:
@@ -240,7 +240,7 @@ class coeff:
 ## Interface for controlling neighbor list parameters
 #
 # A neighbor list should not be directly created by you. One will be automatically
-# created whenever a %pair %force is specified. The cuttoff radius is set to the
+# created whenever a %pair %force is specified. The cutoff radius is set to the
 # maximum of that set for all defined %pair forces.
 class nlist:
 	## \internal
@@ -275,14 +275,14 @@ class nlist:
 		
 	## Change neighbor list parameters
 	# 
-	# \param r_buff (if set) changes the buffer radius around the cuttof
+	# \param r_buff (if set) changes the buffer radius around the cutoff
 	# \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list needs updating
 	# 
 	# set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
 	# can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
 	# to be updated less often, but more particles are included leading to slower %force computations. 
 	# Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
-	# slowing overall perforamnce again. The sweet spot for the best performance needs to be found by 
+	# slowing overall performance again. The sweet spot for the best performance needs to be found by 
 	# experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
 	# simulations.
 	#

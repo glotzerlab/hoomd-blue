@@ -65,11 +65,11 @@ support CUDA http://www.nvidia.com/object/cuda_home.html.
 		- 8800 GTX
 		- 8800 GTS 512MB
 		- 8800 GT
-	- \b NOTE! Some board manufacturers sell \em Factory \em Overclocked boards. 
+	- \b NOTE! Some board manufacturers sell \em Factory \em Over-clocked boards. 
 	  These may work fine in games where a few bit errors just change the color
-	  of an onscreen pixel slighly, but GPGPU applications are extremely 
+	  of an onscreen pixel slightly, but GPGPU applications are extremely 
 	  sensitive to such errors. HOOMD and other CUDA apps are \b known \b to \b crash
-	  on overclocked GPUs.
+	  on over-clocked GPUs.
  - \b Motherboard: 16x PCIe slot for the graphics card. If you are installing the card
  	in a second slot, double check you motherboard manual first. Many motherboards
  	will decrease the slots to 8x with 2 cards installed. While HOOMD will still
@@ -107,7 +107,7 @@ In order to visualize the demos, you must have VMD 1.8.6 installed: http://www.k
 
 \section sec_install_hoomd_linux Installing HOOMD in Linux
 
- -# Install the NVIDIA CUDA Toolkit 1.1 for your linux distrubution: http://www.nvidia.com/object/cuda_get.html
+ -# Install the NVIDIA CUDA Toolkit 1.1 for your linux distribution: http://www.nvidia.com/object/cuda_get.html
  -# Install the latest drivers for your GPU. Go to http://www.nvidia.com and select \b download \b drivers.
  -# Before you download HOOMD, check which python version you have by running 
  	\code

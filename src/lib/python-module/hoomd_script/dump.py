@@ -51,7 +51,7 @@ import analyze;
 ## Writes simulation snapshots in the HOOMD XML format
 #
 # Every \a period time steps, a new file will be created. The state of the 
-# particles at that timestep is written to the file in the HOOMD XML format.
+# particles at that time step is written to the file in the HOOMD XML format.
 #
 # \sa \ref page_xml_file_format
 class xml(analyze._analyzer):
@@ -120,7 +120,7 @@ class xml(analyze._analyzer):
 ## Writes a simulation snapshot in the MOL2 format
 #
 # At the first time step run() after initializing the %dump, the state of the 
-# particles at that timestep is written to the file in the MOL2 file format.
+# particles at that time step is written to the file in the MOL2 file format.
 # The intended usage is to generate a single structure file that can be used by
 # VMD for reading in particle names and %bond topology Use in conjunction with
 # dump.dcd for reading the full simulation trajectory into VMD.

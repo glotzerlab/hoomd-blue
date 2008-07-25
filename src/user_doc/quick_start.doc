@@ -249,7 +249,7 @@ it in the argument list.
 
 <hr>
 <h2>Where to go from here</h2>
-This quick tutorial is only the tip of the iceburg. There are a lot more resources in the documentation.
+This quick tutorial is only the tip of the iceberg. There are a lot more resources in the documentation.
  - Find out how to control what resources HOOMD uses to execute simulations: \ref page_command_line_options
  - Page the list of all commands you can use to define a simulation: \ref page_command_list
  - Examine more complicated scripts that depict typical usage scenarios: \ref page_example_scripts

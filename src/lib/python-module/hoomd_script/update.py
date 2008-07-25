@@ -43,7 +43,7 @@ import globals;
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
 #
-# When an updater is specified, it acts on the particle system each timestep to change
+# When an updater is specified, it acts on the particle system each time step to change
 # it in some way. See the documentation of specific updaters to find out what they do.
 
 ## \internal
@@ -51,7 +51,7 @@ import globals;
 #
 # An updater in hoomd_script reflects an Updater in c++. It is responsible
 # for all high-level management that happens behind the scenes for hoomd_script
-# writers. 1) The instance of the c++ upater itself is tracked and added to the
+# writers. 1) The instance of the c++ updater itself is tracked and added to the
 # System 2) methods are provided for disabling the updater and changing the 
 # period which the system calls it
 class _updater:
@@ -99,7 +99,7 @@ class _updater:
 	# \endcode
 	#
 	# Executing the disable command will remove the updater from the system.
-	# Any run() command exected after disabling an updater will not use that 
+	# Any run() command executed after disabling an updater will not use that 
 	# updater during the simulation. A disabled updater can be re-enabled
 	# with enable()
 	#
@@ -181,11 +181,11 @@ class _updater:
 #
 # Every \a period time steps, particles are reordered in memory based on
 # a Hilbert curve. This operation is very efficient, and the reordered particles
-# significanly improve performance of all other algorithmic steps in HOOMD. 
+# significantly improve performance of all other algorithmic steps in HOOMD. 
 # 
 # The reordering is accomplished by placing particles in spatial bins
 # \a bin_width distance units wide. A Hilbert curve is generated that traverses
-# these bins and particles are reorderd in memory in the same order in which 
+# these bins and particles are reordered in memory in the same order in which 
 # they fall on the curve. Testing indicates that a bin width equal to the
 # particle diameter works well, though it may lead to excessive memory usage
 # in extremely low density systems. set_params() can be used to increase the

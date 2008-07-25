@@ -92,7 +92,7 @@ This command (assuming you've installed the command line svn tools)
  $ svn co https://svn2.assembla.com/svn/hoomd/trunk hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
-the current development version of the source code. You can perform the same opteration
+the current development version of the source code. You can perform the same operation
 by right clicking a folder and choosing "SVN Checkout..." when using TortoiseSVN.
 	
 Developers with commit access planning to make changes to the code must use option 2. 
@@ -113,7 +113,7 @@ project that will compile HOOMD.
  -# Select the IDE you installed (most likely Visual Studio 8 2005) and click OK.
  -# After a short wait while CMake should display a screen that looks like this: \image html cmake_windows_firstpress.png
 	If you received an error message instead, it is possible that you are missing one of the
-	prerequisite software packages or it is insalled to a non-standard location. In the second case,
+	prerequisite software packages or it is installed to a non-standard location. In the second case,
 	you can click on the text box with CMAKE-SOMETHING-NOTFOUND in it and specify the full path
 	to the corresponding file or directory.
  -# You can configure any of the build options on this screen to your liking. 
