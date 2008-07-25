@@ -41,9 +41,11 @@ import hoomd;
 import globals;
 
 ## \package hoomd_script.analyze
-# \brief Commands that analyze the particles
+# \brief Commands that %analyze the system and provide some output
 #
-# Details
+# An analyzer examines the system state in some way every \a period time steps and generates
+# some form of output based on the analysis. Check the documentation for individual analyzers 
+# to see what they do.
 
 ## \internal
 # \brief Base class for analyzers
@@ -92,8 +94,10 @@ class _analyzer:
 
 	## Disables the analyzer
 	#
-	# \b Examples:<br>
+	# \b Examples:
+	# \code
 	# analyzer.disable()
+	# \endcode
 	#
 	# Executing the disable command will remove the analyzer from the system.
 	# Any run() command exected after disabling an analyzer will not use that 
@@ -126,8 +130,10 @@ class _analyzer:
 
 	## Enables the analyzer
 	#
-	# \b Examples:<br>
+	# \b Examples:
+	# \code
 	# analyzer.enable()
+	# \endcode
 	#
 	# See disable() for a detailed description.
 	def enable(self):
@@ -150,9 +156,11 @@ class _analyzer:
 	#
 	# \param period New period to set
 	#
-	# \b Examples:<br>
-	# analyzer.set_period(100);<br>
-	# analyzer.set_period(1);<br>
+	# \b Examples:
+	# \code
+	# analyzer.set_period(100);
+	# analyzer.set_period(1);
+	# \endcode
 	#
 	# While the simulation is \ref run() "running", the action of each analyzer
 	# is executed every \a period time steps.
@@ -177,15 +185,26 @@ _analyzer.cur_id = 0;
 # analyze.imd listens on a specified TCP/IP port for connections from VMD.
 # Once that connection is established, it begins transmitting simulation snapshots
 # to VMD every \a period time steps.
+#
+# To connect to a simulation running on the local host, issue the command
+# \code
+# imd connect localhost 54321
+# \endcode
+# in the VMD command window (where 54321 is replaced with the port number you specify for
+# analyze.imd
+#
+# \sa \ref page_example_scripts
 class imd(_analyzer):
 	## Initialize the IMD interface
 	#
 	# \param port TCP/IP port to listen on
 	# \param period Number of time steps between file dumps
 	# 
-	# \b Examples:<br>
-	# analyze.imd(port=54321, period=100)<br>
-	# imd = analyze.imd(port=12345, period=1000)<br>
+	# \b Examples:
+	# \code
+	# analyze.imd(port=54321, period=100)
+	# imd = analyze.imd(port=12345, period=1000)
+	# \endcode
 	def __init__(self, port, period):
 		print "analyze.imd(port =", port, ")";
 		

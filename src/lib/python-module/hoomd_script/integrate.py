@@ -128,11 +128,13 @@ class nvt(_integrator):
 	## Specifies the NVT integrator
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
 	# \param T Temperature set point for the Nos&eacute;-Hoover thermostat
-	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat. It is related to the Nos&eacute; mass Q by TODO
+	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
 	#
-	# \b Examples:<br>
-	# integrate.nvt(dt=0.005, T=1.0, tau=0.5)<br>
-	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)<br>
+	# \b Examples:
+	# \code
+	# integrate.nvt(dt=0.005, T=1.0, tau=0.5)
+	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
+	# \endcode
 	def __init__(self, dt, T, tau):
 		print "integrate.nvt(dt=", dt, ", T=", T, ", tau=", tau, ")";
 		
@@ -155,10 +157,18 @@ class nvt(_integrator):
 	# \param T New temperature (if set)
 	# \param tau New coupling constant (if set)
 	#
-	# \b Examples (assuming the integrator was saved in the variable \a integrator):<br>
-	# integrator.set_params(dt=0.007)<br>
-	# integrator.set_params(tau=0.6)<br>
-	# integrator.set_params(dt=3e-3, T=2.0)<br>
+	# To change the parameters of an existing integrator, you must save it in a variable when it is
+	# specified, like so:
+	# \code
+	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# integrator.set_params(dt=0.007)
+	# integrator.set_params(tau=0.6)
+	# integrator.set_params(dt=3e-3, T=2.0)
+	# \endcode
 	def set_params(self, dt=None, T=None, tau=None):
 		print "nvt.set_params(dt=", dt, ", T=", T, ", tau=", tau, ")";
 		# check that proper initialization has occured
@@ -187,10 +197,12 @@ class nve(_integrator):
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
 	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
 	#
-	# \b Examples:<br>
-	# integrate.nve(dt=0.005)<br>
-	# integrator = integrate.nvt(dt=5e-3)<br>
-	# integrate.nve(dt=0.005, limit=0.01)<br>
+	# \b Examples:
+	# \code
+	# integrate.nve(dt=0.005)
+	# integrator = integrate.nve(dt=5e-3)
+	# integrate.nve(dt=0.005, limit=0.01)
+	# \endcode
 	def __init__(self, dt, limit=None):
 		print "integrate.nve(dt=", dt, ", limit=", limit, ")";
 		
@@ -215,9 +227,17 @@ class nve(_integrator):
 	## Changes parameters of an existing integrator
 	# \param dt New time step (if set)
 	#
-	# \b Examples (assuming the integrator was saved in the variable \a integrator):<br>
-	# integrator.set_params(dt=0.007)<br>
-	# integrator.set_params(dt=3e-3)<br>
+	# To change the parameters of an existing integrator, you must save it in a variable when it is
+	# specified, like so:
+	# \code
+	# integrator = integrate.nve(dt=0.005)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# integrator.set_params(dt=0.007)
+	# integrator.set_params(dt=3e-3)
+	# \endcode
 	def set_params(self, dt=None):
 		print "nvt.set_params(dt=", dt, ")";
 		# check that proper initialization has occured

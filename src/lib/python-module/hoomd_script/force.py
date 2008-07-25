@@ -40,9 +40,9 @@
 import globals;
 
 ## \package hoomd_script.force
-# \brief Commands that create misc forces
+# \brief Code common to all force commands
 #
-# Details
+# User scripts shouldn't need anything from here
 
 ## \internal
 # \brief Base class for forces
@@ -88,8 +88,10 @@ class _force:
 
 	## Disables the force
 	#
-	# \b Examples:<br>
+	# \b Examples:
+	# \code
 	# force.disable()
+	# \endcode
 	#
 	# Executing the disable command will remove the force from the simulation.
 	# Any run() command exected after disabling a force will not calculate or 
@@ -122,8 +124,10 @@ class _force:
 
 	## Enables the force
 	#
-	# \b Examples:<br>
-	# analyzer.enable()
+	# \b Examples:
+	# \code
+	# force.enable()
+	# \endcode
 	#
 	# See disable() for a detailed description.
 	def enable(self):

@@ -26,6 +26,7 @@ Initialization commands (\link hoomd_script.init init\endlink):
 
 Pair forces (\link hoomd_script.pair pair\endlink):
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
+ - \link hoomd_script.pair.nlist nlist\endlink - <i>\copybrief hoomd_script::pair::nlist </i>
 
 Bond forces (\link hoomd_script.bond bond\endlink):
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>\copybrief hoomd_script::bond::harmonic </i>

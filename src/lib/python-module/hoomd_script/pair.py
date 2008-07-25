@@ -38,29 +38,70 @@
 # $URL$
 
 ## \package hoomd_script.pair
-# \brief Commands that create forces between particle pairs
+# \brief Commands that create forces between pairs of particles
 #
-# Details
+# Generally, %pair forces are short range and are summed over all particles
+# within a certain cutoff radius of each particle. Any number of %pair forces
+# can be defined in a single simulation. The net %force on each particle due to
+# all types of %pair forces is summed.
+#
+# Pair forces require that parameters be set for each unique type %pair. Coefficients
+# are set through the aid of the coeff class. To set this coefficients, specify 
+# a %pair %force and save it in a variable
+# \code
+# my_force = pair.some_pair_force(arguments...)
+# \endcode
+# Then the coefficients can be set using the saved variable.
+# \code
+# my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+# my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+# my_force.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+# \endcode
+# This example set the parameters \a epsilon, \a sigma, and \a alpha 
+# (which are used in pair.lj). Different %pair forces require that different
+# coefficients are set. Check the documentation of each to see the definition
+# of the coefficients.
+#
+# \sa \ref page_quick_start
 
 import globals;
 import force;
 import hoomd;
 import math;
 
-## Defines pair coefficients
+## Defines %pair coefficients
 # 
-# All pair forces use coeff to specify the coefficients between different
-# pairs of particles indexed by type. The set of pair coefficients is a symmetric
+# All %pair forces use coeff to specify the coefficients between different
+# pairs of particles indexed by type. The set of %pair coefficients is a symmetric
 # matrix defined over all possible pairs of particle types.
 #
-# TODO: more documentation
-# The simplest way is to set coefficients on the pre-defined matrix in the
-# respective pair class.
+# There are two ways to set the coefficients for a particular %pair %force. 
+# The first way is to save the %pair %force in a variable and call set() directly.
+# To see an example of this, see the documentation for the package pair
+# or the \ref page_quick_start
 #
-# A coeff matrix can be created and all parameters set even without having the
-# system initialized yet. This means that you could specify all of your pair 
-# coefficients in one file and load them with the python import command.
-# TODO: example
+# The second method is to build the coeff class first and then assign it to the
+# %pair %force. There are some advantages to this method in that you could specify a
+# complicated set of %pair coefficients in a separate python file and import it into
+# your job script.
+#
+# Example (file \em force_field.py):
+# \code
+# from hoomd_script import *
+# my_coeffs = coeff();
+# my_coeffs.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+# my_coeffs.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+# my_coeffs.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+# \endcode
+# Example job script:
+# \code
+# from hoomd_script import *
+# import force_field
+#
+# .....
+# my_force = pair.some_pair_force(arguments...)
+# my_force.pair_coeff = force_field.my_coeffs
+# \endcode
 class coeff:
 	
 	## \internal
@@ -75,32 +116,34 @@ class coeff:
 	# \internal
 	# \brief Contains the matrix of set values in a dictionary
 	
-	## Sets parameters for one type pair
-	# \param a First particle type in the pair
-	# \param b Second particle type in the pair
+	## Sets parameters for one type %pair
+	# \param a First particle type in the %pair
+	# \param b Second particle type in the %pair
 	# \param coeffs Named coefficients (see below for examples)
 	#
-	# Calling set results in one or more parameters being set for a single type pair.
+	# Calling set() results in one or more parameters being set for a single type %pair.
 	# Particle types are identified by name, and parameters are also added by name. 
-	# Which parameters you need to specify depends on the pair force you are setting
+	# Which parameters you need to specify depends on the %pair %force you are setting
 	# these coefficients for, see the corresponding documentation.
 	#
 	# All possible type pairs as defined in the simulation box must be specified before
 	# executing run(). You will recieve an error if you fail to do so. It is not an error,
 	# however, to specify coefficients for particle types that do not exist in the simulation.
-	# This can be useful in defining a force field for many different types of particles even
-	# if some simulations only include a subset.
+	# This can be useful in defining a %force field for many different types of particles even
+	# when some simulations only include a subset.
 	#
 	# There is no need to specify coeffiencs for both pairs 'A','B' and 'B','A'. Specifying
 	# only one is sufficient.
 	#
-	# \b Examples:<br>
-	# coeff.set('A', 'A', epsilon=1.0, sigma=1.0)\n
-	# coeff.set('B', 'B', epsilon=2.0, sigma=1.0)\n
+	# \b Examples:
+	# \code
+	# coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+	# coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
 	# coeff.set('A', 'B', epsilon=1.5, sigma=1.0)
+	# \endcode
 	#
 	# \note Single parameters can be updated. If both epsilon and sigma have already been 
-	# set for a type pair, then executing coeff.set('A', 'B', epsilon=1.1) will update 
+	# set for a type %pair, then executing coeff.set('A', 'B', epsilon=1.1) will %update 
 	# the value of epsilon and leave sigma as it was previously set.
 	def set(self, a, b, **coeffs):
 		print "coeff.set(", a, ",", b, ",", coeffs, ")";
@@ -196,9 +239,9 @@ class coeff:
 		
 ## Interface for controlling neighbor list parameters
 #
-# A neighbor list does not need to be created by you. One will be automatically
-# created whenever a pair force is specified. The cuttoff radius is set to the
-# maximum of that set for all defined pair forces. 
+# A neighbor list should not be directly created by you. One will be automatically
+# created whenever a %pair %force is specified. The cuttoff radius is set to the
+# maximum of that set for all defined %pair forces.
 class nlist:
 	## \internal
 	# \brief Constructs a neighbor list
@@ -235,28 +278,30 @@ class nlist:
 	# \param r_buff (if set) changes the buffer radius around the cuttof
 	# \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list needs updating
 	# 
-	# set_params changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
+	# set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
 	# can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
-	# to be updated less often, but more particles are included leading to slower force computations. 
-	# Smaller values of \a r_buff lead to faster force computation, but more often neighbor list updates,
+	# to be updated less often, but more particles are included leading to slower %force computations. 
+	# Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
 	# slowing overall perforamnce again. The sweet spot for the best performance needs to be found by 
 	# experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
 	# simulations.
 	#
-	# As # r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
-	# no sooner than \a check_period time steps after the last update. If \a check_period is set too high,
+	# As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
+	# no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
 	# the neighbor list may not be updated when it needs to be. The default of 10 is appropriate for 
 	# Lennard-Jones liquid simulations at reduced T=1.2. \a check_period should be set so that no particle
-	# moves a distance no more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
+	# moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
 	# \b build is counted and printed in the neighbor list statistics at the end of a run().
 	#
 	# A single global neighbor list is created for the entire simulation. Change parameters by using
-	# the built-in variable \b nlist.
+	# the built-in variable \b %nlist.
 	#
-	# \b Examples: <br>
-	# nlist.set_params(r_buff = 0.9)<br>
-	# nlist.set_params(check_period = 11)<br>
+	# \b Examples:
+	# \code 
+	# nlist.set_params(r_buff = 0.9)
+	# nlist.set_params(check_period = 11)
 	# nlist.set_params(r_buff = 0.7, check_period = 4)
+	# \endcode
 	def set_params(r_buff=None, check_period=None):
 		print "nlist.set_params(r_buff =", r_buff, " , check_period =", check_period, ")";
 		
@@ -295,13 +340,45 @@ def _update_global_nlist(r_cut):
 	return globals.neighbor_list;
 	
 	
-## Lennard-Jones pair forces
+## Lennard-Jones %pair %force
 #
-# TODO: document
+# The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
+# particle in the simulation.
+#
+# The %force \f$ \vec{F}\f$ is
+# \f{eqnarray*}
+#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
+#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
+#	\f}
+# where
+# \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f].
+#
+# The following coefficients must be set per unique pair of particle types. See pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon
+# - \f$ \sigma \f$ - \c sigma
+# - \f$ \alpha \f$ - \c alpha
+#
+# \b Example:
+# \code
+# lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+# \endcode
+#
+# The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.lj is specified (see __init__())
 class lj(force._force):
 	## Specify the Lennard-Jones pair force
 	#
-	# TODO: document me
+	# \param r_cut Cuttoff radius (see documentation above)
+	#
+	# \b Example:
+	# \code
+	# lj = pair.lj(r_cut=3.0)
+	# lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+	# \endcode
+	#
+	# \note Pair coefficients for all type pairs in the simulation must be
+	# set before it can be started with run()
 	def __init__(self, r_cut):
 		print "pair.lj(r_cut =", r_cut, ")";
 		
@@ -328,8 +405,6 @@ class lj(force._force):
 		self.pair_coeff = coeff();
 		
 	def update_coeffs(self):
-		print "TODO: set default coeffs";
-		
 		# check that the pair coefficents are valid
 		if not self.pair_coeff.verify("epsilon", "sigma", "alpha"):
 			print "***Error: Not all pair coefficients are set in pair.lj\n";

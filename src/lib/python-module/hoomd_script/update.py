@@ -43,7 +43,8 @@ import globals;
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
 #
-# Details
+# When an updater is specified, it acts on the particle system each timestep to change
+# it in some way. See the documentation of specific updaters to find out what they do.
 
 ## \internal
 # \brief Base class for updaters
@@ -92,8 +93,10 @@ class _updater:
 
 	## Disables the updater
 	#
-	# \b Examples:<br>
+	# \b Examples:
+	# \code
 	# updater.disable()
+	# \endcode
 	#
 	# Executing the disable command will remove the updater from the system.
 	# Any run() command exected after disabling an updater will not use that 
@@ -126,8 +129,10 @@ class _updater:
 
 	## Enables the updater
 	#
-	# \b Examples:<br>
+	# \b Examples:
+	# \code
 	# updater.enable()
+	# \endcode
 	#
 	# See disable() for a detailed description.
 	def enable(self):
@@ -150,9 +155,11 @@ class _updater:
 	#
 	# \param period New period to set
 	#
-	# \b Examples:<br>
-	# updater.set_period(100);<br>
-	# updater.set_period(1);<br>
+	# \b Examples:
+	# \code
+	# updater.set_period(100);
+	# updater.set_period(1);
+	# \endcode
 	#
 	# While the simulation is \ref run() "running", the action of each updater
 	# is executed every \a period time steps.
@@ -186,7 +193,7 @@ class _updater:
 # 
 # Because all simulations benefit from this process, a sorter is created by 
 # default. If you have reason to disable it or modify parameters, you
-# can use the built-in variable sorter to do so after initialization. The
+# can use the built-in variable \c sorter to do so after initialization. The
 # following code example disables the sorter. The init.create_random command
 # is just an example, sorter can be modified after any command that initializes 
 # the system.
@@ -198,8 +205,8 @@ class sort(_updater):
 	## Initialize the sorter
 	#
 	# Users should not initialize the sorter directly. One in created for you
-	# when any init.create_* or init.read_* commands are issued to initialize the 
-	# system. The created sorter can be accessed via the built-in variable sorter.
+	# when any initialization command from init is run. 
+	# The created sorter can be accessed via the built-in variable \c sorter.
 	#
 	# By default, the sorter is created with a \a bin_width of 1.0 and
 	# an update period of 500 time steps. The period can be changed with
@@ -216,8 +223,10 @@ class sort(_updater):
 	#
 	# \param bin_width New bin width (if set)
 	# 
-	# \b Examples:<br>
+	# \b Examples:
+	# \code
 	# sorter.set_params(bin_width=2.0)
+	# \endcode
 	def set_params(self, bin_width=None):
 		print "sorter.set_params(bin_width =", bin_width, ")";
 	
@@ -243,10 +252,12 @@ class rescale_temp(_updater):
 	# \param T Temperature set point
 	# \param period Velocities will be rescaled every \a period time steps
 	# 
-	# \b Examples:<br>
+	# \b Examples:
+	# \code
 	# update.rescale_temp(T=1.2)<br>
-	# rescaler = update.rescale_temp(T=0.5)<br>
-	# update.rescale_temp(period=100, T=1.03)<br>
+	# rescaler = update.rescale_temp(T=0.5)
+	# update.rescale_temp(period=100, T=1.03)
+	# \endcode
 	def __init__(self, T, period=1):
 		print "update.rescale_temp(T =", T, ")";
 	
@@ -261,8 +272,15 @@ class rescale_temp(_updater):
 	#
 	# \param T New temperature set point
 	# 
-	# \b Examples:<br>
+	# To change the parameters of an existing updater, you must have saved it when it was specified.
+	# \code
+	# rescaler = update.rescale_temp(T=0.5)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
 	# rescaler.set_params(T=2.0)
+	# \endcode
 	def set_params(self, T=None):
 		print "rescaler.set_params(T=", T, ")";
 	

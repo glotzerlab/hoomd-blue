@@ -103,8 +103,8 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles, const BoxDim& b
 
 	// make even bin dimensions
 	Scalar binx = (m_box.xhi - m_box.xlo) / Scalar(m_Mx);
-	Scalar biny = (m_box.yhi - m_box.ylo) / Scalar(m_Mx);
-	Scalar binz = (m_box.zhi - m_box.zlo) / Scalar(m_Mx);
+	Scalar biny = (m_box.yhi - m_box.ylo) / Scalar(m_My);
+	Scalar binz = (m_box.zhi - m_box.zlo) / Scalar(m_Mz);
 
 	// precompute scale factors to eliminate division in inner loop
 	m_scalex = Scalar(1.0) / binx;
@@ -137,7 +137,7 @@ bool GeneratedParticles::canPlace(const particle& p)
 		
 	Scalar y = p.y;
 	if (y > m_box.yhi)
-		y -= m_box.xhi - m_box.ylo;
+		y -= m_box.yhi - m_box.ylo;
 	else
 	if (y < m_box.ylo)
 		y += m_box.yhi - m_box.ylo;
@@ -212,7 +212,7 @@ bool GeneratedParticles::canPlace(const particle& p)
 						
 					Scalar dy = p.y - p_cmp.y;
 					if (dy > m_box.yhi)
-						dy -= m_box.xhi - m_box.ylo;
+						dy -= m_box.yhi - m_box.ylo;
 					else
 					if (dy < m_box.ylo)
 						dy += m_box.yhi - m_box.ylo;
@@ -260,7 +260,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
 		
 	Scalar y = p.y;
 	if (y > m_box.yhi)
-		y -= m_box.xhi - m_box.ylo;
+		y -= m_box.yhi - m_box.ylo;
 	else
 	if (y < m_box.ylo)
 		y += m_box.yhi - m_box.ylo;
@@ -292,7 +292,7 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
 		kb = 0;
 
 	// sanity check
-	assert(ib < m_Mx && jb < m_My && kb < m_Mz);
+	assert(ib >= 0 && ib < m_Mx && jb >=0 && jb < m_My && kb >= 0 && kb < m_Mz);
 	
 	// add it to the bin
 	int bin = ib*(m_My*m_Mz) + jb * m_Mz + kb;
@@ -319,7 +319,7 @@ void GeneratedParticles::undoPlace(unsigned int idx)
 		
 	Scalar y = p.y;
 	if (y > m_box.yhi)
-		y -= m_box.xhi - m_box.ylo;
+		y -= m_box.yhi - m_box.ylo;
 	else
 	if (y < m_box.ylo)
 		y += m_box.yhi - m_box.ylo;

@@ -50,30 +50,29 @@ _options = {};
 ## \package hoomd_script.init
 # \brief Data initialization commands
 #
-# These commands initialize the particle data. The execution
-# configuration must be defined first (todo: document this),
-# and the initialization must be performed before any other 
-# script commands can be run.  
+# Commands in the init package initialize the particle system. Initialization via
+# any of the commands here must be done before any other command in hoomd_script can
+# be run.
 #
+# \sa \ref page_quick_start
 
-## Reads particles from a hoomd_xml file
+## Reads initial system state from an XML file
 #
-# \param file_name File to read in
+# \param filename File to read
 #
-# \b Examples:<br>
-# init.read_xml(file_name="data.xml")<br>
-# pdata = init.read_xml(file_name="directory/data.xml")<br>
+# \b Examples:
+# \code
+# init.read_xml(file_name="data.xml")
+# init.read_xml(file_name="directory/data.xml")
+# \endcode
 #
-# All particles, bonds, etc...  are read from the hoomd_xml file given.
+# All particles, bonds, etc...  are read from the XML file given, 
+# setting the initial condition of the simulation.
 # After this command completes, the system is initialized allowing 
-# many other commands in hoomd_script to be run. For more details
-# on the file format read by this command, see hoomd_xml.
-#
-# Initialization can only occur once. An error will be generated
-# if any initialization command is called after read_xml().
-#
-def read_xml(file_name):
-	print "init.read_xml(file_name=", file_name, ")";
+# other commands in hoomd_script to be run. For more details
+# on the file format read by this command, see \ref page_xml_file_format.
+def read_xml(filename):
+	print "init.read_xml(filename=", file_name, ")";
 	
 	# parse command line
 	_parse_command_line();
@@ -84,7 +83,7 @@ def read_xml(file_name):
 		raise RuntimeError('Error initializing');
 
 	# read in the data
-	initializer = hoomd.HOOMDInitializer(file_name);
+	initializer = hoomd.HOOMDInitializer(filename);
 	globals.particle_data = hoomd.ParticleData(initializer, _create_exec_conf());
 	
 	# TEMPORARY HACK for bond initialization
@@ -97,7 +96,7 @@ def read_xml(file_name):
 	return globals.particle_data;
 
 
-## Generates randomly positioned particles
+## Generates N randomly positioned particles of the same type
 #
 # \param N Number of particles to create
 # \param phi_p Packing fraction of particles in the simulation box
@@ -106,21 +105,19 @@ def read_xml(file_name):
 # \param wall_offset (optional) If specified, walls are created a distance of 
 #	\a wall_offset in from the edge of the simulation box
 #
-# \b Examples:<br>
-# init.create_random(N=2400, phi_p=0.20)<br>
-# init.create_random(N=2400, phi_p=0.40, min_dist=0.5)<br>
-# init.create_random(wall_offset=3.1, phi_p=0.10, N=6000)<br>
+# \b Examples:
+# \code
+# init.create_random(N=2400, phi_p=0.20)
+# init.create_random(N=2400, phi_p=0.40, min_dist=0.5)
+# init.create_random(wall_offset=3.1, phi_p=0.10, N=6000)
+# \endcode
 #
 # \a N particles are randomly placed in the simulation box. The 
 # dimensions of the created box are such that the packing fraction
-# of particles in the box is \a phi_p. A number density \e n
-# can be related to the packing fraction by \f$n = 6/\pi \cdot \phi_P\f$.
-# All particles are created with the same type, 0.
-# After this command completes, the system is initialized allowing 
-# many other commands in hoomd_script to be run.
-#
-# Initialization can only occur once. An error will be generated
-# if any initialization command is called after create_random().
+# of particles in the box is \a phi_p. The number density \e n
+# is related to the packing fraction by \f$n = 6/\pi \cdot \phi_P\f$
+# assuming the particles have a radius of 0.5.
+# All particles are created with the same type, given by \a name.
 #
 def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 	print "init.create_random(N =", N, ", phi_p =", phi_p, ", name = ", name, ", min_dist =", min_dist, ", wall_offset =", wall_offset, ")";
@@ -147,20 +144,18 @@ def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 	_perform_common_init_tasks();
 	return globals.particle_data;
 
-## Generates randomly positioned polymers
+## Generates any number of randomly positioned polymers of configurable types
 #
 # \param box BoxDim specifying the simulation box to generate the polymers in
 # \param polymers Specification for the different polymers to create (see below)
 # \param separation Separation radii for different particle types (see below)
 # \param seed Random seed to use
 #
-# A lot of information must be passed into the generator so that the desired polymer
-# system is generated. This requires packing a lot of information into only a few
-# arguments. Any number of polymers can be generated, of the same or different types.
-# \a polymers is the argument that specifies this. For each polymer, there is a 
+# Any number of polymers can be generated, of the same or different types, as 
+# specified in the argument \a polymers. Parameters for each polymer, include
 # bond length, particle type list, bond list, and count.
 #
-# The syntax is best shown by example. The below line specifies a that 600 block copolymers
+# The syntax is best shown by example. The below line specifies that 600 block copolymers
 # A6B7A6 with a bond length of 1.2 be generated.
 # \code
 # polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=600)
@@ -170,19 +165,20 @@ def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 # polymer2 = dict(bond_len=1.2, type=['B']*4, bond="TODO", count=100)
 # \endcode
 # The \a polymers argument can be given a list of any number of polymer types specified
-# as above. \a count randomly generated polymers of each polymer in the list will be
+# as above. \a count randomly generated polymers of each type in the list will be
 # generated in the system.
 # 
-# \a separation \b must contain one entry for each particle type in the polymers
-# (only 'A' and 'B' in the examples above). It is OK to specify more particles in
-# separation than are needed. The value given is the radius of each
+# \a separation \b must contain one entry for each particle type specified in \a polymers
+# ('A' and 'B' in the examples above). The value given is the separation radius of each
 # particle of that type. The generated polymer system will have no two overlapping 
 # particles.
 #
-# \b Examples:<br>
-# init.create_random_polymers(box=hoomd.BoxDim(25), polymers=[polymer1, polymer2], separation=dict(A=0.5, B=0.5));
-# init.create_random_polymers(box=hoomd.BoxDim(20), polymers=[polymer1], separation=dict(A=0.5, B=0.5), seed=52);
-# init.create_random_polymers(box=hoomd.BoxDim(19), polymers=[polymer2], separation=dict(A=0.3, B=0.3), seed=12345);
+# \b Examples:
+# \code
+# init.create_random_polymers(box=hoomd.BoxDim(35), polymers=[polymer1, polymer2], separation=dict(A=0.35, B=0.35));
+# init.create_random_polymers(box=hoomd.BoxDim(31), polymers=[polymer1], separation=dict(A=0.35, B=0.35), seed=52);
+# init.create_random_polymers(box=hoomd.BoxDim(18,10,25), polymers=[polymer2], separation=dict(A=0.35, B=0.35), seed=12345);
+# \endcode
 #
 # With all other parameters the same, create_random_polymers will always create the
 # same system if \a seed is the same. Set a different \a seed (any integer) to create
@@ -190,15 +186,16 @@ def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
 # of HOOMD \e may generate different systems even with the same seed due to programming
 # changes.
 #
-# \note For relatively dense systems (packing fraction 0.2 and higher) the simple random
-# generation algorithm may fail and print an error message. There are two methods to solve this.
-# First, you can lower the separation radii allowing particles to be placed closer together.
-# Then setup integrate.nve with the \a limit option set to a relatively small value. A few
-# thousand timesteps should relax the system so that continuing the simulation can be
+# \note For relatively dense systems (packing fraction 0.4 and higher) the simple random
+# generation algorithm may fail to find room for all the particles and print an error message. 
+# There are two methods to solve this. First, you can lower the separation radii allowing particles 
+# to be placed closer together. Then setup integrate.nve with the \a limit option set to a 
+# relatively small value. A few thousand timesteps should relax the system so that the simulation can be
 # continued without the limit or with a different integrator. For extremely troublesome systems,
-# generate at a low density and shrink the box (TODO, write box shrink updater) to the desired 
-# final size.
+# generate it at a very low density and shrink the box with the command ___ (which isn't written yet)
+# to the desired final size.
 #
+# \note Currently, create_random_polymers() always creates linear chains.
 def create_random_polymers(box, polymers, separation, seed=1):
 	print "init.create_random_polymers(box =", box, ", polymers =", polymers, ", separation = ", separation, ", seed =", seed, ")";
 	

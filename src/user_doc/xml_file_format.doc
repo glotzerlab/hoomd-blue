@@ -169,6 +169,8 @@ Example:
 
 The above example creates a bond between particle 0 and one and another between 1 and 2.
 (TODO: update when new bond system is written).
+Specifying the bonds themselves doesn't result in any additional forces on particles. For
+that, you must specify a bond force (see \link hoomd_script.bond bond\endlink). 
 
 <hr>
 

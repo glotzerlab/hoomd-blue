@@ -42,9 +42,15 @@ import globals;
 import hoomd;
 
 ## \package hoomd_script.bond
-# \brief Commands that create bond forces
+# \brief Commands that specify %bond forces
 #
-# Details
+# Bonds add forces between specified pairs of particles and are typically used to 
+# model chemical bonds. Bonds between particles are set when an input XML file is read
+# (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
+#
+# By themselves, bonds that have been specified in an input file do nothing. Only when you 
+# specify a bond force (i.e. bond.harmonic), are forces actually calculated between the 
+# listed particles.
 
 ## Harmonic bond forces
 #
