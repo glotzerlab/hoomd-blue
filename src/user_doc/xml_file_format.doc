@@ -1,5 +1,7 @@
 /*! \page page_xml_file_format XML File Format
 
+\section sec_xml_overview Overview
+
 Both \link hoomd_script.init.read_xml init.read_xml\endlink and \link hoomd_script.dump.xml dump.xml\endlink
 work with the same XML file format for specifying the system of particles. The format requires a minimal 
 amount of meta-information in an easy to understand human-readable format. One of the key advantages of using 
@@ -9,10 +11,184 @@ The basic outline of a HOOMD xml file looks like this
 \code
 <?xml version="1.0" encoding="UTF-8"?>
 <hoomd_xml>
+<!-- this is a comment, you can put as many of these in the file 
+	wherever you wish to. -->
 <configuration time_step="0">
-	<!-- data nodes go here --!>
+	<!-- data nodes go here -->
 </configuration>
 </hoomd_xml>
 \endcode
+
+The first line of the file
+\code
+<?xml version="1.0" encoding="UTF-8"?>
+\endcode
+is just something that \b must be there to identify that this is an XML file.
+
+The second and last lines signify the start and end of the root node \c hoomd_xml. 
+The contents of the root node is between these begin and end markers.
+\code
+<hoomd_xml>
+	<!-- contents of root node -->
+</hoomd_xml>
+\endcode
+
+Inside the root node is the configuration node.
+\code
+<configuration time_step="0">
+	<!-- data nodes go here -->
+</configuration>
+\endcode
+\c time_step="0" is an attribute assigned to the configuration node. You can leave if off if you want
+and the time step will default to 0. It is used as the initial time step in the simulation when read
+by \link hoomd_script.init.read_xml init.read_xml\endlink. In files written by HOOMD, \c time_step 
+will be set to the value of the time step when the system snapshot was taken.
+
+A number of data nodes can be included as part of the configuration and in any order.
+ - \b box (\ref sec_xml_box)
+ - \b position (\ref sec_xml_position)
+ - \b velocity (\ref sec_xml_velocity)
+ - \b type (\ref sec_xml_type)
+ - \b bond (\ref sec_xml_bond)
+ - \b wall (\ref sec_xml_wall)
+ 
+Detailed documentation for each node is below.
+<hr>
+
+\section sec_xml_box Simulation box specification
+The \<box\> node defines the dimensions of the simulation box which particles are placed in.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \b always writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink \b requires this node be specified.
+
+\b Example:
+\code
+<box units="sigma"  Lx="5.1" Ly="9.6" Lz="15.8"/>
+\endcode
+\b Attributes:
+ - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ 	for length, energy, etc...
+ - \a Lx Box length in the \b x direction
+ - \a Ly Box length in the \b y direction
+ - \a Lz Box length in the \b z direction
+
+<hr>
+
+\section sec_xml_position Particle positions
+The \<position\> node sets the position of each particle in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink \b requires this node be specified.
+
+\b Example:
+\code
+<position units="sigma">
+-1.45 2.21 1.56
+8.76 1.02 5.60
+5.67 8.30 4.67
+</position>
+\endcode
+\b Attributes:
+ - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ 	for length, energy, etc...
+
+In between the begin and end markers \<position\> and \</position\> is a series of floating point
+numbers in plain-text separated by whitespace. These are read in order <i>x0 y0 z0 x1 y1 z1 x2 
+y2 z2 ... x(N-1) y(N-1) z(N-1)</i>. Note that you do not need to specify the number of particles
+anywhere, just add as many as you want and \link hoomd_script.init.read_xml init.read_xml\endlink
+will count them. The particular form of the whitespace used does not matter (space, tab, newline,
+etc...), the example above uses spaces between \em x, \em y, and \em z and newlines between 
+particles merely to make it more easily human-readable.
+
+All particles must be in the box: \a x \> -Lx/2.0 and \a x \< Lx/2.0 and similarly for \a y and \a z.
+
+<hr>
+
+\section sec_xml_velocity Particle velocities
+The \<velocity\> node sets the velocity of each particle in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node.<br>
+When used in an input file, the velocities specified are used as the initial condition for the simulation.
+
+\b Example:
+\code
+<velocity units="sigma/tau">
+-0.5 -1.2 0.4
+0.6 2.0 0.01
+-0.4 3.0 0.0
+</velocity>
+\endcode
+\b Attributes:
+ - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ 	for length, energy, etc...
+
+The format of the node data is the same as for \<position\> (see \ref sec_xml_position). If specifying
+both position and velocity in an input file, be certain to include the same number of particles in each,
+or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
+<hr>
+
+\section sec_xml_type Particle types
+The \<type\> node sets the type name of each particle in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink \b requires this node be specified.
+
+\b Example:
+\code
+<type>
+A
+long_type_name
+A
+</type>
+\endcode
+
+The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
+except that only one type is specified for each particle. A particle type can be \b any
+string you want that does not include whitespace (as whitespace is used to signify
+the next particle in the list). Internally, HOOMD assigns no meaning whatsover to the 
+value of the string you specify so name your particles in ways that are meaningful to you.
+When performing tasks such as setting the coefficents of a \link hoomd_script.pair pair\endlink 
+force, the type strings given are simply matched up to those specified in the xml file.
+
+If specifying both position and type in an input file, be certain to include the same number of
+particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
+<hr>
+
+\section sec_xml_bond Bonds between particles
+
+The \<bond\> node specifies any number of bonds between particles in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node
+
+Example:
+\code
+<bond>
+0 1
+1 2
+</bond>
+\endcode
+
+The above example creates a bond between particle 0 and one and another between 1 and 2.
+(TODO: update when new bond system is written).
+
+<hr>
+
+\section sec_xml_wall Walls in the simulation box
+
+The \<wall\> node specifies any number of walls in the simulation box. Walls have no
+meaning unless a wall force such as \link hoomd_script.wall.lj wall.lj\endlink is specified 
+in the simualtion. <br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node
+
+Example:
+\code
+<wall>
+<coord ox="1.0" oy="2.0" oz="3.0" nx="4.0" ny="5.0" nz="6.0"/>
+<coord ox="7.0" oy="8.0" oz="9.0" nx="10.0" ny="11.0" nz="-12.0"/>
+</wall>
+\endcode
+
+Every wall is specified by a plane. The vector (\em ox, \em oy, \em oz) is the origin, a point
+in the plane and (\em nx, \em ny, \em nz) is the normal.
 
 */
