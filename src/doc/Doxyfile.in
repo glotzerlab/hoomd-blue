@@ -75,8 +75,16 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ${HOOMD_SOURCE_DIR}
-FILE_PATTERNS          = *.cc *.h *.cu *.doc *.h.in
+INPUT                  =	${HOOMD_SOURCE_DIR} \
+							${HOOMD_SOURCE_DIR}/user_doc/prereq_install.doc \
+							${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc \
+							${HOOMD_SOURCE_DIR}/user_doc/credits.doc \
+							${HOOMD_SOURCE_DIR}/user_doc/license.doc \
+							${HOOMD_SOURCE_DIR}/doc/DeveloperInfo.doc \
+							${HOOMD_SOURCE_DIR}/doc/Groups.doc \
+							${HOOMD_SOURCE_DIR}/doc/MainPage.doc
+
+FILE_PATTERNS          = *.cc *.h *.cu *.h.in
 RECURSIVE              = YES
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
