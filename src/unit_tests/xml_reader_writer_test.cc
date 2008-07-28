@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "3");
+		BOOST_CHECK_EQUAL(line, "D");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -398,27 +398,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "2");
+		BOOST_CHECK_EQUAL(line, "C");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "3");
+		BOOST_CHECK_EQUAL(line, "D");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "4");
+		BOOST_CHECK_EQUAL(line, "E");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "5");
+		BOOST_CHECK_EQUAL(line, "F");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "6");
+		BOOST_CHECK_EQUAL(line, "G");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "7");
+		BOOST_CHECK_EQUAL(line, "H");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
