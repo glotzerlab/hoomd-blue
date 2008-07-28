@@ -59,7 +59,6 @@ extern "C" {
 	Each column i is the neighborlist for particle i. 
 	The first row lists the number of elements in the column.
 	Each column has a fixed height \c height.
-	\todo selecting of nlist data for exclusions texture ????
 */
 struct gpu_nlist_array
 	{
@@ -68,6 +67,7 @@ struct gpu_nlist_array
 	unsigned int pitch;
 	float4 *last_updated_pos;
 	int *needs_update;
+	int *overflow;
 	
 	uint4 *exclusions;
 	};

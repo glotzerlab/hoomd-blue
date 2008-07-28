@@ -121,7 +121,7 @@ NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, 
 	// code
 	if (!exec_conf.gpu.empty())
 		{
-		allocateGPUData(256);
+		allocateGPUData(32);
 		m_data_location = cpugpu;
 		hostToDeviceCopy();
 		}
@@ -168,6 +168,7 @@ void NeighborList::allocateGPUData(int height)
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_nlist.last_updated_pos, 0, m_gpu_nlist.pitch * sizeof(float4)));
 
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist.needs_update), sizeof(int)));
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist.overflow), sizeof(int)));
 	
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist.exclusions), m_gpu_nlist.pitch*sizeof(uint4)));
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*) m_gpu_nlist.exclusions, 0xff, m_gpu_nlist.pitch * sizeof(uint4)));
@@ -206,6 +207,8 @@ void NeighborList::freeGPUData()
 	m_gpu_nlist.last_updated_pos = NULL;
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_nlist.needs_update));
 	m_gpu_nlist.needs_update = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_nlist.overflow));
+	m_gpu_nlist.overflow = NULL;
 	}
 #endif
 

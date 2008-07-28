@@ -786,8 +786,14 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 						
 						if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
 							{
-							nlist.list[my_pidx + (1 + n_neigh)*nlist.pitch] = cur_neigh;
-							n_neigh++;
+							// check for overflow
+							if (1+n_neigh < nlist.height)
+								{
+								nlist.list[my_pidx + (1 + n_neigh)*nlist.pitch] = cur_neigh;
+								n_neigh++;
+								}
+							else
+								*nlist.overflow = 1;
 							}
 						}
 					}
@@ -828,6 +834,11 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	nlist_idxlist_tex.normalized = false;
 	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
 	error = cudaBindTextureToArray(nlist_idxlist_tex, bins->idxlist_array);
+	if (error != cudaSuccess)
+		return error;
+	
+	// zero the overflow check
+	error = cudaMemset(nlist->overflow, 0, sizeof(int));
 	if (error != cudaSuccess)
 		return error;
 

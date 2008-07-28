@@ -234,9 +234,25 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 						
 			m_prof->pop(0, nbytes);
 			}
-			
+		
+		// update the neighbor list using the bins. Need to check for overflows
+		// and increase the size of the list as needed
 		updateListFromBins();
-
+		
+		int overflow = 0;
+		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
+		while (overflow)
+			{
+			int new_height = m_gpu_nlist.height * 2;
+			cout << "Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+			freeGPUData();
+			allocateGPUData(new_height);
+			updateExclusionData();
+			
+			updateListFromBins();
+			exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
+			}
+			
 		#ifdef USE_CUDA
 		// after computing, the device now resides on the CPU
 		m_data_location = gpu;

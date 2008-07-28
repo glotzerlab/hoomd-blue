@@ -133,8 +133,13 @@ extern "C" __global__ void generateNlistNSQ(gpu_pdata_arrays pdata, gpu_nlist_ar
 						// we don't add if we are comparing to ourselves, and we don't add if we are above the cut
 						if ((drsq < r_maxsq) && ((start + cur_offset) != pidx) && exclude.x != (start + cur_offset) && exclude.y != (start + cur_offset) && exclude.z != (start + cur_offset) && exclude.w != (start + cur_offset))
 							{
-							nlist.list[pidx + (1 + n_neigh)*nlist.pitch] = start+cur_offset;
-							n_neigh++;
+							if (1+n_neigh < nlist.height)
+								{
+								nlist.list[pidx + (1 + n_neigh)*nlist.pitch] = start+cur_offset;
+								n_neigh++;
+								}
+							else
+								*nlist.overflow = 1;
 							}
 					
 						}
@@ -161,6 +166,11 @@ cudaError_t gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_a
 	int M = NLIST_BLOCK_SIZE;
 	dim3 grid( (pdata->N/M) + 1, 1, 1);
 	dim3 threads(M, 1, 1);
+	
+	// zero the overflow check
+	cudaError_t error = cudaMemset(nlist->overflow, 0, sizeof(int));
+	if (error != cudaSuccess)
+		return error;	
 	
 	// run the kernel
 	generateNlistNSQ<<< grid, threads >>>(*pdata, *nlist, r_maxsq, *box);

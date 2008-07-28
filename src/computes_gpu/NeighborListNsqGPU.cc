@@ -112,39 +112,60 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 		
 	if (needsUpdating(timestep))
 		{
-		// access the particle data
-		gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
-		gpu_boxsize box = m_pdata->getBoxGPU();
-
-		// create a temporary copy of r_max sqaured
-   		Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
+		buildNlist();
 		
-    	if (m_prof)
-        	m_prof->push("Build list");
-		
-		// calculate the nlist
-		exec_conf.gpu[0]->call(bind(gpu_nlist_nsq, &pdata, &box, &m_gpu_nlist, r_max_sq));
-
-		m_data_location = gpu;
-
-		// amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
-		int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;
-		// number of flops is 21 for each N*N
-		int64_t flops = int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*21;
-	
-		m_pdata->release();
-	
-		if (m_prof)
+		// handle when the neighbor list overflows
+		int overflow = 0;
+		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
+		while (overflow)
 			{
-			cudaThreadSynchronize();
-        	m_prof->pop(flops, mem_transfer);
+			int new_height = m_gpu_nlist.height * 2;
+			cout << "Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+			freeGPUData();
+			allocateGPUData(new_height);
+			updateExclusionData();
+			
+			buildNlist();
+			exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
 			}
 		}
 		
 	if (m_prof)
         m_prof->pop();	
 	}
- 
+	
+void NeighborListNsqGPU::buildNlist()
+	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// access the particle data
+	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
+	gpu_boxsize box = m_pdata->getBoxGPU();
+
+	// create a temporary copy of r_max sqaured
+	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
+	
+	if (m_prof)
+		m_prof->push("Build list");
+	
+	// calculate the nlist
+	exec_conf.gpu[0]->call(bind(gpu_nlist_nsq, &pdata, &box, &m_gpu_nlist, r_max_sq));
+
+	m_data_location = gpu;
+
+	// amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
+	int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;
+	// number of flops is 21 for each N*N
+	int64_t flops = int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*21;
+
+	m_pdata->release();
+
+	if (m_prof)
+		{
+		cudaThreadSynchronize();
+		m_prof->pop(flops, mem_transfer);
+		}
+	}
+
 #ifdef USE_PYTHON
 void export_NeighborListNsqGPU()
 	{

@@ -68,6 +68,10 @@ class NeighborListNsqGPU : public NeighborList
 		
 		//! Computes the NeighborList if it needs updating
 		virtual void compute(unsigned int timestep);
+		
+	private:
+		//! Actually builds the neighbor list
+		void buildNlist();
 	};
 	
 #ifdef USE_PYTHON
