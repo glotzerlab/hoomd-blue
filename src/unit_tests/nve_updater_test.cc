@@ -276,8 +276,8 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(1.2);
 	Scalar alpha = Scalar(0.45);
-	Scalar lj1 = Scalar(48.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(24.0) * epsilon * pow(sigma,Scalar(6.0));
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	
 	// specify the force parameters
 	fc1->setParams(0,0,lj1,lj2);

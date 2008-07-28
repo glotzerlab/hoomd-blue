@@ -278,7 +278,7 @@ void BondForceComputeGPU::computeForces(unsigned int timestep)
 	if (m_prof)
 		{
 		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(20*m_pdata->getN() + 20*m_bonds.size()*2, 31 * m_bonds.size()*2);
+		m_prof->pop(34 * m_bonds.size()*2, 20*m_pdata->getN() + 20*m_bonds.size()*2);
 		}
 		
 	m_pdata->release();

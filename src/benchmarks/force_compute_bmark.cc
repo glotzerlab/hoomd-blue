@@ -59,7 +59,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BondForceCompute.h"
 #include "LJForceCompute.h"
-#include "LJForceComputeThreaded.h"
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
@@ -122,8 +121,6 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	// handle creation of the various lennard=jones computes
 	if (fc_name == "LJ")
 		result = shared_ptr<ForceCompute>(new LJForceCompute(pdata, nlist, r_cut));
-	if (fc_name == "LJ.Threads")
-		result = shared_ptr<ForceCompute>(new LJForceComputeThreaded(pdata, nlist, r_cut, nthreads));
 	#ifdef USE_CUDA
 	if (fc_name == "LJ.GPU")
 		{

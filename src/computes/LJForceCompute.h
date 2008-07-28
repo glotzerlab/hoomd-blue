@@ -92,7 +92,9 @@ class LJForceCompute : public ForceCompute
 		// lj1 and lj2 here
 		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
-				
+		Scalar * __restrict__ m_lj3;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		Scalar * __restrict__ m_lj4;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
+		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
 	};

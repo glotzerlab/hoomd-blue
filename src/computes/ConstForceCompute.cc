@@ -78,6 +78,7 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
 		m_fx[i] = fx;
 		m_fy[i] = fy;
 		m_fz[i] = fz;
+		m_pe[i] = 0;
 		}
 
 	#ifdef USE_CUDA

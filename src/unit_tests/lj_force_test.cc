@@ -51,7 +51,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "LJForceCompute.h"
-#include "LJForceComputeThreaded.h"
 #ifdef USE_CUDA
 #include "LJForceComputeGPU.h"
 #endif
@@ -76,7 +75,7 @@ using namespace boost;
 
 //! Tolerance in percent to use for comparing various LJForceComputes to each other
 #ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1);
+const Scalar tol = Scalar(2);
 #else
 const Scalar tol = 1e-6;
 #endif
@@ -112,8 +111,8 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	Scalar epsilon = Scalar(1.15);
 	Scalar sigma = Scalar(1.0);
 	Scalar alpha = Scalar(1.0);
-	Scalar lj1 = Scalar(48.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(24.0) * epsilon * pow(sigma,Scalar(6.0));
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	fc_3->setParams(0,0,lj1,lj2);
 	
 	// compute the forces
@@ -123,20 +122,23 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.575, tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -1.15, tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.575, tol);
 	
 	// now change sigma and alpha so we can check that it is computing the right force
 	sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
 	alpha = Scalar(0.45);
-	lj1 = Scalar(48.0) * epsilon * pow(sigma,Scalar(12.0));
-	lj2 = alpha * Scalar(24.0) * epsilon * pow(sigma,Scalar(6.0));	
+	lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));	
 	fc_3->setParams(0,0,lj1,lj2);
 	fc_3->compute(1);
 	
@@ -144,15 +146,18 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -93.09822608552962, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 3.5815110377468, tol);
 
 	// center particle should still be a 0 force by symmetry
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], 1e-5);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], 1e-5);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 7.1630220754935, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 93.09822608552962, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 3.581511037746, tol);
 	
 	// swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
 	arrays = pdata_3->acquireReadWrite();
@@ -215,8 +220,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator)
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(0.5);
 	Scalar alpha = Scalar(0.45);
-	Scalar lj1 = Scalar(48.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(24.0) * epsilon * pow(sigma,Scalar(6.0));
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	
 	// make life easy: just change epsilon for the different pairs
 	fc_6->setParams(0,0,lj1,lj2);
@@ -277,8 +282,8 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(1.2);
 	Scalar alpha = Scalar(0.45);
-	Scalar lj1 = Scalar(48.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(24.0) * epsilon * pow(sigma,Scalar(6.0));
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	
 	// specify the force parameters
 	fc1->setParams(0,0,lj1,lj2);
@@ -297,6 +302,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 		BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], tol);
 		BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], tol);
 		BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], tol);
+		BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], tol);
 		}
 	}
 	
@@ -304,12 +310,6 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 shared_ptr<LJForceCompute> base_class_lj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
 	return shared_ptr<LJForceCompute>(new LJForceCompute(pdata, nlist, r_cut));
-	}
-	
-//! LJForceComputeThreaded for unit tests
-shared_ptr<LJForceCompute> threaded_lj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut, int nthreads)
-	{
-	return shared_ptr<LJForceCompute>(new LJForceComputeThreaded(pdata, nlist, r_cut, nthreads));
 	}
 	
 #ifdef USE_CUDA
@@ -336,28 +336,6 @@ BOOST_AUTO_TEST_CASE( LJForce_periodic )
 	{
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
 	lj_force_periodic_test(lj_creator_base);
-	}
-	
-//! boost test case for particle test on CPU - threaded
-BOOST_AUTO_TEST_CASE( LJForceThreaded_particle )
-	{
-	ljforce_creator lj_creator_threaded = bind(threaded_lj_creator, _1, _2, _3, 2);
-	lj_force_particle_test(lj_creator_threaded);
-	}
-	
-//! boost test case for periodic test on CPU - threaded
-BOOST_AUTO_TEST_CASE( LJForceThreaded_periodic )
-	{
-	ljforce_creator lj_creator_threaded = bind(threaded_lj_creator, _1, _2, _3, 2);
-	lj_force_periodic_test(lj_creator_threaded);
-	}
-
-//! boost test case for comparing threaded output to base class output
-BOOST_AUTO_TEST_CASE( LJForceThreaded_compare )
-	{
-	ljforce_creator lj_creator_threaded = bind(threaded_lj_creator, _1, _2, _3, 2);
-	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_comparison_test(lj_creator_base, lj_creator_threaded);
 	}
 	
 # ifdef USE_CUDA

@@ -100,8 +100,8 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator)
 	Scalar epsilon = Scalar(1.15);
 	Scalar sigma = Scalar(1.0);
 	Scalar alpha = Scalar(1.0);
-	Scalar lj1 = Scalar(48.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(24.0) * epsilon * pow(sigma,Scalar(6.0));
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	fc_3->setParams(0,lj1,lj2);
 	
 	// compute the forces
@@ -112,14 +112,17 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[2], tol);
 	
 	// add the walls
 	pdata_3->getWallData()->addWall(Wall(0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
@@ -134,14 +137,17 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol);	
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[2], tol);
 
 	// increase the cuttoff to check the actual force computation
 	fc_3->setRCut(3.0);
@@ -150,14 +156,17 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -2.54344734, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -1.0246100807205, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.108697879, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -0.04021378505, tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0.0159463169, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.0077203876329103, tol);
 	}
 
 //! LJWallForceCompute creator for unit tests

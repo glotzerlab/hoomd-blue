@@ -76,12 +76,11 @@ gpu_ljparam_data *gpu_alloc_ljparam_data()
 	// allocate memory
 	gpu_ljparam_data *data = (gpu_ljparam_data *)malloc(sizeof(gpu_ljparam_data));
 	assert(data);
-
+ 
 	// clear
 	for (int i = 0; i < MAX_NTYPE_PAIRS; i++)
 		{
-		data->lj1[i] = 0.0f;
-		data->lj2[i] = 0.0f;
+		data->coeffs[i] = make_float2(0.0f, 0.0f);
 		}
 
 	data->id = lj_current_id++;
@@ -108,7 +107,6 @@ cudaError_t gpu_select_ljparam_data(gpu_ljparam_data *ljparams, bool force)
 	{
 	assert(ljparams);
 	cudaError_t retval = cudaSuccess;
-
 	if (ljparams->id != lj_last_selected_id || force)
 		{
 		retval = cudaMemcpyToSymbol(c_ljparams, ljparams, sizeof(gpu_ljparam_data));
@@ -119,6 +117,9 @@ cudaError_t gpu_select_ljparam_data(gpu_ljparam_data *ljparams, bool force)
 
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+
+//! Texture for reading lj coefficients
+texture<float4, 2, cudaReadModeElementType> lj_coeff_tex;
 
 //! Kernel for calculating lj forces
 /*! This kerenel is called to calculate the lennard-jones forces on all N particles
@@ -158,11 +159,13 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	// texture cache for the next read
 	float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	pos = tex1Dfetch(pdata_pos_tex, pidx);
+	int ptype = __float_as_int(pos.w);
 	
 	// initialize the force to 0
 	float fx = 0.0f;
 	float fy = 0.0f;
 	float fz = 0.0f;
+	float pe = 0.0f;
 
 	// precompute a bit to tell wheter or not this particle needs periodic boundary conditions
 	int period = 0;
@@ -191,7 +194,7 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		float ny = neigh_pos.y;
 		float nz = neigh_pos.z;
 		int neigh_typ = __float_as_int(neigh_pos.w);
-		
+	
 		// calculate dr (with periodic boundary conditions)
 		float dx = pos.x - nx;
 		float dy = pos.y - ny;
@@ -212,15 +215,14 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		else
 			r2inv = 1.0f / rsq;
 	
-		int ptype = __float_as_int(pos.w);
 		int typ_pair = neigh_typ * MAX_NTYPES + ptype;
+		float2 lj_coeff = c_ljparams.coeffs[typ_pair];
 	
 		// note that the code for calculating the force was borrowed from lammps
 		float r6inv = r2inv*r2inv*r2inv;
 		// the lj1 and lj2 params are encoded into the x and y components of the params array
-		float lj1 = c_ljparams.lj1[typ_pair];
-		float lj2 = c_ljparams.lj2[typ_pair];
-		float fforce = r2inv * r6inv * (lj1  * r6inv - lj2);
+		float fforce = r2inv * r6inv * (12.0f * lj_coeff.x  * r6inv - 6.0f * lj_coeff.y);
+		pe += r6inv * (lj_coeff.x * r6inv - lj_coeff.y);
 			
 		// add up the forces
 		fx += dx * fforce;
@@ -234,12 +236,12 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 			force.x = fx;
 			force.y = fy;
 			force.z = fz;
-			force.w = 0.0f;
+			force.w = 0.5f * pe;
 			d_forces[pidx] = force;
 			return;
 			}
 		neigh_idx = neigh_idx + 1;
-		}	
+		}
 	}
 
 

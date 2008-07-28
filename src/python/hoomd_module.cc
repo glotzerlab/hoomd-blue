@@ -57,7 +57,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondForceCompute.h"
 #include "LJForceCompute.h"
 #include "LJWallForceCompute.h"
-#include "LJForceComputeThreaded.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
@@ -253,7 +252,6 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ConstForceCompute();
 	export_BondForceCompute();
 	export_LJForceCompute();
-	export_LJForceComputeThreaded();
 	export_LJWallForceCompute();
 	export_TempCompute();
 	export_NeighborList();

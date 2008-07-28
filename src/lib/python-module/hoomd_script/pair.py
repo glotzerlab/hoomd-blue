@@ -422,7 +422,7 @@ class lj(force._force):
 				sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
 				alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
 				
-				lj1 = 48.0 * epsilon * math.pow(sigma, 12.0);
-				lj2 = alpha * 24.0 * epsilon * math.pow(sigma, 6.0);
+				lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+				lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
 				self.cpp_force.setParams(i, j, lj1, lj2);
-		
+

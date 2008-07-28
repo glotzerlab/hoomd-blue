@@ -74,13 +74,17 @@ LJForceCompute::LJForceCompute(boost::shared_ptr<ParticleData> pdata, boost::sha
 	// allocate data for lj1 and lj2
 	m_lj1 = new Scalar[m_ntypes*m_ntypes];
 	m_lj2 = new Scalar[m_ntypes*m_ntypes];
+	m_lj3 = new Scalar[m_ntypes*m_ntypes];
+	m_lj4 = new Scalar[m_ntypes*m_ntypes];
 	
 	// sanity check
-	assert(m_lj1 != NULL && m_lj2 != NULL);
+	assert(m_lj1 != NULL && m_lj2 != NULL && m_lj3 != NULL && m_lj4 != NULL);
 	
 	// initialize the parameters to 0;
 	memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
 	memset((void*)m_lj2, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_lj3, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_lj4, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
 	}
 	
 
@@ -89,16 +93,20 @@ LJForceCompute::~LJForceCompute()
 	// deallocate our memory
 	delete[] m_lj1;
 	delete[] m_lj2;
+	delete[] m_lj3;
+	delete[] m_lj4;	
 	m_lj1 = NULL;
 	m_lj2 = NULL;
+	m_lj3 = NULL;
+	m_lj4 = NULL;	
 	}
 		
 
 /*! \post The parameters \a lj1 and \a lj2 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
-	\note \a lj1 are \a lj2 are low level parameters used in the calculation. In order to specify
+	\note \a lj? are low level parameters used in the calculation. In order to specify
 	these for a normal lennard jones formula (with alpha), they should be set to the following.
-	\a lj1 = 48.0 * epsilon * pow(sigma,12.0)
-	\a lj2 = alpha * 24.0 * epsilon * pow(sigma,6.0);
+	- \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
+	- \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
 	
 	Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
 	is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
@@ -138,7 +146,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	
 	// start the profile
 	if (m_prof)
-		m_prof->push("LJ");
+		m_prof->push("LJ.cpu");
 	
 	// depending on the neighborlist settings, we can take advantage of newton's third law
 	// to reduce computations at the cost of memory access complexity: set that flag now
@@ -176,6 +184,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
+	memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
 
 	// for each particle
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
@@ -196,6 +205,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		Scalar fxi = 0.0;
 		Scalar fyi = 0.0;
 		Scalar fzi = 0.0;
+		Scalar pei = 0.0;
 		
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = full_list[i];
@@ -251,13 +261,15 @@ void LJForceCompute::computeForces(unsigned int timestep)
 				// compute the force magnitude/r
 				Scalar r2inv = Scalar(1.0)/rsq;
 				Scalar r6inv = r2inv * r2inv * r2inv;
-				Scalar forcelj = r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
+				Scalar forcelj = r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
 				fforce = forcelj * r2inv;
+				Scalar tmp_eng = r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
 				
 				// add the force to the particle i
 				fxi += dx*fforce;
 				fyi += dy*fforce;
 				fzi += dz*fforce;
+				pei += Scalar(0.5)*tmp_eng;
 				
 				// add the force to particle j if we are using the third law
 				if (third_law)
@@ -265,6 +277,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 					m_fx[k] -= dx*fforce;
 					m_fy[k] -= dy*fforce;
 					m_fz[k] -= dz*fforce;
+					m_pe[k] += Scalar(0.5)*tmp_eng;
 					}
 				}
 			
@@ -272,23 +285,24 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		m_fx[i] += fxi;
 		m_fy[i] += fyi;
 		m_fz[i] += fzi;
+		m_pe[i] += pei;
 		}
 
 	// and that is it.
 	// FLOPS: 9+12 for each n_calc and an additional 11 for each n_full_calc
 		// make that 14 if third_law is 1
-	int64_t flops = (9+12)*n_calc + 11*n_force_calc;
+	int64_t flops = (9+12)*n_calc + 16*n_force_calc;
 	if (third_law)
-		flops += 3*n_force_calc;
+		flops += 4*n_force_calc;
 		
 	// memory transferred: 3*sizeof(Scalar) + 2*sizeof(int) for each n_calc
 	// plus 3*sizeof(Scalar) for each n_full_calc + another 3*sizeofScalar if third_law is 1
 	// PLUS an additional 3*sizeof(Scalar) + sizeof(int) for each particle
 	int64_t mem_transfer = 0;
 	mem_transfer += (3*sizeof(Scalar) + 2*sizeof(int)) * (n_calc + arrays.nparticles);
-	mem_transfer += 3*sizeof(Scalar)*n_force_calc;
+	mem_transfer += 4*sizeof(Scalar)*n_force_calc;
 	if (third_law)
-		mem_transfer += 3*sizeof(Scalar);
+		mem_transfer += 4*sizeof(Scalar);
 	
 	m_pdata->release();
 	

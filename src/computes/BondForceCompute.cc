@@ -132,6 +132,7 @@ void BondForceCompute::computeForces(unsigned int timestep)
 	assert(m_fx);
 	assert(m_fy);
 	assert(m_fz);
+	assert(m_pe);
 	assert(arrays.x);
 	assert(arrays.y);
 	assert(arrays.z);
@@ -155,7 +156,8 @@ void BondForceCompute::computeForces(unsigned int timestep)
 	// need to start from a zero force
 	memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
 	memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
-	memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());	
+	memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
+	memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
 	
 	// for each of the bonds
 	const unsigned int size = (unsigned int)m_bonds.size(); 
@@ -204,18 +206,21 @@ void BondForceCompute::computeForces(unsigned int timestep)
 		assert(dy >= box.ylo && dx < box.yhi);
 		assert(dz >= box.zlo && dx < box.zhi);
 
-		// on paper, the formula turns out to be: F = 2*K*\vec{r} * (r_0/r - 1)
+		// on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
 		// now calculate r
 		Scalar r = sqrt(dx*dx+dy*dy+dz*dz);
-		Scalar tmp = Scalar(2.0) * m_K * (m_r_0 / r - Scalar(1.0));
+		Scalar tmp = m_K * (m_r_0 / r - Scalar(1.0));
+		Scalar tmp_eng = Scalar(0.5) * m_K * (m_r_0 - r) * (m_r_0 - r);
 		
 		// add the force to the particles
 		m_fx[b] += tmp * dx;
 		m_fy[b] += tmp * dy;
 		m_fz[b] += tmp * dz;
+		m_pe[b] += Scalar(0.5)*tmp_eng;
 		m_fx[a] -= tmp * dx;
 		m_fy[a] -= tmp * dy;
 		m_fz[a] -= tmp * dz;
+		m_pe[a] += Scalar(0.5)*tmp_eng;
 		} 
 
 	m_pdata->release();
@@ -225,11 +230,11 @@ void BondForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-	// each bond computes ~23 FLOPS
+	// each bond computes ~39 FLOPS
 	// and 4 index reads, then 6 position reads and 6 force writes
 	if (m_prof)
 		{
-		m_prof->pop(23*m_bonds.size(), (4*sizeof(int)+12*sizeof(Scalar))*m_bonds.size());
+		m_prof->pop(39*m_bonds.size(), (4*sizeof(int)+16*sizeof(Scalar))*m_bonds.size());
 		m_prof->pop();
 		}
 	}

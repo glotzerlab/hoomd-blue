@@ -92,7 +92,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 		single_xarray_bytes += 256 - (single_xarray_bytes & 255);
 	
 	// total all bytes from scalar arrays
-	m_nbytes = single_xarray_bytes * 3;
+	m_nbytes = single_xarray_bytes * 4;
 	
 	if (!exec_conf.gpu.empty())
 		exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_data), m_nbytes));	
@@ -103,7 +103,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	unsigned int single_xarray_bytes = sizeof(Scalar) * pdata->getN();
 	
 	// total all bytes from scalar arrays
-	m_nbytes = single_xarray_bytes * 3;
+	m_nbytes = single_xarray_bytes * 4;
 	m_data = (Scalar *)malloc(m_nbytes);
 	#endif
 
@@ -115,17 +115,20 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	m_arrays.fx = m_fx = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	m_arrays.fy = m_fy = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	m_arrays.fz = m_fz = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
+	m_arrays.pe = m_pe = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	
 	// should be good to go now
 	assert(m_fx);
 	assert(m_fy);
 	assert(m_fz);
+	assert(m_pe);
 	assert(m_arrays.fx);
 	assert(m_arrays.fy);
 	assert(m_arrays.fz);
+	assert(m_arrays.pe);
 	
 	// zero the data
-	memset((void*)m_data, 0, m_nbytes); 
+	memset((void*)m_data, 0, m_nbytes);
 	
 	#ifdef USE_CUDA
 	// allocate device memory for the forces and staging memory
@@ -169,6 +172,7 @@ ForceCompute::~ForceCompute()
 	m_arrays.fx = m_fx = NULL;
 	m_arrays.fy = m_fy = NULL;
 	m_arrays.fz = m_fz = NULL;
+	m_arrays.pe = m_pe = NULL;
 	
 	#ifdef USE_CUDA
 	if (!exec_conf.gpu.empty())
@@ -282,14 +286,14 @@ void ForceCompute::hostToDeviceCopy()
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
 	// copy force data to the staging area
-	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_data, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_data, m_single_xarray_bytes*4, cudaMemcpyHostToDevice));
 	// interleave the data
 	exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_d_forces, m_d_staging, m_pdata->getN(), m_uninterleave_pitch));
 	
 	if (m_prof)
 		{
 		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(0, m_single_xarray_bytes*3);
+		m_prof->pop(0, m_single_xarray_bytes*4);
 		}
 	}
 
@@ -304,12 +308,12 @@ void ForceCompute::deviceToHostCopy()
 	// uninterleave the data
 	exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_d_forces, m_pdata->getN(), m_uninterleave_pitch));
 	// copy force data from the staging area
-	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_data, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost));
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_data, m_d_staging, m_single_xarray_bytes*4, cudaMemcpyDeviceToHost));
 	
 	if (m_prof)
 		{
 		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(0, m_single_xarray_bytes*3);
+		m_prof->pop(0, m_single_xarray_bytes*4);
 		}
 	}
 

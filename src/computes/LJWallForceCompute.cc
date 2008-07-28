@@ -95,8 +95,8 @@ LJWallForceCompute::~LJWallForceCompute()
 
 	\note \a lj1 are \a lj2 are low level parameters used in the calculation. In order to specify
 	these for a normal lennard jones formula (with alpha), they should be set to the following.
-	\a lj1 = 48.0 * epsilon * pow(sigma,12.0)
-	\a lj2 = alpha * 24.0 * epsilon * pow(sigma,6.0);
+	\a lj1 = 4.0 * epsilon * pow(sigma,12.0)
+	\a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
 */
 void LJWallForceCompute::setParams(unsigned int typ, Scalar lj1, Scalar lj2)
 	{
@@ -145,6 +145,7 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 		// Initialize some force variables to be used as temporary
 		// storage in each iteration, initialized to 0 from which the force will be computed
 		Scalar fx = 0.0, fy = 0.0, fz = 0.0;
+		Scalar pe = 0.0;
 
 		// Grab particle data from all the arrays for this loop
 		Scalar px = particles.x[i];
@@ -183,35 +184,38 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 			else
 			if (dy < box.ylo)
 				dy += Ly;
-			        
+			
 			if (dz >= box.zhi)
 				dz -= Lz;
 			else
 			if (dz < box.zlo)
-				dz += Lz;                   
-			                        
+				dz += Lz;
+			
 			// start computing the force
 			Scalar rsq = dx*dx + dy*dy + dz*dz;
-			                
+			
 			// only compute the force if the particles are closer than the cuttoff
 			if (rsq < r_cut_sq)
 				{
 				// compute the force magnitude/r
 				Scalar r2inv = Scalar(1.0)/rsq;
 				Scalar r6inv = r2inv * r2inv * r2inv;
-				Scalar forcelj = r6inv * (m_lj1[type]*r6inv - m_lj2[type]);
+				Scalar forcelj = r6inv * (Scalar(12.0)*m_lj1[type]*r6inv - Scalar(6.0)*m_lj2[type]);
 				Scalar fforce = forcelj * r2inv;
-			                                
+				Scalar tmp_eng = r6inv * (m_lj1[type]*r6inv - m_lj2[type]);
+			
 				// accumulate the force vector
 				fx += dx*fforce;
 				fy += dy*fforce;
 				fz += dz*fforce;
+				pe += tmp_eng;
 				}
 			}
 		
 		m_fx[i] = fx;
 		m_fy[i] = fy;
 		m_fz[i] = fz;
+		m_pe[i] = pe;
 		}
 	
 	#ifdef USE_CUDA

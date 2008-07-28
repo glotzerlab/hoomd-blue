@@ -77,6 +77,7 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 	float fx = 0.0f;
 	float fy = 0.0f;
 	float fz = 0.0f;
+	float fw = 0.0f;
 	
 	// loop over neighbors
 	for (int neigh_idx = 0; neigh_idx < n_bonds; neigh_idx++)
@@ -101,12 +102,15 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 				
 		float rsq = dx*dx + dy*dy + dz*dz;
 		float rinv = rsqrtf(rsq);
-		float fforce = 2.0f * K * (r_0 * rinv - 1.0f);
+		float fforce = K * (r_0 * rinv - 1.0f);
+		
+		float tmp_eng = 0.5f * K * (r_0 - 1.0f / rinv) * (r_0 - 1.0f / rinv);
 				
 		// add up the forces
 		fx += dx * fforce;
 		fy += dy * fforce;
 		fz += dz * fforce;
+		fw += tmp_eng;
 		}
 		
 	// now that the force calculation is complete, write out the result if we are a valid particle
@@ -114,7 +118,7 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 	force.x = fx;
 	force.y = fy;
 	force.z = fz;
-	force.w = 0.0f;
+	force.w = 0.5f * fw;
 	d_forces[pidx] = force;
 	}
 

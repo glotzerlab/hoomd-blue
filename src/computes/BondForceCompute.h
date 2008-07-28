@@ -53,7 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __BONDFORCECOMPUTE_H__
 
 //! Computes bond forces on each particle
-/*! This is just a simple harmonic bond force: V = K (|vec{Delta r}| - r_0|) ^ 2 . 
+/*! This is just a simple harmonic bond force: V = 1/2 K (|vec{Delta r}| - r_0|) ^ 2 . 
 	
 	After construction, this class will not compute this potential for any particles by default.
 	Bonds where this potential is computed must be added by the addBond() method. Bonded pairs are

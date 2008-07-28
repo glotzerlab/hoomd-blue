@@ -58,7 +58,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 
 //! The maximum number of particle types allowed
-#define MAX_NTYPES 16
+#define MAX_NTYPES 32
 //! Precalculate the maximum number of type pairs
 #define MAX_NTYPE_PAIRS	MAX_NTYPES*MAX_NTYPES
 
@@ -74,10 +74,8 @@ extern "C" {
 */
 struct gpu_ljparam_data
 	{
-	//! lj1 parameter
-	float lj1[MAX_NTYPE_PAIRS];
-	//! lj2 parameter
-	float lj2[MAX_NTYPE_PAIRS];
+	//! coefficients
+	float2 coeffs[MAX_NTYPE_PAIRS];
 
 	//! identifier for this structure
 	unsigned int id;

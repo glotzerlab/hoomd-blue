@@ -44,6 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "LJForceComputeGPU.h"
+#include "cuda_runtime.h"
 
 #include <stdexcept>
 
@@ -113,15 +114,19 @@ void LJForceComputeGPU::setBlockSize(int block_size)
 	}
 
 /*! \post The parameters \a lj1 and \a lj2 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
-	\note \a lj1 are \a lj2 are low level parameters used in the calculation. In order to specify
+	\note \a lj? are low level parameters used in the calculation. In order to specify
 	these for a normal lennard jones formula (with alpha), they should be set to the following.
-	\a lj1 = 48.0 * epsilon * pow(sigma,12.0)
-	\a lj2 = alpha * 24.0 * epsilon * pow(sigma,6.0);
+	- \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
+	- \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
+	
+	Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
+	is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
+	for will have lj1 and lj2 set to 0.0.
 	
 	\param typ1 Specifies one type of the pair
 	\param typ2 Specifies the second type of the pair
 	\param lj1 First parameter used to calcluate forces
-	\param lj2 Second parameter used to calculate forces	
+	\param lj2 Second parameter used to calculate forces
 */
 void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2)
 	{
@@ -132,14 +137,10 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 		throw runtime_error("LJForceComputeGpu::setParams argument error");
 		}
 	
-	// set lj1 in both symmetric positions in the matrix	
-	m_ljparams->lj1[typ1*MAX_NTYPES + typ2] = lj1;
-	m_ljparams->lj1[typ2*MAX_NTYPES + typ1] = lj1;
+	// set coeffs in both symmetric positions in the matrix
+	m_ljparams->coeffs[typ1*MAX_NTYPES + typ2] = make_float2(lj1, lj2);
+	m_ljparams->coeffs[typ2*MAX_NTYPES + typ1] = make_float2(lj1, lj2);
 	
-	// set lj2 in both symmetric positions in the matrix
-	m_ljparams->lj2[typ1*MAX_NTYPES + typ2] = lj2;
-	m_ljparams->lj2[typ2*MAX_NTYPES + typ1] = lj2;
-
 	m_params_changed = true;
 	}
 		
@@ -216,7 +217,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	exec_conf.gpu[0]->call(bind(gpu_ljforce_sum, m_d_forces, &pdata, &box, &nlist, m_r_cut * m_r_cut, m_block_size));
 
 	// FLOPS: 34 for each calc
-	int64_t flops = (34)*n_calc;
+	int64_t flops = (34+4)*n_calc;
 		
 	// memory transferred: 4*sizeof(Scalar) + sizeof(int) for each n_calc
 	// PLUS an additional 8*sizeof(Scalar) + sizeof(int) for each particle
