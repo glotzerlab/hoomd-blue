@@ -355,7 +355,7 @@ void System::run(unsigned int nsteps)
 	setupProfiling();
 	
 	if (!m_integrator)
-		cout << "Warning! You are running without an integrator. I hope you know what you are doing" << endl;
+		cout << "Warning! You are running without an integrator." << endl;
 		
 	// handle time steps
 	for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)

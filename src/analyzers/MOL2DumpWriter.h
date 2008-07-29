@@ -67,7 +67,7 @@ class MOL2DumpWriter : public Analyzer
 	public:
 		// NOTE: temporary hack in place to get bond output to the mol2 file
 		//! Construct the writer
-		MOL2DumpWriter(boost::shared_ptr<ParticleData> pdata, std::string fname, boost::shared_ptr<BondForceCompute> bond);
+		MOL2DumpWriter(boost::shared_ptr<ParticleData> pdata, std::string fname, boost::shared_ptr<BondForceCompute> bond = boost::shared_ptr<BondForceCompute>());
 		
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);

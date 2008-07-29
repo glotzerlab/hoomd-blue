@@ -345,7 +345,7 @@ the \b Tools menu and then select \b Options... Navigate to the section
 Using the upper right drop down box labeled \b "Show directories for" add<br>
 <b>C:\\Program Files\\Microsoft Platform SDK\\bin</b> to \e Executables<br>
 <b>C:\\Program Files\\Microsoft Platform SDK\\include</b> to \e Include files<br>
-and <b>C:\\Program Files\\Microsoft Platform SDK\lib</b> to \e Library files<br>
+and <b>C:\\Program Files\\Microsoft Platform SDK\\lib</b> to \e Library files<br>
 These are accomplished in the image above with the $(PLATFORMSDK_DIR) environment variable,
 but you do not need to do the same, just type in the full path where you installed the
 platform SDK directly or use the file chooser dialog box.

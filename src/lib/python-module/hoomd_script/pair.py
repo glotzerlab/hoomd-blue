@@ -264,6 +264,7 @@ class nlist:
 			raise RuntimeError("Error creating neighbor list");
 			
 		self.cpp_nlist.setEvery(10);
+		globals.system.addCompute(self.cpp_nlist, "auto_nlist");
 		
 		# set the exclusions (TEMPORARY HACK for bonds)
 		if globals.initializer:
