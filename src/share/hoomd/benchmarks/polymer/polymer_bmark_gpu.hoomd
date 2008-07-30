@@ -33,8 +33,6 @@ alpha = 1.0;
 lj2 = alpha * 24.0 * epsilon * math.pow(sigma, 6.0);
 fc.setParams(1, 1, lj1, lj2);
 
-fc.setBlockSize(448);
-
 fc_bond = BondForceComputeGPU(pdata, 330, 0.84);
 init.setupBonds(fc_bond);
 

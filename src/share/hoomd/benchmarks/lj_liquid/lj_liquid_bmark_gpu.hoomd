@@ -32,7 +32,6 @@ epsilon = 1.0;
 lj1 = 48.0 * epsilon * math.pow(sigma, 12.0);
 lj2 = alpha * 24.0 * epsilon * math.pow(sigma, 6.0);
 fc.setParams(0, 0, lj1, lj2);
-fc.setBlockSize(448);
 
 # setup the particle sort
 sorter = SFCPackUpdater(pdata, 1.0);

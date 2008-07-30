@@ -47,7 +47,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/benchmarks ${CMAKE_CURRENT_S
 		)
 		
 ## install the license file
-install(FILES ${HOOMD_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/.hoomd_data_dir
+install(FILES ${HOOMD_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/hoomd_data_dir
 		DESTINATION ${DATA_INSTALL_DIR}
 		CONFIGURATIONS Release
 		)
