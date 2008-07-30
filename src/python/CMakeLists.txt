@@ -118,7 +118,8 @@ endif (NOT USE_STATIC)
 set(ADDITIONAL_LIBS "")
 if (UNIX AND NOT APPLE)
 	find_library(UTIL_LIB util /usr/lib)
-	set(ADDITIONAL_LIBS ${UTIL_LIB})
+	find_library(DL_LIB dl /usr/lib)
+	set(ADDITIONAL_LIBS ${UTIL_LIB} ${DL_LIB})
 endif (UNIX AND NOT APPLE)
 	
 # setup the libraries to link to
