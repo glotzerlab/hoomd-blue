@@ -95,6 +95,12 @@ class Updater
 		//! Sets the profiler for the compute to use
 		void setProfiler(boost::shared_ptr<Profiler> prof);
 		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities() { return std::vector< std::string >(); }
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity) { return Scalar(0.0); }
+		
 	protected:
 		const boost::shared_ptr<ParticleData> m_pdata;	//!< The particle data this compute is associated with
 		boost::shared_ptr<Profiler> m_prof;				//!< The profiler this compute is to use

@@ -79,7 +79,7 @@ class MOL2DumpWriter : public Analyzer
 	};
 	
 #ifdef USE_PYTHON
-//! Exports the HOOMDDumpWriter class to python
+//! Exports the MOL2DumpWriter class to python
 void export_MOL2DumpWriter();
 #endif
 

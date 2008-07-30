@@ -106,6 +106,9 @@ class ForceCompute : public Compute
 		
 		//! Computes the forces
 		virtual void compute(unsigned int timestep);
+		
+		//! Total the potential energy
+		Scalar calcEnergySum();
 
 	protected:
 		bool m_particles_sorted;	//!< Flag set to true when particles are resorted in memory

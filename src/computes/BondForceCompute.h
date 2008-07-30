@@ -92,6 +92,11 @@ class BondForceCompute : public ForceCompute
 		//! Get a given bond
 		BondForceCompute::BondPair getBond(unsigned int i) { return m_bonds[i]; }
 		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities(); 
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity);
 
 	protected:
 		Scalar m_K;		//!< K parameter

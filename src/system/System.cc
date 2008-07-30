@@ -418,6 +418,26 @@ void System::enableProfiler(bool enable)
 	{
 	m_profile = enable;
 	}
+	
+/*! \param logger Logger to register computes and updaters with
+	All computes and updaters registered with the system are also registerd with the logger.
+*/
+void System::registerLogger(boost::shared_ptr<Logger> logger)
+	{
+	// set the profiler on everything
+	if (m_integrator)
+		logger->registerUpdater(m_integrator);
+		
+	// updaters
+	vector<updater_item>::iterator updater;
+	for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
+		logger->registerUpdater(updater->m_updater);
+		
+	// computes
+	map< string, boost::shared_ptr<Compute> >::iterator compute;
+	for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
+		logger->registerCompute(compute->second);	
+	}
 		
 /*! \param seconds Period between statistics ouptut in seconds
 */
@@ -524,6 +544,7 @@ void export_System()
 		.def("setIntegrator", &System::setIntegrator)
 		.def("getIntegrator", &System::getIntegrator)
 
+		.def("registerLogger", &System::registerLogger)
 		.def("setStatsPeriod", &System::setStatsPeriod)
 		.def("enableProfiler", &System::enableProfiler)
 		.def("run", &System::run)

@@ -185,6 +185,25 @@ ForceCompute::~ForceCompute()
 	m_sort_connection.disconnect();
 	}
 	
+/*! Sums the total potential energy calculated by the last call to compute() and returns it.
+*/
+Scalar ForceCompute::calcEnergySum()
+	{
+	const ForceDataArrays& arrays = acquire();
+	
+	// always perform the sum in double precision for better accuracy
+	// this is cheating and is really just a temporary hack to get logging up and running
+	// the potential accuracy loss in simulations needs to be evaluated here and a proper
+	// summation algorithm put in place
+	double pe_total = 0.0;
+	for (unsigned int i=0; i < m_pdata->getN(); i++)
+		{
+		pe_total += (double)arrays.pe[i];
+		}
+
+	return Scalar(pe_total);
+	}
+
 /*! Access the computed forces on the CPU, this may require copying data from the GPU
  	\returns Structure of arrays of the x,y,and z components of the forces on each particle
  			calculated by the last call to compute()

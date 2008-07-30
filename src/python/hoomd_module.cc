@@ -65,6 +65,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDDumpWriter.h"
 #include "MOL2DumpWriter.h"
 #include "DCDDumpWriter.h"
+#include "Logger.h"
 #include "Updater.h"
 #include "Integrator.h"
 #include "TempRescaleUpdater.h"
@@ -269,6 +270,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_HOOMDDumpWriter();
 	export_DCDDumpWriter();
 	export_MOL2DumpWriter();
+	export_Logger();
 	
 	// updaters
 	export_Updater();

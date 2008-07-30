@@ -117,6 +117,29 @@ void BondForceCompute::addBond(unsigned int tag1, unsigned int tag2)
 	m_bonds.push_back(BondPair(tag1, tag2));
 	}
 	
+/*! BondForceCompute provides
+	- \c harmonic_energy
+*/
+std::vector< std::string > BondForceCompute::getProvidedLogQuantities()
+	{
+	vector<string> list;
+	list.push_back("harmonic_energy");
+	return list;
+	}
+	
+Scalar BondForceCompute::getLogValue(const std::string& quantity)
+	{
+	if (quantity == string("harmonic_energy"))
+		{
+		return calcEnergySum();
+		}
+	else
+		{
+		cout << "Error! " << quantity << " is not a valid log quantity for BondForceCompute" << endl;
+		throw runtime_error("Error getting log value");
+		}
+	}	
+	
 /*! Actually perform the force computation
 	\param timestep Current time step
  */

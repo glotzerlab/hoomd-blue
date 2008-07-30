@@ -214,3 +214,98 @@ class imd(_analyzer):
 		# create the c++ mirror class
 		self.cpp_analyzer = hoomd.IMDInterface(globals.particle_data, port);
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+
+
+## Logs a number of calculated quanties to a file
+#
+# analyze.log can read a variety of calculated values, like energy and temperature, from 
+# specified forces, integrators, and updaters. It writes a single line to the specified
+# output file every \a period time steps. The resulting file is suitable for direct import
+# into a spreadsheet, MATLAB, or other software that can handle simple delimited files.
+#
+# Quantities that can be logged currently:
+# - \b lj_energy (pair.lj) - Total Lennard-Jones potential energy
+# - \b harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
+# - \b nve_kinetic_energy (integrate.nve) - Kinetic energy calculated by the NVE integrator
+#
+# \note The command in parentheses in the list obove indicates the command that must be specified
+# in order for the named log quantity to be valid. For instance, if you try to log \b lj_energy
+# without specifying pair.lj, a warning will be printed and the value 0 will be logged.
+#
+# \note The quantities to be logged are currently under active development in HOOMD. 
+# Expect the current quantities to be renamed in the next release of HOOMD, along with
+# numerous additional quantities to be available for logging.
+class log(_analyzer):
+	## Initialize the log
+	#
+	# \param filename File to write the log to
+	# \param quantities List of quantities to log
+	# \param period Quantities are logged every \a period time steps
+	#
+	# \b Examples:
+	# \code
+	# analyze.log(filename='mylog.log', quantities=['lj_energy'], period=100)
+	# logger = analyze.log(quantities=['lj_energy', 'harmonic_energy', 'nve_kinetic_energy'], period=1000, filename='full.log')
+	# \endcode
+	#
+	# By default, columns in the log file are separated by tabs, suitable for importing as a 
+	# tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
+	def __init__(self, filename, quantities, period):
+		print "analyze.log(filename =", filename, ", quantities =", quantities, ", period =", period, ")";
+		
+		# initialize base class
+		_analyzer.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_analyzer = hoomd.Logger(globals.particle_data, filename);
+		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+		
+		# set the logged quantities
+		quantity_list = hoomd.std_vector_string();
+		for item in quantities:
+			quantity_list.append(item);
+		self.cpp_analyzer.setLoggedQuantities(quantity_list);
+		
+		# add the logger to the list of loggers
+		globals.loggers.append(self);
+	
+	## Change the parameters of the log
+	#
+	# \param quantities New list of quantities to log (if specified)
+	# \param delimiter New delimiter between columns in the output file (if specified)
+	#
+	# Using set_params() requires that the specified logger was saved in a variable when created.
+	# i.e. 
+	# \code
+	# logger = analyze.log(quantities=['lj_energy', 'harmonic_energy', 'nve_kinetic_energy'], period=1000, filename="'full.log')
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# logger.set_params(quantities=['harmonic_energy'])
+	# logger.set_params(delimiter=',');
+	# logger.set_params(quantities=['harmonic_energy'], delimiter=',');
+	# \endcode
+	def set_params(quantities=None, delimiter=None):
+		print "log.set_params(quantities =", quantities, ", delimiter =", delimiter, ")";
+		
+		if quantities:
+			# set the logged quantities
+			quantity_list = hoomd.std_vector_string();
+			for item in quantities:
+				quantity_list.appendk(item);
+			self.cpp_analyzer.setLoggedQuantities(quantity_list);
+			
+		if delimiter:
+			self.cpp_analyzer.setDelimiter(delimiter);
+		
+	## \internal
+	# \brief Re-registers all computes and updaters with the logger
+	def update_quantities(self):
+		# remove all registered quantities
+		self.cpp_analyzer.removeAll();
+		
+		# re-register all computes and updatesr
+		globals.system.registerLogger(self.cpp_analyzer);
+		
+		

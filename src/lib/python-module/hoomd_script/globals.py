@@ -64,6 +64,9 @@ integrator = None;
 ## Global variable tracking the system's neighborlist
 neighbor_list = None;
 
+## Global variable tracking all the loggers that have been created
+loggers = [];
+
 # Storing the initializer is for setting up bonds and neighborlist exclusions. 
 # It is a TEMPORARY HACK to get things running quickly. When Bonds are reorganized
 # in #42, this hack will go away. Only initializers that set bonds should assign 

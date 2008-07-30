@@ -77,6 +77,42 @@ void NVEUpdater::removeLimit()
 	{
 	m_limit = false;
 	}
+	
+/*! NVEUpdater provides
+	- \c nve_kinetic_energy
+*/
+std::vector< std::string > NVEUpdater::getProvidedLogQuantities()
+	{
+	vector<string> list;
+	list.push_back("nve_kinetic_energy");
+	return list;
+	}
+	
+Scalar NVEUpdater::getLogValue(const std::string& quantity)
+	{
+	if (quantity == string("nve_kinetic_energy"))
+		{
+		const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+		
+		// always perform the sum in double precision for better accuracy
+		// this is cheating and is really just a temporary hack to get logging up and running
+		// the potential accuracy loss in simulations needs to be evaluated here and a proper
+		// summation algorithm put in place
+		double ke_total = 0.0;
+		for (unsigned int i=0; i < m_pdata->getN(); i++)
+			{
+			ke_total += 0.5 * ((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
+			}
+	
+		m_pdata->release();	
+		return Scalar(ke_total);
+		}
+	else
+		{
+		cout << "Error! " << quantity << " is not a valid log quantity for NVEUpdater" << endl;
+		throw runtime_error("Error getting log value");
+		}
+	}	
 
 /*! Uses velocity verlet
 	\param timestep Current time step of the simulation

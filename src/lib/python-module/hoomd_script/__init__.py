@@ -86,6 +86,9 @@ def run(tsteps):
 	else:
 		globals.integrator.update_forces();
 	
+	for logger in globals.loggers:
+		logger.update_quantities();
+	
 	globals.system.run(int(tsteps));
 
 	

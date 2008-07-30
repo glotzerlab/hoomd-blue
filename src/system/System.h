@@ -43,6 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Analyzer.h"
 #include "Compute.h"
 #include "Integrator.h"
+#include "Logger.h"
 
 #include <string>
 #include <vector>
@@ -152,6 +153,9 @@ class System
 		
 		//! Configures profiling of runs
 		void enableProfiler(bool enable);
+		
+		//! Register logger
+		void registerLogger(boost::shared_ptr<Logger> logger);
 		
 		//! Sets the statistics period
 		void setStatsPeriod(unsigned int seconds);

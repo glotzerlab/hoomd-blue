@@ -74,6 +74,12 @@ class NVEUpdater : public Integrator
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
 		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities(); 
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity);
+		
 	protected:
 		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
 		bool m_limit;		//!< True if we should limit the distance a particle moves in one step

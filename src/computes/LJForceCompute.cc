@@ -74,17 +74,13 @@ LJForceCompute::LJForceCompute(boost::shared_ptr<ParticleData> pdata, boost::sha
 	// allocate data for lj1 and lj2
 	m_lj1 = new Scalar[m_ntypes*m_ntypes];
 	m_lj2 = new Scalar[m_ntypes*m_ntypes];
-	m_lj3 = new Scalar[m_ntypes*m_ntypes];
-	m_lj4 = new Scalar[m_ntypes*m_ntypes];
 	
 	// sanity check
-	assert(m_lj1 != NULL && m_lj2 != NULL && m_lj3 != NULL && m_lj4 != NULL);
+	assert(m_lj1 != NULL && m_lj2 != NULL);
 	
 	// initialize the parameters to 0;
 	memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
 	memset((void*)m_lj2, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-	memset((void*)m_lj3, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-	memset((void*)m_lj4, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
 	}
 	
 
@@ -93,12 +89,8 @@ LJForceCompute::~LJForceCompute()
 	// deallocate our memory
 	delete[] m_lj1;
 	delete[] m_lj2;
-	delete[] m_lj3;
-	delete[] m_lj4;	
 	m_lj1 = NULL;
 	m_lj2 = NULL;
-	m_lj3 = NULL;
-	m_lj4 = NULL;	
 	}
 		
 
@@ -133,7 +125,30 @@ void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1,
 	m_lj2[typ1*m_ntypes + typ2] = lj2;
 	m_lj2[typ2*m_ntypes + typ1] = lj2;
 	}
-		
+	
+/*! LJForceCompute provides
+	- \c lj_energy
+*/
+std::vector< std::string > LJForceCompute::getProvidedLogQuantities()
+	{
+	vector<string> list;
+	list.push_back("lj_energy");
+	return list;
+	}
+	
+Scalar LJForceCompute::getLogValue(const std::string& quantity)
+	{
+	if (quantity == string("lj_energy"))
+		{
+		return calcEnergySum();
+		}
+	else
+		{
+		cout << "Error! " << quantity << " is not a valid log quantity for LJForceCompute" << endl;
+		throw runtime_error("Error getting log value");
+		}
+	}
+
 /*! \post The lennard jones forces are computed for the given timestep. The neighborlist's
  	compute method is called to ensure that it is up to date.
 	
