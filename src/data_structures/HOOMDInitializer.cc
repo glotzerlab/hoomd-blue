@@ -524,6 +524,7 @@ void export_HOOMDInitializer()
 		// virtual methods from ParticleDataInitializer are inherited
 		.def("setupNeighborListExclusions", &HOOMDInitializer::setupNeighborListExclusions)
 		.def("setupBonds", &HOOMDInitializer::setupBonds) 
+		.def("getTimeStep", &HOOMDInitializer::getTimeStep)
 		;
 	}
 #endif
