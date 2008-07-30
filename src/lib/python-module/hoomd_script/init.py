@@ -62,8 +62,8 @@ _options = {};
 #
 # \b Examples:
 # \code
-# init.read_xml(file_name="data.xml")
-# init.read_xml(file_name="directory/data.xml")
+# init.read_xml(filename="data.xml")
+# init.read_xml(filename="directory/data.xml")
 # \endcode
 #
 # All particles, bonds, etc...  are read from the XML file given, 
@@ -72,7 +72,7 @@ _options = {};
 # other commands in hoomd_script to be run. For more details
 # on the file format read by this command, see \ref page_xml_file_format.
 def read_xml(filename):
-	print "init.read_xml(filename=", file_name, ")";
+	print "init.read_xml(filename=", filename, ")";
 	
 	# parse command line
 	_parse_command_line();
