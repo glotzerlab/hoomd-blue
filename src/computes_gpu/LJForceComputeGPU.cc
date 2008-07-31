@@ -90,6 +90,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 
 	// allocate the param data on the GPU and make sure it is up to date
 	m_ljparams = gpu_alloc_ljparam_data();
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(gpu_select_ljparam_data, m_ljparams, true));
 	}
 	
@@ -211,12 +212,14 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	// actually perform the calculation
 	if (m_params_changed)
 		{
+		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[0]->call(bind(gpu_select_ljparam_data, m_ljparams, m_params_changed));
 		m_params_changed = false;
 		}
 	
 	if (m_prof)
 		m_prof->push("Compute");
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(gpu_ljforce_sum, m_d_forces, &pdata, &box, &nlist, m_r_cut * m_r_cut, m_block_size));
 
 	// FLOPS: 34 for each calc

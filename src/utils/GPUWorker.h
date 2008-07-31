@@ -124,6 +124,9 @@ class GPUWorker
 
 		//! Blocks the calling thread until all queued calls have been executed
 		void sync();
+
+		//! Tag the current location in the code
+		void setTag(const std::string &file, unsigned int line);
 	
 	private:
 		//! Flag to indicate the worker thread is to exit
@@ -134,6 +137,12 @@ class GPUWorker
 		
 		//! Error from last cuda call
 		cudaError_t m_last_error;
+
+		//! Tagged file
+		std::string m_tagged_file;
+
+		//! Tagged line
+		unsigned int m_tagged_line;
 		
 		//! The queue of function calls to make
 		std::deque< boost::function< cudaError_t (void) > > m_work_queue;

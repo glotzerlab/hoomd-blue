@@ -209,7 +209,8 @@ void GPUWorker::sync()
 	if (m_last_error != cudaSuccess)
 		{
 		// build the exception
-		runtime_error error("CUDA Error: " + string(cudaGetErrorString(m_last_error)));
+		cerr << "CUDA Error: " << string(cudaGetErrorString(m_last_error)) << " after " << m_tagged_file << ":" << m_tagged_line << endl;
+		runtime_error error("CUDA Error");
 
 		// reset the error value so that it doesn't propagate to continued calls
 		m_last_error = cudaSuccess;
@@ -217,6 +218,19 @@ void GPUWorker::sync()
 		// throw
 		throw(error);
 		}	
+	}
+
+
+/*! \param file Current file of source code
+	\param line Current line of source code
+
+	This is intended to be called worker.setTag(__FILE__, __LINE__). When reporting errors,
+	the last file and line tagged will be printed to help identify where the error occured.
+*/
+void GPUWorker::setTag(const std::string &file, unsigned int line)
+	{
+	m_tagged_file = file;
+	m_tagged_line = line;
 	}
 	
 /*! \internal

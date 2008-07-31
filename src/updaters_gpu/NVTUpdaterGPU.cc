@@ -87,7 +87,8 @@ void NVTUpdaterGPU::allocateNVTData(int block_size)
 	
 	d_nvt_data.block_size = block_size;
 	d_nvt_data.NBlocks = m_pdata->getN() / block_size + 1;
-
+	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.partial_Ksum), d_nvt_data.NBlocks * sizeof(float)));
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Ksum), sizeof(float)));
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Xi), sizeof(float)));
@@ -102,6 +103,7 @@ void NVTUpdaterGPU::freeNVTData()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.partial_Ksum));
 	d_nvt_data.partial_Ksum = NULL;
 	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.Ksum));
@@ -138,6 +140,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_prof->push("Half-step 1");
 		
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(nvt_pre_step, &d_pdata, &box, &d_nvt_data, m_deltaT));
 	
 	if (m_prof)
@@ -163,6 +166,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_prof->push("Reducing");
 		}
 		
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(nvt_reduce_ksum, &d_nvt_data));
 	
 	if (m_prof)
@@ -176,6 +180,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(nvt_step, &d_pdata, &d_nvt_data, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT, m_tau, m_T));
 	m_pdata->release();
 	

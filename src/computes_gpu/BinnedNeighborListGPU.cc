@@ -129,6 +129,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	if (Mx*My*Mz*Nmax >= 500000*128)
 		cout << "Allocating abnormally large cell list: " << Mx << " " << My << " " << Mz << " " << Nmax << endl;
 
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data.idxlist), &pitch, Nmax*sizeof(unsigned int), Mx*My*Mz));
 	// want pitch in elements, not bytes
 	Nmax = (int)pitch / sizeof(unsigned int);
@@ -172,6 +173,8 @@ void BinnedNeighborListGPU::freeGPUBinData()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() == 1);
+	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	
 	// free the device memory
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.idxlist));
@@ -221,6 +224,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		
 		unsigned int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My * m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax * sizeof(unsigned int);
 
+		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.idxlist, m_host_idxlist,
 			nbytes, cudaMemcpyHostToDevice));
 		exec_conf.gpu[0]->call(bind(cudaMemcpyToArray, m_gpu_bin_data.idxlist_array, 0, 0, m_host_idxlist, nbytes,
@@ -239,6 +243,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		// and increase the size of the list as needed
 		updateListFromBins();
 		
+		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 		int overflow = 0;
 		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
 		while (overflow)
@@ -250,6 +255,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 			updateExclusionData();
 			
 			updateListFromBins();
+			exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 			exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
 			}
 			
@@ -417,6 +423,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 	
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(gpu_nlist_binned, &pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_curNmax, m_block_size));
 	
 	m_pdata->release();
@@ -468,6 +475,7 @@ bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
 	Scalar r_buffsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));	
 	
 	int result = 0;
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(gpu_nlist_needs_update_check, &pdata, &box, &m_gpu_nlist, r_buffsq, &result));
 	
 

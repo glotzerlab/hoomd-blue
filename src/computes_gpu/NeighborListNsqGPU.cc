@@ -116,6 +116,7 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 		
 		// handle when the neighbor list overflows
 		int overflow = 0;
+		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
 		while (overflow)
 			{
@@ -126,6 +127,7 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 			updateExclusionData();
 			
 			buildNlist();
+			exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 			exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
 			}
 		}
@@ -148,6 +150,7 @@ void NeighborListNsqGPU::buildNlist()
 		m_prof->push("Build list");
 	
 	// calculate the nlist
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(gpu_nlist_nsq, &pdata, &box, &m_gpu_nlist, r_max_sq));
 
 	m_data_location = gpu;

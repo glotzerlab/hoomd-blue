@@ -202,6 +202,7 @@ void BondForceComputeGPU::allocateBondTable(int height)
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
 	// allocate and zero device memory
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bondtable.list), &pitch, N*sizeof(unsigned int), height));
 	
 	// want pitch in elements, not bytes
@@ -219,6 +220,7 @@ void BondForceComputeGPU::freeBondTable()
 	// get the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
 	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bondtable.list));
 	m_gpu_bondtable.list = NULL;
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_bondlist));
@@ -231,6 +233,7 @@ void BondForceComputeGPU::copyBondTable()
 	// get the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
 	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bondtable.list, m_bondlist, 
 			sizeof(unsigned int) * m_gpu_bondtable.height * m_gpu_bondtable.pitch, 
 			cudaMemcpyHostToDevice) );
@@ -270,6 +273,7 @@ void BondForceComputeGPU::computeForces(unsigned int timestep)
 	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(gpu_bondforce_sum, m_d_forces, &pdata, &box, &m_gpu_bondtable, m_K, m_r_0, m_block_size));
 		
 	// the force data is now only up to date on the gpu
