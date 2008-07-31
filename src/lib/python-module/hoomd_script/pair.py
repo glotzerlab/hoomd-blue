@@ -303,7 +303,7 @@ class nlist:
 	# nlist.set_params(check_period = 11)
 	# nlist.set_params(r_buff = 0.7, check_period = 4)
 	# \endcode
-	def set_params(r_buff=None, check_period=None):
+	def set_params(self, r_buff=None, check_period=None):
 		print "nlist.set_params(r_buff =", r_buff, " , check_period =", check_period, ")";
 		
 		if self.cpp_nlist == None:
