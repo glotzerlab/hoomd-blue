@@ -111,6 +111,7 @@ ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<ParticleData>
 ElectrostaticShortRange::~ElectrostaticShortRange()
 	{
 	delete[] f_table; 
+	delete[] e_table;
 	f_table=NULL;
 	// deallocate memory
 	}
