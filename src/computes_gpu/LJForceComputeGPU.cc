@@ -138,8 +138,11 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 		}
 	
 	// set coeffs in both symmetric positions in the matrix
-	m_ljparams->coeffs[typ1*MAX_NTYPES + typ2] = make_float2(lj1, lj2);
-	m_ljparams->coeffs[typ2*MAX_NTYPES + typ1] = make_float2(lj1, lj2);
+	m_ljparams->lj1[typ1*MAX_NTYPES + typ2] = lj1;
+	m_ljparams->lj2[typ1*MAX_NTYPES + typ2] = lj2;
+	
+	m_ljparams->lj1[typ2*MAX_NTYPES + typ1] = lj1;
+	m_ljparams->lj2[typ2*MAX_NTYPES + typ1] = lj2;
 	
 	m_params_changed = true;
 	}

@@ -75,7 +75,8 @@ extern "C" {
 struct gpu_ljparam_data
 	{
 	//! coefficients
-	float2 coeffs[MAX_NTYPE_PAIRS];
+	float lj1[MAX_NTYPE_PAIRS];
+	float lj2[MAX_NTYPE_PAIRS];
 
 	//! identifier for this structure
 	unsigned int id;
