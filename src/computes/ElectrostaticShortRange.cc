@@ -102,8 +102,9 @@ ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<ParticleData>
 		rsq=sqrt(i*m_delta*m_delta);
 		if(rsq > TOL){
 		Scalar alrsq=m_alpha*rsq;
-		f_table[i]=(EWALD_F*m_alpha*exp(-alrsq*alrsq)+boost::math::erfc(alrsq)/rsq)/pow(rsq,2);
-		e_table[i]=0.5*boost::math::erfc(alrsq)/rsq;
+		Scalar erfc_al=boost::math::erfc(alrsq);
+		f_table[i]=(Scalar(EWALD_F)*m_alpha*exp(-alrsq*alrsq)+erfc_al/rsq)/pow(rsq,2);
+		e_table[i]=Scalar(0.5)*erfc_al/rsq;
 					}
 		}
 }
@@ -113,6 +114,7 @@ ElectrostaticShortRange::~ElectrostaticShortRange()
 	delete[] f_table; 
 	delete[] e_table;
 	f_table=NULL;
+	e_table=NULL;
 	// deallocate memory
 	}
 
@@ -241,19 +243,19 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 				Scalar ek1=e_table[k_ind+1];
 				Scalar ek2=e_table[k_ind+2];
 				Scalar t1=vk+(vk1-vk)*xi;
-				Scalar t2=vk1+(vk2-vk1)*(xi-1.0);
+				Scalar t2=vk1+(vk2-vk1)*(xi-Scalar(1.0));
 				Scalar e1=ek+(ek1-ek)*xi;
-				Scalar e2=ek1+(ek2-ek1)*(xi-1.0);
+				Scalar e2=ek1+(ek2-ek1)*(xi-Scalar(1.0));
 
 				// compute the force magnitude
 				
-				fforce=q_i*q_k*(t1+(t2-t1)*xi*0.5);		
+				fforce=q_i*q_k*(t1+(t2-t1)*xi*Scalar(0.5));		
 
 				// add the force to the particle i
 				fxi += dx*fforce;
 				fyi += dy*fforce;
 				fzi += dz*fforce;
-				pei += q_i*q_k*(e1+(e2-e1)*xi*0.5);
+				pei += q_i*q_k*(e1+(e2-e1)*xi*Scalar(0.5));
 				
 				// add the force to particle j if we are using the third law
 				if (third_law)
@@ -261,7 +263,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 					m_fx[k] -= dx*fforce;
 					m_fy[k] -= dy*fforce;
 					m_fz[k] -= dz*fforce;
-					m_pe[k] += q_i*q_k*(e1+(e2-e1)*xi*0.5);
+					m_pe[k] += q_i*q_k*(e1+(e2-e1)*xi*Scalar(0.5));
 					}
 				}
 			
