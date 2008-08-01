@@ -36,6 +36,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// conditionally compile in only if boost is 1.35 or later
+#include <boost/version.hpp>
+#if (BOOST_VERSION >= 103500)
+
 #include <iostream>
 using namespace std;
 
@@ -319,3 +323,6 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	} 
 */
 #endif
+
+#endif
+

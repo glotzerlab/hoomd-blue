@@ -36,6 +36,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// conditionally compile in only if boost is 1.35 or later
+#include <boost/version.hpp>
+#if (BOOST_VERSION >= 103500)
+
 #include <boost/shared_ptr.hpp>
 
 #include "ForceCompute.h"
@@ -111,4 +115,6 @@ class ElectrostaticShortRange : public ForceCompute
 #endif
 
 #endif
+#endif
+
 

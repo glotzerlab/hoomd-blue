@@ -37,6 +37,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+// conditionally compile in only if boost is 1.35 or later
+#include <boost/version.hpp>
+#if (BOOST_VERSION >= 103500)
+
 #include <iostream>
 
 //! Name the unit test module
@@ -170,4 +174,6 @@ BOOST_AUTO_TEST_CASE(ElectrostaticShortRange_force_accuracy)
 }
 
 
-#undef EWALD_F  
+#undef EWALD_F
+#endif
+
