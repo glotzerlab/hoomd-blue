@@ -175,5 +175,12 @@ BOOST_AUTO_TEST_CASE(ElectrostaticShortRange_force_accuracy)
 
 
 #undef EWALD_F
+#else
+// We can't have the unit test passing if the code wasn't even compiled!
+BOOST_AUTO_TEST_CASE(dummy_test)
+	{
+	BOOST_FAIL("ElectrostaticShortRange not compiled");
+	}
+
 #endif
 
