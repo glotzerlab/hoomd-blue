@@ -293,23 +293,23 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 
 	// and that is all that needs to be done.
 	
-	// FLOPS: (9+12) for each n_calc and an additional 17 for each n_full_calc, make it 19 if third law is 1
+	// FLOPS: (9+12) for each n_calc and an additional 41 for each n_full_calc, make it 53 if third law is 1
 	// Assume floor operation can be done in one flop
        
-	       int64_t flops = (9+12)*n_calc + 17*n_force_calc;
+	       int64_t flops = (9+12)*n_calc + 41*n_force_calc;
 
 	    if (third_law)
-		flops += 3*n_force_calc;
+		flops += 12*n_force_calc;
 		
 	// memory transferred: 4*sizeof(Scalar) + 2*sizeof(int) for each n_calc
-	// plus 7*sizeof(Scalar) for each n_full_calc + another 3*sizeofScalar if third_law is 1
+	// plus 11*sizeof(Scalar) for each n_full_calc + another 4*sizeofScalar if third_law is 1
 	// PLUS an additional 4*sizeof(Scalar) + sizeof(int) for each particle
 	
 	int64_t mem_transfer = 0;
         mem_transfer += (4*sizeof(Scalar) + sizeof(int)) * (n_calc + arrays.nparticles)+sizeof(int)*n_calc;
-	mem_transfer += 7*sizeof(Scalar)*n_force_calc;
+	mem_transfer += 11*sizeof(Scalar)*n_force_calc;
 	if (third_law)
-		mem_transfer += 3*sizeof(Scalar);
+		mem_transfer += 4*sizeof(Scalar);
 
 	m_pdata->release();
 	
