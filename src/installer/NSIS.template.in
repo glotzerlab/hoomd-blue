@@ -514,16 +514,11 @@ Section "Installer Section" InstSection
 
   ; Benchmark start menu links
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Lennard-Jones Liquid (CPU).lnk" "$INSTDIR\benchmarks\lj_liquid\lj_liquid_bmark_cpu.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Lennard-Jones Liquid (GPU).lnk" "$INSTDIR\benchmarks\lj_liquid\lj_liquid_bmark_gpu.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Polymer Model (CPU).lnk" "$INSTDIR\benchmarks\polymer\polymer_bmark_cpu.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\Polymer Model (GPU).lnk" "$INSTDIR\benchmarks\polymer\polymer_bmark_gpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\lj_liquid_bmark.lnk" "$INSTDIR\benchmarks\lj_liquid_bmark.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\polymer_bmark.lnk" "$INSTDIR\benchmarks\polymer_bmark.hoomd"
   ; demo start menu links
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER\demos"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Hex Phase (CPU).lnk" "$INSTDIR\demos\hex\hex_demo_cpu.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Hex Phase (GPU).lnk" "$INSTDIR\demos\hex\hex_demo_gpu.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Micelle Phase (CPU).lnk" "$INSTDIR\demos\micelle\micelle_demo_cpu.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Polymer Micelle Phase (GPU).lnk" "$INSTDIR\demos\micelle\micelle_demo_gpu.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Micelle Demo.lnk" "$INSTDIR\demos\micelle\micelle_demo.hoomd"
   
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
@@ -635,17 +630,12 @@ Section "Uninstall"
 @CPACK_NSIS_DELETE_ICONS@
 
   ; Remove the Benchmarks
-  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Lennard-Jones Liquid (CPU).lnk"
-  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Lennard-Jones Liquid (GPU).lnk"
-  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Polymer Model (CPU).lnk"
-  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\Polymer Model (GPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\lj_liquid_bmark.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\polymer_bmark.lnk"
   RMDir "$SMPROGRAMS\$MUI_TEMP\benchmarks"
 
   ; remove the demos from the start menu
-  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Hex Phase (CPU).lnk"
-  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Hex Phase (GPU).lnk"
-  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Micelle Phase (CPU).lnk"
-  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Polymer Micelle Phase (GPU).lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Micelle Demo.lnk"
   RMDir "$SMPROGRAMS\$MUI_TEMP\demos"
   
   ;Delete empty start menu parent diretories
