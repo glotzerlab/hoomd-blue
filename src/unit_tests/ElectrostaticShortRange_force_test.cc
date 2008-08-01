@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE ShortRangeElectrostaticForceTests
+#define BOOST_TEST_MODULE ElectrostaticShortRangeTests
 #include "boost_utf_configure.h"
 
 #include <boost/test/floating_point_comparison.hpp>
@@ -71,11 +71,9 @@ using namespace boost;
 #define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
 
 //! Tolerance in percent to use for comparing various ElectrostaticShortRange to each other
-#ifdef SINGLE_PRECISION
+
 const Scalar tol = Scalar(1);
-#else
-const Scalar tol = 1e-6;
-#endif
+
 
 //! Typedef'd ElectrostaticShortRange factory
 typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)> ElectrostaticShortRange_force_creator;
@@ -87,7 +85,7 @@ typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<Particle
 */
 void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator)
 	{
-	cout << "Short Range Electrostatic force starting" << endl;
+	cout << "Testing the accuracy of the look up table in ElectrostaticShortRange" << endl;
 	// Simple test to check the accuracy of the look up table
 	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
@@ -98,49 +96,63 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 	pdata_2->release();
 	shared_ptr<NeighborList> nlist_2(new NeighborList(pdata_2, Scalar(3.0), Scalar(5.0)));
 	// The cut-off is set to 3 while the buffer size is 5
-	Scalar r_cut=3.0;
-	Scalar alpha=1.0;
-	Scalar delta=0.1;
-	Scalar min_value=0.41;
+	Scalar r_cut=Scalar(3.0);
+	
+	Scalar delta=Scalar(0.1);
+	Scalar min_value=Scalar(0.41);
+
+	for(int k1=0;k1<4;k1++){
+
+	Scalar alpha=Scalar(0.3+k1);
+    //Test different values of alpha as well
 	shared_ptr<ElectrostaticShortRange> fc_2=Elstatics_ShortRange_creator(pdata_2,nlist_2,r_cut,alpha,delta,min_value);
-	// An ElectrostaticShortRange object with cut_off 3.0, alpha 1.0 and delta=0.05 is instantiated
-	// now let us check how much the force differs from the exact calculation for 20 points;
+	// An ElectrostaticShortRange object with specified value of cut_off, alpha, delta and min_value is instantiated
+	// now let us check how much the force differs from the exact calculation for N_p**3 points within the cut_off;
 	
-	for(int j=0;j<10;j++){
-    
-	arrays.x[1]=min_value+sqrt(static_cast<double>(j));
-	
-	cout << "Particle axis at " << arrays.x[1] << endl;
-	
+	int N_p=7;
+	Scalar delta_test= (r_cut-min_value)/(sqrt(r_cut)*N_p);
+	int j_count=0;
+
+	for(int jx=0;jx<N_p;jx++){
+		for(int jy=0;jy<N_p;jy++){
+			for(int jz=0;jz<N_p;jz++){
+				
+	arrays.x[1]=min_value+Scalar((static_cast<double>(jx))*delta_test);
+	arrays.y[1]=min_value+Scalar((static_cast<double>(jy))*delta_test);
+    arrays.z[1]=min_value+Scalar((static_cast<double>(jz))*delta_test);
+
 	Scalar dx = arrays.x[1]-arrays.x[0];
 	Scalar dy = arrays.y[1]-arrays.y[0];
 	Scalar dz = arrays.z[1]-arrays.z[0];
 	
 	Scalar rsq = sqrt(dx*dx + dy*dy + dz*dz);
 	Scalar al_rsq=alpha*rsq;
+
+	Scalar erfc_al=boost::math::erfc(al_rsq);
     
-	Scalar fExactx=-dx*(EWALD_F*alpha*exp(-al_rsq*al_rsq)+boost::math::erfc(al_rsq)/rsq)/pow(rsq,2);
-    Scalar fExacty=-dy*(EWALD_F*alpha*exp(-al_rsq*al_rsq)+boost::math::erfc(al_rsq)/rsq)/pow(rsq,2);
-	Scalar fExactz=-dz*(EWALD_F*alpha*exp(-al_rsq*al_rsq)+boost::math::erfc(al_rsq)/rsq)/pow(rsq,2);
-	Scalar fExactE=0.5*boost::math::erfc(al_rsq)/rsq;
+	Scalar fExactx=-dx*(Scalar(EWALD_F)*alpha*exp(-al_rsq*al_rsq)+erfc_al/rsq)/pow(rsq,2);
+    Scalar fExacty=-dy*(Scalar(EWALD_F)*alpha*exp(-al_rsq*al_rsq)+erfc_al/rsq)/pow(rsq,2);
+	Scalar fExactz=-dz*(Scalar(EWALD_F)*alpha*exp(-al_rsq*al_rsq)+erfc_al/rsq)/pow(rsq,2);
+	Scalar fExactE=Scalar(0.5)*erfc_al/rsq;
 	
-	fc_2->compute(j);
+	fc_2->compute(j_count);
+	j_count++;
 
 	ForceDataArrays force_arrays=fc_2->acquire();
 
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0],fExactx,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0],fExacty,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0],fExactz,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0],fExactE,tol);
 	
-	
-	cout<< "Force x p 1 " << force_arrays.fx[0] << " Exact value " << fExactx << endl;
-	cout<< "Force y p 1 " << force_arrays.fy[0] << " Exact value " << fExacty << endl;
-	cout<< "Force z p 1 " << force_arrays.fz[0] << " Exact value " << fExactz << endl;
-    cout<< "Energy  p 1 " << force_arrays.pe[0] << " Exact value " << fExactE << endl;
-	
-	cout<< "Force x p 2 " << force_arrays.fx[1] << " Exact value " << -fExactx << endl;
-	cout<< "Force y p 2 " << force_arrays.fy[1] << " Exact value " << -fExacty << endl;
-	cout<< "Force z p 2 " << force_arrays.fz[1] << " Exact value " << -fExactz << endl;
-	cout<< "Energy  p 2 " << force_arrays.pe[1] << " Exact value " << fExactE << endl;
-	
-						}
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1],-fExactx,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1],-fExacty,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[1],-fExactz,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1],fExactE,tol);
+			}
+		}
+	}
+	}
 	}
 
 
