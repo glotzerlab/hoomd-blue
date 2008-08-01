@@ -1,7 +1,7 @@
 #! /usr/bin/env hoomd
 
-# $Id:$
-# $URL:$
+# $Id$
+# $URL$
 
 from hoomd_script import *
 
