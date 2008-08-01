@@ -42,17 +42,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 /*! \file ElectrostaticShortRange.h
-	\brief Declares a class for computing the short range part of the electrostatic force and potential
+	\brief Declares a class for computing the short range part of the electrostatic force and energy
 */
 
 #ifndef __ELECTROSTATICSHORTRANGE_H__
 #define __ELECTROSTATICSHORTRANGE_H__
 
-// Computes the short-range electrostatic part of the force on each particle
-// In order for this class to be useful it needs to be complemented with a suitable class to compute the long range electrostatic part
-// The total pair force is summed for each particle when compute() is called.
-/* Forces are only summed between neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provide	to identify these neighbors. Calling compute() in this class will in turn result in a call to the 
-	NeighborList's compute() to make sure that the neighbor list is up to date.
+//! Computes the short-range electrostatic part of the force on each particle
+/*! In order for this class to be useful it needs to be complemented with a suitable class to compute the long range electrostatic part
+    The total pair force is summed for each particle when compute() is called.
+    Forces are only summed between neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provide	to identify these neighbors. Calling compute() in this class will in turn result in a call to the 
+    NeighborList's compute() to make sure that the neighbor list is up to date.
 	
 	Usage: Construct a ElectrostaticShortRange class, providing it an already constructed ParticleData and NeighborList.
 	The parameter alpha splits the short range and the long range electrostatic part.
@@ -85,17 +85,21 @@ class ElectrostaticShortRange : public ForceCompute
 	protected:
 		boost::shared_ptr<NeighborList> m_nlist;	//!< The neighborlist to use for the computation
 		Scalar m_r_cut;	//!< Cuttoff radius beyond which the force is set to 0
-	        Scalar m_alpha;  // parameter alpha on how to split the short-range vs long-range forces.
+	    Scalar m_alpha;  //!< split parameter of the short-range vs long-range forces.
 
 		Scalar m_delta; 
-		/* spacing of the table lookup to compute forces, the look up a table is build at the discrete points 
+		/*!< spacing of the table lookup to compute forces, 
+		the look up table is build at the discrete points 
 		defined between 0 and r_cut+2*m_delta in intervals of m_delta */
 
 		Scalar m_min_value;
-		/* The minimum value expected to compute, this value is user-supplied, yet important as otherwise there are small errors at short-distance that may go unnoticed. The program does not check whether the values calculated satisfy this constraint */
+		/*!< minimum value expected to compute,
+		this value is user-supplied, yet important as otherwise there are small errors at 
+		short-distance that may go unnoticed. The program does not check whether the 
+		values calculated satisfy this constraint */
 
-		Scalar *f_table; //look up table for force
-		Scalar *e_table; //look up table for energy
+		Scalar *f_table; //!look up table for force
+		Scalar *e_table; //! look up table for energy
 
 		virtual void computeForces(unsigned int timestep);
 		//! Actually compute the forces
