@@ -145,13 +145,14 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	// check the input for errors
 	if (m_ntypes == 0)
 		{
-		throw runtime_error("Number of particle types must be greater than 0.");
+		cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
+		throw std::runtime_error("Error initializing ParticleData");
 		}
 		
 	#ifdef USE_CUDA
 	if (m_exec_conf.gpu.size() != 0 && m_exec_conf.gpu.size() > 1)
 		{
-		cout << "More than one GPU is not currently supported";
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
 		throw std::runtime_error("Error initializing ParticleData");
 		}
 	#endif
@@ -226,13 +227,14 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	// check the input for errors
 	if (m_ntypes == 0)
 		{
-		throw runtime_error("Number of particle types must be greater than 0.");
+		cerr << endl << "***Error! Number of particle types must be greater than 0." << endl << endl;
+		throw std::runtime_error("Error initializing ParticleData");
 		}
 		
 	#ifdef USE_CUDA
 	if (m_exec_conf.gpu.size() != 0 && m_exec_conf.gpu.size() > 1)
 		{
-		cout << "More than one GPU is not currently supported";
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
 		throw std::runtime_error("Error initializing ParticleData");
 		}
 	#endif
@@ -268,7 +270,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	// it is an error for particles to be initialized outside of their box
 	if (!inBox())
 		{
-		cout << "Not all particles were found inside the given box" << endl;
+		cerr << endl << "***Error! Not all particles were found inside the given box" << endl << endl;
 		throw runtime_error("Error initializing ParticleData");
 		}
 		
@@ -461,7 +463,7 @@ gpu_pdata_arrays ParticleData::acquireReadOnlyGPU()
 	
 	if (m_exec_conf.gpu.size() == 0)
 		{
-		cout << "Reqesting GPU pdata, but no GPU in the Execution Configuration";
+		cerr << endl << "***Error! Reqesting GPU pdata, but no GPU in the Execution Configuration" << endl << endl;
 		throw runtime_error("Error acquiring GPU data");
 		}
 		
@@ -507,7 +509,7 @@ gpu_pdata_arrays ParticleData::acquireReadWriteGPU()
 	
 	if (m_exec_conf.gpu.size() == 0)
 		{
-		cout << "Reqesting GPU pdata, but no GPU in the Execution Configuration";
+		cerr << endl << "Reqesting GPU pdata, but no GPU in the Execution Configuration" << endl << endl;
 		throw runtime_error("Error acquiring GPU data");
 		}
 	
@@ -612,7 +614,7 @@ unsigned int ParticleData::getTypeByName(const std::string &name)
 			return i;
 		}
 		
-	cout << "Type " << name << " not found!";
+	cerr << endl << "***Error! Type " << name << " not found!" << endl;
 	throw runtime_error("Error mapping type name");	
 	return 0;
 	}
@@ -627,7 +629,7 @@ std::string ParticleData::getNameByType(unsigned int type)
 	// check for an invalid request
 	if (type >= m_ntypes)
 		{
-		cout << "Requesting type name for non-existant type " << type << endl;
+		cerr << endl << "***Error! Requesting type name for non-existant type " << type << endl << endl;
 		throw runtime_error("Error mapping type name");
 		}
 		
@@ -650,7 +652,10 @@ void ParticleData::allocate(unsigned int N)
 	{
 	// check the input
 	if (N == 0)
-		throw runtime_error("ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever");
+		{
+		cerr << endl << "***Error! ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl << endl;
+		throw runtime_error("Error allocating ParticleData");
+		}
 	
 	m_nbytes = 0;
 	

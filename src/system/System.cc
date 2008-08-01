@@ -93,7 +93,7 @@ void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string
 		{
 		if (i->m_name == name)
 			{
-			cerr << "Analyzer " << name << " already exists" << endl;
+			cerr << "***Error! Analyzer " << name << " already exists" << endl;
 			throw runtime_error("System: cannot add Analyzer");
 			}
 		}
@@ -117,7 +117,7 @@ std::vector<System::analyzer_item>::iterator System::findAnalyzerItem(const std:
 			}
 		}
 		
-	cerr << "Analyzer " << name << " not found" << endl;
+	cerr << "***Error! Analyzer " << name << " not found" << endl;
 	throw runtime_error("System: cannot find Analyzer");
 	// dummy return
 	return m_analyzers.begin();
@@ -179,7 +179,7 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
 			}
 		}
 		
-	cerr << "Updater " << name << " not found" << endl;
+	cerr << "***Error! Updater " << name << " not found" << endl;
 	throw runtime_error("System: cannot find Updater");
 	// dummy return
 	return m_updaters.begin();
@@ -208,7 +208,7 @@ void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& n
 		{
 		if (i->m_name == name)
 			{
-			cerr << "Updater " << name << " already exists" << endl;
+			cerr << "***Error! Updater " << name << " already exists" << endl;
 			throw runtime_error("System: cannot add Updater");
 			}
 		}
@@ -277,7 +277,7 @@ void System::addCompute(boost::shared_ptr<Compute> compute, const std::string& n
 		m_computes[name] = compute;
 	else
 		{
-		cerr << "Compute " << name << " already exists" << endl;
+		cerr << "***Error! Compute " << name << " already exists" << endl;
 		throw runtime_error("System: cannot add compute");
 		}
 	}
@@ -291,7 +291,7 @@ void System::removeCompute(const std::string& name)
 	map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
 	if (i == m_computes.end())
 		{
-		cerr << "Compute " << name << " not found" << endl;
+		cerr << "***Error! Compute " << name << " not found" << endl;
 		throw runtime_error("System: cannot remove compute");
 		}
 	else
@@ -307,7 +307,7 @@ boost::shared_ptr<Compute> System::getCompute(const std::string& name)
 	map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
 	if (i == m_computes.end())
 		{
-		cerr << "Compute " << name << " not found" << endl;
+		cerr << "***Error! Compute " << name << " not found" << endl;
 		throw runtime_error("System: cannot retrieve compute");
 		return boost::shared_ptr<Compute>();
 		}
@@ -355,7 +355,7 @@ void System::run(unsigned int nsteps)
 	setupProfiling();
 	
 	if (!m_integrator)
-		cout << "Warning! You are running without an integrator." << endl;
+		cout << "***Warning! You are running without an integrator." << endl;
 		
 	// handle time steps
 	for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)

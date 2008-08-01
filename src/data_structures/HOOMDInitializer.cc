@@ -176,21 +176,31 @@ void HOOMDInitializer::readFile(const string &fname)
     if (results.error != eXMLErrorNone)
 		{
         // create message
-        if (results.error==eXMLErrorFirstTagNotFound) 
-			throw runtime_error(string("Root node of ") + fname + " is not <hoomd_xml>");
+        if (results.error==eXMLErrorFirstTagNotFound)
+			{
+			cerr << endl << "***Error! Root node of " << fname << " is not <hoomd_xml>" << endl << endl;
+			throw runtime_error("Error reading xml file");
+			}
 		
 		ostringstream error_message;
 		error_message << XMLNode::getError(results.error) << " in file " << fname << " at line " << results.nLine << " col " << results.nColumn;
-		throw runtime_error(error_message.str());
+		cerr << endl << "***Error! " << error_message.str() << endl << endl;
+		throw runtime_error("Error reading xml file");
 		}
 
 	// the file was parsed successfully by the XML reader. Extract the information now
 	// start by checking the number of configurations in the file
 	int num_configurations = root_node.nChildNode("configuration");
 	if (num_configurations == 0)
-		throw runtime_error("No <configuration> specified in the XML file");
+		{
+		cerr << endl << "***Error! No <configuration> specified in the XML file" << endl << endl;
+		throw runtime_error("Error reading xml file");
+		}
 	if (num_configurations > 1)
-		throw runtime_error("Sorry, the input XML file must have only one configuration");
+		{
+		cerr << endl << "***Error! Sorry, the input XML file must have only one configuration" << endl << endl;
+		throw runtime_error("Error reading xml file");
+		}
 	
 	// extract the only configuration node
 	XMLNode configuration_node = root_node.getChildNode("configuration");
@@ -211,35 +221,35 @@ void HOOMDInitializer::readFile(const string &fname)
 		if (parser != m_parser_map.end())
 			parser->second(node);
 		else
-			cout << "Parser for node <" << name << "> not defined, ignoring" << endl;
+			cout << "Notice: Parser for node <" << name << "> not defined, ignoring" << endl;
 		}
 	
 	// check for required items in the file
 	if (!m_box_read)
 		{
-		cout << "A <box> node is required to define the dimensions of the simulation box" << endl;
+		cerr << endl << "***Error! A <box> node is required to define the dimensions of the simulation box" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 	if (m_pos_array.size() == 0)
 		{
-		cout << "No particles defined in <position> node" << endl;
+		cerr << endl << "***Error! No particles defined in <position> node" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 
 	// check for potential user errors
 	if (m_vel_array.size() != 0 && m_vel_array.size() != m_pos_array.size())
 		{
-		cout << "Error " << m_vel_array.size() << " velocities != " << m_pos_array.size() << " positions" << endl;
+		cerr << endl << "***Error! " << m_vel_array.size() << " velocities != " << m_pos_array.size() << " positions" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 	if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
 		{
-		cout << "Error " << m_type_array.size() << " type values != " << m_pos_array.size() << " positions" << endl;
+		cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_pos_array.size() << " positions" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 	if (m_charge_array.size() != 0 && m_charge_array.size() != m_pos_array.size())
 		{
-		cout << "Error " << m_charge_array.size() << " charge values != " << m_pos_array.size() << " positions" << endl;
+		cerr << endl << "***Error! " << m_charge_array.size() << " charge values != " << m_pos_array.size() << " positions" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 
@@ -273,7 +283,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 	// throw exceptions if these attributes are not set
 	if (!node.isAttributeSet("Lx"))
 		{
-		cout << "Lx not set in <box> node" << endl;
+		cerr << endl << "***Error! Lx not set in <box> node" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 	temp.str(node.getAttribute("Lx"));
@@ -282,7 +292,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 
 	if (!node.isAttributeSet("Ly"))
 		{
-		cout << "Ly not set in <box> node" << endl;
+		cerr << endl << "***Error! Ly not set in <box> node" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 	temp.str(node.getAttribute("Ly"));
@@ -291,7 +301,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 
 	if (!node.isAttributeSet("Lz")) 
 		{
-		cout << "Lz not set in <box> node" << endl;
+		cerr << endl << "***Error! Lz not set in <box> node" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
 	temp.str(node.getAttribute("Lz"));
@@ -313,7 +323,7 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 	assert(string(node.getName()) == string("position"));
 
 	// units is currently unused, but will be someday: warn the user if they forget it
-	if (!node.isAttributeSet("units")) cout << "Warning: units not specified in <position> node" << endl;
+	if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <position> node" << endl;
 
 	// extract the data from the node
 	istringstream parser;
@@ -336,7 +346,7 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 	assert(string(node.getName()) == string("velocity"));
 
 	// units is currently unused, but will be someday: warn the user if they forget it
-	if (!node.isAttributeSet("units")) cout << "Warning: units not specified in <velocity> node" << endl;
+	if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
 
 	// extract the data from the node
 	istringstream parser;
@@ -427,7 +437,7 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
 		XMLNode child_node = node.getChildNode(cur_node);
 		if (string(child_node.getName()) != string("coord"))
 			{
-			cout << "Ignoring <" << child_node.getName() << "> node in <wall> node";
+			cout << "Notice: Ignoring <" << child_node.getName() << "> node in <wall> node";
 			}
 		else
 			{
@@ -435,42 +445,42 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
 			Scalar ox,oy,oz,nx,ny,nz;
 			if (!child_node.isAttributeSet("ox"))
 				{
-				cout << "ox not set in <coord> node" << endl;
+				cerr << endl << "***Error! ox not set in <coord> node" << endl << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
 			ox = (Scalar)atof(child_node.getAttribute("ox"));
 
 			if (!child_node.isAttributeSet("oy"))
 				{
-				cout << "oy not set in <coord> node" << endl;
+				cerr << endl << "***Error! oy not set in <coord> node" << endl << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
 			oy = (Scalar)atof(child_node.getAttribute("oy"));
 
 			if (!child_node.isAttributeSet("oz"))
 				{
-				cout << "oz not set in <coord> node" << endl;
+				cerr << endl << "***Error! oz not set in <coord> node" << endl << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
 			oz = (Scalar)atof(child_node.getAttribute("oz"));
 
 			if (!child_node.isAttributeSet("nx"))
 				{
-				cout << "nx not set in <coord> node" << endl;
+				cerr << endl << "***Error! nx not set in <coord> node" << endl << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
 			nx = (Scalar)atof(child_node.getAttribute("nx"));
 
 			if (!child_node.isAttributeSet("ny"))
 				{
-				cout << "ny not set in <coord> node" << endl;
+				cerr << endl << "***Error! ny not set in <coord> node" << endl << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
 			ny = (Scalar)atof(child_node.getAttribute("ny"));
 
 			if (!child_node.isAttributeSet("nz"))
 				{
-				cout << "nz not set in <coord> node" << endl;
+				cerr << endl << "***Error! nz not set in <coord> node" << endl << endl;
 				throw runtime_error("Error extracting data from hoomd_xml file");
 				}
 			nz = (Scalar)atof(child_node.getAttribute("nz"));

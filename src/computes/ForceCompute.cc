@@ -77,8 +77,8 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() != 0 && exec_conf.gpu.size() > 1)
 		{
-		cout << "More than one GPU is not currently supported";
-		throw std::runtime_error("Error initializing ParticleData");
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
+		throw std::runtime_error("Error initializing ForceCompute");
 		}
 	#endif	
 				
@@ -262,7 +262,7 @@ float4 *ForceCompute::acquireGPU()
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (exec_conf.gpu.empty())
 		{
-		cout << "Acquiring forces on GPU, but there is no GPU in the exection configuration" << endl;
+		cerr << endl << "***Error! Acquiring forces on GPU, but there is no GPU in the exection configuration" << endl << endl;
 		throw runtime_error("Error acquiring GPU forces");
 		}
 	
@@ -320,7 +320,7 @@ void ForceCompute::hostToDeviceCopy()
 */
 void ForceCompute::deviceToHostCopy()
 	{
-	if (m_prof) m_prof->push("ForceCompute - GPU->GPU");
+	if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
 
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 

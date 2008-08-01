@@ -107,7 +107,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	
 	if (!f.good())
 		{
-		cerr << "Unable to open dump file for writing: " << full_fname.str() << endl;
+		cerr << endl << "***Error! Unable to open dump file for writing: " << full_fname.str() << endl << endl;
 		throw runtime_error("Error writting hoomd_xml dump file");
 		}
 
@@ -142,7 +142,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 
 			if (!f.good())
 				{
-				cerr << "Unexpected error writing HOOMD dump file" << endl;
+				cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
 				throw runtime_error("Error writting HOOMD dump file");
 				}
 			}
@@ -166,7 +166,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 			f << vx << " " << vy << " " << vz << endl;
 			if (!f.good())
 				{
-				cerr << "Unexpected error writing HOOMD dump file" << endl;
+				cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
 				throw runtime_error("Error writting HOOMD dump file");
 				}
 			}
@@ -191,7 +191,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 
 	if (!f.good())
 		{
-		cerr << "Unexpected error writing HOOMD dump file" << endl;
+		cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
 		throw runtime_error("Error writting HOOMD dump file");
 		}
 

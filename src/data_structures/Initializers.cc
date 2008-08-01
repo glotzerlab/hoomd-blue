@@ -146,11 +146,20 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
 	{
 	// sanity checks
 	if (N == 0)
-		throw runtime_error("RandomInitializer: Cannot generate 0 particles");
+		{
+		cerr << endl << "***Error! RandomInitializer: Cannot generate 0 particles" << endl << endl;
+		throw runtime_error("Error initializing RandomInitializer");
+		}
 	if (phi_p <= 0)
-		throw runtime_error("RandomInitializer: phi_p <= 0 doesn't make sense");
+		{
+		cerr << endl << "***Error! RandomInitializer: phi_p <= 0 doesn't make sense" << endl << endl;
+		throw runtime_error("Error initializing RandomInitializer");
+		}
 	if (min_dist < 0)
-		throw runtime_error("RandomInitializer: min_dist <= 0 doesn't make sense");
+		{
+		cerr << endl << "***Error! RandomInitializer: min_dist <= 0 doesn't make sense" << endl << endl;
+		throw runtime_error("Error initializing RandomInitializer");
+		}
 	
 	Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
 	m_box = BoxDim(L);
@@ -245,7 +254,10 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
 				}
 			tries++;
 			if (tries > pdata.nparticles*100)
-				throw runtime_error("RandomInitializer: Unable to find location for particle after trying many times"); 
+				{
+				cerr << endl << "***Error! RandomInitializer: Unable to find location for particle after trying many times" << endl << endl;
+				throw runtime_error("Unable to init system in RandomInitializer"); 
+				}
 			}
 			
 		pdata.x[i] = x;
@@ -278,14 +290,6 @@ std::vector<std::string> RandomInitializer::getTypeMapping() const
 RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer, const std::string &type_name) 
 	: RandomInitializer(N, phi_p, min_dist, type_name), m_wall_buffer(wall_buffer)
 	{
-	// sanity checks
-	if (N == 0)
-		throw runtime_error("RandomInitializer: Cannot generate 0 particles");
-	if (phi_p <= 0)
-		throw runtime_error("RandomInitializer: phi_p <= 0 doesn't make sense");
-	if (min_dist < 0)
-		throw runtime_error("RandomInitializer: min_dist <= 0 doesn't make sense");
-	
 	Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
 	// artificially shrink the box dimensions by 10% so that the super class doesn't put
 	// particles too close to the walls

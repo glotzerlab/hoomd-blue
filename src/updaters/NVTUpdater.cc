@@ -61,9 +61,9 @@ using namespace std;
 NVTUpdater::NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : Integrator(pdata, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
 	{
 	if (m_tau <= 0.0)
-		cout << "tau <= 0.0, I hope you know what you are doing." << endl;
+		cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
 	if (m_T <= 0.0)
-		cout << "T <= 0.0, I hope you know what you are doing." << endl;
+		cout << "***Warning! T set less than 0.0 in NVTUpdater" << endl;
 	m_Xi = 1.0;
 	}
 
@@ -76,7 +76,7 @@ void NVTUpdater::update(unsigned int timestep)
 
 	if (m_forces.size() == 0 && !gave_warning)
 		{
-		cout << "No forces defined in NVTUpdater. Does this make sense to you? Continuing anyways" << endl;
+		cout << "***Warning! No forces defined in NVTUpdater, continuing anyways" << endl;
 		gave_warning = true;
 		}
 	

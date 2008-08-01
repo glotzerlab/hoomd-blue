@@ -73,18 +73,18 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
 		{
-		cout << "Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl;
+		cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing NeighborListNsqGPU");
 		}
 	if (exec_conf.gpu.size() != 1)
 		{
-		cout << "More than one GPU is not currently supported";
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
 		throw std::runtime_error("Error initializing NeighborListNsqGPU");
 		}	
 	
 	if (m_ntypes > MAX_NTYPES)
 		{
-		cerr << "LJForceComputeGPU cannot handle " << m_ntypes << " types" << endl;
+		cerr << endl << "**Error! LJForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
 		throw runtime_error("Error initializing LJForceComputeGPU");
 		}
 
@@ -134,7 +134,7 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 	assert(m_ljparams);
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
 		{
-		cerr << "Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl;
+		cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
 		throw runtime_error("LJForceComputeGpu::setParams argument error");
 		}
 	
@@ -168,7 +168,10 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	// The GPU implementation CANNOT handle a half neighborlist, error out now
 	bool third_law = m_nlist->getStorageMode() == NeighborList::half;
 	if (third_law)
-		throw runtime_error("LJForceComputeGPU cannot handle a half neighborlist");
+		{
+		cerr << endl << "***Error! LJForceComputeGPU cannot handle a half neighborlist" << endl << endl;
+		throw runtime_error("Error computing forces in LJForceComputeGPU");
+		}
 	
 	// access the neighbor list, which just selects the neighborlist into the device's memory, copying
 	// it there if needed

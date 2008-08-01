@@ -60,8 +60,11 @@ using namespace std;
 LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar r_cut):
 ForceCompute(pdata), m_r_cut(r_cut)
 	{
-	if (r_cut < 0.0) 
-		throw runtime_error("Negative r_cut in LJWallForceCompute doesn't make sense.");
+	if (r_cut < 0.0)
+		{
+		cerr << endl << "***Error! Negative r_cut in LJWallForceCompute doesn't make sense." << endl << endl;
+		throw runtime_error("Error initializing LJWallForceCompute");
+		}
 		
 	// initialize the number of types value
 	unsigned int ntypes = m_pdata->getNTypes();
@@ -102,8 +105,8 @@ void LJWallForceCompute::setParams(unsigned int typ, Scalar lj1, Scalar lj2)
 	{
 	if (typ >= m_pdata->getNTypes())
 		{
-		cerr << "Trying to set LJ params for a non existant type! " << typ << endl;
-		throw runtime_error("Invalid type specification in LJForceCompute::setParams");
+		cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ << endl << endl;
+		throw runtime_error("Error setting params in LJWallForceCompute");
 		}
 	
 	// set the parameters

@@ -81,17 +81,23 @@ NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, 
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() != 0 && exec_conf.gpu.size() > 1)
 		{
-		cout << "More than one GPU is not currently supported";
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
 		throw std::runtime_error("Error initializing NeighborList");
 		}
 	#endif
 	
 	// check for two sensless errors the user could make
 	if (m_r_cut < 0.0)
-		throw runtime_error("Requested cuttoff radius for neighborlist less than zero");
+		{
+		cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+		throw runtime_error("Error initializing NeighborList");
+		}
 	
 	if (m_r_buff < 0.0)
-		throw runtime_error("Cuttoff radius for neighborlist less than zero");
+		{
+		cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+		throw runtime_error("Error initializing NeighborList");
+		}
 		
 	// allocate the list memory
 	m_list.resize(pdata->getN());
@@ -272,10 +278,16 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
 	
 	// check for two sensless errors the user could make
 	if (m_r_cut < 0.0)
-		throw runtime_error("Requested cuttoff radius for neighborlist less than zero");
-	
+		{
+		cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+		throw runtime_error("Error changing NeighborList parameters");
+		}
+		
 	if (m_r_buff < 0.0)
-		throw runtime_error("Cuttoff radius for neighborlist less than zero");
+		{
+		cerr << endl << "***Error! Requested cuttoff radius for neighborlist less than zero" << endl << endl;
+		throw runtime_error("Error changing NeighborList parameters");
+		}
 				
 	forceUpdate();
 	}
@@ -544,8 +556,8 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 	{
 	if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
 		{
-		cerr << "Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl;
-		throw runtime_error("Invalid tag specification in NeighborList::addExclusion");
+		cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
+		throw runtime_error("Error setting exclusion in NeighborList");
 		}
 		
 	// add tag2 to tag1's exculsion list
@@ -560,8 +572,8 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 	else
 		{
 		// error: exclusion list full
-		cerr << "Exclusion list full for particle with tag: " << tag1 << endl;
-		throw runtime_error("Tag list full in NeighborList::addExclusion");
+		cerr << endl << "***Error! Exclusion list full for particle with tag: " << tag1 << endl << endl;
+		throw runtime_error("Error setting exclusion in NeighborList");
 		}
 
 	// add tag1 to tag2's exclusion list
@@ -576,8 +588,8 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 	else
 		{
 		// error: exclusion list full
-		cerr << "Exclusion list full for particle with tag: " << tag2 << endl;
-		throw runtime_error("Tag list full in NeighborList::addExclusion");
+		cerr << endl << "***Error! Exclusion list full for particle with tag: " << tag2 << endl << endl;
+		throw runtime_error("Error setting exclusion in NeighborList");
 		}
 	forceUpdate();
 	}

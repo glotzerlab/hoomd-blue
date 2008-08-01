@@ -72,12 +72,12 @@ NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<ParticleData> pdata, Sc
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
 		{
-		cout << "Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl;
+		cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing NeighborListNsqGPU");
 		}
 	if (exec_conf.gpu.size() != 1)
 		{
-		cout << "More than one GPU is not currently supported";
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
 		throw std::runtime_error("Error initializing NeighborListNsqGPU");
 		}
 	
@@ -99,8 +99,8 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 
 	if (m_storage_mode != full)
 		{
-		cerr << "Only full mode nlists can be generated on the GPU" << endl;
-		exit(1);
+		cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
+		throw runtime_error("Error computing neighbor list in NeighborListNsqGPU");
 		}
 	
 	if (m_prof)
@@ -121,7 +121,7 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 		while (overflow)
 			{
 			int new_height = m_gpu_nlist.height * 2;
-			cout << "Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+			cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
 			freeGPUData();
 			allocateGPUData(new_height);
 			updateExclusionData();

@@ -109,7 +109,7 @@ Scalar NVEUpdater::getLogValue(const std::string& quantity)
 		}
 	else
 		{
-		cout << "Error! " << quantity << " is not a valid log quantity for NVEUpdater" << endl;
+		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for NVEUpdater" << endl;
 		throw runtime_error("Error getting log value");
 		}
 	}	
@@ -129,7 +129,7 @@ void NVEUpdater::update(unsigned int timestep)
 
 	if (m_forces.size() == 0 && !gave_warning)
 		{
-		cout << "No forces defined in NVEUpdater. Does this make sense to you? Continuing anyways" << endl;
+		cout << "Notice: No forces defined in NVEUpdater, Continuing anyways" << endl;
 		gave_warning = true;
 		}
 

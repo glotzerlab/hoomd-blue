@@ -235,7 +235,7 @@ void Profiler::output(std::ostream &o)
 	// perform a sanity check, but don't bail out
 	if (m_stack.top() != &m_root)
 		{
-		o << "WARNING! Outputting a profile with incomplete samples" << endl;
+		o << "***Warning! Outputting a profile with incomplete samples" << endl;
 		}
 		 
 	// outputting a profile implicitly calls for a time sample

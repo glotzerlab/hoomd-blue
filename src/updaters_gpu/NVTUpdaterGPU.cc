@@ -67,7 +67,7 @@ NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 	// at least one GPU is needed
 	if (exec_conf.gpu.size() == 0)
 		{
-		cout << "Creating a NVTUpdaterGPU with no GPU in the execution configuration" << endl;
+		cerr << endl << "***Error! Creating a NVTUpdaterGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing NVTUpdaterGPU");
 		}
 		

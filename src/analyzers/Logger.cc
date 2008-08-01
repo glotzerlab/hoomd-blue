@@ -65,7 +65,7 @@ Logger::Logger(boost::shared_ptr<ParticleData> pdata, const std::string& fname)
 	// open the file
 	if (!m_file.good())
 		{
-		cout << "Error opening log file " << fname << endl;
+		cerr << endl << "***Error! Error opening log file " << fname << endl << endl;
 		throw runtime_error("Error initializing Logger");
 		}
 	}
@@ -84,7 +84,7 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
 		{
 		// first check if this quantity is already set, printing a warning if so
 		if (m_compute_quantities.count(provided_quantities[i]) || m_updater_quantities.count(provided_quantities[i]))
-			cout << "Warning! The log quantity " << provided_quantities[i] <<
+			cout << "***Warning! The log quantity " << provided_quantities[i] <<
 				" has been registered more than once. Only the most recent registration takes effect" << endl;
 		m_compute_quantities[provided_quantities[i]] = compute;
 		}
@@ -104,7 +104,7 @@ void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
 		{
 		// first check if this quantity is already set, printing a warning if so
 		if (m_compute_quantities.count(provided_quantities[i]) || m_updater_quantities.count(provided_quantities[i]))
-			cout << "Warning! The log quantity " << provided_quantities[i] <<
+			cout << "***Warning! The log quantity " << provided_quantities[i] <<
 				" has been registered more than once. Only the most recent registration takes effect" << endl;
 		m_updater_quantities[provided_quantities[i]] = updater;
 		}
@@ -132,7 +132,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 	
 	if (quantities.size() == 0)
 		{
-		cout << "Warning! No quantities specified for logging" << endl;
+		cout << "***Warning! No quantities specified for logging" << endl;
 		return;
 		}
 	
@@ -193,7 +193,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 		}
 	else
 		{
-		cout << "Warning! Log quantity " << quantity << " is not registered, logging a value of 0" << endl;
+		cout << "***Warning! Log quantity " << quantity << " is not registered, logging a value of 0" << endl;
 		return Scalar(0.0);
 		}
 	}

@@ -65,14 +65,14 @@ using namespace std;
 Integrator::Integrator(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : Updater(pdata), m_deltaT(deltaT)
 	{
 	if (m_deltaT <= 0.0)
-		cout << "Timestep <= 0.0, I hope you know what you are doing." << endl;
+		cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
 
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() != 0 && exec_conf.gpu.size() > 1)
 		{
-		cout << "More than one GPU is not currently supported";
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
 		throw std::runtime_error("Error initializing Integrator");
 		}
 	#endif	
@@ -151,7 +151,7 @@ void Integrator::removeForceComputes()
 void Integrator::setDeltaT(Scalar deltaT)
 	{
 	if (m_deltaT <= 0.0)
-		cout << "Timestep <= 0.0, I hope you know what you are doing." << endl;
+		cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
 	m_deltaT = deltaT;
 	}
 
@@ -227,7 +227,7 @@ void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::strin
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (exec_conf.gpu.empty())
 		{
-		cout << "Error: Integrator asked to compute GPU accelerations but there is no GPU in the execution configuration" << endl;
+		cerr << endl << "***Error! Integrator asked to compute GPU accelerations but there is no GPU in the execution configuration" << endl << endl;
 		throw runtime_error("Error computing accelerations");
 		}
 	

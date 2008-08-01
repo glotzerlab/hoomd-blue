@@ -75,7 +75,7 @@ ExecutionConfiguration::ExecutionConfiguration()
 	cudaError_t error = cudaGetDeviceCount(&dev_count);
 	if (error != cudaSuccess)
 		{
-		cout << "Error getting CUDA capable device count! Continuing with 0 GPUs." << endl;
+		cerr << "***Warning! Error getting CUDA capable device count! Continuing with 0 GPUs." << endl;
 		exec_mode = CPU;
 		return;
 		}
@@ -110,7 +110,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int 
 		cudaError_t error = cudaGetDeviceCount(&dev_count);
 		if (error != cudaSuccess)
 			{
-			cout << "Error getting CUDA capable device count!" << endl;
+			cerr << endl << "***Error! Error getting CUDA capable device count!" << endl << endl;
 			throw runtime_error("Error initializing execution configuration");
 			return;
 			}
@@ -120,7 +120,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int 
 				gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id)));
 			else
 				{
-				cout << "GPU " << gpu_id << " was requested, but only " << dev_count << " was/were found" << endl;
+				cerr << endl << "***Error! GPU " << gpu_id << " was requested, but only " << dev_count << " was/were found" << endl << endl;
 				throw runtime_error("Error initializing execution configuration");
 				}
 			}

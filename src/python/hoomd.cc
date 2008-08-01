@@ -81,7 +81,7 @@ string find_hoomd_script()
 		if (exists(*cur_path / "hoomd_script" / "__init__.py"))
 			return cur_path->native_file_string();
 		}
-	cerr << "HOOMD python-module directory not found. Check your HOOMD directory file structure near " << hoomd_data_dir.string() << endl;
+	cerr << endl << "***Error! HOOMD python-module directory not found. Check your HOOMD directory file structure near " << hoomd_data_dir.string() << endl << endl;
 	return "";
 	}
 

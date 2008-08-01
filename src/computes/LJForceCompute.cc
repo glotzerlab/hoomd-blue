@@ -65,7 +65,10 @@ LJForceCompute::LJForceCompute(boost::shared_ptr<ParticleData> pdata, boost::sha
 	assert(m_nlist);
 	
 	if (r_cut < 0.0)
-		throw runtime_error("Negative r_cut in LJForceCompute makes no sense");
+		{
+		cerr << endl << "***Error! Negative r_cut in LJForceCompute makes no sense" << endl << endl;
+		throw runtime_error("Error initializing LJForceCompute");
+		}
 	
 	// initialize the number of types value
 	m_ntypes = m_pdata->getNTypes();
@@ -113,8 +116,8 @@ void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1,
 	{
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
 		{
-		cerr << "Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl;
-		throw runtime_error("Invalid type specification in LJForceCompute::setParams");
+		cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+		throw runtime_error("Error setting parameters in LJForceCompute");
 		}
 	
 	// set lj1 in both symmetric positions in the matrix	
@@ -144,7 +147,7 @@ Scalar LJForceCompute::getLogValue(const std::string& quantity)
 		}
 	else
 		{
-		cout << "Error! " << quantity << " is not a valid log quantity for LJForceCompute" << endl;
+		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for LJForceCompute" << endl << endl;
 		throw runtime_error("Error getting log value");
 		}
 	}

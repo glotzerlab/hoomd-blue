@@ -66,7 +66,10 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<ParticleData> pdata, Scalar bin
 	assert(m_pdata);
 	
 	if (m_bin_width < 0.01)
-		throw runtime_error("Bin width in SFCPackUpdater much too small");
+		{
+		cerr << endl << "***Error! Bin width in SFCPackUpdater much too small" << endl << endl;
+		throw runtime_error("Error initializing SFCPackUpdater");
+		}
 
 	m_sort_order.resize(m_pdata->getN());
 	}

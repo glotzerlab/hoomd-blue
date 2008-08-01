@@ -71,7 +71,7 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 	{
 	if (m_written)
 		{
-		cout << "Warning: MOL2 file " << m_fname << " already written, not overwriting." << endl;
+		cout << "***Warning! MOL2 file " << m_fname << " already written, not overwriting." << endl;
 		return;
 		}
 	
@@ -80,7 +80,7 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 	
 	if (!f.good())
 		{
-		cerr << "Unable to open dump file for writing: " << m_fname << endl;
+		cerr << endl << "***Error! Unable to open dump file for writing: " << m_fname << endl << endl;
 		throw runtime_error("Error writting mol2 dump file");
 		}
 
@@ -115,7 +115,7 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 		// this is intended to go to VMD, so limit the type name to 15 characters
 		if (type_name.size() > 15)
 			{
-			cout << "Type name <" << type_name << "> too long: please limit to 15 characters" << endl;
+			cerr << endl << "Error! Type name <" << type_name << "> too long: please limit to 15 characters" << endl << endl;
 			throw runtime_error("Error writting mol2 dump file");
 			}
 		
@@ -123,7 +123,7 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 
 		if (!f.good())
 			{
-			cerr << "Unexpected error writing MOL2 dump file" << endl;
+			cerr << endl << "***Error! Unexpected error writing MOL2 dump file" << endl << endl;
 			throw runtime_error("Error writting mol2 dump file");
 			}
 		}
@@ -151,7 +151,7 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 
 	if (!f.good())
 		{
-		cerr << "Unexpected error writing HOOMD dump file" << endl;
+		cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
 		throw runtime_error("Error writting mol2 dump file");
 		}
 

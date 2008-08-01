@@ -67,9 +67,9 @@ BondForceCompute::BondForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar
 	{
 	// check for some silly errors a user could make 
 	if (m_K <= 0)
-		cout << "Warning: K <= 0 specified for harmonic bond" << endl;
+		cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
 	if (m_r_0 <= 0)
-		cout << "Warning: r_0 <= 0 specified for harmonic bond" << endl;
+		cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
 	}
 	
 /*! Sets new parameters for the potential
@@ -83,9 +83,9 @@ void BondForceCompute::setParams(Scalar K, Scalar r_0)
 
 	// check for some silly errors a user could make 
 	if (m_K <= 0)
-		cout << "Warning: K <= 0 specified for harmonic bond" << endl;
+		cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
 	if (m_r_0 <= 0)
-		cout << "Warning: r_0 <= 0 specified for harmonic bond" << endl;
+		cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
 	}
 
 /*! \post A bond between particle with tag \a tag1 and with tag \a tag2 are bonded. When
@@ -103,15 +103,13 @@ void BondForceCompute::addBond(unsigned int tag1, unsigned int tag2)
 	// check for some silly errors a user could make 	
 	if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
 		{
-		ostringstream err;
-		err << "Particle tag out of bounds when attempting to add bond: " << tag1 << "," << tag2 << endl;
-		throw runtime_error(err.str());
+		cerr << endl << "***Error! Particle tag out of bounds when attempting to add bond: " << tag1 << "," << tag2 << endl << endl;
+		throw runtime_error("Error adding bond");
 		} 
 	if (tag1 == tag2)
 		{
-		ostringstream err;
-		err << "Particle cannot be bonded to itself! " << tag1 << "," << tag2 << endl;
-		throw runtime_error(err.str());
+		cerr << endl << "***Error! Particle cannot be bonded to itself! " << tag1 << "," << tag2 << endl << endl;
+		throw runtime_error("Error adding bond");
 		}
 
 	m_bonds.push_back(BondPair(tag1, tag2));
@@ -135,7 +133,7 @@ Scalar BondForceCompute::getLogValue(const std::string& quantity)
 		}
 	else
 		{
-		cout << "Error! " << quantity << " is not a valid log quantity for BondForceCompute" << endl;
+		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for BondForceCompute" << endl << endl;
 		throw runtime_error("Error getting log value");
 		}
 	}	

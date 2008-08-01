@@ -117,7 +117,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 		
 		// verify the period on subsequent frames
 		if ( (timestep - m_start_timestep) % m_period != 0)
-			cout << "Warning: DCDDumpWriter is writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl; 
+			cout << "***Warning! DCDDumpWriter is writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl; 
 		}
 	
 	// write the data for the current time step
@@ -186,7 +186,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
 	// check for errors
 	if (!file.good())
 		{
-		cout << "Error writing DCD header" << endl;
+		cerr << endl << "***Error! Error writing DCD header" << endl << endl;
 		throw runtime_error("Error writing DCD file");
 		}
 	}
@@ -215,7 +215,7 @@ void DCDDumpWriter::write_frame_header(std::fstream &file)
 	// check for errors
 	if (!file.good())
 		{
-		cout << "Error writing DCD frame header" << endl;
+		cerr << endl << "***Error! Error writing DCD frame header" << endl << endl;
 		throw runtime_error("Error writing DCD file");
 		}	
 	}
@@ -259,7 +259,7 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
 	// check for errors
 	if (!file.good())
 		{
-		cout << "Error writing DCD frame data" << endl;
+		cerr << endl << "***Error! Error writing DCD frame data" << endl << endl;
 		throw runtime_error("Error writing DCD file");
 		}
 	}

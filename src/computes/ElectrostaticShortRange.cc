@@ -80,14 +80,27 @@ ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<ParticleData>
 	assert(m_nlist);
 	
 	if (r_cut < 0.0)
-		throw runtime_error("Negative r_cut in ElectrostaticShortRange makes no sense");
+		{
+		cerr << endl << "**Error! Negative r_cut in ElectrostaticShortRange makes no sense" << endl << endl;
+		throw runtime_error("Error initializing ElectrostaticShortRange");
+		}
 	if (alpha < 0.0)
-		throw runtime_error("Negative alpha in ElectrostaticShortRange makes no sense");
+		{
+		cerr << endl << "***Error! Negative alpha in ElectrostaticShortRange makes no sense" << endl << endl;
+		throw runtime_error("Error initializing ElectrostaticShortRange");
+		}
 	
 	if (m_delta<0)
-		throw runtime_error("delta must be positive in ElectrostaticShortRange");
+		{
+		cerr << endl << "***Error! delta must be positive in ElectrostaticShortRange" << endl << endl;
+		throw runtime_error("Error initializing ElectrostaticShortRange");
+		}
+		
 	if((m_min_value<m_delta)||(m_min_value<TOL))
-		throw runtime_error("min_value must be larger than m_delta or TOL in ElectrostaticShortRange, otherwise errors may occur");
+		{
+		cerr << endl << "***Error! min_value must be larger than m_delta or TOL in ElectrostaticShortRange, otherwise errors may occur"  << endl << endl;
+		throw runtime_error("Error initializing ElectrostaticShortRange");
+		}
 
 	int N_points_l=static_cast<int>(ceil(m_r_cut/m_delta))+2; // We add a buffer of 2m_delta as we need to compute n+1,n+2
         

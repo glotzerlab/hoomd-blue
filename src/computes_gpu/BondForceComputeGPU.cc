@@ -72,12 +72,12 @@ BondForceComputeGPU::BondForceComputeGPU(boost::shared_ptr<ParticleData> pdata, 
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
 		{
-		cout << "Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl;
+		cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing BondForceComputeGPU");
 		}
 	if (exec_conf.gpu.size() != 1)
 		{
-		cout << "More than one GPU is not currently supported";
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
 		throw std::runtime_error("Error initializing BondForceComputeGPU");
 		}
 	

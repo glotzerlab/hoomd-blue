@@ -125,7 +125,10 @@ bool GeneratedParticles::canPlace(const particle& p)
 	{
 	// begin with an error check that p.type is actually in the radius map
 	if (m_radii.count(p.type) == 0)
-		throw runtime_error("Radius not set for particle in RandomGenerator");
+		{
+		cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
+		throw runtime_error("Error placing particle");
+		}
 	
 	// first, map the particle back into the box
 	Scalar x = p.x;
@@ -248,7 +251,10 @@ void GeneratedParticles::place(const particle& p, unsigned int idx)
 	
 	// begin with an error check that p.type is actually in the radius map
 	if (m_radii.count(p.type) == 0)
-		throw runtime_error("Radius not set for particle in RandomGenerator");
+		{
+		cerr << endl << "***Error! Radius not set for particle in RandomGenerator" << endl << endl;
+		throw runtime_error("Error placing particle");
+		}
 	
 	// first, map the particle back into the box
 	Scalar x = p.x;
@@ -568,11 +574,12 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 		
 		// failure, rollback
 		particles.undoPlace(start_idx);
-		cout << "Polymer generator: Trying particle " << start_idx << " again" << endl;
+		cout << "Notice: Polymer generator is trying particle " << start_idx << " again" << endl;
 		}
 		
 	// we've failed to place a polymer, this is an unrecoverable error
-	throw runtime_error("Polymer generator: Failed to place a polymer");
+	cerr << endl << "***Error! The polymer generatorf ailed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
+	throw runtime_error("Error generating polymer system");
 	}
 
 /*! \param particles Data to place particles in

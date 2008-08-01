@@ -166,7 +166,7 @@ string find_hoomd_data_dir()
 	if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / "hoomd_data_dir"))
 		return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
 	
-	cerr << "HOOMD data directory not found, please set the environment variable HOOMD_ROOT" << endl;
+	cerr << endl << "***Error! HOOMD data directory not found, please set the environment variable HOOMD_ROOT" << endl << endl;
 	return string("");
 	}
 	

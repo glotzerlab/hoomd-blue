@@ -66,7 +66,10 @@ TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<ParticleData> pdata, bo
 	assert(m_pdata);
 	assert(tc);
 	if (m_tset < 0.0)
-		throw runtime_error("TempRescaleUpdater: Cannot set a negative temperature");
+		{
+		cerr << endl << "***Error! TempRescaleUpdater: Cannot set a negative temperature" << endl << endl;
+		throw runtime_error("Error initializing TempRescaleUpdater");
+		}
 	}
 	
 	
@@ -89,7 +92,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
 
 	if (cur_temp < 1e-3)
 		{
-		cerr << "TempRescaleUpdater: warning cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
+		cout << "Notice: TempRescaleUpdater cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
 		}
 	else
 		{
@@ -126,8 +129,8 @@ void TempRescaleUpdater::setT(Scalar tset)
 	
 	if (m_tset < 0.0)
 		{
-		cerr << "Cannot set a negative temperature: " << m_tset << endl;
-		exit(1);
+		cerr << endl << "***Error! TempRescaleUpdater: Cannot set a negative temperature" << endl << endl;
+		throw runtime_error("Error initializing TempRescaleUpdater");
 		}
 	}
 

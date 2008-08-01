@@ -68,7 +68,10 @@ IMDInterface::IMDInterface(boost::shared_ptr<ParticleData> pdata, int port) : An
 	
 	assert(pdata);
 	if (port <= 0)
-		throw runtime_error("IMDInterface: cannot listedn on a port <= 0");
+		{
+		cerr << endl << "***Error! Invalid port specified" << endl << endl;
+		throw runtime_error("Error initializing IMDInterface");
+		}
 		
 	// start by initializing memory
 	m_tmp_coords = new float[pdata->getN() * 3];
@@ -79,21 +82,30 @@ IMDInterface::IMDInterface(boost::shared_ptr<ParticleData> pdata, int port) : An
 	
 	// check for errors
 	if (m_listen_sock == NULL)
-		throw runtime_error("IMDInterface: unable to create listening socket");
-	
+		{
+		cerr << endl << "***Error! Unable to create listening socket" << endl << endl;
+		throw runtime_error("Error initializing IMDInterface");
+		}	
+			
 	// bind the socket and start listening for connections on that port
 	m_connected_sock = NULL;
 	err = vmdsock_bind(m_listen_sock, port);
 	
 	if (err == -1)
-		throw runtime_error("IMDInterface: unable to bind listening socket");
+		{
+		cerr << endl << "***Error! Unable to bind listening socket" << endl << endl;
+		throw runtime_error("Error initializing IMDInterface");
+		}
 	
 	err = vmdsock_listen(m_listen_sock);
 	
 	if (err == -1)
-		throw runtime_error("IMDInterface: unable to listen on listening socket");
-		
-	cout << "IMDInterface: listening on port " << port << endl;
+		{
+		cerr << endl << "***Error! Unable to listen on listening socket" << endl << endl;
+		throw runtime_error("Error initializing IMDInterface");
+		}
+
+	cout << "analyze.imd: listening on port " << port << endl;
 	
 	// initialize state
 	m_active = false;
@@ -135,7 +147,7 @@ void IMDInterface::analyze(unsigned int timestep)
 				}
 			else
 				{
-				cout << "IMDInterface: accepted connection" << endl;
+				cout << "analyze.imd: accepted connection" << endl;
 				}
 			}
 		}
@@ -149,7 +161,7 @@ void IMDInterface::analyze(unsigned int timestep)
 		// also check to see if there are any errors
 		if (res == -1)
 			{
-			cout << "IMDInterface: connection appears to have been terminated" << endl;
+			cout << "analyze.imd: connection appears to have been terminated" << endl;
 			vmdsock_destroy(m_connected_sock);
 			m_connected_sock = NULL;
 			m_active = false;
@@ -163,7 +175,7 @@ void IMDInterface::analyze(unsigned int timestep)
 			// currently, only the GO command is implemented
 			if (header != IMD_GO)
 				{
-				cout << "IMDInterface: received an unimplemented command, disconnecting" << endl;
+				cout << "analyze.imd: received an unimplemented command, disconnecting" << endl;
 				vmdsock_destroy(m_connected_sock);
 				m_connected_sock = NULL;
 				m_active = false;
@@ -171,7 +183,7 @@ void IMDInterface::analyze(unsigned int timestep)
 				}
 			else
 				{
-				cout << "IMDInterface: received IMD_GO, transmitting data now" << endl;
+				cout << "analyze.imd: received IMD_GO, transmitting data now" << endl;
 				m_active = true;
 				}
 			}
@@ -185,7 +197,7 @@ void IMDInterface::analyze(unsigned int timestep)
 		// also check to see if there are any errors
 		if (res == -1)
 			{
-			cout << "IMDInterface: connection appears to have been terminated" << endl;
+			cout << "analyze.imd: connection appears to have been terminated" << endl;
 			vmdsock_destroy(m_connected_sock);
 			m_connected_sock = NULL;
 			m_active = false;
@@ -199,7 +211,7 @@ void IMDInterface::analyze(unsigned int timestep)
 			// currently, only the GO command is implemented
 			if (header == IMD_DISCONNECT || header == IMD_KILL)
 				{
-				cout << "IMDInterface: received a disconnect command, disconnecting" << endl;
+				cout << "analyze.imd: received a disconnect command, disconnecting" << endl;
 				vmdsock_destroy(m_connected_sock);
 				m_connected_sock = NULL;
 				m_active = false;
@@ -207,7 +219,7 @@ void IMDInterface::analyze(unsigned int timestep)
 				}
 			else
 				{
-				cout << "IMDInterface: received unknown command, ignoring" << endl;
+				cout << "analyze.imd: received unknown command, ignoring" << endl;
 				}
 			}
 		
@@ -227,7 +239,7 @@ void IMDInterface::analyze(unsigned int timestep)
 		int err = imd_send_energies(m_connected_sock, &energies);
 		if (err)
 			{
-			cout << "IMDInterface: error sending energies, disconnecting" << endl;
+			cerr << endl << "***Error! Error sending energies, disconnecting" << endl << endl;
 			vmdsock_destroy(m_connected_sock);
 			m_connected_sock = NULL;
 			m_active = false;
@@ -249,13 +261,12 @@ void IMDInterface::analyze(unsigned int timestep)
 		
 		if (err)
 			{
-			cout << "IMDInterface: error sending coordinates, disconnecting" << endl;
+			cerr << "***Error! Error sending coordinates, disconnecting" << endl << endl;
 			vmdsock_destroy(m_connected_sock);
 			m_connected_sock = NULL;
 			m_active = false;
 			return;
 			}
-			
 		}
 	}
 	

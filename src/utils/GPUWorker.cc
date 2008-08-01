@@ -62,6 +62,8 @@ using namespace std;
 */
 GPUWorker::GPUWorker(int dev) : m_exit(false), m_work_to_do(false), m_last_error(cudaSuccess)
 	{
+	m_tagged_file = "n/a";
+	m_tagged_line = 0;
 	m_thread.reset(new thread(bind(&GPUWorker::performWorkLoop, this)));
 	call(bind(cudaSetDevice, dev));
 	}
@@ -209,7 +211,7 @@ void GPUWorker::sync()
 	if (m_last_error != cudaSuccess)
 		{
 		// build the exception
-		cerr << "CUDA Error: " << string(cudaGetErrorString(m_last_error)) << " after " << m_tagged_file << ":" << m_tagged_line << endl;
+		cerr << endl << "***Error! " << string(cudaGetErrorString(m_last_error)) << " after " << m_tagged_file << ":" << m_tagged_line << endl << endl;
 		runtime_error error("CUDA Error");
 
 		// reset the error value so that it doesn't propagate to continued calls
