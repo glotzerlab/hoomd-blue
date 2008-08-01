@@ -60,7 +60,7 @@ if (WIN32 AND NOT UNIX)
 	
 else (WIN32 AND NOT UNIX)
 	set(CPACK_STRIP_FILES ${LIB_INSTALL_DIR}/hoomd ${LIB_INSTALL_DIR}/force_compute_bmark ${LIB_INSTALL_DIR}/neighborlist_bmark ${LIB_INSTALL_DIR}/pdata_gpucopy_bmark)
-else (WIN32 AND NOT UNIX)
+
 	# on linux, I want to have x86_64 or x86 in the name of the package
 	find_program(UNAME_EXE "uname" DOC "uname executable")
 	mark_as_advanced(UNAME_EXE)
@@ -71,6 +71,22 @@ else (WIN32 AND NOT UNIX)
 	endif (UNAME_EXE)
 	
 	set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${UNAME_MACHINE}")
+
+	# I also want to append the Python version. This method is potentially
+	# faulty as it is not necesarily true that the found python interpreter is
+	# the same as the one that is linked against. But then, packaging will
+	# only be done by me and I know what I'm doing with this.
+	if (USE_PYTHON)
+		find_package(PythonInterp REQUIRED)
+		exec_program(${PYTHON_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS -V
+				OUTPUT_VARIABLE PYTHON_VER_UNFORMATTED)
+		# remove the space from the string
+		string(REPLACE " " "" PYTHON_VER_NOSPACE ${PYTHON_VER_UNFORMATTED})
+		# remove the minor version
+		string(SUBSTRING ${PYTHON_VER_NOSPACE} 0 9 PYTHON_VER)
+
+		set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${PYTHON_VER}")
+	endif (USE_PYTHON)
 endif (WIN32 AND NOT UNIX)	
 
 if (WIN32)
