@@ -148,7 +148,7 @@ To test your installation further, yo can execute packaged \b benchmarks and <b>
 You will find them in EXTRACTED_LOCATION/share/hoomd
 For example, to run the polymer benchmark on the GPU:
 \code
-cd EXTRACTED_LOCATION/share/hoomd/benchmarks/polymer
+cd EXTRACTED_LOCATION/share/hoomd/benchmarks/
 ./polymer_bmark.hoomd --mode=gpu
 \endcode
 
