@@ -43,6 +43,8 @@ import hoomd;
 import globals;
 import update;
 
+import math;
+
 ## \internal
 # \brief Parsed command line options
 _options = {};
@@ -102,14 +104,11 @@ def read_xml(filename):
 # \param phi_p Packing fraction of particles in the simulation box
 # \param name Name of the particle type to create
 # \param min_dist Minimum distance particles will be separated by
-# \param wall_offset (optional) If specified, walls are created a distance of 
-#	\a wall_offset in from the edge of the simulation box
 #
 # \b Examples:
 # \code
 # init.create_random(N=2400, phi_p=0.20)
 # init.create_random(N=2400, phi_p=0.40, min_dist=0.5)
-# init.create_random(wall_offset=3.1, phi_p=0.10, N=6000)
 # \endcode
 #
 # \a N particles are randomly placed in the simulation box. The 
@@ -119,30 +118,51 @@ def read_xml(filename):
 # assuming the particles have a radius of 0.5.
 # All particles are created with the same type, given by \a name.
 #
-def create_random(N, phi_p, name="A", min_dist=1.0, wall_offset=None):
-	print "init.create_random(N =", N, ", phi_p =", phi_p, ", name = ", name, ", min_dist =", min_dist, ", wall_offset =", wall_offset, ")";
+def create_random(N, phi_p, name="A", min_dist=1.0):
+	print "init.create_random(N =", N, ", phi_p =", phi_p, ", name = ", name, ", min_dist =", min_dist, ")";
 	
 	# parse command line
 	_parse_command_line();
+	my_exec_conf = _create_exec_conf();
 	
 	# check if initialization has already occured
 	if (globals.particle_data != None):
 		print "Error: Cannot initialize more than once";
 		raise RuntimeError('Error initializing');
 
-	# read in the data
-	if wall_offset == None:
-		initializer = hoomd.RandomInitializer(N, phi_p, min_dist, name);
-	else:
-		initializer = hoomd.RandomInitializerWithWalls(N, phi_p, min_dist, wall_offset, name);
+	# abuse the polymer generator to generate single particles
+	
+	# calculat the box size
+	L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
+	box = hoomd.BoxDim(L);
+	
+	# create the generator
+	generator = hoomd.RandomGenerator(box, 0);
+	
+	# build type list
+	type_vector = hoomd.std_vector_string();
+	type_vector.append(name);
 		
-	globals.particle_data = hoomd.ParticleData(initializer, _create_exec_conf());
-
+	# create the generator
+	generator.addGenerator(N, hoomd.PolymerParticleGenerator(1.0, type_vector, 100));
+	
+	# set the separation radius
+	generator.setSeparationRadius(name, min_dist/2.0);
+		
+	# generate the particles
+	generator.generate();
+	
+	globals.particle_data = hoomd.ParticleData(generator, my_exec_conf);
+	
+	# TEMPORARY HACK for bond initialization
+	globals.initializer = generator;
+	
 	# initialize the system
 	globals.system = hoomd.System(globals.particle_data, 0);
 	
 	_perform_common_init_tasks();
 	return globals.particle_data;
+
 
 ## Generates any number of randomly positioned polymers of configurable types
 #
