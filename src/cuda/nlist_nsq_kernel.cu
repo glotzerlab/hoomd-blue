@@ -133,9 +133,9 @@ extern "C" __global__ void generateNlistNSQ(gpu_pdata_arrays pdata, gpu_nlist_ar
 						// we don't add if we are comparing to ourselves, and we don't add if we are above the cut
 						if ((drsq < r_maxsq) && ((start + cur_offset) != pidx) && exclude.x != (start + cur_offset) && exclude.y != (start + cur_offset) && exclude.z != (start + cur_offset) && exclude.w != (start + cur_offset))
 							{
-							if (1+n_neigh < nlist.height)
+							if (n_neigh < nlist.height)
 								{
-								nlist.list[pidx + (1 + n_neigh)*nlist.pitch] = start+cur_offset;
+								nlist.list[pidx + n_neigh*nlist.pitch] = start+cur_offset;
 								n_neigh++;
 								}
 							else
@@ -151,7 +151,7 @@ extern "C" __global__ void generateNlistNSQ(gpu_pdata_arrays pdata, gpu_nlist_ar
 	// now that we are done: update the first row that lists the number of neighbors
 	if (pidx < pdata.N)
 		{
-		nlist.list[pidx] = n_neigh;
+		nlist.n_neigh[pidx] = n_neigh;
 		nlist.last_updated_pos[pidx] = pdata.pos[pidx];
 		}
 	}

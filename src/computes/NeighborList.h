@@ -208,6 +208,7 @@ class NeighborList : public Compute
 		DataLocation m_data_location;	//!< Where the neighborlist data currently lives
 		gpu_nlist_array m_gpu_nlist;		//!< Stores pointers and dimensions of GPU data structures
 		unsigned int *m_host_nlist;
+		unsigned int *m_host_n_neigh;
 		uint4 *m_host_exclusions;
 		
 		//! Helper function to move data from the host to the device

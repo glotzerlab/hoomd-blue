@@ -55,13 +55,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 
 //! Structure of arrays of the neighborlist data as it resides on the GPU
-/*! The list is arranged as height rows of padded_N columns with the given pitch.
+/*! The list is arranged as height rows of \a N columns with the given pitch.
 	Each column i is the neighborlist for particle i. 
-	The first row lists the number of elements in the column.
+	\a n_neigh lists the number of neighbors in each column
 	Each column has a fixed height \c height.
 */
 struct gpu_nlist_array
 	{
+	unsigned int *n_neigh;
 	unsigned int *list;
 	unsigned int height;
 	unsigned int pitch;

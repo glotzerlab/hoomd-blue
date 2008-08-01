@@ -143,7 +143,7 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		return;
 	
 	// load in the length of the list
-	int n_neigh = nlist.list[pidx];
+	int n_neigh = nlist.n_neigh[pidx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
@@ -152,9 +152,9 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// loop over neighbors
-	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)	
+	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
-		int cur_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + pidx];
+		int cur_neigh = nlist.list[nlist.pitch*neigh_idx + pidx];
 		
 		// get the neighbor's position
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
