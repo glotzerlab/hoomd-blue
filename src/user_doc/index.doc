@@ -1,6 +1,6 @@
 /*! \mainpage
 
-Welcome to the documentation for HOOMD!
+Welcome to the \b user documentation for HOOMD!
 
 -# \subpage page_install_guide
 -# \subpage page_quick_start
@@ -12,6 +12,10 @@ Welcome to the documentation for HOOMD!
 -# \subpage page_license
 -# \subpage page_credits
 
+If you are looking for the developer documentation
+that used to be here, you can download it for the latest released version of HOOMD from
+http://www.ameslab.gov/hoomd/download.html . You can also build it from source code you have downloaded
+following the instructions in \ref page_compile_guide being sure to enable USE_DOXYGEN.
 */
 
 /*! \page page_command_list Index of Script Commands

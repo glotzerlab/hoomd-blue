@@ -75,8 +75,8 @@ HOOMD requires a number of prerequisite software packages and libraries to be co
 Python - http://www.python.org/ <br>
 Boost - http://www.boost.org/ <br>
 libz - http://www.zlib.net/ <br>
-CMake - http://www.cmake.org/HTML/Index.html <br>
-CUDA - http://developer.nvidia.com/object/cuda.html#downloads <br>
+CMake - http://www.cmake.org/ <br>
+CUDA - http://developer.nvidia.com/object/cuda.html <br>
 Subversion - http://subversion.tigris.org/ <br>
 Doxygen - http://www.stack.nl/~dimitri/doxygen/manual.html <br>
 

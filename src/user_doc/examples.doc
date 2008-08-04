@@ -59,13 +59,17 @@ by running
 \code
 vmd example1.mol2 example1.dcd
 \endcode
-on the command line.
+on the command line or by loading these files using VMD's GUI. For the best 
+visualization, open VMD's <i>Graphical Representation</i> menu and set the
+<i>Drawing Method</i> to VDW. The default of lines will draw a seemingly random
+line through the simulation box. This is actually a dummy bond between particles
+0 and 1, as VMD refuses to load a MOL2 file without any bonds specified in it.
 
 <hr>
 
 \section sec_example_imd Example 2: Using IMD
 
-Here is the same simulation again, this time configured for real-time display
+Here is the same simulation as <b>Example 1</b>, this time configured for real-time display
 in VMD using the IMD interface.
 \code
 from hoomd_script import *
@@ -96,14 +100,20 @@ of the simulation. Then go to the VMD command window and run the commnand
 imd connect localhost 54321
 \endcode
 The particles in the display window should begin moving. The display
-is of the current state of the simulation, updated in \b real-time.
+is of the current state of the simulation, updated in \b real-time. Again, 
+the best visualization is obtained by setting the <i>Drawing Method</i> to VDW in
+VMD's <i>Graphical Representation</i> menu.
+
+Switch back to the terminal where HOOMD is running and press CTRL-C to kill the 
+simulation. It is set to run for an extremely long time on purpose to allow 
+ample time to launch VMD and issue the \c imd command.
 
 <hr>
 
 \section sec_example_polygen Example 3: Using the polymer generator
 
-Here is a more complicated script that generates a system of bead-spring polymers which self-assebmle
-into a hex phase if run for several hours on a GPU. The polymers are A6B7A6 block copolymers
+Here is a more complicated script that generates a system of bead-spring polymers which self-assemble
+into a hex phase when run for a few million time steps. The polymers are A6B7A6 block copolymers
 in an implicit solvent. The script also shows a few examples of how writing python
 code in the script can be handy: here the concentration \c phi_P is a parameter and 
 math operations are performed to calculate the length of the box.
@@ -145,7 +155,11 @@ dump.dcd(filename="dump.dcd", period=100000);
 
 # integrate NVT for a bunch of time steps
 integrate.nvt(dt=0.005, T=T, tau=0.5)
-run(10000000)
+run(2000)
+
+# uncomment the next run() command if you have a few hours to spare running this on a GPU
+# the resulting dump files should show the polymers self-assembling into the hex phase
+# run(10e9)
 \endcode
 
 <hr>
