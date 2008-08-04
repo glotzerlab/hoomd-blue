@@ -78,11 +78,11 @@ import math;
 # lj.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
 # \endcode
 #
-# The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when wall.lj is specified (see __init__())
+# The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when wall.lj is specified (see __init__())
 class lj(force._force):
 	## Specify the Lennard-Jones %wall %force
 	#
-	# \param r_cut Cuttoff radius
+	# \param r_cut Cutoff radius
 	#
 	# \b Example:
 	# \code
@@ -110,9 +110,9 @@ class lj(force._force):
 		
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
-	## Sets the particle-wall interaction coeffiecients for a particular particle type
+	## Sets the particle-wall interaction coefficients for a particular particle type
 	#
-	# \param particle_type Particle type to set coeffients for
+	# \param particle_type Particle type to set coefficients for
 	# \param epsilon Coefficient \f$ \varepsilon \f$ in the %force
 	# \param sigma Coefficient \f$ \sigma \f$ in the %force
 	# \param alpha Coefficient \f$ \alpha \f$ in the %force
