@@ -96,7 +96,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	m_avgNmax = Scalar(0.0);
 
 	// default block size is the highest performance in testing
-	m_block_size = 256;
+	m_block_size = 64;
 
 	// bogus values for last value
 	m_last_Mx = INT_MAX;

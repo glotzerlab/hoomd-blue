@@ -190,11 +190,14 @@ void benchmark(shared_ptr<ForceCompute> fc)
 		nrepeat++;
 		tend = clk.getTime();
 
+		if (!quiet)
+		{
 		if (nrepeat % 500 == 0)
 			{
 			cout << ".";
 			cout.flush();
 			}
+		}
 
 		} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 5);
 	

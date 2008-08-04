@@ -180,9 +180,10 @@ void benchmark(shared_ptr<NeighborList> nl) {
 	tend = clk.getTime();
 	
 	if (!quiet)
+		{
 		cout << *prof << endl;
-		
-	nl->printStats();
+		nl->printStats();
+		}
 	
 	double avgTime = double(tend - tstart)/1e9/double(nrepeat);;
 	cout << setprecision(7) << avgTime << " s/step" << endl;
@@ -255,14 +256,12 @@ int main(int argc, char **argv)
 		cout << "Building particle data...";
 
 	shared_ptr<ParticleData> pdata = init_pdata();
-	cout << "done." << endl;
+	
+	if (!quiet)
+		cout << "done." << endl;
 	
 	// initialize the neighbor list
-	if (!quiet)
-		cout << "Building neighbor list data...";	
 	shared_ptr<NeighborList> nlist = init_neighboorlist_compute(nl_name, pdata);
-
-	cout << "done." << endl;
 	
 	if (nl_name == "Nl" || nl_name == "BinnedNl"){
 		if (half_nlist)
