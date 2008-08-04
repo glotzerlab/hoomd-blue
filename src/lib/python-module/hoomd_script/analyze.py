@@ -175,7 +175,11 @@ class _analyzer:
 	# \endcode
 	def set_period(self, period):
 		print "analyzer.set_period(", period, ")";
-		globals.system.setAnalyzerPeriod(self.analyzer_name, period);
+		
+		if self.enabled:
+			globals.system.setAnalyzerPeriod(self.analyzer_name, period);
+		else:
+			self.prev_period = period;
 
 # set default counter
 _analyzer.cur_id = 0;
@@ -228,6 +232,7 @@ class imd(_analyzer):
 # - \b lj_energy (pair.lj) - Total Lennard-Jones potential energy
 # - \b harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b nve_kinetic_energy (integrate.nve) - Kinetic energy calculated by the NVE integrator
+# - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
 #
 # \note The command in parentheses in the list obove indicates the command that must be specified
 # in order for the named log quantity to be valid. For instance, if you try to log \b lj_energy
@@ -287,14 +292,14 @@ class log(_analyzer):
 	# logger.set_params(delimiter=',');
 	# logger.set_params(quantities=['harmonic_energy'], delimiter=',');
 	# \endcode
-	def set_params(quantities=None, delimiter=None):
+	def set_params(self, quantities=None, delimiter=None):
 		print "log.set_params(quantities =", quantities, ", delimiter =", delimiter, ")";
 		
-		if quantities:
+		if quantities != None:
 			# set the logged quantities
 			quantity_list = hoomd.std_vector_string();
 			for item in quantities:
-				quantity_list.appendk(item);
+				quantity_list.append(item);
 			self.cpp_analyzer.setLoggedQuantities(quantity_list);
 			
 		if delimiter:

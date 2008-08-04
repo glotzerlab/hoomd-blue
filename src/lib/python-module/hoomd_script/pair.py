@@ -354,7 +354,8 @@ def _update_global_nlist(r_cut):
 #	\f}
 # where
 # \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f].
+# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+# and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the pair.
 #
 # The following coefficients must be set per unique pair of particle types. See pair or 
 # the \ref page_quick_start for information on how to set coefficients.

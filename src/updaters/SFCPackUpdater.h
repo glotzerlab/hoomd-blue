@@ -91,6 +91,10 @@ class SFCPackUpdater : public Updater
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
 		
+		//! Set the bin width
+		/*! \a bin_width New bin width to set */
+		void setBinWidth(Scalar bin_width) { m_bin_width = bin_width; }
+		
 	private:
 		Scalar m_bin_width;			//!< The side length of the bins used to sort particles
 		unsigned int m_lastMmax;	//!< The last value of MMax

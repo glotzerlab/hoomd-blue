@@ -173,7 +173,10 @@ class _updater:
 	# \endcode
 	def set_period(self, period):
 		print "updater.set_period(", period, ")";
-		globals.system.setUpdaterPeriod(self.updater_name, period);
+		if self.enabled:
+			globals.system.setUpdaterPeriod(self.updater_name, period);
+		else:
+			self.prev_period = period;
 
 # **************************************************************************
 

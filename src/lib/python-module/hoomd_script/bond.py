@@ -53,7 +53,7 @@ import sys;
 # specify a bond force (i.e. bond.harmonic), are forces actually calculated between the 
 # listed particles.
 
-## Harmonic bond forces
+## Harmonic %bond forces
 #
 # TODO: document
 # This is a TEMPORARY HACK class. The interface \b WILL change in the near future

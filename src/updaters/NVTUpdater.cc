@@ -206,7 +206,9 @@ void export_NVTUpdater()
 	{
 	class_<NVTUpdater, boost::shared_ptr<NVTUpdater>, bases<Integrator>, boost::noncopyable>
 		("NVTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar >())
+		.def("setT", &NVTUpdater::setT)
+		.def("setTau", &NVTUpdater::setTau)
 		;
-		// no .def needed since everything is inherited
+		
 	}
 #endif

@@ -580,6 +580,7 @@ void export_SFCPackUpdater()
 	{
 	class_<SFCPackUpdater, boost::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
 		("SFCPackUpdater", init< boost::shared_ptr<ParticleData>, Scalar >())
+		.def("setBinWidth", &SFCPackUpdater::setBinWidth)
 		;
 	}
 #endif

@@ -52,7 +52,7 @@ import sys;
 ## \internal
 # \brief Internal python variable 
 __all__ = ["analyze", "bond", "dump", "force", "globals", "init", 
-			"integrate", "pair", "update", "run", "hoomd"];
+			"integrate", "pair", "update", "wall", "run", "hoomd"];
 
 ## \brief Runs the simulation for a given number of time steps
 #

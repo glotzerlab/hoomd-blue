@@ -68,6 +68,16 @@ class NVTUpdater : public Integrator
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
 		
+		//! Update the temperature
+		/*! \param T New temperature to set
+		*/
+		virtual void setT(Scalar T) { m_T = T; }
+				
+		//! Update the tau value
+		/*! \param tau New time constant to set
+		*/		
+		virtual void setTau(Scalar tau) { m_tau = tau; }
+		
 	protected:
 		Scalar m_tau;		//!< tau value for Nose-Hoover
 		Scalar m_T;			//!< Temperature set point

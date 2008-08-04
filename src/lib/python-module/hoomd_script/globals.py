@@ -76,3 +76,25 @@ initializer = None;
 
 ## temporary hack to get bond information to the mol2 dump
 bond_compute = None;
+
+## \internal
+# \brief Clears all global variables to default values
+# \details \note Only use this if you really know what you are doing. Its intended use
+# is only for unit testsing hoomd_script.
+def _clear():
+	global particle_data, system, forces, integrator, neighbor_list, loggers;
+	
+	particle_data = None;
+	system = None;
+	forces = [];
+	integrator = None;
+	neighbor_list = None;
+	loggers = [];
+	
+	global initializer, bond_compute;
+	initializer = None;
+	bond_compute = None;
+	
+	import __main__;
+	__main__.sorter = None;
+	__main__.nlist = None;

@@ -31,6 +31,12 @@ Pair forces (\link hoomd_script.pair pair\endlink):
 Bond forces (\link hoomd_script.bond bond\endlink):
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>\copybrief hoomd_script::bond::harmonic </i>
 
+Wall forces (\link hoomd_script.wall wall\endlink):
+ - \link hoomd_script.wall.lj wall.lj\endlink - <i>\copybrief hoomd_script::wall::lj </i>
+
+Other forces (\link hoomd_script.force force\endlink):
+ - \link hoomd_script.force.constant force.constant\endlink - <i>\copybrief hoomd_script::force::constant </i>
+
 Integration methods (\link hoomd_script.integrate integrate\endlink): 
  - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
  - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>

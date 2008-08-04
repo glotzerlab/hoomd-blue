@@ -113,12 +113,28 @@ void LJWallForceCompute::setParams(unsigned int typ, Scalar lj1, Scalar lj2)
 	m_lj1[typ] = lj1;
 	m_lj2[typ] = lj2;
 	}
-
-/*! \param r_cut New cuttoff to specify
+	
+/*! LJWallForceCompute provides
+	- \c wall_lj_energy
 */
-void LJWallForceCompute::setRCut(Scalar r_cut)
+std::vector< std::string > LJWallForceCompute::getProvidedLogQuantities()
 	{
-	m_r_cut = r_cut;
+	vector<string> list;
+	list.push_back("wall_lj_energy");
+	return list;
+	}
+	
+Scalar LJWallForceCompute::getLogValue(const std::string& quantity)
+	{
+	if (quantity == string("wall_lj_energy"))
+		{
+		return calcEnergySum();
+		}
+	else
+		{
+		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for LJWallForceCompute" << endl << endl;
+		throw runtime_error("Error getting log value");
+		}
 	}
 
 void LJWallForceCompute::computeForces(unsigned int timestep)

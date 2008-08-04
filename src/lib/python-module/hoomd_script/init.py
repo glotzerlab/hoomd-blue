@@ -256,7 +256,10 @@ def create_random_polymers(box, polymers, separation, seed=1):
 		if not 'count' in poly:	
 			print >> sys.stderr, '\n***Error! Polymer specification missing count\n';
 			raise RuntimeError("Error creating random polymers");
-		
+		if not 'bond' in poly:	
+			print >> sys.stderr, '\n***Error! Polymer specification missing bond\n';
+			raise RuntimeError("Error creating random polymers");
+				
 		# build type list
 		type_vector = hoomd.std_vector_string();
 		for t in poly['type']:

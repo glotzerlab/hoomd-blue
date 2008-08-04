@@ -39,11 +39,12 @@
 
 import globals;
 import sys;
+import hoomd;
 
 ## \package hoomd_script.force
-# \brief Code common to all force commands
+# \brief Other types of forces
 #
-# User scripts shouldn't need anything from here
+# This package contains various forces that don't belong in any of the other categories
 
 ## \internal
 # \brief Base class for forces
@@ -157,3 +158,60 @@ class _force:
 	
 # set default counter
 _force.cur_id = 0;
+
+
+## Constant %force
+#
+# The command force.constant specifies that a %constant %force should be added to every
+# particle in the simulation.
+#
+class constant(_force):
+	## Specify the %constant %force
+	#
+	# \param fx x-component of the %force
+	# \param fy y-component of the %force
+	# \param fz z-component of the %force
+	#
+	# \b Examples:
+	# \code
+	# force.constant(fx=1.0, fy=0.5, fz=0.25)
+	# const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+	# \endcode
+	def __init__(self, fx, fy, fz):
+		print "force.constant(fx =", fx, ", fy =", fy, ", fz =", fz, ")";
+		
+		# initialize the base class
+		_force.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_force = hoomd.ConstForceCompute(globals.particle_data, fx, fy, fz);
+			
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		
+	## Change the value of the force
+	#
+	# \param fx New x-component of the %force
+	# \param fy New y-component of the %force
+	# \param fz New z-component of the %force
+	#
+	# Using set_force() requires that you saved the created %constant %force in a variable. i.e.
+	# \code
+	# const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+	# \endcode
+	#
+	# \b Example:
+	# \code
+	# const.set_force(fx=0.2, fy=0.1, fz=-0.5)
+	# \endcode
+	def set_force(self, fx, fy, fz):
+		# check that we have been initialized properly
+		if self.cpp_force == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+			raise RuntimeError('Error enabling force');
+			
+		self.cpp_force.setForce(fx, fy, fz);
+		
+	# there are no coeffs to update in the constant force compute
+	def update_coeffs(self):
+		pass
+
