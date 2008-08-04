@@ -38,6 +38,7 @@
 # $URL$
 
 import globals;
+import sys;
 
 ## \package hoomd_script.force
 # \brief Code common to all force commands
@@ -61,7 +62,7 @@ class _force:
 	def __init__(self):
 		# check if initialization has occured
 		if globals.system == None:
-			print "Error: Cannot create force before initialization";
+			print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
 			raise RuntimeError('Error creating force');
 		
 		self.cpp_force = None;
@@ -110,12 +111,12 @@ class _force:
 		
 		# check that we have been initialized properly
 		if self.cpp_force == None:
-			"Bug in hoomd_script: cpp_force not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
 			raise RuntimeError('Error disabling force');
 			
 		# check if we are already disabled
 		if not self.enabled:
-			print "Warning: Ignoring command to disable a force that is already disabled";
+			print "***Warning! Ignoring command to disable a force that is already disabled";
 			return;
 		
 		globals.system.removeCompute(self.force_name);
@@ -135,12 +136,12 @@ class _force:
 		
 		# check that we have been initialized properly
 		if self.cpp_force == None:
-			"Bug in hoomd_script: cpp_force not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
 			raise RuntimeError('Error enabling force');
 			
 		# check if we are already disabled
 		if self.enabled:
-			print "Warning: Ignoring command to enable a force that is already enabled";
+			print "***Warning! Ignoring command to enable a force that is already enabled";
 			return;
 			
 		globals.system.addCompute(self.cpp_force, self.force_name);

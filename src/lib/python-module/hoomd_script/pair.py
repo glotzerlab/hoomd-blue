@@ -68,6 +68,7 @@ import globals;
 import force;
 import hoomd;
 import math;
+import sys;
 
 ## Defines %pair coefficients
 # 
@@ -158,12 +159,12 @@ class coeff:
 		elif (b,a) in self.values:
 			cur_pair = (b,a);
 		else:
-			print "Bug detected in pair.coeff. Please report"
+			print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
 			raise RuntimeError("Error setting pair coeff");
 		
 		# update each of the values provided
 		if len(coeffs) == 0:
-			print "No coefficents specified";
+			print >> sys.stderr, "\n***Error! No coefficents specified\n";
 		for name, val in coeffs.items():
 			self.values[cur_pair][name] = val;
 	
@@ -177,7 +178,7 @@ class coeff:
 	def verify(self, *required_coeffs):
 		# first, check that the system has been initialized
 		if globals.system == None:
-			print "Error: Cannot verify pair coefficients before initialization";
+			print >> sys.stderr, "\n***Error! Cannot verify pair coefficients before initialization\n";
 			raise RuntimeError('Error verifying pair coefficients');
 		
 		# get a list of types from the particle data
@@ -199,7 +200,7 @@ class coeff:
 				elif (b,a) in self.values:
 					cur_pair = (b,a);
 				else:
-					print "Type pair", (a,b), "not found in pair coeff!"
+					print >> sys.stderr, "\n***Error! Type pair", (a,b), "not found in pair coeff\n"
 					valid = False;
 					continue;
 				
@@ -207,12 +208,12 @@ class coeff:
 				count = 0;
 				for coeff_name in self.values[cur_pair].keys():
 					if not coeff_name in required_coeffs:
-						print "Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), ", but is not used by the pair force";
+						print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), ", but is not used by the pair force";
 					else:
 						count += 1;
 				
 				if count != len(required_coeffs):
-					print "Type pair", (a,b), "is missing required coefficients";
+					print >> sys.stderr, "\n***Error! Type pair", (a,b), "is missing required coefficients\n";
 					valid = False;
 				
 			
@@ -231,8 +232,8 @@ class coeff:
 		elif (b,a) in self.values:
 			cur_pair = (b,a);
 		else:
-			print "Bug detected in pair.coeff. Please report"
-			raise RuntimeError("Error setting pair coeff");	
+			print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+			raise RuntimeError("Error setting pair coeff");
 		
 		return self.values[cur_pair][coeff_name];
 		
@@ -251,7 +252,7 @@ class nlist:
 	def __init__(self, r_cut):
 		# check if initialization has occured
 		if globals.system == None:
-			print "Error: Cannot create neighbor list before initialization";
+			print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
 			raise RuntimeError('Error creating neighbor list');
 		
 		# create the C++ mirror class
@@ -260,7 +261,7 @@ class nlist:
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.particle_data, r_cut, 0.8)
 		else:
-			print "Invalid execution mode";
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating neighbor list");
 			
 		self.cpp_nlist.setEvery(10);
@@ -307,7 +308,7 @@ class nlist:
 		print "nlist.set_params(r_buff =", r_buff, " , check_period =", check_period, ")";
 		
 		if self.cpp_nlist == None:
-			print "Bug in hoomd_script: cpp_nlist not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
 			raise RuntimeError('Error setting neighbor list parameters');
 		
 		# update the parameters
@@ -396,7 +397,7 @@ class lj(force._force):
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 			self.cpp_force = hoomd.LJForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
 		else:
-			print "Invalid execution mode";
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creatinglj pair force");
 			
 			
@@ -408,7 +409,7 @@ class lj(force._force):
 	def update_coeffs(self):
 		# check that the pair coefficents are valid
 		if not self.pair_coeff.verify("epsilon", "sigma", "alpha"):
-			print "***Error: Not all pair coefficients are set in pair.lj\n";
+			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.lj\n";
 			raise RuntimeError("Error updating pair coefficients");
 		
 		# set all the params

@@ -63,7 +63,7 @@ class _updater:
 	def __init__(self):
 		# check if initialization has occured
 		if globals.system == None:
-			print "Error: Cannot create updater before initialization";
+			print >> sys.stderr, "\n***Error! Cannot create updater before initialization\n";
 			raise RuntimeError('Error creating updater');
 		
 		self.cpp_updater = None;
@@ -115,12 +115,12 @@ class _updater:
 		
 		# check that we have been initialized properly
 		if self.cpp_updater == None:
-			"Bug in hoomd_script: cpp_updater not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
 			raise RuntimeError('Error disabling updater');
 			
 		# check if we are already disabled
 		if not self.enabled:
-			print "Warning: Ignoring command to disable an updater that is already disabled";
+			print "***Warning! Ignoring command to disable an updater that is already disabled";
 			return;
 		
 		self.prev_period = globals.system.getUpdaterPeriod(self.updater_name);
@@ -140,12 +140,12 @@ class _updater:
 		
 		# check that we have been initialized properly
 		if self.cpp_updater == None:
-			"Bug in hoomd_script: cpp_updater not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
 			raise RuntimeError('Error enabling updater');
 			
 		# check if we are already disabled
 		if self.enabled:
-			print "Warning: Ignoring command to enable an updater that is already enabled";
+			print "***Warning! Ignoring command to enable an updater that is already enabled";
 			return;
 			
 		globals.system.addUpdater(self.cpp_updater, self.updater_name, self.prev_period);
@@ -232,7 +232,7 @@ class sort(_updater):
 	
 		# check that proper initialization has occured
 		if self.cpp_updater == None:
-			print "Bug in hoomd_script: cpp_updater not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
 			raise RuntimeError('Error setting sorter parameters');
 		
 		if bin_width != None:
@@ -286,7 +286,7 @@ class rescale_temp(_updater):
 	
 		# check that proper initialization has occured
 		if self.cpp_updater == None:
-			print "Bug in hoomd_script: cpp_updater not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
 			raise RuntimeError('Error setting temp_rescale parameters');
 			
 		if T != None:

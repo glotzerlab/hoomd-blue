@@ -38,6 +38,7 @@
 # $URL$
 
 import hoomd;
+import sys;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
@@ -78,11 +79,11 @@ def run(tsteps):
 	print "run(", tsteps, ")";
 	# check if initialization has occured
 	if (globals.system == None):
-		print "Error: Cannot run before initialization";
+		print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
 		raise RuntimeError('Error running');
 		
 	if (globals.integrator == None):
-		print "Warning: Starting a run without an integrator set";
+		print "***Warning! Starting a run without an integrator set";
 	else:
 		globals.integrator.update_forces();
 	
@@ -90,6 +91,4 @@ def run(tsteps):
 		logger.update_quantities();
 	
 	globals.system.run(int(tsteps));
-
-	
 	

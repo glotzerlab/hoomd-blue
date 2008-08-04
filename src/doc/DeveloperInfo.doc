@@ -182,10 +182,17 @@ Obviously, not every possible such error can be checked without sacrificing perf
 error checks in an optimized build should only be performed during initialization, or once per time step
 at the most.  
 
-Warning and error messages should also be employed. One can get all fancy with the processing and 
-displaying of these message, but a simple approach is employed in HOOMD. Warnings will simply be 
-printed to stdout. Errors will be printed to stderr. If the program can continue with the error, 
-it should do so. If it is impossible to continue, an exception will be thrown.
+A simple approach to printing these messages is employed in HOOMD. Warnings are simply printed to 
+stdout. The preferred format to call attention to the warning is: "***Warning! warning text"
+Errors are printed to stderr with the following format (example code shown for C++ and python:
+\code
+cerr << endl << "***Error! error message text" << endl << endl;
+print >> sys.stderr, "\n***Error! error message text\n";
+\endcode
+The reason for the blank line before and after the message is so that the message is visible is the sea
+of test that comes from the python backtrace when the error is printed out.
+Errors that prevent the continued execution of HOOMD throw an exception: RuntimeError in python
+and std::runtime_error in C++.
 
 \section sec_unit_testing Unit testing
 

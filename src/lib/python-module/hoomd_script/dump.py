@@ -47,6 +47,7 @@
 import hoomd;
 import globals;
 import analyze;
+import sys;
 
 ## Writes simulation snapshots in the HOOMD XML format
 #
@@ -105,7 +106,7 @@ class xml(analyze._analyzer):
 	
 		# check that proper initialization has occured
 		if self.cpp_analyzer == None:
-			print "Bug in hoomd_script: cpp_analyzer not set, please report";
+			print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
 			raise RuntimeError('Error setting xml parameters');
 			
 		if position != None:
@@ -197,11 +198,11 @@ class dcd(analyze._analyzer):
 		print "updater.enable()";
 		
 		if self.enabled == False:
-			print "Error: you cannot re-enable DCD output after it has been disabled";
+			print >> sys.stderr, "\n***Error! you cannot re-enable DCD output after it has been disabled\n";
 			raise RuntimeError('Error enabling updater');
 	
 	def set_period(self, period):
 		print "updater.set_period(", period, ")";
 		
-		print "Error: you cannot change the period of a dcd dump writer";
+		print >> sys.stderr, "\n***Error! you cannot change the period of a dcd dump writer\n";
 		raise RuntimeError('Error changing updater period');

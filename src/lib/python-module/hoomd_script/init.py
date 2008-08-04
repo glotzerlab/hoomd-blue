@@ -44,6 +44,7 @@ import globals;
 import update;
 
 import math;
+import sys;
 
 ## \internal
 # \brief Parsed command line options
@@ -81,7 +82,7 @@ def read_xml(filename):
 
 	# check if initialization has already occured
 	if (globals.particle_data != None):
-		print "Error: Cannot initialize more than once";
+		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');
 
 	# read in the data
@@ -127,7 +128,7 @@ def create_random(N, phi_p, name="A", min_dist=1.0):
 	
 	# check if initialization has already occured
 	if (globals.particle_data != None):
-		print "Error: Cannot initialize more than once";
+		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');
 
 	# abuse the polymer generator to generate single particles
@@ -225,15 +226,15 @@ def create_random_polymers(box, polymers, separation, seed=1):
 		
 	# check if initialization has already occured
 	if (globals.particle_data != None):
-		print "Error: Cannot initialize more than once";
+		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError("Error creating random polymers");
 	
 	if type(polymers) != type([]) or len(polymers) == 0:
-		print "Argument error: polymers specified incorrectly. See the hoomd_script documentation"
+		print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
 		raise RuntimeError("Error creating random polymers");
 	 
 	if type(separation) != type(dict()) or len(separation) == 0:
-		print "Argument error: polymers specified incorrectly. See the hoomd_script documentation"
+		print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
 		raise RuntimeError("Error creating random polymers");
 	
 	# create the generator
@@ -247,13 +248,13 @@ def create_random_polymers(box, polymers, separation, seed=1):
 		type_list = [];
 		# check that all fields are specified
 		if not 'bond_len' in poly:
-			print 'Polymer specification missing bond_len';
+			print >> sys.stderr, '\n***Error! Polymer specification missing bond_len\n';
 			raise RuntimeError("Error creating random polymers");
 		if not 'type' in poly:
-			print 'Polymer specification missing type';
+			print >> sys.stderr, '\n***Error! Polymer specification missing type\n';
 			raise RuntimeError("Error creating random polymers");
 		if not 'count' in poly:	
-			print 'Polymer specification missing count';
+			print >> sys.stderr, '\n***Error! Polymer specification missing count\n';
 			raise RuntimeError("Error creating random polymers");
 		
 		# build type list
@@ -270,7 +271,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	# check that all used types are in the separation list
 	for t in types_used:
 		if not t in separation:
-			print "No separation radius specified for type ", t;
+			print >> sys.stderr, "\n***Error! No separation radius specified for type ", t, "\n";
 			raise RuntimeError("Error creating random polymers");
 			
 	# set the separation radii
@@ -313,8 +314,8 @@ def _parse_command_line():
 	global _options;
 	
 	parser = OptionParser();
-	parser.add_option("-e", "--mode", dest="mode", help="Execution mode (cpu or gpu)");
-	parser.add_option("-g", "--gpu", dest="gpu", help="GPU to execute on");
+	parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
+	parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
 	(_options, args) = parser.parse_args();
 	
 	# chedk for valid mode setting

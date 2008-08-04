@@ -40,6 +40,7 @@
 import force;
 import globals;
 import hoomd;
+import sys;
 
 ## \package hoomd_script.bond
 # \brief Commands that specify %bond forces
@@ -65,7 +66,7 @@ class harmonic(force._force):
 		
 		# if there is no initializer that deals with bonds, error out
 		if not globals.initializer:
-			print "Cannot create bonds without an initializer that sets them!"
+			print >> sys.stderr, "\n***Error! Cannot create bonds without an initializer that sets them!\n";
 			raise RuntimeError("Error creating bond forces");
 		
 		# initialize the base class
@@ -77,7 +78,7 @@ class harmonic(force._force):
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.BondForceComputeGPU(globals.particle_data, K, r0);
 		else:
-			print "Invalid execution mode";
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");
 
 		globals.bond_compute = self.cpp_force;

@@ -70,6 +70,7 @@
 
 import hoomd;
 import globals;
+import sys;
 
 ## \internal
 # \brief Base class for integrators
@@ -87,7 +88,7 @@ class _integrator:
 	def __init__(self):
 		# check if initialization has occured
 		if globals.system == None:
-			print "Error: Cannot create integrator before initialization";
+			print >> sys.stderr, "\n***Error! Cannot create integrator before initialization\n";
 			raise RuntimeError('Error creating integrator');
 		
 		self.cpp_integrator = None;
@@ -104,7 +105,7 @@ class _integrator:
 	def update_forces(self):
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
-			print "Bug in hoomd_script: cpp_integrator not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
 			raise RuntimeError('Error updating forces');		
 		
 		# set the forces
@@ -112,7 +113,7 @@ class _integrator:
 		for f in globals.forces:
 			if f.enabled:
 				if f.cpp_force == None:
-					print "Bug in hoomd_script: cpp_integrator not set, please report";
+					print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
 					raise RuntimeError('Error updating forces');		
 				else:
 					self.cpp_integrator.addForceCompute(f.cpp_force);
@@ -147,7 +148,7 @@ class nvt(_integrator):
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.particle_data, dt, tau, T);
 		else:
-			print "Invalid execution mode";
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVT integrator");
 			
 		globals.system.setIntegrator(self.cpp_integrator);
@@ -173,7 +174,7 @@ class nvt(_integrator):
 		print "nvt.set_params(dt=", dt, ", T=", T, ", tau=", tau, ")";
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
-			print "Bug in hoomd_script: cpp_integrator not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
 			raise RuntimeError('Error updating forces');
 		
 		# change the parameters
@@ -215,7 +216,7 @@ class nve(_integrator):
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_integrator = hoomd.NVEUpdaterGPU(globals.particle_data, dt);
 		else:
-			print "Invalid execution mode";
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVE integrator");
 		
 		# set the limit
@@ -242,7 +243,7 @@ class nve(_integrator):
 		print "nvt.set_params(dt=", dt, ")";
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
-			print "Bug in hoomd_script: cpp_integrator not set, please report";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
 			raise RuntimeError('Error updating forces');
 		
 		# change the parameters
