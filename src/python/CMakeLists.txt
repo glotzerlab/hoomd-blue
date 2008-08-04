@@ -38,6 +38,11 @@
 # $Id$
 # $URL$
 
+# enable testing if it is requested
+if (USE_TEST)
+	enable_testing()
+endif (USE_TEST)
+
 # setup the library compile mode
 if(USE_STATIC)
 	set(LIB_MODE STATIC)
@@ -157,6 +162,24 @@ if (USE_STATIC)
 			CONFIGURATIONS Release
 			RENAME hoomd
 			)
+			
+	# add the hoomd_script tests to the unit test list
+	get_target_property(CUR_TEST_EXE ${HOOMD_EXE} LOCATION)
+
+	# unfortunately, this needs to be handled differently in visual studio
+	if (MSVC)
+		add_test(hoomd_script_tests_cpu ${EXECUTABLE_OUTPUT_PATH}/${HOOMD_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=cpu)
+		if (USE_CUDA)
+			add_test(hoomd_script_tests_gpu ${EXECUTABLE_OUTPUT_PATH}/${HOOMD_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=gpu)
+		endif (USE_CUDA)
+	else (MSVC)
+		add_test(hoomd_script_tests_cpu ${CUR_TEST_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=cpu)
+		
+		if (USE_CUDA)
+			add_test(hoomd_script_tests_gpu ${CUR_TEST_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=gpu)
+		endif (USE_CUDA)
+	endif (MSVC)
+	
 endif (USE_STATIC)
 
 #################################
