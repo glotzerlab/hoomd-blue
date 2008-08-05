@@ -168,9 +168,9 @@ if (USE_STATIC)
 
 	# unfortunately, this needs to be handled differently in visual studio
 	if (MSVC)
-		add_test(hoomd_script_tests_cpu ${EXECUTABLE_OUTPUT_PATH}/${HOOMD_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=cpu)
+		add_test(hoomd_script_tests_cpu ${EXECUTABLE_OUTPUT_PATH}/hoomd ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=cpu)
 		if (USE_CUDA)
-			add_test(hoomd_script_tests_gpu ${EXECUTABLE_OUTPUT_PATH}/${HOOMD_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=gpu)
+			add_test(hoomd_script_tests_gpu ${EXECUTABLE_OUTPUT_PATH}/hoomd ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=gpu)
 		endif (USE_CUDA)
 	else (MSVC)
 		add_test(hoomd_script_tests_cpu ${CUR_TEST_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=cpu)
