@@ -85,13 +85,28 @@ struct gpu_ljparam_data
 	
 //////////////////////////////////////////////////////////////////////////
 // bond force data structures
-//! This data structure is modeled after the neighbor list
+
+//! Bond data stored on the GPU
+/*! gpu_bondtable_array stores all of the bonds between particles on the GPU.
+	It is structured similar to gpu_nlist_array in that a single column in the list
+	stores all of the bonds for the particle associated with that column. 
+	
+	To access bond \em b of particle \em i, use the following indexing scheme
+	\code
+	uint2 bond = bondtable.bonds[b*bondtable.pitch + i]
+	\endcode
+	The particle with \b index (not tag) \em i is bonded to particle \em bond.x
+	with bond type \em bond.y. Each particle may have a different number of bonds as
+	indicated in \em n_bonds[i].
+*/
 struct gpu_bondtable_array
 	{
-	unsigned int *list;
-	unsigned int height;
-	unsigned int pitch;
+	unsigned int *n_bonds;	//!< Number of bonds for each particle
+	uint2 *bonds;			//!< bond list
+	unsigned int height;	//!< height of the bond list
+	unsigned int pitch;		//!< width (in elements) of the bond list
 	};
+
 
 ///////////////////////////// LJ params
 
