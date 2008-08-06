@@ -81,7 +81,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
-#include "BondForceComputeGPU.h"
+#include "HarmonicBondForceComputeGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -261,7 +261,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_BinnedNeighborListGPU();
 	export_NeighborListNsqGPU();
 	export_LJForceComputeGPU();
-	export_BondForceComputeGPU();
+	export_HarmonicBondForceComputeGPU();
 	#endif
 	
 	// analyzers

@@ -44,70 +44,53 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 )
 #endif
 
-#include "BondForceCompute.h"
+#include "HarmonicBondForceCompute.h"
 #include "gpu_forces.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 
-/*! \file BondForceComputeGPU.h
-	\brief Declares a class for computing harmonic bonds on the GPU
+/*! \file HarmonicBondForceComputeGPU.h
+	\brief Declares the HarmonicBondForceGPU class
 */
 
-#ifndef __BONDFORCECOMPUTEGPU_H__
-#define __BONDFORCECOMPUTEGPU_H__
+#ifndef __HARMONICBONDFORCECOMPUTEGPU_H__
+#define __HARMONICBONDFORCECOMPUTEGPU_H__
 
 //! Implements the harmonic bond force calculation on the GPU
 /*! Bond forces are calucated much faster on the GPU. This class has the same public
 	interface as BondForceCompute so that they can be used interchangably. 
-		
+	
+	Per-type parameters are stored in a simple global memory area pointed to by
+	\a m_gpu_params. They are stored as float2's with the \a x component being K and the
+	\a y component being r_0.
+	
 	\b Developer information: <br>
 	This class operates as a wrapper around CUDA code written in C and compiled by 
 	nvcc. See bondforce_kernel.cu for detailed internal documentation.
 	\sa BondForceCompute
 	\ingroup computes
 */
-class BondForceComputeGPU : public BondForceCompute
+class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute
 	{
 	public:
 		//! Constructs the compute
-		BondForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar K, Scalar r_0);
+		HarmonicBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata);
 		//! Destructor
-		~BondForceComputeGPU();
-		
-		//! Add a bond
-		virtual void addBond(unsigned int tag1, unsigned int tag2);
+		~HarmonicBondForceComputeGPU();
 		
 		//! Sets the block size to run on the device
 		/*! \param block_size Block size to set
 		*/
 		void setBlockSize(int block_size) { m_block_size = block_size; }
 		
+		//! Set the parameters
+		virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
+		
 	protected:
-		bool m_dirty;	//!< Dirty flag to track if the bond table has changed
-		int m_block_size;				//!< Block size to run calculation on
-		gpu_bondtable_array m_gpu_bondtable;	//!< The actual bond table data
-		unsigned int *m_bondlist;
-		
-		boost::signals::connection m_sort_connection;	
-		
-		//! Helper function to set the dirty flag when particles are resort
-		void setDirty() { m_dirty = true; }
-
-		//! Helper function to update the bond table on the device
-		void updateBondTable();
-		
-		//! Helper function to reallocate the bond table on the device
-		void reallocateBondTable(int height);
-		
-		//! Helper function to allocate the bond table
-		void allocateBondTable(int height);
-		
-		//! Helper function to free the bond table
-		void freeBondTable();
-		
-		//! Copies the bond table to the device
-		void copyBondTable();
+		int m_block_size;		//!< Block size to run calculation on
+		float2 *m_gpu_params;	//! Parameters stored on the GPU
+		float2 *m_host_params;	//! Host parameters
 		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
@@ -115,7 +98,7 @@ class BondForceComputeGPU : public BondForceCompute
 	
 #ifdef USE_PYTHON
 //! Export the BondForceComputeGPU class to python
-void export_BondForceComputeGPU();
+void export_HarmonicBondForceComputeGPU();
 #endif
 
 #endif

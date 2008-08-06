@@ -52,7 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicBondForceCompute.h"
 #include "ConstForceCompute.h"
 #ifdef USE_CUDA
-#include "BondForceComputeGPU.h"
+#include "HarmonicBondForceComputeGPU.h"
 #endif
 
 #include "Initializers.h"
@@ -367,12 +367,12 @@ shared_ptr<HarmonicBondForceCompute> base_class_bf_creator(shared_ptr<ParticleDa
 //! BondForceCompute creator for bond_force_basic_tests()
 shared_ptr<HarmonicBondForceCompute> gpu_bf_creator(shared_ptr<ParticleData> pdata)
 	{
-	return shared_ptr<BondForceCompute>(new BondForceComputeGPU(pdata));
+	return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceComputeGPU(pdata));
 	}
 #endif
 
 //! boost test case for bond forces on the CPU
-BOOST_AUTO_TEST_CASE( BondForceCompute_basic )
+BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
 	{
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
 	bond_force_basic_tests(bf_creator);
@@ -380,14 +380,14 @@ BOOST_AUTO_TEST_CASE( BondForceCompute_basic )
 
 #ifdef USE_CUDA
 //! boost test case for bond forces on the GPU
-BOOST_AUTO_TEST_CASE( BondForceComputeGPU_basic )
+BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_basic )
 	{
 	bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
 	bond_force_basic_tests(bf_creator);
 	}
 	
 //! boost test case for comparing bond GPU and CPU BondForceComputes
-BOOST_AUTO_TEST_CASE( BondForceComputeGPU_compare )
+BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
 	{
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);

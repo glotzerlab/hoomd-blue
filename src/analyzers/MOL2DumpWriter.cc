@@ -135,7 +135,6 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 	// f << "@<TRIPOS>BOND" << endl;
 	// f << "1 1 2 1" << endl;
 	
-	// temporary hack to get bond output
 	f << "@<TRIPOS>BOND" << endl;
 	if (bond_data && bond_data->getNumBonds() > 0)
 		{

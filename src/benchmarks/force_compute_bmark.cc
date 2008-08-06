@@ -66,7 +66,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_CUDA
 #include "LJForceComputeGPU.h"
-#include "BondForceComputeGPU.h"
+#include "HarmonicBondForceComputeGPU.h"
 #endif
 
 #include "HOOMDVersion.h"
@@ -141,7 +141,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	#ifdef USE_CUDA
 	if (fc_name == "Bond.GPU")
 		{
-		shared_ptr<BondForceComputeGPU> tmp = shared_ptr<BondForceComputeGPU>(new BondForceComputeGPU(pdata));
+		shared_ptr<HarmonicBondForceComputeGPU> tmp = shared_ptr<HarmonicBondForceComputeGPU>(new HarmonicBondForceComputeGPU(pdata));
 		tmp->setParams(0, 150, 1.0);
 		init_bond_tables(pdata);
 		tmp->setBlockSize(block_size);

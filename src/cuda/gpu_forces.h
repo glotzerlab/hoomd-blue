@@ -122,8 +122,7 @@ cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsi
 //////////////////////////// Bond table stuff
 
 //! Sum bond forces
-cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float K, float r_0, int block_size);
+cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size);
 }
 
 #endif
-
