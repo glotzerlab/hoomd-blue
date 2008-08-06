@@ -133,7 +133,7 @@ class GeneratedParticles
 			unsigned int tag_b;		//!< Second particle in the bond
 			};
 
-		std::vector< bond > m_bonds;	//!< Bonds read in from the file		
+		std::vector< bond > m_bonds;	//!< Bonds read in from the file
 	};
 	
 //! Abstract interface for classes that generate particles
@@ -178,7 +178,7 @@ class PolymerParticleGenerator : public ParticleGenerator
 	{
 	public:
 		//! Constructor
-		PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, unsigned int max_attempts);
+		PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, unsigned int max_attempts);
 		
 		//! Returns the number of particles in each polymer
 		virtual unsigned int getNumToGenerate()
@@ -192,6 +192,8 @@ class PolymerParticleGenerator : public ParticleGenerator
 	private:
 		Scalar m_bond_len;					//!< Bond length
 		std::vector<std::string> m_types;	//!< Particle types for each polymer bead
+		std::vector<unsigned int> m_bond_a;	//!< First particle in the bond pair
+		std::vector<unsigned int> m_bond_b;	//!< Second particle in the bond pair
 		unsigned int m_max_attempts;		//!< Number of attemps to make for each particle placement
 		
 		//! helper function to place particles recursively
@@ -210,6 +212,8 @@ class PolymerParticleGenerator : public ParticleGenerator
 	Mixture systems can be created by adding more than one ParticleGenerator. 
 	class. Testing should be done to confirm this, but it is probably best to
 	add the largest objects first so that smaller ones can be generated around them.
+	
+	By default, bonds are named "bond". This can be changed by calling setBondType().
 	
 	\b Usage:<br>
 	Before the initializer can be passed to a ParticleData for initialization, the following
@@ -257,10 +261,15 @@ class RandomGenerator : public ParticleDataInitializer
 		//! Place the particles
 		void generate();
 		
+		//! Set the bond type name to use in creating bonds
+		/*! \param bond_type Bond type name to set */
+		void setBondType(const std::string& bond_type) { m_bond_type = bond_type; }
+		
 	private:
 		BoxDim m_box;								//!< Precalculated box
-		unsigned int m_seed;							//!< Random seed to use
+		unsigned int m_seed;						//!< Random seed to use
 		GeneratedParticles m_data;					//!< Actual particle data genreated
+		std::string m_bond_type;					//!< Name of the bond type to generate
 		std::map< std::string, Scalar > m_radii;	//!< Separation radii accessed by particle type
 		std::vector< boost::shared_ptr<ParticleGenerator> > m_generators;	//!< Generators to place particles
 		std::vector< unsigned int > m_generator_repeat;	//!< Repeat count for each generator

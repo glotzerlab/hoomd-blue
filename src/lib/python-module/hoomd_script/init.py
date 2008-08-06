@@ -140,9 +140,12 @@ def create_random(N, phi_p, name="A", min_dist=1.0):
 	# build type list
 	type_vector = hoomd.std_vector_string();
 	type_vector.append(name);
+	
+	# empty bond lists for single particles
+	bond_ab = hoomd.std_vector_uint();
 		
 	# create the generator
-	generator.addGenerator(N, hoomd.PolymerParticleGenerator(1.0, type_vector, 100));
+	generator.addGenerator(N, hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, 100));
 	
 	# set the separation radius
 	generator.setSeparationRadius(name, min_dist/2.0);
@@ -171,17 +174,30 @@ def create_random(N, phi_p, name="A", min_dist=1.0):
 # bond length, particle type list, bond list, and count.
 #
 # The syntax is best shown by example. The below line specifies that 600 block copolymers
-# A6B7A6 with a bond length of 1.2 be generated.
+# A6B7A6 with a %bond length of 1.2 be generated.
 # \code
-# polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=600)
+# polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=600)
 # \endcode
 # Here is an example for a second polymer, specifying just 100 polymers made of 4 B beads
+# bonded into a ring.
 # \code
-# polymer2 = dict(bond_len=1.2, type=['B']*4, bond="TODO", count=100)
+# polymer2 = dict(bond_len=1.2, type=['B']*4, bond=[(0, 1), (1,2), (2,3), (3,0)] , count=100)
 # \endcode
 # The \a polymers argument can be given a list of any number of polymer types specified
 # as above. \a count randomly generated polymers of each type in the list will be
 # generated in the system.
+#
+# In detail: 
+# -	\a bond_len defines the %bond length of the generated polymers. This should 
+# 	not necesarily be set to the equilibrium %bond length! The generator is dumb and doesn't know
+# 	that bonded particles can be placed closer together than the separation (see below). Thus
+# 	\a bond_len must be at a minimum set at the sum of the two largest separation radii.
+# -	\a type is a python list of strings. Each string names a particle type in the order that
+# 	they will be created in generating the polymer.
+# -	\a %bond can be specified as "linear" in which case the generator connects all particles together
+# 	with bonds to form a linear chain. \a %bond can also be given a list if python tuples (see example
+#	above). Each tuple in the form of \c (a,b) specifies that particle \c a of the polymer be bonded to
+# 	particle \c b.
 # 
 # \a separation \b must contain one entry for each particle type specified in \a polymers
 # ('A' and 'B' in the examples above). The value given is the separation radius of each
@@ -210,7 +226,8 @@ def create_random(N, phi_p, name="A", min_dist=1.0):
 # generate it at a very low density and shrink the box with the command ___ (which isn't written yet)
 # to the desired final size.
 #
-# \note Currently, create_random_polymers() always creates linear chains.
+# \note The %bond type is named 'polymer' must be used in specifying %bond coefficients in command such as 
+# bond.harmonic
 def create_random_polymers(box, polymers, separation, seed=1):
 	print "init.create_random_polymers(box =", box, ", polymers =", polymers, ", separation = ", separation, ", seed =", seed, ")";
 	
@@ -261,8 +278,23 @@ def create_random_polymers(box, polymers, separation, seed=1):
 			if not t in types_used:
 				types_used.append(t);
 		
+		# build bond list
+		bond_a = hoomd.std_vector_uint();
+		bond_b = hoomd.std_vector_uint();
+		if poly['bond'] == 'linear':
+			for i in xrange(0,len(poly['type'])-1):
+				bond_a.push_back(i);
+				bond_b.push_back(i+1);
+		elif type(poly['bond']) == type([]):
+			for a,b in poly['bond']:
+				bond_a.push_back(a);
+				bond_b.push_back(b);
+		else:
+			print >> sys.stderr, '\n***Error! Unexpected argument value for polymer bond\n';
+			raise RuntimeError("Error creating random polymers");
+		
 		# create the generator
-		generator.addGenerator(poly['count'], hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, 100));
+		generator.addGenerator(poly['count'], hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, 100));
 		
 		
 	# check that all used types are in the separation list
@@ -274,7 +306,10 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	# set the separation radii
 	for t,r in separation.items():
 		generator.setSeparationRadius(t, r);
-		
+	
+	# name the bond type
+	generator.setBondType('polymer');
+	
 	# generate the particles
 	generator.generate();
 	

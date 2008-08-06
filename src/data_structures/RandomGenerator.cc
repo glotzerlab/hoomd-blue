@@ -386,9 +386,9 @@ void GeneratedParticles::addBond(unsigned int a, unsigned int b)
 /*! \param box Box dimensions to generate in
 	\param seed Random number generator seed
 */
-RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed)
+RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed), m_bond_type("bond")
 	{
-	}	
+	}
 	
 unsigned int RandomGenerator::getNumParticles() const
 	{
@@ -440,6 +440,10 @@ void RandomGenerator::initBondData(boost::shared_ptr<BondData> bond_data) const
 	// loop through all the bonds and add a bond for each
 	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)	
 		bond_data->addBond(Bond(0, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
+	
+	vector<string> bond_type_mapping;
+	bond_type_mapping.push_back(m_bond_type);
+	bond_data->setBondTypeMapping(bond_type_mapping);
 	}
 
 /*! \param type Name of the particle type to set the radius for
@@ -529,14 +533,20 @@ static Scalar random01(boost::mt19937& rnd)
 // PolymerParticleGenerator
 /*! \param bond_len Bond length to generate
 	\param types Vector of type names. One element per bead of the polymer.
+	\param bond_a List of the first particle in each bond
+	\param bond_b List of the 2nd particle in each bond
 	\param max_attempts The maximum number of attempts to place each particle
+	
+	A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
+	Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
-PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, unsigned int max_attempts)
-	: m_bond_len(bond_len), m_types(types), m_max_attempts(max_attempts)
+PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, unsigned int max_attempts)
+	: m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_max_attempts(max_attempts)
 	{
 	assert(m_types.size() > 0);
 	assert(m_max_attempts > 0);
 	assert(bond_len > Scalar(0.0));
+	assert(m_bond_a.size() == m_bond_b.size());
 	}
 		
 /*! \param particles Data to place particles in
@@ -570,8 +580,10 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 			{
 			// success! we are done
 			// create the bonds for this polymer now (polymers are simply linear for now)
-			for (unsigned int i = start_idx; i < start_idx+m_types.size()-1; i++)
-				particles.addBond(i, i+1);
+			for (unsigned int i = 0; i < m_bond_a.size(); i++)
+				{
+				particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i]);
+				}
 			return;
 			}
 		
@@ -581,7 +593,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 		}
 		
 	// we've failed to place a polymer, this is an unrecoverable error
-	cerr << endl << "***Error! The polymer generatorf ailed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
+	cerr << endl << "***Error! The polymer generator failed to place a polymer, the system is too dense or the separation radii are set too high" << endl << endl;
 	throw runtime_error("Error generating polymer system");
 	}
 
@@ -673,13 +685,14 @@ void export_RandomGenerator()
 		.def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
 		.def("addGenerator", &RandomGenerator::addGenerator)
 		.def("generate", &RandomGenerator::generate)
+		.def("setBondType", &RandomGenerator::setBondType)
 		;
 		
 	class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())
 		// no methods exposed to python
 		;
 		
-	class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, unsigned int >())
+	class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, unsigned int >())
 		// all methods are internal C++ methods
 		;
 	}

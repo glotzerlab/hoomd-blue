@@ -901,6 +901,7 @@ void export_NeighborList()
 	class_< std::vector<unsigned int> >("std_vector_uint")
 		.def("__len__", &std::vector<unsigned int>::size)
 		.def("__getitem__", &getNlistItem)
+		.def("push_back", &std::vector<unsigned int>::push_back)
 		;
 	
 	scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
