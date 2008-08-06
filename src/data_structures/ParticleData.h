@@ -100,6 +100,9 @@ using namespace std;
 // Forward declaration of WallData
 class WallData;
 
+// Forward declaration of BondData
+class BondData;
+
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
 	that box. Inside is defined as x >= xlo && x < xhi, and similarly for y and z. 
@@ -233,6 +236,16 @@ class ParticleDataInitializer
 		
 		//! Intialize the type mapping
 		virtual std::vector<std::string> getTypeMapping() const = 0;
+		
+		//! Returns the number of bond types to be created
+		/*! Bonds are optional: the base class returns 1 */
+		virtual unsigned int getNumBondTypes() const { return 1; }
+		
+		//! Initialize the bond data
+		/*! \param bond_data Shared pointer to the BondData to be initialized
+			Bonds are optional: the base class does nothing
+		*/
+		virtual void initBondData(boost::shared_ptr<BondData> bond_data) const {}
 	};
 	
 //! Manages all of the data arrays for the particles
@@ -271,7 +284,7 @@ class ParticleData
 	{
 	public:
 		//! Construct with N particles in the given box
-		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, unsigned int n_bond_types=0, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
 		//! Construct from an initializer
 		ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
 		//! Destructor
@@ -283,6 +296,8 @@ class ParticleData
 		void setBox(const BoxDim &box);
 		//! Access the wall data defined for the simulation box
 		boost::shared_ptr<WallData> getWallData() { return m_wallData; }
+		//! Access the bond data defined for the simulation
+		boost::shared_ptr<BondData> getBondData() { return m_bondData; }
 		//! Access the execution configuration
 		const ExecutionConfiguration& getExecConf() { return m_exec_conf; }
 		
@@ -356,11 +371,12 @@ class ParticleData
 		boost::signal<void ()> m_sort_signal;		//!< Signal that is triggered when particles are sorted in memory
 		boost::signal<void ()> m_boxchange_signal;	//!< Signal that is triggered when the box size changes
 		
-		ParticleDataArrays m_arrays;	//!< Pointers into m_data for particle access
-		ParticleDataArraysConst m_arrays_const;	//!< Pointers into m_data for const particle access
-		boost::shared_ptr<Profiler> m_prof;		//!< Pointer to the profiler. NULL if there is no profiler.
+		ParticleDataArrays m_arrays;				//!< Pointers into m_data for particle access
+		ParticleDataArraysConst m_arrays_const;		//!< Pointers into m_data for const particle access
+		boost::shared_ptr<Profiler> m_prof;			//!< Pointer to the profiler. NULL if there is no profiler.
 		
-		boost::shared_ptr<WallData> m_wallData;	//!< Walls specified for the simulation box
+		boost::shared_ptr<WallData> m_wallData;		//!< Walls specified for the simulation box
+		boost::shared_ptr<BondData> m_bondData;		//!< Bonds specified for the simulation
 		
 		#ifdef USE_CUDA
 		

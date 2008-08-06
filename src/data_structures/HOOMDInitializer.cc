@@ -395,9 +395,10 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 	parser.str(node.getText());
 	while (parser.good())
 		{
+		string type_name;
 		unsigned int a, b;
-		parser >> a >> b;
-		m_bonds.push_back(bond(a, b));
+		parser >> type_name >> a >> b;
+		m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
 		}
 	}
 
@@ -507,19 +508,40 @@ unsigned int HOOMDInitializer::getTypeId(const std::string& name)
 	return m_type_mapping.size()-1;
 	}
 
-		
-void HOOMDInitializer::setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist)
+/*! \param name Name to get type id of
+	If \a name has already been added, this returns the type index of that name.
+	If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getBondTypeId(const std::string& name)
 	{
-	// loop through all the bonds and add an exclusion for each
-	for (unsigned int i = 0; i < m_bonds.size(); i++)
-		nlist->addExclusion(m_bonds[i].tag_a, m_bonds[i].tag_b);
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_bond_type_mapping.size(); i++)
+		{
+		if (m_bond_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_bond_type_mapping.push_back(name);
+	return m_bond_type_mapping.size()-1;
 	}
-	
-void HOOMDInitializer::setupBonds(boost::shared_ptr<BondForceCompute> fc_bond)
+
+/*! \return Number of bond types determined from the XML file
+*/
+unsigned int HOOMDInitializer::getNumBondTypes() const
+	{
+	return m_bond_type_mapping.size();
+	}
+		
+/*! \param bond_data Shared pointer to the BondData to be initialized
+	Adds all bonds found in the XML file to the BondData
+*/
+void HOOMDInitializer::initBondData(boost::shared_ptr<BondData> bond_data) const
 	{
 	// loop through all the bonds and add a bond for each
 	for (unsigned int i = 0; i < m_bonds.size(); i++)	
-		fc_bond->addBond(m_bonds[i].tag_a, m_bonds[i].tag_b);
+		bond_data->addBond(m_bonds[i]);
+	
+	bond_data->setBondTypeMapping(m_bond_type_mapping);
 	}
 	
 std::vector<std::string> HOOMDInitializer::getTypeMapping() const
@@ -532,8 +554,6 @@ void export_HOOMDInitializer()
 	{
 	class_< HOOMDInitializer, bases<ParticleDataInitializer> >("HOOMDInitializer", init<const string&>())
 		// virtual methods from ParticleDataInitializer are inherited
-		.def("setupNeighborListExclusions", &HOOMDInitializer::setupNeighborListExclusions)
-		.def("setupBonds", &HOOMDInitializer::setupBonds) 
 		.def("getTimeStep", &HOOMDInitializer::getTimeStep)
 		;
 	}

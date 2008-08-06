@@ -59,6 +59,7 @@ using namespace boost::python;
 
 #include "ParticleData.h"
 #include "WallData.h"
+#include "BondData.h"
 
 #include <boost/bind.hpp>
 
@@ -131,6 +132,9 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 /*! \param N Number of particles to allocate memory for
 	\param n_types Number of particle types that will exist in the data arrays
 	\param box Box the particles live in
+	\param n_bond_types Number of bond types to create
+	\param exec_conf ExecutionConfiguration to use when executing code on the GPU
+	
 	\post \c x,\c y,\c z,\c vx,\c vy,\c vz,\c ax,\c ay, and \c az are allocated and initialized to 0.0
 	\post \c rtag is allocated and given the default initialization rtag[i] = i
 	\post \c tag is allocated and given the default initialization tag[i] = i
@@ -139,7 +143,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	
 	Type mappings assign particle types "A", "B", "C", ....
 */ 
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, const ExecutionConfiguration& exec_conf)	
+ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, const ExecutionConfiguration& exec_conf)	
 	: m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
 	{
 	// check the input for errors
@@ -192,7 +196,10 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 		name[1] = '\0';
 		m_type_mapping.push_back(string(name));
 		}
-
+		
+	// allocate bonds
+	m_bondData = shared_ptr<BondData>(new BondData(this, n_bond_types));
+		
 	// if this is a GPU build, initialize the graphics card mirror data structures
 	#ifdef USE_CUDA
 	if (!m_exec_conf.gpu.empty())
@@ -259,13 +266,9 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		m_arrays.rtag[i] = i;
 		m_arrays.tag[i] = i;
 		}
-
-	// allocate walls
-	m_wallData = shared_ptr<WallData>(new WallData());
-		
+	
 	setBox(init.getBox());
 	init.initArrays(m_arrays);
-	init.initWallData(m_wallData);
 	
 	// it is an error for particles to be initialized outside of their box
 	if (!inBox())
@@ -280,6 +283,14 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	// default constructed shared ptr is null as desired
 	m_prof = boost::shared_ptr<Profiler>();
 
+	// allocate walls
+	m_wallData = shared_ptr<WallData>(new WallData());
+	init.initWallData(m_wallData);
+
+	// allocate bonds
+	m_bondData = shared_ptr<BondData>(new BondData(this, init.getNumBondTypes()));
+	init.initBondData(m_bondData);
+
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef USE_CUDA
 	if (!m_exec_conf.gpu.empty())
@@ -292,7 +303,6 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		{
 		m_data_location = cpu;
 		}
-	
 	#endif
 	}
 
@@ -1029,7 +1039,7 @@ void export_ParticleData()
 	class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
 		.def(init<const ParticleDataInitializer&>())
 		.def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
-		.def(init<unsigned int, const BoxDim&, unsigned int, const ExecutionConfiguration&>())
+		.def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, const ExecutionConfiguration&>())
 		.def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
 		.def("setBox", &ParticleData::setBox)
 		.def("getN", &ParticleData::getN)

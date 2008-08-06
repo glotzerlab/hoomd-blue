@@ -44,8 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "ParticleData.h"
-#include "BondForceCompute.h"
-#include "NeighborList.h"
+#include "BondData.h"
 
 #include <string>
 #include <vector>
@@ -243,11 +242,11 @@ class RandomGenerator : public ParticleDataInitializer
 		//! Initialize the type name mapping
 		std::vector<std::string> getTypeMapping() const;
 		
-		//! Adds a neighbor list exclusion for each bond read from the input file
-		void setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist);
+		//! Returns the number of bond types to be created
+		virtual unsigned int getNumBondTypes() const;
 		
-		//! Calls BondForceCompute::addBond for each bond read from the input file
-		void setupBonds(boost::shared_ptr<BondForceCompute> fc_bond);		
+		//! Initialize the bond data
+		virtual void initBondData(boost::shared_ptr<BondData> bond_data) const;
 		
 		//! Sets the separation radius for a particle
 		void setSeparationRadius(string type, Scalar radius);

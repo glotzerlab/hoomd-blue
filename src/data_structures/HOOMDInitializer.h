@@ -44,9 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ParticleData.h"
-#include "NeighborList.h"
-#include "BondForceCompute.h"
 #include "WallData.h"
+#include "BondData.h"
 #include "xmlParser.h"
 
 #include <string>
@@ -86,14 +85,14 @@ class HOOMDInitializer : public ParticleDataInitializer
 		//! Initialize the walls
 		virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
 		
-		//! Adds a neighbor list exclusion for each bond read from the input file
-		void setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist);
-		
-		//! Calls BondForceCompute::addBond for each bond read from the input file
-		void setupBonds(boost::shared_ptr<BondForceCompute> fc_bond);
-		
 		//! Initialize the type name mapping
 		std::vector<std::string> getTypeMapping() const;
+		
+		//! Returns the number of bond types to be created
+		virtual unsigned int getNumBondTypes() const;
+		
+		//! Initialize the bond data
+		virtual void initBondData(boost::shared_ptr<BondData> bond_data) const;
 	private:
 		//! Helper function to read the input file
 		void readFile(const std::string &fname);
@@ -114,6 +113,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		
 		//! Helper function for identifying the particle type id
 		unsigned int getTypeId(const std::string& name);
+		//! Helper function for identifying the bond type id
+		unsigned int getBondTypeId(const std::string& name);
 
 		std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map;	//!< Map for dispatching parsers based on node type
 		 
@@ -144,31 +145,13 @@ class HOOMDInitializer : public ParticleDataInitializer
 		std::vector< unsigned int > m_type_array;	//!< type values for all particles loaded
 		std::vector< Scalar > m_charge_array;		//!< charge of the particles loaded
 		std::vector< Wall > m_walls;				//!< walls loaded from the file			
-
-
-		struct bond				//!< Structure representing a single bond
-			{
-			//! Default constructor
-			bond() : tag_a(0), tag_b(0)
-				{
-				}
-
-			//! Construct a bond between two particles
-			/*! \param a tag of the first particle in the bond
-				\param b tag of the second particle in the bond
-			*/
-			bond(unsigned int a, unsigned int b) : tag_a(a), tag_b(b)
-				{
-				}
-			unsigned int tag_a;		//!< First particle in the bond
-			unsigned int tag_b;		//!< Second particle in the bond
-			};
-
-		std::vector< bond > m_bonds;	//!< Bonds read in from the file
+		
+		std::vector< Bond > m_bonds;	//!< Bonds read in from the file
 	
 		unsigned int m_timestep;		//!< The time stamp
 		
 		std::vector<std::string> m_type_mapping;	//!< The created mapping between particle types and ids
+		std::vector<std::string> m_bond_type_mapping;	//!< The created mapping between bond types and ids
 	};
 	
 #ifdef USE_PYTHON

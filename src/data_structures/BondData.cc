@@ -42,8 +42,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "ParticleData.h"
 
-#include <stdexcept>
+#include <boost/bind.hpp>
+using namespace boost;
 
+#include <stdexcept>
 using namespace std;
 
 /*! \file BondData.cc
@@ -52,10 +54,50 @@ using namespace std;
 
 /*! \param pdata ParticleData these bonds refer into
 	\param n_bond_types Number of bond types in the list
+	
+	Taking in pdata as a pointer instead of a shared pointer is sloppy, but there really isn't an alternative
+	due to the way ParticleData is constructed. Things will be fixed in a later version with a reorganization
+	of the various data structures. For now, be careful not to destroy the ParticleData and keep the BondData hanging
+	around.
 */
-BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) : m_n_bond_types(n_bond_types), m_pdata(pdata)
+BondData::BondData(ParticleData* pdata, unsigned int n_bond_types) : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata)
 	{
 	assert(pdata);
+	
+	// attach to the signal for notifications of particle sorts
+	m_sort_connection = m_pdata->connectParticleSort(bind(&BondData::setDirty, this));
+	
+	#ifdef USE_CUDA
+	// init pointers
+	m_host_bonds = NULL;
+	m_host_n_bonds = NULL);
+	m_gpu_bondtable.bonds = NULL;
+	m_gpu_bondtable.n_bonds = NULL;
+	m_gpu_bondtable.height = 0;
+	m_gpu_bondtable.pitch = 0;
+	
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
+	// allocate memory on the GPU if there is a GPU in the execution configuration
+	if (exec_conf.gpu.size() == 1)
+		{
+		allocateBondTable(1);
+		}
+	else if (exec_conf.gpu.size() > 1)
+		{
+		cerr << endl << "***Error! BondData currently only supports one GPU" << endl << endl;
+		throw std::runtime_error("Error initializing BondData");
+		}
+	#endif
+	}
+
+BondData::~BondData()
+	{
+	m_sort_connection.disconnect();
+	#ifdef USE_CUDA
+	freeBondTable();
+	#endif
 	}
 
 /*! \post A bond between particles specified in \a bond is created. 
@@ -93,6 +135,7 @@ void BondData::addBond(const Bond& bond)
 		}
 
 	m_bonds.push_back(bond);
+	m_bonds_dirty = true;
 	}
 	
 /*! \param bond_type_mapping Mapping array to set
@@ -138,5 +181,175 @@ std::string BondData::getNameByType(unsigned int type)
 		}
 		
 	// return the name
-	return m_type_mapping[type];
+	return m_bond_type_mapping[type];
 	}
+	
+#ifdef USE_CUDA
+
+/*! Updates the bond data on the GPU if needed and returns the data structure needed to access it.
+*/
+gpu_bondtable_array BondData::acquireGPU()
+	{
+	if (m_bonds_dirty)
+		{
+		updateBondTable();
+		m_bonds_dirty = false;
+		}
+	return m_gpu_bonddata;
+	}
+
+
+/*! \post The bond tag data added via addBond() is translated to bonds based
+	on particle index for use in the GPU kernel. This new bond table is then uploaded
+	to the device.
+*/
+void BondData::updateBondTable()
+	{
+	assert(m_host_n_bonds);
+	assert(m_host_bonds);
+	
+	// count the number of bonds per particle
+	// start by initializing the host n_bonds values to 0
+	memset(m_host_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
+	
+	// loop through the particles and count the number of bonds based on each particle index
+	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+	for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
+		{
+		unsigned int tag1 = m_bonds[cur_bond].a;
+		unsigned int tag2 = m_bonds[cur_bond].b;
+		int idx1 = arrays.rtag[tag1];
+		int idx2 = arrays.rtag[tag2];
+		
+		m_host_n_bonds[idx1]++;
+		m_host_n_bonds[idx2]++;
+		}
+		
+	// find the maximum number of bonds
+	unsigned int num_bonds_max = 0;
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		{
+		if (m_host_n_bonds[i] > num_bonds_max)
+			num_bonds_max = m_host_n_bonds[i];
+		}
+		
+	// re allocate memory if needed
+	if (num_bonds_max > m_gpu_bondtable.height)
+		{
+		reallocateBondTable(num_bonds_max);
+		}
+		
+	// now, update the actual table
+	// zero the number of bonds counter (again)
+	memset(m_host_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
+	
+	// loop through all bonds and add them to each column in the list
+	int pitch = m_gpu_bondtable.pitch;
+	for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
+		{
+		unsigned int tag1 = m_bonds[cur_bond].a;
+		unsigned int tag2 = m_bonds[cur_bond].b;
+		unsigned int type = m_bonds[cur_bond].type;
+		int idx1 = arrays.rtag[tag1];
+		int idx2 = arrays.rtag[tag2];
+		
+		// get the number of bonds for each particle
+		int num1 = m_n_bonds[idx1];
+		int num2 = m_n_bonds[idx2];
+		
+		// add the new bonds to the table
+		m_host_bonds[num1*pitch + idx1] = make_uint2(idx2, type);
+		m_host_bonds[num2*pitch + idx2] = make_uint2(idx1, type);
+		
+		// increment the number of bonds
+		m_n_bonds[idx1]++;
+		m_n_bonds[idx2]++;
+		}
+	
+	m_pdata->release();
+	
+	// copy the bond table to the device
+	copyBondTable();
+	}
+	
+/*! \param height New height for the bond table
+	\post Reallocates memory on the device making room for up to 
+		\a height bonds per particle.
+	\note updateBondTable() needs to be called after so that the
+		data in the bond table will be correct.
+*/
+void BondData::reallocateBondTable(int height)
+	{
+	freeBondTable();
+	allocateBondTable(height);
+	}
+	
+/*! \param height Height for the bond table
+*/
+void BondData::allocateBondTable(int height)
+	{
+	// make sure the arrays have been deallocated
+	assert(m_host_bonds == NULL);
+	assert(m_host_n_bonds == NULL);
+	assert(m_gpu_bondtable.bonds == NULL);
+	assert(m_gpu_bondtable.n_bonds == NULL);
+	
+	unsigned int N = m_pdata->getN();
+	size_t pitch;
+	
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
+	// allocate and zero device memory
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bondtable.n_bonds), N*sizeof(unsigned int)));
+	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_bondtable.n_bonds, 0, N*sizeof(unsigned int)));
+	
+	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bondtable.bonds), &pitch, N*sizeof(unsigned int), height));
+	// want pitch in elements, not bytes
+	m_gpu_bondtable.pitch = (int)pitch / sizeof(int);
+	m_gpu_bondtable.height = height;
+	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_bondtable.list, 0, pitch * height));
+	
+	// allocate and zero host memory
+	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_n_bonds), N*sizeof(int)));
+	memset((void*)m_bondlist, 0, N*sizeof(int));
+	
+	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_bonds), pitch * height));
+	memset((void*)m_bondlist, 0, pitch*height);
+	}
+
+void BondData::freeBondTable()
+	{
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
+	
+	// free device memory
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bondtable.bonds));
+	m_gpu_bondtable.bonds = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bondtable.n_bonds));
+	m_gpu_bondtable.n_bonds = NULL;
+	
+	// free host memory
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_bonds));
+	m_host_bonds = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_n_bonds));
+	m_host_n_bonds = NULL;
+	}
+
+//! Copies the bond table to the device
+void BondData::copyBondTable()
+	{
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
+	
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bondtable.bonds, m_host_bonds,
+			sizeof(uint2) * m_gpu_bondtable.height * m_gpu_bondtable.pitch,
+			cudaMemcpyHostToDevice));
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bondtable.n_bonds, m_host_n_bonds,
+			sizeof(unsigned int) * m_pdata->getN(),
+			cudaMemcpyHostToDevice));
+	}
+#endif

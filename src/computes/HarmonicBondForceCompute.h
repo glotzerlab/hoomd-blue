@@ -42,55 +42,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "ForceCompute.h"
+#include "BondData.h"
 
 #include <vector>
 
-/*! \file BondForceCompute.h
+/*! \file HarmonicBondForceCompute.h
 	\brief Declares a class for computing harmonic bonds
 */
 
-#ifndef __BONDFORCECOMPUTE_H__
-#define __BONDFORCECOMPUTE_H__
+#ifndef __HARMONICBONDFORCECOMPUTE_H__
+#define __HARMONICBONDFORCECOMPUTE_H__
 
 //! Computes bond forces on each particle
 /*! This is just a simple harmonic bond force: V = 1/2 K (|vec{Delta r}| - r_0|) ^ 2 . 
 	
 	After construction, this class will not compute this potential for any particles by default.
-	Bonds where this potential is computed must be added by the addBond() method. Bonded pairs are
-	identified by TAG, not index so that it doesn't matter if the particles are resorted
-	in memory or not. 
+	Bonds where this potential is computed must be defined in the BondData attached to the ParticleData.
 	\ingroup computes
 */
-class BondForceCompute : public ForceCompute
+class HarmonicBondForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		BondForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar K, Scalar r_0);
+		HarmonicBondForceCompute(boost::shared_ptr<ParticleData> pdata);
+		
+		//! Destructor
+		~HarmonicBondForceCompute();
 		
 		//! Set the parameters
-		virtual void setParams(Scalar K, Scalar r_0);
-		
-		//! Add a bond
-		virtual void addBond(unsigned int tag1, unsigned int tag2);
-
-		//! Get the number of bonds
-		unsigned int getNumBonds() { return m_bonds.size(); }
-		
-		//! A simple struct for storing the two particles of a bonded pair
-		struct BondPair
-			{
-			//! Constructor
-			/*! \param tag1 Tag of the first particle in the bond
-				\param tag2 Tag of the second particle in the bond
-			*/
-			BondPair(unsigned int tag1, unsigned int tag2) : m_tag1(tag1), m_tag2(tag2) {}
-			
-			unsigned int m_tag1;	//!< Tag of the first particle in the bond
-			unsigned int m_tag2;	//!< Tag of the second particle in the bond
-			};
-
-		//! Get a given bond
-		BondForceCompute::BondPair getBond(unsigned int i) { return m_bonds[i]; }
+		virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
@@ -99,11 +79,10 @@ class BondForceCompute : public ForceCompute
 		virtual Scalar getLogValue(const std::string& quantity);
 
 	protected:
-		Scalar m_K;		//!< K parameter
-		Scalar m_r_0;	//!< r_0 parameter
+		Scalar *m_K;	//!< K parameter for multiple bond tyes
+		Scalar *m_r_0;	//!< r_0 parameter for multiple bond types
 		
-		
-		std::vector< BondPair > m_bonds;	//!< A list of all the bonds to compute
+		boost::shared_ptr<BondData> m_bond_data;	//!< Bond data to use in computing bonds
 		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
@@ -111,7 +90,7 @@ class BondForceCompute : public ForceCompute
 	
 #ifdef USE_PYTHON
 //! Exports the BondForceCompute class to python
-void export_BondForceCompute();
+void export_HarmonicBondForceCompute();
 #endif
 
 #endif

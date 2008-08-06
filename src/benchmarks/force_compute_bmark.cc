@@ -57,7 +57,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <string>
 
-#include "BondForceCompute.h"
+#include "HarmonicBondForceCompute.h"
 #include "LJForceCompute.h"
 
 #include "BinnedNeighborList.h"
@@ -103,13 +103,13 @@ bool half_nlist = true;
 Scalar phi_p = 0.2;
 
 //! Helper function to initialize bonds
-void init_bond_tables(shared_ptr<BondForceCompute> bf_compute)
+void init_bond_tables(shared_ptr<ParticleData> pdata)
 	{
 	const unsigned int nbonds = 2;
 	for (unsigned int j = 0; j < N-nbonds/2; j++)
 		{
 		for (unsigned int k = 1; k <= nbonds/2; k++)
-			bf_compute->addBond(j,j+k);
+			pdata->getBondData()->addBond(Bond(0, j,j+k));
 		}
 	}	
 
@@ -133,15 +133,17 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	// handle the various bond force computes
 	if (fc_name == "Bond")
 		{
-		shared_ptr<BondForceCompute> tmp = shared_ptr<BondForceCompute>(new BondForceCompute(pdata, 150, 1.0));
-		init_bond_tables(tmp);
+		shared_ptr<HarmonicBondForceCompute> tmp = shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceCompute(pdata));
+		tmp->setParams(0, 150, 1.0);
+		init_bond_tables(pdata);
 		result = tmp;
 		}
 	#ifdef USE_CUDA
 	if (fc_name == "Bond.GPU")
 		{
-		shared_ptr<BondForceComputeGPU> tmp = shared_ptr<BondForceComputeGPU>(new BondForceComputeGPU(pdata, 150, 1.0));
-		init_bond_tables(tmp);
+		shared_ptr<BondForceComputeGPU> tmp = shared_ptr<BondForceComputeGPU>(new BondForceComputeGPU(pdata));
+		tmp->setParams(0, 150, 1.0);
+		init_bond_tables(pdata);
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}

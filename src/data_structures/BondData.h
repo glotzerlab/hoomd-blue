@@ -40,14 +40,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 /*! \file BondData.h
- 	\brief Contains declarations for BondData.
+ 	\brief Contains declarations for BondData
  */
  
 #ifndef __BONDDATA_H__
 #define __BONDDATA_H__
 
 #include <vector>
-#include <boost/shared_ptr>
+#include <boost/shared_ptr.hpp>
+#include <boost/signal.hpp>
+
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#include "gpu_forces.h"
+#endif
 
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
@@ -86,7 +92,10 @@ class BondData
 	{
 	public:
 		//! Constructs an empty list with no bonds
-		BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types);
+		BondData(ParticleData* pdata, unsigned int n_bond_types);
+		
+		//! Destructor
+		~BondData();
 		
 		//! Add a bond to the list
 		void addBond(const Bond& bond);
@@ -105,7 +114,7 @@ class BondData
 		//! Get the number of bond types
 		/*! \return Number of bond types in the list of bonds
 		*/
-		const unsigned int getNBondTypes() const { return n_bond_types; }
+		const unsigned int getNBondTypes() const { return m_n_bond_types; }
 		
 		//! Set the type mapping
 		void setBondTypeMapping(const std::vector<std::string>& bond_type_mapping);
@@ -117,17 +126,42 @@ class BondData
 		std::string getNameByType(unsigned int type);
 		
 		# ifdef USE_CUDA
-		
+		//! Access the bonds on the GPU
+		gpu_bondtable_array acquireGPU();
 		#endif
 		
 	private:
 		const unsigned int m_n_bond_types;				//!< Number of bond types
-		boost::shared_ptr<ParticleData> m_pdata;		//!< Particle Data these bonds belong to
+		bool m_bonds_dirty;								//!< True if the bond list has been changed
+		ParticleData* m_pdata;							//!< Particle Data these bonds belong to
 		std::vector<Bond> m_bonds;						//!< List of bonds on the CPU
 		std::vector<std::string> m_bond_type_mapping;	//!< Mapping between bond type indices and names
+		
+		boost::signals::connection m_sort_connection;	//!< Connection to the resort signal from ParticleData
+		
+		//! Helper function to set the dirty flag when particles are resorted
+		void setDirty() { m_bonds_dirty = true; }
 			
 		#ifdef USE_CUDA
 		gpu_bondtable_array	m_gpu_bonddata;	//!< List of bonds on the GPU
+		uint2 *m_host_bonds;				//!< Host copy of the bond list
+		unsigned int *m_host_n_bonds;		//!< Host copy of the number of bonds
+		
+		//! Helper function to update the bond table on the device
+		void updateBondTable();
+		
+		//! Helper function to reallocate the bond table on the device
+		void reallocateBondTable(int height);
+		
+		//! Helper function to allocate the bond table
+		void allocateBondTable(int height);
+		
+		//! Helper function to free the bond table
+		void freeBondTable();
+		
+		//! Copies the bond table to the device
+		void copyBondTable();
+		
 		#endif
 	};
 

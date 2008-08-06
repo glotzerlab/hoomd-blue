@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #endif
 
-#include "BondForceCompute.h"
+#include "HarmonicBondForceCompute.h"
 
 #include <iostream>
 #include <sstream>
@@ -53,79 +53,73 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \file BondForceCompute.cc
-	\brief Contains code for the BondForceCompute class
+/*! \file HarmonicBondForceCompute.cc
+	\brief Contains code for the HarmonicBondForceCompute class
 */
 
 /*! \param pdata Particle data to compute forces on
-	\param K Stiffness parameter for the force computation
-	\param r_0 Equilibrium length for the force computation
-	\post Memory is allocated, forces are zeroed, and no bonds are defined
+	\post Memory is allocated, and forces are zeroed.
 */
-BondForceCompute::BondForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar K, Scalar r_0) :	ForceCompute(pdata),
-	m_K(K), m_r_0(r_0)
+HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
+	m_K(NULL), m_r_0(NULL)
 	{
-	// check for some silly errors a user could make 
-	if (m_K <= 0)
-		cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
-	if (m_r_0 <= 0)
-		cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
-	}
+	// access the bond data for later use
+	m_bond_data = m_pdata->getBondData();
 	
-/*! Sets new parameters for the potential
-	\param K Stiffness parameter for the force computation
-	\param r_0 Equilibrium length for the force computation
-*/
-void BondForceCompute::setParams(Scalar K, Scalar r_0)
-	{
-	m_K = K;
-	m_r_0 = r_0;
-
 	// check for some silly errors a user could make 
-	if (m_K <= 0)
-		cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
-	if (m_r_0 <= 0)
-		cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
-	}
-
-/*! \post A bond between particle with tag \a tag1 and with tag \a tag2 are bonded. When
-	compute() is next called, the harmonic force will be calculated between these two particles.
-	\note Each bond should only be specified once! There are no checks to prevent one from being 
-	specified more than once, and doing so would result in twice the force and twice the energy.
-	For a bond between \c i and \c j, only call \c addBond(i,j). Do NOT additionally call 
-	\c addBond(j,i). The first call is sufficient to include the forces on both particle i and j.
-	
-	\param tag1 Tag of the first particle in the bond
-	\param tag2 Tag of the second particle in the bond
- */	
-void BondForceCompute::addBond(unsigned int tag1, unsigned int tag2)
-	{
-	// check for some silly errors a user could make 	
-	if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
+	if (m_bond_data->getNBondTypes() == 0)
 		{
-		cerr << endl << "***Error! Particle tag out of bounds when attempting to add bond: " << tag1 << "," << tag2 << endl << endl;
-		throw runtime_error("Error adding bond");
-		} 
-	if (tag1 == tag2)
-		{
-		cerr << endl << "***Error! Particle cannot be bonded to itself! " << tag1 << "," << tag2 << endl << endl;
-		throw runtime_error("Error adding bond");
+		cout << endl << "***Error! No bond types specified" << endl << endl;
+		throw runtime_error("Error initializing HarmonicBondForceCompute");
 		}
-
-	m_bonds.push_back(BondPair(tag1, tag2));
+		
+	// allocate the parameters
+	m_K = new Scalar[m_bond_data->getNBondTypes()];
+	m_r_0 = new Scalar[m_bond_data->getNBondTypes()];
 	}
 	
+HarmonicBondForceCompute::~HarmonicBondForceCompute()
+	{
+	delete[] m_K;
+	delete[] m_r_0;
+	}
+	
+/*! \param type Type of the bond to set parameters for
+	\param K Stiffness parameter for the force computation
+	\param r_0 Equilibrium length for the force computation
+	
+	Sets parameters for the potential of a particular bond type
+*/
+void HarmonicBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0)
+	{
+	// make sure the type is valid
+	if (type >= m_bond_data->getNBondTypes())
+		{
+		cout << endl << "***Error! Invalid bond typee specified" << endl << endl;
+		throw runtime_error("Error setting parameters in HarmonicBondForceCompute");
+		}
+	
+	m_K[type] = K;
+	m_r_0[type] = r_0;
+
+	// check for some silly errors a user could make 
+	if (m_K <= 0)
+		cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
+	if (m_r_0 <= 0)
+		cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
+	}
+
 /*! BondForceCompute provides
 	- \c harmonic_energy
 */
-std::vector< std::string > BondForceCompute::getProvidedLogQuantities()
+std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
 	list.push_back("harmonic_energy");
 	return list;
 	}
 	
-Scalar BondForceCompute::getLogValue(const std::string& quantity)
+Scalar HarmonicBondForceCompute::getLogValue(const std::string& quantity)
 	{
 	if (quantity == string("harmonic_energy"))
 		{
@@ -141,7 +135,7 @@ Scalar BondForceCompute::getLogValue(const std::string& quantity)
 /*! Actually perform the force computation
 	\param timestep Current time step
  */
-void BondForceCompute::computeForces(unsigned int timestep)
+void HarmonicBondForceCompute::computeForces(unsigned int timestep)
  	{
 	if (m_prof)
 		m_prof->push("Bond");
@@ -181,27 +175,26 @@ void BondForceCompute::computeForces(unsigned int timestep)
 	memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
 	
 	// for each of the bonds
-	const unsigned int size = (unsigned int)m_bonds.size(); 
+	const unsigned int size = (unsigned int)m_bond_data->getNumBonds(); 
 	for (unsigned int i = 0; i < size; i++)
 		{
 		// lookup the tag of each of the particles participating in the bond
-		unsigned int a = m_bonds[i].m_tag1;
-		unsigned int b = m_bonds[i].m_tag2;
+		const Bond& bond = m_bond_data->getBond(i);
 		
-		assert(a < m_pdata->getN());
-		assert(b < m_pdata->getN());
+		assert(bond.a < m_pdata->getN());
+		assert(bond.b < m_pdata->getN());
 				
 		// transform a and b into indicies into the particle data arrays
-		a = arrays.rtag[a];
-		b = arrays.rtag[b];
+		unsigned int idx_a = arrays.rtag[bond.a];
+		unsigned int idx_b = arrays.rtag[bond.b];
 
-		assert(a < m_pdata->getN());
-		assert(b < m_pdata->getN());
+		assert(idx_a < m_pdata->getN());
+		assert(idx_b < m_pdata->getN());
 
 		// calculate d\vec{r}		
-		Scalar dx = arrays.x[b] - arrays.x[a];
-		Scalar dy = arrays.y[b] - arrays.y[a];
-		Scalar dz = arrays.z[b] - arrays.z[a];
+		Scalar dx = arrays.x[idx_b] - arrays.x[idx_a];
+		Scalar dy = arrays.y[idx_b] - arrays.y[idx_a];
+		Scalar dz = arrays.z[idx_b] - arrays.z[idx_a];
 
 		// if the vector crosses the box, pull it back
 		if (dx >= Lx2)
@@ -230,18 +223,18 @@ void BondForceCompute::computeForces(unsigned int timestep)
 		// on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
 		// now calculate r
 		Scalar r = sqrt(dx*dx+dy*dy+dz*dz);
-		Scalar tmp = m_K * (m_r_0 / r - Scalar(1.0));
-		Scalar tmp_eng = Scalar(0.5) * m_K * (m_r_0 - r) * (m_r_0 - r);
+		Scalar tmp = m_K[bond.type] * (m_r_0[bond.type] / r - Scalar(1.0));
+		Scalar tmp_eng = Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] - r) * (m_r_0[bond.type] - r);
 		
 		// add the force to the particles
-		m_fx[b] += tmp * dx;
-		m_fy[b] += tmp * dy;
-		m_fz[b] += tmp * dz;
-		m_pe[b] += Scalar(0.5)*tmp_eng;
-		m_fx[a] -= tmp * dx;
-		m_fy[a] -= tmp * dy;
-		m_fz[a] -= tmp * dz;
-		m_pe[a] += Scalar(0.5)*tmp_eng;
+		m_fx[idx_b] += tmp * dx;
+		m_fy[idx_b] += tmp * dy;
+		m_fz[idx_b] += tmp * dz;
+		m_pe[idx_b] += Scalar(0.5)*tmp_eng;
+		m_fx[idx_a] -= tmp * dx;
+		m_fy[idx_a] -= tmp * dy;
+		m_fz[idx_a] -= tmp * dz;
+		m_pe[idx_a] += Scalar(0.5)*tmp_eng;
 		} 
 
 	m_pdata->release();
@@ -255,18 +248,17 @@ void BondForceCompute::computeForces(unsigned int timestep)
 	// and 4 index reads, then 6 position reads and 6 force writes
 	if (m_prof)
 		{
-		m_prof->pop(39*m_bonds.size(), (4*sizeof(int)+16*sizeof(Scalar))*m_bonds.size());
+		m_prof->pop(39*m_bond_data->getNumBonds(), (4*sizeof(int)+16*sizeof(Scalar))*m_bond_data->getNumBonds());
 		m_prof->pop();
 		}
 	}
 	
 #ifdef USE_PYTHON
-void export_BondForceCompute()
+void export_HarmonicBondForceCompute()
 	{
-	class_<BondForceCompute, boost::shared_ptr<BondForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("BondForceCompute", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
-		.def("setParams", &BondForceCompute::setParams)
-		.def("addBond", &BondForceCompute::addBond)
+	class_<HarmonicBondForceCompute, boost::shared_ptr<HarmonicBondForceCompute>, bases<ForceCompute>, boost::noncopyable >
+		("HarmonicBondForceCompute", init< boost::shared_ptr<ParticleData> >())
+		.def("setParams", &HarmonicBondForceCompute::setParams)
 		;
 	}
 #endif

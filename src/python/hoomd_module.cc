@@ -54,7 +54,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Compute.h"
 #include "ForceCompute.h"
 #include "ConstForceCompute.h"
-#include "BondForceCompute.h"
+#include "HarmonicBondForceCompute.h"
 #include "LJForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "TempCompute.h"
@@ -251,7 +251,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_Compute();
 	export_ForceCompute();
 	export_ConstForceCompute();
-	export_BondForceCompute();
+	export_HarmonicBondForceCompute();
 	export_LJForceCompute();
 	export_LJWallForceCompute();
 	export_TempCompute();

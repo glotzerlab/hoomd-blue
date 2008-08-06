@@ -425,18 +425,21 @@ std::vector<std::string> RandomGenerator::getTypeMapping() const
 	return m_type_mapping;
 	}
 	
-void RandomGenerator::setupNeighborListExclusions(boost::shared_ptr<NeighborList> nlist)
+/*! \return Number of bond types generated
+*/
+unsigned int RandomGenerator::getNumBondTypes() const
 	{
-	// loop through all the bonds and add an exclusion for each
-	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)
-		nlist->addExclusion(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+	return 1;
 	}
-	
-void RandomGenerator::setupBonds(boost::shared_ptr<BondForceCompute> fc_bond)
+
+/*! \param bond_data Shared pointer to the BondData to be initialized
+	Adds all generated bonds to the BondData
+*/
+void RandomGenerator::initBondData(boost::shared_ptr<BondData> bond_data) const
 	{
 	// loop through all the bonds and add a bond for each
 	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)	
-		fc_bond->addBond(m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b);
+		bond_data->addBond(Bond(0, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
 	}
 
 /*! \param type Name of the particle type to set the radius for
@@ -455,7 +458,7 @@ void RandomGenerator::addGenerator(unsigned int repeat, boost::shared_ptr<Partic
 	m_generator_repeat.push_back(repeat);
 	m_generators.push_back(generator);
 	}
-		
+
 /*! \pre setSeparationRadius has been called for all particle types that will be generated
 	\pre addGenerator has been called for all desired generators
 */
@@ -670,8 +673,6 @@ void export_RandomGenerator()
 		.def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
 		.def("addGenerator", &RandomGenerator::addGenerator)
 		.def("generate", &RandomGenerator::generate)
-		.def("setupNeighborListExclusions", &RandomGenerator::setupNeighborListExclusions)
-		.def("setupBonds", &RandomGenerator::setupBonds) 
 		;
 		
 	class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())
