@@ -79,11 +79,13 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 	// loop over neighbors
 	for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
 		{
-		uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + pidx];
+		volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + pidx];
+		int cur_bond_idx = cur_bond.x;
+		int cur_bond_type = cur_bond.y;
 		// cur_bond.x now holds the bonded particle and cur_bond.y is the bond type
 			
 		// get the bonded particle's position
-		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_bond.x);
+		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
 	
 		// calculate dr
 		float dx = pos.x - neigh_pos.x;
@@ -96,7 +98,7 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 		dz -= box.Lz * rintf(dz * box.Lzinv);
 		
 		// get the bond parameters
-		float2 params = tex1Dfetch(bond_params_tex, cur_bond.y);
+		float2 params = tex1Dfetch(bond_params_tex, cur_bond_type);
 		float K = params.x;
 		float r_0 = params.y;
 		

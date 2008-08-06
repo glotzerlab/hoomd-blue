@@ -95,8 +95,13 @@ BondData::BondData(ParticleData* pdata, unsigned int n_bond_types) : m_n_bond_ty
 BondData::~BondData()
 	{
 	m_sort_connection.disconnect();
+	
 	#ifdef USE_CUDA
-	freeBondTable();
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (exec_conf.gpu.size() == 1)
+		{
+		freeBondTable();
+		}
 	#endif
 	}
 
@@ -120,7 +125,7 @@ void BondData::addBond(const Bond& bond)
 		cerr << endl << "***Error! Particle tag out of bounds when attempting to add bond: " << bond.a << "," << bond.b << endl << endl;
 		throw runtime_error("Error adding bond");
 		}
-		
+	
 	if (bond.a == bond.b)
 		{
 		cerr << endl << "***Error! Particle cannot be bonded to itself! " << bond.a << "," << bond.b << endl << endl;
@@ -305,9 +310,9 @@ void BondData::allocateBondTable(int height)
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata.n_bonds), N*sizeof(unsigned int)));
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_bonddata.n_bonds, 0, N*sizeof(unsigned int)));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bonddata.bonds), &pitch, N*sizeof(unsigned int), height));
+	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bonddata.bonds), &pitch, N*sizeof(uint2), height));
 	// want pitch in elements, not bytes
-	m_gpu_bonddata.pitch = (int)pitch / sizeof(int);
+	m_gpu_bonddata.pitch = (int)pitch / sizeof(uint2);
 	m_gpu_bonddata.height = height;
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_bonddata.bonds, 0, pitch * height));
 	
@@ -348,6 +353,7 @@ void BondData::copyBondTable()
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bonddata.bonds, m_host_bonds,
 			sizeof(uint2) * m_gpu_bonddata.height * m_gpu_bonddata.pitch,
 			cudaMemcpyHostToDevice));
+			
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bonddata.n_bonds, m_host_n_bonds,
 			sizeof(unsigned int) * m_pdata->getN(),
 			cudaMemcpyHostToDevice));

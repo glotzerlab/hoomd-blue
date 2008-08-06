@@ -75,6 +75,7 @@ HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<Parti
 		}
 	
 	// allocate and zero device memory
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params), m_bond_data->getNBondTypes()*sizeof(float2)));
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float2)));
 	
@@ -86,6 +87,7 @@ HarmonicBondForceComputeGPU::~HarmonicBondForceComputeGPU()
 	{
 	// free memory on the GPU
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaFree, (void*)m_gpu_params));
 	m_gpu_params = NULL;
 	
@@ -110,6 +112,7 @@ void HarmonicBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar 
 	
 	// copy the parameters to the GPU
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float2), cudaMemcpyHostToDevice));
 	}
 

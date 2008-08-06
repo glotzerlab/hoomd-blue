@@ -141,6 +141,7 @@ void GPUWorker::call(const boost::function< cudaError_t (void) > &func)
 	// call and then sync
 	callAsync(func);
 	sync();
+	//func();
 	}
 
 /*! \param func Function to execute inside the worker thread
@@ -274,6 +275,7 @@ void GPUWorker::performWorkLoop()
 		// execute any functions in the queue
 		while (!pong_queue.empty())
 			{
+			// cout << " at " << m_tagged_file << ":" << m_tagged_line << endl;
 			cudaError_t tmp_error = pong_queue.front()();
 			
 			// update error only if it is cudaSuccess
