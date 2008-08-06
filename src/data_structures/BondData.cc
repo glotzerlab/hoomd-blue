@@ -241,7 +241,7 @@ void BondData::updateBondTable()
 		
 	// now, update the actual table
 	// zero the number of bonds counter (again)
-	memset(m_host_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
+	memset(m_host_n_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
 	
 	// loop through all bonds and add them to each column in the list
 	int pitch = m_gpu_bonddata.pitch;
