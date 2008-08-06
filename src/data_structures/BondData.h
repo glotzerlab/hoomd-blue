@@ -165,4 +165,9 @@ class BondData
 		#endif
 	};
 
+#ifdef USE_PYTHON
+//! Exports BondData to python
+void export_BondData();
+#endif
+
 #endif

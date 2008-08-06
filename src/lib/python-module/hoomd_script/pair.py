@@ -40,7 +40,7 @@
 ## \package hoomd_script.pair
 # \brief Commands that create forces between pairs of particles
 #
-# Generally, %pair forces are short range and are summed over all particles
+# Generally, %pair forces are short range and are summed over all non-bonded particles
 # within a certain cutoff radius of each particle. Any number of %pair forces
 # can be defined in a single simulation. The net %force on each particle due to
 # all types of %pair forces is summed.

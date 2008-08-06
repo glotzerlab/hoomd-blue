@@ -167,7 +167,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 void export_HarmonicBondForceComputeGPU()
 	{
 	class_<HarmonicBondForceComputeGPU, boost::shared_ptr<HarmonicBondForceComputeGPU>, bases<HarmonicBondForceCompute>, boost::noncopyable >
-		("BondForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicBondForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
 		.def("setBlockSize", &HarmonicBondForceComputeGPU::setBlockSize)
 		;
 	}

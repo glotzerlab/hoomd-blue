@@ -117,9 +117,9 @@ class lj(force._force):
 	# \param sigma Coefficient \f$ \sigma \f$ in the %force
 	# \param alpha Coefficient \f$ \alpha \f$ in the %force
 	#
-	# Using set_coeff() requires that the specified wall force has been saved in a variable. i.e.
+	# Using set_coeff() requires that the specified %wall %force has been saved in a variable. i.e.
 	# \code
-	# lj_wall = wall.lj(r_cut=3.0);
+	# lj_wall = wall.lj(r_cut=3.0)
 	# \endcode
 	#
 	# \b Examples:
@@ -153,5 +153,5 @@ class lj(force._force):
 		# check to see if all particle types have been set
 		for cur_type in type_list:
 			if not cur_type in self.particle_types_set:
-				print >> sys.stderr, "\n***Error: Not all coefficients are set in wall.lj\n";
+				print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in wall.lj\n";
 				raise RuntimeError("Error updating coefficients");

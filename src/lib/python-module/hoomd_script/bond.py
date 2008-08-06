@@ -55,28 +55,38 @@ import sys;
 
 ## Harmonic %bond forces
 #
-# TODO: document
-# This is a TEMPORARY HACK class. The interface \b WILL change in the near future
+# The command bond.harmonic specifies a harmonic potential energy between every bonded pair of particles
+# in the simulation. 
+# \f[ V(r) = \frac{1}{2} k \left( r - r_0 \right)^2 \f]
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the pair.
+#
+# Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of bond in the simulation using
+# set_coeff().
+#
+# \note Specifying the bond.harmonic command when no bond are defined in the simulation results in an error.
 class harmonic(force._force):
 	## Specify the harmonic bond force
 	#
-	# TODO: document me
-	def __init__(self, K, r0):
-		print "bond.harmonic(K =", K, ", r0 =", r0, ")";
+	# \b Example:
+	# \code
+	# harmonic = bond.harmonic()
+	# \endcode
+	def __init__(self):
+		print "bond.harmonic()";
 		
-		# if there is no initializer that deals with bonds, error out
-		if not globals.initializer:
-			print >> sys.stderr, "\n***Error! Cannot create bonds without an initializer that sets them!\n";
-			raise RuntimeError("Error creating bond forces");
+		# check that some bonds are defined
+		if globals.particle_data.getBondData().getNumBonds() == 0:
+			print >> sys.stderr, "\n***Error! No bonds are defined.\n";
+			raise RuntimeError("Error creating bond forces");		
 		
 		# initialize the base class
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
 		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.BondForceCompute(globals.particle_data, K, r0);
+			self.cpp_force = hoomd.HarmonicBondForceCompute(globals.particle_data);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_force = hoomd.BondForceComputeGPU(globals.particle_data, K, r0);
+			self.cpp_force = hoomd.HarmonicBondForceComputeGPU(globals.particle_data);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");
@@ -85,8 +95,47 @@ class harmonic(force._force):
 
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
-		# add the bonds
-		globals.initializer.setupBonds(self.cpp_force);
+		# variable for tracking which bond type coefficients have been set
+		self.bond_types_set = [];
+	
+	## Sets the %harmonic %bond coefficients for a particular %bond type
+	#
+	# \param bond_type Bond type to set coefficients for
+	# \param k Coefficient \f$ k \f$ in the %force
+	# \param r0 Coefficient \f$ r_0 \f$ in the %force
+	#
+	# Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
+	# \code
+	# harmonic = bond.harmonic()
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# harmonic.set_coeff('polymer', k=330.0, r0=0.84)
+	# harmonic.set_coeff('backbone', k=100.0, r0=1.0)
+	# \endcode
+	#
+	# The coefficients for every bond type in the simulation must be set 
+	# before the run() can be started.
+	def set_coeff(self, bond_type, k, r0):
+		print "harmonic.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ")";
+		
+		# set the parameters for the appropriate type
+		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0);
+		
+		# track which particle types we have set
+		if not bond_type in self.bond_types_set:
+			self.bond_types_set.append(bond_type);
 		
 	def update_coeffs(self):
-		pass
+		# get a list of all bond types in the simulation
+		ntypes = globals.particle_data.getBondData().getNBondTypes();
+		type_list = [];
+		for i in xrange(0,ntypes):
+			type_list.append(globals.particle_data.getBondData().getNameByType(i));
+			
+		# check to see if all particle types have been set
+		for cur_type in type_list:
+			if not cur_type in self.bond_types_set:
+				print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in bond.harmonic\n";
+				raise RuntimeError("Error updating coefficients");

@@ -302,12 +302,12 @@ class force_constant_tests (unittest.TestCase):
 		globals._clear();
 
 # tests wall.lj
-class force_constant_tests (unittest.TestCase):
+class wall_lj_tests (unittest.TestCase):
 	def setUp(self):
 		print
 		init.create_random(N=100, phi_p=0.05);
 	
-	# test to see that se can create a force.constant
+	# test to see that se can create a wall.lj
 	def test_create(self):
 		wall.lj(r_cut=3.0);
 		
@@ -315,6 +315,7 @@ class force_constant_tests (unittest.TestCase):
 	def test_set_coeff(self):
 		lj_wall = wall.lj(r_cut=3.0);
 		lj_wall.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
+		integrate.nve(dt=0.005);
 		run(100);
 		
 	# test coefficient not set checking
@@ -323,6 +324,36 @@ class force_constant_tests (unittest.TestCase):
 		integrate.nve(dt=0.005);
 		self.assertRaises(RuntimeError, run, 100);
 	
+	def tearDown(self):
+		globals._clear();
+		
+# tests bond.harmonic
+class bond_harmonic_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=100);
+		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="TODO", count=10)
+		self.polymers = [self.polymer1, self.polymer2]
+		self.box = hoomd.BoxDim(35);
+		self.separation=dict(A=0.35, B=0.35)
+		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+	
+	# test to see that se can create a force.constant
+	def test_create(self):
+		bond.harmonic();
+		
+	# test setting coefficients
+	def test_set_coeff(self):
+		harmonic = bond.harmonic();
+		harmonic.set_coeff('bondA', k=1.0, r0=1.0)
+		integrate.nve(dt=0.005);
+		run(100);
+		
+	# test coefficient not set checking
+	def test_set_coeff_fail(self):
+		harmonic = bond.harmonic();
+		integrate.nve(dt=0.005);
+		self.assertRaises(RuntimeError, run, 100);
 	
 	def tearDown(self):
 		globals._clear();

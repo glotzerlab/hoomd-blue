@@ -1048,6 +1048,7 @@ void export_ParticleData()
 		.def("getTypeByName", &ParticleData::getTypeByName)
 		.def("acquireReadOnly", &ParticleData::acquireReadOnly, return_value_policy<copy_const_reference>())
 		.def("acquireReadWrite", &ParticleData::acquireReadWrite, return_value_policy<copy_const_reference>())
+		.def("getBondData", &ParticleData::getBondData)
 		#ifdef USE_CUDA
 		.def("acquireReadOnlyGPU", &ParticleData::acquireReadOnlyGPU)
 		.def("acquireReadWriteGPU", &ParticleData::acquireReadWriteGPU)

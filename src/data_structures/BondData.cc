@@ -42,6 +42,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "ParticleData.h"
 
+#ifdef USE_PYTHON
+#include <boost/python.hpp>
+using namespace boost::python;
+#endif
+
 #include <boost/bind.hpp>
 using namespace boost;
 
@@ -66,6 +71,17 @@ BondData::BondData(ParticleData* pdata, unsigned int n_bond_types) : m_n_bond_ty
 	
 	// attach to the signal for notifications of particle sorts
 	m_sort_connection = m_pdata->connectParticleSort(bind(&BondData::setDirty, this));
+	
+	// offer a default type mapping
+	for (unsigned int i = 0; i < n_bond_types; i++)
+		{
+		char suffix[2];
+		suffix[0] = 'A' + i;
+		suffix[1] = '\0';
+
+		string name = string("bond") + string(suffix);
+		m_bond_type_mapping.push_back(name);
+		}
 	
 	#ifdef USE_CUDA
 	// init pointers
@@ -357,5 +373,19 @@ void BondData::copyBondTable()
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bonddata.n_bonds, m_host_n_bonds,
 			sizeof(unsigned int) * m_pdata->getN(),
 			cudaMemcpyHostToDevice));
+	}
+#endif
+
+
+#ifdef USE_PYTHON
+void export_BondData()
+	{
+	class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<ParticleData *, unsigned int>())
+		.def("getNumBonds", &BondData::getNumBonds)
+		.def("getNBondTypes", &BondData::getNBondTypes)
+		.def("getTypeByName", &BondData::getTypeByName)
+		.def("getNameByType", &BondData::getNameByType)
+		;
+	
 	}
 #endif
