@@ -98,10 +98,12 @@ support CUDA http://www.nvidia.com/object/cuda_home.html.
  
 HOOMD should now show up on your <b>Start menu</b> and the \a .hoomd file type 
 is registered to execute the script when you double click on one.
-The command \b hoomd, can also be run on the <b>command line</b> to start the HOOMD python interpreter.
+The command \b hoomd can also be run on the <b>command line</b> to start the HOOMD python interpreter.
 
 The start menu includes links to benchmark scripts as well as several live demos.
 In order to visualize the demos, you must have VMD 1.8.6 installed: http://www.ks.uiuc.edu/Research/vmd/
+
+Check out the \ref page_quick_start to learn how to use HOOMD.
 
 <hr>
 
@@ -127,22 +129,17 @@ In order to visualize the demos, you must have VMD 1.8.6 installed: http://www.k
   for instructions. You will probably need to log out and back in for the path setting 
   to take effect.
 
-After installation is complete, you should be able to run 
+After installation is complete, run 
 \code
 hoomd 
 \endcode
-in any terminal. You should see something like:
+in any terminal. You should see something like this:
 \code
 Python 2.4.4 (#1, Nov  4 2007, 17:29:36)
 [GCC 4.1.2 (Gentoo 4.1.2)] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
 >>> 
 \endcode
-The python version is printed because HOOMD is really just a python
-module. Job scripts are python scripts, and the hoomd executable is just a front end 
-to python. Writing a job script for HOOMD requires only a \b minimum of python language
-knowledge: anyone who can use the command shell should have no trouble learning to write
-scripts for HOOMD.
 
 To test your installation further, yo can execute packaged \b benchmarks and <b>live demos</b>. 
 You will find them in EXTRACTED_LOCATION/share/hoomd
@@ -153,4 +150,6 @@ cd EXTRACTED_LOCATION/share/hoomd/benchmarks/
 \endcode
 
 Note: to visualize the live demos, you need to have VMD 1.8.6 installed: http://www.ks.uiuc.edu/Research/vmd/
+
+Check out the \ref page_quick_start to learn how to use HOOMD.
 */
