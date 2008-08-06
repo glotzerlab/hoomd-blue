@@ -144,7 +144,7 @@ void BondData::addBond(const Bond& bond)
 */
 void BondData::setBondTypeMapping(const std::vector<std::string>& bond_type_mapping)
 	{
-	assert(m_bond_type_mapping.size() == m_n_bond_types);
+	assert(bond_type_mapping.size() == m_n_bond_types);
 	m_bond_type_mapping = bond_type_mapping;
 	}
 	

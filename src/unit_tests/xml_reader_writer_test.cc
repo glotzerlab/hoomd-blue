@@ -48,6 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include "HOOMDDumpWriter.h"
 #include "HOOMDInitializer.h"
+#include "BondData.h"
 
 #include <iostream>
 #include <sstream>
@@ -481,6 +482,12 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 <coord ox=\"1.0\" oy=\"2.0\" oz=\"3.0\" nx=\"4.0\" ny=\"5.0\" nz=\"6.0\"/>\n\
 <coord ox=\"7.0\" oy=\"8.0\" oz=\"9.0\" nx=\"10.0\" ny=\"11.0\" nz=\"-12.0\"/>\n\
 </wall>\n\
+<bond>\n\
+bond_a 0 1\n\
+bond_b 1 2\n\
+bond_a 2 3\n\
+bond_c 3 4\n\
+</bond>\n\
 </configuration>\n\
 </hoomd_xml>" << endl;
 	f.close();
@@ -540,7 +547,43 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 	MY_BOOST_CHECK_CLOSE(wall2.normal_y, 0.575766315, tol);
 	MY_BOOST_CHECK_CLOSE(wall2.normal_z, -0.628108707, tol);
 
-
+	// check the bonds
+	boost::shared_ptr<BondData> bond_data = pdata->getBondData();
+	
+	// 4 bonds should have been read in
+	BOOST_REQUIRE_EQUAL(bond_data->getNumBonds(), (unsigned int)4);
+	
+	// check that the types have been named properly
+	BOOST_REQUIRE_EQUAL(bond_data->getNBondTypes(), (unsigned int)3);
+	BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_a"), (unsigned int)0);
+	BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_b"), (unsigned int)1);
+	BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_c"), (unsigned int)2);
+	
+	BOOST_CHECK_EQUAL(bond_data->getNameByType(0), string("bond_a"));
+	BOOST_CHECK_EQUAL(bond_data->getNameByType(1), string("bond_b"));
+	BOOST_CHECK_EQUAL(bond_data->getNameByType(2), string("bond_c"));
+	
+	// verify each bond
+	Bond b = bond_data->getBond(0);
+	BOOST_CHECK_EQUAL(b.a, (unsigned int)0);
+	BOOST_CHECK_EQUAL(b.b, (unsigned int)1);
+	BOOST_CHECK_EQUAL(b.type, (unsigned int)0);
+	
+	b = bond_data->getBond(1);
+	BOOST_CHECK_EQUAL(b.a, (unsigned int)1);
+	BOOST_CHECK_EQUAL(b.b, (unsigned int)2);
+	BOOST_CHECK_EQUAL(b.type, (unsigned int)1);
+	
+	b = bond_data->getBond(2);
+	BOOST_CHECK_EQUAL(b.a, (unsigned int)2);
+	BOOST_CHECK_EQUAL(b.b, (unsigned int)3);
+	BOOST_CHECK_EQUAL(b.type, (unsigned int)0);
+	
+	b = bond_data->getBond(3);
+	BOOST_CHECK_EQUAL(b.a, (unsigned int)3);
+	BOOST_CHECK_EQUAL(b.b, (unsigned int)4);
+	BOOST_CHECK_EQUAL(b.type, (unsigned int)2);
+	
 	// clean up after ourselves
 	remove_all("test_input.xml");
 	}
