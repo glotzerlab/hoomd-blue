@@ -67,16 +67,6 @@ neighbor_list = None;
 ## Global variable tracking all the loggers that have been created
 loggers = [];
 
-# Storing the initializer is for setting up bonds and neighborlist exclusions. 
-# It is a TEMPORARY HACK to get things running quickly. When Bonds are reorganized
-# in #42, this hack will go away. Only initializers that set bonds should assign 
-# themselves to this variable
-## (Temporary hack) Global variable tracking the initializer used
-initializer = None;
-
-## temporary hack to get bond information to the mol2 dump
-bond_compute = None;
-
 ## \internal
 # \brief Clears all global variables to default values
 # \details \note Only use this if you really know what you are doing. Its intended use
@@ -90,10 +80,6 @@ def _clear():
 	integrator = None;
 	neighbor_list = None;
 	loggers = [];
-	
-	global initializer, bond_compute;
-	initializer = None;
-	bond_compute = None;
 	
 	import __main__;
 	__main__.sorter = None;

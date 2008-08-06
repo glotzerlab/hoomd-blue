@@ -89,9 +89,6 @@ def read_xml(filename):
 	initializer = hoomd.HOOMDInitializer(filename);
 	globals.particle_data = hoomd.ParticleData(initializer, _create_exec_conf());
 	
-	# TEMPORARY HACK for bond initialization
-	globals.initializer = initializer;
-
 	# initialize the system
 	globals.system = hoomd.System(globals.particle_data, initializer.getTimeStep());
 	
@@ -154,9 +151,6 @@ def create_random(N, phi_p, name="A", min_dist=1.0):
 	generator.generate();
 	
 	globals.particle_data = hoomd.ParticleData(generator, my_exec_conf);
-	
-	# TEMPORARY HACK for bond initialization
-	globals.initializer = generator;
 	
 	# initialize the system
 	globals.system = hoomd.System(globals.particle_data, 0);
@@ -285,9 +279,6 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	generator.generate();
 	
 	globals.particle_data = hoomd.ParticleData(generator, my_exec_conf);
-	
-	# TEMPORARY HACK for bond initialization
-	globals.initializer = generator;
 	
 	# initialize the system
 	globals.system = hoomd.System(globals.particle_data, 0);

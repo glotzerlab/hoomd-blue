@@ -243,6 +243,9 @@ class coeff:
 # A neighbor list should not be directly created by you. One will be automatically
 # created whenever a %pair %force is specified. The cutoff radius is set to the
 # maximum of that set for all defined %pair forces.
+#
+# Any bonds defined in the simulation are automatically used to exclude bonded particle
+# pairs from appearing in the neighbor list.
 class nlist:
 	## \internal
 	# \brief Constructs a neighbor list
@@ -265,11 +268,9 @@ class nlist:
 			raise RuntimeError("Error creating neighbor list");
 			
 		self.cpp_nlist.setEvery(10);
-		globals.system.addCompute(self.cpp_nlist, "auto_nlist");
+		self.cpp_nlist.copyExclusionsFromBonds();
 		
-		# set the exclusions (TEMPORARY HACK for bonds)
-		if globals.initializer:
-			globals.initializer.setupNeighborListExclusions(self.cpp_nlist);
+		globals.system.addCompute(self.cpp_nlist, "auto_nlist");
 		
 		# save the parameters we set
 		self.r_cut = r_cut;
@@ -345,7 +346,7 @@ def _update_global_nlist(r_cut):
 ## Lennard-Jones %pair %force
 #
 # The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
-# particle in the simulation.
+# non-bonded particle pair in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}

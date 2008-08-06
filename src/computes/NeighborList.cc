@@ -51,6 +51,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 
 #include "NeighborList.h"
+#include "BondData.h"
 
 #include <sstream>
 #include <fstream>
@@ -593,6 +594,22 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 		}
 	forceUpdate();
 	}
+	
+/*! After calling copyExclusionFromBonds() all bond specified in the attached ParticleData will be 
+	added as exlusions. Any additional bonds added after this will not be automatically added as exclusions.
+*/
+void NeighborList::copyExclusionsFromBonds()
+	{
+	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
+	
+	// for each bond
+	for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+		{
+		// add an exclusion
+		Bond bond = bond_data->getBond(i);
+		addExclusion(bond.a, bond.b);
+		}
+	}
 
 /*! \returns true If any of the particles have been moved more than 1/2 of the buffer distance since the last call
 		to this method that returned true.
@@ -893,6 +910,7 @@ void export_NeighborList()
 		.def("getList", &NeighborList::getList, return_internal_reference<>())
 		.def("setStorageMode", &NeighborList::setStorageMode)
 		.def("addExclusion", &NeighborList::addExclusion)
+		.def("copyExclusionsFromBonds", &NeighborList::copyExclusionsFromBonds)
 		.def("forceUpdate", &NeighborList::forceUpdate)
 		.def("estimateNNeigh", &NeighborList::estimateNNeigh)
 		;

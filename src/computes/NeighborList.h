@@ -95,7 +95,10 @@ using std::string;
 	an update is automatically forced.
 	
 	Particles pairs can be excluded from the list by calling addExclusion(). Each particle can 
-	exclude up to 4 others from appearing in its list.
+	exclude up to 4 others from appearing in its list. copyExclusionsFromBonds() adds an 
+	exclusion for every bond specified in the ParticleData. \b NOTE: this is a one time thing.
+	Any dynamic bonds added after calling copyExclusionsFromBonds() will not be added to the 
+	neighborlist exclusions: this must be done by hand.
 	
 	The calculated neighbor list can be read using getList().
 	
@@ -166,6 +169,9 @@ class NeighborList : public Compute
 
 		//! Exclude a pair of particles from being added to the neighbor list
 		void addExclusion(unsigned int tag1, unsigned int tag2);
+		
+		//! Add an exclusion for every bond in the ParticleData
+		void copyExclusionsFromBonds();
 
 		//! Forces a full update of the list on the next call to compute()
 		void forceUpdate() { m_force_update = true; }
