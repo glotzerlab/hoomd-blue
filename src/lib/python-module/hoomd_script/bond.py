@@ -55,17 +55,17 @@ import sys;
 
 ## Harmonic %bond forces
 #
-# The command bond.harmonic specifies a harmonic potential energy between every bonded pair of particles
+# The command bond.harmonic specifies a %harmonic potential energy between every bonded %pair of particles
 # in the simulation. 
 # \f[ V(r) = \frac{1}{2} k \left( r - r_0 \right)^2 \f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the pair.
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
-# Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of bond in the simulation using
+# Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using
 # set_coeff().
 #
-# \note Specifying the bond.harmonic command when no bond are defined in the simulation results in an error.
+# \note Specifying the bond.harmonic command when no bonds are defined in the simulation results in an error.
 class harmonic(force._force):
-	## Specify the harmonic bond force
+	## Specify the %harmonic %bond %force
 	#
 	# \b Example:
 	# \code
@@ -115,7 +115,7 @@ class harmonic(force._force):
 	# harmonic.set_coeff('backbone', k=100.0, r0=1.0)
 	# \endcode
 	#
-	# The coefficients for every bond type in the simulation must be set 
+	# The coefficients for every %bond type in the simulation must be set 
 	# before the run() can be started.
 	def set_coeff(self, bond_type, k, r0):
 		print "harmonic.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ")";

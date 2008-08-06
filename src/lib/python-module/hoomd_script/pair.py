@@ -346,7 +346,7 @@ def _update_global_nlist(r_cut):
 ## Lennard-Jones %pair %force
 #
 # The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
-# non-bonded particle pair in the simulation.
+# non-bonded particle %pair in the simulation.
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
@@ -356,9 +356,9 @@ def _update_global_nlist(r_cut):
 # where
 # \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
 # 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
-# and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the pair.
+# and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
-# The following coefficients must be set per unique pair of particle types. See pair or 
+# The following coefficients must be set per unique %pair of particle types. See pair or 
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ \varepsilon \f$ - \c epsilon
 # - \f$ \sigma \f$ - \c sigma
@@ -371,7 +371,7 @@ def _update_global_nlist(r_cut):
 #
 # The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.lj is specified (see __init__())
 class lj(force._force):
-	## Specify the Lennard-Jones pair force
+	## Specify the Lennard-Jones %pair %force
 	#
 	# \param r_cut Cuttoff radius (see documentation above)
 	#
