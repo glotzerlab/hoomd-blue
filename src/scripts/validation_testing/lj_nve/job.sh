@@ -2,7 +2,7 @@
 
 # This script is a SGE job script for running on teslahoomd.physics.iastate.edu
 
-#$ -N nrg_longrun
+#$ -N lj_nve
 #$ -l gpu=1
 #$ -j y
 #$ -cwd
