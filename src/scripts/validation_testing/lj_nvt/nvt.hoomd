@@ -1,0 +1,23 @@
+from hoomd_script import *
+
+# this script stress tests the system by running a large lj liquid sim for a long time
+
+# create 64000 random particles of name A
+init.create_random(N=64000, phi_p=0.05, name='A')
+
+# specify Lennard-Jones interactions between particle pairs
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+# integrate at constant temperature
+integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+
+# dump every 100,000 steps
+dump.mol2(filename="lj.mol2");
+dump.dcd(filename="dump.dcd", period=100000);
+
+# log lj energy
+analyze.log(filename="energy.log", quantities=['lj_energy'], period=2000)
+
+# run for a long time
+run(30e6)
