@@ -1,0 +1,52 @@
+#! /usr/bin/env hoomd
+# $Id: polymer_bmark.hoomd 1134 2008-08-06 22:26:28Z joaander $
+# $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/share/hoomd/benchmarks/polymer_bmark.hoomd $
+
+from hoomd_script import *
+import math
+
+# log file for average TPS results
+f = open("polymer_tps", 'w');
+f.write("N\tTPS\n");
+f.flush();
+
+# parameters
+phi_P = 0.20
+T = 1.2
+
+n_poly_list = [50, 100, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 7000, 8000, 9000, 10000];
+
+for n_poly in n_poly_list:
+	polymer1 = dict(bond_len=1.2, type=['A']*10 + ['B']*7 + ['A']*10, bond="linear", count=n_poly)
+	
+	# perform some simple math to find the length of the box
+	N = len(polymer1['type']) * polymer1['count'];
+	L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
+	
+	# generate the polymer system
+	init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], separation=dict(A=0.35, B=0.35));
+	
+	# force field setup
+	harmonic = bond.harmonic()
+	harmonic.set_coeff('polymer', k=330.0, r0=0.84)
+	lj = pair.lj(r_cut=3.0)
+	lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+	lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+	lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+	
+	# NVT integration
+	integrate.nvt(dt=0.005, T=T, tau=0.5)
+	
+	# warm up the system
+	run(4000)
+	
+	# run the full benchmark
+	run(50000)
+	TPS = globals.system.getLastTPS();
+	
+	f.write("%d\t%f\n" % (N, TPS));
+	f.flush();
+	
+	globals._clear();
+
+f.close();

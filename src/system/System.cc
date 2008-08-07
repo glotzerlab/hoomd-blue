@@ -404,6 +404,7 @@ void System::run(unsigned int nsteps)
 	// calculate averate TPS
 	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime()) * Scalar(1e9);
 	cout << "Average TPS: " << TPS << endl;
+	m_last_TPS = TPS;
 		
 	// write out the profile data
 	if (m_profiler)
@@ -548,6 +549,8 @@ void export_System()
 		.def("setStatsPeriod", &System::setStatsPeriod)
 		.def("enableProfiler", &System::enableProfiler)
 		.def("run", &System::run)
+		
+		.def("getLastTPS", &System::getLastTPS)
 		;
 	}
 #endif

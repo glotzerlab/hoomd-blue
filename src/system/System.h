@@ -160,6 +160,9 @@ class System
 		//! Sets the statistics period
 		void setStatsPeriod(unsigned int seconds);
 		
+		//! Get the average TPS from the last run
+		Scalar getLastTPS()	const { return m_last_TPS; }
+		
 	private:
 		//! Holds an item in the list of analyzers
 		struct analyzer_item
@@ -257,6 +260,7 @@ class System
 		//! Search for an Updater by name
 		std::vector<updater_item>::iterator findUpdaterItem(const std::string &name);
 
+		Scalar m_last_TPS;	//!< Stores the average TPS from the last run
 	};
 	
 #ifdef USE_PYTHON
