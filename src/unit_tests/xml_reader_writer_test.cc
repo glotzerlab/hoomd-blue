@@ -82,7 +82,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	// start by creating a single particle system: see it the correct file is written
 	BoxDim box(Scalar(2.5), Scalar(4.5), Scalar(12.1));
 	int n_types = 5;
-	shared_ptr<ParticleData> pdata(new ParticleData(1, box, n_types));
+	int n_bond_types = 2;
+	shared_ptr<ParticleData> pdata(new ParticleData(2, box, n_types, n_bond_types));
 	// set recognizable values for the particle
 	const ParticleDataArrays array = pdata->acquireReadWrite();
 	array.x[0] = 1.1;
@@ -94,7 +95,26 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	array.vz[0] = 56.78;
 	
 	array.type[0] = 3;
+	
+	array.x[1] = 1.2;
+	array.y[1] = 2.1;
+	array.z[1] = -3.4;
+	
+	array.vx[1] = -1.5;
+	array.vy[1] = -10.6;
+	array.vz[1] = 5.7;
+	
+	array.type[1] = 0;
 	pdata->release();
+	
+	// add a couple walls for fun
+	pdata->getWallData()->addWall(Wall(1,0,0, 0,1,0));
+	pdata->getWallData()->addWall(Wall(0,1,0, 0,0,1));
+	pdata->getWallData()->addWall(Wall(0,0,1, 1,0,0));
+	
+	// add a few bonds too
+	pdata->getBondData()->addBond(Bond(0, 0, 1));
+	pdata->getBondData()->addBond(Bond(1, 1, 0));
 	
 	// create the writer
 	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test"));
@@ -134,7 +154,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  Lx=\"2.5\" Ly=\"4.5\" Lz=\"12.1\"/>");
 		BOOST_REQUIRE(!f.bad());
-
+		
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line,  "</configuration>");
 		BOOST_REQUIRE(!f.bad());
@@ -176,6 +196,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "1.2 2.1 -3.4");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</position>");
 		
 		getline(f, line); // </configuration
@@ -212,6 +236,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-1.5 -10.6 5.7");
+		BOOST_REQUIRE(!f.bad());
+	
+		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</velocity>");
 		f.close();
 		}
@@ -246,15 +274,104 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "A");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</type>");
 		f.close();
-		}	
+		}
+
+	// fifth test: the wall array
+		{
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(false);
+		writer->setOutputType(false);
+		writer->setOutputWall(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000040.xml");
+		BOOST_REQUIRE(!exists("test.0000000040.xml"));	
+		
+		// write the file
+		writer->analyze(40);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000040.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<wall>");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<coord ox=\"1\" oy=\"0\" oz=\"0\" nx=\"0\" ny=\"1\" nz=\"0\" />");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<coord ox=\"0\" oy=\"1\" oz=\"0\" nx=\"0\" ny=\"0\" nz=\"1\" />");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<coord ox=\"0\" oy=\"0\" oz=\"1\" nx=\"1\" ny=\"0\" nz=\"0\" />");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</wall>");
+		f.close();
+		}
+
+	// sixth test: the bond array
+		{
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(false);
+		writer->setOutputType(false);
+		writer->setOutputWall(false);
+		writer->setOutputBond(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000050.xml");
+		BOOST_REQUIRE(!exists("test.0000000050.xml"));
+		
+		// write the file
+		writer->analyze(50);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000050.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<bond>");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "bondA 0 1");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "bondB 1 0");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</bond>");
+		f.close();
+		}
 
 
-	remove_all("test.0000000000.xml");
+	/*remove_all("test.0000000000.xml");
 	remove_all("test.0000000010.xml");
 	remove_all("test.0000000020.xml");
 	remove_all("test.0000000030.xml");
+	remove_all("test.0000000040.xml");
+	remove_all("test.0000000050.xml");*/
 	}
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles

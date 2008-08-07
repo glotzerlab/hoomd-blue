@@ -89,8 +89,10 @@ class xml(analyze._analyzer):
 	# \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
 	# \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
 	# \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
+	# \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
+	# \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
 	#
-	# Using set_params() requires that the %dump was saved when it was specified.
+	# Using set_params() requires that the %dump was saved in a variable when it was specified.
 	# \code
 	# xml = dump.xml(filename="particles", period=1e5)
 	# \endcode
@@ -100,8 +102,10 @@ class xml(analyze._analyzer):
 	# xml.set_params(type=False)
 	# xml.set_params(position=False, type=False, velocity=True)
 	# xml.set_params(type=True, position=True)
+	# xml.set_params(position=True, wall=True)
+	# xml.set_params(bond=True)
 	# \endcode
-	def set_params(self, position=None, velocity=None, type=None):
+	def set_params(self, position=None, velocity=None, type=None, wall=None, bond=None):
 		print "xml.set_params(position=", position, ", velocity=",velocity,", type=", type, ")";
 	
 		# check that proper initialization has occured
@@ -117,6 +121,12 @@ class xml(analyze._analyzer):
 			
 		if type != None:
 			self.cpp_analyzer.setOutputType(type);
+			
+		if wall != None:
+			self.cpp_analyzer.setOutputWall(wall);
+			
+		if bond != None:
+			self.cpp_analyzer.setOutputBond(bond);
 			
 ## Writes a simulation snapshot in the MOL2 format
 #

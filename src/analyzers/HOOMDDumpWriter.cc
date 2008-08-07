@@ -55,8 +55,11 @@ using namespace boost::python;
 #include <boost/shared_ptr.hpp>
 
 #include "HOOMDDumpWriter.h"
+#include "BondData.h"
+#include "WallData.h"
 
 using namespace std;
+using namespace boost;
 
 /*! \param pdata Particle data to read when dumping files
 	\param base_fname The base name of the file xml file to output the information
@@ -64,7 +67,7 @@ using namespace std;
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname)
-	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_velocity(false), m_output_type(false)
+	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_velocity(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
 	{
 	}
 
@@ -89,6 +92,18 @@ void HOOMDDumpWriter::setOutputType(bool enable)
 	{
 	m_output_type = enable;
 	}
+/*! \param enable Set to true to output bonds to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputBond(bool enable)
+	{
+	m_output_bond = enable;
+	}
+/*! \param enable Set to true to output walls to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputWall(bool enable)
+	{
+	m_output_wall = enable;
+	}	
 
 /*! \param timestep Current time step of the simulation
 	Writes a snapshot of the current state of the ParticleData to a hoomd_xml file.
@@ -186,6 +201,39 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 			}
 		f <<"</type>" <<endl;
 		}
+		
+	// if the bond flag is true, output the bonds to the xml file
+	if (m_output_bond)
+		{
+		f << "<bond>" << endl;
+		shared_ptr<BondData> bond_data = m_pdata->getBondData();
+		
+		// loop over all bonds and write them out
+		for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+			{
+			Bond bond = bond_data->getBond(i);
+			f << bond_data->getNameByType(bond.type) << " " << bond.a << " " << bond.b << endl;
+			}
+		
+		f << "</bond>" << endl;
+		}
+		
+	// if the wall flag is true, output the walls to the xml file
+	if (m_output_wall)
+		{
+		f << "<wall>" << endl;
+		shared_ptr<WallData> wall_data = m_pdata->getWallData();
+		
+		// loop over all walls and write them out
+		for (unsigned int i = 0; i < wall_data->getNumWalls(); i++)
+			{
+			Wall wall = wall_data->getWall(i);
+			f << "<coord ox=\"" << wall.origin_x << "\" oy=\"" << wall.origin_y << "\" oz=\"" << wall.origin_z <<
+				"\" nx=\"" << wall.normal_x << "\" ny=\"" << wall.normal_y << "\" nz=\"" << wall.normal_z << "\" />" << endl;
+			}
+		f << "</wall>" << endl;
+		}
+			
 	f << "</configuration>" << endl;
 	f << "</hoomd_xml>" <<endl;
 
@@ -207,6 +255,8 @@ void export_HOOMDDumpWriter()
 		.def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
 		.def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)
 		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
+		.def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
+		.def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
 		;
 	}
 #endif

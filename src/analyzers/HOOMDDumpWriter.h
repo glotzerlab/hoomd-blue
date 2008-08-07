@@ -65,8 +65,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	10 digit number. The 0 padding is so files sorted "alphabetically" will be read in 
 	numberical order.
 
-	To include positions, velocities and types, see: setPositionFlag() setVelocityFlag()
-	and setTypeFlag()
+	To include positions, velocities and types, see: setOutputPosition() setOutputVelocity()
+	and setOutputType(). Similarly, walls and bonds can be inluced with setOutputWall() and 
+	setOutputBond().
 	
 	Future versions will include the ability to dump forces on each particle to the file also.
 
@@ -87,12 +88,18 @@ class HOOMDDumpWriter : public Analyzer
 		void setOutputVelocity(bool enable);
 		//! Enables/disables the writing of particle types
 		void setOutputType(bool enable);
+		//! Enables/disables the writing of bonds
+		void setOutputBond(bool enable);
+		//! Enables/disables the writing of walls
+		void setOutputWall(bool enable);
 
 	private:
 		std::string m_base_fname;	//!< String used to store the file name of the XML file
 		bool m_output_position;		//!< true if the particle positions should be written
 		bool m_output_velocity;		//!< true if the particle velocities should be written
 		bool m_output_type;			//!< true if the particle types should be written
+		bool m_output_bond;			//!< true if the bond should be written
+		bool m_output_wall;			//!< true if the walls should be written
 	};
 	
 #ifdef USE_PYTHON
