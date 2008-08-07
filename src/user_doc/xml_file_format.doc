@@ -162,15 +162,23 @@ The \<bond\> node specifies any number of bonds between particles in the simulat
 Example:
 \code
 <bond>
-0 1
-1 2
+polymer 0 1
+backbone 1 2
 </bond>
 \endcode
 
-The above example creates a bond between particle 0 and one and another between 1 and 2.
-(TODO: update when new bond system is written).
+The above example creates a bond of type \em polymer between particle 0 and 1 and one of type
+\em backbone between 1 and 2. The general format is <i>type0 idx_a0 idx_b0 type1 idx_a1 idx_b1 ....</i>
+where type is any string without whitespace, idx_a is the index of the first particle in the bond and
+idx_b is the index of the second particle in the bond. Each field is separated from the next by
+whitespace (any number of spaces, tabs, or newlines). 
+
 Specifying the bonds themselves doesn't result in any additional forces on particles. For
-that, you must specify a bond force (see \link hoomd_script.bond bond\endlink). 
+that, you must specify a bond force (see \link hoomd_script.bond bond\endlink).
+
+A typical usage would list many bonds of the same type. Coefficients for the associated bond
+force can be set separately for each bond type by name (for example, see \link hoomd_script.bond.harmonic
+bond.harmonic\endlink).
 
 <hr>
 

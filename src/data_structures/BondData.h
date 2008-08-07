@@ -87,6 +87,7 @@ struct Bond
 	Bonds can be dynamically added, although doing this on a per-timestep basis can 
 	slow performance significantly. However, for simplicity and convinence, the number
 	of bond types cannot change after initialization.
+	\ingroup data_structs
 */
 class BondData
 	{

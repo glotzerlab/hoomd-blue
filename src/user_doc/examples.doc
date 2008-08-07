@@ -9,8 +9,6 @@ Examples:
  	<i>The polymer generator can generate complicated initial conditions for bead-spring polymer systems</i>
  - \ref sec_example_hoomd_xml<br>
  	<i>None of the built-in generators works for you? Write an input file describing the initial condition and load it in.</i>
- - \ref sec_example_output_input<br>
- 	<i>HOOMD can write the current state of the simulation in a file suitable for reading as an input file.</i>
 
 <hr>
 
@@ -151,8 +149,8 @@ lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # dump every 100,000 steps
-dump.mol2(filename="polymers.mol2");
-dump.dcd(filename="dump.dcd", period=100000);
+dump.mol2(filename="example3.mol2");
+dump.dcd(filename="example3.dcd", period=100000);
 
 # integrate NVT for a bunch of time steps
 integrate.nvt(dt=0.005, T=T, tau=0.5)
@@ -167,13 +165,83 @@ run(2000)
 
 \section sec_example_hoomd_xml Example 4: Using arbitrary input files
 
-TODO: waiting on ticket #103 before writing this example.
+Of course, HOOMD is not limited by the built-in random initial condition generators used in the 
+previous example. You can load in an arbitrary initial condition from a formatted xml file. 
+Here is a simple example demonstrating most of the types of data that can be input (see \ref page_xml_file_format
+for full documentation of this format):
+\code
+<?xml version="1.0" encoding="UTF-8"?>
+<hoomd_xml>
+<configuration time_step="0">
+<box units="sigma"  Lx="10" Ly="10" Lz="10"/>
+<!-- Setup the initial condition to place all particles in a line -->
+<position units="sigma">
+-3 0 0
+-2 0 0
+-1 0 0
+0 0 0
+1 0 0
+2 0 0
+3 0 0
+</position>
+<!-- Name the first 3 particles A and the rest B -->
+<type>
+A
+A
+A
+B
+B
+B
+B
+</type>
+<!-- Bond the particles together into a polymer chain -->
+<bond>
+polymer 0 1
+polymer 1 2
+polymer 2 3
+polymer 3 4
+polymer 4 5
+polymer 5 6
+</bond>
+<!-- Give the particles a little kick with an initial velocity -->
+<velocity units="sigma/tau">
+1 2 3
+3 2 1
+1 0 0
+0 1 0
+0 0 1
+-1 -2 -3
+-3 -2 -1
+</velocity>
+</configuration>
+</hoomd_xml>
+\endcode
 
-<hr>
+Copy and paste this data to a file \em example4.xml. The initial conditions can be read into a simulation
+using the command \link hoomd_script.init.read_xml init.read_xml\endlink as shown in the example script below.
+\code
+from hoomd_script import *
+import math
 
-\section sec_example_output_input Example 5: Using dump files as input
+# read in the file
+init.read_xml(filename="example4.xml")
 
-TODO: waiting on ticket #103 before writing this example.
+# example4.xml defines a single polymer: use the same force field as in example 3
+# force field setup
+harmonic = bond.harmonic()
+harmonic.set_coeff('polymer', k=330.0, r0=0.84)
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
 
+# dump every few steps
+dump.mol2(filename="example4.mol2");
+dump.dcd(filename="example4.dcd", period=10);
+
+# integrate NVT for a bunch of time steps
+integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+run(2000)
+\endcode
 
 */

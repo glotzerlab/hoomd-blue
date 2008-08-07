@@ -65,10 +65,10 @@ HOOMD requires a number of prerequisite software packages and libraries to be co
 	- Visual Studio Express 2005 on Windows XP
 	- all code is standard c++ and should work on nearly any other (recent) compiler
 	- \b note: Visual Studio 9 (aka 2008) does not currently work because of incompatibilities with boost and CUDA
-- CUDA Toolkit 1.1 and the appropriate NVIDIA display driver:
+- CUDA Toolkit and the appropriate NVIDIA display driver:
 	- <em>optional</em>, but required to enable GPU support
 - Subversion
-- Doxygen 
+- Doxygen  >= 1.5.6
 	- <em>optional</em> but required to build detailed developer documentation
 
 \b Links: <br>
