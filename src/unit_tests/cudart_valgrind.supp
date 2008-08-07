@@ -59,3 +59,26 @@
    fun:dlopen
    obj:/opt/cuda/lib/libcudart.so.2.0
 }
+
+{
+   <insert a suppression name here>
+   Memcheck:Param
+   sigaltstack(ss)
+   fun:sigaltstack
+   fun:_ZN5boost6detail14signal_handlerD1Ev
+   fun:_ZN5boost17execution_monitor13catch_signalsERKNS_9unit_test9callback0IiEE
+   fun:_ZN5boost17execution_monitor7executeERKNS_9unit_test9callback0IiEE
+   fun:_ZN5boost9unit_test9framework4initEPFPNS0_10test_suiteEiPPcEiS5_
+   fun:_ZN5boost9unit_test14unit_test_mainEPFPNS0_10test_suiteEiPPcEiS4_
+   fun:(below main)
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:_Znwm
+   obj:/opt/cuda/lib/libcudart.so.1.1
+   obj:/opt/cuda/lib/libcudart.so.1.1
+   obj:/opt/cuda/lib/libcudart.so.1.1
+   fun:cudaMallocHost
+}

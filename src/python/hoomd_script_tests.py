@@ -34,8 +34,8 @@ class init_create_random_tests (unittest.TestCase):
 class init_create_random_polymer_tests (unittest.TestCase):
 	def setUp(self):
 		print
-		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=100);
-		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="TODO", count=10)
+		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
+		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
 		self.polymers = [self.polymer1, self.polymer2]
 		self.box = hoomd.BoxDim(35);
 		self.separation=dict(A=0.35, B=0.35)
@@ -58,10 +58,10 @@ class init_create_random_polymer_tests (unittest.TestCase):
 		self.assertRaises(RuntimeError, init.create_random_polymers, box=self.box, polymers=5, separation=self.separation);
 		self.assertRaises(RuntimeError, init.create_random_polymers, box=self.box, polymers="polymers", separation=self.separation);
 		
-		bad_polymer1 = dict(bond_len=1.2, bond="TODO", count=10)
-		bad_polymer2 = dict(type=['B']*4, bond="TODO", count=10)
+		bad_polymer1 = dict(bond_len=1.2, bond="linear", count=10)
+		bad_polymer2 = dict(type=['B']*4, bond="linear", count=10)
 		bad_polymer3 = dict(bond_len=1.2, type=['B']*4, count=10)
-		bad_polymer4 = dict(bond_len=1.2, type=['B']*4, bond="TODO")
+		bad_polymer4 = dict(bond_len=1.2, type=['B']*4, bond="linear")
 		self.assertRaises(RuntimeError, init.create_random_polymers, box=self.box, polymers=[bad_polymer1], separation=self.separation);
 		self.assertRaises(RuntimeError, init.create_random_polymers, box=self.box, polymers=[bad_polymer2], separation=self.separation);
 		self.assertRaises(RuntimeError, init.create_random_polymers, box=self.box, polymers=[bad_polymer3], separation=self.separation);
@@ -331,8 +331,8 @@ class wall_lj_tests (unittest.TestCase):
 class bond_harmonic_tests (unittest.TestCase):
 	def setUp(self):
 		print
-		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="TODO", count=100);
-		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="TODO", count=10)
+		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
+		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
 		self.polymers = [self.polymer1, self.polymer2]
 		self.box = hoomd.BoxDim(35);
 		self.separation=dict(A=0.35, B=0.35)
@@ -345,7 +345,7 @@ class bond_harmonic_tests (unittest.TestCase):
 	# test setting coefficients
 	def test_set_coeff(self):
 		harmonic = bond.harmonic();
-		harmonic.set_coeff('bondA', k=1.0, r0=1.0)
+		harmonic.set_coeff('polymer', k=1.0, r0=1.0)
 		integrate.nve(dt=0.005);
 		run(100);
 		
