@@ -68,7 +68,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 #define EMPTY_BIN 0xffffffff
 
-extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, unsigned int actual_Nmax, gpu_boxsize box)
+extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, unsigned int actual_Nmax, gpu_boxsize box, float scalex, float scaley, float scalez)
 	{
 	// each thread is going to compute the neighbor list for a single particle
 	int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -80,16 +80,6 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	// first, determine which bin this particle belongs to
 	float4 my_pos = tex1Dfetch(pdata_pos_tex, my_pidx);
 	uint4 exclude = tex1Dfetch(nlist_exclude_tex, my_pidx);
-	
-	// make even bin dimensions
-	float binx = (box.Lx) / float(bins.Mx);
-	float biny = (box.Ly) / float(bins.My);
-	float binz = (box.Lz) / float(bins.Mz);
-
-	// precompute scale factors to eliminate division in inner loop
-	float scalex = 1.0f / binx;
-	float scaley = 1.0f / biny;
-	float scalez = 1.0f / binz;
 	
 	unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
 	unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley);
@@ -222,9 +212,19 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	error = cudaMemset(nlist->overflow, 0, sizeof(int));
 	if (error != cudaSuccess)
 		return error;
+	
+	// make even bin dimensions
+	float binx = (box->Lx) / float(bins->Mx);
+	float biny = (box->Ly) / float(bins->My);
+	float binz = (box->Lz) / float(bins->Mz);
+
+	// precompute scale factors to eliminate division in inner loop
+	float scalex = 1.0f / binx;
+	float scaley = 1.0f / biny;
+	float scalez = 1.0f / binz;
 
 	// run the kernel
-	updateFromBins_new<<< grid, threads>>>(*pdata, *bins, *nlist, r_maxsq, curNmax, *box);
+	updateFromBins_new<<< grid, threads>>>(*pdata, *bins, *nlist, r_maxsq, curNmax, *box, scalex, scaley, scalez);
 	
 	#ifdef NDEBUG
 	return cudaSuccess;
