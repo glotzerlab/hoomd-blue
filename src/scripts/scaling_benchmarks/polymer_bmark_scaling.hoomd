@@ -14,7 +14,11 @@ f.flush();
 phi_P = 0.20
 T = 1.2
 
+# the first list is for the full benchmark
 n_poly_list = [50, 100, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 7000, 8000, 9000, 10000, 12000, 14000, 16000, 20000, 24000];
+
+# this comment list is for generating dump files to convert to lammps and benchmark lammps
+# n_poly_list = [100, 400, 1000, 3000, 5000, 12000];
 
 for n_poly in n_poly_list:
 	polymer1 = dict(bond_len=1.2, type=['A']*10 + ['B']*7 + ['A']*10, bond="linear", count=n_poly)
@@ -36,6 +40,11 @@ for n_poly in n_poly_list:
 	
 	# NVT integration
 	integrate.nvt(dt=0.005, T=T, tau=0.5)
+
+	# uncomment to create dump files for conversion to lammps input files
+	# xml = dump.xml(filename="bmark_pol" + str(n_poly), period=10);
+	# xml.set_params(position=True,type=True,bond=True,velocity=True)
+	# run(5);
 	
 	# warm up the system
 	run(4000)
@@ -50,5 +59,9 @@ for n_poly in n_poly_list:
 	globals._clear();
 	del nlist
 	del lj
+	del harmonic
+	if xml:
+		del xml
+
 
 f.close();
