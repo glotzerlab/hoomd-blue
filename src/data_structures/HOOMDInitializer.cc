@@ -327,12 +327,19 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 
 	// extract the data from the node
 	istringstream parser;
-	parser.str(node.getText());
-	while (parser.good())
+	if (node.getText())
 		{
-		Scalar x,y,z;
-		parser >> x >> y >> z;
-		m_pos_array.push_back(vec(x,y,z));
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			Scalar x,y,z;
+			parser >> x >> y >> z;
+			m_pos_array.push_back(vec(x,y,z));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found position node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -350,12 +357,19 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 
 	// extract the data from the node
 	istringstream parser;
-	parser.str(node.getText());
-	while (parser.good())
+	if (node.getText())
 		{
-		Scalar x,y,z;
-		parser >> x >> y >> z;
-		m_vel_array.push_back(vec(x,y,z));
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			Scalar x,y,z;
+			parser >> x >> y >> z;
+			m_vel_array.push_back(vec(x,y,z));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found velocity node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -370,14 +384,21 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 
 	// extract the data from the node
 	istringstream parser;
-	parser.str(node.getText());
-	while (parser.good())
+	if (node.getText())
 		{
-		// dynamically determine the particle types
-		string type;
-		parser >> type;
-		
-		m_type_array.push_back(getTypeId(type));
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			// dynamically determine the particle types
+			string type;
+			parser >> type;
+			
+			m_type_array.push_back(getTypeId(type));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found type node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -392,13 +413,20 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 
 	// extract the data from the node
 	istringstream parser;
-	parser.str(node.getText());
-	while (parser.good())
+	if (node.getText())
 		{
-		string type_name;
-		unsigned int a, b;
-		parser >> type_name >> a >> b;
-		m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			string type_name;
+			unsigned int a, b;
+			parser >> type_name >> a >> b;
+			m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found bond node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -413,13 +441,20 @@ void HOOMDInitializer::parseChargeNode(const XMLNode &node)
 
 	// extract the data from the node
 	istringstream parser;
-	parser.str(node.getText());
-	while (parser.good())
+	if (node.getText())
 		{
-		Scalar charge;
-		parser >> charge;
-		
-		m_charge_array.push_back(charge);
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			Scalar charge;
+			parser >> charge;
+			
+			m_charge_array.push_back(charge);
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found charge node with no text. Possible typo." << endl;
 		}
 	}
 
