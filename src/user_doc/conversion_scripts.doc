@@ -29,7 +29,7 @@ appear. The output
 Mapped particle types:
 {'A': 1, 'B': 2}
 \endcode
-is telling you that type A is labelled 1 in the LAMMPS file and type B is labelled 2. The bond type name to integer id
+is telling you that type A is labeled 1 in the LAMMPS file and type B is labeled 2. The bond type name to integer id
 conversion is performed in the same manner as the particle types.
 
 \section sec_hoomd2lammps_dump HOOMD XML -> LAMMPS dump
