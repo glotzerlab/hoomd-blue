@@ -78,6 +78,8 @@ add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/user_doc/html/index.html
 					COMMAND ${DOXYGEN} ${HOOMD_BINARY_DIR}/user_doc/Doxyfile
 					DEPENDS ${HOOMD_CPU_SRCS} ${HOOMD_GPU_SRCS}
 					${HOOMD_SOURCE_DIR}/user_doc/*.doc
+					${HOOMD_SOURCE_DIR}/user_doc/*.html
+					${HOOMD_SOURCE_DIR}/user_doc/*.css
 					${HOOMD_SOURCE_DIR}/doc/*.doc
 					${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script/*.py
 					${HOOMD_SOURCE_DIR}/user_doc/Doxyfile.in)

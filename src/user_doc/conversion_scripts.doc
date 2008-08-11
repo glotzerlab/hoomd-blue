@@ -1,0 +1,57 @@
+/*! \page page_conversion_scripts File Conversion Scripts
+
+A number of file conversion scripts for converting between HOOMD's XML format and other formats are provided
+in the hoomd/bin directory. These scripts should already be in your PATH and executable from the command line.
+
+\section sec_hoomd2lammps_input HOOMD XML -> LAMMPS input
+
+\c hoomd2lammps_input.py converts a HOOMD XML file to the LAMMPS input format. It handles positions,
+velocities, and bonds (if present in the XML file). To run, execute the script on the command line:
+\code
+hoomd2lammps_input.py input_file.xml output_file.data
+\endcode
+
+Here is the output of the above command when run on share/hoomd/demos/micelle.xml:
+\code
+Found 9500  particles
+Mapped particle types:
+{'A': 1, 'B': 2}
+Found 9000 bonds
+Mapped bond types:
+{'polymer': 1}
+\endcode
+
+The script notifies you how many particles, velocities and bonds it reads. Types must be handled in a special way: 
+HOOMD reads types by name, but LAMMPS requires a positive integer from 1 to the number of types. \c hoomd2lammps_input.py
+scans the input XML and automatically assigns an integer to every type in the order in which they first
+appear. The output
+\code
+Mapped particle types:
+{'A': 1, 'B': 2}
+\endcode
+is telling you that type A is labelled 1 in the LAMMPS file and type B is labelled 2. The bond type name to integer id
+conversion is performed in the same manner as the particle types.
+
+\section sec_hoomd2lammps_dump HOOMD XML -> LAMMPS dump
+
+\c hoomd2lammps_dump.py converts a series of HOOMD XML files into the LAMMPS dump format. The output file will
+be formatted as if generated from the LAMMPS command <i>dump 1 all atom</i>. The use of scaled coordinates in the output
+can be disabled on the command line by specifying the option \c --noscale. 
+
+Say you have an entire series of dump files from  \link hoomd_script.dump.xml dump.xml\endlink in the current
+working directory. Then
+\code
+hoomd2lammps_dump.py -o dump.lammpstrj *.xml
+\endcode
+will read them all in and write the LAMMPS dump file \em dump.lammpstrj. HOOMD writes dump files with the time step
+zero-padded in the file name, so *.xml will list all dump files in time step order. Any number of files can be 
+specified on the command line.
+
+The particle type name to type id handling is the same as in \c hoomd2lammps_input.py: \ref sec_hoomd2lammps_input
+
+\section sec_other Other formats
+
+If you need to convert to a different format, open one of the existing scripts and see if it can be modified for your needs.
+The scripts are written in python and the code is easy to read and modify.
+
+*/

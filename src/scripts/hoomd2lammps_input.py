@@ -39,10 +39,15 @@ if len(velocity_nodes) == 1:
 	print "Found", len(velocity_xyz)/3, " velocities";
 
 # parse the particle types
-type_text = configuration.getElementsByTagName('type')[0].childNodes[0].data;
-type_names = type_text.split();
-if len(type_names) != len(xyz)/3:
-	print "Error! Number of types differes from the number of particles"
+type_nodes = configuration.getElementsByTagName('type');
+if len(type_nodes) == 1:
+	type_text = type_nodes[0].childNodes[0].data;
+	type_names = type_text.split();
+	if len(type_names) != len(xyz)/3:
+		print "Error! Number of types differes from the number of particles"
+		sys.exit(1);
+else:
+	print "Error! The type node must be in the xml file"
 	sys.exit(1);
 
 # convert type names to type ids
@@ -123,3 +128,4 @@ if len(bond_a) > 0:
 	f.write("\n");
 	for i in xrange(0,len(bond_a)):
 		f.write("%d %d %d %d\n" % (i+1, bond_type_id[i], int(bond_a[i])+1, int(bond_b[i])+1));
+f.close()

@@ -113,6 +113,7 @@ endif (USE_TEST)
 add_subdirectory (benchmarks)
 add_subdirectory (lib)
 add_subdirectory (share)
+add_subdirectory (scripts)
 
 ###############################
 ## allow for optional inclusion of the doxygen build
