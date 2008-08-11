@@ -182,6 +182,12 @@ void BinnedNeighborList::updateBins()
 
 		// record its bin
 		unsigned int bin = ib*(m_My*m_Mz) + jb * m_Mz + kb;
+		// check if the particle is inside
+		if (bin >= m_bins.size())
+			{
+			cerr << endl << "***Error! Elvis has left the building (particle " << n << " is no longer in the simulation box)." << endl << endl;
+			throw runtime_error("Error binning particles");
+			}
 
 		m_bins[bin].push_back(n);
 		m_binned_x[bin].push_back(arrays.x[n]);
