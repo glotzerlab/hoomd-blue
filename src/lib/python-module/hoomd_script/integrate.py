@@ -131,6 +131,10 @@ class nvt(_integrator):
 	# \param T Temperature set point for the Nos&eacute;-Hoover thermostat
 	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
 	#
+	# \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
+	# \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
+	# and \f$ T_0 \f$ is the temperature set point (\a T above).
+	#
 	# \b Examples:
 	# \code
 	# integrate.nvt(dt=0.005, T=1.0, tau=0.5)
