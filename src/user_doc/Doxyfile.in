@@ -38,7 +38,7 @@ PROJECT_NUMBER         = ${DOXYGEN_HOOMD_VERSION}
 # If a relative path is entered, it will be relative to the location 
 # where doxygen was started. If left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = ${HOOMD_BINARY_DIR}/user_doc/
+OUTPUT_DIRECTORY       = "${HOOMD_BINARY_DIR}/user_doc/"
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 
 # 4096 sub-directories (in 2 levels) under the output directory of each output 
@@ -534,18 +534,18 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = ${HOOMD_SOURCE_DIR}/user_doc/installation_guide.doc \
-                         ${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/prereq_install.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/quick_start.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/command_line_options.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/examples.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/license.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/credits.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/xml_file_format.doc \
-						 ${HOOMD_SOURCE_DIR}/user_doc/conversion_scripts.doc \
-                         ${HOOMD_SOURCE_DIR}/user_doc/index.doc \
-                         ${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script
+INPUT                  = "${HOOMD_SOURCE_DIR}/user_doc/installation_guide.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/prereq_install.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/quick_start.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/command_line_options.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/examples.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/license.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/credits.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/xml_file_format.doc" \
+						 "${HOOMD_SOURCE_DIR}/user_doc/conversion_scripts.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/index.doc" \
+                         "${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script"
 
 # This tag can be used to specify the character encoding of the source files 
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is 
@@ -623,7 +623,7 @@ EXAMPLE_RECURSIVE      = NO
 # directories that contain image that are included in the documentation (see 
 # the \image command).
 
-IMAGE_PATH             = ${HOOMD_SOURCE_DIR}/doc/images
+IMAGE_PATH             = "${HOOMD_SOURCE_DIR}/doc/images"
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should 
 # invoke to filter for each input file. Doxygen will invoke the filter program 

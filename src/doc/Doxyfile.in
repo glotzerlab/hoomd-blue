@@ -8,7 +8,7 @@
 #---------------------------------------------------------------------------
 PROJECT_NAME           = HOOMD
 PROJECT_NUMBER         = ${DOXYGEN_HOOMD_VERSION}
-OUTPUT_DIRECTORY       = ${HOOMD_BINARY_DIR}/doc/
+OUTPUT_DIRECTORY       = "${HOOMD_BINARY_DIR}/doc/"
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
 BRIEF_MEMBER_DESC      = YES
@@ -75,14 +75,14 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  =	${HOOMD_SOURCE_DIR} \
-							${HOOMD_SOURCE_DIR}/user_doc/prereq_install.doc \
-							${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc \
-							${HOOMD_SOURCE_DIR}/user_doc/credits.doc \
-							${HOOMD_SOURCE_DIR}/user_doc/license.doc \
-							${HOOMD_SOURCE_DIR}/doc/DeveloperInfo.doc \
-							${HOOMD_SOURCE_DIR}/doc/Groups.doc \
-							${HOOMD_SOURCE_DIR}/doc/MainPage.doc
+INPUT                  =	"${HOOMD_SOURCE_DIR}" \
+							"${HOOMD_SOURCE_DIR}/user_doc/prereq_install.doc" \
+							"${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc" \
+							"${HOOMD_SOURCE_DIR}/user_doc/credits.doc" \
+							"${HOOMD_SOURCE_DIR}/user_doc/license.doc" \
+							"${HOOMD_SOURCE_DIR}/doc/DeveloperInfo.doc" \
+							"${HOOMD_SOURCE_DIR}/doc/Groups.doc" \
+							"${HOOMD_SOURCE_DIR}/doc/MainPage.doc"
 
 FILE_PATTERNS          = *.cc *.h *.cu *.h.in
 RECURSIVE              = YES
@@ -92,7 +92,7 @@ EXCLUDE_PATTERNS       = */extern/* */share/* ${DOXYGEN_ADDITIONAL_EXCLUSIONS}
 EXAMPLE_PATH           = 
 EXAMPLE_PATTERNS       = 
 EXAMPLE_RECURSIVE      = NO
-IMAGE_PATH             = ${HOOMD_SOURCE_DIR}/doc/images
+IMAGE_PATH             = "${HOOMD_SOURCE_DIR}/doc/images"
 INPUT_FILTER           = 
 FILTER_PATTERNS        = 
 FILTER_SOURCE_FILES    = NO
