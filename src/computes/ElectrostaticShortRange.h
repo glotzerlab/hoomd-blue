@@ -94,13 +94,17 @@ class ElectrostaticShortRange : public ForceCompute
 		Scalar m_delta; 
 		/*!< spacing of the table lookup to compute forces, 
 		the look up table is build at the discrete points 
-		defined between 0 and r_cut+2*m_delta in intervals of m_delta */
+		defined between 0 and r_cut+2*m_delta in intervals of m_delta, a typical 
+		value with modest memory use that gives very high accuraccy is m_delta=\sigma/10 
+		but \sigma/5 gives accurate enough results */
 
 		Scalar m_min_value;
-		/*!< minimum value expected to compute,
-		this value is user-supplied, yet important as otherwise there are small errors at 
+		/*!< In a MD the value of the force is never computed at dd=0, that is, where 
+		particles are in close contact. m_min_value is the minimum separation expected 
+		for two particles, this value is user-supplied, yet important as if for whatever
+		reason this number is too small, the tables may contain errors at 
 		short-distance that may go unnoticed. The program does not check whether the 
-		values calculated satisfy this constraint */
+		values calculated satisfy this constraint. A consevative value could be \sigma/4 */
 
 		Scalar *f_table; //!look up table for force
 		Scalar *e_table; //! look up table for energy
