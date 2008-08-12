@@ -326,7 +326,10 @@ void BondData::allocateBondTable(int height)
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata.n_bonds), N*sizeof(unsigned int)));
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_bonddata.n_bonds, 0, N*sizeof(unsigned int)));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bonddata.bonds), &pitch, N*sizeof(uint2), height));
+	// cudaMallocPitch fails to work for coalesced reads here (dunno why), need to calculate pitch ourselves
+	// round up to the nearest multiple of 32
+	pitch = (N + (32 - N & 31)) * sizeof(uint2);
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata.bonds), pitch*height));
 	// want pitch in elements, not bytes
 	m_gpu_bonddata.pitch = (int)pitch / sizeof(uint2);
 	m_gpu_bonddata.height = height;

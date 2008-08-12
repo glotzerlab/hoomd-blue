@@ -89,8 +89,7 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 		
 		int cur_bond_idx = cur_bond.x;
 		int cur_bond_type = cur_bond.y;
-		// cur_bond.x now holds the bonded particle and cur_bond.y is the bond type
-			
+		
 		// get the bonded particle's position
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
 	

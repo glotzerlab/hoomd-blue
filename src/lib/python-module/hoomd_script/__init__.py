@@ -89,6 +89,6 @@ def run(tsteps):
 	
 	for logger in globals.loggers:
 		logger.update_quantities();
-	
+	#globals.system.enableProfiler(True);
 	globals.system.run(int(tsteps));
 	
