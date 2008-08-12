@@ -75,9 +75,9 @@ using namespace boost;
 #define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
 
 //! Tolerance in percent to use for comparing various ElectrostaticShortRange to each other
-
 const Scalar tol = Scalar(1);
-
+//! minimum force worth computing
+const Scalar MIN_force=Scalar(1.0e-9); 
 
 //! Typedef'd ElectrostaticShortRange factory
 typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)> ElectrostaticShortRange_force_creator;
@@ -105,9 +105,9 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 	Scalar delta=Scalar(0.1);
 	Scalar min_value=Scalar(0.41);
 
-	for(int k1=0;k1<4;k1++){
+	for(int k1=0;k1<6;k1++){
 
-	Scalar alpha=Scalar(0.3+k1);
+	Scalar alpha=Scalar(0.1+k1);
     //Test different values of alpha as well
 	shared_ptr<ElectrostaticShortRange> fc_2=Elstatics_ShortRange_creator(pdata_2,nlist_2,r_cut,alpha,delta,min_value);
 	// An ElectrostaticShortRange object with specified value of cut_off, alpha, delta and min_value is instantiated
@@ -143,16 +143,23 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 	j_count++;
 
 	ForceDataArrays force_arrays=fc_2->acquire();
-
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0],fExactx,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0],fExacty,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0],fExactz,tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0],fExactE,tol);
 	
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1],-fExactx,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1],-fExacty,tol);
+	if(fabs(force_arrays.fx[0])>MIN_force){
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0],fExactx,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1],-fExactx,tol);
+	}
+	if(fabs(force_arrays.fy[0])>MIN_force){
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0],fExacty,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1],-fExacty,tol);
+	}
+	if(fabs(force_arrays.fz[0])>MIN_force){
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0],fExactz,tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fz[1],-fExactz,tol);
+	}
+	if(fabs(force_arrays.pe[0])>MIN_force){
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0],fExactE,tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1],fExactE,tol);
+	}
 			}
 		}
 	}
