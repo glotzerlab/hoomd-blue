@@ -177,10 +177,10 @@ void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator
 	
 	arrays.x[0]=Scalar(-9.6);arrays.y[0]=Scalar(0.0);arrays.z[0]=Scalar(0.0);arrays.charge[0]=1.0;
     arrays.x[1]=Scalar(9.6);arrays.y[1]=Scalar(0.0);arrays.z[1]=Scalar(0.0);arrays.charge[1]=1.0;
-	arrays.x[2]=Scalar(0.0);arrays.y[2]=Scalar(-19.6);arrays.z[2]=Scalar(0.0);arrays.charge[2]=1.0;
-    arrays.x[3]=Scalar(0.0);arrays.y[3]=Scalar(19.6);arrays.z[3]=Scalar(0.0);arrays.charge[3]=1.0;
-    arrays.x[4]=Scalar(0.0);arrays.y[4]=Scalar(0.0);arrays.z[4]=Scalar(-29.6);arrays.charge[4]=1.0;
-    arrays.x[5]=Scalar(0.0);arrays.y[5]=Scalar(0.0);arrays.z[5]=Scalar(29.6);arrays.charge[5]=1.0;
+	arrays.x[2]=Scalar(0.0);arrays.y[2]=Scalar(-19.5);arrays.z[2]=Scalar(0.0);arrays.charge[2]=1.0;
+    arrays.x[3]=Scalar(0.0);arrays.y[3]=Scalar(19.5);arrays.z[3]=Scalar(0.0);arrays.charge[3]=1.0;
+    arrays.x[4]=Scalar(0.0);arrays.y[4]=Scalar(0.0);arrays.z[4]=Scalar(-29.4);arrays.charge[4]=1.0;
+    arrays.x[5]=Scalar(0.0);arrays.y[5]=Scalar(0.0);arrays.z[5]=Scalar(29.4);arrays.charge[5]=1.0;
 
     pdata_6->release();
 
@@ -194,40 +194,45 @@ void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator
 	ForceDataArrays force_arrays=fc_6->acquire();
 
 	//particle 0 is repelled from x=-10, hence it is pulled right
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0],1.1467,1e-3);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0],1.146699475,1e-3);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[0],1e-5);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0],1e-5);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[0],0.16118689,1e-3);
 
 	//particle 1 is repelled from x=10, hence it is pulled left
     
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1],-1.1467,1e-3);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1],-1.14669475,1e-3);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[1],1e-5);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1],1e-5);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[1],0.16118689,1e-3);
     
 	//particle 2 is repelled from y=-20, so it is pulled up
     
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2],1e-5);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[2],1.1467,1e-3);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[2],0.5724067,1e-3);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[2],1e-5);
-
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[2],0.078649603,1e-3);
+	
 	//particle 3 is repelled from y=20, so it is pulled down
 
     MY_BOOST_CHECK_SMALL(force_arrays.fx[3],1e-5);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3],-1.1467,1e-3);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3],-0.5724067,1e-3);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[3],1e-5);
-
-	//particle 4 is repelled from z=-30, so it is pulled u[
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[3],0.078649603,1e-3);
+	
+	//particle 4 is repelled from z=-30, so it is pulled up
 
     MY_BOOST_CHECK_SMALL(force_arrays.fx[4],1e-5);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[4],1e-5);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4],1.1467,1e-3);
-
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4],0.2850689,1e-3);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[4],0.037369176,1e-3);
+	
 	//particle 5 is repelled from z=30, so it is pulled down
 
     MY_BOOST_CHECK_SMALL(force_arrays.fx[5],1e-5);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[5],1e-5);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5],-1.1467,1e-3);
-
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5],-0.2850689,1e-3);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[5],0.037369176,1e-3);
 }
 
 //! ElectrostaticShortRange creator for unit tests
