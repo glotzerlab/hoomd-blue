@@ -421,6 +421,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		m_last_Mx = m_Mx;
 		m_last_My = m_My;
 		m_last_Mz = m_Mz;
+		m_bin_sizes.resize(m_Mx*m_My*m_Mz);
 		}
 
 	// make even bin dimensions
@@ -434,7 +435,6 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 	Scalar scalez = Scalar(1.0) / binz;
 
 	// setup the memory arrays
-	m_bin_sizes.resize(m_Mx*m_My*m_Mz);
 	for (unsigned int i = 0; i < m_Mx*m_My*m_Mz; i++)
 		m_bin_sizes[i] = 0;
 	
