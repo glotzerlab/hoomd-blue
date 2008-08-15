@@ -75,21 +75,22 @@ class BinnedNeighborListGPU : public NeighborList
 	protected:
 		std::vector< unsigned int > m_bin_sizes;	//!< Stores the size of each bin
 
-		unsigned int m_Mx;	//!< Number of bins in x direction
+		unsigned int m_Mx;		//!< Number of bins in x direction
 		unsigned int m_last_Mx;	//!< Number of bins in the x direction on the last call to updateBins
-		unsigned int m_My;	//!< Number of bins in y direction
+		unsigned int m_My;		//!< Number of bins in y direction
 		unsigned int m_last_My;	//!< Number of bins in the y direction on the last call to updateBins
-		unsigned int m_Mz;	//!< Number of bins in z direction
+		unsigned int m_Mz;		//!< Number of bins in z direction
 		unsigned int m_last_Mz;	//!< Number of bins in the z direction on the last call to updateBins
 
-		unsigned int m_Nmax; //!< Maximum number of particles allowed in a bin
+		unsigned int m_Nmax; 	//!< Maximum number of particles allowed in a bin
 		unsigned int m_curNmax; //!< Number of particles in the largest bin
-		Scalar m_avgNmax; //!< Average number of particles per bin
+		Scalar m_avgNmax; 		//!< Average number of particles per bin
 
 		gpu_bin_array m_gpu_bin_data;	//!< The binned particle data
-		float4 *m_host_idxlist;	//!< Host bins
-		uint4 *m_host_bin_coord;				//!< Host bin coordinates
+		float4 *m_host_idxlist;			//!< Host bins
+		uint4 *m_host_bin_coord;		//!< Host bin coordinates
 		int m_block_size;				//!< Block size to use when performing the calculations on the GPU
+		unsigned int *m_mem_location;	//!< Memory location of bins (Z-order curve)
 		
 
 		//! Puts the particles into their bins

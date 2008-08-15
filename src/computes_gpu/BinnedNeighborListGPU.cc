@@ -112,6 +112,40 @@ BinnedNeighborListGPU::~BinnedNeighborListGPU()
 	freeGPUBinData();
 	}
 	
+// this function will generate a Z-order traversal through the 3d array Mx by My x Mz
+// it is done recursively through an octree subdivision over a power of 2 dimension Mmax which must be greater
+// than Mx, My, and Mz (values that don't fit into the real grid are omitted)
+// w on the first call should be equal to Mmax
+// i,j,k on the first call should be 0
+// cur_val on the first call should be 0
+
+// as it recurses down, w will be decreased appropriately
+// mem_location[i*Mz*My + j*Mz + k] will be filled out with the location to put
+// bin i,j,k in memory so it will be in the Z-order
+static void generateTraversalOrder(unsigned int i, unsigned int j, unsigned int k, unsigned int w, unsigned int Mmax, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int *mem_location, unsigned int &cur_val)
+	{
+	if (w == 1)
+		{
+		// handle base case
+		if (i < Mx && j < My && k < Mz)
+			mem_location[i*Mz*My + j*Mz + k] = cur_val++;
+		}
+	else
+		{
+		// handle arbitrary case, split the box into 8 sub boxes
+		w = w / 2;
+		generateTraversalOrder(i,j,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+		generateTraversalOrder(i,j,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+		generateTraversalOrder(i,j+w,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+		generateTraversalOrder(i,j+w,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+
+		generateTraversalOrder(i+w,j,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+		generateTraversalOrder(i+w,j,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+		generateTraversalOrder(i+w,j+w,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+		generateTraversalOrder(i+w,j+w,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
+		}
+	}
+
 void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -144,6 +178,32 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	// allocate the bin coord array
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data.bin_coord), Mx*My*Mz*sizeof(uint4)));
 	
+	// allocate the mem location data
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data.mem_location), Mx*My*Mz*sizeof(unsigned int)));
+	m_mem_location = new unsigned int[Mx*My*Mz];
+
+
+	// find maximum bin dimension
+	unsigned int Mmax = Mx;
+	if (My > Mmax)
+		Mmax = My;
+	if (Mz > Mmax)
+		Mmax = Mz;
+	// round up to the nearest power of 2 (algorithm from wikpedia)
+	--Mmax;
+	Mmax |= Mmax >> 1;
+	Mmax |= Mmax >> 2;
+	Mmax |= Mmax >> 4;
+	Mmax |= Mmax >> 8;
+	Mmax |= Mmax >> 16;
+	Mmax++;
+
+	// fill out the mem_location data
+	int cur_val = 0;
+	generateTraversalOrder(0, 0, 0, Mmax, Mmax, Mx, My, Mz, m_mem_location, cur_val);
+	// copy it to the GPU
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.mem_location, m_mem_location, sizeof(unsigned int)*Mx*My*Mz, cudaMemcpyHostToDevice));
+	
 	// allocate and zero host memory
 	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
 	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
@@ -161,7 +221,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 			{
 			for (int k = 0; k < (int)Mz; k++)
 				{
-				int bin = i*Mz*My + j*Mz + k;
+				int bin = m_mem_location[i*Mz*My + j*Mz + k];
 				m_host_bin_coord[bin].x = i;
 				m_host_bin_coord[bin].y = j;
 				m_host_bin_coord[bin].z = k;
@@ -187,7 +247,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 							if (c < 0) c+= Mz;
 							if (c >= (int)Mz) c-= Mz;
 							
-							int neigh_bin = a*Mz*My + b*Mz + c;
+							int neigh_bin = m_mem_location[a*Mz*My + b*Mz + c];
 							bin_adj_host[bin*27 + cur_adj] = neigh_bin;
 							cur_adj++;
 							}
@@ -220,9 +280,11 @@ void BinnedNeighborListGPU::freeGPUBinData()
 	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.idxlist_array));
 	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.bin_adj_array));
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.bin_coord));
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.mem_location));
 	// free the hsot memory
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_idxlist));
 	free(m_host_bin_coord);
+	delete[] m_mem_location;
 
 	// set pointers to NULL so no one will think they are valid 
 	m_gpu_bin_data.idxlist = NULL;
@@ -394,7 +456,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		assert(ib >= 0 && ib < m_Mx && jb >= 0 && jb < m_My && kb >= 0 && kb < m_Mz);
 
 		// record its bin
-		unsigned int bin = ib*(m_Mz*m_My) + jb * m_Mz + kb;
+		unsigned int bin = m_mem_location[ib*(m_Mz*m_My) + jb * m_Mz + kb];
 		// check if the particle is inside
 		if (bin >= m_Mx*m_My*m_Mz)
 			{
@@ -563,5 +625,5 @@ void export_BinnedNeighborListGPU()
 		("BinnedNeighborListGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
 		.def("setBlockSize", &BinnedNeighborListGPU::setBlockSize)
 		;
-	}	
+	}
 #endif

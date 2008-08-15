@@ -51,6 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // textures used in this kernel: commented out because textures are managed globally currently
 texture<float4, 2, cudaReadModeElementType> nlist_idxlist_tex;
 texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
+texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 
 /*! \file nlist_binned_kernel.cu
 	\brief Contains code for the kernel that implements the binned O(N) neighbor list on the GPU
@@ -89,7 +90,7 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	if (kb == bins.Mz)
 		kb = 0;
 
-	int my_bin = ib*(bins.Mz*bins.My) + jb * bins.Mz + kb;	
+	int my_bin = tex1Dfetch(mem_location_tex, ib*(bins.Mz*bins.My) + jb * bins.Mz + kb);
 
 	// each thread will determine the neighborlist of a single particle
 	int n_neigh = 0;	// count number of neighbors found so far
@@ -171,7 +172,11 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	error = cudaBindTextureToArray(bin_adj_tex, bins->bin_adj_array);
 	if (error != cudaSuccess)
 		return error;
-	
+		
+	error = cudaBindTexture(0, mem_location_tex, bins->mem_location, sizeof(unsigned int)*bins->Mx*bins->My*bins->Mz);
+	if (error != cudaSuccess)
+		return error;
+			
 	// zero the overflow check
 	error = cudaMemset(nlist->overflow, 0, sizeof(int));
 	if (error != cudaSuccess)

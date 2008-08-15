@@ -84,6 +84,9 @@ struct gpu_bin_array
 		float4 *idxlist;
 		cudaArray *idxlist_array;
 		
+		// mem_location maps a bin index to the actual bin location that should be read from memory
+		unsigned int *mem_location;
+		
 		// bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = bin)
 		cudaArray *bin_adj_array;
 		
