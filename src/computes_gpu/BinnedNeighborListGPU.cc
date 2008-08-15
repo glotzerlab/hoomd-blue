@@ -199,7 +199,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	Mmax++;
 
 	// fill out the mem_location data
-	int cur_val = 0;
+	unsigned int cur_val = 0;
 	generateTraversalOrder(0, 0, 0, Mmax, Mmax, Mx, My, Mz, m_mem_location, cur_val);
 	// copy it to the GPU
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.mem_location, m_mem_location, sizeof(unsigned int)*Mx*My*Mz, cudaMemcpyHostToDevice));
