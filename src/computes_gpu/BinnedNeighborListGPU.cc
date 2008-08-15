@@ -171,17 +171,17 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< float4 >();
 	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
 	
+	// allocate and zero host memory
+	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
+	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
+	
 	// allocate the bin adjacent list array
 	cudaChannelFormatDesc bin_adj_desc = cudaCreateChannelDesc< int >();
 	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.bin_adj_array, &bin_adj_desc, 27, Mx*My*Mz));
 	
-	// allocate the bin coord array
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data.bin_coord), Mx*My*Mz*sizeof(uint4)));
-	
 	// allocate the mem location data
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data.mem_location), Mx*My*Mz*sizeof(unsigned int)));
 	m_mem_location = new unsigned int[Mx*My*Mz];
-
 
 	// find maximum bin dimension
 	unsigned int Mmax = Mx;
@@ -204,13 +204,6 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	// copy it to the GPU
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.mem_location, m_mem_location, sizeof(unsigned int)*Mx*My*Mz, cudaMemcpyHostToDevice));
 	
-	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
-	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
-	
-	// allocate the bin coord array
-	m_host_bin_coord = (uint4*)malloc(sizeof(uint4) * Mx*My*Mz);
-	
 	// allocate the host bin adj array
 	int *bin_adj_host = new int[Mx*My*Mz*27];
 	
@@ -222,10 +215,6 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 			for (int k = 0; k < (int)Mz; k++)
 				{
 				int bin = m_mem_location[i*Mz*My + j*Mz + k];
-				m_host_bin_coord[bin].x = i;
-				m_host_bin_coord[bin].y = j;
-				m_host_bin_coord[bin].z = k;
-				m_host_bin_coord[bin].w = 0;
 				
 				// loop over neighboring bins
 				int cur_adj = 0;
@@ -257,7 +246,6 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 			}
 		}
 	// copy it to the device. This only needs to be done once
-	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.bin_coord, m_host_bin_coord, sizeof(uint4)*Mx*My*Mz, cudaMemcpyHostToDevice));
 	exec_conf.gpu[0]->call(bind(cudaMemcpyToArray, m_gpu_bin_data.bin_adj_array, 0, 0, bin_adj_host, 27*Mx*My*Mz*sizeof(int), cudaMemcpyHostToDevice));
 	
 	// don't need the temporary bin adj data any more
@@ -279,11 +267,9 @@ void BinnedNeighborListGPU::freeGPUBinData()
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.idxlist));
 	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.idxlist_array));
 	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.bin_adj_array));
-	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.bin_coord));
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.mem_location));
 	// free the hsot memory
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_idxlist));
-	free(m_host_bin_coord);
 	delete[] m_mem_location;
 
 	// set pointers to NULL so no one will think they are valid 

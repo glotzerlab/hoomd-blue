@@ -89,8 +89,6 @@ struct gpu_bin_array
 		
 		// bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = bin)
 		cudaArray *bin_adj_array;
-		
-		uint4 *bin_coord;	// holds the i,j,k coordinates of the bins indexed by i*Mz*My + j*Mz + k.
 		};
 
 //! Generate the neighborlist (N^2 algorithm)
