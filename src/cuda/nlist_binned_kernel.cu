@@ -49,13 +49,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // textures used in this kernel: commented out because textures are managed globally currently
-texture<unsigned int, 2, cudaReadModeElementType> nlist_idxlist_tex;
+texture<float4, 2, cudaReadModeElementType> nlist_idxlist_tex;
 texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
-texture<uint4, 1, cudaReadModeElementType> nlist_bincoord_tex;
-texture<uint4, 1, cudaReadModeElementType> nlist_exclude_tex;
-
-//! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 /*! \file nlist_binned_kernel.cu
 	\brief Contains code for the kernel that implements the binned O(N) neighbor list on the GPU
@@ -79,8 +74,8 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 		return;
 	
 	// first, determine which bin this particle belongs to
-	float4 my_pos = tex1Dfetch(pdata_pos_tex, my_pidx);
-	uint4 exclude = tex1Dfetch(nlist_exclude_tex, my_pidx);
+	float4 my_pos = pdata.pos[my_pidx];
+	uint4 exclude = nlist.exclusions[my_pidx];
 	
 	unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
 	unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley);
@@ -109,12 +104,15 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
 			{
-			unsigned int cur_neigh = tex2D(nlist_idxlist_tex, cur_offset, neigh_bin);
+			float4 cur_neigh_blob = tex2D(nlist_idxlist_tex, cur_offset, neigh_bin);
+			float3 neigh_pos;
+			neigh_pos.x = cur_neigh_blob.x;
+			neigh_pos.y = cur_neigh_blob.y;
+			neigh_pos.z = cur_neigh_blob.z;
+			int cur_neigh = __float_as_int(cur_neigh_blob.w);
 			
 			if (cur_neigh != EMPTY_BIN)
 				{
-				float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
-			
 				float dx = my_pos.x - neigh_pos.x;
 				dx = dx - box.Lx * rintf(dx * box.Lxinv);
 
@@ -162,21 +160,9 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	dim3 threads(block_size, 1, 1);
 
 	// bind the textures
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
-	if (error != cudaSuccess)
-		return error;
-
-	error = cudaBindTexture(0, nlist_bincoord_tex, bins->bin_coord, sizeof(uint4)*bins->Mx*bins->My*bins->Mz);
-	if (error != cudaSuccess)
-		return error;
-
-	error = cudaBindTexture(0, nlist_exclude_tex, nlist->exclusions, sizeof(uint4) * pdata->N);
-	if (error != cudaSuccess)
-		return error;
-	
 	nlist_idxlist_tex.normalized = false;
 	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
-	error = cudaBindTextureToArray(nlist_idxlist_tex, bins->idxlist_array);
+	cudaError_t error = cudaBindTextureToArray(nlist_idxlist_tex, bins->idxlist_array);
 	if (error != cudaSuccess)
 		return error;
 		

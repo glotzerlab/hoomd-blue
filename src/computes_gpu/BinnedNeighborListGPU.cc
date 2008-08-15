@@ -96,7 +96,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	m_avgNmax = Scalar(0.0);
 
 	// default block size is the highest performance in testing
-	m_block_size = 64;
+	m_block_size = 192;
 
 	// bogus values for last value
 	m_last_Mx = INT_MAX;
@@ -130,11 +130,11 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		cout << "***Warning! Allocating abnormally large cell list: " << Mx << " " << My << " " << Mz << " " << Nmax << endl;
 
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data.idxlist), &pitch, Nmax*sizeof(unsigned int), Mx*My*Mz));
+	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data.idxlist), &pitch, Nmax*sizeof(float4), Mx*My*Mz));
 	// want pitch in elements, not bytes
-	Nmax = (int)pitch / sizeof(unsigned int);
+	Nmax = (int)pitch / sizeof(float4);
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*) m_gpu_bin_data.idxlist, 0, pitch * Mx*My*Mz));
-	cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< int >();
+	cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< float4 >();
 	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
 	
 	// allocate the bin adjacent list array
@@ -262,11 +262,11 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		if (m_prof)
 			m_prof->push("Bin copy");
 		
-		unsigned int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My * m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax * sizeof(unsigned int);
+		unsigned int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My * m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax * sizeof(float4);
 
 		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.idxlist, m_host_idxlist,
-			nbytes, cudaMemcpyHostToDevice));
+		//exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.idxlist, m_host_idxlist,
+			//nbytes, cudaMemcpyHostToDevice));
 		exec_conf.gpu[0]->call(bind(cudaMemcpyToArray, m_gpu_bin_data.idxlist_array, 0, 0, m_host_idxlist, nbytes,
 			cudaMemcpyHostToDevice));
 		
@@ -274,7 +274,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 			{
 			int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My *
 						m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax *
-						sizeof(unsigned int);
+						sizeof(float4);
 						
 			m_prof->pop(0, nbytes);
 			}
@@ -307,6 +307,12 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		
 	if (m_prof)	m_prof->pop();
 	}
+
+union floatint
+	{
+	float f;
+	int i;
+	};
 
 void BinnedNeighborListGPU::updateBinsUnsorted()
 	{
@@ -361,7 +367,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		m_bin_sizes[i] = 0;
 	
 	// clear the bins to 0xffffffff which means no particle in that bin
-	memset((void*)m_host_idxlist, 0xff, sizeof(unsigned int)*m_Mx*m_My*m_Mz*m_Nmax);
+	memset((void*)m_host_idxlist, 0xff, sizeof(float4)*m_Mx*m_My*m_Mz*m_Nmax);
 
 	// reset the counter that keeps track of the current size of the largest bin
 	m_curNmax = 0;
@@ -405,7 +411,9 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		// make sure we don't overflow
 		if (size < m_Nmax)
 			{
-			m_host_idxlist[bin*m_Nmax + size] = n;
+			floatint convert;
+			convert.i = n;
+			m_host_idxlist[bin*m_Nmax + size] = make_float4(arrays.x[n], arrays.y[n], arrays.z[n], convert.f);
 			}
 		else
 			{
@@ -427,7 +435,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 
 	// update profile
 	if (m_prof)
-		m_prof->pop(6*arrays.nparticles, (3*sizeof(Scalar) + (3)*sizeof(unsigned int))*arrays.nparticles);
+		m_prof->pop(6*arrays.nparticles, (3*sizeof(Scalar) + (3)*sizeof(float4))*arrays.nparticles);
 
 	// we aren't done yet, if there was an overflow, update m_Nmax and recurse to make sure the list is fully up to date
 	// since we are now certain that m_Nmax will hold all of the particles, the recursion should only happen once
@@ -480,7 +488,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		// each thread computes 21 flops for each comparison. There are 27*m_avgNmax comparisons per thread.
 		// cell lists for neighboring bins and those particle's positions.
-		m_prof->pop(int64_t(m_pdata->getN() * 27 * m_avgNmax * 21), m_pdata->getN() * (16+16+27*(4+m_curNmax*20)) );
+		m_prof->pop(int64_t(m_pdata->getN() * 27 * m_avgNmax * 21), m_pdata->getN() * (16+16+27*(4+m_curNmax*16)) );
 		}
 	}
 	

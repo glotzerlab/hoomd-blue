@@ -87,7 +87,7 @@ class BinnedNeighborListGPU : public NeighborList
 		Scalar m_avgNmax; //!< Average number of particles per bin
 
 		gpu_bin_array m_gpu_bin_data;	//!< The binned particle data
-		unsigned int *m_host_idxlist;	//!< Host bins
+		float4 *m_host_idxlist;	//!< Host bins
 		uint4 *m_host_bin_coord;				//!< Host bin coordinates
 		int m_block_size;				//!< Block size to use when performing the calculations on the GPU
 		

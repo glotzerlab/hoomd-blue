@@ -80,8 +80,8 @@ struct gpu_bin_array
 		// n goes from 0 to Nmax - 1.
         unsigned int Mx,My,Mz,Nmax,Nparticles;
 		
-        // idxdata stores the index of the particles in the bins
-		unsigned int *idxlist;
+        // idxdata stores the coordinates and index of the particles in the bins
+		float4 *idxlist;
 		cudaArray *idxlist_array;
 		
 		// bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = bin)
