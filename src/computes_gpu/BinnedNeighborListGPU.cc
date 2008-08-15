@@ -137,6 +137,10 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< int >();
 	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
 	
+	// allocate the bin adjacent list array
+	cudaChannelFormatDesc bin_adj_desc = cudaCreateChannelDesc< int >();
+	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.bin_adj_array, &bin_adj_desc, 27, Mx*My*Mz));
+	
 	// allocate the bin coord array
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data.bin_coord), Mx*My*Mz*sizeof(uint4)));
 	
@@ -146,23 +150,58 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	
 	// allocate the bin coord array
 	m_host_bin_coord = (uint4*)malloc(sizeof(uint4) * Mx*My*Mz);
-	// initialize the coord array
-	for (unsigned int i = 0; i < Mx; i++)
+	
+	// allocate the host bin adj array
+	int *bin_adj_host = new int[Mx*My*Mz*27];
+	
+	// initialize the coord and bin adj arrays
+	for (int i = 0; i < (int)Mx; i++)
 		{
-		for (unsigned int j = 0; j < My; j++)
+		for (int j = 0; j < (int)My; j++)
 			{
-			for (unsigned int k = 0; k < Mz; k++)
+			for (int k = 0; k < (int)Mz; k++)
 				{
 				int bin = i*Mz*My + j*Mz + k;
 				m_host_bin_coord[bin].x = i;
 				m_host_bin_coord[bin].y = j;
 				m_host_bin_coord[bin].z = k;
 				m_host_bin_coord[bin].w = 0;
+				
+				// loop over neighboring bins
+				int cur_adj = 0;
+				for (int neigh_i = i-1; neigh_i <= i+1; neigh_i++)
+					{
+					for (int neigh_j = j-1; neigh_j <= j+1; neigh_j++)
+						{
+						for (int neigh_k = k-1; neigh_k <= k+1; neigh_k++)
+							{
+							int a = neigh_i;
+							if (a < 0) a+= Mx;
+							if (a >= (int)Mx) a-= Mx;
+							
+							int b = neigh_j;
+							if (b < 0) b+= My;
+							if (b >= (int)My) b-= My;
+							
+							int c = neigh_k;
+							if (c < 0) c+= Mz;
+							if (c >= (int)Mz) c-= Mz;
+							
+							int neigh_bin = a*Mz*My + b*Mz + c;
+							bin_adj_host[bin*27 + cur_adj] = neigh_bin;
+							cur_adj++;
+							}
+						}
+					}
 				}
 			}
 		}
 	// copy it to the device. This only needs to be done once
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.bin_coord, m_host_bin_coord, sizeof(uint4)*Mx*My*Mz, cudaMemcpyHostToDevice));
+	exec_conf.gpu[0]->call(bind(cudaMemcpyToArray, m_gpu_bin_data.bin_adj_array, 0, 0, bin_adj_host, 27*Mx*My*Mz*sizeof(int), cudaMemcpyHostToDevice));
+	
+	// don't need the temporary bin adj data any more
+	delete[] bin_adj_host;
 	
 	// assign allocated pitch
 	m_gpu_bin_data.Nmax = Nmax;
@@ -179,6 +218,7 @@ void BinnedNeighborListGPU::freeGPUBinData()
 	// free the device memory
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.idxlist));
 	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.idxlist_array));
+	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.bin_adj_array));
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.bin_coord));
 	// free the hsot memory
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_idxlist));
@@ -435,17 +475,12 @@ void BinnedNeighborListGPU::updateListFromBins()
 	
 	m_pdata->release();
 
-	// upate the profile
-	int nbins = m_gpu_bin_data.Mx * m_gpu_bin_data.My * m_gpu_bin_data.Mz;
-	uint64_t nthreads = nbins * m_curNmax;
-	
 	if (m_prof)
 		{
 		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 		// each thread computes 21 flops for each comparison. There are 27*m_avgNmax comparisons per thread.
-		// each thread reads 592 bytes: this includes reading its particle position, exclusion,
 		// cell lists for neighboring bins and those particle's positions.
-		m_prof->pop(int64_t(m_pdata->getN() * 27 * m_avgNmax * 21), nthreads * 592);
+		m_prof->pop(int64_t(m_pdata->getN() * 27 * m_avgNmax * 21), m_pdata->getN() * (16+16+27*(4+m_curNmax*20)) );
 		}
 	}
 	

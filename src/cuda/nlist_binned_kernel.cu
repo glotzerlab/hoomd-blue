@@ -50,6 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // textures used in this kernel: commented out because textures are managed globally currently
 texture<unsigned int, 2, cudaReadModeElementType> nlist_idxlist_tex;
+texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
 texture<uint4, 1, cudaReadModeElementType> nlist_bincoord_tex;
 texture<uint4, 1, cudaReadModeElementType> nlist_exclude_tex;
 
@@ -92,86 +93,57 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 		jb = 0;
 	if (kb == bins.Mz)
 		kb = 0;
-			
+
 	int my_bin = ib*(bins.Mz*bins.My) + jb * bins.Mz + kb;	
 
 	// each thread will determine the neighborlist of a single particle
 	int n_neigh = 0;	// count number of neighbors found so far
 	
-	// we will need to loop over all neighboring bins. In order to do that, we need to know what bin we are actually in!
-	// this could be a messy bunch of modulus operations, so we just read it out of an array that has been pre-computed for us :)
-	uint4 coords = tex1Dfetch(nlist_bincoord_tex, my_bin);
-	int my_i = coords.x;
-	int my_j = coords.y;
-	int my_k = coords.z;
-	
-	// loop through the 27 neighboring bins
-	for (int cur_i = int(my_i) - 1; cur_i <= int(my_i) + 1; cur_i++)
+	// loop over all adjacent bins
+	for (unsigned int cur_adj = 0; cur_adj < 27; cur_adj++)
 		{
-		for (int cur_j = int(my_j) - 1; cur_j <= int(my_j) + 1; cur_j++)
+		int neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);
+		
+		//printf("%d ", neigh_bin);
+		
+		// now, we are set to loop through the array
+		for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
 			{
-			for (int cur_k = int(my_k) - 1; cur_k <= int(my_k) + 1; cur_k++)
+			unsigned int cur_neigh = tex2D(nlist_idxlist_tex, cur_offset, neigh_bin);
+			
+			if (cur_neigh != EMPTY_BIN)
 				{
-				// apply boundary conditions to the current bin
-				int a = cur_i;
-				if (a < 0) 
-					a += bins.Mx;
-				if (a >= bins.Mx)
-					a -= bins.Mx;
+				float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+			
+				float dx = my_pos.x - neigh_pos.x;
+				dx = dx - box.Lx * rintf(dx * box.Lxinv);
 
-				int b = cur_j;
-				if (b < 0) 
-					b += bins.My;
-				if (b >= bins.My)
-					b -= bins.My;
+				float dy = my_pos.y - neigh_pos.y;
+				dy = dy - box.Ly * rintf(dy * box.Lyinv);
 
-				int c = cur_k;
-				if (c < 0) 
-					c += bins.Mz;
-				if (c >= bins.Mz)
-					c -= bins.Mz;
-					
-				// now: we finally know the current bin to compare to
-				int neigh_bin = a*bins.Mz*bins.My + b*bins.Mz + c;
+				float dz = my_pos.z - neigh_pos.z;
+				dz = dz - box.Lz * rintf(dz * box.Lzinv);
+
+				float dr = dx*dx + dy*dy + dz*dz;
+				int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
 				
-				// now, we are set to loop through the array
-				for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
+				if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
 					{
-					unsigned int cur_neigh = tex2D(nlist_idxlist_tex, cur_offset, neigh_bin);
-					
-					if (cur_neigh != EMPTY_BIN)
+					// check for overflow
+					if (n_neigh < nlist.height)
 						{
-						float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
-					
-						float dx = my_pos.x - neigh_pos.x;
-						dx = dx - box.Lx * rintf(dx * box.Lxinv);
-	
-						float dy = my_pos.y - neigh_pos.y;
-						dy = dy - box.Ly * rintf(dy * box.Lyinv);
-	
-						float dz = my_pos.z - neigh_pos.z;
-						dz = dz - box.Lz * rintf(dz * box.Lzinv);
-	
-						float dr = dx*dx + dy*dy + dz*dz;
-						int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
-						
-						if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
-							{
-							// check for overflow
-							if (n_neigh < nlist.height)
-								{
-								nlist.list[my_pidx + n_neigh*nlist.pitch] = cur_neigh;
-								n_neigh++;
-								}
-							else
-								*nlist.overflow = 1;
-							}
+						nlist.list[my_pidx + n_neigh*nlist.pitch] = cur_neigh;
+						n_neigh++;
 						}
+					else
+						*nlist.overflow = 1;
 					}
 				}
 			}
 		}
 		
+	//printf("\n");
+	
 	nlist.n_neigh[my_pidx] = n_neigh;
 	nlist.last_updated_pos[my_pidx] = my_pos;
 	}
@@ -205,6 +177,12 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	nlist_idxlist_tex.normalized = false;
 	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
 	error = cudaBindTextureToArray(nlist_idxlist_tex, bins->idxlist_array);
+	if (error != cudaSuccess)
+		return error;
+		
+	bin_adj_tex.normalized = false;
+	bin_adj_tex.filterMode = cudaFilterModePoint;
+	error = cudaBindTextureToArray(bin_adj_tex, bins->bin_adj_array);
 	if (error != cudaSuccess)
 		return error;
 	
