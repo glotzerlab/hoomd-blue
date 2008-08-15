@@ -78,11 +78,15 @@ struct gpu_bin_array
         // these are 4D arrays with indices i,j,k,n. i,j,k index the bin and each goes from 0 to Mx-1,My-1,Mz-1 respectively.
         // index into the data with idxdata[i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax  + n]
 		// n goes from 0 to Nmax - 1.
-        unsigned int Mx,My,Mz,Nmax,Nparticles;
+        unsigned int Mx,My,Mz,Nmax,Nparticles,coord_idxlist_width;
 		
-        // idxdata stores the coordinates and index of the particles in the bins
-		float4 *idxlist;
+        // idxdata stores the index of the particles in the bins
+		unsigned int *idxlist;
 		cudaArray *idxlist_array;
+		
+		// coord_idxlist stores the coordinates and the index of the particles in the bins
+		float4 *coord_idxlist;
+		cudaArray *coord_idxlist_array;
 		
 		// mem_location maps a bin index to the actual bin location that should be read from memory
 		unsigned int *mem_location;
@@ -93,8 +97,12 @@ struct gpu_bin_array
 
 //! Generate the neighborlist (N^2 algorithm)
 cudaError_t gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_maxsq);
+
 //! Generate the neighborlist from bins (O(N) algorithm)
 cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_array *bins, gpu_nlist_array *nlist, float r_maxsq, int curNmax, int block_size);
+
+//! Take the idxlist and generate coord_idxlist
+cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins, int curNmax, int block_size);
 	
 //! Check if the neighborlist needs updating
 cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_buffsq, int *result);

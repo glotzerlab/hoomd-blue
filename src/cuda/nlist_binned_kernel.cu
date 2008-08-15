@@ -48,8 +48,73 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
+#define EMPTY_BIN 0xffffffff
+
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+texture<unsigned int, 2, cudaReadModeElementType> bin_idxlist_tex;
+extern "C" __global__ void gpu_nlist_idxlist2coord_kernel(gpu_pdata_arrays pdata, gpu_bin_array bins)
+	{
+	// each thread writes the coord_idxlist of a single bin
+	int binidx = threadIdx.x + blockDim.x*blockIdx.x;
+	
+	int nbins = bins.Mx*bins.My*bins.Mz;
+	
+	// return if we are past the array bouds
+	if (binidx >= nbins)
+		return;
+	
+	// read the particle idx
+	unsigned int pidx = tex2D(bin_idxlist_tex, blockIdx.y, binidx);
+		
+	// if the particle idx is valid, read in the position
+	float4 coord_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	if (pidx != EMPTY_BIN)
+		coord_idx = tex1Dfetch(pdata_pos_tex, pidx);
+		
+	// add the index to the coord_idx
+	coord_idx.w = __int_as_float(pidx);
+	
+	// write it out to the coord_idxlist
+ 	bins.coord_idxlist[bins.coord_idxlist_width * blockIdx.y + binidx] = coord_idx;
+	}
+	
+//! Take the idxlist and generate coord_idxlist
+cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins, int curNmax, int block_size)
+	{
+	assert(bins);
+	assert(pdata);
+	assert(block_size > 0);
+
+	// setup the grid to run the kernel
+	int nblocks_x = (int)ceil((double)(bins->Mx*bins->My*bins->Mz) / (double)block_size);
+
+	dim3 grid(nblocks_x, curNmax, 1);
+	dim3 threads(block_size, 1, 1);
+
+	// bind the textures
+	bin_idxlist_tex.normalized = false;
+	bin_idxlist_tex.filterMode = cudaFilterModePoint;
+	cudaError_t error = cudaBindTextureToArray(bin_idxlist_tex, bins->idxlist_array);
+	if (error != cudaSuccess)
+		return error;
+		
+	error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4)*pdata->N);
+	if (error != cudaSuccess)
+		return error;
+			
+	// run the kernel
+	gpu_nlist_idxlist2coord_kernel<<< grid, threads>>>(*pdata, *bins);
+	
+	#ifdef NDEBUG
+	return cudaSuccess;
+	#else
+	cudaThreadSynchronize();
+	return cudaGetLastError();
+	#endif
+	}
+
 // textures used in this kernel: commented out because textures are managed globally currently
-texture<float4, 2, cudaReadModeElementType> nlist_idxlist_tex;
+texture<float4, 2, cudaReadModeElementType> nlist_coord_idxlist_tex;
 texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
 texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 
@@ -62,8 +127,6 @@ texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 // each block will process one bin. Since each particle is only placed in one bin, each block thus processes
 // a block of particles (though which particles it processes is random)
 // Empty bin entries will be set to 0xffffffff to allow for efficient handling
-
-#define EMPTY_BIN 0xffffffff
 
 extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, unsigned int actual_Nmax, gpu_boxsize box, float scalex, float scaley, float scalez)
 	{
@@ -100,12 +163,11 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 		{
 		int neigh_bin = tex2D(bin_adj_tex, my_bin, cur_adj);
 		
-		// printf("%d ", neigh_bin);
-		
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
 			{
-			float4 cur_neigh_blob = tex2D(nlist_idxlist_tex, neigh_bin, cur_offset);
+			float4 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, cur_offset);
+			//float4 cur_neigh_blob = bins.coord_idxlist[neigh_bin + bins.coord_idxlist_width*cur_offset];
 			float3 neigh_pos;
 			neigh_pos.x = cur_neigh_blob.x;
 			neigh_pos.y = cur_neigh_blob.y;
@@ -141,8 +203,6 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 			}
 		}
 		
-	// printf("\n");
-	
 	nlist.n_neigh[my_pidx] = n_neigh;
 	nlist.last_updated_pos[my_pidx] = my_pos;
 	}
@@ -161,9 +221,9 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	dim3 threads(block_size, 1, 1);
 
 	// bind the textures
-	nlist_idxlist_tex.normalized = false;
-	nlist_idxlist_tex.filterMode = cudaFilterModePoint;
-	cudaError_t error = cudaBindTextureToArray(nlist_idxlist_tex, bins->idxlist_array);
+	nlist_coord_idxlist_tex.normalized = false;
+	nlist_coord_idxlist_tex.filterMode = cudaFilterModePoint;
+	cudaError_t error = cudaBindTextureToArray(nlist_coord_idxlist_tex, bins->coord_idxlist_array);
 	if (error != cudaSuccess)
 		return error;
 		
