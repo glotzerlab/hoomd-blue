@@ -152,8 +152,6 @@ void benchmark(shared_ptr<NeighborList> nl) {
 
 	// initialize profiling if requested
 	shared_ptr<Profiler> prof(new Profiler());
-	if (profile_compute && !quiet)
-		nl->setProfiler(prof);
 	
 	// timer to count how long we spend at each point
 	ClockSource clk;
@@ -164,6 +162,10 @@ void benchmark(shared_ptr<NeighborList> nl) {
 
 	int64_t tstart = clk.getTime();
 	int64_t tend;
+	
+	if (profile_compute && !quiet)
+		nl->setProfiler(prof);
+	
 	// do at least one test, then repeat until we get at least 5s of data at this point
 	int nrepeat = 0;
 	do {

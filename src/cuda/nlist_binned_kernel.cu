@@ -100,7 +100,7 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 		{
 		int neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);
 		
-		//printf("%d ", neigh_bin);
+		// printf("%d ", neigh_bin);
 		
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
@@ -141,7 +141,7 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 			}
 		}
 		
-	//printf("\n");
+	// printf("\n");
 	
 	nlist.n_neigh[my_pidx] = n_neigh;
 	nlist.last_updated_pos[my_pidx] = my_pos;
