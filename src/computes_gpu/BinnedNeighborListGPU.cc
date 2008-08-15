@@ -169,7 +169,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	Nmax = (int)pitch / sizeof(float4);
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*) m_gpu_bin_data.idxlist, 0, pitch * Mx*My*Mz));
 	cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< float4 >();
-	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
+	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.idxlist_array, &idxlist_desc, Mx*My*Mz, Nmax));
 	
 	// allocate and zero host memory
 	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
@@ -177,7 +177,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	
 	// allocate the bin adjacent list array
 	cudaChannelFormatDesc bin_adj_desc = cudaCreateChannelDesc< int >();
-	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.bin_adj_array, &bin_adj_desc, 27, Mx*My*Mz));
+	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.bin_adj_array, &bin_adj_desc, Mx*My*Mz, 27));
 	
 	// allocate the mem location data
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data.mem_location), Mx*My*Mz*sizeof(unsigned int)));
@@ -237,7 +237,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 							if (c >= (int)Mz) c-= Mz;
 							
 							int neigh_bin = m_mem_location[a*Mz*My + b*Mz + c];
-							bin_adj_host[bin*27 + cur_adj] = neigh_bin;
+							bin_adj_host[bin + cur_adj*Mx*My*Mz] = neigh_bin;
 							cur_adj++;
 							}
 						}
@@ -461,7 +461,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 			{
 			floatint convert;
 			convert.i = n;
-			m_host_idxlist[bin*m_Nmax + size] = make_float4(arrays.x[n], arrays.y[n], arrays.z[n], convert.f);
+			m_host_idxlist[size*m_Mx*m_My*m_Mz + bin] = make_float4(arrays.x[n], arrays.y[n], arrays.z[n], convert.f);
 			}
 		else
 			{

@@ -98,14 +98,14 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	// loop over all adjacent bins
 	for (unsigned int cur_adj = 0; cur_adj < 27; cur_adj++)
 		{
-		int neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);
+		int neigh_bin = tex2D(bin_adj_tex, my_bin, cur_adj);
 		
 		// printf("%d ", neigh_bin);
 		
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
 			{
-			float4 cur_neigh_blob = tex2D(nlist_idxlist_tex, cur_offset, neigh_bin);
+			float4 cur_neigh_blob = tex2D(nlist_idxlist_tex, neigh_bin, cur_offset);
 			float3 neigh_pos;
 			neigh_pos.x = cur_neigh_blob.x;
 			neigh_pos.y = cur_neigh_blob.y;
