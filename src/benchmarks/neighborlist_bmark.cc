@@ -169,7 +169,6 @@ void benchmark(shared_ptr<NeighborList> nl) {
 	// do at least one test, then repeat until we get at least 5s of data at this point
 	int nrepeat = 0;
 	do {
-		nl->forceUpdate();
 		nl->compute(count++);
 		nrepeat++;
 		tend = clk.getTime();
@@ -204,7 +203,6 @@ int main(int argc, char **argv)
 		("nparticles,N", value<unsigned int>(&N)->default_value(64000), "Number of particles")
 		("phi_p", value<Scalar>(&phi_p)->default_value(0.2), "Volume fraction of particles in test system")
 		("r_cut", value<Scalar>(&r_cut)->default_value(3.8), "Cutoff radius for pair force sum")
-		//("r_buff", value<Scalar>(&r_buff)->default_value(0.8), "Buffer radius for pair force sum")
 		("nthreads,t", value<unsigned int>(&nthreads)->default_value(1), "Number of threads to execute (for multithreaded computes)")
 		("block_size", value<unsigned int>(&block_size)->default_value(128), "Block size for GPU computes")
 		("quiet,q", value<bool>(&quiet)->default_value(false)->zero_tokens(), "Only output time per computation")
