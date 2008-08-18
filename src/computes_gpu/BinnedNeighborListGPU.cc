@@ -337,6 +337,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		
 		if (m_prof)
 			{
+			exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
 			int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My *
 						m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax *
 						sizeof(unsigned int);
