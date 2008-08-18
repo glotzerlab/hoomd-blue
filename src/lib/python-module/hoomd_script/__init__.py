@@ -57,10 +57,14 @@ __all__ = ["analyze", "bond", "dump", "force", "globals", "init",
 ## \brief Runs the simulation for a given number of time steps
 #
 # \param tsteps Number of timesteps to advance the simulation by
+# \param profile Set to true to enable detailed profiling
 # 
-# \b Examples:<br>
-# run(1000)<br>
-# run(10e6)<br>
+# \b Examples:
+# \code
+# run(1000)
+# run(10e6)
+# run(10000, profile=True)
+# \endcode
 #
 # Execute the run() command to advance the simulation forward in time. 
 # During the run, all previously specified \ref analyze "analyzers", 
@@ -75,7 +79,12 @@ __all__ = ["analyze", "bond", "dump", "force", "globals", "init",
 # run() cannot be executed before the system is \ref init "initialized". In most 
 # cases, it also doesn't make sense to execute run() until after pair forces, bond forces,
 # and an \ref integrate "integrator" have been created.
-def run(tsteps):
+#
+# When \a profile is \em True, a detailed breakdown of how much time was spent in each
+# portion of the calculation is printed at the end of the run. Collecting this timing information
+# can slow the simulation on the GPU by ~5 percent, so only enable profiling for testing
+# and troubleshooting purposes.
+def run(tsteps, profile=False):
 	print "run(", tsteps, ")";
 	# check if initialization has occured
 	if (globals.system == None):
@@ -89,6 +98,6 @@ def run(tsteps):
 	
 	for logger in globals.loggers:
 		logger.update_quantities();
-	#globals.system.enableProfiler(True);
+	globals.system.enableProfiler(profile);
 	globals.system.run(int(tsteps));
 	

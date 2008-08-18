@@ -11,7 +11,10 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 integrate.nvt(dt=0.005, T=1.2, tau=0.5)
 
 # warm up run
-run(4000)
+run(2000)
+
+# quick benchmark run
+run(2000, profile=True)
 
 # full benchmark 
 run(50000)
