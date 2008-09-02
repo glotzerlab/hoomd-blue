@@ -207,10 +207,10 @@ string find_vmd()
 		return "/usr/local/bin/vmd";
 	if (exists("/opt/vmd/bin/vmd"))
 		return "/opt/vmd/bin/vmd";
-	if (exists("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD"))
-		return("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
-	if (exists("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD"))
-		return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
+	if (exists(path("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check )))
+		return("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");	
+	if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+		return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");	
 	#endif
 	
 	// return an empty string if we didn't find it
