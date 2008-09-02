@@ -66,7 +66,7 @@ using namespace std;
 		delete the neighborlist when done.
 */
 LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: LJForceCompute(pdata, nlist, r_cut), m_params_changed(true), m_ljparams(NULL), m_block_size(448)
+	: LJForceCompute(pdata, nlist, r_cut), m_params_changed(true), m_ljparams(NULL)
 	{
 	// check the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -87,6 +87,23 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 		cerr << endl << "**Error! LJForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
 		throw runtime_error("Error initializing LJForceComputeGPU");
 		}
+		
+	// default block size is the highest performance in testing on different hardware
+	// choose based on compute capability of the device
+	cudaDeviceProp deviceProp;
+	int dev;
+	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));	
+	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
+	if (deviceProp.major == 1 && deviceProp.minor < 2)
+		m_block_size = 448;
+	else if (deviceProp.major == 1 && deviceProp.minor < 4)
+		m_block_size = 96;
+	else
+		{
+		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
+		m_block_size = 96;
+		}
+	cout << "Notice: LJ block size: " << m_block_size << endl;
 
 	// allocate the param data on the GPU and make sure it is up to date
 	m_ljparams = gpu_alloc_ljparam_data();

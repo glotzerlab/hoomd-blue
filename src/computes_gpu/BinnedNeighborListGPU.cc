@@ -95,9 +95,23 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	m_curNmax = 0;
 	m_avgNmax = Scalar(0.0);
 
-	// default block size is the highest performance in testing
-	m_block_size = 192;
-
+	// default block size is the highest performance in testing on different hardware
+	// choose based on compute capability of the device
+	cudaDeviceProp deviceProp;
+	int dev;
+	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
+	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
+	if (deviceProp.major == 1 && deviceProp.minor < 2)
+		m_block_size = 192;
+	else if (deviceProp.major == 1 && deviceProp.minor < 4)
+		m_block_size = 448;
+	else
+		{
+		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
+		m_block_size = 448;
+		}
+	cout << "Notice: Neighborlist block size: " << m_block_size << endl;
+	
 	// bogus values for last value
 	m_last_Mx = INT_MAX;
 	m_last_My = INT_MAX;
