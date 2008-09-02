@@ -366,12 +366,12 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		}
 
 
-	/*remove_all("test.0000000000.xml");
+	remove_all("test.0000000000.xml");
 	remove_all("test.0000000010.xml");
 	remove_all("test.0000000020.xml");
 	remove_all("test.0000000030.xml");
 	remove_all("test.0000000040.xml");
-	remove_all("test.0000000050.xml");*/
+	remove_all("test.0000000050.xml");
 	}
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
