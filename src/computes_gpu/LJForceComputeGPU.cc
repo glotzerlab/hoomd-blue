@@ -103,7 +103,6 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
 		m_block_size = 96;
 		}
-	cout << "Notice: LJ block size: " << m_block_size << endl;
 
 	// allocate the param data on the GPU and make sure it is up to date
 	m_ljparams = gpu_alloc_ljparam_data();

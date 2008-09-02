@@ -110,7 +110,6 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
 		m_block_size = 448;
 		}
-	cout << "Notice: Neighborlist block size: " << m_block_size << endl;
 	
 	// bogus values for last value
 	m_last_Mx = INT_MAX;
