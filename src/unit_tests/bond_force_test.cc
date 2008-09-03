@@ -113,6 +113,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	force_arrays = fc_2->acquire();
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.225, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.0084375, tol);
+	cout << "virial1: " << force_arrays.virial[0] << endl;
 		
 	// check that the two forces are negatives of each other
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -force_arrays.fx[1], tol);

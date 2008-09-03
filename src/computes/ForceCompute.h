@@ -63,8 +63,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Handy structure for passing the force arrays around
 /*! \c fx, \c fy, \c fz have length equal to the number of particles and store the x,y,z 
 	components of the force on that particle. \a pe is also included as the potential energy
-	for each particle, if it can be defined for the force.
-	These pointers are 256-byte aligned on CUDA compilations, in the order fx, fy, fz, pe.
+	for each particle, if it can be defined for the force. \a virial is the per particle virial
+	These pointers are 256-byte aligned on CUDA compilations, in the order fx, fy, fz, pe, virial.
+	
+	The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
+	The per particle virial is defined such that \f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
 */
 struct ForceDataArrays
 	{
@@ -75,6 +78,7 @@ struct ForceDataArrays
 	Scalar const * __restrict__ fy; //!< y-component of the force
 	Scalar const * __restrict__ fz; //!< z-component of the force
 	Scalar const * __restrict__ pe; //!< Potential energy
+	Scalar const * __restrict__ virial; //!< Virial
 	};
 
 //! Defines an interface for computing forces on each particle
@@ -120,6 +124,7 @@ class ForceCompute : public Compute
 		Scalar * __restrict__ m_fy; //!< y-component of the force
 		Scalar * __restrict__ m_fz; //!< z-component of the force
 		Scalar * __restrict__ m_pe; //!< Potential energy
+		Scalar * __restrict__ m_virial; //!< Virial
 		int m_nbytes;	//!< stores the number of bytes of memory allocated
 		
 		boost::signals::connection m_sort_connection;	//!< Connection to the signal notifying when particles are resorted

@@ -224,6 +224,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		Scalar fyi = 0.0;
 		Scalar fzi = 0.0;
 		Scalar pei = 0.0;
+		Scalar viriali = 0.0;
 		
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = full_list[i];
@@ -288,6 +289,9 @@ void LJForceCompute::computeForces(unsigned int timestep)
 				fyi += dy*fforce;
 				fzi += dz*fforce;
 				pei += Scalar(0.5)*tmp_eng;
+				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
+				// there is no - in the 1/6 to compensate
+				viriali += Scalar(1.0/6.0) * rsq * fforce;
 				
 				// add the force to particle j if we are using the third law
 				if (third_law)
@@ -296,6 +300,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 					m_fy[k] -= dy*fforce;
 					m_fz[k] -= dz*fforce;
 					m_pe[k] += Scalar(0.5)*tmp_eng;
+					m_virial[k] += Scalar(1.0/6.0) * rsq * fforce;
 					}
 				}
 			
@@ -304,23 +309,22 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		m_fy[i] += fyi;
 		m_fz[i] += fzi;
 		m_pe[i] += pei;
+		m_virial[i] += viriali;
 		}
 
 	// and that is it.
-	// FLOPS: 9+12 for each n_calc and an additional 11 for each n_full_calc
-		// make that 14 if third_law is 1
-	int64_t flops = (9+12)*n_calc + 16*n_force_calc;
+	int64_t flops = (9+16)*n_calc + 16*n_force_calc;
 	if (third_law)
-		flops += 4*n_force_calc;
+		flops += 5*n_force_calc;
 		
 	// memory transferred: 3*sizeof(Scalar) + 2*sizeof(int) for each n_calc
 	// plus 3*sizeof(Scalar) for each n_full_calc + another 3*sizeofScalar if third_law is 1
 	// PLUS an additional 3*sizeof(Scalar) + sizeof(int) for each particle
 	int64_t mem_transfer = 0;
 	mem_transfer += (3*sizeof(Scalar) + 2*sizeof(int)) * (n_calc + arrays.nparticles);
-	mem_transfer += 4*sizeof(Scalar)*n_force_calc;
+	mem_transfer += 5*sizeof(Scalar)*n_force_calc;
 	if (third_law)
-		mem_transfer += 4*sizeof(Scalar);
+		mem_transfer += 5*sizeof(Scalar);
 	
 	m_pdata->release();
 	

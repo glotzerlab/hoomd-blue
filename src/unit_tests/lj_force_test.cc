@@ -123,6 +123,7 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.575, tol);
+	cout << "virial0: " << force_arrays.virial[0] << endl;
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
@@ -147,6 +148,7 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 3.5815110377468, tol);
+	cout << "virial1: " << force_arrays.virial[0] << endl;
 
 	// center particle should still be a 0 force by symmetry
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);

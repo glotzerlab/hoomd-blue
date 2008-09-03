@@ -92,10 +92,10 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 		single_xarray_bytes += 256 - (single_xarray_bytes & 255);
 	
 	// total all bytes from scalar arrays
-	m_nbytes = single_xarray_bytes * 4;
+	m_nbytes = single_xarray_bytes * 5;
 	
 	if (!exec_conf.gpu.empty())
-		exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_data), m_nbytes));	
+		exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_data), m_nbytes));
 	else
 		m_data = (Scalar *)malloc(m_nbytes);
 	#else
@@ -103,7 +103,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	unsigned int single_xarray_bytes = sizeof(Scalar) * pdata->getN();
 	
 	// total all bytes from scalar arrays
-	m_nbytes = single_xarray_bytes * 4;
+	m_nbytes = single_xarray_bytes * 5;
 	m_data = (Scalar *)malloc(m_nbytes);
 	#endif
 
@@ -116,6 +116,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	m_arrays.fy = m_fy = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	m_arrays.fz = m_fz = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	m_arrays.pe = m_pe = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
+	m_arrays.virial = m_virial = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	
 	// should be good to go now
 	assert(m_fx);
@@ -137,6 +138,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 
 	if (!exec_conf.gpu.empty())
 		{
+		cout << "***Warning! Virial data structure not yet implemented on the GPU" << endl;
 		exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_forces), single_xarray_bytes*4) );
 		exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging), single_xarray_bytes*4) );
 		
