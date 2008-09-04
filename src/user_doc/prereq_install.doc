@@ -420,7 +420,8 @@ the location by changing the value after --prefix).
 C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" -sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 --prefix=c:\opt install
 \endcode
 For CMake to find your newly compiled boost libraries, you must set the environment 
-variable \b BOOST_ROOT to c:\\opt (or whatever you set --prefix to).
+variable \b BOOST_INCLUDEDIR to c:\\opt\\include\\boost-1_35 and BOOST_LIBRARYDIR to c:\\opt\\lib
+(or wherever the boost headers and libraries were installed).
 
 \section software_req_install_windows_cuda CUDA
 Download and install the 1.1 toolkiet from http://www.nvidia.com/object/cuda_get.html#windows. There

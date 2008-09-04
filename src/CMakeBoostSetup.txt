@@ -59,7 +59,7 @@ if (Boost_MINOR_VERSION GREATER 34)
 find_package(Boost 1.35 COMPONENTS thread filesystem python signals system unit_test_framework program_options REQUIRED)
 endif (Boost_MINOR_VERSION GREATER 34)
 
-link_directories(${BOOST_LIBRARY_DIRS})
+link_directories(${Boost_LIBRARY_DIRS})
 
 if (WIN32)
 # the user needs to see if the boost auto-linking is working on windows
