@@ -58,8 +58,8 @@ HOOMD requires a number of prerequisite software packages and libraries to be co
 	- <em>optional</em>, but highly recommended to enable scripted simulations
 - boost >= 1.32.0
 - libz
-- CMake >= 2.4
-	- >= 2.4.7 is recommended on Mac OS X if doxygen is installed due to an annoying bug in CMake
+- CMake >= 2.6.0
+	- >= 2.6.1 is recommended on Windows due to an annoying bug in 2.6.0
 - Compiler to build source
 	- gcc 4.1 on Linux
 	- Visual Studio Express 2005 on Windows XP

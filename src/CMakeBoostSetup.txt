@@ -39,76 +39,37 @@
 
 #################################
 ## Boost is a required library
-## perform some magic to honor USE_STATIC
-set(OLD_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
 
+# setup the boost static linkage
 if(USE_STATIC)
-
-if(UNIX)
-	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-elseif(WIN32)
-	# boost is already statically linked by default on windows
-else(UNIX)
-	message(FATAL_ERROR "I don't know how to force static linking of boost on your architecture")
-endif(UNIX)
-
+set(Boost_USE_STATIC_LIBS "ON")
 else(USE_STATIC)
-
-if(WIN32)
-	message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
-		you really want this feature, make it work yourself")
-elseif(APPLE)
-	set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
-elseif(UNIX)
-	set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
-else(WIN32)
-	message(FATAL_ERROR "I don't know how to force dynamic linking of boost on your architecture")
-endif(WIN32)
-
+#if(WIN32)
+#	message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
+#		you really want this feature, make it work yourself")
+#endif(WIN32)
 endif(USE_STATIC)
 
-# perform some black magic to set libraries to NOTFOUND if they don't match
-# the suffix: this way changing USE_SHARED in the GUI will case all boost libs
-# to be found again
-# not supported on win32 (all static there)
-if(NOT WIN32)
-if(BOOST_DATE_TIME_LIBRARY MATCHES "${CMAKE_FIND_LIBRARY_SUFFIXES}$")
-else(BOOST_DATE_TIME_LIBRARY MATCHES "${CMAKE_FIND_LIBRARY_SUFFIXES}$")
+# first, see if we can get any supported version of Boost
+find_package(Boost 1.32 COMPONENTS thread filesystem python signals program_options REQUIRED)
 
-set(BOOST_DATE_TIME_LIBRARY NOTFOUND)
-# to avoid an ugly mess of code, use the date time library as a trigger
-# to change all the other libraries
-set(BOOST_FILESYSTEM_LIBRARY NOTFOUND)
-set(BOOST_IOSTREAMS_LIBRARY NOTFOUND)
-set(BOOST_PRG_EXEC_MONITOR_LIBRARY NOTFOUND)
-set(BOOST_PROGRAM_OPTIONS_LIBRARY NOTFOUND)
-set(BOOST_PYTHON_LIBRARY NOTFOUND)
-set(BOOST_REGEX_LIBRARY NOTFOUND)
-set(BOOST_SERIALIZATION_LIBRARY NOTFOUND)
-set(BOOST_SIGNALS_LIBRARY NOTFOUND)
-set(BOOST_TEST_EXEC_MONITOR_LIBRARY NOTFOUND)
-set(BOOST_THREAD_LIBRARY NOTFOUND)
-set(BOOST_UNIT_TEST_FRAMEWORK_LIBRARY NOTFOUND)
-set(BOOST_WSERIALIZATION_LIBRARY NOTFOUND)
+# if we get boost 1.35 or greator, we need to get the system library too
 
-endif(BOOST_DATE_TIME_LIBRARY MATCHES "${CMAKE_FIND_LIBRARY_SUFFIXES}$")
+if (Boost_MINOR_VERSION GREATER 34)
+find_package(Boost 1.35 COMPONENTS thread filesystem python signals system unit_test_framework program_options REQUIRED)
+endif (Boost_MINOR_VERSION GREATER 34)
 
-endif(NOT WIN32)
-
-find_package(Boost REQUIRED)
 link_directories(${BOOST_LIBRARY_DIRS})
-# also enable stdcall boost::bind support on windows for CUDA runtime API calls
-if (WIN32)
 
+if (WIN32)
 # the user needs to see if the boost auto-linking is working on windows
 # Disabled because it is getting annoying. Renable if you need to debug
 # add_definitions(-DBOOST_LIB_DIAGNOSTIC)
 
-# stdcall isn't needed in 64 bit
+# also enable stdcall boost::bind support on windows for CUDA runtime API calls
+# but it isn't needed in 64 bit
 if (NOT CMAKE_CL_64)
 add_definitions(-DBOOST_BIND_ENABLE_STDCALL)
 endif (NOT CMAKE_CL_64)
 
 endif (WIN32)
-
-set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_CMAKE_FIND_LIBRARY_SUFFIXES})

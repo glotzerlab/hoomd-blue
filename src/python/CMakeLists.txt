@@ -67,13 +67,13 @@ add_library (${HOOMD_PYTHON_MODULE} ${LIB_MODE} ${HOOMD_CPU_SRCS}
 ${PYTHON_SRCS})
 endif (USE_CUDA)
 
-set(BOOST_LIBS ${BOOST_THREAD_LIBRARY} 
-			   ${BOOST_FILESYSTEM_LIBRARY} ${BOOST_PYTHON_LIBRARY}
-			   ${BOOST_SIGNALS_LIBRARY})
+set(BOOST_LIBS ${Boost_THREAD_LIBRARY} 
+			   ${Boost_FILESYSTEM_LIBRARY} ${Boost_PYTHON_LIBRARY}
+			   ${Boost_SIGNALS_LIBRARY})
 
-if (BOOST_SYSTEM_LIBRARY)
-	set(BOOST_LIBS ${BOOST_LIBS} ${BOOST_SYSTEM_LIBRARY})
-endif (BOOST_SYSTEM_LIBRARY)
+if (Boost_SYSTEM_LIBRARY)
+	set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
+endif (Boost_SYSTEM_LIBRARY)
 
 ##################################
 # change the name of the library if it is dynamic
