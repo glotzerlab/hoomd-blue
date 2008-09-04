@@ -135,7 +135,7 @@ def create_random(N, phi_p, name="A", min_dist=1.0):
 	box = hoomd.BoxDim(L);
 	
 	# create the generator
-	generator = hoomd.RandomGenerator(box, 0);
+	generator = hoomd.RandomGenerator(box, 1);
 	
 	# build type list
 	type_vector = hoomd.std_vector_string();
