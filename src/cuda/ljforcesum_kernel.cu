@@ -137,10 +137,12 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, gpu_nlist_array nlist, float r_cutsq, gpu_boxsize box)
 	{
 	// start by identifying which particle we are to handle
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 	
-	if (pidx >= pdata.N)
+	if (idx >= pdata.local_num)
 		return;
+	
+	int pidx = idx + pdata.local_beg;
 	
 	// load in the length of the list
 	int n_neigh = nlist.n_neigh[pidx];
@@ -222,7 +224,7 @@ cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsi
 	assert(nlist);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata->N/ (double)M), 1, 1);
+    dim3 grid( (int)ceil((double)pdata->local_num/ (double)M), 1, 1);
     dim3 threads(M, 1, 1);
 
 	// bind the texture

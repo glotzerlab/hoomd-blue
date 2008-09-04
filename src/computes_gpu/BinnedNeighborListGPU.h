@@ -86,7 +86,7 @@ class BinnedNeighborListGPU : public NeighborList
 		unsigned int m_curNmax; //!< Number of particles in the largest bin
 		Scalar m_avgNmax; 		//!< Average number of particles per bin
 
-		gpu_bin_array m_gpu_bin_data;	//!< The binned particle data
+		std::vector<gpu_bin_array> m_gpu_bin_data;	//!< The binned particle data
 		unsigned int *m_host_idxlist;	//!< Host bins
 		int m_block_size;				//!< Block size to use when performing the calculations on the GPU
 		unsigned int *m_mem_location;	//!< Memory location of bins (Z-order curve)

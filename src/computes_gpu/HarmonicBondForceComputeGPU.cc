@@ -142,11 +142,11 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
 	// the bond table is up to date: we are good to go. Call the kernel
-	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
+	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_bondforce_sum, m_d_forces, &pdata, &box, &gpu_bondtable, m_gpu_params, m_bond_data->getNBondTypes(), m_block_size));
+	exec_conf.gpu[0]->call(bind(gpu_bondforce_sum, m_d_forces[0], &pdata[0], &box, &gpu_bondtable, m_gpu_params, m_bond_data->getNBondTypes(), m_block_size));
 		
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;

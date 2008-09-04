@@ -371,16 +371,22 @@ def _create_exec_conf():
 	if not _options.mode:
 		exec_conf = hoomd.ExecutionConfiguration();
 	else:
+		# create a list of GPUs to execute on
+		gpu_ids = hoomd.std_vector_uint();
 		if _options.gpu:
-			gpu_id = int(_options.gpu);
+			# parse the list of gpus
+			string_gpu_list = _options.gpu.split(",")
+			for gpu in string_gpu_list:
+				gpu_ids.push_back(int(gpu));
 		else:
-			gpu_id = 0;
+			# otherwise, assume GPU 0
+			gpu_ids.push_back(0);
 		
 		# create the specified configuration
 		if _options.mode == "cpu":
-			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id);
+			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, 0);
 		elif _options.mode == "gpu":
-			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id);
+			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_ids);
 		else:
 			raise RuntimeError("Invalid value for _options.exec in initialization");
 		

@@ -65,7 +65,7 @@ class NVTUpdaterGPU : public NVTUpdater
 		virtual void update(unsigned int timestep);
 		
 	private:
-		gpu_nvt_data d_nvt_data;	//!< Temp data on the device needed to implement NVT
+		std::vector<gpu_nvt_data> d_nvt_data;	//!< Temp data on the device needed to implement NVT
 
 		//! Helper function to allocate data
 		void allocateNVTData(int block_size);

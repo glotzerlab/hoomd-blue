@@ -70,9 +70,10 @@ __global__ void integrator_sum_forces_kernel(gpu_pdata_arrays pdata, float4 **fo
 	__syncthreads();
 
 	// calculate the index we will be handling
-	int pidx = blockDim.x * blockIdx.x + threadIdx.x;
+	int idx = blockDim.x * blockIdx.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
 
-	if (pidx < pdata.N)
+	if (idx < pdata.local_num)
 		{
 		// sum the acceleration
 		float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -109,7 +110,7 @@ cudaError_t integrator_sum_forces(gpu_pdata_arrays *pdata, float4** force_list, 
 
 	const int M = 256;
 
-	integrator_sum_forces_kernel<<< pdata->N/M+1, M >>>(*pdata, force_list, num_forces);
+	integrator_sum_forces_kernel<<< pdata->local_num/M+1, M >>>(*pdata, force_list, num_forces);
 
 	#ifdef NDEBUG
     return cudaSuccess;

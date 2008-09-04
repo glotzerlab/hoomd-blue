@@ -60,9 +60,10 @@ __global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata, gpu_
 	// each thread will compare vs it's old position to see if the list needs updating
 	// if that is true, write a 1 to nlist_needs_updating
 	// it is possible that writes will collide, but at least one will succeed and that is all that matters
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
 
-	if (pidx < pdata.N)
+	if (idx < pdata.local_num)
 		{
 		float4 cur_pos = pdata.pos[pidx];
 		float4 last_pos = nlist.last_updated_pos[pidx];
@@ -97,7 +98,7 @@ cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *b
 	
 	// run the kernel
 	int M = 256;
-	dim3 grid( (pdata->N/M) + 1, 1, 1);
+	dim3 grid( (pdata->local_num/M) + 1, 1, 1);
 	dim3 threads(M, 1, 1);
 
 	// run the kernel

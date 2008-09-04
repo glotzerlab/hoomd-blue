@@ -158,7 +158,7 @@ class NeighborList : public Compute
 		
 		#ifdef USE_CUDA
 		//! Acquire the list on the GPU
-		gpu_nlist_array getListGPU();
+		vector<gpu_nlist_array>& getListGPU();
 		#endif
 		
 		//! Set the storage mode
@@ -211,8 +211,8 @@ class NeighborList : public Compute
 			gpu		//!< Particle data was last modified on the GPU
 			};
 		
-		DataLocation m_data_location;	//!< Where the neighborlist data currently lives
-		gpu_nlist_array m_gpu_nlist;		//!< Stores pointers and dimensions of GPU data structures
+		DataLocation m_data_location;			//!< Where the neighborlist data currently lives
+		vector<gpu_nlist_array> m_gpu_nlist;	//!< Stores pointers and dimensions of GPU data structures
 		unsigned int *m_host_nlist;
 		unsigned int *m_host_n_neigh;
 		uint4 *m_host_exclusions;

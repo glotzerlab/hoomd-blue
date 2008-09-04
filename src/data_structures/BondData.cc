@@ -96,14 +96,11 @@ BondData::BondData(ParticleData* pdata, unsigned int n_bond_types) : m_n_bond_ty
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
 	// allocate memory on the GPU if there is a GPU in the execution configuration
-	if (exec_conf.gpu.size() == 1)
+	if (exec_conf.gpu.size() >= 1)
 		{
 		allocateBondTable(1);
-		}
-	else if (exec_conf.gpu.size() > 1)
-		{
-		cerr << endl << "***Error! BondData currently only supports one GPU" << endl << endl;
-		throw std::runtime_error("Error initializing BondData");
+		if (exec_conf.gpu.size() > 1)
+			cout << "***Warning! BondData has not yet been updated for multi-GPU!" << endl;
 		}
 	#endif
 	}
@@ -114,7 +111,7 @@ BondData::~BondData()
 	
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	if (exec_conf.gpu.size() == 1)
+	if (!exec_conf.gpu.empty())
 		{
 		freeBondTable();
 		}

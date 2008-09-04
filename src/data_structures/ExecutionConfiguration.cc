@@ -124,6 +124,51 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int 
 				throw runtime_error("Error initializing execution configuration");
 				}
 			}
+			
+		}
+	#endif
+	}
+	
+/*! \param mode Execution mode to set (cpu or gpu)
+	\param gpu_ids List of GPUs to execute on
+	
+	No GPU is initialized if mode==cpu
+*/
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::vector<unsigned int>& gpu_ids)
+	{
+	exec_mode = mode;
+	
+	#ifdef USE_CUDA
+	if (exec_mode == GPU)
+		{
+		int dev_count;
+		cudaError_t error = cudaGetDeviceCount(&dev_count);
+		if (error != cudaSuccess)
+			{
+			cerr << endl << "***Error! Error getting CUDA capable device count!" << endl << endl;
+			throw runtime_error("Error initializing execution configuration");
+			return;
+			}
+		else
+			{
+			if (gpu_ids.size() == 0)
+				{
+				cerr << endl << "***Error! GPU configuration requested with no GPU ids!" << endl << endl;
+				throw runtime_error("Error initializing execution configuration");
+				return;
+				}
+				
+			for (unsigned int i = 0; i < gpu_ids.size(); i++)
+				{
+				if ((unsigned int)dev_count > gpu_ids[i])
+					gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_ids[i])));
+				else
+					{
+					cerr << endl << "***Error! GPU " << gpu_ids[i] << " was requested, but only " << dev_count << " was/were found" << endl << endl;
+					throw runtime_error("Error initializing execution configuration");
+					}
+				}
+			}
 		}
 	#endif
 	}
@@ -135,6 +180,7 @@ void export_ExecutionConfiguration()
 	scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
 		("ExecutionConfiguration", init< >())
 		.def(init<ExecutionConfiguration::executionMode, unsigned int>())
+		.def(init<ExecutionConfiguration::executionMode, vector<unsigned int> >())
 		.def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
 		;
 		

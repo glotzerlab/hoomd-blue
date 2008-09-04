@@ -62,12 +62,13 @@ texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 
 extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float deltaT, bool limit, float limit_val, gpu_boxsize box)
 	{
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
 	// do velocity verlet update
 	// r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
 	// v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 	
-	if (pidx < pdata.N)
+	if (idx < pdata.local_num)
 		{	
 		float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
 		
@@ -126,7 +127,7 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 
     // setup the grid to run the kernel
     int M = 256;
-    dim3 grid( (pdata->N/M) + 1, 1, 1);
+    dim3 grid( (pdata->local_num/M) + 1, 1, 1);
     dim3 threads(M, 1, 1);
 
 	// bind the textures
@@ -156,11 +157,12 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 
 extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
 	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
 
-	float4 accel = integrator_sum_forces_inline(pidx, pdata.N, force_data_ptrs, num_forces);
-	if (pidx < pdata.N)
+	float4 accel = integrator_sum_forces_inline(idx, pidx, pdata.local_num, force_data_ptrs, num_forces);
+	if (idx < pdata.local_num)
 		{
 		float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
 			
@@ -192,7 +194,7 @@ cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_
 
     // setup the grid to run the kernel
     int M = 192;
-    dim3 grid( (pdata->N/M) + 1, 1, 1);
+    dim3 grid( (pdata->local_num/M) + 1, 1, 1);
     dim3 threads(M, 1, 1);
 
 	// bind the texture

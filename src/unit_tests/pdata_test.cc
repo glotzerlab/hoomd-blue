@@ -256,10 +256,82 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 		}
 	pdata.release();
 	// try accessing the data on the GPU
-	gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU();
+	gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU()[0];
 	const ExecutionConfiguration& exec_conf = pdata.getExecConf();
 	BOOST_REQUIRE_EQUAL(exec_conf.gpu.size(), (unsigned int)1);
 	exec_conf.gpu[0]->call(bind(gpu_pdata_texread_test, &d_pdata));
+	pdata.release();
+
+	pdata.acquireReadOnly();
+	for (unsigned int i = 0; i < (unsigned int)N; i++)
+		{
+		// check to make sure that the position copied back OK
+		MY_BOOST_CHECK_CLOSE(arrays.x[i], float(i)/100.0f, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.y[i], float(i)/75.0f, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.z[i], float(i)/50.0f, tol);
+
+		// check to make sure that the texture read worked and read back ok
+		BOOST_CHECK(arrays.vx[i] == arrays.x[i]);
+		BOOST_CHECK(arrays.vy[i] == arrays.y[i]);
+		BOOST_CHECK(arrays.vz[i] == arrays.z[i]);
+	
+		// check to make sure that the accel was copied back ok
+		MY_BOOST_CHECK_CLOSE(arrays.ax[i], float(i), tol);
+		MY_BOOST_CHECK_CLOSE(arrays.ay[i], float(i) * 2.0f, tol);
+		MY_BOOST_CHECK_CLOSE(arrays.az[i], float(i) * 3.0f, tol);
+
+		// check the charge
+		MY_BOOST_CHECK_CLOSE(arrays.charge[i], float(i) * 4.0f, tol);
+
+		BOOST_CHECK(arrays.type[i] == i);
+		}
+	pdata.release();
+	}
+	
+//! Tests the ability of the ParticleData class to copy data between CPU <-> GPU
+BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
+	{
+	Scalar tol = Scalar(1e-6);
+	
+	// setup an execution configuration with 4 GPUs all with id 0 for testing purposes
+	vector<unsigned int> gpu_list;
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+		
+	// This set of tests will actually check that the ParticleData class is working
+	// It would be a pain in the ass to test every possible state change in going from
+	// the data being on the CPU to -on the GPU to on both, etc.... so we will just check
+	// basic functionality here. Any subtle bugs will just have to show up when 
+	// unit tests are done that compare simulation runs on the cpu to those on the GPU
+	BoxDim box(10.0,30.0,50.0);
+	int N = 500;
+	ParticleData pdata(N, box, 1, 0, exec_conf);
+	ParticleDataArrays arrays = pdata.acquireReadWrite();
+	for (int i = 0; i < N; i++)
+		{
+		arrays.x[i] = float(i)/100.0f;
+		arrays.y[i] = float(i)/75.0f;
+		arrays.z[i] = float(i)/50.0f;
+
+		arrays.ax[i] = float(i);
+		arrays.ay[i] = float(i) * 2.0f;
+		arrays.az[i] = float(i) * 3.0f;
+
+		arrays.charge[i] = float(i) * 4.0f;
+		arrays.type[i] = i;
+		}
+	pdata.release();
+	
+	vector<gpu_pdata_arrays>& d_pdata_list = pdata.acquireReadWriteGPU();
+	
+	// try accessing the data on the GPU
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->call(bind(gpu_pdata_texread_test, &d_pdata_list[cur_gpu]));
+		}
 	pdata.release();
 
 	pdata.acquireReadOnly();

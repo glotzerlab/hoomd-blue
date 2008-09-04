@@ -268,13 +268,13 @@ void lj_force_periodic_test(ljforce_creator lj_creator)
 	}
 	
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
-void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2)
+void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2, ExecutionConfiguration exec_conf)
 	{
 	const unsigned int N = 5000;
 	
 	// create a random particle system to sum forces on
 	RandomInitializer rand_init(N, 0.2, 0.9, "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init));
+	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
 	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(pdata, Scalar(3.0), Scalar(0.8)));
 	
 	shared_ptr<LJForceCompute> fc1 = lj_creator1(pdata, nlist, Scalar(3.0));
@@ -360,7 +360,22 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_compare )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_comparison_test(lj_creator_base, lj_creator_gpu);
+	lj_force_comparison_test(lj_creator_base, lj_creator_gpu, ExecutionConfiguration());
+	}
+	
+//! boost test case for comparing multi-GPU output to base class output
+BOOST_AUTO_TEST_CASE( LJForceMultiGPU_compare )
+	{
+	vector<unsigned int> gpu_list;
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+
+	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
+	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
+	lj_force_comparison_test(lj_creator_base, lj_creator_gpu, exec_conf);
 	}
 #endif
 

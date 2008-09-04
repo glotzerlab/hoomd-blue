@@ -105,7 +105,7 @@ class ForceCompute : public Compute
 
 		#ifdef USE_CUDA
 		//! Access the computed force data on the GPU
-		float4 *acquireGPU();
+		vector<float4*>& acquireGPU();
 		#endif
 		
 		//! Computes the forces
@@ -140,9 +140,10 @@ class ForceCompute : public Compute
 			gpu		//!< Particle data was last modified on the GPU
 			};
 
-		DataLocation m_data_location;   //!< Where the neighborlist data currently lives
-		float4 *m_d_forces;				//!< Storage location for forces on the device
-		float *m_d_staging;			//!< Staging array where values are (un)interleaved
+		DataLocation m_data_location;   	//!< Where the neighborlist data currently lives
+		vector<float4 *> m_d_forces;		//!< Storage location for forces on the device
+		vector<float *> m_d_staging;		//!< Staging array where values are (un)interleaved
+		float4 *m_h_staging;				//!< Host memory staging area for force data
 		unsigned int m_uninterleave_pitch;	//!< Remember the pitch between x,y,z,type in the uninterleaved data
 		unsigned int m_single_xarray_bytes;	//!< Remember the number of bytes allocated for a single float array
 

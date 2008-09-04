@@ -100,7 +100,8 @@ bool profile_compute = true;
 bool half_nlist = true;
 //! Specify packing fraction of particles for the benchmark (if applicable)
 Scalar phi_p = 0.2;
-
+//! number of GPUs to execute on
+unsigned int num_gpus = 1;
 
 //! Initialize the force compute from a string selecting it
 shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, shared_ptr<ParticleData> pdata)
@@ -136,8 +137,18 @@ shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, share
 //! Initializes the particle data to a random set of particles
 shared_ptr<ParticleData> init_pdata()
 	{
+	ExecutionConfiguration exec_conf;
+	if (num_gpus >= 1)
+		{
+		// setup multi-gpu execution configuration
+		vector<unsigned int> gpu_list;
+		for (unsigned int i = 0; i < num_gpus; i++)
+			gpu_list.push_back(i);
+		exec_conf = ExecutionConfiguration(ExecutionConfiguration::GPU, gpu_list);
+		}	
+	
 	RandomInitializer rand_init(N, phi_p, 0.0, "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init));
+	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
 	if (sort_particles)
 		{
 		SFCPackUpdater sorter(pdata, Scalar(1.0));
@@ -210,6 +221,7 @@ int main(int argc, char **argv)
 		("profile", value<bool>(&profile_compute)->default_value(true), "Profile GFLOPS and GB/s sustained")
 		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
 		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
+		("multi_gpu", value<unsigned int>(&num_gpus)->default_value(0), "Number of GPUs to run on in multi-gpu mode")
 		#ifdef USE_CUDA
 		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNL.GPU"), "NeighboorList to benchmark")
 		#else

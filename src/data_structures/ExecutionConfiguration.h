@@ -77,6 +77,9 @@ struct ExecutionConfiguration
 	//! Single GPU selection constructor
 	ExecutionConfiguration(executionMode mode, unsigned int gpu_id);
 	
+	//! Multi GPU selection constructor
+	ExecutionConfiguration(executionMode mode, const std::vector<unsigned int>& gpu_ids);
+	
 	executionMode exec_mode;	//!< Execution mode specified in the constructor
 	#ifdef USE_CUDA
 	std::vector< boost::shared_ptr<GPUWorker> > gpu;	//!< GPUs to execute on

@@ -70,7 +70,8 @@ NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 		cerr << endl << "***Error! Creating a NVTUpdaterGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing NVTUpdaterGPU");
 		}
-		
+	
+	d_nvt_data.resize(exec_conf.gpu.size());
 	allocateNVTData(128);
 	}
 
@@ -85,33 +86,29 @@ void NVTUpdaterGPU::allocateNVTData(int block_size)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
-	d_nvt_data.block_size = block_size;
-	d_nvt_data.NBlocks = m_pdata->getN() / block_size + 1;
-	
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.partial_Ksum), d_nvt_data.NBlocks * sizeof(float)));
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Ksum), sizeof(float)));
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Xi), sizeof(float)));
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data.Xi_dbl), sizeof(float)));
-
-	// initialize Xi to 1.0
-	float Xi = 1.0;
-	exec_conf.gpu[0]->call(bind(cudaMemcpy, d_nvt_data.Xi, &Xi, sizeof(float), cudaMemcpyHostToDevice));
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		d_nvt_data[cur_gpu].block_size = block_size;
+		d_nvt_data[cur_gpu].NBlocks = m_pdata->getLocalNum(cur_gpu) / block_size + 1;
+		
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].partial_Ksum), d_nvt_data[cur_gpu].NBlocks * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].Ksum), sizeof(float)));
+		}
 	}
 
 void NVTUpdaterGPU::freeNVTData()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.partial_Ksum));
-	d_nvt_data.partial_Ksum = NULL;
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.Ksum));
-	d_nvt_data.Ksum = NULL;
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.Xi));
-	d_nvt_data.Xi = NULL;
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_data.Xi_dbl));
-	d_nvt_data.Xi_dbl = NULL;
+
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_nvt_data[cur_gpu].partial_Ksum));
+		d_nvt_data[cur_gpu].partial_Ksum = NULL;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_nvt_data[cur_gpu].Ksum));
+		d_nvt_data[cur_gpu].Ksum = NULL;
+		}
 	}
 
 /*! \param timestep Current time step of the simulation
@@ -133,15 +130,22 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_prof->push("NVT.GPU");
 		
 	// access the particle data arrays
-	gpu_pdata_arrays d_pdata = m_pdata->acquireReadWriteGPU();
+	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU(); 
 
 	if (m_prof)
 		m_prof->push("Half-step 1");
 		
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(nvt_pre_step, &d_pdata, &box, &d_nvt_data, m_deltaT));
+	
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{	
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_pre_step, &d_pdata[cur_gpu], &box, &d_nvt_data[cur_gpu], m_Xi, m_deltaT));
+		}
+		
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->sync();
 	
 	if (m_prof)
 		{
@@ -151,6 +155,9 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// release the particle data arrays so that they can be accessed to add up the accelerations
 	m_pdata->release();
+	
+	// communicate the updated positions among the GPUs
+	m_pdata->communicatePosition();
 	
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
@@ -166,9 +173,22 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_prof->push("Reducing");
 		}
 		
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(nvt_reduce_ksum, &d_nvt_data));
-	
+	// reduce the Ksum values on the GPU
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(nvt_reduce_ksum, &d_nvt_data[cur_gpu]));
+		}
+		
+	// copy the values from the GPU to the CPU and complete the sum
+	float Ksum_total = 0.0f;
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		float Ksum_tmp;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &Ksum_tmp, d_nvt_data[cur_gpu].Ksum, sizeof(float), cudaMemcpyDeviceToHost));
+		Ksum_total += Ksum_tmp;
+		}
+		
 	if (m_prof)
 		{
 		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
@@ -178,10 +198,19 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	if (m_prof)
 		m_prof->push("Half-step 2");
 	
+	// update Xi
+	float T_current = Ksum_total / (3.0f * float(m_pdata->getN()));
+	m_Xi += m_deltaT / (m_tau*m_tau) * (T_current / m_T - 1.0f);
+	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(nvt_step, &d_pdata, &d_nvt_data, m_d_force_data_ptrs, (int)m_forces.size(), m_deltaT, m_tau, m_T));
+	
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_step, &d_pdata[cur_gpu], &d_nvt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_deltaT));
+		
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->sync();
+		
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
@@ -191,8 +220,6 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_prof->pop(15 * m_pdata->getN(), m_pdata->getN() * 16 * (3 + m_forces.size()));	
 		m_prof->pop();
 		}
-		
-	exec_conf.gpu[0]->sync();
 	}
 	
 #ifdef USE_PYTHON

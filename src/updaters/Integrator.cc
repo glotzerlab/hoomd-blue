@@ -69,21 +69,18 @@ Integrator::Integrator(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : U
 
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	// only one GPU is currently supported
-	if (exec_conf.gpu.size() != 0 && exec_conf.gpu.size() > 1)
-		{
-		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
-		throw std::runtime_error("Error initializing Integrator");
-		}
-	#endif	
 
+	m_d_force_data_ptrs.resize(exec_conf.gpu.size());
 
-	#ifdef USE_CUDA
 	// allocate and initialize force data pointers (if running on a GPU)
 	if (!exec_conf.gpu.empty())
 		{
-		exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_force_data_ptrs), sizeof(float4*)*32));
-		exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_d_force_data_ptrs, 0, sizeof(float4*)*32));
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_d_force_data_ptrs[cur_gpu]), sizeof(float4*)*32));
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_d_force_data_ptrs[cur_gpu], 0, sizeof(float4*)*32));
+			}
 		}
 	#endif
 	}
@@ -93,7 +90,13 @@ Integrator::~Integrator()
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (!exec_conf.gpu.empty())
-		exec_conf.gpu[0]->call(bind(cudaFree, (void *)m_d_force_data_ptrs));
+		{
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)m_d_force_data_ptrs[cur_gpu]));
+			}
+		}
 	#endif
 	}
 
@@ -108,19 +111,23 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (!exec_conf.gpu.empty())
 		{
-		// reinitialize the memory on the device
-	
-		// fill out the memory on the host
-		// this only needs to be done once since the output of acquireGPU is
-		// guarunteed not to change later
-		float4 *h_force_data_ptrs[32];
-		for (int i = 0; i < 32; i++)
-			h_force_data_ptrs[i] = NULL;
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			// reinitialize the memory on the device
 		
-		for (unsigned int i = 0; i < m_forces.size(); i++)
-			h_force_data_ptrs[i] = m_forces[i]->acquireGPU();
-		
-		exec_conf.gpu[0]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs, (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
+			// fill out the memory on the host
+			// this only needs to be done once since the output of acquireGPU is
+			// guarunteed not to change later
+			float4 *h_force_data_ptrs[32];
+			for (int i = 0; i < 32; i++)
+				h_force_data_ptrs[i] = NULL;
+			
+			for (unsigned int i = 0; i < m_forces.size(); i++)
+				h_force_data_ptrs[i] = m_forces[i]->acquireGPU()[cur_gpu];
+			
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs[cur_gpu], (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
+			}
 		}
 	#endif
 	}
@@ -135,13 +142,18 @@ void Integrator::removeForceComputes()
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (!exec_conf.gpu.empty())
-		{	
-		// reinitialize the memory on the device
-		float4 *h_force_data_ptrs[32];
-		for (int i = 0; i < 32; i++)
-			h_force_data_ptrs[i] = NULL;
+		{
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		
+			// reinitialize the memory on the device
+			float4 *h_force_data_ptrs[32];
+			for (int i = 0; i < 32; i++)
+				h_force_data_ptrs[i] = NULL;
 			
-		exec_conf.gpu[0]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs, (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs[cur_gpu], (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
+			}
 		}
 	#endif
 	}
@@ -251,11 +263,18 @@ void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::strin
 			}
 		
 		// acquire the particle data on the GPU and add the forces into the acceleration
-		gpu_pdata_arrays d_pdata = m_pdata->acquireReadWriteGPU();
+		vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
 
 		// sum up all the forces
-		exec_conf.gpu[0]->call(bind(integrator_sum_forces, &d_pdata, m_d_force_data_ptrs, (int)m_forces.size()));
-		
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			exec_conf.gpu[cur_gpu]->callAsync(bind(integrator_sum_forces, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size()));
+			}
+			
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			exec_conf.gpu[cur_gpu]->sync();
+			
 		// done
 		m_pdata->release();
 		

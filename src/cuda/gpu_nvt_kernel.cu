@@ -62,23 +62,14 @@ extern __shared__ float nvt_sdata[];
 	\brief Contains code for the NVT kernel on the GPU
 */
 
-extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float deltaT, gpu_boxsize box)
+extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float denominv, float deltaT, gpu_boxsize box)
 	{
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
 	// do Nose-Hoover integrate
 	
-	// start off by calculating the denominator that will multiply velocities
-	__shared__ float Xi, denominv;
-	
-	if (threadIdx.x == 0)
-		{	
-		Xi = *d_nvt_data.Xi;
-		denominv = 1.0f / (1.0f + deltaT/2.0f * Xi);
-		}
-	__syncthreads();
-	
 	float vsq;	
-	if (pidx < pdata.N)
+	if (idx < pdata.local_num)
 		{
 		// update positions to the next timestep and update velocities to the next half step
 		float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
@@ -142,11 +133,11 @@ extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_d
 	// write out our partial sum
 	if (threadIdx.x == 0)
 		{
-		d_nvt_data.partial_Ksum[blockIdx.x] = nvt_sdata[0];	
+		d_nvt_data.partial_Ksum[blockIdx.x] = nvt_sdata[0];
 		}
 	}
 
-cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float deltaT)
+cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float Xi, float deltaT)
 	{
     assert(pdata);
 	assert(d_nvt_data);
@@ -168,9 +159,9 @@ cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data
 	error = cudaBindTexture(0, pdata_accel_tex, pdata->accel, sizeof(float4) * pdata->N);
 	if (error != cudaSuccess)
 		return error;
-    
+	
 	// run the kernel
-    nvt_pre_step_kernel<<< grid, threads, M * sizeof(float) >>>(*pdata, *d_nvt_data, deltaT, *box);
+    nvt_pre_step_kernel<<< grid, threads, M * sizeof(float) >>>(*pdata, *d_nvt_data, 1.0f / (1.0f + deltaT/2.0f * Xi), deltaT, *box);
 	#ifdef NDEBUG
 	return cudaSuccess;
 	#else
@@ -180,27 +171,13 @@ cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data
 	}
 
 
-extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float deltaT, float tau, float T, float g)
+extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
 	{
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
-
-	// every block updates a local copy of Xi
-	__shared__ float Xi;
-	if (threadIdx.x == 0)
-		{
-		Xi = *d_nvt_data.Xi;
-		float Ksum = *d_nvt_data.Ksum;
-		float T_current = Ksum / g;
-		Xi += deltaT / (tau*tau) * (T_current / T - 1.0f);
-		}
-	__syncthreads();
-
-	// only one writes out the new Xi
-	if (pidx == 0)
-		*d_nvt_data.Xi_dbl = Xi;
-
-	float4 accel = integrator_sum_forces_inline(pidx, pdata.N, force_data_ptrs, num_forces);
-	if (pidx < pdata.N)
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
+	
+	float4 accel = integrator_sum_forces_inline(idx, pidx, pdata.local_num, force_data_ptrs, num_forces);
+	if (idx < pdata.local_num)
 		{
 		float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
 			
@@ -216,7 +193,7 @@ extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data 
 	}
 
 
-cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float deltaT, float Q, float T)
+cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
 	{
     assert(pdata);
 	assert(d_nvt_data);
@@ -232,19 +209,14 @@ cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 *
 		return error;
 
     // run the kernel
-    nvt_step_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_nvt_data, force_data_ptrs, num_forces, deltaT, Q, T, 3.0f * pdata->N);
-	
-	// swap the double buffered Xi
-	float *tmp = d_nvt_data->Xi;
-	d_nvt_data->Xi = d_nvt_data->Xi_dbl;
-	d_nvt_data->Xi_dbl = tmp;
+    nvt_step_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_nvt_data, force_data_ptrs, num_forces, Xi, deltaT);
 	
 	#ifdef NDEBUG
 	return cudaSuccess;
 	#else
 	cudaThreadSynchronize();
 	return cudaGetLastError();
-	#endif	
+	#endif
 	}
 	
 

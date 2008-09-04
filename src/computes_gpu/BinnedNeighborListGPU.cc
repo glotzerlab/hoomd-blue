@@ -78,11 +78,8 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 		cerr << endl << "***Error! Creating a BinnedNeighborListGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing BinnedNeighborListGPU");
 		}
-	if (exec_conf.gpu.size() != 1)
-		{
-		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
-		throw std::runtime_error("Error initializing BinnedNeighborListGPU");
-		}
+	// setup the GPU data pointers
+	m_gpu_bin_data.resize(exec_conf.gpu.size());
 	
 	m_storage_mode = full;
 	// this is a bit of a trick, but initialize the last allocated Mx,My,Mz values to bogus settings so that
@@ -162,13 +159,8 @@ static void generateTraversalOrder(unsigned int i, unsigned int j, unsigned int 
 void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	assert(exec_conf.gpu.size() == 1);
+	assert(exec_conf.gpu.size() >= 1);
 	
-	// setup the dimensions
-	m_gpu_bin_data.Mx = Mx;
-	m_gpu_bin_data.My = My;
-	m_gpu_bin_data.Mz = Mz;
-
 	// use mallocPitch to make sure that memory accesses are coalesced	
 	size_t pitch;
 
@@ -176,25 +168,35 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	if (Mx*My*Mz*Nmax >= 500000*128)
 		cout << "***Warning! Allocating abnormally large cell list: " << Mx << " " << My << " " << Mz << " " << Nmax << endl;
 
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data.idxlist), &pitch, Nmax*sizeof(unsigned int), Mx*My*Mz));
-	// want pitch in elements, not bytes
-	Nmax = (int)pitch / sizeof(unsigned int);
-	exec_conf.gpu[0]->call(bind(cudaMemset, (void*) m_gpu_bin_data.idxlist, 0, pitch * Mx*My*Mz));
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		// setup the dimensions
+		m_gpu_bin_data[cur_gpu].Mx = Mx;
+		m_gpu_bin_data[cur_gpu].My = My;
+		m_gpu_bin_data[cur_gpu].Mz = Mz;
+		
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data[cur_gpu].idxlist), &pitch, Nmax*sizeof(unsigned int), Mx*My*Mz));
+		// want pitch in elements, not bytes
+		Nmax = (int)pitch / sizeof(unsigned int);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_bin_data[cur_gpu].idxlist, 0, pitch * Mx*My*Mz));
 	
-	cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< unsigned int >();
-	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
+		cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< unsigned int >();
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
+	
+		// allocate the bin adjacent list array
+		cudaChannelFormatDesc bin_adj_desc = cudaCreateChannelDesc< int >();
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].bin_adj_array, &bin_adj_desc, Mx*My*Mz, 27));
+	
+		// allocate the mem location data
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data[cur_gpu].mem_location), Mx*My*Mz*sizeof(unsigned int)));
+		}
 	
 	// allocate and zero host memory
 	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
 	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
 	
-	// allocate the bin adjacent list array
-	cudaChannelFormatDesc bin_adj_desc = cudaCreateChannelDesc< int >();
-	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.bin_adj_array, &bin_adj_desc, Mx*My*Mz, 27));
-	
-	// allocate the mem location data
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data.mem_location), Mx*My*Mz*sizeof(unsigned int)));
+	// mem_location on host
 	m_mem_location = new unsigned int[Mx*My*Mz];
 
 	// find maximum bin dimension
@@ -215,8 +217,13 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 	// fill out the mem_location data
 	unsigned int cur_val = 0;
 	generateTraversalOrder(0, 0, 0, Mmax, Mmax, Mx, My, Mz, m_mem_location, cur_val);
-	// copy it to the GPU
-	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.mem_location, m_mem_location, sizeof(unsigned int)*Mx*My*Mz, cudaMemcpyHostToDevice));
+	
+	// copy it to the GPUs
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_bin_data[cur_gpu].mem_location, m_mem_location, sizeof(unsigned int)*Mx*My*Mz, cudaMemcpyHostToDevice));
+		}
 	
 	// allocate the host bin adj array
 	int *bin_adj_host = new int[Mx*My*Mz*27];
@@ -259,51 +266,63 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 				}
 			}
 		}
+		
 	// copy it to the device. This only needs to be done once
-	exec_conf.gpu[0]->call(bind(cudaMemcpyToArray, m_gpu_bin_data.bin_adj_array, 0, 0, bin_adj_host, 27*Mx*My*Mz*sizeof(int), cudaMemcpyHostToDevice));
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);	
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].bin_adj_array, 0, 0, bin_adj_host, 27*Mx*My*Mz*sizeof(int), cudaMemcpyHostToDevice));
+		}
 	
 	// don't need the temporary bin adj data any more
 	delete[] bin_adj_host;
 	
 	// allocate the coord_idxlist data
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	size_t pitch_coord;
-	exec_conf.gpu[0]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data.coord_idxlist), &pitch_coord, Mx*My*Mz*sizeof(float4), Nmax));
-	// want width in elements, not bytes
-	m_gpu_bin_data.coord_idxlist_width = (int)pitch_coord / sizeof(float4);
-	
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMemset, (void*) m_gpu_bin_data.coord_idxlist, 0, pitch_coord * Nmax));
-	
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	cudaChannelFormatDesc coord_idxlist_desc = cudaCreateChannelDesc< float4 >();
-	exec_conf.gpu[0]->call(bind(cudaMallocArray, &m_gpu_bin_data.coord_idxlist_array, &coord_idxlist_desc, m_gpu_bin_data.coord_idxlist_width, Nmax));
-	
-	// assign allocated pitch
-	m_gpu_bin_data.Nmax = Nmax;
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		size_t pitch_coord;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data[cur_gpu].coord_idxlist), &pitch_coord, Mx*My*Mz*sizeof(float4), Nmax));
+		// want width in elements, not bytes
+		m_gpu_bin_data[cur_gpu].coord_idxlist_width = (int)pitch_coord / sizeof(float4);
+		
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_bin_data[cur_gpu].coord_idxlist, 0, pitch_coord * Nmax));
+		
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		cudaChannelFormatDesc coord_idxlist_desc = cudaCreateChannelDesc< float4 >();
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].coord_idxlist_array, &coord_idxlist_desc, m_gpu_bin_data[cur_gpu].coord_idxlist_width, Nmax));
+		
+		// assign allocated pitch
+		m_gpu_bin_data[cur_gpu].Nmax = Nmax;
+		}
 	}
 	
 
 void BinnedNeighborListGPU::freeGPUBinData()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	assert(exec_conf.gpu.size() == 1);
+	assert(exec_conf.gpu.size() >= 1);
 	
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{	
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		
+		// free the device memory
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bin_data[cur_gpu].idxlist));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFreeArray, m_gpu_bin_data[cur_gpu].idxlist_array));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bin_data[cur_gpu].coord_idxlist));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFreeArray, m_gpu_bin_data[cur_gpu].coord_idxlist_array));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFreeArray, m_gpu_bin_data[cur_gpu].bin_adj_array));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bin_data[cur_gpu].mem_location));
 	
-	// free the device memory
-	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.idxlist));
-	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.idxlist_array));
-	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.coord_idxlist));
-	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.coord_idxlist_array));
-	exec_conf.gpu[0]->call(bind(cudaFreeArray, m_gpu_bin_data.bin_adj_array));
-	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bin_data.mem_location));
+		// set pointers to NULL so no one will think they are valid 
+		m_gpu_bin_data[cur_gpu].idxlist = NULL;
+		}
+	
 	// free the hsot memory
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_idxlist));
 	delete[] m_mem_location;
-
-	// set pointers to NULL so no one will think they are valid 
-	m_gpu_bin_data.idxlist = NULL;
 	m_host_idxlist = NULL;
 	}
 
@@ -313,7 +332,7 @@ void BinnedNeighborListGPU::freeGPUBinData()
 void BinnedNeighborListGPU::compute(unsigned int timestep)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	assert(exec_conf.gpu.size() == 1);
+	assert(exec_conf.gpu.size() >= 1);
 	
 	// skip if we shouldn't compute this step
 	if (!shouldCompute(timestep) && !m_force_update)
@@ -340,20 +359,24 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		if (m_prof)
 			m_prof->push("Bin copy");
 		
-		unsigned int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My * m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax * sizeof(unsigned int);
+		unsigned int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My * m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax * sizeof(unsigned int);
 
-		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		//exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.idxlist, m_host_idxlist,
 			//nbytes, cudaMemcpyHostToDevice));
-		exec_conf.gpu[0]->call(bind(cudaMemcpyToArray, m_gpu_bin_data.idxlist_array, 0, 0, m_host_idxlist, nbytes,
-			cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice));
+		}
 		
 		if (m_prof)
 			{
-			exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-			int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My *
-						m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax *
-						sizeof(unsigned int);
+			for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+				exec_conf.gpu[cur_gpu]->call(bind(cudaThreadSynchronize));
+				
+			int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My *
+						m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax *
+						sizeof(unsigned int) * exec_conf.gpu.size();
 						
 			m_prof->pop(0, nbytes);
 			}
@@ -361,34 +384,62 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		if (m_prof)
 			m_prof->push("Transpose");
 			
-		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-		gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
-		exec_conf.gpu[0]->call(bind(gpu_nlist_idxlist2coord, &pdata, &m_gpu_bin_data, m_curNmax, 256));
+		vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+	
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 256));
+			}
+		
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			exec_conf.gpu[cur_gpu]->sync();
+			
+			
 		m_pdata->release();
-		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[0]->call(bind(cudaMemcpyToArray, m_gpu_bin_data.coord_idxlist_array, 0, 0, m_gpu_bin_data.coord_idxlist, m_gpu_bin_data.coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice));
+		
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{	
+			exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].coord_idxlist_array, 0, 0, m_gpu_bin_data[cur_gpu].coord_idxlist, m_gpu_bin_data[cur_gpu].coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice));
+			}
 		
 		if (m_prof)
+			{
+			for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+				exec_conf.gpu[cur_gpu]->call(bind(cudaThreadSynchronize));
 			m_prof->pop();
+			}
 		
 		// update the neighbor list using the bins. Need to check for overflows
 		// and increase the size of the list as needed
 		updateListFromBins();
 		
-		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 		int overflow = 0;
-		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			int overflow_tmp = 0;
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &overflow_tmp, m_gpu_nlist[cur_gpu].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+			overflow = overflow || overflow_tmp;
+			}
+			
 		while (overflow)
 			{
-			int new_height = m_gpu_nlist.height * 2;
+			int new_height = m_gpu_nlist[0].height * 2;
 			cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
 			freeGPUData();
 			allocateGPUData(new_height);
 			updateExclusionData();
 			
 			updateListFromBins();
-			exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost));
+			overflow = 0;
+			for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+				{
+				int overflow_tmp = 0;
+				exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+				exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &overflow_tmp, m_gpu_nlist[cur_gpu].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+				overflow = overflow || overflow_tmp;
+				}
 			}
 			
 		#ifdef USE_CUDA
@@ -430,7 +481,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		freeGPUBinData();
 		allocateGPUBinData(m_Mx, m_My, m_Mz, m_Nmax);
 		// reassign m_Nmax since it may have been expanded by the allocation process
-		m_Nmax = m_gpu_bin_data.Nmax;
+		m_Nmax = m_gpu_bin_data[0].Nmax;
 		
 		m_last_Mx = m_Mx;
 		m_last_My = m_My;
@@ -530,7 +581,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		freeGPUBinData();
 		allocateGPUBinData(m_Mx, m_My, m_Mz, m_Nmax);
 		// reassign m_Nmax since it may have been expanded by the allocation process
-		m_Nmax = m_gpu_bin_data.Nmax;
+		m_Nmax = m_gpu_bin_data[0].Nmax;
 		updateBinsUnsorted();
 		}
 	// note, we don't copy the binned values to the device yet, that is for the compute to do
@@ -544,7 +595,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 void BinnedNeighborListGPU::updateListFromBins()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	assert(exec_conf.gpu.size() == 1);
+	assert(exec_conf.gpu.size() >= 1);
 	
 	// sanity check
 	assert(m_pdata);
@@ -557,13 +608,19 @@ void BinnedNeighborListGPU::updateListFromBins()
 		}
 		
 	// access the particle data
-	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
+	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU(); 
 	
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_nlist_binned, &pdata, &box, &m_gpu_bin_data, &m_gpu_nlist, r_max_sq, m_curNmax, m_block_size));
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{	
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_binned, &pdata[cur_gpu], &box, &m_gpu_bin_data[cur_gpu], &m_gpu_nlist[cur_gpu], r_max_sq, m_curNmax, m_block_size));
+		}
+		
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->sync();
 	
 	m_pdata->release();
 
@@ -582,7 +639,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	assert(exec_conf.gpu.size() == 1);	
+	assert(exec_conf.gpu.size() >= 1);
 	
 	if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
 		return false;
@@ -602,16 +659,20 @@ bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
 	if (m_prof)
 		m_prof->push("Dist check");
 		
-	gpu_pdata_arrays pdata = m_pdata->acquireReadOnlyGPU();
+	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
 	// create a temporary copy of r_max sqaured
 	Scalar r_buffsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));	
 	
 	int result = 0;
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_nlist_needs_update_check, &pdata, &box, &m_gpu_nlist, r_buffsq, &result));
-	
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		int result_tmp;
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(gpu_nlist_needs_update_check, &pdata[cur_gpu], &box, &m_gpu_nlist[cur_gpu], r_buffsq, &result_tmp));
+		result = result | result_tmp;
+		}
 
 	m_pdata->release();
 
@@ -636,8 +697,8 @@ void BinnedNeighborListGPU::printStats()
 	NeighborList::printStats();
 
 	cout << "Nmax = " << m_Nmax << " / curNmax = " << m_curNmax << endl;
-	int Nbins = m_gpu_bin_data.Mx * m_gpu_bin_data.My * m_gpu_bin_data.Mz;
-	cout << "bins Nmax = " << m_gpu_bin_data.Nmax << " / Nbins = " << Nbins << endl;
+	int Nbins = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My * m_gpu_bin_data[0].Mz;
+	cout << "bins Nmax = " << m_gpu_bin_data[0].Nmax << " / Nbins = " << Nbins << endl;
 	}
 
 #ifdef USE_PYTHON

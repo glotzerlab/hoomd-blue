@@ -70,15 +70,6 @@ set(HOOMD_GPU_SRCS ${COMPUTES_GPU_SRCS} ${UPDATER_GPU_SRCS} ${CUDA_SRCS})
 #######################
 ## Configure the version info header file
 
-# users may not have subversion installed, search for it and set an unknown version if that is
-# the case
-find_program(SVNVERSION_EXE "svnversion" DOC "svnversion executable")
-mark_as_advanced(SVNVERSION_EXE)
-if (SVNVERSION_EXE)
-	exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
-else (SVNVERSION_EXE)
-	set(SVNVERSION "n/a")
-endif (SVNVERSION_EXE)
 
 # handle linux/mac and windows dates differently
 if (NOT WIN32)

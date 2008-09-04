@@ -131,10 +131,11 @@ texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, unsigned int actual_Nmax, gpu_boxsize box, float scalex, float scaley, float scalez)
 	{
 	// each thread is going to compute the neighbor list for a single particle
-	int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
+	int idx = blockDim.x * blockIdx.x + threadIdx.x;
+	int my_pidx = idx + pdata.local_beg;
 	
 	// quit early if we are past the end of the array
-	if (my_pidx >= pdata.N)
+	if (idx >= pdata.local_num)
 		return;
 	
 	// first, determine which bin this particle belongs to
@@ -215,7 +216,7 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	assert(block_size > 0);
 
 	// setup the grid to run the kernel
-	int nblocks = (int)ceil((double)pdata->N/ (double)block_size);
+	int nblocks = (int)ceil((double)pdata->local_num/ (double)block_size);
 	
 	dim3 grid(nblocks, 1, 1);
 	dim3 threads(block_size, 1, 1);

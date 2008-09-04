@@ -325,14 +325,22 @@ class ParticleData
 		
 		#ifdef USE_CUDA
 		//! Acquire read access to the particle data on the GPU
-		gpu_pdata_arrays acquireReadOnlyGPU();
+		std::vector<gpu_pdata_arrays>& acquireReadOnlyGPU();
 		//! Acquire read/write access to the particle data on the GPU
-		gpu_pdata_arrays acquireReadWriteGPU();
+		std::vector<gpu_pdata_arrays>& acquireReadWriteGPU();
 		
 		//! Get the box for the GPU
 		/*! \returns Box dimensions suitable for passing to the GPU code
 		*/
-		const gpu_boxsize& getBoxGPU() { return m_gpu_box; }		
+		const gpu_boxsize& getBoxGPU() { return m_gpu_box; }
+		
+		//! Get the beginning index of the local particles on a particular GPU
+		unsigned int getLocalBeg(unsigned int gpu);
+		//! Get the number of local particles on a particular GPU
+		unsigned int getLocalNum(unsigned int gpu);
+		//! Communicate position between all GPUs
+		void communicatePosition();
+		
 		#endif
 		
 		//! Release the acquired data
@@ -388,10 +396,12 @@ class ParticleData
 			gpu		//!< Particle data was last modified on the GPU
 			};
 		
-		DataLocation m_data_location;	//!< Where the most recently modified particle data lives
-		gpu_pdata_arrays m_gpu_pdata;	//!< Stores the pointers to memory on the GPU
-		gpu_boxsize m_gpu_box;			//!< Mirror structure of m_box for the GPU
-		float *m_d_staging;				//!< Staging array (device memory) where uninterleaved data is coped to/from.
+		DataLocation m_data_location;		//!< Where the most recently modified particle data lives
+		bool m_readwrite_gpu;				//!< Flag to indicate the last acquire was readwriteGPU
+		std::vector<gpu_pdata_arrays> m_gpu_pdata;	//!< Stores the pointers to memory on the GPU
+		gpu_boxsize m_gpu_box;				//!< Mirror structure of m_box for the GPU
+		std::vector<float *> m_d_staging;	//!< Staging array (device memory) where uninterleaved data is copied to/from.
+		float4 *m_h_staging;				//!< Staging array (host memory) to copy interleaved data to
 		unsigned int m_uninterleave_pitch;	//!< Remember the pitch between x,y,z,type in the uninterleaved data
 		unsigned int m_single_xarray_bytes;	//!< Remember the number of bytes allocated for a single float array
 				
@@ -399,7 +409,7 @@ class ParticleData
 		void hostToDeviceCopy();
 		//! Helper function to move data from the device to the host
 		void deviceToHostCopy();
-
+		
 		#endif
 		
 		//! Helper function to allocate CPU data

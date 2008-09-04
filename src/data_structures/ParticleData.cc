@@ -154,11 +154,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 		}
 		
 	#ifdef USE_CUDA
-	if (m_exec_conf.gpu.size() != 0 && m_exec_conf.gpu.size() > 1)
-		{
-		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
-		throw std::runtime_error("Error initializing ParticleData");
-		}
+	m_gpu_pdata.resize(m_exec_conf.gpu.size());
 	#endif
 	
 	// allocate memory
@@ -239,11 +235,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		}
 		
 	#ifdef USE_CUDA
-	if (m_exec_conf.gpu.size() != 0 && m_exec_conf.gpu.size() > 1)
-		{
-		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
-		throw std::runtime_error("Error initializing ParticleData");
-		}
+	m_gpu_pdata.resize(m_exec_conf.gpu.size());
 	#endif
 	
 	// allocate memory
@@ -447,8 +439,8 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
 		default:
 			// anything other than the above is an undefined state!
 			assert(false);
-			return m_arrays;	
-			break;	
+			return m_arrays;
+			break;
 		}
 	#else
 	// this is just a simple CPU implementation, no graphics card involved.
@@ -465,7 +457,7 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
 	\sa acquireReadOnly
 	\sa release
 */
-gpu_pdata_arrays ParticleData::acquireReadOnlyGPU()
+std::vector<gpu_pdata_arrays>& ParticleData::acquireReadOnlyGPU()
 	{
 	// sanity check
 	assert(!m_acquired);
@@ -511,7 +503,7 @@ gpu_pdata_arrays ParticleData::acquireReadOnlyGPU()
 	\sa acquireReadOnly
 	\sa release
 */
-gpu_pdata_arrays ParticleData::acquireReadWriteGPU()
+std::vector<gpu_pdata_arrays>& ParticleData::acquireReadWriteGPU()
 	{
 	// sanity check
 	assert(!m_acquired);
@@ -522,6 +514,9 @@ gpu_pdata_arrays ParticleData::acquireReadWriteGPU()
 		cerr << endl << "Reqesting GPU pdata, but no GPU in the Execution Configuration" << endl << endl;
 		throw runtime_error("Error acquiring GPU data");
 		}
+	
+	// flag that we have done a read/write on the GPU
+	m_readwrite_gpu = true;
 	
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
@@ -571,7 +566,7 @@ void ParticleData::release()
 	// sanity checks
 	assert(m_acquired);
 	assert(inBox());
-		
+	
 	// this is just a simple CPU implementation, no graphics card involved.
 	// all memory mods were direct into the pointers, so just flip the acquired bit
 	m_acquired = false;
@@ -742,22 +737,73 @@ void ParticleData::allocate(unsigned int N)
 	
 	#ifdef USE_CUDA
 	//////////////////////////////////////////////////////////
-	// allocate memory on the GPU
-	if (!m_exec_conf.gpu.empty())
-		{
-		m_gpu_pdata.N = N;
-		m_uninterleave_pitch = single_xarray_bytes/4;
-		m_single_xarray_bytes = single_xarray_bytes;
+	// allocate memory on each GPU
 	
-		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.pos), single_xarray_bytes * 4));
-		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.vel), single_xarray_bytes * 4) );
-		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.accel), single_xarray_bytes * 4) );
-		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.charge), single_xarray_bytes) );
-		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.tag), sizeof(unsigned int)*N) );
-		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata.rtag), sizeof(unsigned int)*N));
+	// calculate pitch values for swizzling memory on the GPU
+	m_uninterleave_pitch = single_xarray_bytes/4;
+	m_single_xarray_bytes = single_xarray_bytes;
+	
+	// setup list of staging arrays
+	m_d_staging.resize(m_exec_conf.gpu.size());
+	
+	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+		{
+		m_gpu_pdata[cur_gpu].N = N;
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+	
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].pos), single_xarray_bytes * 4));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].vel), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].accel), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].charge), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].tag), sizeof(unsigned int)*N) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].rtag), sizeof(unsigned int)*N));
 		
 		// allocate temporary holding area for uninterleaved data
-		m_exec_conf.gpu[0]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging), single_xarray_bytes*4));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging[cur_gpu]), single_xarray_bytes*4));
+		}
+		
+	// allocate host staging location
+	m_exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_h_staging), sizeof(float4)*N));
+		
+	// assign which particles are local to which GPU
+	if (!m_exec_conf.gpu.empty())
+		{
+		// special case: only 1 GPU
+		if (m_exec_conf.gpu.size() == 1)
+			{
+			m_gpu_pdata[0].local_beg = 0;
+			m_gpu_pdata[0].local_num = N;
+			}
+		else
+			{
+			int particles_per_gpu = N / m_exec_conf.gpu.size();
+		
+			// round particles per gpu to a multiple of 32 for coalescing
+			if ((particles_per_gpu & 31) != 0)
+				particles_per_gpu += 32 - (particles_per_gpu & 31);
+			
+			// fill out first GPU
+			int start = 0;
+			m_gpu_pdata[0].local_beg = start;
+			m_gpu_pdata[0].local_num = particles_per_gpu;
+			start += particles_per_gpu;
+			cout << "Notice: GPU " << 0 << " assigned particles " << m_gpu_pdata[0].local_beg << "-" << m_gpu_pdata[0].local_beg + m_gpu_pdata[0].local_num - 1 << endl;
+			
+			// middle GPUs
+			for (unsigned int cur_gpu = 1; cur_gpu < m_exec_conf.gpu.size()-1; cur_gpu++)
+				{
+				m_gpu_pdata[cur_gpu].local_beg = start;
+				m_gpu_pdata[cur_gpu].local_num = particles_per_gpu;
+				start += particles_per_gpu;
+				cout << "Notice: GPU " << cur_gpu << " assigned particles " << m_gpu_pdata[cur_gpu].local_beg << "-" << m_gpu_pdata[cur_gpu].local_beg + m_gpu_pdata[cur_gpu].local_num - 1<< endl;
+				}
+			
+			// last gpu
+			int cur_gpu = m_exec_conf.gpu.size()-1;
+			m_gpu_pdata[cur_gpu].local_beg = start;
+			m_gpu_pdata[cur_gpu].local_num = N - start;
+			cout << "Notice: GPU " << cur_gpu << " assigned particles " << m_gpu_pdata[cur_gpu].local_beg << "-" << m_gpu_pdata[cur_gpu].local_beg + m_gpu_pdata[cur_gpu].local_num - 1<< endl;
+			}
 		}
 		
 	#endif
@@ -775,20 +821,35 @@ void ParticleData::deallocate()
 	if (!m_exec_conf.gpu.empty())
 		{	
 		m_exec_conf.gpu[0]->call(bind(cudaFreeHost, m_data));
+		m_exec_conf.gpu[0]->call(bind(cudaFreeHost, m_h_staging));
 		
-		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.pos));
-		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.vel));
-		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.accel));
-		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.charge));
-		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.tag));
-		m_exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_pdata.rtag));
-		
-		m_exec_conf.gpu[0]->call(bind(cudaFree, m_d_staging));
+		for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+			{
+			m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].pos));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].vel));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].accel));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].charge));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].tag));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].rtag));
+			
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_d_staging[cur_gpu]));
+			
+			// zero pointers
+			m_gpu_pdata[cur_gpu].pos = NULL;
+			m_gpu_pdata[cur_gpu].vel = NULL;
+			m_gpu_pdata[cur_gpu].accel = NULL;
+			m_gpu_pdata[cur_gpu].charge = NULL;
+			m_gpu_pdata[cur_gpu].tag = NULL;
+			m_gpu_pdata[cur_gpu].rtag = NULL;
+			m_d_staging[cur_gpu] = NULL;
+			}
 		}
 	else
 		{
 		free(m_data);
 		}
+	
 	#else
 	free(m_data);
 	#endif
@@ -808,15 +869,6 @@ void ParticleData::deallocate()
 	m_arrays_const.type = m_arrays.type = 0;
 	m_arrays_const.rtag = m_arrays.rtag = 0;
 	m_arrays_const.tag = m_arrays.tag = 0;
-	
-	#ifdef USE_CUDA
-	m_gpu_pdata.pos = NULL;
-	m_gpu_pdata.vel = NULL;
-	m_gpu_pdata.accel = NULL;
-	m_gpu_pdata.charge = NULL;
-	m_gpu_pdata.tag = NULL;
-	m_gpu_pdata.rtag = NULL;
-	#endif
 	}
 	
 /*! \return true If and only if all particles are in the simulation box
@@ -856,8 +908,8 @@ bool ParticleData::inBox()
 */
 void ParticleData::hostToDeviceCopy()
 	{
-	// we should never be called unless 1 gpu is in the exec conf... verify
-	assert(m_exec_conf.gpu.size() == 1);
+	// we should never be called unless 1 or more gpus is in the exec conf... verify
+	assert(m_exec_conf.gpu.size() >= 1);
 	
 	if (m_prof) m_prof->push("PDATA C2G");
 		
@@ -867,43 +919,53 @@ void ParticleData::hostToDeviceCopy()
 	// the number of bytes copied and where depend highly on the order of allocation 
 	// inside allocate
 	
-	// copy position data to the staging area
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_arrays.x, m_single_xarray_bytes*4, cudaMemcpyHostToDevice));
-	// interleave the data
-	m_exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_gpu_pdata.pos, m_d_staging, N, m_uninterleave_pitch));
-
-	// copy velocity data to the staging area
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_arrays.vx, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
-	//interleave the data
-	m_exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_gpu_pdata.vel, m_d_staging, N, m_uninterleave_pitch));
+	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+		{
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy position data to the staging area
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.x, m_single_xarray_bytes*4, cudaMemcpyHostToDevice));
+		// interleave the data
+		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].pos, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 	
-	// copy acceleration data to the staging area
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_d_staging, m_arrays.ax, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
-	//interleave the data
-	m_exec_conf.gpu[0]->call(bind(gpu_interleave_float4, m_gpu_pdata.accel, m_d_staging, N, m_uninterleave_pitch));
+		// copy velocity data to the staging area
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.vx, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
+		//interleave the data
+		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].vel, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
+		
+		// copy acceleration data to the staging area
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.ax, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
+		//interleave the data
+		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].accel, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
+		
+		// copy charge
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].charge, m_arrays.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 	
-	// copy charge
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_pdata.charge, m_arrays.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice));
-
-	// copy the tag and rtag data
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_pdata.tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice)); 
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_pdata.rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
+		// copy the tag and rtag data
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice)); 
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
+		}
 	
 	if (m_prof)
 		{
-		m_exec_conf.gpu[0]->call(bind(cudaThreadSynchronize)); 
-		m_prof->pop(0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
+		m_exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
+		m_prof->pop(0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 		}
 	}
-		
-/*! Particle data is copied from the CPU to the GPU
+
+union floatint
+	{
+	float f;
+	unsigned int i;
+	};
+
+/*! Particle data is copied from the GPU to the CPU
 */
 void ParticleData::deviceToHostCopy()
 	{
 	if (m_prof) m_prof->push("PDATA G2C");
 	
-	// we should never be called unless 1 gpu is in the exec conf... verify
-	assert(m_exec_conf.gpu.size() == 1);
+	// we should never be called unless 1 or more gpus is in the exec conf... verify
+	assert(m_exec_conf.gpu.size() >= 1);
 
 	const int N = m_arrays.nparticles;
 
@@ -911,27 +973,57 @@ void ParticleData::deviceToHostCopy()
 	// the number of bytes copied and where depend highly on the order of allocation 
 	// inside allocate
 
-	// uninterleave the data
-	m_exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_gpu_pdata.pos, N, m_uninterleave_pitch));
-	// copy position data from the staging area
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.x, m_d_staging, m_single_xarray_bytes*4, cudaMemcpyDeviceToHost));
+	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+		{
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		int local_beg = m_gpu_pdata[cur_gpu].local_beg;
+		int local_num = m_gpu_pdata[cur_gpu].local_num;
+		
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy position
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_h_staging, m_gpu_pdata[cur_gpu].pos + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
+		// fill out position/type
+		for (int i = 0; i < local_num; i++)
+			{
+			m_arrays.x[local_beg + i] = m_h_staging[i].x;
+			m_arrays.y[local_beg + i] = m_h_staging[i].y;
+			m_arrays.z[local_beg + i] = m_h_staging[i].z;
+			floatint fi;
+			fi.f = m_h_staging[i].w;
+			m_arrays.type[local_beg + i] = fi.i;
+			}
+			
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy velocity
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_h_staging, m_gpu_pdata[cur_gpu].vel + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
+		// fill out velocity
+		for (int i = 0; i < local_num; i++)
+			{
+			m_arrays.vx[local_beg + i] = m_h_staging[i].x;
+			m_arrays.vy[local_beg + i] = m_h_staging[i].y;
+			m_arrays.vz[local_beg + i] = m_h_staging[i].z;
+			}
+		
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy acceleration
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_h_staging, m_gpu_pdata[cur_gpu].accel + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
+		// fill out acceleartion
+		for (int i = 0; i < local_num; i++)
+			{
+			m_arrays.ax[local_beg + i] = m_h_staging[i].x;
+			m_arrays.ay[local_beg + i] = m_h_staging[i].y;
+			m_arrays.az[local_beg + i] = m_h_staging[i].z;
+			}
 
-	// uninterleave the data
-	m_exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_gpu_pdata.vel, N, m_uninterleave_pitch));
-	// copy velocity data from the staging area
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.vx, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost));
-
-	// uninterleave the data
-	m_exec_conf.gpu[0]->call(bind(gpu_uninterleave_float4, m_d_staging, m_gpu_pdata.accel, N, m_uninterleave_pitch));
-	// copy velocity data from the staging area
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.ax, m_d_staging, m_single_xarray_bytes*3, cudaMemcpyDeviceToHost));
-
-	// copy charge
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.charge, m_gpu_pdata.charge, m_single_xarray_bytes, cudaMemcpyDeviceToHost));
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy charge
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.charge + local_beg, m_gpu_pdata[cur_gpu].charge + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
 	
-	// copy the tag and rtag data
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.tag, m_gpu_pdata.tag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost)); 
-	m_exec_conf.gpu[0]->call(bind(cudaMemcpy, m_arrays.rtag, m_gpu_pdata.rtag, sizeof(unsigned int)*N, cudaMemcpyDeviceToHost));
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy the tag and rtag data
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.tag + local_beg, m_gpu_pdata[cur_gpu].tag + local_beg, sizeof(unsigned int)*local_num, cudaMemcpyDeviceToHost)); 
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.rtag + local_beg, m_gpu_pdata[cur_gpu].rtag + local_beg, sizeof(unsigned int)*local_num, cudaMemcpyDeviceToHost));
+		}
 
 	if (m_prof) 
 		{
@@ -939,6 +1031,63 @@ void ParticleData::deviceToHostCopy()
 		m_prof->pop(0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 		}
 	}
+	
+unsigned int ParticleData::getLocalBeg(unsigned int gpu)
+	{
+	assert(gpu < m_exec_conf.gpu.size());
+	return m_gpu_pdata[gpu].local_beg;
+	}
+
+unsigned int ParticleData::getLocalNum(unsigned int gpu)
+	{
+	assert(gpu < m_exec_conf.gpu.size());
+	return m_gpu_pdata[gpu].local_num;
+	}
+	
+void ParticleData::communicatePosition()
+	{
+	assert(!m_acquired);
+	assert(m_exec_conf.gpu.size() != 0);
+	
+	// if there is only one GPU, we can skip this
+	if (m_exec_conf.gpu.size() == 1)
+		return;
+	
+	if (m_prof) m_prof->push("PDATA Communicate");
+	
+	// copy position data from all GPUs to the staging area
+	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+		{
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		int local_beg = m_gpu_pdata[cur_gpu].local_beg;
+		int local_num = m_gpu_pdata[cur_gpu].local_num;
+		m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_h_staging+local_beg, m_gpu_pdata[cur_gpu].pos + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
+		}
+		
+	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+		m_exec_conf.gpu[cur_gpu]->sync();
+		
+	// copy the full data back to all GPUs
+	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+		{
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		int local_beg = m_gpu_pdata[cur_gpu].local_beg;
+		int local_num = m_gpu_pdata[cur_gpu].local_num;
+		int local_end = local_beg + local_num;
+		
+		if (local_beg != 0)
+			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos, m_h_staging, (local_beg)*sizeof(float4), cudaMemcpyHostToDevice));
+		if (local_end != getN())
+			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos + local_end, m_h_staging + local_end, (getN() - local_end)*sizeof(float4), cudaMemcpyHostToDevice));
+			
+		}
+		
+	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+		m_exec_conf.gpu[cur_gpu]->sync();
+		
+	if (m_prof) m_prof->pop();
+	}
+	
 #endif
 	
 #ifdef USE_PYTHON
@@ -1049,11 +1198,6 @@ void export_ParticleData()
 		.def("acquireReadOnly", &ParticleData::acquireReadOnly, return_value_policy<copy_const_reference>())
 		.def("acquireReadWrite", &ParticleData::acquireReadWrite, return_value_policy<copy_const_reference>())
 		.def("getBondData", &ParticleData::getBondData)
-		#ifdef USE_CUDA
-		.def("acquireReadOnlyGPU", &ParticleData::acquireReadOnlyGPU)
-		.def("acquireReadWriteGPU", &ParticleData::acquireReadWriteGPU)
-		.def("getBoxGPU", &ParticleData::getBoxGPU, return_value_policy<copy_const_reference>())
-		#endif
 		.def("release", &ParticleData::release)
 		.def("setProfiler", &ParticleData::setProfiler)
 		.def("getExecConf", &ParticleData::getExecConf, return_internal_reference<>())

@@ -70,6 +70,8 @@ struct gpu_pdata_arrays
 	unsigned int *rtag;	//!< Particle rtag 
 	
 	unsigned int N;	//!< Number of particles in the arrays
+	unsigned int local_beg;	//!< Index of the first particle local to this GPU
+	unsigned int local_num;	//!< Number of particles local to this GPU
 	};
 
 //! Store the box size on the GPU

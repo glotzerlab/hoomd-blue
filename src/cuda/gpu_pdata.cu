@@ -242,9 +242,10 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 __global__ void pdata_texread_test(gpu_pdata_arrays pdata)
 	{
 	// start by identifying the particle index of this particle
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
 
-	if (pidx < pdata.N)
+	if (idx < pdata.local_num)
 		{
 		float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
 		pdata.vel[pidx] = pos;
@@ -264,7 +265,7 @@ cudaError_t gpu_pdata_texread_test(gpu_pdata_arrays *pdata)
 	
 	// setup the grid to run the kernel
 	int M = 128;
-	dim3 grid(pdata->N/M+1, 1, 1);
+	dim3 grid(pdata->local_num/M+1, 1, 1);
 	dim3 threads(M, 1, 1);
 
 	// bind the textures

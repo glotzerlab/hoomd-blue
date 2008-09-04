@@ -69,9 +69,25 @@ endif (WIN32)
 ## Version information
 set(HOOMD_VERSION_MAJOR "0")
 set(HOOMD_VERSION_MINOR "7")
-set(HOOMD_VERSION_PATCH "0")
+set(HOOMD_VERSION_PATCH "1")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
 set(HOOMD_SUBVERSION_BUILD "1")
+
+# users may not have subversion installed, search for it and set an unknown version if that is
+# the case
+find_program(SVNVERSION_EXE "svnversion" DOC "svnversion executable")
+mark_as_advanced(SVNVERSION_EXE)
+if (SVNVERSION_EXE)
+	exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
+else (SVNVERSION_EXE)
+	set(SVNVERSION "NA")
+endif (SVNVERSION_EXE)
+
+if(HOOMD_SUBVERSION_BUILD)
+	set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION}_beta${SVNVERSION}")
+endif(HOOMD_SUBVERSION_BUILD)
+
+
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION}")
 
 # Setup a number of misc options and libraries

@@ -122,7 +122,7 @@ class Integrator : public Updater
 		void computeAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
 
 		//! Force data pointers on the device
-		float4 **m_d_force_data_ptrs;
+		vector<float4 **> m_d_force_data_ptrs;
 
 		#endif
 	};

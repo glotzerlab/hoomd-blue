@@ -64,22 +64,20 @@ cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_
 //! Data structure storing needed intermediate values for NVT integration
 struct gpu_nvt_data
 	{
-	float *Xi;	// Friction parameter in Nose-Hoover
-	float *Xi_dbl;	// Double buffered Xi
 	float *partial_Ksum; // NBlocks elements, each is a partial sum of m*v^2
-	float *Ksum;	// fully reduced Ksum
+	float *Ksum;	// fully reduced Ksum on one GPU
 	int NBlocks;	// Number of blocks in the computation (must be a power of 2)
 	int block_size;
 	};
 
 //! Does the first step of the computation
-cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float deltaT);
+cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float Xi, float deltaT);
 
 //! Makes the final reduction pass to calculate the total Ksum
 cudaError_t nvt_reduce_ksum(gpu_nvt_data *d_nvt_data);
 
 //! Does the second step of the computaiton
-cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float deltaT, float Q, float T);
+cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT);
 
 }
 
