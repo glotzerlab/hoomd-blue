@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\brief Contains all code for BoxDim, ParticleData, and ParticleDataArrays.
  */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 #include <cassert>
 #include <stdlib.h>
@@ -763,7 +768,8 @@ void ParticleData::allocate(unsigned int N)
 		}
 		
 	// allocate host staging location
-	m_exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_h_staging), sizeof(float4)*N));
+	if (!m_exec_conf.gpu.empty())
+		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_h_staging), sizeof(float4)*N));
 		
 	// assign which particles are local to which GPU
 	if (!m_exec_conf.gpu.empty())
@@ -776,7 +782,7 @@ void ParticleData::allocate(unsigned int N)
 			}
 		else
 			{
-			int particles_per_gpu = N / m_exec_conf.gpu.size();
+			int particles_per_gpu = N / (int)m_exec_conf.gpu.size();
 		
 			// round particles per gpu to a multiple of 32 for coalescing
 			if ((particles_per_gpu & 31) != 0)
@@ -799,7 +805,7 @@ void ParticleData::allocate(unsigned int N)
 				}
 			
 			// last gpu
-			int cur_gpu = m_exec_conf.gpu.size()-1;
+			int cur_gpu = (int)m_exec_conf.gpu.size()-1;
 			m_gpu_pdata[cur_gpu].local_beg = start;
 			m_gpu_pdata[cur_gpu].local_num = N - start;
 			cout << "Notice: GPU " << cur_gpu << " assigned particles " << m_gpu_pdata[cur_gpu].local_beg << "-" << m_gpu_pdata[cur_gpu].local_beg + m_gpu_pdata[cur_gpu].local_num - 1<< endl;
@@ -1204,4 +1210,8 @@ void export_ParticleData()
 		.def("__str__", &print_ParticleData)
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

@@ -44,6 +44,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\ingroup unit_tests
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 
 //! Name the boost unit test module
@@ -418,8 +423,8 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 BOOST_AUTO_TEST_CASE( Random_test )
 	{
 	// create a fairly dense system with a minimum distance of 0.8
-	Scalar min_dist = 0.8;
-	RandomInitializer rand_init(500, 0.4, min_dist, "ABC");
+	Scalar min_dist = Scalar(0.8);
+	RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
 	ParticleData pdata(rand_init);
 	
 	BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
@@ -500,3 +505,6 @@ BOOST_AUTO_TEST_CASE( Generator_test )
 	dump.analyze(0);
 	}*/
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

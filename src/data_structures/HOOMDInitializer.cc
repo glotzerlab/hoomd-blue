@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the HOOMDInitializer class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 4267 )
+#endif
+
 #include "HOOMDInitializer.h"
 
 #include <fstream>
@@ -88,7 +93,7 @@ unsigned int HOOMDInitializer::getNumParticles() const
 unsigned int HOOMDInitializer::getNumParticleTypes() const
 	{
 	assert(m_type_mapping.size() > 0);
-	return m_type_mapping.size();
+	return (unsigned int)m_type_mapping.size();
 	}
 
 BoxDim HOOMDInitializer::getBox() const
@@ -540,7 +545,7 @@ unsigned int HOOMDInitializer::getTypeId(const std::string& name)
 		}
 	// add a new one if it is not found
 	m_type_mapping.push_back(name);
-	return m_type_mapping.size()-1;
+	return (unsigned int)m_type_mapping.size()-1;
 	}
 
 /*! \param name Name to get type id of
@@ -557,14 +562,14 @@ unsigned int HOOMDInitializer::getBondTypeId(const std::string& name)
 		}
 	// add a new one if it is not found
 	m_bond_type_mapping.push_back(name);
-	return m_bond_type_mapping.size()-1;
+	return (unsigned int)m_bond_type_mapping.size()-1;
 	}
 
 /*! \return Number of bond types determined from the XML file
 */
 unsigned int HOOMDInitializer::getNumBondTypes() const
 	{
-	return m_bond_type_mapping.size();
+	return (unsigned int)m_bond_type_mapping.size();
 	}
 		
 /*! \param bond_data Shared pointer to the BondData to be initialized
@@ -592,4 +597,8 @@ void export_HOOMDInitializer()
 		.def("getTimeStep", &HOOMDInitializer::getTimeStep)
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

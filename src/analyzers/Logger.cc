@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the Logger class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 #include "Logger.h"
 
 #ifdef USE_PYTHON
@@ -211,3 +216,7 @@ void export_Logger()
 		;
 	}
 #endif	
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif

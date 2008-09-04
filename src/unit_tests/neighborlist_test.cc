@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 #include <algorithm>
 
@@ -361,6 +366,9 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborListGPU_tests )
 	}
 #endif
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif
 
 
 

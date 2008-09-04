@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 
 //! name the boost unit test module
@@ -1117,7 +1122,7 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator)
 	// setup a simple initial state
 	arrays.x[0] = 0.0;
 	arrays.y[0] = 0.0;
-	arrays.z[0] = 1.6;
+	arrays.z[0] = Scalar(1.6);
 	arrays.vx[0] = 0.0;
 	arrays.vy[0] = 0.0;
 	arrays.vz[0] = 0.0;
@@ -1152,8 +1157,8 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 	const unsigned int N = 500;
 	
 	// create two identical random particle systems to simulate
-	RandomInitializer rand_init1(N, 0.2, 0.9, "A");
-	RandomInitializer rand_init2(N, 0.2, 0.9, "A");
+	RandomInitializer rand_init1(N, Scalar(0.2), Scalar(0.9), "A");
+	RandomInitializer rand_init2(N, Scalar(0.2), Scalar(0.9), "A");
 	rand_init1.setSeed(12345);
 	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1));
 	rand_init2.setSeed(12345);
@@ -1176,8 +1181,8 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 	fc1->setParams(0,0,lj1,lj2);
 	fc2->setParams(0,0,lj1,lj2);
 
-	shared_ptr<NVTUpdater> nvt1 = nvt_creator1(pdata1, 0.005, 0.5, 1.2);
-	shared_ptr<NVTUpdater> nvt2 = nvt_creator2(pdata2, 0.005, 0.5, 1.2);
+	shared_ptr<NVTUpdater> nvt1 = nvt_creator1(pdata1, Scalar(0.005), Scalar(0.5), Scalar(1.2));
+	shared_ptr<NVTUpdater> nvt2 = nvt_creator2(pdata2, Scalar(0.005), Scalar(0.5), Scalar(1.2));
 
 	nvt1->addForceCompute(fc1);
 	nvt2->addForceCompute(fc2);
@@ -1237,4 +1242,8 @@ BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
 	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu);
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

@@ -41,6 +41,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ExecutionConfiguration.h"
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
 #endif
@@ -189,4 +194,8 @@ void export_ExecutionConfiguration()
 		.value("CPU", ExecutionConfiguration::CPU)
 	;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

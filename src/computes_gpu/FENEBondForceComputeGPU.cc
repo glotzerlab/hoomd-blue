@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the FENEBondForceComputeGPU class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 #include "FENEBondForceComputeGPU.h"
 
 #ifdef USE_PYTHON
@@ -173,3 +178,6 @@ void export_FENEBondForceComputeGPU()
 	}
 #endif
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

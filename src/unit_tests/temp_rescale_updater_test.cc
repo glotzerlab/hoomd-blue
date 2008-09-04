@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 
 //! label the boost test module
@@ -123,3 +128,7 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
 	tc->compute(2);
 	MY_BOOST_CHECK_CLOSE(tc->getTemp(), 2.0, tol);
 	}
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif

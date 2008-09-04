@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the MOL2DumpWriter class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -174,3 +179,6 @@ void export_MOL2DumpWriter()
 	}
 #endif
 	
+#ifdef WIN32
+#pragma warning( pop )
+#endif

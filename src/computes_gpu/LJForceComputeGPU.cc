@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the LJForceComputeGPU class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include "LJForceComputeGPU.h"
 #include "cuda_runtime.h"
 
@@ -260,4 +265,8 @@ void export_LJForceComputeGPU()
 		.def("setBlockSize", &LJForceComputeGPU::setBlockSize)
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

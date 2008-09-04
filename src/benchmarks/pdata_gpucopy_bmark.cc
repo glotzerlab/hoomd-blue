@@ -48,6 +48,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\ingroup benchmarks
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include "Profiler.h"
 #include "ParticleData.h"
 #include <iostream>
@@ -188,3 +193,7 @@ int main(int argc, char **argv)
 
 	return 0;
 	}
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif

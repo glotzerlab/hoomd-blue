@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 
 //! Name the unit test module
@@ -273,7 +278,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 	const unsigned int N = 5000;
 	
 	// create a random particle system to sum forces on
-	RandomInitializer rand_init(N, 0.2, 0.9, "A");
+	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
 	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
 	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(pdata, Scalar(3.0), Scalar(0.8)));
 	
@@ -379,3 +384,6 @@ BOOST_AUTO_TEST_CASE( LJForceMultiGPU_compare )
 	}
 #endif
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

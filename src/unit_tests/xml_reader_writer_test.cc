@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 //! Name the unit test module
 #define BOOST_TEST_MODULE XMLReaderWriterTest
 #include "boost_utf_configure.h"
@@ -86,23 +91,23 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	shared_ptr<ParticleData> pdata(new ParticleData(2, box, n_types, n_bond_types));
 	// set recognizable values for the particle
 	const ParticleDataArrays array = pdata->acquireReadWrite();
-	array.x[0] = 1.1;
-	array.y[0] = 2.1234567890123456;
-	array.z[0] = -5.76;
+	array.x[0] = Scalar(1.1);
+	array.y[0] = Scalar(2.1234567890123456);
+	array.z[0] = Scalar(-5.76);
 	
-	array.vx[0] = -1.4567;
-	array.vy[0] = -10.0987654321098765;
-	array.vz[0] = 56.78;
+	array.vx[0] = Scalar(-1.4567);
+	array.vy[0] = Scalar(-10.0987654321098765);
+	array.vz[0] = Scalar(56.78);
 	
 	array.type[0] = 3;
 	
-	array.x[1] = 1.2;
-	array.y[1] = 2.1;
-	array.z[1] = -3.4;
+	array.x[1] = Scalar(1.2);
+	array.y[1] = Scalar(2.1);
+	array.z[1] = Scalar(-3.4);
 	
-	array.vx[1] = -1.5;
-	array.vy[1] = -10.6;
-	array.vz[1] = 5.7;
+	array.vx[1] = Scalar(-1.5);
+	array.vy[1] = Scalar(-10.6);
+	array.vz[1] = Scalar(5.7);
 	
 	array.type[1] = 0;
 	pdata->release();
@@ -704,3 +709,7 @@ bond_c 3 4\n\
 	// clean up after ourselves
 	remove_all("test_input.xml");
 	}
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif

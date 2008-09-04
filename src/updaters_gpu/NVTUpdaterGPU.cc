@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the NVTUpdaterGPU class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include "NVTUpdaterGPU.h"
 #include "gpu_updaters.h"
 
@@ -231,3 +236,6 @@ void export_NVTUpdaterGPU()
 	}
 #endif
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

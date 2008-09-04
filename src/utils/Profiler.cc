@@ -46,6 +46,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <sstream>
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
 
 #include "Profiler.h"
 
@@ -273,4 +277,8 @@ void export_Profiler()
 		.def("__str__", &print_profiler)
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

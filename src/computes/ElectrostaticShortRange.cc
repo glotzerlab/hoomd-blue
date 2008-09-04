@@ -36,6 +36,11 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 // conditionally compile in only if boost is 1.35 or later
 #include <boost/version.hpp>
 #if (BOOST_VERSION >= 103500)
@@ -339,3 +344,6 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 
 #endif
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

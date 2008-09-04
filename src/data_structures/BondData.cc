@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include "BondData.h"
 #include "ParticleData.h"
 
@@ -396,4 +401,8 @@ void export_BondData()
 		;
 	
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

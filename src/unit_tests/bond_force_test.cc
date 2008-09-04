@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 
 //! Name the boost unit test module
@@ -403,3 +408,6 @@ BOOST_AUTO_TEST_CASE( ConstForceCompute_basic )
 	const_force_test();
 	}
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the SFCPackUpdater class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -583,4 +588,8 @@ void export_SFCPackUpdater()
 		.def("setBinWidth", &SFCPackUpdater::setBinWidth)
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

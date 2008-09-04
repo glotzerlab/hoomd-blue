@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 
 //! Name the unit test module
@@ -88,9 +93,9 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator)
 	// this 3 particle test will check proper wall force computation among all 3 axes
 	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1));
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-	arrays.x[0] = 0.0; arrays.y[0] = 1.2; arrays.z[0] = 0.0;	// particle to test wall at pos 0,0,0
-	arrays.x[1] = 12.2; arrays.y[1] = -10.0; arrays.z[1] = 0.0;	// particle to test wall at pos 10,0,0
-	arrays.x[2] = 0.0; arrays.y[2] = 10.0; arrays.z[2] = -12.9;	// particle to test wall at pos 0,0,-10
+	arrays.x[0] = 0.0; arrays.y[0] = Scalar(1.2); arrays.z[0] = 0.0;	// particle to test wall at pos 0,0,0
+	arrays.x[1] = Scalar(12.2); arrays.y[1] = Scalar(-10.0); arrays.z[1] = 0.0;	// particle to test wall at pos 10,0,0
+	arrays.x[2] = 0.0; arrays.y[2] = Scalar(10.0); arrays.z[2] = Scalar(-12.9);	// particle to test wall at pos 0,0,-10
 	pdata_3->release();
 	
 	// create the wall force compute with a default cuttoff of 1.0 => all forces should be 0 for the first round
@@ -182,3 +187,6 @@ BOOST_AUTO_TEST_CASE( LJWallForce_particle )
 	ljwall_force_particle_test(ljwall_creator_base);
 	}
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

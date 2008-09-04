@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id: FENEBondForceCompute.cc 1127 2008-08-31 19:54:39Z phillicl $
 // $URL: https://svn2.assembla.com/svn/hoomd/tags/hoomd-0.7.0/src/computes/FENEBondForceCompute.cc $
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -269,4 +274,8 @@ void export_FENEBondForceCompute()
 		.def("setParams", &FENEBondForceCompute::setParams)
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

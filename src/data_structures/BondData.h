@@ -104,7 +104,7 @@ class BondData
 		//! Get the number of bonds
 		/*! \return Number of bonds present
 		*/
-		const unsigned int getNumBonds() const { return m_bonds.size(); }
+		const unsigned int getNumBonds() const { return (unsigned int)m_bonds.size(); }
 		
 		//! Get a given bond
 		/*! \param i Bond to access

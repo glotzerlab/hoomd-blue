@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <boost/python.hpp>
 
 #include <boost/filesystem/operations.hpp>
@@ -106,3 +111,6 @@ int main(int argc, char **argv)
 
 	return Py_Main(argc, argv);
 	}
+#ifdef WIN32
+#pragma warning( pop )
+#endif

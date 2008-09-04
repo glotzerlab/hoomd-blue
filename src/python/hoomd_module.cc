@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 // remove silly warnings
 #ifdef WIN32
 #define _CRT_SECURE_NO_DEPRECATE
@@ -294,3 +299,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_System();
 	
 	}
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif

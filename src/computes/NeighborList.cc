@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 // windows is gay, and needs this to define pi
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -938,4 +943,8 @@ void export_NeighborList()
 	;
 	}
 
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

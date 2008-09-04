@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 4267)
+#endif
+
 #include "RandomGenerator.h"
 
 #include <cassert>
@@ -392,12 +397,12 @@ RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(b
 	
 unsigned int RandomGenerator::getNumParticles() const
 	{
-	return m_data.m_particles.size();
+	return (unsigned int)m_data.m_particles.size();
 	}
 		
 unsigned int RandomGenerator::getNumParticleTypes() const
 	{
-	return m_type_mapping.size();
+	return (unsigned int)m_type_mapping.size();
 	}
 
 BoxDim RandomGenerator::getBox() const
@@ -517,7 +522,7 @@ unsigned int RandomGenerator::getTypeId(const std::string& name)
 		}
 	// add a new one if it is not found
 	m_type_mapping.push_back(name);
-	return m_type_mapping.size()-1;
+	return (unsigned int)m_type_mapping.size()-1;
 	}
 	
 // helper function to generate a [0..1] float
@@ -696,4 +701,8 @@ void export_RandomGenerator()
 		// all methods are internal C++ methods
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

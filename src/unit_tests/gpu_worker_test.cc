@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Unit tests for the GPUWorker class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <iostream>
 
 //! Name the boost unit test module
@@ -113,3 +118,6 @@ BOOST_AUTO_TEST_CASE( GPUWorker_throw )
 
 #endif
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

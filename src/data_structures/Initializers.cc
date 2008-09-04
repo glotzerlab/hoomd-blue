@@ -39,6 +39,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 #include <stdlib.h>
 
 // windows is stupid and needs this to define pi
@@ -353,4 +358,8 @@ void export_RandomInitializerWithWalls()
 		;
 	// no need to .def methods, they are all inherited
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

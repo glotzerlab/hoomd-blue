@@ -183,7 +183,7 @@ class PolymerParticleGenerator : public ParticleGenerator
 		//! Returns the number of particles in each polymer
 		virtual unsigned int getNumToGenerate()
 			{
-			return m_types.size();
+			return (unsigned int)m_types.size();
 			}
 		
 		//! Generates a single polymer

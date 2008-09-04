@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the NeighborListNsqGPU class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 #include "NeighborListNsqGPU.h"
 
 #include <iostream>
@@ -176,4 +181,8 @@ void export_NeighborListNsqGPU()
 		("NeighborListNsqGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

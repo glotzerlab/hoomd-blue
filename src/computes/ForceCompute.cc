@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the ForceCompute class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
 #include "ForceCompute.h"
 #include <iostream>
 using namespace std;
@@ -414,4 +419,8 @@ void export_ForceCompute()
 		//.def("computeForces", pure_virtual(&ForceCompute::computeForces))
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif

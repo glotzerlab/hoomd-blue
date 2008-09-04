@@ -43,6 +43,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the BinnedNeighborListGPU class
 */
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include "BinnedNeighborListGPU.h"
 
 #include <cuda_runtime.h>
@@ -376,7 +381,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 				
 			int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My *
 						m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax *
-						sizeof(unsigned int) * exec_conf.gpu.size();
+						sizeof(unsigned int) * (unsigned int)exec_conf.gpu.size();
 						
 			m_prof->pop(0, nbytes);
 			}
@@ -709,4 +714,8 @@ void export_BinnedNeighborListGPU()
 		.def("setBlockSize", &BinnedNeighborListGPU::setBlockSize)
 		;
 	}
+#endif
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif
