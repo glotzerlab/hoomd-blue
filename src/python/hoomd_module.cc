@@ -303,3 +303,4 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+
