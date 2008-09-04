@@ -56,6 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ConstForceCompute.h"
 #include "HarmonicBondForceCompute.h"
+#include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "TempCompute.h"
@@ -83,6 +84,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
+#include "FENEBondForceComputeGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -210,7 +212,7 @@ string find_vmd()
 	if (exists(path("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check )))
 		return("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");	
 	if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
-		return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");	
+		return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
 	#endif
 	
 	// return an empty string if we didn't find it
@@ -254,6 +256,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ForceCompute();
 	export_ConstForceCompute();
 	export_HarmonicBondForceCompute();
+	export_FENEBondForceCompute();
 	export_LJForceCompute();
 	export_LJWallForceCompute();
 	export_TempCompute();
@@ -264,6 +267,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_NeighborListNsqGPU();
 	export_LJForceComputeGPU();
 	export_HarmonicBondForceComputeGPU();
+	export_FENEBondForceComputeGPU();
 	#endif
 	
 	// analyzers

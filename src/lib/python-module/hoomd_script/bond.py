@@ -139,3 +139,93 @@ class harmonic(force._force):
 			if not cur_type in self.bond_types_set:
 				print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in bond.harmonic\n";
 				raise RuntimeError("Error updating coefficients");
+
+
+
+## FENE %bond forces
+#
+# The command bond.fene specifies a %fene potential energy between every bonded %pair of particles
+# in the simulation. 
+# \f[ V(r) = - k r_0^2 \ln \left( 1 - \left( \frac{r}{r_0} \right)^2 \right) \f]
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
+#
+# Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using
+# set_coeff().
+#
+# \note Specifying the bond.fene command when no bonds are defined in the simulation results in an error.
+class fene(force._force):
+	## Specify the %fene %bond %force
+	#
+	# \b Example:
+	# \code
+	# fene = bond.fene()
+	# \endcode
+	def __init__(self):
+		print "bond.fene()";
+		
+		# check that some bonds are defined
+		if globals.particle_data.getBondData().getNumBonds() == 0:
+			print >> sys.stderr, "\n***Error! No bonds are defined.\n";
+			raise RuntimeError("Error creating bond forces");		
+		
+		# initialize the base class
+		force._force.__init__(self);
+		
+		# create the c++ mirror class
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.FENEBondForceCompute(globals.particle_data);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_force = hoomd.FENEBondForceComputeGPU(globals.particle_data);
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating bond forces");
+
+		globals.bond_compute = self.cpp_force;
+
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		
+		# variable for tracking which bond type coefficients have been set
+		self.bond_types_set = [];
+	
+	## Sets the %fene %bond coefficients for a particular %bond type
+	#
+	# \param bond_type Bond type to set coefficients for
+	# \param k Coefficient \f$ k \f$ in the %force
+	# \param r0 Coefficient \f$ r_0 \f$ in the %force
+	#
+	# Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
+	# \code
+	# fene = bond.fene()
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# fene.set_coeff('polymer', k=30.0, r0=1.5)
+	# fene.set_coeff('backbone', k=100.0, r0=1.0)
+	# \endcode
+	#
+	# The coefficients for every %bond type in the simulation must be set 
+	# before the run() can be started.
+	def set_coeff(self, bond_type, k, r0):
+		print "fene.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ")";
+		
+		# set the parameters for the appropriate type
+		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0);
+		
+		# track which particle types we have set
+		if not bond_type in self.bond_types_set:
+			self.bond_types_set.append(bond_type);
+		
+	def update_coeffs(self):
+		# get a list of all bond types in the simulation
+		ntypes = globals.particle_data.getBondData().getNBondTypes();
+		type_list = [];
+		for i in xrange(0,ntypes):
+			type_list.append(globals.particle_data.getBondData().getNameByType(i));
+			
+		# check to see if all particle types have been set
+		for cur_type in type_list:
+			if not cur_type in self.bond_types_set:
+				print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in bond.fene\n";
+				raise RuntimeError("Error updating coefficients");
+

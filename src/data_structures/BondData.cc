@@ -326,6 +326,9 @@ void BondData::allocateBondTable(int height)
 	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata.n_bonds), N*sizeof(unsigned int)));
 	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_bonddata.n_bonds, 0, N*sizeof(unsigned int)));
 	
+	//allocate the checkr
+//	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata.checkr), sizeof(int)));
+	
 	// cudaMallocPitch fails to work for coalesced reads here (dunno why), need to calculate pitch ourselves
 	// round up to the nearest multiple of 32
 	pitch = (N + (32 - N & 31)) * sizeof(uint2);
@@ -355,6 +358,11 @@ void BondData::freeBondTable()
 	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bonddata.n_bonds));
 	m_gpu_bonddata.n_bonds = NULL;
 	
+	// free the checkr from the device
+/*	assert(m_gpu_bonddata.checkr);
+	exec_conf.gpu[0]->call(bind(cudaFree, m_gpu_bonddata.checkr));
+	m_gpu_bonddata.checkr = NULL;
+*/	
 	// free host memory
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_bonds));
 	m_host_bonds = NULL;
