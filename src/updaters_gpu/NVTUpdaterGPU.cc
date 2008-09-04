@@ -239,3 +239,4 @@ void export_NVTUpdaterGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+
