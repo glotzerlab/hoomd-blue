@@ -35,6 +35,7 @@ Pair forces (\link hoomd_script.pair pair\endlink):
 
 Bond forces (\link hoomd_script.bond bond\endlink):
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>\copybrief hoomd_script::bond::harmonic </i>
+ - \link hoomd_script.bond.fene bond.fene\endlink - <i>\copybrief hoomd_script::bond::fene </i>
 
 Wall forces (\link hoomd_script.wall wall\endlink):
  - \link hoomd_script.wall.lj wall.lj\endlink - <i>\copybrief hoomd_script::wall::lj </i>
