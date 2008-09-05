@@ -78,9 +78,9 @@ class LJForceComputeGPU : public LJForceCompute
 		void setBlockSize(int block_size);
 
 	protected:
-		bool m_params_changed;	//!< True if the params have changed since the last call to computeForces
-		gpu_ljparam_data *m_ljparams;	//!< Pointer to the params data structure to be copied to the GPU
-		int m_block_size;		//!< The block size to run on the GPU
+		vector<float2 *> d_coeffs;		//!< Pointer to the coefficients on the GPU
+		float2 * h_coeffs;				//!< Pointer to the coefficients on the host
+		int m_block_size;				//!< The block size to run on the GPU
 
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);

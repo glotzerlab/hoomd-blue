@@ -71,7 +71,7 @@ using namespace std;
 		delete the neighborlist when done.
 */
 LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: LJForceCompute(pdata, nlist, r_cut), m_params_changed(true), m_ljparams(NULL)
+	: LJForceCompute(pdata, nlist, r_cut)
 	{
 	// check the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -82,7 +82,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 		throw std::runtime_error("Error initializing NeighborListNsqGPU");
 		}
 	
-	if (m_ntypes > MAX_NTYPES)
+	if (m_ntypes > 44)
 		{
 		cerr << endl << "**Error! LJForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
 		throw runtime_error("Error initializing LJForceComputeGPU");
@@ -104,23 +104,33 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 		m_block_size = 96;
 		}
 
-	// allocate the param data on the GPU and make sure it is up to date
-	m_ljparams = gpu_alloc_ljparam_data();
+	// allocate the coeff data on the GPU
+	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
+	
+	d_coeffs.resize(exec_conf.gpu.size());
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(gpu_select_ljparam_data, m_ljparams, true));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
+		assert(d_coeffs[cur_gpu]);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
 		}
+	// allocate the coeff data on the CPU
+	h_coeffs = new float2[m_pdata->getNTypes()*m_pdata->getNTypes()];
 	}
 	
 
 LJForceComputeGPU::~LJForceComputeGPU()
 	{
-	assert(m_ljparams);
-
 	// deallocate our memory
-	gpu_free_ljparam_data(m_ljparams);
-	m_ljparams = NULL;
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		assert(d_coeffs[cur_gpu]);
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_coeffs[cur_gpu]));
+		}
+	delete[] h_coeffs;
 	}
 	
 /*! \param block_size Size of the block to run on the device
@@ -150,7 +160,7 @@ void LJForceComputeGPU::setBlockSize(int block_size)
 */
 void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2)
 	{
-	assert(m_ljparams);
+	assert(h_coeffs);
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
 		{
 		cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
@@ -158,13 +168,13 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 		}
 	
 	// set coeffs in both symmetric positions in the matrix
-	m_ljparams->lj1[typ1*MAX_NTYPES + typ2] = lj1;
-	m_ljparams->lj2[typ1*MAX_NTYPES + typ2] = lj2;
+	h_coeffs[typ1*m_pdata->getNTypes() + typ2] = make_float2(lj1, lj2);
+	h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float2(lj1, lj2);
 	
-	m_ljparams->lj1[typ2*MAX_NTYPES + typ1] = lj1;
-	m_ljparams->lj2[typ2*MAX_NTYPES + typ1] = lj2;
-	
-	m_params_changed = true;
+	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_coeffs[cur_gpu], h_coeffs, nbytes, cudaMemcpyHostToDevice));
 	}
 		
 /*! \post The lennard jones forces are computed for the given timestep on the GPU. 
@@ -211,24 +221,13 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 		n_calc = int64_t(avg_neigh * m_pdata->getN());
 		}
 
-	// actually perform the calculation
-	if (m_params_changed)
-		{
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			{
-			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->call(bind(gpu_select_ljparam_data, m_ljparams, m_params_changed));
-			}
-		m_params_changed = false;
-		}
-	
 	if (m_prof)
 		m_prof->push("Compute");
 	
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
 			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_ljforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &nlist[cur_gpu], m_r_cut * m_r_cut, m_block_size));
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_ljforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
 			}
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			exec_conf.gpu[cur_gpu]->sync();

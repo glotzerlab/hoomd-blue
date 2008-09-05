@@ -57,32 +57,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 extern "C" {
 
-//! The maximum number of particle types allowed
-#define MAX_NTYPES 32
-//! Precalculate the maximum number of type pairs
-#define MAX_NTYPE_PAIRS	MAX_NTYPES*MAX_NTYPES
-
-//! Stores parameters for the lennard jones potential
-/*! The lj1 and lj2 params for the lennard jones potential are stored on the device in constant memory.
-	This structure is what holds them. The number of type pairs are determined at compile time by a 
-	define. Since only one constant memory area exists on the device, 
-	the lj parameters are allocated with an id and selected into the device. Only when the selected id
-	differs from the id last selected (or it is forced) will the data actually be copied over to the GPU
-
-	The type pair in the params array is to be indexed by i*NLIST_MAX_NTYPES + j, and the symmetric 
-	entry MUST be filled out.
-*/
-struct gpu_ljparam_data
-	{
-	//! coefficients
-	float lj1[MAX_NTYPE_PAIRS];
-	float lj2[MAX_NTYPE_PAIRS];
-
-	//! identifier for this structure
-	unsigned int id;
-	};
-	
-	
 //////////////////////////////////////////////////////////////////////////
 // bond force data structures
 
@@ -111,14 +85,8 @@ struct gpu_bondtable_array
 
 ///////////////////////////// LJ params
 
-//! Allocate ljparams
-gpu_ljparam_data *gpu_alloc_ljparam_data();
-//! Free ljparams
-void gpu_free_ljparam_data(gpu_ljparam_data *ljparams);
-//! Make the parameters active on the device
-cudaError_t gpu_select_ljparam_data(gpu_ljparam_data *ljparams, bool force);
 //! Perform the lj force calculation
-cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_cutsq, int M);
+cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int M);
 
 //////////////////////////// Bond table stuff
 
