@@ -116,7 +116,7 @@ def read_xml(filename):
 # assuming the particles have a radius of 0.5.
 # All particles are created with the same type, given by \a name.
 #
-def create_random(N, phi_p, name="A", min_dist=1.0):
+def create_random(N, phi_p, name="A", min_dist=0.7):
 	print "init.create_random(N =", N, ", phi_p =", phi_p, ", name = ", name, ", min_dist =", min_dist, ")";
 	
 	# parse command line
@@ -135,7 +135,7 @@ def create_random(N, phi_p, name="A", min_dist=1.0):
 	box = hoomd.BoxDim(L);
 	
 	# create the generator
-	generator = hoomd.RandomGenerator(box, 1);
+	generator = hoomd.RandomGenerator(box, 12345);
 	
 	# build type list
 	type_vector = hoomd.std_vector_string();
