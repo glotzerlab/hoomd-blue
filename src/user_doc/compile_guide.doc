@@ -57,7 +57,6 @@ HOOMD requires a number of prerequisite software packages and libraries to be co
 - Python >= 2.3 
 	- <em>optional</em>, but highly recommended to enable scripted simulations
 - boost >= 1.32.0
-- libz
 - CMake >= 2.6.0
 	- >= 2.6.1 is recommended on Windows due to an annoying bug in 2.6.0
 - Compiler to build source
@@ -66,15 +65,14 @@ HOOMD requires a number of prerequisite software packages and libraries to be co
 	- all code is standard c++ and should work on nearly any other (recent) compiler
 	- \b note: Visual Studio 9 (aka 2008) does not currently work because of incompatibilities with boost and CUDA
 - CUDA Toolkit and the appropriate NVIDIA display driver:
-	- <em>optional</em>, but required to enable GPU support
+	- <em>optional</em>, but needed to enable GPU support
 - Subversion
 - Doxygen  >= 1.5.6
-	- <em>optional</em> but required to build detailed developer documentation
+	- <em>optional</em> but needed if you wish to build the detailed developer documentation
 
 \b Links: <br>
 Python - http://www.python.org/ <br>
 Boost - http://www.boost.org/ <br>
-libz - http://www.zlib.net/ <br>
 CMake - http://www.cmake.org/ <br>
 CUDA - http://developer.nvidia.com/object/cuda.html <br>
 Subversion - http://subversion.tigris.org/ <br>
@@ -160,38 +158,47 @@ CMake needs to be run to generate the make files to compile HOOMD.
  $ cd hoomd
  $ mkdir bin
  $ cd bin
- $ ccmake ../src
+ $ cmake-gui ../src
 \endcode
+Note: If you are logged into the system remotely, you can launch the text mode tool \c ccmake instead of \c cmake-gui.
+Press "h" for help on using the text mode tool or see http://www.cmake.org/HTML/RunningCMake.html
 
 You will then see a screen that looks like this:
 \image html cmake_linux_initial.png
 
-Press the 'c' key to configure. You should now see a screen like this:
+Click configure. You should now see a screen like this:
+\image html cmake_linux_setup.png
+Choose your preferred build environemnt and click OK. This guide assumes that "Unix Makefiles" was chosen.
+
+Now you should see a screen like this:
 \image html cmake_linux_firstpress.png
 
-To generate the makefiles now, press 'c' again to ensure the configure is up to date 
-and then press the 'g' key. CMake will exit back to the command line. 
+If you are building with GPU support enabled, check the USE_CUDA box. 
 
-You can also scroll down with the arrow keys and change any of the OFF/ON options
-to control whether certain features are compiled in. You must press 'c' after 
+To generate the makefiles now, click \b configure several times until all the red settings turn white,
+then click \b generate.
+
+You can also scroll down the list of options. Setting the chekcbox options will
+control whether certain features are compiled in. You must click configure after 
 any change. Note that in some cases, changing an option to ON will cause other
-options to appear. There are also a few options controlled by changing text strings.
-
+options to appear. Some options controlled by changing text strings.
 See \ref sec_build_options for more information on what these options do.
 
 It is possible that some of your libraries may be in non-standard paths. If this is
-the case, CMake will report an error after you press 'c'. The offending library 
+the case, CMake will report an error after you click configure. The offending library 
 will be labeled something like CMAKE_LIB_NOTFOUND. If you know where the library is, 
-you can specify the \b full path here and press 'c' again.  
+you can specify the \b full path here and click configure again.
+
+Make sure to click \b generate again after you make any changes. When you are done, close cmake-gui.
 
 <b>4. Compile HOOMD</b><br>
 CMake generated make files for make. Just run
 \code
  $ make -j4
 \endcode
-in the \b bin directory to compile everything and generate this documentation. The -j4 option lets
-make compile 4 files at once. It's safe to set the value to twice the number of CPU 
-cores in your system. HOOMD compiles in seconds on an 8-core 3.0GHz Xeon :)
+in the \b bin directory to compile everything. This documentation will even be generated if
+USE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's safe to set 
+the value to twice the number of CPU cores in your system.
 
 <hr>
 

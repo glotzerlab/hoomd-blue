@@ -98,15 +98,27 @@ Make sure that the version is 1_32_0 or newer. If you get
 grep: /usr/include/boost/version.hpp: No such file or directory
 \endcode
 then boost is not installed. You can upgrade/install boost with your distribution's package
-manager.
+manager. You may need to install the boost-static package to get the static libraries needed by
+HOOMD.
 
+If your distribution doesn't have a new enough version of boost, you can build it by hand. Go
+to http://www.boost.org , download the latest source code and unpack it. cd to the source directory and run
+\code
+ $ cd ~
+ $ mkdir software
+ $ ./configure --with-python-version=2.5 --prefix=~/software/
+ $ make
+ $ make install
+\endcode
+Be prepared to wait a while: boost takes a long time to compile.
 
-
-
-\section software_req_install_linux_libz libz
-
-Every linux distribution I have ever seen has installed libz by default. 
-If you find that it isn't on yours, turn to your package manager.
+Before running ccmake or cmake-gui, set the following environment variables to the location where you installed boost:
+\code
+ $ export BOOST_INCLUDEDIR=/home/joaander/software/include/boost-1_36
+ $ export BOOST_LIBRARYDIR=/home/joaander/software/lib
+ $ ccmake ../src
+ ... continue with build instructions ...
+\endcode
 
 \section software_req_install_linux_compiler Compiler
 
@@ -115,8 +127,8 @@ if you wish, though compilations with CUDA enabled are only supported with gcc.
 
 Test if g++ is installed.
 \code 
-g++ --version
-g++ (GCC) 4.1.2 (Gentoo 4.1.2)
+ $ g++ --version
+ $ g++ (GCC) 4.1.2 (Gentoo 4.1.2)
 \endcode
 Any version should do. If you get
 \code
@@ -131,9 +143,9 @@ It is not very likely that your linux distribution includes CMake by default,
 but check anyways.
 \code
  $ cmake --version
-cmake version 2.4-patch 6
+cmake version 2.6-patch 1
 \endcode
-Make sure the version is 2.4 or later. If you have an old version or get
+Make sure the version is 2.6 or later. If you have an old version or get
 \code
 bash: cmake: command not found
 \endcode
@@ -145,20 +157,20 @@ manager first. I.e. in Gentoo
 
 If your distribution does not have a cmake package, 
 then you can install it into your home directory by hand. First, download
-cmake-2.4.7-Linux-i386.tar.gz from the Downloads section at http://www.cmake.org.
+cmake-2.6.1-Linux-i386.tar.gz from the Downloads section at http://www.cmake.org.
 Unpack the tarball to any location you prefer: this example assumes you are installing it to the 
 ${HOME}/software
 \code 
  $ mkdir ~/software
- $ mv cmake-2.4.7-Linux-i386.tar.gz ~/software/
+ $ mv cmake-2.6.1-Linux-i386.tar.gz ~/software/
  $ cd ~/software
- $ tar -xvzf cmake-2.4.7-Linux-i386.tar.gz
+ $ tar -xvzf cmake-2.6.1-Linux-i386.tar.gz
 \endcode
 Then you need to put the bin directory for cmake into your path. If you use bash for a shell you can do 
 this by editing ~/.bashrc. Look for a line with PATH=... and add the cmake directory to the end separated 
 by a colon. If you can't find the line, create it like so.
 \code
-PATH=$PATH:$HOME/software/cmake-2.4.7-Linux-i386/bin
+PATH=$PATH:$HOME/software/cmake-2.6.1-Linux-i386/bin
 export PATH
 \endcode
 Restart your bash shell (or open a new one) and try the version check above to test your installation.
@@ -166,25 +178,31 @@ Restart your bash shell (or open a new one) and try the version check above to t
 \section software_req_install_linux_cuda CUDA
 
 Even if you do not have the needed graphics hardware to run, you can still install the CUDA toolkit and 
-run run executables in emulation mode. The emulation is slow, but will allow you to develop and test
+run executables in emulation mode. The emulation is slow, but will allow you to develop and test
 any changes you make that affect any of the *GPU classes. 
 
 CUDA is quite new and it is not likely that there
 is a package available through your linux distribution. Go to http://developer.nvidia.com/object/cuda.html#downloads  
-and download the CUDA 1.1 toolkit for you architecture and linux distribution. If your distribution isn't listed,
+and download the latest CUDA toolkit for you architecture and linux distribution. If your distribution isn't listed,
 pick one that looks close, it will likely work. To install, simply go to the directory where you downloaded 
-the toolkit and run: run
+the toolkit and run:
 \code
- $ bash NVIDIA_CUDA_Toolkit_1.1_rhel5_x86_64.run
+ $ bash NVIDIA_CUDA_Toolkit_2.0_rhel5_x86_64.run
 \endcode
 Note, this example lists a specific file: change the command to match the file that you downloaded. The
 file is a self-unpacking and installing script. Just accept the default location if you have root access
-to install, or install to ~/CUDA_11 or anywhere else you please, just make sure to set your LD_LIBRARY_PATH and 
-PATH as the installer indicates.
+to install, or install to ~/CUDA or anywhere else you please.
+
+Open up ~/.bashrc in your
+favorite text editor and add the following line:
+\code
+export LD_LIBRARY_PATH=/usr/local/cuda/lib:$DYLD_LIBRARY_PATH
+export PATH=$PATH:/usr/local/cuda/bin
+\endcode
+Change the paths on these lines if you did not install to the default location.
 
 If you have a CUDA capable graphics card, you will also need the proper graphics driver version. See
-the CUDA webpage linked to above for more information. Gentoo users can find an ebuild to install the
-latest drivers here: https://bugs.gentoo.org/show_bug.cgi?id=199671 just install it in your local overlay.
+the CUDA webpage linked to above for more information.
 
 If you wish, you can download the CUDA SDK from the same website and compile the example files to
 test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD, however.
@@ -231,7 +249,7 @@ if you have Mac OS X 10.4, or 3.0 if you have Mac OS X 10.5.
 <b>2. Install python</b><br>
 If you are running Mac OS X 10.4, you need to download and install the latest 
 version of python (2.5.1) from http://www.python.org/download/ . 
-Users on 10.5 (Leopard) probably can skip this step (unknown, no 10.5 machine to test on).
+Users on 10.5 (Leopard) probably can skip this step (unknown, I don't have a 10.5 machine to test on).
 
 <b>3. Download and compile boost</b><br>
 Building boost is a fairly complicated and time consuming process.
@@ -295,12 +313,26 @@ result in boost not being installed and no obvious error message as to why.
 Just run the command again with the sudo if this is the case.
 
 <b>4. CMake</b><br>
-Download and install the CMake dmg from http://www.cmake.org/.
+Download and install the CMake 2.6.1 or newer dmg from http://www.cmake.org/.
 
 <b>5. CUDA</b><br>
-NVIDIA does not support CUDA on Mac OS X yet. They are working on it and have demonstrated it, 
-so it should be out soon. These docs will be updated then. It is only required to build
-HOOMD with support for GPU execution.
+Even if you do not have the needed graphics hardware to run, you can still install the CUDA toolkit and 
+run executables in emulation mode. The emulation is slow, but will allow you to develop and test
+any changes you make that affect any of the *GPU classes. 
+
+Go to http://developer.nvidia.com/object/cuda.html#downloads and download the latest CUDA toolkit. Double-click
+on the downloaded package to install it. 
+
+One more step needs to be performed so that applications can find the CUDA libraries. Open up ~/.bashrc in your
+favorite text editor and add the following line:
+\code
+export DYLD_LIBRARY_PATH=/usr/local/cuda/lib:$DYLD_LIBRARY_PATH
+export PATH=$PATH:/usr/local/cuda/bin
+\endcode
+Change the paths on these lines if you did not install to the default location.
+
+If you wish, you can download the CUDA SDK from the same website and compile the example files to
+test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD, however.
 
 <b>6. Subversion</b><br>
 Subversion is used for version control. You need to install it if you have commit access and are going to 
@@ -323,6 +355,9 @@ have one, that is not a problem. You can download and install a fully featured I
 C++ Express 2005</b> from here: http://www.microsoft.com/express/2005/ . (note, if you search 
 around you will find that there is a newer express verion, 2008, but it is not currently
 supported by NVIDIA CUDA, has problems with the current version of boost and thus should not be used).
+
+After installing Visual C++ Express, you \b must install Service Pack 1 for it. This can be done
+using Windows Update or by accessing Help->Update from within Visual Studio.
 
 If you install the express edition, you must also follow the link from 
 http://www.microsoft.com/express/2005/ to download the <b>Windows Platform SDK</b>
@@ -359,11 +394,11 @@ you like, as long as it is newer than \b 2.3.
 
 \section software_req_install_windows_boost Boost
 
-<b>Option 1: Install binaries.</b> Easy, but reading/writing \b gzip or \b bzip compressed files will not be supported.
-Also, only supports version \b 2.5.1 of python (for boost 1.34.1, may differ for the other boost
-versions, depending on which version of python boostpro compiled them against).
+<b>Option 1: Install binaries.</b> Easy, but it only supports version \b 2.5.x of python 
+(for boost 1.35.0, this may differ for the other boost versions, depending on which version of python 
+boost-consulting compiled them against).
 
-Download the boost 1.34.1 installer from here http://www.boostpro.com/products/free .
+Download the boost 1.35.0 installer from here http://www.boostpro.com/products/free .
 When you run it, you will get an option screen that looks like this:
 \image html boost_binary_install_windows.png
 Select the options as indicated. You may also be interested in the "Multithread, Debug DLL"
@@ -371,9 +406,9 @@ and "Multithread, DLL" versions of the libraries, but only select those options 
 are an expert HOOMD developer and really know all the implications in linking
 HOOMD to boost dynamically.
 
-<b>Option 2: Compile from source.</b> Difficult, but enables reading and writing of compressed files and allows 
-the use of any supported version of python. These instructions are really only intended for
-advanced users and developers that will be building statically linked builds for download.
+<b>Option 2: Compile from source.</b> Difficult, but enables the use of any supported version of python. 
+These instructions are really only intended for advanced users and developers that will be building statically 
+linked builds for download.
 
 Download the source code from http://www.boost.org. This document assumes you have
 downloaded boost 1.34.1 (these instructions are known not to work for 1.35 without modifications which will
@@ -424,12 +459,12 @@ variable \b BOOST_INCLUDEDIR to c:\\opt\\include\\boost-1_35 and BOOST_LIBRARYDI
 (or wherever the boost headers and libraries were installed).
 
 \section software_req_install_windows_cuda CUDA
-Download and install the 1.1 toolkiet from http://www.nvidia.com/object/cuda_get.html#windows. There
+Download and install the latest toolkiet from http://www.nvidia.com/object/cuda_get.html#windows. There
 is no need to install the SDK. If you have a CUDA capable graphics card, you will also need
 the driver listed on that page in order to execute HOOMD on the GPU. If you do not have
 a CUDA capable graphics card, you can still install the toolkit and compile HOOMD in
 CPU emulation mode. It is quite slow, but developers can use it to test any code they 
-work on that touches GPU classes. 
+work on that touches GPU classes.
 
 \section software_req_install_windows_cmake CMake
 Download the latest CMake installer from here: http://www.cmake.org/HTML/Download.html
