@@ -187,6 +187,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
+	memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
 
 	// for each particle
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
@@ -202,6 +203,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 		Scalar fyi = 0.0;
 		Scalar fzi = 0.0;
 		Scalar pei = 0.0;
+		Scalar viriali = 0.0;
 		
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = full_list[i];
@@ -278,6 +280,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 				fyi += dy*fforce;
 				fzi += dz*fforce;
 				pei += q_i*q_k*(e1+(e2-e1)*xi*Scalar(0.5));
+				viriali += Scalar(1.0/6.0) * rsq * fforce;
 				
 				// add the force to particle j if we are using the third law
 				if (third_law)
@@ -286,6 +289,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 					m_fy[k] -= dy*fforce;
 					m_fz[k] -= dz*fforce;
 					m_pe[k] += q_i*q_k*(e1+(e2-e1)*xi*Scalar(0.5));
+					m_virial[k] += Scalar(1.0/6.0) * rsq * fforce;
 					}
 				}
 			
@@ -294,6 +298,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 		m_fy[i] += fyi;
 		m_fz[i] += fzi;
 		m_pe[i] += pei;
+		m_virial[i] += viriali;
 		}
 
 	// and that is all that needs to be done.

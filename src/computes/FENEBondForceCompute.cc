@@ -182,6 +182,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 	memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
 	memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
 	memset((void*)m_pe, 0, sizeof(Scalar) * m_pdata->getN());
+	memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
 	
 	// for each of the bonds
 	const unsigned int size = (unsigned int)m_bond_data->getNumBonds(); 
@@ -231,7 +232,8 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 
 		// on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * r* \vec{r} 
 		// now calculate r
-		Scalar r = sqrt(dx*dx+dy*dy+dz*dz);
+		Scalar rsq = dx*dx+dy*dy+dz*dz;
+		Scalar r = sqrt(rsq);
 		
 		// Additional check for FENE spring
 		assert(r < m_r_0[bond.type]);
@@ -244,10 +246,13 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		m_fy[idx_b] += tmp * dy;
 		m_fz[idx_b] += tmp * dz;
 		m_pe[idx_b] += Scalar(0.5)*tmp_eng;
+		m_virial[idx_b] -= Scalar(1.0/6.0) * rsq * tmp;
+		
 		m_fx[idx_a] -= tmp * dx;
 		m_fy[idx_a] -= tmp * dy;
 		m_fz[idx_a] -= tmp * dz;
 		m_pe[idx_a] += Scalar(0.5)*tmp_eng;
+		m_virial[idx_a] -= Scalar(1.0/6.0) * rsq * tmp;
 		} 
 
 	m_pdata->release();

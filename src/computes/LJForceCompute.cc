@@ -208,6 +208,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
+	memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
 
 	// for each particle
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
