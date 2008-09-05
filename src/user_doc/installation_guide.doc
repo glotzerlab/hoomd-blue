@@ -42,6 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
  - \ref sec_system_req
  - \ref sec_install_hoomd_windows
  - \ref sec_install_hoomd_linux
+ - \ref sec_install_hoomd_mac
  
 <hr>
 
@@ -107,16 +108,64 @@ Check out the \ref page_quick_start to learn how to use HOOMD.
  -# Download the matching HOOMD package from http://www.ameslab.gov/hoomd
  -# Install the NVIDIA CUDA Toolkit using the installer from http://www.nvidia.com/object/cuda_get.html
  	- Note: Make sure you install the toolkit version listed on the HOOMD download page.
+	- Add /usr/local/cuda/lib to LD_LIBRARY_PATH (can be modified similar to PATH below)
  -# Install the corresponding drivers for your GPU. Go to http://www.nvidia.com and select \b download \b drivers.
  	- Note: The drivers must match with the CUDA toolkit you installed. The HOOMD download page lists
  		compatible driver version(s). 
  -# Extract the HOOMD package using your favorite tool or by running
  	\code
- tar -xvjf hoomd-0.6.1-Linux-x86_64-Python2.4.tar.bz2
+ tar -xvjf hoomd-0.7.1-Linux-x86_64-Python2.5.tar.bz2
  	\endcode
  	in a terminal (modify the filename to match the one you downloaded of course).
  -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
-    i.e. /home/joaander/software/hoomd-0.6.1-Linux-x86_64
+    i.e. /home/joaander/software/hoomd-0.7.1-Linux-x86_64-Python2.5
+ -# Add EXTRACTED_LOCATION/bin to your $PATH. 
+  See http://www.newlinuxuser.com/howto-add-a-directory-to-my-path-statementvariable/
+  for instructions. You will probably need to log out and back in for the path setting 
+  to take effect.
+
+After installation is complete, run 
+\code
+hoomd 
+\endcode
+in any terminal. You should see something like this:
+\code
+Python 2.4.4 (#1, Nov  4 2007, 17:29:36)
+[GCC 4.1.2 (Gentoo 4.1.2)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> 
+\endcode
+Press CTRL-D to exit.
+
+To test your installation further, you can execute benchmark scripts th check the performance of your setup
+or run some live demos that are fun to watch. You will find them in EXTRACTED_LOCATION/share/hoomd
+For example, to run the polymer benchmark on the GPU:
+\code
+cd EXTRACTED_LOCATION/share/hoomd/benchmarks/
+./polymer_bmark.hoomd --mode=gpu
+\endcode
+
+Note: to visualize the live demos, you need to have VMD 1.8.6 installed: http://www.ks.uiuc.edu/Research/vmd/
+
+Check out the \ref page_quick_start to learn how to use HOOMD.
+
+<hr>
+
+\section sec_install_hoomd_mac Installing HOOMD in Mac OS X
+
+ -# Download the HOOMD package from http://www.ameslab.gov/hoomd
+ -# Install Python 2.5 using the installer at http://www.python.org/download/ (or install it through Fink, if you prefer)
+ -# Install the NVIDIA CUDA Toolkit using the installer from http://www.nvidia.com/object/cuda_get.html
+ 	- Note: Make sure you install the toolkit version listed on the HOOMD download page.
+	- Add /usr/local/cuda/lib to DYLD_LIBRARY_PATH (can be modified similar to PATH below)
+ -# Make sure that the Apple \b Software \b Update tool has installed all updates related to the video drivers. 
+ -# Extract the HOOMD package using your favorite tool or by running
+ 	\code
+ tar -xvjf hoomd-0.7.1-unknown-arch-Python2.5.tar.bz2
+ 	\endcode
+ 	in a terminal (modify the filename to match the one you downloaded of course).
+ -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
+    i.e. /home/joaander/software/hoomd-0.7.1-unkown-arch
  -# Add EXTRACTED_LOCATION/bin to your $PATH. 
   See http://www.newlinuxuser.com/howto-add-a-directory-to-my-path-statementvariable/
   for instructions. You will probably need to log out and back in for the path setting 

@@ -6,8 +6,29 @@
 <hr>
 <h1>HOOMD Developers:</h1>
 <hr>
-Joshua Anderson, ISU and Ames Lab - <b>primary developer</b><br>
-Alex Travesset, ISU and Ames Lab - <b>his advisor</b><br>
+Joshua Anderson, ISU and Ames Lab - <b>primary developer</b>
+ - Initial code architecture design
+ - Neighbor list generation
+ - Lennard-Jones forces
+ - Harmonic bond forces
+ - NVE and NVT integration
+ - hoomd_script design & implementation
+ - hoomd_xml file format design & implementation
+ - MOL2 & DCD file format writers
+ - Random polymer generator
+ - IMD interface for VMD
+ - Documentation
+
+Alex Travesset, ISU and Ames Lab - <b>his advisor</b>
+ - Electrostatic forces
+
+Rastko Sknepnek, ISU and Ames Lab - additional development
+ - NPT integration
+
+Carolyn Phillips, University of Michigan - additional development
+ - FENE bond forces
+ - Testing and debugging HOOMD on Mac OS X systems
+
 <hr>
 <h1>Source code</h1>
 <hr>
