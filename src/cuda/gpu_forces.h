@@ -43,7 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define _CUDA_FORCES_H_
 
 #include <stdio.h>
-#include <cuda_runtime_api.h>
+#include <cuda_runtime.h>
 
 #include "gpu_pdata.h"
 #include "gpu_nlist.h"

@@ -52,7 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #ifdef USE_CUDA
-#include "cuda_runtime_api.h"
+#include <cuda_runtime.h>
 #endif
 
 

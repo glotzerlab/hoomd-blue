@@ -43,7 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define _CUDA_PDATA_H_
 
 #include <stdio.h>
-#include <cuda_runtime_api.h>
+#include <cuda_runtime.h>
 
 /*! \file gpu_pdata.h
  	\brief Declares extremely low-level functions for working with particle data on the GPU
