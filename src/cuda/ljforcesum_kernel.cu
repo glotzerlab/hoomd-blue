@@ -154,7 +154,12 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// loop over neighbors
+	#ifdef ARCH_SM13
+	// sm13 offers warp voting which makes this hardware bug workaround less of a performance penalty
+	for (int neigh_idx = 0; __any(neigh_idx < n_neigh); neigh_idx++)
+	#else
 	for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+	#endif
 		{
 		if (neigh_idx < n_neigh)
 		{
