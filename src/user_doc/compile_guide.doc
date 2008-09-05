@@ -137,7 +137,7 @@ There is more information at http://msdn2.microsoft.com/en-us/library/y0xettzf.a
 
 <hr>
 
-\section sec_compiling_linux Compiling on linux
+\section sec_compiling_linux Building on linux
 
 <b>1. Install prerequisite software</b><br>
 Click for detailed instructions: \subpage page_software_req_install_linux
@@ -197,7 +197,7 @@ CMake generated make files for make. Just run
  $ make -j4
 \endcode
 in the \b bin directory to compile everything. This documentation will even be generated if
-USE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's safe to set 
+USE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's best to set 
 the value to twice the number of CPU cores in your system.
 
 <hr>
@@ -217,44 +217,38 @@ will create a directory \e hoomd in your current working directory which will co
 the current development version of the source code.
 
 <b>3. Run CMake</b><br>
-First, create a directory to hold the compiled object files and executables.
-\code
- $ cd hoomd
- $ mkdir bin
- $ cd bin
-\endcode
-CMake needs to be run in order to generate the build environment. You have two
-options here. If there is a particular code editor you prefer and you want to 
-compile by running \e make on the command line, just run
-\code
- $ ccmake ../src
-\endcode
-If you would rather use XCode as an IDE, run
-\code
- $ ccmake -G Xcode ../src
-\endcode
-to generate an XCode project file.
+First, click on the CMake icon to run CMake. Enter the location where you extracted the HOOMD source code
+in the "Where is the source code box". Specify where you want the binaries built in the "Where to build the
+binaries box" (usually in a directory called bin next to the source code). You should now have a screen that looks like this:
 
-You will then see a screen that looks like this:
 \image html cmake_mac_initial.png
 
-Press the 'c' key to configure. You should now see a screen like this, though it may be slightly different if you are generating a make file and not an XCode project:
+Click \b configure and CMake will ask you about the build environment. You have two
+options here. If there is a particular code editor you prefer and you want to 
+compile by running \e make on the command line, select Unix Makefiles and press enter.
+If you would rather use XCode as an IDE, select XCode and press enter.
+
+You will then see a screen that looks like this:
 \image html cmake_mac_firstpress.png
+(this image was captured using the Unix Makefiles generator. Your screen may be slightly
+different if you chose Xcode)
 
-To generate the makefiles now (or the XCode project), press 'c' again to ensure the configure is up to date 
-and then press the 'g' key. CMake will exit back to the command line. 
+If you are building with GPU support enabled, check the USE_CUDA box. 
 
-You can also scroll down with the arrow keys and change any of the OFF/ON options
-to control whether certain features are compiled in. You must press 'c' after 
+To generate the makefiles (or XCode project) now, click \b configure several times until all the red settings turn white, then click \b generate.
+
+You can also scroll down the list of options. Setting the chekcbox options will
+control whether certain features are compiled in. You must click configure after 
 any change. Note that in some cases, changing an option to ON will cause other
-options to appear. There are also a few options controlled by changing text strings.
-
+options to appear. Some options controlled by changing text strings.
 See \ref sec_build_options for more information on what these options do.
 
 It is possible that some of your libraries may be in non-standard paths. If this is
-the case, CMake will report an error after you press 'c'. The offending library 
+the case, CMake will report an error after you click configure. The offending library 
 will be labeled something like CMAKE_LIB_NOTFOUND. If you know where the library is, 
-you can specify the \b full path here and press 'c' again.  	
+you can specify the \b full path here and click configure again.
+
+Make sure to click \b generate again after you make any changes. When you are done, close cmake-gui.
 
 <b>4. Compile HOOMD</b><br>
 If you generated make files, just run
@@ -262,8 +256,8 @@ If you generated make files, just run
  $ make -j4
 \endcode
 in the \b bin directory to compile everything and generate this documentation. 
-The -j4 option lets make compile 4 files at once. It's safe to set the value to twice the number of CPU 
-cores in your system. HOOMD compiles in seconds on an 8-core 3.0GHz Xeon :)
+The -j4 option lets make compile 4 files at once. It's best to set the value to twice the number of CPU 
+cores in your system.
 
 If you generated an XCode project, open it in XCode and click the build button
 to compile HOOMD. Note that while source code can be edited via XCode, any 
@@ -281,7 +275,7 @@ Here is a list of all the build options that can be changed by CMake.
 		identify.
 	- \b Release - All compiler optimizations are enabled and asserts are removed.
 		Recommended for production builds: required for any benchmarking.
- - \b USE_DOXYGEN - enables the generation of detailed developer documentation
+ - \b USE_DOXYGEN - enables the generation of detailed user and developer documentation
  	- Requires doxygen to be installed
  - \b SINGLE_PRECISION - Controls precision
  	- When set to \b ON, all calculations are performed in single precision.
@@ -311,8 +305,8 @@ There are a few options for controling the CUDA compilation.
  		kernel development is not recommended without a hardware device to 
  		run on.
  - \b NVCC_USER_FLAGS - Allows additional flags to be passed to nvcc.
- 	- Recommended usage is to use this only for -DNDEBUG when compiling in 
- 		Release mode. Without -DNDEBUG, there will be a sync and an error check
- 		after every single kernel execution which is only useful for debugging.
-
+	- If you are building HOOMD for execution solely on G200 and newer GPUs, set
+		NVCC_USER_FLAGS to <i>-arch;sm_13;-DARCH_SM13</i> to take advantage of the
+		hardware features present in those GPUs. This boosts HOOMD's overall
+		performance.
 */
