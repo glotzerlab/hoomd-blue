@@ -1,0 +1,70 @@
+#! /usr/bin/env hoomd
+
+# $Id $
+# $URL $
+
+from hoomd_script import *
+from hoomd import find_hoomd_data_dir
+from hoomd import find_vmd
+import math;
+import os;
+import sys;
+
+# setup the simulation
+# parameters
+phi_P = 0.20
+n_poly = 4800
+T = 1.2
+polymer1 = dict(bond_len=1.2, type=['B']*10, bond="linear", count=n_poly)
+polymer2 = dict(bond_len=1.2, type=['A'], bond="linear", count=4800*24)
+
+# perform some simple math to find the length of the box
+N = len(polymer1['type']) * polymer1['count'];
+N += len(polymer2['type']) * polymer2['count'];
+L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
+#print L
+
+# generate the polymer system
+init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1, polymer2], separation=dict(A=0.35, B=0.35), seed=12);
+
+# force field setup
+harmonic = bond.harmonic()
+harmonic.set_coeff('polymer', k=330.0, r0=0.84)
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('A', 'B', epsilon=5.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+
+# NVT integration
+integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+
+# enable IMD so VMD can connect
+analyze.imd(port=12345, period=10)
+
+###########################
+## get setup to run VMD for the user
+
+# uncomment to generate the file for VMD
+#dump.mol2("oil_water.mol2")
+
+# run a few steps to fire up the IMD listener
+run(10)
+
+# find the vmd executable and run it
+if not sys.argv[1] == "novmd":
+	vmd_bin = find_vmd()
+	
+	if vmd_bin == "":
+		print "\nVMD not found. To see the live demo, you must start VMD"
+		print "and run the following commands in the VMD console:\n"
+		print "cd ", find_hoomd_data_dir() + "/demos/oil_water"
+		print "play vmd_script.vmd\n"
+		raw_input("press enter to continue executing the demo")
+	
+	# run vmd
+	if vmd_bin != "":
+		os.chdir(find_hoomd_data_dir() + "/demos/oil_water")
+		os.spawnl(os.P_NOWAIT, vmd_bin, vmd_bin, "-e", "vmd_script.vmd")
+
+# run for a long time
+run(1e8)
