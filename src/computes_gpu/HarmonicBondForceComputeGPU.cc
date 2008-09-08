@@ -73,16 +73,15 @@ HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<Parti
 		cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing BondForceComputeGPU");
 		}
-	if (exec_conf.gpu.size() != 1)
-		{
-		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
-		throw std::runtime_error("Error initializing BondForceComputeGPU");
-		}
 	
 	// allocate and zero device memory
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params), m_bond_data->getNBondTypes()*sizeof(float2)));
-	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float2)));
+	m_gpu_params.resize(exec_conf.gpu.size());
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_bond_data->getNBondTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_bond_data->getNBondTypes()*sizeof(float2)));
+		}
 	
 	m_host_params = new float2[m_bond_data->getNBondTypes()];
 	memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float2));
@@ -92,9 +91,12 @@ HarmonicBondForceComputeGPU::~HarmonicBondForceComputeGPU()
 	{
 	// free memory on the GPU
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaFree, (void*)m_gpu_params));
-	m_gpu_params = NULL;
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{	
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
+		m_gpu_params[cur_gpu] = NULL;
+		}
 	
 	// free memory on the CPU
 	delete[] m_host_params;
@@ -117,8 +119,12 @@ void HarmonicBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar 
 	
 	// copy the parameters to the GPU
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+	
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_bond_data->getNBondTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+		}
 	}
 
 /*! Internal method for computing the forces on the GPU. 
@@ -135,7 +141,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 		m_prof->push("Table copy");
 		}
 		
-	gpu_bondtable_array gpu_bondtable = m_bond_data->acquireGPU();
+	vector<gpu_bondtable_array>& gpu_bondtable = m_bond_data->acquireGPU();
 	
 	if (m_prof)
 		{
@@ -150,15 +156,22 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_bondforce_sum, m_d_forces[0], &pdata[0], &box, &gpu_bondtable, m_gpu_params, m_bond_data->getNBondTypes(), m_block_size));
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_bondforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size));
+		}
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->sync();
+		
 		
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
 	
 	if (m_prof)
 		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			exec_conf.gpu[cur_gpu]->call(bind(cudaThreadSynchronize));
 		m_prof->pop(34 * m_bond_data->getNumBonds()*2, 20*m_pdata->getN() + 20*m_bond_data->getNumBonds()*2);
 		}
 		

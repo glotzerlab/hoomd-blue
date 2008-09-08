@@ -128,7 +128,7 @@ class BondData
 		
 		# ifdef USE_CUDA
 		//! Access the bonds on the GPU
-		gpu_bondtable_array acquireGPU();
+		std::vector<gpu_bondtable_array>& acquireGPU();
 		#endif
 		
 	private:
@@ -144,7 +144,7 @@ class BondData
 		void setDirty() { m_bonds_dirty = true; }
 			
 		#ifdef USE_CUDA
-		gpu_bondtable_array	m_gpu_bonddata;	//!< List of bonds on the GPU
+		std::vector<gpu_bondtable_array> m_gpu_bonddata;	//!< List of bonds on the GPU
 		uint2 *m_host_bonds;				//!< Host copy of the bond list
 		unsigned int *m_host_n_bonds;		//!< Host copy of the number of bonds
 		

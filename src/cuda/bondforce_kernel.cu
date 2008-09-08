@@ -62,15 +62,16 @@ texture<float2, 1, cudaReadModeElementType> bond_params_tex;
 extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, gpu_bondtable_array blist, gpu_boxsize box)
 	{
 	// start by identifying which particle we are to handle
-	int pidx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int pidx = idx + pdata.local_beg;
 	
-	if (pidx >= pdata.N)
+	if (idx >= pdata.local_num)
 		return;
 	
 	// load in the length of the list for this thread
 	int n_bonds = blist.n_bonds[pidx];
 
-	// read in the position of our particle. 
+	// read in the position of our particle.
 	float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
 
 	// initialize the force to 0
@@ -152,7 +153,7 @@ cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_box
 	assert(block_size != 0);
 
 	// setup the grid to run the kernel
-	dim3 grid( (int)ceil((double)pdata->N/ (double)block_size), 1, 1);
+	dim3 grid( (int)ceil((double)pdata->local_num / (double)block_size), 1, 1);
 	dim3 threads(block_size, 1, 1);
 
 	// bind the textures

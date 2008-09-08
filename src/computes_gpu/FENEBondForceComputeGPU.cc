@@ -135,7 +135,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 		m_prof->push("Table copy");
 		}
 		
-	gpu_bondtable_array gpu_bondtable = m_bond_data->acquireGPU();
+	vector<gpu_bondtable_array>& gpu_bondtable = m_bond_data->acquireGPU();
 	
 	if (m_prof)
 		{
@@ -151,7 +151,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_fenebondforce_sum, m_d_forces[0], &pdata[0], &box, &gpu_bondtable, m_gpu_params, m_bond_data->getNBondTypes(), m_block_size));
+	exec_conf.gpu[0]->call(bind(gpu_fenebondforce_sum, m_d_forces[0], &pdata[0], &box, &gpu_bondtable[0], m_gpu_params, m_bond_data->getNBondTypes(), m_block_size));
 		
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
