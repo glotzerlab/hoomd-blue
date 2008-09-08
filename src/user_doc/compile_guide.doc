@@ -100,11 +100,10 @@ Developers with commit access planning to make changes to the code must use opti
 You should now have a directory \b hoomd on your hard drive with a subdirectory
 \b src containing the source code. CMake must be run to generate the visual studio
 project that will compile HOOMD. 
- -# Create a directory \e msvc inside \b hoomd
- -# Start CMake
- -# Set \b C:\\code\\hoomd\\src (modifying to match the location of your hoomd src directory) in
+ -# Start cmake-gui
+ -# Set \b C:\\Users\\joaander\\hoomd\\src (modifying to match the location of your hoomd src directory) in
 	the box labeled "Where is the Source code".
- -# Set \b C:\\code\\hoomd\\msvc (again, modified to mach the location of your hoomd directory) 
+ -# Set \b C:\\Users\\joaander\\hoomd\\msvc (again, modified to mach the location of your hoomd directory) 
 	in the box labeled "Where to build the binaries"
  -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
  -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
@@ -116,8 +115,9 @@ project that will compile HOOMD.
 	to the corresponding file or directory.
  -# You can configure any of the build options on this screen to your liking. 
 	See \ref sec_build_options for more information on what these options do.
- -# Click configure again to make sure all settings are up to date and then click OK
-	to generate the project file and exit CMake.
+ -# Click configure several times until all the red options turn white. Then click generate 
+	the create project file.
+ -# Close CMake
 
 <b>4. Compile HOOMD</b><br>
 Open up the \b HOOMD.sln project in visual studio. Press F7 (or use the GUI build button)
