@@ -365,6 +365,7 @@ const ParticleDataArraysConst & ParticleData::acquireReadOnly()
 	// sanity check
 	assert(m_data);
 	assert(!m_acquired);
+	assert(inBox());
 	m_acquired = true;
 	
 	#ifdef USE_CUDA
@@ -414,6 +415,7 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
 	// sanity check
 	assert(m_data);
 	assert(!m_acquired);
+	assert(inBox());
 	m_acquired = true;
 	
 	#ifdef USE_CUDA
@@ -570,7 +572,6 @@ void ParticleData::release()
 	{
 	// sanity checks
 	assert(m_acquired);
-	assert(inBox());
 	
 	// this is just a simple CPU implementation, no graphics card involved.
 	// all memory mods were direct into the pointers, so just flip the acquired bit
