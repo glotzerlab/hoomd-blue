@@ -55,6 +55,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 #endif
 
+#include <boost/foreach.hpp>
+#define foreach BOOST_FOREACH
+
 #include <stdexcept>
 #include <iostream>
 
@@ -177,7 +180,33 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::ve
 		}
 	#endif
 	}
-
+	
+#ifdef USE_CUDA
+/*! \param file Passed to GPUWorker::setTag
+	\param line Passed to GPUWorker::setTag
+*/
+void ExecutionConfiguration::tagAll(const std::string &file, unsigned int line) const
+	{
+	foreach (shared_ptr<GPUWorker> cur_gpu, gpu)
+		cur_gpu->setTag(file, line);
+	}
+	
+/*! Calls GPUWorker::sync() for all GPUs in the configuration
+*/
+void ExecutionConfiguration::syncAll() const
+	{
+	foreach (shared_ptr<GPUWorker> cur_gpu, gpu)
+		cur_gpu->sync();
+	}
+	
+/*! \param func Passed to GPUWorker::call
+*/
+void ExecutionConfiguration::callAll(const boost::function< cudaError_t (void) > &func) const
+	{
+	foreach (shared_ptr<GPUWorker> cur_gpu, gpu)
+		cur_gpu->call(func);
+	}
+#endif
 
 #ifdef USE_PYTHON
 void export_ExecutionConfiguration()

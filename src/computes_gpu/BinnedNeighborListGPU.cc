@@ -349,8 +349,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		throw runtime_error("Error computing neighbor list");
 		}
 
-	if (m_prof)
-		m_prof->push("Nlist.GPU");
+	if (m_prof) m_prof->push(exec_conf, "Nlist");
 	
 	// need to update the exclusion data if anything has changed
 	if (m_force_update)
@@ -361,8 +360,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		{
 		updateBinsUnsorted();
 		
-		if (m_prof)
-			m_prof->push("Bin copy");
+		if (m_prof) m_prof->push(exec_conf, "Bin copy");
 		
 		unsigned int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My * m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax * sizeof(unsigned int);
 
@@ -376,18 +374,14 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		
 		if (m_prof)
 			{
-			for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-				exec_conf.gpu[cur_gpu]->call(bind(cudaThreadSynchronize));
-				
 			int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My *
 						m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax *
 						sizeof(unsigned int) * (unsigned int)exec_conf.gpu.size();
 						
-			m_prof->pop(0, nbytes);
+			m_prof->pop(exec_conf, 0, nbytes);
 			}
 
-		if (m_prof)
-			m_prof->push("Transpose");
+		if (m_prof) m_prof->push(exec_conf, "Transpose");
 			
 		vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	
@@ -408,12 +402,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 			exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].coord_idxlist_array, 0, 0, m_gpu_bin_data[cur_gpu].coord_idxlist, m_gpu_bin_data[cur_gpu].coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice));
 			}
 		
-		if (m_prof)
-			{
-			for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-				exec_conf.gpu[cur_gpu]->call(bind(cudaThreadSynchronize));
-			m_prof->pop();
-			}
+		if (m_prof) m_prof->pop(exec_conf);
 		
 		// update the neighbor list using the bins. Need to check for overflows
 		// and increase the size of the list as needed
@@ -453,16 +442,16 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		#endif
 		}
 		
-	if (m_prof)	m_prof->pop();
+	if (m_prof)	m_prof->pop(exec_conf);
 	}
 
 void BinnedNeighborListGPU::updateBinsUnsorted()
 	{
 	assert(m_pdata);
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
 	// start up the profile
-	if (m_prof)
-		m_prof->push("Bin");
+	if (m_prof) m_prof->push(exec_conf, "Bin");
 
 	// acquire the particle data
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
@@ -574,8 +563,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 	m_pdata->release();
 
 	// update profile
-	if (m_prof)
-		m_prof->pop(6*arrays.nparticles, (3*sizeof(Scalar) + (3)*sizeof(float4))*arrays.nparticles);
+	if (m_prof) m_prof->pop(exec_conf, 6*arrays.nparticles, (3*sizeof(Scalar) + (3)*sizeof(float4))*arrays.nparticles);
 
 	// we aren't done yet, if there was an overflow, update m_Nmax and recurse to make sure the list is fully up to date
 	// since we are now certain that m_Nmax will hold all of the particles, the recursion should only happen once
@@ -606,11 +594,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 	assert(m_pdata);
 		
 	// start up the profile
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->push("Build list");
-		}
+	if (m_prof) m_prof->push(exec_conf, "Build list");
 		
 	// access the particle data
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
@@ -629,13 +613,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 	
 	m_pdata->release();
 
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		// each thread computes 21 flops for each comparison. There are 27*m_avgNmax comparisons per thread.
-		// cell lists for neighboring bins and those particle's positions.
-		m_prof->pop(int64_t(m_pdata->getN() * 27 * m_avgNmax * 21), m_pdata->getN() * (16+16+27*(4+m_curNmax*16)) );
-		}
+	if (m_prof) m_prof->pop(exec_conf, int64_t(m_pdata->getN() * 27 * m_avgNmax * 21), m_pdata->getN() * (16+16+27*(4+m_curNmax*16)) );
 	}
 	
 
@@ -661,8 +639,7 @@ bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
 		return true;
 
 	// scan through the particle data arrays and calculate distances
-	if (m_prof)
-		m_prof->push("Dist check");
+	if (m_prof) m_prof->push(exec_conf, "Dist check");
 		
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
@@ -681,11 +658,7 @@ bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
 
 	m_pdata->release();
 
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop();
-		}
+	if (m_prof) m_prof->pop(exec_conf);
 
 	if (result)
 		{

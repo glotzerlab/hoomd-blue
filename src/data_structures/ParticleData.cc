@@ -63,6 +63,7 @@ using namespace boost::python;
 #endif
 
 #include "ParticleData.h"
+#include "Profiler.h"
 #include "WallData.h"
 #include "BondData.h"
 

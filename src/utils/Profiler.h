@@ -45,6 +45,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ClockSource.h"
+#include "ExecutionConfiguration.h"
+
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#include <boost/bind.hpp>
+#endif
+
 #include <string>
 #include <stack>
 #include <map>
@@ -127,6 +134,11 @@ class Profiler
 		void push(const std::string& name);
 		//! Pops back up to the next super-category
 		void pop(uint64_t flop_count = 0, uint64_t byte_count = 0);
+		
+		//! Pushes a new sub-category into the current category & syncs the GPUs
+		void push(const ExecutionConfiguration& exec_conf, const std::string& name);
+		//! Pops back up to the next super-category & syncs the GPUs
+		void pop(const ExecutionConfiguration& exec_conf, uint64_t flop_count = 0, uint64_t byte_count = 0);
 
 	private:
 		ClockSource m_clk;	//!< Clock to provide timing information
@@ -150,6 +162,22 @@ std::ostream& operator<<(std::ostream &o, Profiler& prof);
 
 /////////////////////////////////////
 // Profiler inlines
+
+inline void Profiler::push(const ExecutionConfiguration& exec_conf, const std::string& name)
+	{
+	#ifdef USE_CUDA
+	exec_conf.callAll(boost::bind(cudaThreadSynchronize));
+	#endif
+	push(name);
+	}
+
+inline void Profiler::pop(const ExecutionConfiguration& exec_conf, uint64_t flop_count, uint64_t byte_count)
+	{
+	#ifdef USE_CUDA
+	exec_conf.callAll(boost::bind(cudaThreadSynchronize));
+	#endif
+	pop(flop_count, byte_count);
+	}
 
 inline void Profiler::push(const std::string& name)
 	{

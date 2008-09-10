@@ -272,8 +272,6 @@ string print_profiler(Profiler *prof)
 void export_Profiler()
 	{
 	class_<Profiler>("Profiler", init<const std::string&>())
-		.def("push", &Profiler::push)
-		.def("pop", &Profiler::pop)
 		.def("__str__", &print_profiler)
 		;
 	}

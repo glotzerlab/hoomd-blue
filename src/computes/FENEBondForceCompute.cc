@@ -146,8 +146,7 @@ Scalar FENEBondForceCompute::getLogValue(const std::string& quantity)
  */
 void FENEBondForceCompute::computeForces(unsigned int timestep)
  	{
-	if (m_prof)
-		m_prof->push("Bond");
+	if (m_prof) m_prof->push("FENE");
 
  	assert(m_pdata);
  	// access the particle data arrays
@@ -161,8 +160,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 	assert(arrays.y);
 	assert(arrays.z);
 
-	if (m_prof)
-		m_prof->push("Compute");
+	if (m_prof) m_prof->push("Compute");
 
 	// get a local copy of the simulation box too
 	const BoxDim& box = m_pdata->getBox();

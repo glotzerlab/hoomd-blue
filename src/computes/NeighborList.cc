@@ -260,8 +260,7 @@ void NeighborList::compute(unsigned int timestep)
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;
 
-	if (m_prof)
-		m_prof->push("Nlist^2");
+	if (m_prof) m_prof->push("Nlist");
 	
 	if (needsUpdating(timestep))
 		{
@@ -273,8 +272,7 @@ void NeighborList::compute(unsigned int timestep)
 		#endif
 		}
 	
-	if (m_prof)
-		m_prof->pop();
+	if (m_prof) m_prof->pop();
 	}
 		 
 /*! \param r_cut New cuttoff radius to set
@@ -411,8 +409,7 @@ vector<gpu_nlist_array>& NeighborList::getListGPU()
 */
 void NeighborList::hostToDeviceCopy()
 	{
-	if (m_prof)
-		m_prof->push("NLIST C2G");
+	if (m_prof) m_prof->push("NLIST C2G");
 	
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
@@ -463,8 +460,7 @@ void NeighborList::hostToDeviceCopy()
 			cudaMemcpyHostToDevice));
 		}
 	
-	if (m_prof)
-		m_prof->pop();
+	if (m_prof) m_prof->pop();
 	}
 
 /*! \post The entire neighbor list is copied from the GPU to the CPU.
@@ -472,8 +468,7 @@ void NeighborList::hostToDeviceCopy()
 */			
 void NeighborList::deviceToHostCopy()
 	{
-	if (m_prof)
-		m_prof->push("NLIST G2C");
+	if (m_prof) m_prof->push("NLIST G2C");
 		
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
@@ -503,8 +498,7 @@ void NeighborList::deviceToHostCopy()
 			}
 		}
 	
-	if (m_prof)
-		m_prof->pop();
+	if (m_prof) m_prof->pop();
 	}
 
 /*! \post The exclusion list is converted from tags to indicies and then copied up to the
@@ -650,8 +644,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 		return false;
 			
 	// scan through the particle data arrays and calculate distances
-	if (m_prof)
-		m_prof->push("Dist check");	
+	if (m_prof) m_prof->push("Dist check");	
 
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
 	// sanity check
@@ -727,8 +720,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 	m_pdata->release();
 
 	// don't worry about computing flops here, this is fast
-	if (m_prof)
-		m_prof->pop();	
+	if (m_prof) m_prof->pop();
 	
 	return result;
 	}
@@ -783,8 +775,7 @@ void NeighborList::computeSimple()
 	assert(m_pdata);
 	
 	// start up the profile
-	if (m_prof)
-		m_prof->push("Build list");
+	if (m_prof) m_prof->push("Build list");
 		
 	// access the particle data
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
@@ -887,8 +878,7 @@ void NeighborList::computeSimple()
 	// and performs approximately 15 FLOPs
 	// there are an additional N * 3 * sizeof(Scalar) accesses for the xj lookup
 	uint64_t N = arrays.nparticles;
-	if (m_prof)
-		m_prof->pop(15*N*(N-1)/2, 3*sizeof(Scalar)*N*(N-1)/2 + N*3*sizeof(Scalar) + uint64_t(n_neigh)*sizeof(unsigned int));
+	if (m_prof) m_prof->pop(15*N*(N-1)/2, 3*sizeof(Scalar)*N*(N-1)/2 + N*3*sizeof(Scalar) + uint64_t(n_neigh)*sizeof(unsigned int));
 	}
 	
 	

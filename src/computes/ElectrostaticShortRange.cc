@@ -146,8 +146,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	m_nlist->compute(timestep);
 	
 	// start the profile
-	if (m_prof)
-		m_prof->push("ELECTROSTATIC_SHORT");
+	if (m_prof) m_prof->push("ELECTROSTATIC_SHORT");
 	
 	// depending on the neighborlist settings, we can take advantage of newton's third law
 	// to reduce computations at the cost of memory access complexity: set that flag now
@@ -166,8 +165,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
 	
-	if (m_prof)
-		m_prof->push("Compute");
+	if (m_prof) m_prof->push("Compute");
 
 	// create a temporary copy of r_cut squared and delta squared
 	Scalar r_cut_sq = m_r_cut * m_r_cut;

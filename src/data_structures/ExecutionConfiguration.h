@@ -81,7 +81,17 @@ struct ExecutionConfiguration
 	ExecutionConfiguration(executionMode mode, const std::vector<unsigned int>& gpu_ids);
 	
 	executionMode exec_mode;	//!< Execution mode specified in the constructor
+	
 	#ifdef USE_CUDA
+	//! Sets tags for all GPUWorkers
+	void tagAll(const std::string &file, unsigned int line) const;
+	
+	//! Syncs all GPUWorkers
+	void syncAll() const;
+	
+	//! Calls a function on all GPUs
+	void callAll(const boost::function< cudaError_t (void) > &func) const;
+	
 	std::vector< boost::shared_ptr<GPUWorker> > gpu;	//!< GPUs to execute on
 	#endif
 	};

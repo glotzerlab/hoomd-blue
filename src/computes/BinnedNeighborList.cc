@@ -83,8 +83,7 @@ void BinnedNeighborList::compute(unsigned int timestep)
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;
 
-	if (m_prof)
-		m_prof->push("Nlist");
+	if (m_prof) m_prof->push("Nlist");
 
 	// update the list (if it needs it)
 	if (needsUpdating(timestep))
@@ -98,8 +97,7 @@ void BinnedNeighborList::compute(unsigned int timestep)
 		#endif
 		}
 
-	if (m_prof)
-		m_prof->pop();
+	if (m_prof) m_prof->pop();
 	}
 
 /*! \post \c m_bins, \c m_binned_x, \c m_binned_y, and \c m_binned_z are updated with the current particle 
@@ -120,8 +118,7 @@ void BinnedNeighborList::updateBins()
 	assert(m_pdata);
 
 	// start up the profile
-	if (m_prof)
-		m_prof->push("Bin");
+	if (m_prof) m_prof->push("Bin");
 
 	// acquire the particle data
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
@@ -204,8 +201,7 @@ void BinnedNeighborList::updateBins()
 	m_pdata->release();
 
 	// update profile
-	if (m_prof)
-		m_prof->pop(6*arrays.nparticles, (3*sizeof(Scalar) + 28*sizeof(unsigned int))*arrays.nparticles);
+	if (m_prof) m_prof->pop(6*arrays.nparticles, (3*sizeof(Scalar) + 28*sizeof(unsigned int))*arrays.nparticles);
 	}
 
 /*! \pre The bin arrays MUST be up to date. See updateBins()
@@ -231,8 +227,7 @@ void BinnedNeighborList::updateListFromBins()
 	assert(m_pdata);
 		
 	// start up the profile
-	if (m_prof)
-		m_prof->push("Build list");
+	if (m_prof) m_prof->push("Build list");
 		
 	// access the particle data
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
@@ -398,8 +393,7 @@ void BinnedNeighborList::updateListFromBins()
 	// there are an additional N * 3 * sizeof(Scalar) accesses for the xj lookup
 	// and n_neigh*sizeof(unsigned int) memory writes for the neighborlist
 	uint64_t N = arrays.nparticles;
-	if (m_prof)
-		m_prof->pop(15*n_calc, 3*sizeof(Scalar)*n_calc + sizeof(unsigned int)*n_calc + N*3*sizeof(Scalar) + uint64_t(n_neigh)*sizeof(unsigned int));
+	if (m_prof) m_prof->pop(15*n_calc, 3*sizeof(Scalar)*n_calc + sizeof(unsigned int)*n_calc + N*3*sizeof(Scalar) + uint64_t(n_neigh)*sizeof(unsigned int));
 	
 	}
 

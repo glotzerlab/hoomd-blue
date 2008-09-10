@@ -76,7 +76,6 @@ using namespace std;
 #include "gpu_pdata.h"
 #endif
 
-#include "Profiler.h"
 #include "ExecutionConfiguration.h"
 
 // windows doesn't understand __restrict__, it is __restrict instead
@@ -97,6 +96,9 @@ using namespace std;
 
 /*! @}
 */
+
+// Forward declaration of Profiler
+class Profiler;
 
 // Forward declaration of WallData
 class WallData;
