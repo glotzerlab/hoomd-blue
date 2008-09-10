@@ -53,6 +53,13 @@
   SetCompressor @CPACK_NSIS_COMPRESSOR@
 
 ;--------------------------------
+; Settings for the error if the x64 build is installed in i386 windows
+!ifndef PROC
+  !define PROC 64 ; to be defined in cmd line
+!endif
+LangString wrongWow ${LANG_ENGLISH} "This binary build is for ${PROC}-bit computers only. Download the 32-bit version at http://www.ameslab.gov/hoomd"
+
+;--------------------------------
 ; determine admin versus local install
 ; Is install for "AllUsers" or "JustMe"?
 ; Default to "JustMe" - set to "AllUsers" if admin or on Win9x
@@ -63,6 +70,17 @@
 ; "Program Files" for AllUsers, "My Documents" for JustMe...
 
 Function .onInit
+  System::Call "kernel32::GetCurrentProcess() i .s"
+  System::Call "kernel32::IsWow64Process(i s, *i .r0)"
+  IntCmp $0 0 is32
+  IntCmp ${PROC} 64 procOk
+wrongProc:
+  MessageBox MB_OK|MB_ICONSTOP $(wrongWow)
+  Abort $(wrongWow)
+is32:
+  IntCmp ${PROC} 32 procOk wrongProc wrongProc
+procOk:
+
   StrCpy $SV_ALLUSERS "JustMe"
   StrCpy $INSTDIR "$DOCUMENTS\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
 
