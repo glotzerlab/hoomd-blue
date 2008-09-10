@@ -326,8 +326,8 @@ void BondData::allocateBondTable(int height)
 	// allocate and zero device memory
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		assert(m_gpu_bonddata[cur_bond].bonds == NULL);
-		assert(m_gpu_bonddata.n_bonds == NULL);
+		assert(m_gpu_bonddata[cur_gpu].bonds == NULL);
+		assert(m_gpu_bonddata[cur_gpu].n_bonds == NULL);
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata[cur_gpu].n_bonds), N*sizeof(unsigned int)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_bonddata[cur_gpu].n_bonds, 0, N*sizeof(unsigned int)));
