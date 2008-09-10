@@ -46,6 +46,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include "ParticleData.h"
 
+#include <boost/utility.hpp>
+
 #ifndef __WALLDATA_H__
 #define __WALLDATA_H__
 
@@ -92,7 +94,7 @@ struct Wall
 	It will most likely take the form of a 2D texture.
 	\ingroup data_structs
 */
-class WallData 
+class WallData : boost::noncopyable
 	{
 	public:
 		//! Creates an empty structure with no walls

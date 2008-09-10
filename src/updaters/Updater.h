@@ -40,6 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 
 #include "ParticleData.h"
 #include "Profiler.h"
@@ -79,7 +80,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	
 	\ingroup updaters
 */
-class Updater
+class Updater : boost::noncopyable
 	{
 	public:
 		//! Constructs the compute and associates it with the ParticleData

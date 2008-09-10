@@ -49,6 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <boost/signal.hpp>
+#include <boost/utility.hpp>
 
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
@@ -89,7 +90,7 @@ struct Bond
 	of bond types cannot change after initialization.
 	\ingroup data_structs
 */
-class BondData
+class BondData : boost::noncopyable
 	{
 	public:
 		//! Constructs an empty list with no bonds

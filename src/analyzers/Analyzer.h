@@ -47,6 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __ANALYZER_H__
 
 #include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 
 #include "ParticleData.h"
 #include "Profiler.h"
@@ -81,7 +82,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	
 	\ingroup analyzers
 */
-class Analyzer
+class Analyzer : boost::noncopyable
 	{
 	public:
 		//! Constructs the analyzer and associates it with the ParticleData

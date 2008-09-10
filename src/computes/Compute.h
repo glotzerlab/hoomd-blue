@@ -40,6 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 #include <string>
 #include <vector>
 
@@ -85,7 +86,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	See \ref page_dev_info for more information
 	\ingroup computes
 */
-class Compute
+class Compute : boost::noncopyable
 	{
 	public:
 		//! Constructs the compute and associates it with the ParticleData

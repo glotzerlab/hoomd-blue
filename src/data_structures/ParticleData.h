@@ -54,6 +54,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include <boost/function.hpp>
+#include <boost/utility.hpp>
 
 // The requirements state that we need to handle both single and double precision through
 // a define
@@ -280,7 +281,7 @@ class ParticleDataInitializer
 	In debug builds, release() will fail an assertion if this is done.
 	\ingroup data_structs
 */
-class ParticleData
+class ParticleData : boost::noncopyable
 	{
 	public:
 		//! Construct with N particles in the given box
