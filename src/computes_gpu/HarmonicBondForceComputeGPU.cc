@@ -134,24 +134,14 @@ void HarmonicBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar 
 */
 void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	{
+	// get the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
 	// start the profile
-	if (m_prof)
-		{
-		m_prof->push("Bond.GPU");
-		m_prof->push("Table copy");
-		}
+	if (m_prof) m_prof->push(exec_conf, "Harmonic");
 		
 	vector<gpu_bondtable_array>& gpu_bondtable = m_bond_data->acquireGPU();
 	
-	if (m_prof)
-		{
-		m_prof->pop();
-		m_prof->push("Compute");
-		}
-		
-	// get the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-
 	// the bond table is up to date: we are good to go. Call the kernel
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
@@ -161,24 +151,17 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_bondforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size));
 		}
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->sync();
-		
+	
+	exec_conf.syncAll();	
 		
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
 	
-	if (m_prof)
-		{
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(34 * m_bond_data->getNumBonds()*2, 20*m_pdata->getN() + 20*m_bond_data->getNumBonds()*2);
-		}
-		
 	m_pdata->release();
 	
-	if (m_prof)
-		m_prof->pop();
+	int64_t mem_transfer = m_pdata->getN() * 4+16+16 + m_bond_data->getNumBonds() * 2 * (8+16+8);
+	int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+7);
+	if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 	
 #ifdef USE_PYTHON

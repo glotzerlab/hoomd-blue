@@ -128,24 +128,14 @@ void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0)
 */
 void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	{
-	// start the profile
-	if (m_prof)
-		{
-		m_prof->push("Bond.GPU");
-		m_prof->push("Table copy");
-		}
-		
-	vector<gpu_bondtable_array>& gpu_bondtable = m_bond_data->acquireGPU();
-	
-	if (m_prof)
-		{
-		m_prof->pop();
-		m_prof->push("Compute");
-		}
-		
 	// get the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-
+		
+	// start the profile
+	if (m_prof) m_prof->push(exec_conf, "FENE");
+	
+	vector<gpu_bondtable_array>& gpu_bondtable = m_bond_data->acquireGPU();
+	
 	// the bond table is up to date: we are good to go. Call the kernel
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
@@ -156,16 +146,11 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
 	
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(34 * m_bond_data->getNumBonds()*2, 20*m_pdata->getN() + 20*m_bond_data->getNumBonds()*2);
-		}
-		
 	m_pdata->release();
 	
-	if (m_prof)
-		m_prof->pop();
+	int64_t mem_transfer = m_pdata->getN() * 4+16+16 + m_bond_data->getNumBonds() * 2 * (8+16+8);
+	int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+8+6+7+7);
+	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 	
 #ifdef USE_PYTHON

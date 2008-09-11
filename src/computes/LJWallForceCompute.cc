@@ -144,6 +144,9 @@ Scalar LJWallForceCompute::getLogValue(const std::string& quantity)
 
 void LJWallForceCompute::computeForces(unsigned int timestep)
 	{
+	// start the profile for this compute
+	if (m_prof) m_prof->push("LJ wall");	
+	
 	// get numparticle var for easier access
 	unsigned int numParticles = m_pdata->getN();
 	boost::shared_ptr<WallData> wall_data = m_pdata->getWallData();
@@ -246,6 +249,8 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 	m_pdata->release();
+	
+	if (m_prof) m_prof->pop();
 	}
 
 #ifdef USE_PYTHON

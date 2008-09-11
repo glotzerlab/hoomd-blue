@@ -84,17 +84,13 @@ void TempCompute::compute(unsigned int timestep)
 */
 void TempCompute::computeTemp()
 	{
-	if (m_prof)
-		m_prof->push("Temp");
+	if (m_prof) m_prof->push("Temp");
 	
 	assert(m_pdata);
 	assert(m_dof != 0);
 	
 	// access the particle data
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
-	
-	if (m_prof)
-		m_prof->push("Compute");
 
 	// total up kinetic energy
 	Scalar K = 0.0;
@@ -110,11 +106,7 @@ void TempCompute::computeTemp()
 	
 	m_pdata->release();
 	
-	if (m_prof)
-		{
-		m_prof->pop();	
-		m_prof->pop();	
-		}
+	if (m_prof) m_prof->pop();
 	}
 
 #ifdef USE_PYTHON

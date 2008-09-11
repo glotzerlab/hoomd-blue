@@ -69,10 +69,10 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 	if (pidx >= pdata.N)
 		return;
 	
-	// load in the length of the list for this thread
+	// load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
 	int n_bonds = blist.n_bonds[pidx];
 
-	// read in the position of our particle. 
+	// read in the position of our particle. (MEM TRANSFER: 16 bytes)
 	float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
 
 	// initialize the force to 0
@@ -81,6 +81,7 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 	// loop over neighbors
 	for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
 		{
+		// MEM TRANSFER: 8 bytes
 		// the volatile fails to compile in device emulation mode
 		#ifdef _DEVICEEMU
 		uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + pidx];
@@ -92,37 +93,39 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 		int cur_bond_idx = cur_bond.x;
 		int cur_bond_type = cur_bond.y;
 		
-		// get the bonded particle's position
+		// get the bonded particle's position (MEM_TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
 	
-		// calculate dr
+		// calculate dr (FLOPS: 3)
 		float dx = pos.x - neigh_pos.x;
 		float dy = pos.y - neigh_pos.y;
 		float dz = pos.z - neigh_pos.z;
 		
-		// apply periodic boundary conditions
+		// apply periodic boundary conditions (FLOPS: 12)
 		dx -= box.Lx * rintf(dx * box.Lxinv);
 		dy -= box.Ly * rintf(dy * box.Lyinv);
 		dz -= box.Lz * rintf(dz * box.Lzinv);
 		
-		// get the bond parameters
+		// get the bond parameters (MEM TRANSFER: 8 bytes)
 		float2 params = tex1Dfetch(bond_params_tex, cur_bond_type);
 		float K = params.x;
 		float r_0 = params.y;
 		
+		// FLOPS: 6
 		float rsq = dx*dx + dy*dy + dz*dz;
 		float r = sqrtf(rsq);
 		
 		//TODO - need a way to check if r >= r_0 and terminate the simulation if it is) 
 		 
-		float fforce = -K *r/ (1.0f - rsq/(r_0*r_0));
-		float tmp_eng = -0.5f * K * r_0*r_0*logf(1.0f - rsq/(r_0*r_0));
+		// FLOPS: 7
+		float forcemag_divr = -K *r/ (1.0f - rsq/(r_0*r_0));
+		float bond_eng = -0.5f * K * rsq*logf(1.0f - rsq/(r_0*r_0));
 				
-		// add up the forces
-		force.x += dx * fforce;
-		force.y += dy * fforce;
-		force.z += dz * fforce;
-		force.w += tmp_eng;
+		// add up the forces (FLOPS: 7)
+		force.x += dx * forcemag_divr;
+		force.y += dy * forcemag_divr;
+		force.z += dz * forcemag_divr;
+		force.w += bond_eng;
 		
 		// Checking to see if bond length restriction is violated.
 	//	if (r >= r_0) *blist.checkr = 1;
@@ -132,7 +135,7 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 	// energy is double counted: multiply by 0.5
 	force.w *= 0.5f;
 	
-	// now that the force calculation is complete, write out the result if we are a valid particle
+	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes);
 	d_forces[pidx] = force;
 	}
 

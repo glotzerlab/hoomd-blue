@@ -90,25 +90,20 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<ParticleData> pdata, Scalar bin
  */	
 void SFCPackUpdater::update(unsigned int timestep)
 	{
-	if (m_prof)
-		m_prof->push("SFCPack");
+	if (m_prof) m_prof->push("SFCPack");
 
 	// figure out the sort order we need to apply
 	getSortedOrder();
 	// apply that sort order to the particles
 	applySortOrder();
 
-	if (m_prof)
-		m_prof->pop();
+	if (m_prof) m_prof->pop();
 
 	m_pdata->notifyParticleSort();
 	}
 	
 void SFCPackUpdater::applySortOrder()
 	{
-	if (m_prof)
-		m_prof->push("Apply");
-	
 	assert(m_pdata);
 	assert(m_sort_order.size() == m_pdata->getN());
 	const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
@@ -197,9 +192,6 @@ void SFCPackUpdater::applySortOrder()
 	delete[] int_tmp;
 	
 	m_pdata->release();
-
-	if (m_prof)
-		m_prof->pop();
 	}
 	
 // this function will generate a Z-order traversal through the 3d array Mx by Mx x Mx
@@ -454,9 +446,6 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector<un
 
 void SFCPackUpdater::getSortedOrder()
 	{
-	if (m_prof)
-		m_prof->push("Sort");
-	
 	// start by checking the saneness of some member variables
 	assert(m_pdata);
 	assert(m_sort_order.size() == m_pdata->getN());
@@ -500,12 +489,6 @@ void SFCPackUpdater::getSortedOrder()
 	// also regenerate the traversal order
 	if (m_lastMmax != Mmax)
 		{
-		if (m_prof)
-			{
-			m_prof->pop();
-			m_prof->push("Curve gen");
-			}
-
 		m_bins.resize(Mmax*Mmax*Mmax);
 
 		// generate the traversal order
@@ -519,12 +502,6 @@ void SFCPackUpdater::getSortedOrder()
 		generateTraversalOrder(0,0,0, Mmax, Mmax, cell_order, m_traversal_order);
 
 		m_lastMmax = Mmax;
-
-		if (m_prof)
-			{
-			m_prof->pop();
-			m_prof->push("Sort");
-			}
 		}
 		
 	// sanity checks
@@ -575,9 +552,6 @@ void SFCPackUpdater::getSortedOrder()
 			m_sort_order[cur++] = m_bins[bin][j];
 			}
 		}
-	
-	if (m_prof)
-		m_prof->pop();
 	}
 
 #ifdef USE_PYTHON

@@ -260,7 +260,7 @@ void NeighborList::compute(unsigned int timestep)
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;
 
-	if (m_prof) m_prof->push("Nlist");
+	if (m_prof) m_prof->push("Neighbor");
 	
 	if (needsUpdating(timestep))
 		{
@@ -409,7 +409,8 @@ vector<gpu_nlist_array>& NeighborList::getListGPU()
 */
 void NeighborList::hostToDeviceCopy()
 	{
-	if (m_prof) m_prof->push("NLIST C2G");
+	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
+	// if (m_prof) m_prof->push("NLIST C2G");
 	
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
@@ -460,7 +461,7 @@ void NeighborList::hostToDeviceCopy()
 			cudaMemcpyHostToDevice));
 		}
 	
-	if (m_prof) m_prof->pop();
+	// if (m_prof) m_prof->pop();
 	}
 
 /*! \post The entire neighbor list is copied from the GPU to the CPU.
@@ -468,7 +469,8 @@ void NeighborList::hostToDeviceCopy()
 */			
 void NeighborList::deviceToHostCopy()
 	{
-	if (m_prof) m_prof->push("NLIST G2C");
+	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
+	// if (m_prof) m_prof->push("NLIST G2C");
 		
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
@@ -498,7 +500,7 @@ void NeighborList::deviceToHostCopy()
 			}
 		}
 	
-	if (m_prof) m_prof->pop();
+	// if (m_prof) m_prof->pop();
 	}
 
 /*! \post The exclusion list is converted from tags to indicies and then copied up to the

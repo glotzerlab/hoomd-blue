@@ -108,8 +108,7 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 		throw runtime_error("Error computing neighbor list in NeighborListNsqGPU");
 		}
 	
-	if (m_prof)
-        m_prof->push("Nlist^2.GPU");
+	if (m_prof) m_prof->push(exec_conf, "Neighbor");
 		
 	// need to update the exclusion data if anything has changed
 	if (m_force_update)
@@ -137,8 +136,7 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 			}
 		}
 		
-	if (m_prof)
-        m_prof->pop();	
+	if (m_prof) m_prof->pop(exec_conf);
 	}
 	
 void NeighborListNsqGPU::buildNlist()
@@ -151,8 +149,7 @@ void NeighborListNsqGPU::buildNlist()
 	// create a temporary copy of r_max sqaured
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
-	if (m_prof)
-		m_prof->push("Build list");
+	if (m_prof) m_prof->push(exec_conf, "Build list");
 	
 	// calculate the nlist
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
@@ -167,11 +164,7 @@ void NeighborListNsqGPU::buildNlist()
 
 	m_pdata->release();
 
-	if (m_prof)
-		{
-		cudaThreadSynchronize();
-		m_prof->pop(flops, mem_transfer);
-		}
+	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 
 #ifdef USE_PYTHON

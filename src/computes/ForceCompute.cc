@@ -318,7 +318,8 @@ vector<float4 *>& ForceCompute::acquireGPU()
 */
 void ForceCompute::hostToDeviceCopy()
 	{
-	if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
+	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
+	// if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
 	
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
@@ -331,18 +332,15 @@ void ForceCompute::hostToDeviceCopy()
 		exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_d_forces[cur_gpu], m_d_staging[cur_gpu], m_pdata->getN(), m_uninterleave_pitch));
 		}
 	
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(0, m_single_xarray_bytes*4);
-		}
+	//if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
 	}
 
 /*! \sa hostToDeviceCopy()
 */
 void ForceCompute::deviceToHostCopy()
 	{
-	if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
+	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
+	// if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
 
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
@@ -365,11 +363,7 @@ void ForceCompute::deviceToHostCopy()
 			}
 		}
 	
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(0, m_single_xarray_bytes*4);
-		}
+	//if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
 	}
 
 #endif

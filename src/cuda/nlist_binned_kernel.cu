@@ -139,9 +139,11 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 		return;
 	
 	// first, determine which bin this particle belongs to
+	// MEM TRANSFER: 32 bytes
 	float4 my_pos = pdata.pos[my_pidx];
 	uint4 exclude = nlist.exclusions[my_pidx];
 	
+	// FLOPS: 9
 	unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
 	unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley);
 	unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*scalez);
@@ -154,6 +156,7 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	if (kb == bins.Mz)
 		kb = 0;
 
+	// MEM TRANSFER: 4 bytes
 	int my_bin = tex1Dfetch(mem_location_tex, ib*(bins.Mz*bins.My) + jb * bins.Mz + kb);
 
 	// each thread will determine the neighborlist of a single particle
@@ -162,13 +165,15 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	// loop over all adjacent bins
 	for (unsigned int cur_adj = 0; cur_adj < 27; cur_adj++)
 		{
+		// MEM TRANSFER: 4 bytes
 		int neigh_bin = tex2D(bin_adj_tex, my_bin, cur_adj);
 		
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < actual_Nmax; cur_offset++)
 			{
+			// MEM TRANSFER: 16 bytes
 			float4 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, cur_offset);
-			//float4 cur_neigh_blob = bins.coord_idxlist[neigh_bin + bins.coord_idxlist_width*cur_offset];
+			
 			float3 neigh_pos;
 			neigh_pos.x = cur_neigh_blob.x;
 			neigh_pos.y = cur_neigh_blob.y;
@@ -177,18 +182,21 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 			
 			if (cur_neigh != EMPTY_BIN)
 				{
+				// FLOPS: 15
 				float dx = my_pos.x - neigh_pos.x;
 				dx = dx - box.Lx * rintf(dx * box.Lxinv);
-
+				
 				float dy = my_pos.y - neigh_pos.y;
 				dy = dy - box.Ly * rintf(dy * box.Lyinv);
-
+				
 				float dz = my_pos.z - neigh_pos.z;
 				dz = dz - box.Lz * rintf(dz * box.Lzinv);
 
+				// FLOPS: 5
 				float dr = dx*dx + dy*dy + dz*dz;
 				int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
 				
+				// FLOPS: 1 / MEM TRANSFER not easily estimated
 				if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
 					{
 					// check for overflow
@@ -203,7 +211,8 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 				}
 			}
 		}
-		
+	
+	// MEM TRANSFER 8 bytes
 	nlist.n_neigh[my_pidx] = n_neigh;
 	nlist.last_updated_pos[my_pidx] = my_pos;
 	}

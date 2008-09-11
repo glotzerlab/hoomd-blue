@@ -89,11 +89,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
 	m_tc->compute(timestep);
 	Scalar cur_temp = m_tc->getTemp();
 
-	if (m_prof)
-		{
-		m_prof->push("TempRescale");
-		m_prof->push("Update");
-		}
+	if (m_prof) m_prof->push("TempRescale");
 
 	if (cur_temp < 1e-3)
 		{
@@ -118,11 +114,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
 		m_pdata->release();
 		}
 	
-	if (m_prof)
-		{
-		m_prof->pop();
-		m_prof->pop();
-		}
+	if (m_prof) m_prof->pop();
 	}
 	
 /*! \param tset New temperature set point

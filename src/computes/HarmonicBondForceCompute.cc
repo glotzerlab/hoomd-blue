@@ -160,8 +160,6 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 	assert(arrays.y);
 	assert(arrays.z);
 
-	if (m_prof) m_prof->push("Compute");
-
 	// get a local copy of the simulation box too
 	const BoxDim& box = m_pdata->getBox();
 	// sanity check
@@ -176,6 +174,7 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 	Scalar Lz2 = Lz / Scalar(2.0);
 	
 	// need to start from a zero force
+	// MEM TRANSFER: 5*N Scalars
 	memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
 	memset((void*)m_fy, 0, sizeof(Scalar) * m_pdata->getN());
 	memset((void*)m_fz, 0, sizeof(Scalar) * m_pdata->getN());
@@ -188,23 +187,24 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 		{
 		// lookup the tag of each of the particles participating in the bond
 		const Bond& bond = m_bond_data->getBond(i);
-		
 		assert(bond.a < m_pdata->getN());
 		assert(bond.b < m_pdata->getN());
 				
 		// transform a and b into indicies into the particle data arrays
+		// MEM TRANSFER: 4 ints
 		unsigned int idx_a = arrays.rtag[bond.a];
 		unsigned int idx_b = arrays.rtag[bond.b];
-
 		assert(idx_a < m_pdata->getN());
 		assert(idx_b < m_pdata->getN());
 
-		// calculate d\vec{r}		
+		// calculate d\vec{r}
+		// MEM_TRANSFER: 6 Scalars / FLOPS 3
 		Scalar dx = arrays.x[idx_b] - arrays.x[idx_a];
 		Scalar dy = arrays.y[idx_b] - arrays.y[idx_a];
 		Scalar dz = arrays.z[idx_b] - arrays.z[idx_a];
 
 		// if the vector crosses the box, pull it back
+		// (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done))
 		if (dx >= Lx2)
 			dx -= Lx;
 		else
@@ -229,24 +229,27 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 		assert(dz >= box.zlo && dx < box.zhi);
 
 		// on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-		// now calculate r
+		// FLOPS: 14 / MEM TRANSFER: 2 Scalars
 		Scalar rsq = dx*dx+dy*dy+dz*dz;
 		Scalar r = sqrt(rsq);
-		Scalar tmp = m_K[bond.type] * (m_r_0[bond.type] / r - Scalar(1.0));
-		Scalar tmp_eng = Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] - r) * (m_r_0[bond.type] - r);
+		Scalar forcemag_divr = m_K[bond.type] * (m_r_0[bond.type] / r - Scalar(1.0));
+		Scalar bond_eng = Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] - r) * (m_r_0[bond.type] - r);
 		
-		// add the force to the particles
-		m_fx[idx_b] += tmp * dx;
-		m_fy[idx_b] += tmp * dy;
-		m_fz[idx_b] += tmp * dz;
-		m_pe[idx_b] += Scalar(0.5)*tmp_eng;
-		m_virial[idx_b] -= Scalar(1.0/6.0) * rsq * tmp;
+		// calculate the virial (FLOPS: 2)
+		Scalar bond_virial = -Scalar(1.0/6.0) * rsq * forcemag_divr;
 		
-		m_fx[idx_a] -= tmp * dx;
-		m_fy[idx_a] -= tmp * dy;
-		m_fz[idx_a] -= tmp * dz;
-		m_pe[idx_a] += Scalar(0.5)*tmp_eng;
-		m_virial[idx_a] -= Scalar(1.0/6.0) * rsq * tmp;
+		// add the force to the particles (FLOPS: 16 / MEM TRANSFER: 20 Scalars)
+		m_fx[idx_b] += forcemag_divr * dx;
+		m_fy[idx_b] += forcemag_divr * dy;
+		m_fz[idx_b] += forcemag_divr * dz;
+		m_pe[idx_b] += bond_eng;
+		m_virial[idx_b] += bond_virial;
+		
+		m_fx[idx_a] -= forcemag_divr * dx;
+		m_fy[idx_a] -= forcemag_divr * dy;
+		m_fz[idx_a] -= forcemag_divr * dz;
+		m_pe[idx_a] += bond_eng;
+		m_virial[idx_a] += bond_virial;
 		}
 
 	m_pdata->release();
@@ -256,13 +259,9 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-	// each bond computes ~39 FLOPS
-	// and 4 index reads, then 6 position reads and 6 force writes
-	if (m_prof)
-		{
-		m_prof->pop(39*m_bond_data->getNumBonds(), (4*sizeof(int)+16*sizeof(Scalar))*m_bond_data->getNumBonds());
-		m_prof->pop();
-		}
+	int64_t flops = size*(3 + 9 + 14 + 2 + 16);
+	int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
+	if (m_prof) m_prof->pop(flops, mem_transfer);
 	}
 	
 #ifdef USE_PYTHON

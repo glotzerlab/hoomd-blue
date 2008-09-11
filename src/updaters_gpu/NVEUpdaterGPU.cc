@@ -80,6 +80,7 @@ NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 void NVEUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
@@ -87,46 +88,37 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		m_accel_set = true;
 		// use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
 		// is calculated correctly
-		computeAccelerationsGPU(timestep, "NVE.GPU", true);
+		computeAccelerationsGPU(timestep, "NVE", true);
 		}
 
 	if (m_prof)
-		m_prof->push("NVE.GPU");
+		m_prof->push(exec_conf, "NVE");
 		
 	// access the particle data arrays
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 
-	if (m_prof)
-		m_prof->push("Half-step 1");
-		
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
 		
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(nve_pre_step, &d_pdata[0], &box, m_deltaT, m_limit, m_limit_val));
 	
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(m_pdata->getN() * 36, m_pdata->getN() * 16 * 5);
-		}
+	uint64_t mem_transfer = m_pdata->getN() * (16+32+32);
+	uint64_t flops = m_pdata->getN() * (15+3+9+12);
+	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	
 	// release the particle data arrays so that they can be accessed to add up the accelerations
 	m_pdata->release();
 	
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
-	if (m_prof)
-		m_prof->pop();
+	if (m_prof) m_prof->pop(exec_conf);
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
 	computeAccelerationsGPU(timestep+1, "NVE.GPU", false);
 	
-	if (m_prof)
-		m_prof->push("NVE.GPU");
-			
-	if (m_prof)
-		m_prof->push("Half-step 2");
+	if (m_prof) m_prof->push(exec_conf, "NVE");
+	if (m_prof) m_prof->push(exec_conf, "Half-step 2");
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
@@ -137,8 +129,9 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
 	if (m_prof)
 		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(m_pdata->getN() * 9, m_pdata->getN() * 16 * (3 + m_forces.size()));	
+		mem_transfer = m_pdata->getN() * (16*m_forces.size() + 16 + 32);
+		flops = m_pdata->getN() * (3*m_forces.size() + 6);
+		m_prof->pop(exec_conf, flops, mem_transfer);
 		m_prof->pop();
 		}
 	}

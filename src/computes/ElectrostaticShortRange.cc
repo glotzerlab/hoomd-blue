@@ -108,7 +108,6 @@ ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<ParticleData>
 		}
 
 	int N_points_l=static_cast<int>(ceil(m_r_cut/m_delta))+2; // We add a buffer of 2m_delta as we need to compute n+1,n+2
-        
 	int N_points=N_points_l*N_points_l;
 
 	f_table = new Scalar[N_points];
@@ -146,7 +145,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	m_nlist->compute(timestep);
 	
 	// start the profile
-	if (m_prof) m_prof->push("ELECTROSTATIC_SHORT");
+	if (m_prof) m_prof->push("Elec pair");
 	
 	// depending on the neighborlist settings, we can take advantage of newton's third law
 	// to reduce computations at the cost of memory access complexity: set that flag now
@@ -165,8 +164,6 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
 	
-	if (m_prof) m_prof->push("Compute");
-
 	// create a temporary copy of r_cut squared and delta squared
 	Scalar r_cut_sq = m_r_cut * m_r_cut;
 	Scalar delta_sq=m_delta*m_delta;	
@@ -178,9 +175,9 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	
 	// tally up the number of forces calculated
 	int64_t n_calc = 0;
-	int64_t n_force_calc = 0;
 	
-	// need to start from a zero force
+	// need to start from a zero force, potential energy and virial
+	// (MEM TRANSFER 5*N Scalars)
 	memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
@@ -190,13 +187,14 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	// for each particle
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
-		// access the particle's position
+		// access the particle's position and charge (MEM TRANSFER: 4 Scalars)
 		Scalar xi = arrays.x[i];
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
 
 		Scalar q_i=arrays.charge[i];
 		
+		// zero force, potential energy, and virial for the current particle
 		Scalar fxi = 0.0;
 		Scalar fyi = 0.0;
 		Scalar fzi = 0.0;
@@ -212,16 +210,17 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 			// increment our calculation counter
 			n_calc++;
 			
+			// access the current neighbor (MEM TRANSFER 1 integer)
 			unsigned int k = list[j];
 			// sanity check
 			assert(k < m_pdata->getN());
 				
-			// calculate dr
+			// calculate dr (FLOPS: 3 / MEM TRANSFER 3 Scalars)
 			Scalar dx = xi - arrays.x[k];
 			Scalar dy = yi - arrays.y[k];
 			Scalar dz = zi - arrays.z[k];
 			
-			// apply periodic boundary conditions
+			// apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
 			if (dx >= box.xhi)
 				dx -= Lx;
 			else
@@ -240,20 +239,17 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 			if (dz < box.zlo)
 				dz += Lz;			
 			
-			// start computing the force
+			// start computing the force 
+			// calculate r squared (FLOPS: 5)
 			Scalar rsq = dx*dx + dy*dy + dz*dz;
-
-			Scalar fforce = 0.0;
-			// only compute the force if the particles are closer than the cut-off
 
 			if (rsq < r_cut_sq)
 				{
-				// tally up how many forces we compute
-				n_force_calc++;
-			    
+				// access the charge of the neighbor (MEM TRANSFER: 1 Scalar)
 				Scalar q_k = arrays.charge[k];
-                
+				
 				// Interpolation table using the Newton-Gregory interpolation method
+				// (FLOPS: 18 / MEM TRANSFER 6 SCALARS)
 				Scalar sds=rsq/delta_sq;
 				Scalar floor_sds=floor(sds);
 				int k_ind=static_cast<int>(floor_sds);
@@ -269,68 +265,54 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 				Scalar e1=ek+(ek1-ek)*xi;
 				Scalar e2=ek1+(ek2-ek1)*(xi-Scalar(1.0));
 
-				// compute the force magnitude
+				// compute the force magnitude divided by r (FLOPS: 6)
+				Scalar forcemag_divr = q_i*q_k*(t1+(t2-t1)*xi*Scalar(0.5));
 				
-				fforce=q_i*q_k*(t1+(t2-t1)*xi*Scalar(0.5));		
+				// calculate the virial and the potential energy (FLOPS: 8)
+				Scalar pair_eng = q_i*q_k*(e1+(e2-e1)*xi*Scalar(0.5));
+				Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
 
-				// add the force to the particle i
-				fxi += dx*fforce;
-				fyi += dy*fforce;
-				fzi += dz*fforce;
-				pei += q_i*q_k*(e1+(e2-e1)*xi*Scalar(0.5));
-				viriali += Scalar(1.0/6.0) * rsq * fforce;
+				// add the force to the particle i (FLOPS: 8)
+				fxi += dx*forcemag_divr;
+				fyi += dy*forcemag_divr;
+				fzi += dz*forcemag_divr;
+				pei += pair_eng;
+				viriali += pair_virial;
 				
 				// add the force to particle j if we are using the third law
 				if (third_law)
 					{
-					m_fx[k] -= dx*fforce;
-					m_fy[k] -= dy*fforce;
-					m_fz[k] -= dz*fforce;
-					m_pe[k] += q_i*q_k*(e1+(e2-e1)*xi*Scalar(0.5));
-					m_virial[k] += Scalar(1.0/6.0) * rsq * fforce;
+					// (FLOPS: 8 / MEM TRANSFER: 10 Scalars)
+					m_fx[k] -= dx*forcemag_divr;
+					m_fy[k] -= dy*forcemag_divr;
+					m_fz[k] -= dz*forcemag_divr;
+					m_pe[k] += pair_eng;
+					m_virial[k] += pair_virial;
 					}
 				}
 			
 			}
+		// add the force, potential energy, and virial to particle i
+		// (FLOPS: 5 / MEM TRANSFER: 10 Scalars)
 		m_fx[i] += fxi;
 		m_fy[i] += fyi;
 		m_fz[i] += fzi;
 		m_pe[i] += pei;
 		m_virial[i] += viriali;
 		}
-
-	// and that is all that needs to be done.
-	
-	// FLOPS: (9+12) for each n_calc and an additional 41 for each n_full_calc, make it 53 if third law is 1
-	// Assume floor operation can be done in one flop
-       
-	       int64_t flops = (9+12)*n_calc + 41*n_force_calc;
-
-	    if (third_law)
-		flops += 12*n_force_calc;
 		
-	// memory transferred: 4*sizeof(Scalar) + 2*sizeof(int) for each n_calc
-	// plus 11*sizeof(Scalar) for each n_full_calc + another 4*sizeofScalar if third_law is 1
-	// PLUS an additional 4*sizeof(Scalar) + sizeof(int) for each particle
-	
-	int64_t mem_transfer = 0;
-        mem_transfer += (4*sizeof(Scalar) + sizeof(int)) * (n_calc + arrays.nparticles)+sizeof(int)*n_calc;
-	mem_transfer += 11*sizeof(Scalar)*n_force_calc;
-	if (third_law)
-		mem_transfer += 4*sizeof(Scalar);
-
 	m_pdata->release();
 	
 	#ifdef USE_CUDA
 	// the force data is now only up to date on the cpu
 	m_data_location = cpu;
 	#endif
-
-	if (m_prof)
-		{
-		m_prof->pop(flops, mem_transfer);
-		m_prof->pop();
-		}
+	
+	int64_t flops = n_calc * (3+9+5+18+6+8+8);
+	if (third_law)	flops += n_calc*8;
+	int64_t mem_transfer = m_pdata->getN() * (5 + 4 + 10)*sizeof(Scalar) + n_calc * ( (3+6)*sizeof(Scalar) + (1)*sizeof(unsigned int));
+	if (third_law) mem_transfer += n_calc*10*sizeof(Scalar);
+	if (m_prof) m_prof->pop(flops, mem_transfer);
 	}
 #undef EWALD_F 
 #undef TOL

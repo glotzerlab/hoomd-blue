@@ -919,7 +919,8 @@ void ParticleData::hostToDeviceCopy()
 	// we should never be called unless 1 or more gpus is in the exec conf... verify
 	assert(m_exec_conf.gpu.size() >= 1);
 	
-	if (m_prof) m_prof->push("PDATA C2G");
+	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
+	// if (m_prof) m_prof->push(m_exec_conf, "PDATA C2G");
 		
 	const int N = m_arrays.nparticles;	
 	
@@ -953,11 +954,7 @@ void ParticleData::hostToDeviceCopy()
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
 		}
 	
-	if (m_prof)
-		{
-		m_exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
-		}
+	// if (m_prof) m_prof->pop(m_exec_conf, 0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 	}
 
 union floatint
@@ -970,12 +967,12 @@ union floatint
 */
 void ParticleData::deviceToHostCopy()
 	{
-	if (m_prof) m_prof->push("PDATA G2C");
+	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
+	// if (m_prof) m_prof->push(m_exec_conf, "PDATA G2C");
+	// const int N = m_arrays.nparticles;
 	
 	// we should never be called unless 1 or more gpus is in the exec conf... verify
 	assert(m_exec_conf.gpu.size() >= 1);
-
-	const int N = m_arrays.nparticles;
 
 	// because of the way memory was allocated, we can copy lots of pieces in huge chunks
 	// the number of bytes copied and where depend highly on the order of allocation 
@@ -1033,11 +1030,7 @@ void ParticleData::deviceToHostCopy()
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.rtag + local_beg, m_gpu_pdata[cur_gpu].rtag + local_beg, sizeof(unsigned int)*local_num, cudaMemcpyDeviceToHost));
 		}
 
-	if (m_prof) 
-		{
-		m_exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
-		}
+	// if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 	}
 	
 unsigned int ParticleData::getLocalBeg(unsigned int gpu)
@@ -1061,7 +1054,10 @@ void ParticleData::communicatePosition()
 	if (m_exec_conf.gpu.size() == 1)
 		return;
 	
-	if (m_prof) m_prof->push("PDATA Communicate");
+	if (m_prof) m_prof->push(m_exec_conf, "PDATA Communicate");
+	
+	// count the number of bytes transferred
+	unsigned int num_bytes = 0;
 	
 	// copy position data from all GPUs to the staging area
 	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
@@ -1070,10 +1066,10 @@ void ParticleData::communicatePosition()
 		int local_beg = m_gpu_pdata[cur_gpu].local_beg;
 		int local_num = m_gpu_pdata[cur_gpu].local_num;
 		m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_h_staging+local_beg, m_gpu_pdata[cur_gpu].pos + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
+		num_bytes += local_num*sizeof(float4);
 		}
 		
-	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
-		m_exec_conf.gpu[cur_gpu]->sync();
+	m_exec_conf.syncAll();
 		
 	// copy the full data back to all GPUs
 	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
@@ -1084,16 +1080,21 @@ void ParticleData::communicatePosition()
 		unsigned int local_end = local_beg + local_num;
 		
 		if (local_beg != 0)
+			{
 			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos, m_h_staging, (local_beg)*sizeof(float4), cudaMemcpyHostToDevice));
-		if (local_end != getN())
-			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos + local_end, m_h_staging + local_end, (getN() - local_end)*sizeof(float4), cudaMemcpyHostToDevice));
+			num_bytes += (local_beg)*sizeof(float4);
+			}
 			
+		if (local_end != getN())
+			{
+			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos + local_end, m_h_staging + local_end, (getN() - local_end)*sizeof(float4), cudaMemcpyHostToDevice));
+			num_bytes += (getN() - local_end)*sizeof(float4);
+			}
 		}
 		
-	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
-		m_exec_conf.gpu[cur_gpu]->sync();
+	m_exec_conf.syncAll();
 		
-	if (m_prof) m_prof->pop();
+	if (m_prof) m_prof->pop(m_exec_conf, 0, num_bytes);
 	}
 	
 #endif

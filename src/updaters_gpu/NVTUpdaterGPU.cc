@@ -121,6 +121,7 @@ void NVTUpdaterGPU::freeNVTData()
 void NVTUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
@@ -128,35 +129,25 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_accel_set = true;
 		// use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
 		// is calculated correctly
-		computeAccelerationsGPU(timestep, "NVT.GPU", true);
+		computeAccelerationsGPU(timestep, "NVT", true);
 		}
 
-	if (m_prof)
-		m_prof->push("NVT.GPU");
+	if (m_prof) m_prof->push(exec_conf, "NVT");
 		
 	// access the particle data arrays
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-	gpu_boxsize box = m_pdata->getBoxGPU(); 
+	gpu_boxsize box = m_pdata->getBoxGPU();
 
-	if (m_prof)
-		m_prof->push("Half-step 1");
+	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
 		
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{	
+		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_pre_step, &d_pdata[cur_gpu], &box, &d_nvt_data[cur_gpu], m_Xi, m_deltaT));
 		}
-		
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->sync();
+	exec_conf.syncAll();
 	
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(36*m_pdata->getN(), 80 * m_pdata->getN());
-		}
+	if (m_prof) m_prof->pop(exec_conf, 36*m_pdata->getN(), 80 * m_pdata->getN());
 	
 	// release the particle data arrays so that they can be accessed to add up the accelerations
 	m_pdata->release();
@@ -166,24 +157,24 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
-	if (m_prof)
-		m_prof->pop();
+	if (m_prof) m_prof->pop(exec_conf);
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
 	computeAccelerationsGPU(timestep+1, "NVT.GPU", false);
 	
 	if (m_prof)
 		{
-		m_prof->push("NVT.GPU");
-		m_prof->push("Reducing");
+		m_prof->push(exec_conf, "NVT");
+		m_prof->push(exec_conf, "Reducing");
 		}
 		
 	// reduce the Ksum values on the GPU
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(nvt_reduce_ksum, &d_nvt_data[cur_gpu]));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_reduce_ksum, &d_nvt_data[cur_gpu]));
 		}
+	exec_conf.syncAll();
 		
 	// copy the values from the GPU to the CPU and complete the sum
 	float Ksum_total = 0.0f;
@@ -194,14 +185,8 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		Ksum_total += Ksum_tmp;
 		}
 		
-	if (m_prof)
-		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop();
-		}
-	
-	if (m_prof)
-		m_prof->push("Half-step 2");
+	if (m_prof) m_prof->pop(exec_conf);
+	if (m_prof) m_prof->push(exec_conf, "Half-step 2");
 	
 	// update Xi
 	float T_current = Ksum_total / (3.0f * float(m_pdata->getN()));
@@ -212,17 +197,14 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_step, &d_pdata[cur_gpu], &d_nvt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_deltaT));
-		
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->sync();
+	exec_conf.syncAll();
 		
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
 	if (m_prof)
 		{
-		exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(15 * m_pdata->getN(), m_pdata->getN() * 16 * (3 + m_forces.size()));	
+		m_prof->pop(exec_conf, 15 * m_pdata->getN(), m_pdata->getN() * 16 * (3 + m_forces.size()));
 		m_prof->pop();
 		}
 	}

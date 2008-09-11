@@ -185,14 +185,13 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 void LJForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
 	// start by updating the neighborlist
 	m_nlist->compute(timestep);
 	
 	// start the profile
-	if (m_prof)
-		m_prof->push("LJ.GPU");
+	if (m_prof) m_prof->push(exec_conf, "LJ pair");
 	
 	// The GPU implementation CANNOT handle a half neighborlist, error out now
 	bool third_law = m_nlist->getStorageMode() == NeighborList::half;
@@ -206,54 +205,28 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	// it there if needed
 	vector<gpu_nlist_array>& nlist = m_nlist->getListGPU();
 
-	// access the particle data, like the neighborlist, this is just putting the pointers into the 
-	// right constant memory and copying data to those pointers if needed
+	// access the particle data
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
-	// tally up the number of forces calculated (but only if we are profiling)
-	int64_t n_calc = 0;
-	if (m_prof)
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		// efficiently estimate the number of calculations performed based on the 
-		// neighbor list's esitmate of NNeigh
-		Scalar avg_neigh = m_nlist->estimateNNeigh();
-		n_calc = int64_t(avg_neigh * m_pdata->getN());
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_ljforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
 		}
-
-	if (m_prof)
-		m_prof->push("Compute");
-	
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			{
-			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_ljforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
-			}
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->sync();
-
-	// FLOPS: 34 for each calc
-	int64_t flops = (34+4)*n_calc;
-		
-	// memory transferred: 4*sizeof(Scalar) + sizeof(int) for each n_calc
-	// PLUS an additional 8*sizeof(Scalar) + sizeof(int) for each particle
-	int64_t mem_transfer = 0;
-	mem_transfer += (4*sizeof(Scalar) + sizeof(int)) * n_calc;
-	mem_transfer += (8*sizeof(Scalar) + sizeof(int)) * m_pdata->getN();
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->sync();
 	
 	m_pdata->release();
 	
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
 
-	if (m_prof)
-		{
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->call(bind(cudaThreadSynchronize));
-		m_prof->pop(flops, mem_transfer);
-		m_prof->pop();
-		}
-	
+	Scalar avg_neigh = m_nlist->estimateNNeigh();
+	int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
+	int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 16) + n_calc * (4 + 16);
+	int64_t flops = n_calc * (3+12+5+2+2+6+3+7);
+	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 
 #ifdef USE_PYTHON

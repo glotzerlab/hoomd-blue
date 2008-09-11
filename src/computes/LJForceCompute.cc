@@ -167,7 +167,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	// start by updating the neighborlist
 	m_nlist->compute(timestep);
 	
-	// start the profile
+	// start the profile for this compute
 	if (m_prof) m_prof->push("LJ pair");
 	
 	// depending on the neighborlist settings, we can take advantage of newton's third law
@@ -187,10 +187,8 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
 	
-	if (m_prof) m_prof->push("Compute");
-
 	// create a temporary copy of r_cut sqaured
-	Scalar r_cut_sq = m_r_cut * m_r_cut;	 
+	Scalar r_cut_sq = m_r_cut * m_r_cut;
 	
 	// precalculate box lenghts for use in the periodic imaging
 	Scalar Lx = box.xhi - box.xlo;
@@ -199,9 +197,9 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	
 	// tally up the number of forces calculated
 	int64_t n_calc = 0;
-	int64_t n_force_calc = 0;
 	
-	// need to start from a zero force
+	// need to start from a zero force, energy and virial
+	// (MEM TRANSFER: 5*N scalars)
 	memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
@@ -211,11 +209,10 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	// for each particle
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
-		// access the particle's position
+		// access the particle's position and type (MEM TRANSFER: 4 scalars)
 		Scalar xi = arrays.x[i];
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
-		
 		unsigned int typei = arrays.type[i];
 		// sanity check
 		assert(typei < m_pdata->getNTypes());
@@ -224,6 +221,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		Scalar * __restrict__ lj1_row = &(m_lj1[typei*m_ntypes]);
 		Scalar * __restrict__ lj2_row = &(m_lj2[typei*m_ntypes]);
 
+		// initialize current particle force, potential energy, and virial to 0
 		Scalar fxi = 0.0;
 		Scalar fyi = 0.0;
 		Scalar fzi = 0.0;
@@ -233,26 +231,27 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = full_list[i];
 		const unsigned int size = (unsigned int)list.size();
-		
 		for (unsigned int j = 0; j < size; j++)
 			{
 			// increment our calculation counter
 			n_calc++;
 			
+			// access the index of this neighbor (MEM TRANSFER: 1 scalar)
 			unsigned int k = list[j];
 			// sanity check
 			assert(k < m_pdata->getN());
 				
-			// calculate dr
+			// calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
 			Scalar dx = xi - arrays.x[k];
 			Scalar dy = yi - arrays.y[k];
 			Scalar dz = zi - arrays.z[k];
-			unsigned int typej = arrays.type[k];
 			
+			// access the type of the neighbor particle (MEM TRANSFER: 1 scalar
+			unsigned int typej = arrays.type[k];
 			// sanity check
 			assert(typej < m_pdata->getNTypes());
 			
-			// apply periodic boundary conditions
+			// apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
 			if (dx >= box.xhi)
 				dx -= Lx;
 			else
@@ -269,46 +268,49 @@ void LJForceCompute::computeForces(unsigned int timestep)
 				dz -= Lz;
 			else
 			if (dz < box.zlo)
-				dz += Lz;			
+				dz += Lz;
 			
 			// start computing the force
+			// calculate r squared (FLOPS: 5)
 			Scalar rsq = dx*dx + dy*dy + dz*dz;
 		
-			Scalar fforce = 0.0;
-			// only compute the force if the particles are closer than the cuttoff
+			// only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
 			if (rsq < r_cut_sq)
 				{
-				// tally up how many forces we compute
-				n_force_calc++;
-					
-				// compute the force magnitude/r
+				// compute the force magnitude/r in forcemag_divr (FLOPS: 9)
 				Scalar r2inv = Scalar(1.0)/rsq;
 				Scalar r6inv = r2inv * r2inv * r2inv;
-				Scalar forcelj = r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
-				fforce = forcelj * r2inv;
-				Scalar tmp_eng = r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
+				Scalar forcemag_divr = r2inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
 				
-				// add the force to the particle i
-				fxi += dx*fforce;
-				fyi += dy*fforce;
-				fzi += dz*fforce;
-				pei += Scalar(0.5)*tmp_eng;
+				// compute the pair energy and virial (FLOPS: 6)
 				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
-				// there is no - in the 1/6 to compensate
-				viriali += Scalar(1.0/6.0) * rsq * fforce;
+				// there is no - in the 1/6 to compensate				
+				Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
+				Scalar pair_eng = Scalar(0.5) * r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
 				
-				// add the force to particle j if we are using the third law
+				// add the force, potential energy and virial to the particle i
+				// (FLOPS: 8)
+				fxi += dx*forcemag_divr;
+				fyi += dy*forcemag_divr;
+				fzi += dz*forcemag_divr;
+				pei += pair_eng;
+				viriali += pair_virial;
+				
+				// add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
 				if (third_law)
 					{
-					m_fx[k] -= dx*fforce;
-					m_fy[k] -= dy*fforce;
-					m_fz[k] -= dz*fforce;
-					m_pe[k] += Scalar(0.5)*tmp_eng;
-					m_virial[k] += Scalar(1.0/6.0) * rsq * fforce;
+					m_fx[k] -= dx*forcemag_divr;
+					m_fy[k] -= dy*forcemag_divr;
+					m_fz[k] -= dz*forcemag_divr;
+					m_pe[k] += pair_eng;
+					m_virial[k] += pair_virial;
 					}
 				}
 			
 			}
+			
+		// finally, increment the force, potential energy and virial for particle i
+		// (MEM TRANSFER: 10 scalars / FLOPS: 5)
 		m_fx[i] += fxi;
 		m_fy[i] += fyi;
 		m_fz[i] += fzi;
@@ -316,20 +318,6 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		m_virial[i] += viriali;
 		}
 
-	// and that is it.
-	int64_t flops = (9+16)*n_calc + 16*n_force_calc;
-	if (third_law)
-		flops += 5*n_force_calc;
-		
-	// memory transferred: 3*sizeof(Scalar) + 2*sizeof(int) for each n_calc
-	// plus 3*sizeof(Scalar) for each n_full_calc + another 3*sizeofScalar if third_law is 1
-	// PLUS an additional 3*sizeof(Scalar) + sizeof(int) for each particle
-	int64_t mem_transfer = 0;
-	mem_transfer += (3*sizeof(Scalar) + 2*sizeof(int)) * (n_calc + arrays.nparticles);
-	mem_transfer += 5*sizeof(Scalar)*n_force_calc;
-	if (third_law)
-		mem_transfer += 5*sizeof(Scalar);
-	
 	m_pdata->release();
 	
 	#ifdef USE_CUDA
@@ -337,11 +325,11 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-	if (m_prof)
-		{
-		m_prof->pop(flops, mem_transfer);
-		m_prof->pop();
-		}
+	int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+9+6+8);
+	if (third_law) flops += n_calc * 8;
+	int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);
+	if (third_law) mem_transfer += n_calc*10*sizeof(Scalar);
+	if (m_prof) m_prof->pop(flops, mem_transfer);
 	}
 
 #ifdef USE_PYTHON

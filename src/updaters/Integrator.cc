@@ -264,7 +264,7 @@ void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::strin
 		if (m_prof)
 			{
 			m_prof->push(profiler_name);
-			m_prof->push("Sum accel");
+			m_prof->push(exec_conf, "Sum accel");
 			}
 		
 		// acquire the particle data on the GPU and add the forces into the acceleration
@@ -277,16 +277,14 @@ void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::strin
 			exec_conf.gpu[cur_gpu]->callAsync(bind(integrator_sum_forces, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size()));
 			}
 			
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->sync();
+		exec_conf.syncAll();
 			
 		// done
 		m_pdata->release();
 		
 		if (m_prof)
 			{
-			exec_conf.gpu[0]->call(bind(cudaThreadSynchronize));
-			m_prof->pop(6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(1+m_forces.size()));
+			m_prof->pop(exec_conf, 6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(1+m_forces.size()));
 			m_prof->pop();
 			}
 		}

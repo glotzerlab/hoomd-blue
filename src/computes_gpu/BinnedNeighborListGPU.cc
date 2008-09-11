@@ -349,7 +349,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		throw runtime_error("Error computing neighbor list");
 		}
 
-	if (m_prof) m_prof->push(exec_conf, "Nlist");
+	if (m_prof) m_prof->push(exec_conf, "Neighbor");
 	
 	// need to update the exclusion data if anything has changed
 	if (m_force_update)
@@ -358,31 +358,24 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 	// update the list (if it needs it)
 	if (needsUpdating(timestep))
 		{
+		// bin the particles
 		updateBinsUnsorted();
 		
+		// copy those bins to the GPU
 		if (m_prof) m_prof->push(exec_conf, "Bin copy");
 		
 		unsigned int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My * m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax * sizeof(unsigned int);
 
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		//exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_bin_data.idxlist, m_host_idxlist,
-			//nbytes, cudaMemcpyHostToDevice));
-		exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice));
-		}
-		
-		if (m_prof)
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
-			int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My *
-						m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax *
-						sizeof(unsigned int) * (unsigned int)exec_conf.gpu.size();
-						
-			m_prof->pop(exec_conf, 0, nbytes);
+			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice));
 			}
-
+		exec_conf.syncAll();
+		
+		if (m_prof) m_prof->pop(exec_conf, 0, nbytes*(unsigned int)exec_conf.gpu.size());
+		// transpose the bins for a better memory access pattern on the GPU
 		if (m_prof) m_prof->push(exec_conf, "Transpose");
-			
 		vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
@@ -390,19 +383,15 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 256));
 			}
+		exec_conf.syncAll();
 		
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->sync();
-			
-			
 		m_pdata->release();
 		
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{	
 			exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].coord_idxlist_array, 0, 0, m_gpu_bin_data[cur_gpu].coord_idxlist, m_gpu_bin_data[cur_gpu].coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice));
 			}
-		
-		if (m_prof) m_prof->pop(exec_conf);
+		if (m_prof) m_prof->pop(exec_conf, 0);
 		
 		// update the neighbor list using the bins. Need to check for overflows
 		// and increase the size of the list as needed
@@ -563,7 +552,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 	m_pdata->release();
 
 	// update profile
-	if (m_prof) m_prof->pop(exec_conf, 6*arrays.nparticles, (3*sizeof(Scalar) + (3)*sizeof(float4))*arrays.nparticles);
+	if (m_prof) m_prof->pop(exec_conf);
 
 	// we aren't done yet, if there was an overflow, update m_Nmax and recurse to make sure the list is fully up to date
 	// since we are now certain that m_Nmax will hold all of the particles, the recursion should only happen once
@@ -580,9 +569,6 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 	// note, we don't copy the binned values to the device yet, that is for the compute to do
 	}
 
-
-
-
 /*!
 */
 void BinnedNeighborListGPU::updateListFromBins()
@@ -598,7 +584,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 		
 	// access the particle data
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
-	gpu_boxsize box = m_pdata->getBoxGPU(); 
+	gpu_boxsize box = m_pdata->getBoxGPU();
 	
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
@@ -608,12 +594,13 @@ void BinnedNeighborListGPU::updateListFromBins()
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_binned, &pdata[cur_gpu], &box, &m_gpu_bin_data[cur_gpu], &m_gpu_nlist[cur_gpu], r_max_sq, m_curNmax, m_block_size));
 		}
 		
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->sync();
+	exec_conf.syncAll();
 	
 	m_pdata->release();
 
-	if (m_prof) m_prof->pop(exec_conf, int64_t(m_pdata->getN() * 27 * m_avgNmax * 21), m_pdata->getN() * (16+16+27*(4+m_curNmax*16)) );
+	int64_t flops = m_pdata->getN() * (9 + 27 * m_curNmax * (15 + 5 + 1));
+	int64_t mem_transfer = m_pdata->getN() * (32 + 4 + 8 + 27 * (4 + m_curNmax * 16));
+	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 	
 

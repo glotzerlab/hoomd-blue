@@ -83,7 +83,7 @@ void BinnedNeighborList::compute(unsigned int timestep)
 	if (!shouldCompute(timestep) && !m_force_update)
 		return;
 
-	if (m_prof) m_prof->push("Nlist");
+	if (m_prof) m_prof->push("Neighbor");
 
 	// update the list (if it needs it)
 	if (needsUpdating(timestep))
@@ -201,7 +201,7 @@ void BinnedNeighborList::updateBins()
 	m_pdata->release();
 
 	// update profile
-	if (m_prof) m_prof->pop(6*arrays.nparticles, (3*sizeof(Scalar) + 28*sizeof(unsigned int))*arrays.nparticles);
+	if (m_prof) m_prof->pop();
 	}
 
 /*! \pre The bin arrays MUST be up to date. See updateBins()
@@ -262,8 +262,6 @@ void BinnedNeighborList::updateListFromBins()
 		m_list[i].clear();
 
 	// now we can loop over all particles in a binned fashion and build the list
-	unsigned int n_neigh = 0;
-	unsigned int n_calc = 0;
 	for (unsigned int n = 0; n < arrays.nparticles; n++)
 		{
 		// compare all pairs of particles n,m that are in neighboring bins
@@ -315,8 +313,6 @@ void BinnedNeighborList::updateListFromBins()
 					const vector<unsigned int>& bin_list_tag = m_binned_tag[bin];
 					
 					const unsigned int bin_size = (unsigned int)bin_list.size();
-					// count up the number of calculations we make
-					n_calc += bin_size;
 					for (unsigned int k = 0; k < bin_size; k++)
 						{
 						// we need to consider the pair m,n for the neihgborlist 
@@ -365,36 +361,16 @@ void BinnedNeighborList::updateListFromBins()
 								{
 								// add the particle
 								if (m_storage_mode == full || n < m)
-									{
-									n_neigh++;
 									m_list[n].push_back(m);
-									}
 								}
 							}
 						}
 					}
 		}
 		
-	// sort the particles
-	// this doesn't really NEED to be done, but when the particle data sort is implemented, it will
-	// improve the cache coherency greatly, plus it only adds a 15% performance penalty
-	// the development of SFCPACK has lessened the need for sorting, don't do it for
-	// performance reasons
-	/*for (unsigned int i = 0; i < m_pdata->getN(); i++)
-		sort(m_list[i].begin(), m_list[i].end());*/
-
 	m_pdata->release();
 
-	// upate the profile
-	// the number of evaluations made is the number of pairs which is n_calc (counted)
-	// each evalutation transfers 3*sizeof(Scalar) bytes for the particle access
-	// and 1*sizeof(unsigned int) bytes for the index access
-	// and performs approximately 15 FLOPs
-	// there are an additional N * 3 * sizeof(Scalar) accesses for the xj lookup
-	// and n_neigh*sizeof(unsigned int) memory writes for the neighborlist
-	uint64_t N = arrays.nparticles;
-	if (m_prof) m_prof->pop(15*n_calc, 3*sizeof(Scalar)*n_calc + sizeof(unsigned int)*n_calc + N*3*sizeof(Scalar) + uint64_t(n_neigh)*sizeof(unsigned int));
-	
+	if (m_prof) m_prof->pop();
 	}
 
 /*! Base class statistics are printed, along with statistics on how many particles are in bins

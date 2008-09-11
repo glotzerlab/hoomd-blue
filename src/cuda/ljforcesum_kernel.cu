@@ -100,10 +100,11 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	
 	int pidx = idx + pdata.local_beg;
 	
-	// load in the length of the list
+	// load in the length of the list (MEM_TRANSFER: 4 bytes)
 	int n_neigh = nlist.n_neigh[pidx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
+	// (MEM TRANSFER: 16 bytes)
 	float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
 	
 	// initialize the force to 0
@@ -119,24 +120,26 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		{
 		if (neigh_idx < n_neigh)
 		{
+		// read the current neighbor index (MEM TRANSFER: 4 bytes)
 		int cur_neigh = nlist.list[nlist.pitch*neigh_idx + pidx];
 		
-		// get the neighbor's position
+		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
 		
-		// calculate dr (with periodic boundary conditions)
+		// calculate dr (with periodic boundary conditions) (FLOPS: 3)
 		float dx = pos.x - neigh_pos.x;
 		float dy = pos.y - neigh_pos.y;
 		float dz = pos.z - neigh_pos.z;
 			
+		// apply periodic boundary conditions: (FLOPS 12)
 		dx -= box.Lx * rintf(dx * box.Lxinv);
 		dy -= box.Ly * rintf(dy * box.Lyinv);
 		dz -= box.Lz * rintf(dz * box.Lzinv);
 			
-		// calculate r^2
+		// calculate r squard (FLOPS: 5)
 		float rsq = dx*dx + dy*dy + dz*dz;
 		
-		// calculate 1/r^2
+		// calculate 1/r^2 (FLOPS: 2)
 		float r2inv;
 		if (rsq >= r_cutsq)
 			r2inv = 0.0f;
@@ -148,22 +151,24 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		float lj1 = s_coeffs[typ_pair].x;
 		float lj2 = s_coeffs[typ_pair].y;
 	
-		// calculate 1/r^6
+		// calculate 1/r^6 (FLOPS: 2)
 		float r6inv = r2inv*r2inv*r2inv;
-		// calculate the force magnitude / r
-		float fforce = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
-			
-		// add up the force vector components
-		force.x += dx * fforce;
-		force.y += dy * fforce;
-		force.z += dz * fforce;
-		force.w += r6inv * (lj1 * r6inv - lj2);
+		// calculate the force magnitude / r (FLOPS: 6)
+		float forcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
+		// calculate the pair energy (FLOPS: 3)
+		float pair_eng = r6inv * (lj1 * r6inv - lj2);
+				
+		// add up the force vector components (FLOPS: 7)
+		force.x += dx * forcemag_divr;
+		force.y += dy * forcemag_divr;
+		force.z += dz * forcemag_divr;
+		force.w += pair_eng;
 		}
 		}
 	
 	// potential energy per particle must be halved
 	force.w *= 0.5f;
-	// now that the force calculation is complete, write out the result
+	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
 	d_forces[pidx] = force;
 	}
 
