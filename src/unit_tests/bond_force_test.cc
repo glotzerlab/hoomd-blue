@@ -273,8 +273,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	
 	shared_ptr<HarmonicBondForceCompute> fc1 = bf_creator1(pdata);
 	shared_ptr<HarmonicBondForceCompute> fc2 = bf_creator2(pdata);
-	fc1->setParams(0, 300.0, 1.75);
-	fc2->setParams(0, 300.0, 1.75);
+	fc1->setParams(0, 300.0, 1.6);
+	fc2->setParams(0, 300.0, 1.6);
 
 	// displace particles a little so all forces aren't alike
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
@@ -318,7 +318,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	ForceDataArrays arrays1 = fc1->acquire();
 	ForceDataArrays arrays2 = fc2->acquire();
 
-	Scalar rough_tol = Scalar(2.0);
+	Scalar rough_tol = Scalar(3.0);
 
 	for (unsigned int i = 0; i < N; i++)
 		{
