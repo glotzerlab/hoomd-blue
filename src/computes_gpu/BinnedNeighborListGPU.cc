@@ -457,6 +457,16 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		throw runtime_error("Error updating neighborlist bins");
 		}
 
+	// TODO: this should really be determined as a minimum of the memcpy pitch and the 2D texture dimensions
+	// decrease the number of bins if it exceeds 16384
+	if (m_Mx * m_My *m_Mz > 16384)
+		{
+		float scale_factor = powf(16384.0f / float(m_Mx * m_My *m_Mz), 1.0f/3.0f);
+		m_Mx = int(float(m_Mx)*scale_factor);
+		m_My = int(float(m_My)*scale_factor);
+		m_Mz = int(float(m_Mz)*scale_factor);
+		}
+	
 	// if these dimensions are different than the previous dimensions, reallocate
 	if (m_Mx != m_last_Mx || m_My != m_last_My || m_Mz != m_last_Mz)
 		{
