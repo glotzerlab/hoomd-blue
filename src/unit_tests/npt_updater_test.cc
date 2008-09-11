@@ -93,7 +93,7 @@ typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, 
 //! given pressures and temperatures.  
 void npt_updater_test(nptup_creator npt_creator)
 	{
-	const unsigned int N = 108;
+	const unsigned int N = 500;
 	Scalar T = 1.0;
 	Scalar P = 1.0;
 
@@ -141,7 +141,7 @@ void npt_updater_test(nptup_creator npt_creator)
 
 	avrT /= 100000.0;
 	avrP /= 100000.0;
-	Scalar rough_tol = 5.0;
+	Scalar rough_tol = 1.0;
 	MY_BOOST_CHECK_CLOSE(T, avrT, rough_tol);
 	MY_BOOST_CHECK_CLOSE(P, avrP, rough_tol);
 	
