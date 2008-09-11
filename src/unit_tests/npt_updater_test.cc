@@ -56,7 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstForceCompute.h"
 #include "NPTUpdater.h"
 #ifdef USE_CUDA
-#include "NPTUpdaterGPU.h"
+//#include "NPTUpdaterGPU.h"
 #endif
 
 #include "BinnedNeighborList.h"
@@ -155,10 +155,10 @@ shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<ParticleData> pdata, Sc
 	
 #ifdef USE_CUDA
 //! NPTUpdaterGPU factory for the unit tests
-shared_ptr<NPTUpdater> gpu_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
+/*shared_ptr<NPTUpdater> gpu_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
 	{
 	  return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(pdata, deltaT, tau, tauP, T, P));
-	}
+	}*/
 #endif
 	
 	
