@@ -93,7 +93,7 @@ typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, 
 //! given pressures and temperatures.  
 void npt_updater_test(nptup_creator npt_creator)
 	{
-	const unsigned int N = 500;
+	const unsigned int N = 1000;
 	Scalar T = 1.0;
 	Scalar P = 1.0;
 
@@ -132,15 +132,15 @@ void npt_updater_test(nptup_creator npt_creator)
 	// now do the averaging for next 100k steps
 	Scalar avrT = 0.0;
 	Scalar avrP = 0.0;
-	for (int i = 10001; i < 110000; i++)
+	for (int i = 10001; i < 50000; i++)
 	       {
                  avrT += npt->computeTemperature();
 		 avrP += npt->computePressure();
 		 npt->update(i);
 	       }
 
-	avrT /= 100000.0;
-	avrP /= 100000.0;
+	avrT /= 40000.0;
+	avrP /= 40000.0;
 	Scalar rough_tol = 1.0;
 	MY_BOOST_CHECK_CLOSE(T, avrT, rough_tol);
 	MY_BOOST_CHECK_CLOSE(P, avrP, rough_tol);
