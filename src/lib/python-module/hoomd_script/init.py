@@ -179,9 +179,9 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=600)
 # \endcode
 # Here is an example for a second polymer, specifying just 100 polymers made of 4 B beads
-# bonded into a ring.
+# bonded in a branched pattern
 # \code
-# polymer2 = dict(bond_len=1.2, type=['B']*4, bond=[(0, 1), (1,2), (2,3), (3,0)] , count=100)
+# polymer2 = dict(bond_len=1.2, type=['B']*4, bond=[(0, 1), (1,2), (1,3), (3,4)] , count=100)
 # \endcode
 # The \a polymers argument can be given a list of any number of polymer types specified
 # as above. \a count randomly generated polymers of each type in the list will be
@@ -217,7 +217,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # of HOOMD \e may generate different systems even with the same seed due to programming
 # changes.
 #
-# \note For relatively dense systems (packing fraction 0.4 and higher) the simple random
+# \note 1. For relatively dense systems (packing fraction 0.4 and higher) the simple random
 # generation algorithm may fail to find room for all the particles and print an error message. 
 # There are two methods to solve this. First, you can lower the separation radii allowing particles 
 # to be placed closer together. Then setup integrate.nve with the \a limit option set to a 
@@ -226,7 +226,19 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # generate it at a very low density and shrink the box with the command ___ (which isn't written yet)
 # to the desired final size.
 #
-# \note The %bond type is named 'polymer' must be used in specifying %bond coefficients in command such as 
+# \note 2. The polymer generator always generates polymers as if there were linear chains. If you 
+# provide a non-linear %bond topology, the bonds in the initial configuration will be stretched 
+# significantly. This normally doesn't pose a problem for harmonic bonds (bond.harmonic) as
+# the system will simply relax over a few time steps, but can cause the system to blow up with FENE 
+# bonds (bond.fene). 
+#
+# \note 3. While the custom %bond list allows you to create ring shaped polymers, testing shows that
+# such conformations have trouble relaxing and get stuck in tangled configurations. If you need 
+# to generate a configuration of rings, you may need to write your own specialized initial configuration
+# generator that writes HOOMD XML input files (see \ref page_xml_file_format). HOOMD's built-in polymer generator
+# attempts to be as general as possible, but unfortunately cannot work in every possible case.
+#
+# \note 4. The %bond type is named 'polymer' must be used in specifying %bond coefficients in command such as 
 # bond.harmonic
 def create_random_polymers(box, polymers, separation, seed=1):
 	print "init.create_random_polymers(box =", box, ", polymers =", polymers, ", separation = ", separation, ", seed =", seed, ")";
