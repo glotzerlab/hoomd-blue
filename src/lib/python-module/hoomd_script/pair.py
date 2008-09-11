@@ -258,11 +258,34 @@ class nlist:
 			print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
 			raise RuntimeError('Error creating neighbor list');
 		
+		# decide wether to create an all-to-all neighbor list or a binned one based on box size:
+		default_r_buff = 0.8;
+		
+		mode = "binned";
+		
+		box = globals.particle_data.getBox();
+		min_width_for_bin = (default_r_buff + r_cut)*3.0;
+		if (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin or (box.zhi - box.zlo) < min_width_for_bin:
+			print "Notice: Forcing use of O(N^2) neighbor list due to small box dimensions";
+			mode = "nsq";
+		
 		# create the C++ mirror class
 		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_nlist = hoomd.BinnedNeighborList(globals.particle_data, r_cut, 0.8)
+			if mode == "binned":
+				self.cpp_nlist = hoomd.BinnedNeighborList(globals.particle_data, r_cut, default_r_buff)
+			elif mode == "nsq":
+				self.cpp_nlist = hoomd.NeighborList(globals.particle_data, r_cut, default_r_buff)
+			else:
+				print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+				raise RuntimeError("Error creating neighbor list");
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.particle_data, r_cut, 0.8)
+			if mode == "binned":
+				self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.particle_data, r_cut, default_r_buff)
+			elif mode == "nsq":
+				self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.particle_data, r_cut, default_r_buff)
+			else:
+				print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+				raise RuntimeError("Error creating neighbor list");
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating neighbor list");

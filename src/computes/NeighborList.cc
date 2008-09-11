@@ -789,6 +789,12 @@ void NeighborList::computeSimple()
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
 	
+	if ((box.xhi - box.xlo) <= (m_r_cut+m_r_buff) * 2.0 || (box.yhi - box.ylo) <= (m_r_cut+m_r_buff) * 2.0 || (box.zhi - box.zlo) <= (m_r_cut+m_r_buff) * 2.0)
+		{
+		cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
+		throw runtime_error("Error updating neighborlist bins");
+		}
+	
 	// simple algorithm follows:
 	
 	// start by creating a temporary copy of r_cut sqaured

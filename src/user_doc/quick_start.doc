@@ -78,8 +78,8 @@ $ hoomd test.hoomd
 \endcode
 And you should see output that looks something like this:
 \code
-HOOMD 0.7.0
-Compiled: Mon Jul 21 11:31:14 CDT 2008
+HOOMD 0.7.1
+Compiled: Thu Sep 11 12:11:14 CDT 2008
 Copyright, 2008, Ames Laboratory Iowa State University
 -----
 http://www.ameslab.gov/hoomd/
@@ -88,13 +88,13 @@ This code is the implementation of the algorithms discussed in:
    Purpose Molecular Dynamics Fully Implemented on Graphics Processing
    Units', Journal of Computational Physics 227 (2008) 5342-5359
 -----
-init.create_random(N = 100 , phi_p = 0.01 , name =  A , min_dist = 1.0 )
+init.create_random(N = 100 , phi_p = 0.01 , name =  A , min_dist = 0.7 )
 pair.lj(r_cut = 3.0 )
 coeff.set( A , A , {'epsilon': 1.0, 'sigma': 1.0, 'alpha': 1.0} )
 integrate.nvt(dt= 0.005 , T= 1.2 , tau= 0.5 )
 run( 10000.0 )
-Time 00:00:00 | Step 10000 / 10000 | TPS 14374.6 | ETA 00:00:00
-Average TPS: 14357.5
+Time 00:00:00 | Step 10000 / 10000 | TPS 47220.8 | ETA 00:00:00
+Average TPS: 47204.1
 ---------
 \endcode
 
