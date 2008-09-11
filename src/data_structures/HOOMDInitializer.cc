@@ -50,6 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDInitializer.h"
 
+#include <iostream>
 #include <fstream>
 #include <stdexcept>
 #include <sstream>

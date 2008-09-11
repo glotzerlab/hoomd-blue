@@ -55,6 +55,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
+#include <iostream>
 #include <stdexcept>
 using namespace std;
 
