@@ -78,6 +78,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "TempRescaleUpdater.h"
 #include "SFCPackUpdater.h"
 #include "NVTUpdater.h"
+#include "NPTUpdater.h"
 #include "NVEUpdater.h"
 #include "System.h"
 
@@ -289,6 +290,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_TempRescaleUpdater();
 	export_SFCPackUpdater();
 	export_NVTUpdater();
+	export_NPTUpdater();
 	export_NVEUpdater();
 	#ifdef USE_CUDA
 	export_NVEUpdaterGPU();
