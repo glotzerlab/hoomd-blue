@@ -146,6 +146,12 @@ void NeighborListNsqGPU::buildNlist()
 	// create a temporary copy of r_max sqaured
 	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
 	
+	if (box.Lx <= (m_r_cut+m_r_buff) * 2.0 || box.Ly <= (m_r_cut+m_r_buff) * 2.0 || box.Lz <= (m_r_cut+m_r_buff) * 2.0)
+		{
+		cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
+		throw runtime_error("Error updating neighborlist bins");
+		}
+	
 	if (m_prof)
 		m_prof->push("Build list");
 	

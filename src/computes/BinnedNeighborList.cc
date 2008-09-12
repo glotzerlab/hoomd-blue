@@ -127,12 +127,13 @@ void BinnedNeighborList::updateBins()
 	m_Mx = (unsigned int)((box.xhi - box.xlo) / (m_r_cut + m_r_buff));
 	m_My = (unsigned int)((box.yhi - box.ylo) / (m_r_cut + m_r_buff));
 	m_Mz = (unsigned int)((box.zhi - box.zlo) / (m_r_cut + m_r_buff));
-	if (m_Mx == 0)
-		m_Mx = 1;
-	if (m_My == 0)
-		m_My = 1;
-	if (m_Mz == 0)
-		m_Mz = 1;
+
+	if (m_Mx < 3 || m_My < 3 || m_Mz < 3)
+		{
+		cout << m_r_cut+m_r_buff << " " << box.xhi - box.xlo << endl;
+		cerr << endl << "***Error! BinnedNeighborList doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl << endl;
+		throw runtime_error("Error updating neighborlist bins");
+		}
 
 	// make even bin dimensions
 	Scalar binx = (box.xhi - box.xlo) / Scalar(m_Mx);
