@@ -154,6 +154,8 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	// loop over neighbors
 	for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
 		{
+		if (neigh_idx < n_neigh)
+		{
 		int cur_neigh = nlist.list[nlist.pitch*neigh_idx + pidx];
 		
 		// get the neighbor's position
@@ -193,17 +195,12 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		force.y += dy * fforce;
 		force.z += dz * fforce;
 		force.w += r6inv * (lj1 * r6inv - lj2);
-		
-		if (neigh_idx == n_neigh-1)
-			{
-			// potential energy per particle must be halved
-			force.w *= 0.5f;
-			// now that the force calculation is complete, write out the result
-			d_forces[pidx] = force;
-			return;
-			}
 		}
-
+		}
+	// potential energy per particle must be halved
+	force.w *= 0.5f;
+	// now that the force calculation is complete, write out the result
+	d_forces[pidx] = force;
 	}
 
 
