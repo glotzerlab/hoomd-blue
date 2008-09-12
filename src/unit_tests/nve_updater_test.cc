@@ -271,8 +271,8 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
 	rand_init2.setSeed(12345);
 	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2));
 
-	shared_ptr<BinnedNeighborList> nlist1(new BinnedNeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
-	shared_ptr<BinnedNeighborList> nlist2(new BinnedNeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist1(new NeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist2(new NeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
 	
 	shared_ptr<LJForceCompute> fc1(new LJForceCompute(pdata1, nlist1, Scalar(3.0)));
 	shared_ptr<LJForceCompute> fc2(new LJForceCompute(pdata2, nlist2, Scalar(3.0)));
