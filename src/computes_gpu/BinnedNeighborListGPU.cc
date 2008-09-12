@@ -49,6 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <math.h>
 
 #ifdef USE_PYTHON
 #include <boost/python.hpp>
