@@ -49,20 +49,19 @@ analyze.imd(port=12345, period=10)
 run(10)
 
 # find the vmd executable and run it
-if not sys.argv[1] == "novmd":
-	vmd_bin = find_vmd()
+vmd_bin = find_vmd()
 	
-	if vmd_bin == "":
-		print "\nVMD not found. To see the live demo, you must start VMD"
-		print "and run the following commands in the VMD console:\n"
-		print "cd ", find_hoomd_data_dir() + "/demos/self_assembly"
-		print "play vmd_script.vmd\n"
-		raw_input("press enter to continue executing the demo")
+if vmd_bin == "":
+	print "\nVMD not found. To see the live demo, you must start VMD"
+	print "and run the following commands in the VMD console:\n"
+	print "cd ", find_hoomd_data_dir() + "/demos/self_assembly"
+	print "play vmd_script.vmd\n"
+	raw_input("press enter to continue executing the demo")
 	
-	# run vmd
-	if vmd_bin != "":
-		os.chdir(find_hoomd_data_dir() + "/demos/self_assembly")
-		os.spawnl(os.P_NOWAIT, vmd_bin, vmd_bin, "-e", "vmd_script.vmd")
+# run vmd
+if vmd_bin != "":
+	os.chdir(find_hoomd_data_dir() + "/demos/self_assembly")
+	os.spawnl(os.P_NOWAIT, vmd_bin, vmd_bin, "-e", "vmd_script.vmd")
 
 # run for a long time
 run(1e8)
