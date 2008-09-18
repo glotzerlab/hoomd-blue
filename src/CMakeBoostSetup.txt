@@ -52,12 +52,12 @@ set(Boost_USE_STATIC_LIBS "OFF")
 endif(USE_STATIC)
 
 # first, see if we can get any supported version of Boost
-find_package(Boost 1.32 COMPONENTS thread filesystem python signals program_options unit_test_framework REQUIRED)
+find_package(Boost 1.32.0 COMPONENTS thread filesystem python signals program_options unit_test_framework REQUIRED)
 
 # if we get boost 1.35 or greator, we need to get the system library too
 
 if (Boost_MINOR_VERSION GREATER 34)
-find_package(Boost 1.35 COMPONENTS thread filesystem python signals system unit_test_framework program_options REQUIRED)
+find_package(Boost 1.35.0 COMPONENTS thread filesystem python signals system unit_test_framework program_options REQUIRED)
 endif (Boost_MINOR_VERSION GREATER 34)
 
 if (WIN32)
