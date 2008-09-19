@@ -111,15 +111,15 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 		float K = params.x;
 		float r_0 = params.y;
 		
-		// FLOPS: 6
+		// FLOPS: 5
 		float rsq = dx*dx + dy*dy + dz*dz;
-		float r = sqrtf(rsq);
+		//float r = sqrtf(rsq);
 		
 		//TODO - need a way to check if r >= r_0 and terminate the simulation if it is) 
 		 
 		// FLOPS: 7
-		float forcemag_divr = -K *r/ (1.0f - rsq/(r_0*r_0));
-		float bond_eng = -0.5f * K * rsq*logf(1.0f - rsq/(r_0*r_0));
+		float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0));
+		float bond_eng = -0.5f * K * r_0*r_0*logf(1.0f - rsq/(r_0*r_0));
 				
 		// add up the forces (FLOPS: 7)
 		force.x += dx * forcemag_divr;
@@ -128,7 +128,7 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 		force.w += bond_eng;
 		
 		// Checking to see if bond length restriction is violated.
-	//	if (r >= r_0) *blist.checkr = 1;
+	//	if (rsq >= r_0*r_0) *blist.checkr = 1;
 		
 		}
 		

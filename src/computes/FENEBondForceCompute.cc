@@ -228,17 +228,17 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		assert(dy >= box.ylo && dx < box.yhi);
 		assert(dz >= box.zlo && dx < box.zhi);
 
-		// on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * r* \vec{r} 
-		// FLOPS: 6
+		// on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * \vec{r} 
+		// FLOPS: 5
 		Scalar rsq = dx*dx+dy*dy+dz*dz;
-		Scalar r = sqrt(rsq);
+		//Scalar r = sqrt(rsq);
 		
 		// Additional check for FENE spring
-		assert(r < m_r_0[bond.type]);
+		assert(rsq < m_r_0[bond.type]*m_r_0[bond.type]);
 		
 		// calculate force and energy
 		// MEM TRANSFER 2 Scalars: FLOPS: 13
-		Scalar forcemag_divr = -m_K[bond.type]*r / (Scalar(1.0) - rsq /(m_r_0[bond.type]*m_r_0[bond.type]) );
+		Scalar forcemag_divr = -m_K[bond.type] / (Scalar(1.0) - rsq /(m_r_0[bond.type]*m_r_0[bond.type]) );  //FLOPS 4
 		Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));
 		
 		// calculate virial (FLOPS: 2)
@@ -266,7 +266,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-	if (m_prof) m_prof->pop(m_bond_data->getNumBonds() * (3+9+6+13+2+16), m_pdata->getN() * 5 * sizeof(Scalar) + m_bond_data->getNumBonds() * ( (4) * sizeof(unsigned int) + (6+2+20) ) );
+	if (m_prof) m_prof->pop(m_bond_data->getNumBonds() * (3+9+5+13+2+16), m_pdata->getN() * 5 * sizeof(Scalar) + m_bond_data->getNumBonds() * ( (4) * sizeof(unsigned int) + (6+2+20) ) );
 	}
 	
 #ifdef USE_PYTHON

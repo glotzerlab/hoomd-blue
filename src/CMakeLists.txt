@@ -140,3 +140,9 @@ if(USE_DOXYGEN)
 endif(USE_DOXYGEN)
 
 add_subdirectory (installer)
+
+###############################
+# allow library linking for MacOS10.5
+if (APPLE)
+add_definitions(-mmacosx-version-min=10.4)
+endif (APPLE)
