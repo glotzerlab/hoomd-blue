@@ -128,7 +128,7 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 		force.w += bond_eng;
 		
 		// Checking to see if bond length restriction is violated.
-	//	if (rsq >= r_0*r_0) *blist.checkr = 1;
+		if (rsq >= r_0*r_0) *blist.checkr = 1;
 		
 		}
 		
@@ -176,31 +176,31 @@ cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu
 		return error;
 
 	// start by zeroing check value on the device
-/*	int *exceedsR0 = 0;
+	int exceedsR0 = 0;
 	
 
-	error = cudaMemcpy(btable->checkr, exceedsR0,
+	error = cudaMemcpy(btable->checkr, &exceedsR0,
 			sizeof(int), cudaMemcpyHostToDevice);
 	if (error != cudaSuccess)
 		return error;
-*/
+
 			
 	// run the kernel
 	calcFENEBondForces_kernel<<< grid, threads>>>(d_forces, *pdata, *btable, *box);
 	
-/*
-	error = cudaMemcpy(exceedsR0, btable->checkr,
+
+	error = cudaMemcpy(&exceedsR0, btable->checkr,
 			sizeof(int), cudaMemcpyDeviceToHost);	
 	if (error != cudaSuccess)
 		return error;
 
     //check the fene bondlength violation condition
-	if (*exceedsR0)
+	if (exceedsR0)
 	 {
 		std::cerr << std::endl << "***Error! FENE bond length exceeds maximum permitted" << std::endl << std::endl;
 		throw std::runtime_error("Error in fene bond calculation");
 	  }
-*/										
+									
 	
 	#ifdef NDEBUG
 	return cudaSuccess;
