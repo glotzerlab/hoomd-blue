@@ -230,6 +230,7 @@ class imd(_analyzer):
 #
 # Quantities that can be logged currently:
 # - \b lj_energy (pair.lj) - Total Lennard-Jones potential energy
+# - \b fene_energy (bond.fene) - Total fene bond potential energy
 # - \b harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b nve_kinetic_energy (integrate.nve) - Kinetic energy calculated by the NVE integrator
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
