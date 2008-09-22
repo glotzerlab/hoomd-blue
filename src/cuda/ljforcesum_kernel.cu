@@ -41,6 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gpu_forces.h"
 #include "gpu_pdata.h"
+#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -203,12 +204,15 @@ cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsi
     // run the kernel
     calcLJForces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(d_forces, *pdata, *nlist, d_coeffs, coeff_width, r_cutsq, *box);
 
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}
 
 // vim:syntax=cpp

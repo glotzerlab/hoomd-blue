@@ -107,6 +107,15 @@ using namespace boost::python;
 #include <iostream>
 using namespace std;
 
+// include gpu_settings.h for g_gpu_error_checking
+#ifdef USE_CUDA
+#include "gpu_settings.h"
+#else
+// otherwise, create a dummy variable that will do nothing
+bool g_gpu_error_checking = false;
+#endif
+
+
 /*! \file hoomd_module.cc
 	\brief Brings all of the export_* functions together to export the hoomd python module
 */
@@ -225,6 +234,14 @@ string find_vmd()
 	return "";
 	}
 
+//! Method for setting g_gpu_error_checking
+/*! \param value Value to set
+	Sets the value of g_gpu_error_checking to enable or disable error checking on the GPU
+*/
+void set_gpu_error_checking(bool value)
+	{
+	g_gpu_error_checking = value;
+	}
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
@@ -236,6 +253,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	output_version_info(false);
 	def("find_hoomd_data_dir", &find_hoomd_data_dir);
 	def("find_vmd", &find_vmd);
+	def("set_gpu_error_checking", &set_gpu_error_checking);
 
 	InstallSIGINTHandler();
 

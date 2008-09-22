@@ -42,6 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu_pdata.h"
 #include "gpu_updaters.h"
 #include "gpu_integrator.h"
+#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -151,12 +152,15 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
     // run the kernel
     nve_pre_step_kernel<<< grid, threads >>>(*pdata, deltaT, limit, limit_val, *box);
 	
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}
 
 
@@ -213,10 +217,13 @@ cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_
     // run the kernel
     nve_step_kernel<<< grid, threads >>>(*pdata, force_data_ptrs, num_forces, deltaT, limit, limit_val);
 
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}

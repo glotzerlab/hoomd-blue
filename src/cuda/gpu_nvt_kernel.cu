@@ -42,6 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu_pdata.h"
 #include "gpu_updaters.h"
 #include "gpu_integrator.h"
+#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -162,12 +163,15 @@ cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data
 	
 	// run the kernel
     nvt_pre_step_kernel<<< grid, threads, M * sizeof(float) >>>(*pdata, *d_nvt_data, 1.0f / (1.0f + deltaT/2.0f * Xi), deltaT, *box);
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}
 
 
@@ -211,12 +215,15 @@ cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 *
     // run the kernel
     nvt_step_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_nvt_data, force_data_ptrs, num_forces, Xi, deltaT);
 	
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}
 	
 
@@ -264,12 +271,15 @@ cudaError_t nvt_reduce_ksum(gpu_nvt_data *d_nvt_data)
 
     // run the kernel
     nvt_reduce_ksum_kernel<<< grid, threads, M*sizeof(float) >>>(*d_nvt_data);
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}	
 
 

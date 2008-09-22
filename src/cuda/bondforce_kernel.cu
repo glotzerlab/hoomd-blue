@@ -41,6 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gpu_forces.h"
 #include "gpu_pdata.h"
+#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -168,10 +169,13 @@ cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_box
 	// run the kernel
 	calcBondForces_kernel<<< grid, threads>>>(d_forces, *pdata, *btable, *box);
 	
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}

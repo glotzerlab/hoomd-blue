@@ -40,6 +40,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 #include "gpu_nlist.h"
 #include "gpu_pdata.h"
+#include "gpu_settings.h"
+
 #include <stdio.h>
 
 #ifdef WIN32
@@ -105,12 +107,15 @@ cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins
 	// run the kernel
 	gpu_nlist_idxlist2coord_kernel<<< grid, threads>>>(*pdata, *bins);
 	
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}
 
 // textures used in this kernel: commented out because textures are managed globally currently
@@ -265,12 +270,15 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	// run the kernel
 	updateFromBins_new<<< grid, threads>>>(*pdata, *bins, *nlist, r_maxsq, curNmax, *box, scalex, scaley, scalez);
 	
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}
 
 // vim:syntax=cpp

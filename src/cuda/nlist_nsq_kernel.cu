@@ -40,6 +40,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 #include "gpu_nlist.h"
 #include "gpu_pdata.h"
+#include "gpu_settings.h"
+
 #include <stdio.h>
 
 #ifdef WIN32
@@ -174,12 +176,15 @@ cudaError_t gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_a
 	
 	// run the kernel
 	generateNlistNSQ<<< grid, threads >>>(*pdata, *nlist, r_maxsq, *box);
-	#ifdef NDEBUG
-	return cudaSuccess;
-	#else
-	cudaThreadSynchronize();
-	return cudaGetLastError();
-	#endif	
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
 	}
 
 // vim:syntax=cpp

@@ -357,6 +357,8 @@ def _parse_command_line():
 	parser = OptionParser();
 	parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
 	parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
+	parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
+	
 	(_options, args) = parser.parse_args();
 	
 	# chedk for valid mode setting
@@ -371,6 +373,10 @@ def _parse_command_line():
 	# set the mode to gpu if the gpu # was set
 	if _options.gpu and not _options.mode:
 		_options.mode = "gpu"
+		
+	# if gpu_error_checking is set, enable it on the GPU
+	if _options.gpu_error_checking:
+		hoomd.set_gpu_error_checking(True);
 	
 ## Initializes the execution configuration
 #

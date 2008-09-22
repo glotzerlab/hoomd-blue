@@ -40,6 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "gpu_integrator.h"
+#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -112,10 +113,13 @@ cudaError_t integrator_sum_forces(gpu_pdata_arrays *pdata, float4** force_list, 
 
 	integrator_sum_forces_kernel<<< pdata->local_num/M+1, M >>>(*pdata, force_list, num_forces);
 
-	#ifdef NDEBUG
-    return cudaSuccess;
-    #else
-    cudaThreadSynchronize();
-    return cudaGetLastError();
-    #endif
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
     }
