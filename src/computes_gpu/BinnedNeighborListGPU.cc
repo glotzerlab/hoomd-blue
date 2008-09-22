@@ -524,14 +524,16 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		assert(ib >= 0 && ib < m_Mx && jb >= 0 && jb < m_My && kb >= 0 && kb < m_Mz);
 
 		// record its bin
-		unsigned int bin = m_mem_location[ib*(m_Mz*m_My) + jb * m_Mz + kb];
+		unsigned int mem_bin = ib*(m_Mz*m_My) + jb * m_Mz + kb;
 		// check if the particle is inside
-		if (bin >= m_Mx*m_My*m_Mz)
+		if (mem_bin >= m_Mx*m_My*m_Mz)
 			{
 			cerr << endl << "***Error! Elvis has left the building (particle " << n << " is no longer in the simulation box)." << endl << endl;
 			throw runtime_error("Error binning particles");
 			}
 		
+		unsigned int bin = m_mem_location[mem_bin];
+				
 		unsigned int size = m_bin_sizes[bin];
 	
 		// track the size of the largest bin
