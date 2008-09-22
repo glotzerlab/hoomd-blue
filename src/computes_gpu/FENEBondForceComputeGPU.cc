@@ -140,8 +140,16 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
+	unsigned int exceedsR0 = 0;
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_fenebondforce_sum, m_d_forces[0], &pdata[0], &box, &gpu_bondtable[0], m_gpu_params, m_bond_data->getNBondTypes(), m_block_size));
+	exec_conf.gpu[0]->call(bind(gpu_fenebondforce_sum, m_d_forces[0], &pdata[0], &box, &gpu_bondtable[0], m_gpu_params, m_bond_data->getNBondTypes(), m_block_size, exceedsR0));
+	
+	//check the fene bondlength violation condition
+	if (exceedsR0)
+		{
+		cerr << endl << "***Error! FENE bond length exceeds maximum permitted" << endl << endl;
+		throw std::runtime_error("Error in fene bond calculation");
+		}
 		
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;

@@ -41,8 +41,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gpu_forces.h"
 #include "gpu_pdata.h"
-#include <iostream>
-#include <stdexcept>
 
 #ifdef WIN32
 #include <cassert>
@@ -147,6 +145,7 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 	\param d_params K and r_0 params packed as float2 variables
 	\param n_bond_types Number of bond types in d_params
 	\param block_size Block size to use when performing calculations
+	\param exceedsR0 output parameter set to true if any bond exceeds the length of r_0
 	
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
@@ -154,7 +153,7 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 	\a d_params should include one float2 element per bond type. The x component contains K the spring constant
 	and the y component contains r_0 the equilibrium length.
 */
-cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size)
+cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0)
 	{
 	assert(pdata);
 	assert(btable);
@@ -176,9 +175,6 @@ cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu
 		return error;
 
 	// start by zeroing check value on the device
-	int exceedsR0 = 0;
-	
-
 	error = cudaMemcpy(btable->checkr, &exceedsR0,
 			sizeof(int), cudaMemcpyHostToDevice);
 	if (error != cudaSuccess)
@@ -194,14 +190,6 @@ cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu
 	if (error != cudaSuccess)
 		return error;
 
-    //check the fene bondlength violation condition
-	if (exceedsR0)
-	 {
-		std::cerr << std::endl << "***Error! FENE bond length exceeds maximum permitted" << std::endl << std::endl;
-		throw std::runtime_error("Error in fene bond calculation");
-	  }
-									
-	
 	#ifdef NDEBUG
 	return cudaSuccess;
 	#else
