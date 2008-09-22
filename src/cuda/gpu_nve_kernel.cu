@@ -227,3 +227,4 @@ cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_
 		return cudaGetLastError();
 		}
 	}
+

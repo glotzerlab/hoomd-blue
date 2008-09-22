@@ -285,3 +285,4 @@ cudaError_t gpu_pdata_texread_test(gpu_pdata_arrays *pdata)
 	cudaThreadSynchronize();
 	return cudaGetLastError();
 	}
+

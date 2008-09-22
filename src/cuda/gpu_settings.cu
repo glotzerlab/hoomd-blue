@@ -36,13 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __GPU_SETTINGS_H__
-#define __GPU_SETTINGS_H__
+#include "gpu_settings.h"
 
-extern "C" {
+bool g_gpu_error_checking = false;
 
-extern bool g_gpu_error_checking;
-
-}
-
-#endif
+// vim:syntax=cpp

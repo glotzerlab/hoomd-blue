@@ -179,3 +179,4 @@ cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_box
 		return cudaGetLastError();
 		}
 	}
+
