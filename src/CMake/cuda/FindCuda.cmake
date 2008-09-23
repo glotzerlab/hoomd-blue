@@ -297,9 +297,13 @@ MACRO(CUDA_add_custom_commands cuda_target)
     IF(${file} MATCHES ".*\\.cu$")
    
     # strip CMAKE_SOURCE_DIR from the head of ${file}
-	STRING(REGEX REPLACE "${CMAKE_SOURCE_DIR}/" "" stripped_file ${file})
+    string(LENGTH ${CMAKE_SOURCE_DIR} _cuda_source_dir_length)
+    string(LENGTH ${file} _cuda_file_length)
+    math(EXPR _begin "${_cuda_source_dir_length} + 1")
+    math(EXPR _stripped_file_length "${_cuda_file_length} - ${_cuda_source_dir_length} - 1")
+	STRING(SUBSTRING ${file} ${_begin} ${_stripped_file_length} stripped_file )
 
-    # Add a custom target to generate a cpp file (CUDA 2.0 needs .cc files and CUDA 1.1 needs .c files)
+    # Add a custom target to generate a cpp file
 	SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.cpp")
 
     SET(generated_target "${stripped_file}_target")
