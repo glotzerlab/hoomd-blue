@@ -74,6 +74,13 @@ endif (WIN32)
 ## Optional build of boost.python interface
 OPTION(USE_PYTHON "Build the boost.python hoomd module" ON)
 
+#################################
+## Optional include of a FFT
+OPTION(USE_FFT "A Fast Fourier Transform routine is defined" ON)
+if(USE_FFT)
+add_definitions(-DUSE_FFT)
+endif(USE_FFT)
+
 ##################################
 ## SSE and floating point compilation options
 # msvc 2005 doesn't define __SSE__ or __SSE2__, so we define them for it
