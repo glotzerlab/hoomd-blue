@@ -83,7 +83,7 @@ const Scalar tol = 1e-6;
 //! Typedef'd LJWallForceCompute factory
 typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<ParticleData> pdata, Scalar r_cut)> ljwallforce_creator;
 
-//! Test the ability of the lj wall force compute to actually calucate forces
+//! Test the ability of the lj wall force compute to actually calculate forces
 /*! \param ljwall_creator Function that creates a LJWallForceCompute
 	\note With the creator as a parameter, the same code can be used to test any derived child
 		of LJWallForceCompute
