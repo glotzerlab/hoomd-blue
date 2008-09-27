@@ -41,11 +41,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef WIN32
-#pragma warning( push)
-#pragma warning( disable : 4018)
-#endif
-
 
 // conditionally compile only if a fast fourier transform is defined
 #ifdef USE_FFT
@@ -82,8 +77,8 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	S_mesh_y=static_cast<Scalar>(N_mesh_y);
 	S_mesh_z=static_cast<Scalar>(N_mesh_z);
 
-        // get a local copy of the simulation box too
-	const BoxDim& box = m_pdata->getBox();
+        // get a copy of the simulation box too
+	box = m_pdata->getBox();
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
 	
@@ -96,43 +91,44 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	h_x=S_mesh_x/Lx;
 	h_y=S_mesh_y/Ly;
 	h_z=S_mesh_z/Lz;
-	
+
 	//allocate space for the density and the influence function
-	
 	rho_real=new Scalar**[N_mesh_z];
 	rho_kspace=new Scalar**[N_mesh_z];
 	G_Inf=new Scalar**[N_mesh_z];
 
-	for(int i=0;i<N_mesh_z;i++){
+	for(unsigned int i=0;i<N_mesh_z;i++){
 		rho_real[i]=new Scalar*[N_mesh_y];
 		rho_kspace[i]=new Scalar*[N_mesh_y];
 		G_Inf[i]=new Scalar*[N_mesh_y];
 	}
 
-	for(int j=0;j<N_mesh_z;j++){
-	for(int i=0;i<N_mesh_y;i++){
+	for(unsigned int j=0;j<N_mesh_z;j++){
+	for(unsigned int i=0;i<N_mesh_y;i++){
 		rho_real[i][j]=new Scalar[N_mesh_x];
 		rho_kspace[i][j]=new Scalar[N_mesh_x];
 		G_Inf[i][j]=new Scalar[N_mesh_x];
 	}
 	}
 
+	if(P_order%2) make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_odd;
+	else make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_even;
 
+}
 
-	}
 
 ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	{
 	
-	for(int j=0;j<N_mesh_z;j++){
-	for(int i=0;i<N_mesh_y;i++){
+	for(unsigned int j=0;j<N_mesh_z;j++){
+	for(unsigned int i=0;i<N_mesh_y;i++){
 		delete[] rho_real[i][j];
 		delete[] rho_kspace[i][j];
 		delete[] G_Inf[i][j];
 	}
 	}
 
-	for(int i=0;i<N_mesh_z;i++){
+	for(unsigned int i=0;i<N_mesh_z;i++){
 		delete[] rho_real[i];
 		delete[] rho_kspace[i];
 		delete[] G_Inf[i];
@@ -141,7 +137,45 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	delete[] rho_real;
 	delete[] rho_kspace;
 	delete[] G_Inf;
-	}
+}
+
+void ElectrostaticLongRangePPPM::make_rho(void)
+{
+	(this->*make_rho_helper)();
+}
+
+void ElectrostaticLongRangePPPM::make_rho_even(void)
+{
+	
+	// access the particle data
+	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
+	// sanity check
+	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		{
+		// access the particle's position and charge (MEM TRANSFER: 4 Scalars)
+		Scalar xi = arrays.x[i];
+		Scalar yi = arrays.y[i];
+		Scalar zi = arrays.z[i];
+
+		Scalar q_i=arrays.charge[i];
+
+		//compute the two nearest points on the grid
+
+		Scalar x_floor=floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		unsigned int ix_floor=static_cast<unsigned int>(x_floor);
+		
+		Scalar y_floor=floor((yi-box.yhi)/h_y);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		unsigned int iy_floor=static_cast<unsigned int>(y_floor);
+		
+		Scalar z_floor=floor((zi-box.zhi)/h_z);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		unsigned int iz_floor=static_cast<unsigned int>(z_floor);
+
+	    }
+}
+void ElectrostaticLongRangePPPM::make_rho_odd(void)
+{
+}
 
 void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	{
