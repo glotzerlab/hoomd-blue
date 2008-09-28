@@ -333,3 +333,71 @@ class nve(_integrator):
 			self.cpp_integrator.setDeltaT(dt);
 	
 
+## BD NVT Integration via NVE simulation with StochasticForceCompute added
+#
+# integrate.bdnvt performs constant volume, fixed average temperature simuation based on a 
+# NVE simulation with a Stochastic heat bath added. For poor initial conditions that include overlapping atoms, a 
+# limit can be specified to the movement a particle is allowed to make in one time step. 
+# After a few thousand time steps with the limit set, the system should be in a safe state 
+# to continue with unconstrained integration.
+class bdnvt(_integrator):
+	## Specifies the BD NVT integrator
+	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+	# \param T Temperature of the simuation \a T
+	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
+	#
+	# \b Examples:
+	# \code
+	# integrate.bdnvt(dt=0.005, T=1.0)
+	# integrator = integrate.bdnvt(dt=5e-3, T=1.0)
+	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01)
+	# \endcode
+	def __init__(self, dt, T, limit=None):
+		print "integrate.bdnvt(dt=", dt, ", T=", T," limit=", limit, ")";
+		
+		# initialize base class
+		_integrator.__init__(self);
+		
+		# initialize the reflected c++ class
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.particle_data, dt, T);
+		#elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		#	self.cpp_integrator = hoomd.BD_NVTpdaterGPU(globals.particle_data, dt, T); 
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating BD NVT integrator");
+		
+		# set the limit
+		if limit != None:
+			self.cpp_integrator.setLimit(limit);
+		
+		globals.system.setIntegrator(self.cpp_integrator);
+	
+	## Changes parameters of an existing integrator
+	# \param dt New time step (if set)
+	#
+	# To change the parameters of an existing integrator, you must save it in a variable when it is
+	# specified, like so:
+	# \code
+	# integrator = integrate.bdnvt(dt=0.005, T=1.0)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# integrator.set_params(dt=0.007)
+	# integrator.set_params(T=2.0)
+	# \endcode
+	def set_params(self, dt=None, T=None):
+		print "bdnvt.set_params(dt=", dt, ", T=", T, ")";
+		# check that proper initialization has occured
+		if self.cpp_integrator == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+			raise RuntimeError('Error updating forces');
+		
+		# change the parameters
+		if dt != None:
+			self.cpp_integrator.setDeltaT(dt);
+		if T != None:
+			self.cpp_integrator.setT(T);
+	
+

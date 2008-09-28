@@ -66,12 +66,12 @@ using namespace std;
 	\param Temp Temperature of the bath of random particles
 	\param deltaT Length of the computation timestep
 */
-StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar Temp, Scalar deltaT):
+StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp):
 ForceCompute(pdata), m_T(Temp), m_dt(deltaT)
 	{
 	if (m_T <= 0.0)
 		{
-		cerr << endl << "***Error! Negative Temperature in StochasticForceCompute doesn't make sense." << endl << endl;
+		cerr << endl << "***Error! Negative or Zero Temperature in StochasticForceCompute doesn't make sense." << endl << endl;
 		throw runtime_error("Error initializing StochasticForceCompute");
 		}
 		
@@ -86,7 +86,8 @@ ForceCompute(pdata), m_T(Temp), m_dt(deltaT)
 	assert(m_gamma != NULL);
 	
 	// initialize the parameters to 1;
-	memset((void*)m_gamma, 1, sizeof(Scalar)*ntypes);
+	//memset((void *)m_gamma, Scalar(1),sizeof(Scalar)*ntypes);
+	for (unsigned int i = 0; i < ntypes; i++) m_gamma[i] = Scalar(1.0);
 	}
 
 /*! Frees used memory

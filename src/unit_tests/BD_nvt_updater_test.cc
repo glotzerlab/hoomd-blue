@@ -70,8 +70,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-/*! \file nve_updater_test.cc
-	\brief Implements unit tests for NVEUpdater and descendants
+/*! \file BD_nvt_updater_test.cc
+	\brief Implements unit tests for a StochasticForceCompute added on top of a NVEUpdater
 	\ingroup unit_tests
 */
 
@@ -115,7 +115,7 @@ void bd_updater_tests(nveup_creator nve_creator)
 	Scalar Temp = Scalar(2.0);
 	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata, deltaT);
 
-	shared_ptr<StochasticForceCompute> fc1(new StochasticForceCompute(pdata, Temp, deltaT));
+	shared_ptr<StochasticForceCompute> fc1(new StochasticForceCompute(pdata, deltaT, Temp));
 	fc1->setParams(0, Scalar(1.0));
 	nve_up->addForceCompute(fc1);
     
@@ -159,8 +159,95 @@ void bd_updater_tests(nveup_creator nve_creator)
 	//cout << "Energy Variance " << VarianceE <<  " " << 3.0/2.0*Temp*Temp*1000 << endl;
 
 	//Dividing a very large number by a very large number... not great accuracy!
-    MY_BOOST_CHECK_CLOSE(D, 2.0, 1);
+    MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
 	MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 1);
+	pdata->release();
+ 
+    // Resetting the Temperature to 1.0
+	Temp = Scalar(1.0);
+	cout << "Temperature set at " << Temp << endl;
+    nve_up->getForceCompute(0)->setT(Temp);
+	
+	//Restoring the position of the particles to the origin for simplicity of calculating diffusion
+	arrays = pdata->acquireReadWrite();
+	for (int j = 0; j < 1000; j++) {
+		arrays.x[j] = 0.0;
+		arrays.y[j] = 0.0;
+		arrays.z[j] = 0.0;
+	}
+	pdata->release();
+
+	AvgT = Scalar(0);
+	for (i = 0; i < 50000; i++)
+		{
+		if (i % 100 == 0) {
+			arrays = pdata->acquireReadWrite();
+			KE = Scalar(0);
+			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			// mass = 1.0;  k = 1.0;
+			AvgT += Scalar(2.0)*KE/(3*1000);
+			}
+		pdata->release();
+		nve_up->update(i);
+		}
+	AvgT /= Scalar(50000.0/100.0);
+		
+	arrays = pdata->acquireReadWrite();
+	MSD = Scalar(0);
+	t = Scalar(i) * deltaT;
+
+	for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+	D = MSD/(6*t*1000);
+
+	cout << "Calculating Diffusion Coefficient " << D << endl;
+	cout << "Average Temperature " << AvgT << endl;
+
+	//Dividing a very large number by a very large number... not great accuracy!
+    MY_BOOST_CHECK_CLOSE(D, 1.0, 5);
+	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
+	pdata->release();
+
+    // Setting Gamma to 2.0
+	cout << "Gamma set at 0.5" << endl;
+    nve_up->getForceCompute(0)->setParams(0, Scalar(0.5));
+	
+	//Restoring the position of the particles to the origin for simplicity of calculating diffusion
+	arrays = pdata->acquireReadWrite();
+	for (int j = 0; j < 1000; j++) {
+		arrays.x[j] = 0.0;
+		arrays.y[j] = 0.0;
+		arrays.z[j] = 0.0;
+	}
+	pdata->release();
+
+	AvgT = Scalar(0);
+	for (i = 0; i < 50000; i++)
+		{
+		if (i % 100 == 0) {
+			arrays = pdata->acquireReadWrite();
+			KE = Scalar(0);
+			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			// mass = 1.0;  k = 1.0;
+			AvgT += Scalar(2.0)*KE/(3*1000);
+			}
+		pdata->release();
+		nve_up->update(i);
+		}
+	AvgT /= Scalar(50000.0/100.0);
+		
+	arrays = pdata->acquireReadWrite();
+	MSD = Scalar(0);
+	t = Scalar(i) * deltaT;
+
+	for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+	D = MSD/(6*t*1000);
+
+	cout << "Calculating Diffusion Coefficient " << D << endl;
+	cout << "Average Temperature " << AvgT << endl;
+
+	//Dividing a very large number by a very large number... not great accuracy!
+    MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
+	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
 	pdata->release();
 			
 	}
@@ -189,7 +276,7 @@ void bd_updater_lj_tests(nveup_creator nve_creator)
 	Scalar Temp = Scalar(2.0);
 	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata, deltaT);
 
-	shared_ptr<StochasticForceCompute> fc1(new StochasticForceCompute(pdata, Temp, deltaT));
+	shared_ptr<StochasticForceCompute> fc1(new StochasticForceCompute(pdata, deltaT, Temp));
 	fc1->setParams(0, Scalar(1.0));
 	nve_up->addForceCompute(fc1);
 	
@@ -234,7 +321,35 @@ void bd_updater_lj_tests(nveup_creator nve_creator)
 
 	MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 1);
 	pdata->release();
-			
+	
+	// Resetting the Temperature to 1.0
+	Temp = Scalar(1.0);
+	cout << "Temperature set at " << Temp << endl;
+    nve_up->getForceCompute(0)->setT(Temp);
+
+	AvgT = Scalar(0);
+	for (i = 0; i < 50000; i++)
+		{
+		if (i % 10 == 0) {
+			arrays = pdata->acquireReadWrite();
+			KE = Scalar(0);
+			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			// mass = 1.0;  k = 1.0;
+			AvgT += Scalar(2.0)*KE/(3*1000);
+			}
+		pdata->release();
+
+		nve_up->update(i);
+		}
+	AvgT /= Scalar(50000.0/10.0);
+		
+	arrays = pdata->acquireReadWrite();
+	t = Scalar(i) * deltaT;
+	cout << "Average Temperature " << AvgT << endl;
+
+	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
+	pdata->release();
+		
 	}
 
 	

@@ -58,13 +58,16 @@ class StochasticForceCompute :	public ForceCompute
 	{
 	public:
 		//! Constructor
-		StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar Temp, Scalar deltaT);
+		StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp);
 
 		//! Destructor
 		~StochasticForceCompute();
 		
 		//! Sets force parameters
 		virtual void setParams(unsigned int typ, Scalar gamma);
+		
+		//! Sets Temperature Parameter
+		virtual void setT(Scalar Temp) { m_T = Temp; }
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 

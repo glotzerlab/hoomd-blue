@@ -108,6 +108,15 @@ class ForceCompute : public Compute
 		vector<float4*>& acquireGPU();
 		#endif
 		
+		//! This is a function that can be overwritten, but does nothing by default.
+		virtual void setT(Scalar Temp) {}
+		
+		//! This is a function that can be overwritten, but does nothing by default.
+		virtual void setParams(unsigned int, Scalar) {}
+		
+		//! This is a function that can be overwritten, but does nothing by default.
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2) {};
+		
 		//! Computes the forces
 		virtual void compute(unsigned int timestep);
 		
