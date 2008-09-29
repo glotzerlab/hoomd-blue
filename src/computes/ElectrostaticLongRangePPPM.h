@@ -11,7 +11,6 @@ conditions are met:
 * Redistributions of source code must retain the above copyright notice,
 this list of conditions and the following disclaimer.
 
-
 * Redistributions in binary form must reproduce the above copyright
 notice, this list of conditions and the following disclaimer in the
 documentation and/or other materials provided with the distribution.
@@ -83,14 +82,14 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		//! Destructor
 		virtual ~ElectrostaticLongRangePPPM();
 
-
 	protected:
 	    Scalar m_alpha;              //!< split parameter of the short-range vs long-range forces.
 	    unsigned int N_mesh_x;       //!< number of points in the mesh along the x axis
 	    unsigned int N_mesh_y;       //!< number of points in the mesh along the y axis
 	    unsigned int N_mesh_z;       //!< number of points in the mesh along the z axis
 	    unsigned int P_order;        //!< The charge assignment on the mesh is of order P
-	    bool third_law;              //!< Whether to use third law or not
+	    BoxDim box;                  //!< Copy of the simulation box
+		bool third_law;              //!< Whether to use third law or not
 		Scalar S_mesh_x;             //!< number of points in the mesh along the x axis as a scalar
 	    Scalar S_mesh_y;             //!< number of points in the mesh along the y axis as a scalar
 	    Scalar S_mesh_z;             //!< number of points in the mesh along the z axis as a scalar
@@ -103,6 +102,11 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	    Scalar ***rho_real;          //!< density of charge on the mesh
 	    Scalar ***rho_kspace;        //!< density of charge in fourier space
 	    Scalar ***G_Inf;             //!< Precomputed proximity function
+
+		virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
+		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
+		void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
+		virtual void make_rho(void);         //!<Actual function making the charge assignment
 
        	virtual void computeForces(unsigned int timestep); //! Actually compute the forces
 	};
