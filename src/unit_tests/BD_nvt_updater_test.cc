@@ -262,9 +262,9 @@ void bd_updater_lj_tests(nveup_creator nve_creator)
 	
 	// setup a simple initial state
 	for (int j = 0; j < 1000; j++) {
-		arrays.x[j] = (j % 100)*pow(-1,j);
-		arrays.y[j] = (j/100)*pow(-1,j);
-		arrays.z[j] = pow(-1,j);
+		arrays.x[j] = (j % 100)*pow(Scalar(-1.0),Scalar(j));
+		arrays.y[j] = (j/100)*pow(Scalar(-1.0),Scalar(j));
+		arrays.z[j] = pow(Scalar(-1.0),Scalar(j));
 		arrays.vx[j] = 0.0;
 		arrays.vy[j] = 0.0;
 		arrays.vz[j] = 0.0;
