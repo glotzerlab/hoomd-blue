@@ -80,7 +80,7 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
         // get a copy of the simulation box too
 	box = m_pdata->getBox();
 	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
+	assert(box.xhi > box.xlo &&  box.yhi > box.ylo && box.zhi > box.zlo);	
 	
 	// precalculate box lenghts for use in the periodic imaging
 	Lx = box.xhi - box.xlo;
@@ -88,9 +88,9 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	Lz = box.zhi - box.zlo;
 	
 	//Compute lattice spacings along the different directions
-	h_x=S_mesh_x/Lx;
-	h_y=S_mesh_y/Ly;
-	h_z=S_mesh_z/Lz;
+	h_x= S_mesh_x/Lx;
+	h_y= S_mesh_y/Ly;
+	h_z= S_mesh_z/Lz;
 
 	//allocate space for the density and the influence function
 	rho_real=new Scalar**[N_mesh_z];
@@ -158,7 +158,7 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
 
-		Scalar q_i=arrays.charge[i];
+		Scalar q_i= arrays.charge[i];
 
 		//compute the two nearest points on the grid
 
