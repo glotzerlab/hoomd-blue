@@ -93,7 +93,9 @@ typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<ParticleData> pdat
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 	{
-	// check that a stochastic force applied on top of NVE integrator results in a correct diffusion coefficient
+	// check that a Brownian Dynamics integrator results in a correct diffusion coefficient
+	// and correct average temperature.  Change the temperature and gamma and show this produces 
+	// a correct temperature and diffuction coefficent  
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
 	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4));
@@ -205,7 +207,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
 	pdata->release();
 
-    // Setting Gamma to 2.0
+    // Setting Gamma to 0.5
 	cout << "Gamma set at 0.5" << endl;
     bdnvt_up->getForceCompute(0)->setParams(0, Scalar(0.5));
 	
@@ -247,7 +249,84 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
     MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
 	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
 	pdata->release();
-					
+   }
+
+//! Apply the Stochastic BD Bath to 1000 particles ideal gas
+void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator)
+	{
+	// check that a Brownian Dynamics integrator results in a correct diffusion coefficients
+	// and correct average temperature when applied to a population of two different particle types 
+	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
+	//also put everything in a huge box so boundary conditions don't come into play
+	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4));
+	ParticleDataArrays arrays = pdata->acquireReadWrite();
+	
+	// setup a simple initial state
+	for (int j = 0; j < 1000; j++) {
+		arrays.x[j] = 0.0;
+		arrays.y[j] = 0.0;
+		arrays.z[j] = 0.0;
+		arrays.vx[j] = 0.0;
+		arrays.vy[j] = 0.0;
+		arrays.vz[j] = 0.0;
+		if (j < 500) arrays.type[j] = 0;
+		else arrays.type[j] = 1;
+	}
+	
+	pdata->release();
+	
+	Scalar deltaT = Scalar(0.01);
+	Scalar Temp = Scalar(1.0);
+
+
+	cout << endl << "Test 2" << endl;	
+	cout << "Creating an ideal gas of 1000 particles" << endl;
+	cout << "Temperature set at " << Temp << endl;
+		
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT, Temp);
+
+    int i;
+	Scalar AvgT = Scalar(0);
+	Scalar KE;
+
+    // Splitting the Particles in half and giving the two population different gammas..
+	cout << "Two Particle Types: Gamma set at 1.0 and 2.0 respectively" << endl;
+    bdnvt_up->getForceCompute(0)->setParams(0, Scalar(1.0));
+    bdnvt_up->getForceCompute(0)->setParams(1, Scalar(2.0));	
+
+	AvgT = Scalar(0);
+	for (i = 0; i < 50000; i++)
+		{
+		if (i % 100 == 0) {
+			arrays = pdata->acquireReadWrite();
+			KE = Scalar(0);
+			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			// mass = 1.0;  k = 1.0;
+			AvgT += Scalar(2.0)*KE/(3*1000);
+			}
+		pdata->release();
+		bdnvt_up->update(i);
+		}
+	AvgT /= Scalar(50000.0/100.0);
+		
+	arrays = pdata->acquireReadWrite();
+	Scalar MSD1 = Scalar(0);
+	Scalar MSD2 = Scalar(0);
+	Scalar t = Scalar(i) * deltaT;
+
+	for (int j = 0; j < 500; j++) MSD1 += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+	Scalar D1 = MSD1/(6*t*500);
+	for (int j = 500; j < 1000; j++) MSD2 += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+	Scalar D2 = MSD2/(6*t*500);
+
+	cout << "Calculating Diffusion Coefficient 1 and 2 " << endl << D1 << endl << D2 << endl;
+	cout << "Average Temperature " << AvgT << endl;
+
+	//Dividing a very large number by a very large number... not great accuracy!
+    MY_BOOST_CHECK_CLOSE(D1, 1.0, 5);
+    MY_BOOST_CHECK_CLOSE(D2, 0.5, 5);
+	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
+	pdata->release();					
 	}
 	
 //! Apply the Stochastic BD Bath to 1000 LJ Particles
@@ -272,7 +351,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator)
 	
 	Scalar deltaT = Scalar(0.01);
 	Scalar Temp = Scalar(2.0);
-	cout << endl << "Test 2" << endl;
+	cout << endl << "Test 3" << endl;
 	cout << "Creating 1000 LJ particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 	
@@ -357,6 +436,12 @@ BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3);
 	bd_updater_tests(bdnvt_creator);
+	}
+	
+BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
+	{
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3);
+	bd_twoparticles_updater_tests(bdnvt_creator);
 	}
 	
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )

@@ -361,8 +361,10 @@ class bdnvt(_integrator):
 		# initialize the reflected c++ class
 		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
 			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.particle_data, dt, T);
-		#elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-		#	self.cpp_integrator = hoomd.BD_NVTpdaterGPU(globals.particle_data, dt, T); 
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			print "BDNVT on GPU note yet implemented!"
+			raise RuntimeError("Error creating BDNVT integrator");
+			#self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.particle_data, dt, tau, T);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating BD NVT integrator");

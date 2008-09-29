@@ -64,6 +64,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
 #include "LJWallForceCompute.h"
+#include "StochasticForceCompute.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
@@ -80,6 +81,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NVTUpdater.h"
 #include "NPTUpdater.h"
 #include "NVEUpdater.h"
+#include "BD_NVTUpdater.h"
 #include "System.h"
 
 // include GPU classes
@@ -310,6 +312,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_NVTUpdater();
 	export_NPTUpdater();
 	export_NVEUpdater();
+	export_BD_NVTUpdater();
 	#ifdef USE_CUDA
 	export_NVEUpdaterGPU();
 	export_NVTUpdaterGPU();
