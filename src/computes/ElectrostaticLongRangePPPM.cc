@@ -162,13 +162,13 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 
 		//compute the two nearest points on the grid
 
-		Scalar x_floor=floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar x_floor= floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
 		unsigned int ix_floor=static_cast<unsigned int>(x_floor);
 		
-		Scalar y_floor=floor((yi-box.yhi)/h_y);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar y_floor= floor((yi-box.yhi)/h_y);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
 		unsigned int iy_floor=static_cast<unsigned int>(y_floor);
 		
-		Scalar z_floor=floor((zi-box.zhi)/h_z);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar z_floor= floor((zi-box.zhi)/h_z);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
 		unsigned int iz_floor=static_cast<unsigned int>(z_floor);
 
 	    }
