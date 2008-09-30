@@ -36,16 +36,16 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: NVEUpdater.h 1085 2008-09-26 20:22:24Z phillicl $
+// $Id: BD_NVTUpdater.h 1085 2008-07-30 20:22:24Z joaander $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters/BD_NVTUpdater.h $
 
-/*! \file NVEUpdater.h
-	\brief Declares an updater that implements NVE dynamics
+/*! \file BD_NVTUpdater.h
+	\brief Declares an updater that implements BD_NVT dynamics
 */
 
-#include "NVEUpdater.h"
+#include "Updater.h"
 #include "Integrator.h"
-#include <StochasticForceCompute.h>
+#include "StochasticForceCompute.h"
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
@@ -53,24 +53,33 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __BD_NVTUPDATER_H__
 
 //! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant T dynamics, by applying a stochastic heat bath on top of a NVE Simulation
-    Particle positions and velocities are updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
+/*! This updater performes constant N, constant volume, constant energy (BD_NVT) dynamics. Particle positions and velocities are 
+	updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
 	in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on 
 	each particle.
 	
 	\ingroup updaters
 */
-class BD_NVTUpdater : public NVEUpdater
+class BD_NVTUpdater : public Integrator
 	{
 	public:
 		//! Constructor
 		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp);
-				
 		
-		//! Update the temperature
-		/*! \param T New temperature to set
-		*/
-		virtual void setT(Scalar T);
+		//! Resets the Stochastic Bath Temperature
+		void setT(Scalar Temp); 
+
+		//! Resets the Stochastic Bath Temperature
+		void setGamma(unsigned int type, Scalar gamma) {assert(m_bdfc); m_bdfc->setParams(type,gamma);} 
+				
+		//! Sets the movement limit
+		void setLimit(Scalar limit);
+		
+		//! Removes the limit
+		void removeLimit();
+		
+		//! Take one timestep forward
+		virtual void update(unsigned int timestep);
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
@@ -79,8 +88,23 @@ class BD_NVTUpdater : public NVEUpdater
 		virtual Scalar getLogValue(const std::string& quantity);
 		
 	protected:
-    boost::shared_ptr<StochasticForceCompute> m_bdfc;	
-	Scalar m_T;			//!< Temperature set point
+		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
+		bool m_limit;		//!< True if we should limit the distance a particle moves in one step
+		Scalar m_limit_val;	//!< The maximum distance a particle is to move in one step
+		Scalar m_T;			//!< The Temperature of the Stochastic Bath
+		
+		void computeBDAccelerations(unsigned int timestep, const std::string& profile_name);  
+		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
+		
+		#ifdef USE_CUDA 
+		// NOT WRITTEN YET
+		//! helper function to compute accelerations on the GPU
+		//void computeBDAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
+
+		//! Force data pointers on the device
+		//vector<float4 **> m_d_force_data_ptrs;
+
+		#endif
 
 	};
 	

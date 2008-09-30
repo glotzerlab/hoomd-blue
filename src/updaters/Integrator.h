@@ -103,10 +103,7 @@ class Integrator : public Updater
 		
 		//! Add a ForceCompute to the list
 		void addForceCompute(boost::shared_ptr<ForceCompute> fc);
-		
-		//! Return a pointer to a ForceCompute on the list
-		boost::shared_ptr<ForceCompute> getForceCompute(int num) { return m_forces[num]; }
-		
+				
 		//! Removes all ForceComputes from the list
 		void removeForceComputes();
 		

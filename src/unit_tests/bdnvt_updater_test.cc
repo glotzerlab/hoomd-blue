@@ -209,7 +209,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 
     // Setting Gamma to 0.5
 	cout << "Gamma set at 0.5" << endl;
-    bdnvt_up->getForceCompute(0)->setParams(0, Scalar(0.5));
+    bdnvt_up->setGamma(0, Scalar(0.5));
 	
 	//Restoring the position of the particles to the origin for simplicity of calculating diffusion
 	arrays = pdata->acquireReadWrite();
@@ -291,8 +291,8 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator)
 
     // Splitting the Particles in half and giving the two population different gammas..
 	cout << "Two Particle Types: Gamma set at 1.0 and 2.0 respectively" << endl;
-    bdnvt_up->getForceCompute(0)->setParams(0, Scalar(1.0));
-    bdnvt_up->getForceCompute(0)->setParams(1, Scalar(2.0));	
+    bdnvt_up->setGamma(0, Scalar(1.0));
+    bdnvt_up->setGamma(1, Scalar(2.0));	
 
 	AvgT = Scalar(0);
 	for (i = 0; i < 50000; i++)

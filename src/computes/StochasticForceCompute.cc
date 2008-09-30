@@ -177,17 +177,17 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop();
 	}
 
-/*
+
 #ifdef USE_PYTHON
 void export_StochasticForceCompute()
 	{
 	class_<StochasticForceCompute, boost::shared_ptr<StochasticForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("StochasticForceCompute", init< boost::shared_ptr<ParticleData>, Scalar >())
+		("StochasticForceCompute", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
 		.def("setParams", &StochasticForceCompute::setParams)
 		;
 	}
 #endif
-*/
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif

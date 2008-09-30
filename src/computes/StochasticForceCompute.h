@@ -82,11 +82,11 @@ class StochasticForceCompute :	public ForceCompute
 		Scalar * __restrict__ m_gamma;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 	};
 
-/*
+
 #ifdef USE_PYTHON
 //! Exports the StochasticForceCompute class to python
 void export_StochasticForceCompute();
 #endif
-*/
+
 
 #endif

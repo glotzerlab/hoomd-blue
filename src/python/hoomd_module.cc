@@ -284,6 +284,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_HarmonicBondForceCompute();
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
+	export_StochasticForceCompute();
 	export_LJWallForceCompute();
 	export_TempCompute();
 	export_NeighborList();
