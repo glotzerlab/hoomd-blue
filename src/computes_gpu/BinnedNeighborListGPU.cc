@@ -382,7 +382,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
 			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 256));
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 448));
 			}
 		exec_conf.syncAll();
 		
