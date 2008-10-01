@@ -146,11 +146,23 @@ void ElectrostaticLongRangePPPM::make_rho(void)
 
 void ElectrostaticLongRangePPPM::make_rho_even(void)
 {
-	
+	int P_half=static_cast<int>(P_order/2);
+
+	//initialize rho to zero
+    for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
+		rho_real[i][j][k]=0.0;
+	}
+	}
+	}
+
 	// access the particle data
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
 	// sanity check
 	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+
+	//place the continuum charge on the grid
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		// access the particle's position and charge (MEM TRANSFER: 4 Scalars)
@@ -161,8 +173,8 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		Scalar q_i= arrays.charge[i];
 
 		//compute the two nearest points on the grid
-
-		Scalar x_floor= floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+	    
+		Scalar x_floor= floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE   
 		unsigned int ix_floor=static_cast<unsigned int>(x_floor);
 		
 		Scalar y_floor= floor((yi-box.yhi)/h_y);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
@@ -171,10 +183,108 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		Scalar z_floor= floor((zi-box.zhi)/h_z);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
 		unsigned int iz_floor=static_cast<unsigned int>(z_floor);
 
+		unsigned int ind_x=0;
+		unsigned int ind_y=0;
+		unsigned int ind_z=0;
+
+		Scalar dx=xi-x_floor-0.5;
+		Scalar dy=yi-y_floor-0.5;
+		Scalar dz=zi-z_floor-0.5;
+        
+		//take into account boundary conditions
+		for(int lx=-P_half+1;lx<=P_half;lx++){
+				ind_x=ix_floor+lx+((N_mesh_x-ix_floor-lx)/N_mesh_x)*N_mesh_x-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
+        for(int ly=-P_half+1;ly<=P_half;ly++){
+				ind_y=iy_floor+lx+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
+		for(int lz=-P_half+1;lz<=P_half;lz++){
+			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lx)/N_mesh_z)*N_mesh_z-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
+				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx,dx)*Poly(ly,dy)*Poly(lz,dz);
 	    }
+		}
+		}
+	}
+		//The charge is now defined on the grid for P even
 }
 void ElectrostaticLongRangePPPM::make_rho_odd(void)
 {
+	
+    int P_half=static_cast<int>(P_order/2);
+
+	//initialize rho to zero
+    for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
+		rho_real[i][j][k]=0.0;
+	}
+	}
+	}
+
+	// access the particle data
+	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
+	// sanity check
+	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+
+	//place the continuum charge on the grid
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		{
+		// access the particle's position and charge (MEM TRANSFER: 4 Scalars)
+		Scalar xi = arrays.x[i];
+		Scalar yi = arrays.y[i];
+		Scalar zi = arrays.z[i];
+
+		Scalar q_i= arrays.charge[i];
+
+		//compute the nearest point on the grid
+		Scalar x_lat = (xi-box.xhi)/h_x; //MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar x_floor = floor(x_lat);
+		unsigned int ix_lat=static_cast<unsigned int>(x_floor);
+		if((x_lat-x_floor)>0.5) {      //boundary conditions are tricky here
+			ix_lat+=1-((ix_lat+1)/N_mesh_x)*N_mesh_x;
+			x_floor+=1.0;  //note that x_floor has now become x_ceil
+		}
+			
+		Scalar y_lat=(yi-box.yhi)/h_y;  //MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar y_floor= floor(y_lat);
+		unsigned int iy_lat=static_cast<unsigned int>(y_floor);
+		if((y_lat-y_floor)>0.5){          //boundary conditions are tricky here
+			iy_lat+=1-((iy_lat+1)/N_mesh_y)*N_mesh_y;
+			y_floor+=1.0; //note that y_floor has now become y_ceil
+		}
+		
+        Scalar z_lat=(zi-box.zhi)/h_z;  //MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar z_floor= floor(z_lat);
+		unsigned int iz_lat=static_cast<unsigned int>(z_floor);
+		if((z_lat-z_floor)>0.5){            //boundary conditions are tricky here
+			iz_lat+=1-((iz_lat+1)/N_mesh_z)*N_mesh_z;
+			z_floor+=1.0; //note that z_floor has now become z_ceil
+		}
+
+		unsigned int ind_x=0;
+		unsigned int ind_y=0;
+		unsigned int ind_z=0;
+
+		Scalar dx=xi-x_floor;
+		Scalar dy=yi-y_floor;
+		Scalar dz=zi-z_floor;
+        
+		//take into account boundary conditions
+		for(int lx=-P_half;lx<=P_half;lx++){
+				ind_x=ix_lat+lx+((N_mesh_x-ix_lat-lx)/N_mesh_x)*N_mesh_x-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
+        for(int ly=-P_half;ly<=P_half;ly++){
+				ind_y=iy_lat+lx+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
+		for(int lz=-P_half;lz<=P_half;lz++){
+			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lx)/N_mesh_z)*N_mesh_z-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
+				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx,dx)*Poly(ly,dy)*Poly(lz,dz);
+	    }
+		}
+		}
+	}
+
+}
+
+Scalar ElectrostaticLongRangePPPM::Poly(int l,Scalar x)
+{
+	return 1;
 }
 
 void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
