@@ -49,6 +49,7 @@ Integration methods (\link hoomd_script.integrate integrate\endlink):
 
 Change particle or system properties during each time step (\link hoomd_script.update update\endlink):
  - \link hoomd_script.update.rescale_temp update.rescale_temp\endlink - <i>\copybrief hoomd_script::update::rescale_temp </i>
+ - \link hoomd_script.update.zero_momentum update.zero_momentum\endlink - <i>\copybrief hoomd_script::update::zero_momentum </i>
  - \link hoomd_script.update.sort update.sort\endlink - <i>\copybrief hoomd_script::update::sort </i>
 
 Real time analysis of data (\link hoomd_script.analyze analyze\endlink):

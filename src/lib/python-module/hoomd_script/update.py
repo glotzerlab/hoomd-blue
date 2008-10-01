@@ -248,7 +248,7 @@ class sort(_updater):
 # so that they are consistent with a given temperature in the equipartition theorem
 # \f$\langle 1/2 m v^2 \rangle = k_B T \f$. 
 #
-# rescale_temp is best coupled with the \ref integrate.nve "NVE" integrator.
+# update.rescale_temp is best coupled with the \ref integrate.nve "NVE" integrator.
 class rescale_temp(_updater):
 	## Initialize the rescaler
 	#
@@ -295,7 +295,33 @@ class rescale_temp(_updater):
 		if T != None:
 			self.cpp_updater.setT(T);
 
-
+## Zeroes system momentum
+#
+# Every \a period time steps, particle velocities are modified such that the total linear 
+# momentum of the system is set to zero.
+#
+# update.zero_momentum is intended to be used when the \ref integrate.nve "NVE" integrator has the
+# \a limit option specified, where Newton's third law is broken and systems could gain momentum.
+# However, nothing prevents update.zero_momentum from being used in any HOOMD script.
+class zero_momentum(_updater):
+	## Initialize the momentum zeroer
+	#
+	# \param period Momentum will be zeroed every \a period time steps
+	# 
+	# \b Examples:
+	# \code
+	# update.zero_momentum()<br>
+	# zeroer= update.zero_momentum(period=10)
+	# \endcode
+	def __init__(self, period=1):
+		print "update.zero_momentum(period =", period, ")";
+	
+		# initialize base class
+		_updater.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.particle_data);
+		globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
 
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;
