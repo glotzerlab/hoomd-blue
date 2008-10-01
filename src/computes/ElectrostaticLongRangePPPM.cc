@@ -45,6 +45,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // conditionally compile only if a fast fourier transform is defined
 #ifdef USE_FFT
 
+#include <math.h>
+
 #include <iostream>
 using namespace std;
 
