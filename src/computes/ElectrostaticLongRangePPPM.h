@@ -102,12 +102,18 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	    Scalar ***rho_real;          //!< density of charge on the mesh
 	    Scalar ***rho_kspace;        //!< density of charge in fourier space
 	    Scalar ***G_Inf;             //!< Precomputed proximity function
+		Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
 		void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
 		
-		virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
-		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
+		
 		virtual void make_rho(void);         //!<Actual function making the charge assignment
 		virtual Scalar Poly(int n,Scalar x); //<!Polynomial that computes the fraction of charge at point x
+
+		virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
+		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
+		virtual void ComputePolyCoeff(void); //!<Compute the coefficients of the Polynomial (encoded in P_coeff)
+		
+		
 
        	virtual void computeForces(unsigned int timestep); //! Actually compute the forces
 	};

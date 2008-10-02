@@ -112,6 +112,11 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 		G_Inf[i][j]=new Scalar[N_mesh_x];
 	}
 	}
+    
+	// allocate space for polynomial 
+
+	P_coeff=new Scalar*[P_order];
+	for(unsigned int i=0;i<P_order;i++)P_coeff[i]=new Scalar[P_order]; 
 
 	if(P_order%2) make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_odd;
 	else make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_even;
@@ -122,6 +127,8 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	{
 	
+	//deallocate influence function and rho in real and k-space
+
 	for(unsigned int j=0;j<N_mesh_z;j++){
 	for(unsigned int i=0;i<N_mesh_y;i++){
 		delete[] rho_real[i][j];
@@ -139,6 +146,15 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	delete[] rho_real;
 	delete[] rho_kspace;
 	delete[] G_Inf;
+		
+	//deallocate polynomial coefficients
+	
+	for(unsigned int i=0;i<P_order;i++) delete[] P_coeff[i]; 
+
+	delete[] P_coeff;
+	
+
+	
 }
 
 void ElectrostaticLongRangePPPM::make_rho(void)
@@ -200,7 +216,7 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 				ind_y=iy_floor+lx+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
 		for(int lz=-P_half+1;lz<=P_half;lz++){
 			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lx)/N_mesh_z)*N_mesh_z-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx,dx)*Poly(ly,dy)*Poly(lz,dz);
+				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
 	    }
 		}
 		}
@@ -276,7 +292,7 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 				ind_y=iy_lat+lx+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
 		for(int lz=-P_half;lz<=P_half;lz++){
 			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lx)/N_mesh_z)*N_mesh_z-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
-				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx,dx)*Poly(ly,dy)*Poly(lz,dz);
+				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
 	    }
 		}
 		}
@@ -286,9 +302,79 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 
 Scalar ElectrostaticLongRangePPPM::Poly(int l,Scalar x)
 {
-	return 1;
+	Scalar P_res=P_coeff[l][0];
+	Scalar P_pow=1.0;
+
+	for(int i=1;i<static_cast<int>(P_order);i++){
+		for(int j=0;j<i;j++) P_pow*=x;
+		P_res+=P_coeff[l][i]*P_pow;
+	}
+	return P_res;
 }
 
+void ElectrostaticLongRangePPPM::ComputePolyCoeff(void)
+{
+	//This piece of code is not pretty, but gets the job done
+	//It is inspired on a similar routine that exists in LAMMPS
+
+  Scalar s;
+
+  double **a;
+  double **b;
+
+  a=new double*[2*P_order];
+  b=new double*[P_order];
+
+  for(unsigned int i=0;i<2*P_order;i++) a[i]= new double[P_order];
+  
+  for(unsigned int i=0;i<P_order;i++) b[i]= new double[P_order];
+  
+
+  for (int k = -static_cast<int>(P_order); k <= static_cast<int>(P_order); k++) 
+    for (int l = 0; l < static_cast<int>(P_order); l++)
+      a[l][k+P_order] = 0.0;
+        
+  a[0][P_order] = 1.0;
+  for (int j = 1; j < static_cast<int>(P_order); j++) {
+    for (int k = -j; k <= j; k += 2) {
+      s = 0.0;
+      for (int l = 0; l < j; l++) {
+	a[l+1][k+P_order] = (a[l][k+1+P_order]-a[l][k-1+P_order]) / (l+1);
+	s += pow(0.5,(double) l+1) * 
+	  (a[l][k-1+P_order] + pow(-1.0,(double) l) * a[l][k+1+P_order]) / (l+1);
+      }
+      a[0][k+P_order] = s;
+    }
+  }
+
+  int m = (1-static_cast<int>(P_order))/2;
+  
+  int i_add=0;
+  if(!(P_order%2)) i_add=1;
+  for (int k = -(static_cast<int>(P_order)-1); k < static_cast<int>(P_order); k+=2) {
+	  for (int l = 0; l < static_cast<int>(P_order); l++){
+	  b[(k+i_add)/2+P_order/2-i_add][l]=a[l][k+P_order];
+	  }
+    m++;
+  }
+	//The b coefficients are not in the right order, this is why we need to reverse them
+
+	for(unsigned int j1=0;j1<P_order;j1++){
+	  for(unsigned int j2=0;j2<P_order;j2++){
+		  P_coeff[P_order-j1-1][j2]=b[j1][j2];
+		  }
+		}
+
+  //clean up the mess, and it is a mess
+  
+  for(unsigned int i=0;i<2*P_order;i++) delete[] a[i];
+  
+  for(unsigned int i=0;i<P_order;i++) delete[] b[i];
+
+  delete[] a;
+  delete[] b;
+  
+}
 void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	{
 	// start the profile
