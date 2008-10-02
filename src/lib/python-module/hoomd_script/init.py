@@ -191,7 +191,8 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # -	\a bond_len defines the %bond length of the generated polymers. This should 
 # 	not necesarily be set to the equilibrium %bond length! The generator is dumb and doesn't know
 # 	that bonded particles can be placed closer together than the separation (see below). Thus
-# 	\a bond_len must be at a minimum set at the sum of the two largest separation radii.
+# 	\a bond_len must be at a minimum set at twice the value of the largest separation radius. An 
+# 	error will be generated if this is not the case.
 # -	\a type is a python list of strings. Each string names a particle type in the order that
 # 	they will be created in generating the polymer.
 # -	\a %bond can be specified as "linear" in which case the generator connects all particles together
@@ -266,6 +267,9 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	# make a list of types used for an eventual check vs the types in separation for completeness
 	types_used = [];
 	
+	# track the minimum bond length
+	min_bond_len = None;
+	
 	# build the polymer generators
 	for poly in polymers:
 		type_list = [];
@@ -273,6 +277,12 @@ def create_random_polymers(box, polymers, separation, seed=1):
 		if not 'bond_len' in poly:
 			print >> sys.stderr, '\n***Error! Polymer specification missing bond_len\n';
 			raise RuntimeError("Error creating random polymers");
+		
+		if min_bond_len == None:
+			min_bond_len = poly['bond_len'];
+		else:
+			min_bond_len = min(min_bond_len, poly['bond_len']);
+		
 		if not 'type' in poly:
 			print >> sys.stderr, '\n***Error! Polymer specification missing type\n';
 			raise RuntimeError("Error creating random polymers");
@@ -315,9 +325,13 @@ def create_random_polymers(box, polymers, separation, seed=1):
 			print >> sys.stderr, "\n***Error! No separation radius specified for type ", t, "\n";
 			raise RuntimeError("Error creating random polymers");
 			
-	# set the separation radii
+	# set the separation radii, checking that it is within the minimum bond length
 	for t,r in separation.items():
 		generator.setSeparationRadius(t, r);
+		if 2*r >= min_bond_len:
+			print >> sys.stderr, "\n***Error! Separation radius", r, "is too big for the minimum bond length of", min_bond_len, "specified\n";
+			raise RuntimeError("Error creating random polymers");
+		
 	
 	# name the bond type
 	generator.setBondType('polymer');
