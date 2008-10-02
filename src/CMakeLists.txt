@@ -101,6 +101,8 @@ include (CMakeCUDASetup.txt)
 include (CMakeCFlagsSetup.txt)
 # Configure some source files, include directories, and create variables listing all source files
 include (CMakeSRCSetup.txt)
+# Configure the FFT libraries
+include (CMakeFFTSetup.txt)
 
 #################################
 ## Name the output targets

@@ -81,11 +81,11 @@ if (NOT USE_STATIC)
 	# link the library to its dependancies (but only on non win32 since the linking
 	# is automatic there
 	if(NOT WIN32)
-		target_link_libraries(${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${PYTHON_LIBRARIES})
+		target_link_libraries(${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${PYTHON_LIBRARIES} ${FFTW_LIBRARAY})
 	endif(NOT WIN32)
 
 	if(WIN32)
-		target_link_libraries(${HOOMD_PYTHON_MODULE} ${WINSOCK_LIB})
+		target_link_libraries(${HOOMD_PYTHON_MODULE} ${WINSOCK_LIB} ${FFTW_LIBRARAY})
 	endif(WIN32)
 	# tweak the properties of the output to make a more useful python module
 	set_target_properties(${HOOMD_PYTHON_MODULE} PROPERTIES PREFIX "" OUTPUT_NAME "hoomd")
@@ -130,9 +130,9 @@ endif (UNIX AND NOT APPLE)
 # setup the libraries to link to
 # only add the boost library if not win32, since it provides an auto-linking mechanism
 if (WIN32)
-    set(LIBS ${HOOMD_PYTHON_MODULE} ${WINSOCK_LIB} ${PYTHON_LIBRARIES})
+    set(LIBS ${HOOMD_PYTHON_MODULE} ${WINSOCK_LIB} ${PYTHON_LIBRARIES} ${FFTW_LIBRARAY})
 else (WIN32)
-    set(LIBS ${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${PYTHON_LIBRARIES} ${ADDITIONAL_LIBS})
+    set(LIBS ${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${PYTHON_LIBRARIES} ${FFTW_LIBRARAY} ${ADDITIONAL_LIBS})
 endif (WIN32)
 
 # setup the python runner executable

@@ -53,8 +53,11 @@ else (WIN32)
 	if(Boost_SYSTEM_LIBRARY)
 		set(LIBS ${LIBS} ${Boost_SYSTEM_LIBRARY})
 	endif(Boost_SYSTEM_LIBRARY)
-
 endif (WIN32)
+
+if (FFTW_LIBRARY)
+	set(LIBS ${LIBS} ${FFTW_LIBRARAY})
+endif (FFTW_LIBRARY)
 
 ####################################
 ## Setup valgrind options

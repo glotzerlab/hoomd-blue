@@ -37,6 +37,8 @@
 # $Id$
 # $URL$
 
+if (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
+
 set(CPACK_DESCRIPTION_SUMMARY "Highly Optimized Object Oriented Molecular Dynamics")
 set(CPACK_PACKAGE_VENDOR "Ames Laboratory Iowa State University")
 set(CPACK_PACKAGE_VERSION_MAJOR ${HOOMD_VERSION_MAJOR})
@@ -105,3 +107,5 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/i386" ${CMAKE_MODULE_PATH})
 endif (CMAKE_CL_64)
 
 include(CPack)
+
+endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
