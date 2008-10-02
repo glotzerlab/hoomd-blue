@@ -353,10 +353,8 @@ void System::run(unsigned int nsteps)
 	m_end_tstep = m_cur_tstep + nsteps;
 	
 	// initialize the last status time
-	m_last_status_time = 0;
-	
-	// start counting time
-	m_clk = ClockSource();
+	int64_t initial_time = m_clk.getTime();
+	m_last_status_time = initial_time;
 	setupProfiling();
 	
 	if (!m_integrator)
@@ -407,7 +405,7 @@ void System::run(unsigned int nsteps)
 	m_last_status_tstep = m_cur_tstep;
 
 	// calculate averate TPS
-	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime()) * Scalar(1e9);
+	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
 	cout << "Average TPS: " << TPS << endl;
 	m_last_TPS = TPS;
 		
