@@ -55,7 +55,7 @@ if (USE_FFTW)
 	endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
 	
 	# setup the FFTW search directories based on a FFTW root dir specified in CMake
-	set(FFTW_ROOT "" CACHE FILEPATH "Root directory containing FFTW")
+	set(FFTW_ROOT "" CACHE PATH "Root directory containing FFTW")
 	set(FFTW_INCLUDE_SEARCH_DIRS
 		${FFTW_ROOT}
 		${FFTW_ROOT}/include
