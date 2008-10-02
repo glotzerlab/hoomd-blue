@@ -8,6 +8,8 @@ from hoomd_script import *
 init.create_random(N=64000, phi_p=0.2)
 lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+nlist.set_params(check_period=10)
+
 integrate.nvt(dt=0.005, T=1.2, tau=0.5)
 
 # warm up run

@@ -382,7 +382,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
 			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 448));
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 256));
 			}
 		exec_conf.syncAll();
 		
@@ -409,7 +409,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 			
 		while (overflow)
 			{
-			int new_height = m_gpu_nlist[0].height * 2;
+			int new_height = (int)(Scalar(m_gpu_nlist[0].height) * 1.2);
 			cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
 			freeGPUData();
 			allocateGPUData(new_height);

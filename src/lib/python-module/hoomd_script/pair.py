@@ -290,14 +290,14 @@ class nlist:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating neighbor list");
 			
-		self.cpp_nlist.setEvery(10);
+		self.cpp_nlist.setEvery(1);
 		self.cpp_nlist.copyExclusionsFromBonds();
 		
 		globals.system.addCompute(self.cpp_nlist, "auto_nlist");
 		
 		# save the parameters we set
 		self.r_cut = r_cut;
-		self.r_buff = 0.8;
+		self.r_buff = default_r_buff;
 		
 	## Change neighbor list parameters
 	# 
@@ -314,8 +314,13 @@ class nlist:
 	#
 	# As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
 	# no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
-	# the neighbor list may not be updated when it needs to be. The default of 10 is appropriate for 
-	# Lennard-Jones liquid simulations at reduced T=1.2. \a check_period should be set so that no particle
+	# the neighbor list may not be updated when it needs to be. 
+	#
+	# For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
+	# needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
+	# of approximately 2 percent.
+	#
+	# \a check_period should be set so that no particle
 	# moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
 	# \b build is counted and printed in the neighbor list statistics at the end of a run().
 	#
