@@ -113,7 +113,11 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	}
 	}
     
-	// allocate space for polynomial 
+    // allocate space for polynomial needed to compute the influence function
+
+	Denom_Coeff=new Scalar[P_order];
+
+	// allocate space for polynomial need to compute the charge distribution on the grid
 
 	P_coeff=new Scalar*[P_order];
 	for(unsigned int i=0;i<P_order;i++)P_coeff[i]=new Scalar[P_order]; 
@@ -153,6 +157,7 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 
 	delete[] P_coeff;
 	
+	delete[] Denom_Coeff;
 
 	
 }
@@ -302,13 +307,12 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 
 Scalar ElectrostaticLongRangePPPM::Poly(int l,Scalar x)
 {
-	Scalar P_res=P_coeff[l][0];
-	Scalar P_pow=1.0;
+	Scalar P_res=0;
 
-	for(int i=1;i<static_cast<int>(P_order);i++){
-		for(int j=0;j<i;j++) P_pow*=x;
-		P_res+=P_coeff[l][i]*P_pow;
+	for(int i=static_cast<int>(P_order)-1;i>=0;i--){
+		P_res+=P_coeff[l][i]+x*P_res;
 	}
+
 	return P_res;
 }
 
@@ -357,7 +361,7 @@ void ElectrostaticLongRangePPPM::ComputePolyCoeff(void)
 	  }
     m++;
   }
-	//The b coefficients are not in the right order, this is why we need to reverse them
+   //The b coefficients are not in the right order, this is why we need to reverse them
 
 	for(unsigned int j1=0;j1<P_order;j1++){
 	  for(unsigned int j2=0;j2<P_order;j2++){
@@ -375,6 +379,71 @@ void ElectrostaticLongRangePPPM::ComputePolyCoeff(void)
   delete[] b;
   
 }
+
+void ElectrostaticLongRangePPPM::Compute_G(void)
+{
+
+}
+
+Scalar ElectrostaticLongRangePPPM::Denominator_G(Scalar xsi,Scalar ysi,Scalar zsi)
+{
+	//Computation of the denominator of the influence function, excluding the derivative square term
+	//                   inf           P_order-1
+	//we need to compute Sum W(k+pi*j)^2=Sum b(l)*sin(k*h/2)^(2l) 
+	//                   j=-inf          l=0
+	//The coefficients b(l)=Denom_Coeff[l] are defined in another routine
+	//the variable xsi,ysi,zsi are xsi=sin(k_x*h_x/2),ysi=sin(k_y*h_y/2),zsi=sin(k_z*h_z/2)
+	
+	Scalar s_x=0;
+	Scalar s_y=0;
+	Scalar s_z=0;
+
+	for(unsigned int j=P_order-1;j>=0;j--){
+		s_x=Denom_Coeff[j]+s_x*xsi;
+		s_y=Denom_Coeff[j]+s_y*ysi;
+		s_z=Denom_Coeff[j]+s_z*ysi;
+	}
+
+	return s_x*s_x*s_y*s_y*s_z*s_z;
+}
+
+vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scalar kz)
+{
+	//Arguments kx,ky,kz are the k-space vectors
+	//Numerator of the influence function
+	 
+	vector<Scalar> DG(3);
+	//define the return type
+
+	//The Numerator is calculated with double precision
+
+
+
+	return DG;
+}
+
+void ElectrostaticLongRangePPPM::Denominator_Poly_G(void)
+{
+	//The coefficients Denom_Coeff are computed from the recurrence relation 
+	//
+	//
+	for(int l=0;l<static_cast<int>(P_order);l++) Denom_Coeff[l]=0.0;
+	Denom_Coeff[0]=1;
+
+	for(int j=1;j<static_cast<int>(P_order);j++){
+		for(int l=j;l>0;l++) Denom_Coeff[l]=4.0*(Denom_Coeff[l]*(l-j)*(l-j-0.5)-Denom_Coeff[l-1]*(l-j-1)*(l-j-1));//CHECK THIS
+		Denom_Coeff[0]=4.0*j*(j+0.5)*Denom_Coeff[0];//CHECK THIS
+	}
+
+	//There is a 1/(2P_order-1)! coefficient to be added
+
+	unsigned int ifact=1;
+	for(unsigned int j=1;j<2*P_order;j++) ifact*=j;
+	Scalar g_coeff=1/static_cast<Scalar>(ifact);
+
+	for(unsigned int j=0;j<P_order;j++) Denom_Coeff[j]*=g_coeff;
+}
+
 void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	{
 	// start the profile

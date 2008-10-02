@@ -41,6 +41,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_FFT
 
 #include <boost/shared_ptr.hpp>
+#include <vector>
+
+using namespace std;
 
 #include "ForceCompute.h"
 
@@ -100,11 +103,11 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	    Scalar h_y;                  //!< Spacing along the y axis
 	    Scalar h_z;                  //!< Spacing along the z axis
 	    Scalar ***rho_real;          //!< density of charge on the mesh
-	    Scalar ***rho_kspace;        //!< density of charge in fourier space
+	    Scalar ***rho_kspace;        //!< density of charge in Fourier space
 	    Scalar ***G_Inf;             //!< Precomputed proximity function
 		Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
 		void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
-		
+		Scalar *Denom_Coeff;         //!< Coefficients of the polynomial to compute the denominator of the influence function
 		
 		virtual void make_rho(void);         //!<Actual function making the charge assignment
 		virtual Scalar Poly(int n,Scalar x); //<!Polynomial that computes the fraction of charge at point x
@@ -113,7 +116,10 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
 		virtual void ComputePolyCoeff(void); //!<Compute the coefficients of the Polynomial (encoded in P_coeff)
 		
-		
+		virtual void Compute_G(void);        //!<Compute the influence function
+		virtual Scalar Denominator_G(Scalar x,Scalar y,Scalar z); //!< Denominator of the influence function (without the derivative square)
+		virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z); //<!Numerator of the influence function (without the derivative);
+		void Denominator_Poly_G(void);       //!<Compute the coefficients of the Polynomial Denom_Coeff
 
        	virtual void computeForces(unsigned int timestep); //! Actually compute the forces
 	};
