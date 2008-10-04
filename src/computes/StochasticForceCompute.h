@@ -58,7 +58,7 @@ class StochasticForceCompute :	public ForceCompute
 	{
 	public:
 		//! Constructor
-		StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp);
+		StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
 
 		//! Destructor
 		~StochasticForceCompute();
@@ -78,7 +78,7 @@ class StochasticForceCompute :	public ForceCompute
 
 		Scalar m_T;			//!< Temperature of the bath
 		Scalar m_dt;      //!< friction coefficient of the bath
-		
+		unsigned int m_ntypes; //!< Store the number of particle types
 		Scalar * __restrict__ m_gamma;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 	};
 

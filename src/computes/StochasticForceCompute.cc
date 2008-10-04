@@ -65,8 +65,9 @@ using namespace std;
 /*! \param pdata ParticleData to compute forces on
 	\param Temp Temperature of the bath of random particles
 	\param deltaT Length of the computation timestep
+	\param seed	Seed for initializing the RNG
 */
-StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp):
+StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed):
 ForceCompute(pdata), m_T(Temp), m_dt(deltaT)
 	{
 	if (m_T <= 0.0)
@@ -76,18 +77,21 @@ ForceCompute(pdata), m_T(Temp), m_dt(deltaT)
 		}
 		
 	// initialize the number of types value
-	unsigned int ntypes = m_pdata->getNTypes();
-	assert(ntypes > 0);
+	m_ntypes = m_pdata->getNTypes();
+	assert(m_ntypes > 0);
 	
 	// allocate memory for friction coefficients
-	m_gamma = new Scalar[ntypes]; 
+	m_gamma = new Scalar[m_ntypes]; 
 	
 	// sanity check
 	assert(m_gamma != NULL);
 	
 	// initialize the parameters to 1;
-	//memset((void *)m_gamma, Scalar(1),sizeof(Scalar)*ntypes);
-	for (unsigned int i = 0; i < ntypes; i++) m_gamma[i] = Scalar(1.0);
+	//memset((void *)m_gamma, Scalar(1),sizeof(Scalar)*m_ntypes);
+	for (unsigned int i = 0; i < m_ntypes; i++) m_gamma[i] = Scalar(1.0);
+
+    // seed the RNG
+	srand(seed);
 	}
 
 /*! Frees used memory
@@ -177,17 +181,17 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop();
 	}
 
-
+/*
 #ifdef USE_PYTHON
 void export_StochasticForceCompute()
 	{
 	class_<StochasticForceCompute, boost::shared_ptr<StochasticForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("StochasticForceCompute", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		("StochasticForceCompute", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, unsigned int >())
 		.def("setParams", &StochasticForceCompute::setParams)
 		;
 	}
 #endif
-
+*/
 #ifdef WIN32
 #pragma warning( pop )
 #endif
