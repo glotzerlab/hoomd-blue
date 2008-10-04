@@ -127,8 +127,6 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
 	m_lj2[type] = lj2;
 	m_lj3[type] = lj3;
 
-	cout << "Setting FENE bond " << type << "to parameters " << K << " " << r_0 << " " << lj1 << " " << lj2 << " " << lj3 << endl;
-
 	// check for some silly errors a user could make 
 	if (K <= 0)
 		cout << "***Warning! K <= 0 specified for fene bond" << endl;
