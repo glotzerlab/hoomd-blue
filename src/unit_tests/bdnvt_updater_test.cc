@@ -55,7 +55,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "StochasticForceCompute.h"
+//#include "StochasticForceCompute.h"
 #include "BD_NVTUpdater.h"
 #ifdef USE_CUDA
 #include "NVEUpdaterGPU.h"
@@ -88,7 +88,7 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp)> bdnvtup_creator;
+typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)> bdnvtup_creator;
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(bdnvtup_creator bdnvt_creator)
@@ -120,7 +120,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 	cout << "Creating an ideal gas of 1000 particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 		
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT, Temp);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT, Temp, 123);
 
     int i;
 	Scalar AvgT = Scalar(0);
@@ -283,7 +283,7 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator)
 	cout << "Creating an ideal gas of 1000 particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 		
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT, Temp);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT, Temp, 268);
 
     int i;
 	Scalar AvgT = Scalar(0);
@@ -355,7 +355,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator)
 	cout << "Creating 1000 LJ particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 	
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT,Temp);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT,Temp, 358);
 
 	shared_ptr<NeighborList> nlist(new NeighborList(pdata, Scalar(1.3), Scalar(3.0)));
 	shared_ptr<LJForceCompute> fc3(new LJForceCompute(pdata, nlist, Scalar(1.3)));
@@ -425,28 +425,28 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator)
 
 	
 //! BD_NVTUpdater factory for the unit tests
-shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp)
+shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)
 	{
-	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(pdata, deltaT, Temp));
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(pdata, deltaT, Temp, seed));
 	}
 		
 	
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
-	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3);
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
 	bd_updater_tests(bdnvt_creator);
 	}
 	
 BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
 	{
-	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3);
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
 	bd_twoparticles_updater_tests(bdnvt_creator);
 	}
 	
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	{
-	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3);
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
 	bd_updater_lj_tests(bdnvt_creator);
 	}
 
