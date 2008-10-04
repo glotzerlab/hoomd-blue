@@ -79,13 +79,13 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<ParticleData>
 		throw std::runtime_error("Error initializing BondForceComputeGPU");
 		}
 	
-	// allocate and zero device memory
+	// allocate and zero device memory for K, R0 parameters
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params), m_bond_data->getNBondTypes()*sizeof(float2)));
-	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float2)));
+	exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params), m_bond_data->getNBondTypes()*sizeof(float4)));
+	exec_conf.gpu[0]->call(bind(cudaMemset, (void*)m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float4)));
 	
-	m_host_params = new float2[m_bond_data->getNBondTypes()];
-	memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float2));
+	m_host_params = new float4[m_bond_data->getNBondTypes()];
+	memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
 	}
 	
 FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
@@ -95,7 +95,7 @@ FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(cudaFree, (void*)m_gpu_params));
 	m_gpu_params = NULL;
-	
+		
 	// free memory on the CPU
 	delete[] m_host_params;
 	m_host_params = NULL;
@@ -104,21 +104,24 @@ FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
 /*! \param type Type of the bond to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param r_0 Equilibrium length for the force computation
+	\param lj1 First parameter used to calcluate forces
+	\param lj2 Second parameter used to calculate forces
+	\param lj3 Third parameter used to calculate energy	
 	
 	Sets parameters for the potential of a particular bond type and updates the 
 	parameters on the GPU.
 */
-void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0)
+void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar lj1, Scalar lj2, Scalar lj3)
 	{
-	FENEBondForceCompute::setParams(type, K, r_0);
+	FENEBondForceCompute::setParams(type, K, r_0, lj1, lj2, lj3);
 	
 	// update the local copy of the memory
-	m_host_params[type] = make_float2(K, r_0);
+	m_host_params[type] = make_float4(K, r_0, lj1, lj2);
 	
 	// copy the parameters to the GPU
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float4), cudaMemcpyHostToDevice));
 	}
 
 /*! Internal method for computing the forces on the GPU. 

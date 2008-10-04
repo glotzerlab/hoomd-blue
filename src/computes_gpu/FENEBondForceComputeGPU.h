@@ -62,7 +62,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	interface as BondForceCompute so that they can be used interchangably. 
 	
 	Per-type parameters are stored in a simple global memory area pointed to by
-	\a m_gpu_params. They are stored as float2's with the \a x component being K and the
+	\a m_gpu_params. They are stored as float4's with the \a x component being K and the
 	\a y component being r_0.
 	
 	\b Developer information: <br>
@@ -85,13 +85,13 @@ class FENEBondForceComputeGPU : public FENEBondForceCompute
 		void setBlockSize(int block_size) { m_block_size = block_size; }
 		
 		//! Set the parameters
-		virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
-		
+		virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar lj1, Scalar lj2, Scalar lj3);
+				
 	protected:
 		int m_block_size;		//!< Block size to run calculation on
-		float2 *m_gpu_params;	//! Parameters stored on the GPU
-		float2 *m_host_params;	//! Host parameters
-		
+		float4 *m_gpu_params;	//! Parameters stored on the GPU
+		float4 *m_host_params;	//! Host parameters
+				
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
 	};
