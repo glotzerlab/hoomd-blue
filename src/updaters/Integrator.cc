@@ -123,7 +123,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 		
 			// fill out the memory on the host
 			// this only needs to be done once since the output of acquireGPU is
-			// guarunteed not to change later
+			// guaranteed not to change later
 			float4 *h_force_data_ptrs[32];
 			for (int i = 0; i < 32; i++)
 				h_force_data_ptrs[i] = NULL;

@@ -56,12 +56,25 @@ using namespace boost::python;
 #include "BD_NVTUpdater.h"
 #include <math.h>
 
+#include <boost/bind.hpp>
+
+#ifdef USE_CUDA
+#include "gpu_integrator.h"
+#endif
+
+
 using namespace std;
 
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
 */
-BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp) : Integrator(pdata, deltaT), m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp),m_bdfc(new StochasticForceCompute(pdata, deltaT, m_T))
+BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : Integrator(pdata, deltaT), 
+	m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp), 
+	#ifdef USE_CUDA
+	m_bdfc(new StochasticForceComputeGPU(pdata, deltaT, m_T, seed))
+	#else
+	m_bdfc(new StochasticForceCompute(pdata, deltaT, m_T, seed))
+	#endif
 	{
 	cout << "Adding on Stochastic Bath with deltaT = " << deltaT << " and Temp  = " << m_T << endl; 	
 	}
@@ -389,8 +402,8 @@ void BD_NVTUpdater::computeBDAccelerations(unsigned int timestep, const std::str
 		design the integrator to use sum_accel=false and perform the sum in the integrator using
 		integrator_sum_forces_inline()
 */
-// NOT WRITTEN YET
-/*
+
+
 void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::string& profiler_name, bool sum_accel)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -400,6 +413,11 @@ void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::
 		throw runtime_error("Error computing accelerations");
 		}
 	
+		//handle the gpu stochastic forcecompute
+		assert(m_bdfc);
+		m_bdfc->compute(timestep);		
+		m_bdfc->acquireGPU();
+
 	// compute the forces
 	for (unsigned int i = 0; i < m_forces.size(); i++)
 		{
@@ -426,14 +444,15 @@ void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
 			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(bind(integrator_sum_forces, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size()));
+			exec_conf.gpu[cur_gpu]->callAsync(boost::bind(integrator_sum_forces, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size() + 1));
 			}
 			
 		exec_conf.syncAll();
 			
 		// done
 		m_pdata->release();
-		
+
+//NEED TO HANDLE PROFILING CORRECTLY (i.e. add Stochastic part)		
 		if (m_prof)
 			{
 			m_prof->pop(exec_conf, 6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(1+m_forces.size()));
@@ -441,7 +460,7 @@ void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::
 			}
 		}
 	}
-*/
+
 #endif
 	
 	
@@ -449,7 +468,7 @@ void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::
 void export_BD_NVTUpdater()
 	{
 	class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<Integrator>, boost::noncopyable>
-		("BD_NVTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		("BD_NVTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, unsigned int >())
 		.def("setGamma", &BD_NVTUpdater::setGamma)
 		.def("setT", &BD_NVTUpdater::setT)
 		.def("setLimit", &BD_NVTUpdater::setLimit)

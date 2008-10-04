@@ -46,6 +46,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Updater.h"
 #include "Integrator.h"
 #include "StochasticForceCompute.h"
+#ifdef USE_CUDA
+#include "StochasticForceComputeGPU.h"
+#endif
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
@@ -64,7 +67,7 @@ class BD_NVTUpdater : public Integrator
 	{
 	public:
 		//! Constructor
-		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp);
+		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
 		
 		//! Resets the Stochastic Bath Temperature
 		void setT(Scalar Temp); 
@@ -94,16 +97,19 @@ class BD_NVTUpdater : public Integrator
 		Scalar m_T;			//!< The Temperature of the Stochastic Bath
 		
 		void computeBDAccelerations(unsigned int timestep, const std::string& profile_name);  
-		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
 		
 		#ifdef USE_CUDA 
-		// NOT WRITTEN YET
 		//! helper function to compute accelerations on the GPU
-		//void computeBDAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
+		void computeBDAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
 
 		//! Force data pointers on the device
-		//vector<float4 **> m_d_force_data_ptrs;
-
+		vector<float4 **> m_d_force_data_ptrs;
+		
+		//! The GPU version of the StochasticForceCompute
+		boost::shared_ptr<StochasticForceComputeGPU> m_bdfc;
+		#else
+		//! The CPU version of the StochasticForceCompute
+		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
 		#endif
 
 	};
