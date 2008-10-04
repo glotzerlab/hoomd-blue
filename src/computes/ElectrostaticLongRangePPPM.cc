@@ -44,8 +44,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // conditionally compile only if a fast fourier transform is defined
 #ifdef USE_FFT
-
+#define _USE_MATH_DEFINES
 #include <math.h>
+
+#include <boost/math/special_functions/sinc.hpp>
 
 #include <iostream>
 using namespace std;
@@ -382,6 +384,24 @@ void ElectrostaticLongRangePPPM::ComputePolyCoeff(void)
 
 void ElectrostaticLongRangePPPM::Compute_G(void)
 {
+	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
+		G_Inf[i][j][k]=0.0;
+	}
+	}
+	}
+    
+	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
+		G_Inf[i][j][k]=0.0;
+	}
+	}
+	}
+
+
+
 
 }
 
@@ -415,9 +435,53 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 	vector<Scalar> DG(3);
 	//define the return type
 
-	//The Numerator is calculated with double precision
+	for(int j=0;j<3;j++) DG[j]=0.0;
+
+	//The number of terms to be added are calculated with more precision than e-10
+	//This is way more than needed, but given that this function is precomputed it does
+	//not cause any overhead in the calculation.
+
+	int n_x=static_cast<int>(m_alpha*h_x*sqrt(10*log(10.0))/3.16)+1;
+	int n_y=static_cast<int>(m_alpha*h_y*sqrt(10*log(10.0))/3.16)+1;
+	int n_z=static_cast<int>(m_alpha*h_z*sqrt(10*log(10.0))/3.16)+1;
+
+	//we will use double precision and then cast it to Scalar
+
+	double kx_n,ky_n,kz_n,k_mod;
+	double skx,sky,skz,sk_all;
+	double D_exp;
+	double D_cum_x=0.0;
+	double D_cum_y=0.0;
+	double D_cum_z=0.0;
+
+	
+	for(int j_x=-n_x;j_x<=n_x;j_x++){
+		kx_n=kx+2*j_x*M_PI/h_x;
+		skx=pow(boost::math::sinc_pi(kx_n*h_x/2.0),static_cast<int>(2*P_order));
+		for(int j_y=-n_y;j_y<=n_y;j_y++){
+			ky_n=ky+2*j_y*M_PI/h_y;
+			sky=pow(boost::math::sinc_pi(ky_n*h_y/2.0),static_cast<int>(2*P_order));
+			for(int j_z=-n_z;j_z<=n_z;j_z++){
+						kz_n=kz+2*j_z*M_PI/h_z;
+						skz=pow(boost::math::sinc_pi(kz_n*h_z/2.0),static_cast<int>(2*P_order));
+					
+						sk_all=skx*sky*skz;
+						k_mod=kx_n*kx_n+ky_n*ky_n+kz_n*kz_n;
+						
+						D_exp=4*M_PI*exp(-k_mod/(4*m_alpha*m_alpha));
+
+						D_cum_x+=D_exp*sk_all/k_mod;
+						D_cum_y+=D_exp*sk_all/k_mod;
+						D_cum_z+=D_exp*sk_all/k_mod;
 
 
+										}
+									}
+								}
+
+						DG[0]=static_cast<Scalar>(D_cum_x);
+						DG[1]=static_cast<Scalar>(D_cum_y);
+						DG[2]=static_cast<Scalar>(D_cum_z);
 
 	return DG;
 }
