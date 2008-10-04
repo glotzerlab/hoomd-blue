@@ -352,15 +352,15 @@ class bdnvt(_integrator):
 	# integrator = integrate.bdnvt(dt=5e-3, T=1.0)
 	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01)
 	# \endcode
-	def __init__(self, dt, T, limit=None):
-		print "integrate.bdnvt(dt=", dt, ", T=", T," limit=", limit, ")";
+	def __init__(self, dt, T, limit=None, seed=0):
+		print "integrate.bdnvt(dt=", dt, ", T=", T," limit=", limit, ", seed = ", seed, ")";
 		
 		# initialize base class
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
 		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.particle_data, dt, T);
+			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.particle_data, dt, T, seed);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			print "BDNVT on GPU note yet implemented!"
 			raise RuntimeError("Error creating BDNVT integrator");
@@ -371,7 +371,7 @@ class bdnvt(_integrator):
 		
 		# set the limit
 		if limit != None:
-			self.cpp_integrator.setLimit(limit);
+			self.cpp_integrator.setLimit(limit);	
 		
 		globals.system.setIntegrator(self.cpp_integrator);
 	

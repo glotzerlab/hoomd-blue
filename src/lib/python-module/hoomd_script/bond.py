@@ -39,6 +39,7 @@
 
 import force;
 import globals;
+import math;
 import hoomd;
 import sys;
 
@@ -192,6 +193,8 @@ class fene(force._force):
 	# \param bond_type Bond type to set coefficients for
 	# \param k Coefficient \f$ k \f$ in the %force
 	# \param r0 Coefficient \f$ r_0 \f$ in the %force
+	# \param epsilon Coefficient \f$ epsilon \f$ in the %force
+	# \param sigma Coefficient \f$ sigma \f$ in the %force
 	#
 	# Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
 	# \code
@@ -200,17 +203,20 @@ class fene(force._force):
 	#
 	# \b Examples:
 	# \code
-	# fene.set_coeff('polymer', k=30.0, r0=1.5)
-	# fene.set_coeff('backbone', k=100.0, r0=1.0)
+	# fene.set_coeff('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon= 2.0)
+	# fene.set_coeff('backbone', k=100.0, r0=1.0, sigma=1.0, epsilon= 2.0)
 	# \endcode
 	#
 	# The coefficients for every %bond type in the simulation must be set 
 	# before the run() can be started.
-	def set_coeff(self, bond_type, k, r0):
-		print "fene.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ")";
+	def set_coeff(self, bond_type, k, r0, sigma, epsilon):
+		print "fene.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ", sigma =", sigma, ", epsilon=", epsilon, ")";
 		
+		lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+		lj2 = 4.0 * epsilon * math.pow(sigma, 6.0);		 
+		lj3 = epsilon;
 		# set the parameters for the appropriate type
-		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0);
+		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0, lj1, lj2, lj3);
 		
 		# track which particle types we have set
 		if not bond_type in self.bond_types_set:
