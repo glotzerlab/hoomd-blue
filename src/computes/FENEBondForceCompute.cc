@@ -66,7 +66,7 @@ using namespace std;
 	\post Memory is allocated, and forces are zeroed.
 */
 FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
-	m_K(NULL), m_r_0(NULL)
+	m_K(NULL), m_r_0(NULL), m_lj1(NULL), m_lj2(NULL), m_lj3(NULL)
 	{
 	// access the bond data for later use
 	m_bond_data = m_pdata->getBondData();
@@ -81,25 +81,38 @@ FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata
 	// allocate the parameters
 	m_K = new Scalar[m_bond_data->getNBondTypes()];
 	m_r_0 = new Scalar[m_bond_data->getNBondTypes()];
+	m_lj1 = new Scalar[m_bond_data->getNBondTypes()];
+	m_lj2 = new Scalar[m_bond_data->getNBondTypes()];
+	m_lj3 = new Scalar[m_bond_data->getNBondTypes()];
+
 	
-	// zero parameters
+	// initialize parameters
 	memset(m_K, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
 	memset(m_r_0, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
+	for (unsigned int i = 0; i < m_bond_data->getNBondTypes(); i++) m_lj1[i]=Scalar(1.0); 
+	for (unsigned int i = 0; i < m_bond_data->getNBondTypes(); i++) m_lj2[i]=Scalar(1.0); 
+	memset(m_lj3, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
 	}
 	
 FENEBondForceCompute::~FENEBondForceCompute()
 	{
 	delete[] m_K;
 	delete[] m_r_0;
+	delete[] m_lj1;
+	delete[] m_lj2;
+	delete[] m_lj3;
 	}
 	
 /*! \param type Type of the bond to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param r_0 maximum bond length for the force computation
-	
+	\param lj1 First parameter used to calcluate forces
+	\param lj2 Second parameter used to calculate forces
+	\param lj3 Third parameter used to calculate energy
+
 	Sets parameters for the potential of a particular bond type
 */
-void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0)
+void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar lj1, Scalar lj2, Scalar lj3)
 	{
 	// make sure the type is valid
 	if (type >= m_bond_data->getNBondTypes())
@@ -110,13 +123,23 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0)
 	
 	m_K[type] = K;
 	m_r_0[type] = r_0;
+	m_lj1[type] = lj1;
+	m_lj2[type] = lj2;
+	m_lj3[type] = lj3;
+
+	cout << "Setting FENE bond " << type << "to parameters " << K << " " << r_0 << " " << lj1 << " " << lj2 << " " << lj3 << endl;
 
 	// check for some silly errors a user could make 
 	if (K <= 0)
 		cout << "***Warning! K <= 0 specified for fene bond" << endl;
 	if (r_0 <= 0)
 		cout << "***Warning! r_0 <= 0 specified for fene bond" << endl;
-	}
+	if (lj1 <= 0)
+		cout << "***Warning! lj1 <= 0 specified for fene bond" << endl;
+	if (lj2 <= 0)
+		cout << "***Warning! lj2 <= 0 specified for fene bond" << endl;				
+	if (lj3 <= 0)
+		cout << "***Warning! lj3 <= 0 specified for fene bond" << endl;		}
 
 /*! BondForceCompute provides
 	- \c fene_energy
@@ -132,7 +155,8 @@ Scalar FENEBondForceCompute::getLogValue(const std::string& quantity)
 	{
 	if (quantity == string("fene_energy"))
 		{
-		return calcEnergySum();
+		//cheating until I learn how to deal with how to count number of each type of bond
+		return calcEnergySum() + m_lj3[0]*m_bond_data->getNumBonds();
 		}
 	else
 		{
@@ -228,34 +252,49 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		assert(dy >= box.ylo && dx < box.yhi);
 		assert(dz >= box.zlo && dx < box.zhi);
 
-		// on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * \vec{r} 
+///ALL FLOPS NEED TO BE FIXED
+		// on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * \vec{r} + (12*lj1/r^12 - 6*lj2/r^6) *\vec{r}
 		// FLOPS: 5
 		Scalar rsq = dx*dx+dy*dy+dz*dz;
-		//Scalar r = sqrt(rsq);
 		
+		// compute the force magnitude/r in forcemag_divr (FLOPS: 9)
+		Scalar r2inv = Scalar(1.0)/rsq;
+		Scalar r6inv = r2inv * r2inv * r2inv;
+
+		Scalar WCAforcemag_divr;
+		Scalar pair_eng;
+		if (rsq < 1.01944064370214) {   //wcalimit squared (2^(1/6))^2
+			WCAforcemag_divr = r2inv * r6inv * (Scalar(12.0)*m_lj1[bond.type]*r6inv - Scalar(6.0)*m_lj2[bond.type]);
+			pair_eng = Scalar(0.5) * r6inv * (m_lj1[bond.type]*r6inv - m_lj2[bond.type]);
+			}
+		else {
+		    WCAforcemag_divr = 0;
+			pair_eng = 0;
+			}
+			
 		// Additional check for FENE spring
 		assert(rsq < m_r_0[bond.type]*m_r_0[bond.type]);
 		
 		// calculate force and energy
 		// MEM TRANSFER 2 Scalars: FLOPS: 13
-		Scalar forcemag_divr = -m_K[bond.type] / (Scalar(1.0) - rsq /(m_r_0[bond.type]*m_r_0[bond.type]) );  //FLOPS 4
-		Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));
+		Scalar forcemag_divr = -m_K[bond.type] / (Scalar(1.0) - rsq /(m_r_0[bond.type]*m_r_0[bond.type])) + WCAforcemag_divr;  //FLOPS 4
+		Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));		
 		
 		// calculate virial (FLOPS: 2)
-		Scalar bond_virial = -Scalar(1.0/6.0) * rsq * forcemag_divr;
+		Scalar bond_virial = -Scalar(1.0/6.0) * rsq * (forcemag_divr + WCAforcemag_divr);
 		
 		// add the force to the particles
 		// (MEM TRANSFER: 20 Scalars / FLOPS 16)
 		m_fx[idx_b] += forcemag_divr * dx;
 		m_fy[idx_b] += forcemag_divr * dy;
 		m_fz[idx_b] += forcemag_divr * dz;
-		m_pe[idx_b] += bond_eng;
+		m_pe[idx_b] += bond_eng + pair_eng;
 		m_virial[idx_b] += bond_virial;
 		
 		m_fx[idx_a] -= forcemag_divr * dx;
 		m_fy[idx_a] -= forcemag_divr * dy;
 		m_fz[idx_a] -= forcemag_divr * dz;
-		m_pe[idx_a] += bond_eng;
+		m_pe[idx_a] += bond_eng + pair_eng;
 		m_virial[idx_a] += bond_virial;
 		}
 

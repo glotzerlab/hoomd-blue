@@ -71,7 +71,7 @@ class FENEBondForceCompute : public ForceCompute
 		~FENEBondForceCompute();
 		
 		//! Set the parameters
-		virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
+		virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar lj1, Scalar lj2, Scalar lj3);
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
@@ -82,6 +82,9 @@ class FENEBondForceCompute : public ForceCompute
 	protected:
 		Scalar *m_K;	//!< K parameter for multiple bond tyes
 		Scalar *m_r_0;	//!< r_0 parameter for multiple bond types
+		Scalar *m_lj1;	//!< lj1 for multiple bond types
+		Scalar *m_lj2;	//!< lj2 for multiple bond types
+		Scalar *m_lj3;	//!< lj3 for multiple bond types
 		
 		boost::shared_ptr<BondData> m_bond_data;	//!< Bond data to use in computing bonds
 		
