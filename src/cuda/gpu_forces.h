@@ -95,7 +95,7 @@ cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_box
 
 
 //! Sum fene bond forces
-cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0);
+cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float4 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0);
 }
 
 #endif
