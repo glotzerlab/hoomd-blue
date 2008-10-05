@@ -193,8 +193,8 @@ class fene(force._force):
 	# \param bond_type Bond type to set coefficients for
 	# \param k Coefficient \f$ k \f$ in the %force
 	# \param r0 Coefficient \f$ r_0 \f$ in the %force
-	# \param epsilon Coefficient \f$ epsilon \f$ in the %force
 	# \param sigma Coefficient \f$ sigma \f$ in the %force
+	# \param epsilon Coefficient \f$ epsilon \f$ in the %force
 	#
 	# Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
 	# \code
@@ -212,12 +212,7 @@ class fene(force._force):
 	def set_coeff(self, bond_type, k, r0, sigma, epsilon):
 		print "fene.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ", sigma =", sigma, ", epsilon=", epsilon, ")";
 		
-		lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-		lj2 = 4.0 * epsilon * math.pow(sigma, 6.0);		 
-		lj3 = epsilon;
-		# set the parameters for the appropriate type
-		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0, lj1, lj2, lj3);
-		
+		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0, sigma, epsilon);
 		# track which particle types we have set
 		if not bond_type in self.bond_types_set:
 			self.bond_types_set.append(bond_type);
