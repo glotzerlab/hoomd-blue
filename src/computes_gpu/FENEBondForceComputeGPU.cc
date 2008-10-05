@@ -104,19 +104,18 @@ FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
 /*! \param type Type of the bond to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param r_0 Equilibrium length for the force computation
-	\param lj1 First parameter used to calcluate forces
-	\param lj2 Second parameter used to calculate forces
-	\param lj3 Third parameter used to calculate energy	
-	
+	\param sigma  Particle diameter
+	\param epsilon Determines hardness of the particles in the WCA part of the interaction (usually set to 1/T)
+s	
 	Sets parameters for the potential of a particular bond type and updates the 
 	parameters on the GPU.
 */
-void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar lj1, Scalar lj2, Scalar lj3)
+void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon)
 	{
-	FENEBondForceCompute::setParams(type, K, r_0, lj1, lj2, lj3);
+	FENEBondForceCompute::setParams(type, K, r_0, sigma, epsilon);
 	
 	// update the local copy of the memory
-	m_host_params[type] = make_float4(K, r_0, lj1, lj2);
+	m_host_params[type] = make_float4(K, r_0, sigma, epsilon);
 	
 	// copy the parameters to the GPU
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();

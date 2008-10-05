@@ -85,7 +85,7 @@ class FENEBondForceComputeGPU : public FENEBondForceCompute
 		void setBlockSize(int block_size) { m_block_size = block_size; }
 		
 		//! Set the parameters
-		virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar lj1, Scalar lj2, Scalar lj3);
+		virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon);
 				
 	protected:
 		int m_block_size;		//!< Block size to run calculation on
