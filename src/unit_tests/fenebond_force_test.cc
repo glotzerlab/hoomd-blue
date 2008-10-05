@@ -101,7 +101,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 
 	// create the bond force compute to check
 	shared_ptr<FENEBondForceCompute> fc_2 = bf_creator(pdata_2);
-	fc_2->setParams(0, 1.5, 1.1, 1.0, 1.0, 0.25);
+	fc_2->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
 
 	// compute the force and check the results
 	fc_2->compute(0);
@@ -117,7 +117,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	// this time there should be a force
 	force_arrays = fc_2->acquire();
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -30.581156, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 1.33177578, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 1.33177578 + 0.25/2, tol);
 	cout << "virial1: " << force_arrays.virial[0] << endl;
 		
 	// check that the two forces are negatives of each other
@@ -163,9 +163,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	pdata_6->release();
 	
 	shared_ptr<FENEBondForceCompute> fc_6 = bf_creator(pdata_6);
-	fc_6->setParams(0, 1.5, 1.1, 1.0, 1.0, 0.25);
-	fc_6->setParams(1, 2.0*1.5, 1.1, 1.0, 1.0, 0.25);
-	fc_6->setParams(2, 1.5, 1.0, 1.0, 1.0, 0.25);
+	fc_6->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
+	fc_6->setParams(1, 2.0*1.5, 1.1, 1.0, 1.0/4.0);
+	fc_6->setParams(2, 1.5, 1.0, 1.0, 1.0/4.0);
 	
 	pdata_6->getBondData()->addBond(Bond(0, 0,1));
 	pdata_6->getBondData()->addBond(Bond(1, 2,3));
@@ -177,32 +177,32 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 187.121131, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 5.71016443, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 5.71016443 + 0.25/2, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -187.121131, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 5.71016443, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 5.71016443 + 0.25/2, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 184.573762, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2],  6.05171988, tol);	
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2],  6.05171988 + 0.25/2, tol);	
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -184.573762, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 6.05171988, tol);	
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 6.05171988 + 0.25/2, tol);	
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[4], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[4], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 186.335166, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[4], 5.7517282, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[4], 5.7517282 + 0.25/2, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[5], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[5], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5], -186.335166, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[5],  5.7517282, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[5],  5.7517282 + 0.25/2, tol);
 
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
@@ -227,7 +227,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 
 	// build the bond force compute and try it out
 	shared_ptr<FENEBondForceCompute> fc_4 = bf_creator(pdata_4);
-	fc_4->setParams(0, 1.5, 1.75, 1.2, 1.0, 0.25);
+	fc_4->setParams(0, 1.5, 1.75, 1.2, 1.0/4.0);
 	// only add bonds on the left, top, and bottom of the square
 	pdata_4->getBondData()->addBond(Bond(0, 2,3));
 	pdata_4->getBondData()->addBond(Bond(0, 2,0));
@@ -236,27 +236,27 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	fc_4->compute(0);
 	force_arrays = fc_4->acquire();
 	// the right two particles should only have a force pulling them left
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 6.1727273, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.55399197, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 7.08810039/2.0, tol);
 
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 6.1727273, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.55399197, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 7.08810039/2.0, tol);
 
 	// the bottom left particle should have a force pulling up and to the right
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -6.1727273, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -6.1727273, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -86.850028653, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 2*0.55399197, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 7.08810039, tol);
 
 	// and the top left particle should have a force pulling down and to the right
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -6.1727273, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 6.1727273, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -86.85002865, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 2*0.55399197, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 7.08810039, tol);
 	}
 	
 //! Compares the output of two FENEBondForceComputes
@@ -273,8 +273,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	
 	shared_ptr<FENEBondForceCompute> fc1 = bf_creator1(pdata);
 	shared_ptr<FENEBondForceCompute> fc2 = bf_creator2(pdata);
-	fc1->setParams(0, 300.0, 1.6, 1.0, 1.0, 0.25);
-	fc2->setParams(0, 300.0, 1.6, 1.0, 1.0, 0.25);
+	fc1->setParams(0, 300.0, 1.6, 1.0, 1.0/4.0);
+	fc2->setParams(0, 300.0, 1.6, 1.0, 1.0/4.0);
 
 	// displace particles a little so all forces aren't alike
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
