@@ -66,7 +66,7 @@ using namespace std;
 	\post Memory is allocated, and forces are zeroed.
 */
 FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
-	m_K(NULL), m_r_0(NULL), m_lj1(NULL), m_lj2(NULL), m_lj3(NULL)
+	m_K(NULL), m_r_0(NULL), m_lj1(NULL), m_lj2(NULL), m_epsilon(NULL)
 	{
 	// access the bond data for later use
 	m_bond_data = m_pdata->getBondData();
@@ -83,7 +83,7 @@ FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata
 	m_r_0 = new Scalar[m_bond_data->getNBondTypes()];
 	m_lj1 = new Scalar[m_bond_data->getNBondTypes()];
 	m_lj2 = new Scalar[m_bond_data->getNBondTypes()];
-	m_lj3 = new Scalar[m_bond_data->getNBondTypes()];
+	m_epsilon = new Scalar[m_bond_data->getNBondTypes()];
 
 	
 	// initialize parameters
@@ -91,7 +91,7 @@ FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata
 	memset(m_r_0, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
 	for (unsigned int i = 0; i < m_bond_data->getNBondTypes(); i++) m_lj1[i]=Scalar(1.0); 
 	for (unsigned int i = 0; i < m_bond_data->getNBondTypes(); i++) m_lj2[i]=Scalar(1.0); 
-	memset(m_lj3, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
+	memset(m_epsilon, 0, sizeof(Scalar) * m_bond_data->getNBondTypes());
 	}
 	
 FENEBondForceCompute::~FENEBondForceCompute()
@@ -100,7 +100,7 @@ FENEBondForceCompute::~FENEBondForceCompute()
 	delete[] m_r_0;
 	delete[] m_lj1;
 	delete[] m_lj2;
-	delete[] m_lj3;
+	delete[] m_epsilon;
 	}
 	
 /*! \param type Type of the bond to set parameters for
@@ -112,32 +112,33 @@ FENEBondForceCompute::~FENEBondForceCompute()
 
 	Sets parameters for the potential of a particular bond type
 */
-void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar lj1, Scalar lj2, Scalar lj3)
+void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon)
 	{
 	// make sure the type is valid
 	if (type >= m_bond_data->getNBondTypes())
 		{
-		cout << endl << "***Error! Invalid bond typee specified" << endl << endl;
+		cout << endl << "***Error! Invalid bond type specified" << endl << endl;
 		throw runtime_error("Error setting parameters in FENEBondForceCompute");
 		}
 	
 	m_K[type] = K;
 	m_r_0[type] = r_0;
-	m_lj1[type] = lj1;
-	m_lj2[type] = lj2;
-	m_lj3[type] = lj3;
+	m_lj1[type] = 4*epsilon*pow(sigma,12);
+	m_lj2[type] = 4*epsilon*pow(sigma,6);
+	m_epsilon[type] = epsilon;
+	
+   //cout << 	"Setting FENE parameters K=" << K << ", r0=" << r_0 << ", sigma=" << sigma <<  ", lj1=" << m_lj1[type] << ", lj2=" << m_lj2[type] << ", epsilon=" << m_epsilon[type] << endl;
 
 	// check for some silly errors a user could make 
 	if (K <= 0)
 		cout << "***Warning! K <= 0 specified for fene bond" << endl;
 	if (r_0 <= 0)
 		cout << "***Warning! r_0 <= 0 specified for fene bond" << endl;
-	if (lj1 <= 0)
-		cout << "***Warning! lj1 <= 0 specified for fene bond" << endl;
-	if (lj2 <= 0)
-		cout << "***Warning! lj2 <= 0 specified for fene bond" << endl;				
-	if (lj3 <= 0)
-		cout << "***Warning! lj3 <= 0 specified for fene bond" << endl;		}
+	if (sigma <= 0)
+		cout << "***Warning! sigma <= 0 specified for fene bond" << endl;
+	if (epsilon <= 0)
+		cout << "***Warning! epsilon <= 0 specified for fene bond" << endl;				
+			}
 
 /*! BondForceCompute provides
 	- \c fene_energy
@@ -154,7 +155,7 @@ Scalar FENEBondForceCompute::getLogValue(const std::string& quantity)
 	if (quantity == string("fene_energy"))
 		{
 		//cheating until I learn how to deal with how to count number of each type of bond
-		return calcEnergySum() + m_lj3[0]*m_bond_data->getNumBonds();
+		return calcEnergySum(); // + m_lj3[0]*m_bond_data->getNumBonds();
 		}
 	else
 		{
@@ -263,7 +264,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		Scalar pair_eng;
 		if (rsq < 1.01944064370214) {   //wcalimit squared (2^(1/6))^2
 			WCAforcemag_divr = r2inv * r6inv * (Scalar(12.0)*m_lj1[bond.type]*r6inv - Scalar(6.0)*m_lj2[bond.type]);
-			pair_eng = Scalar(0.5) * r6inv * (m_lj1[bond.type]*r6inv - m_lj2[bond.type]);
+			pair_eng = Scalar(0.5) * (r6inv * (m_lj1[bond.type]*r6inv - m_lj2[bond.type]) + m_epsilon[bond.type]);
 			}
 		else {
 		    WCAforcemag_divr = 0;
