@@ -109,8 +109,11 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 		float4 params = tex1Dfetch(bond_params_tex, cur_bond_type);
 		float K = params.x;
 		float r_0 = params.y;
-		float lj1 = params.z;
-		float lj2 = params.w;
+		// lj1 is defined as 4*epsilon*sigma^12
+		float lj1 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z;
+		// lj2 is defined as 4*epsilon*sigma^6
+		float lj2 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z;
+		float epsilon = params.w;
 
 						
 		// FLOPS: 5
@@ -130,7 +133,7 @@ extern "C" __global__ void calcFENEBondForces_kernel(float4 *d_forces, gpu_pdata
 		float wcaforcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
 		// calculate the pair energy (FLOPS: 3)
 		// For WCA interaction, this energy is low by epsilon.  This is corrected in the logger.
-		float pair_eng = r6inv * (lj1 * r6inv - lj2);
+		float pair_eng = r6inv * (lj1 * r6inv - lj2) + epsilon;
 		
 		// FLOPS: 7
 		float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0)) + wcaforcemag_divr;
