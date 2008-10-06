@@ -40,7 +40,7 @@
 # libraries
 # only add the boost library if not win32, since it provides an auto-linking mechanism
 if (WIN32)
-	set(LIBS hoomd_python_module ${WINSOCK_LIB})
+	set(LIBS hoomd_python_module ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
 else (WIN32)
 	set(LIBS hoomd_python_module ${Boost_THREAD_LIBRARY}
 			${Boost_FILESYSTEM_LIBRARY}
