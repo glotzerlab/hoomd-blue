@@ -83,10 +83,11 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 	protected:
 		vector<float1 *> d_gammas;		//!< Pointer to the coefficients on the GPU
 		float1 * h_gammas;				//!< Pointer to the coefficients on the host
-		vector<float1 *> d_T;			//!< Pointer to the Temperature on the GPU
-		float1 * h_T;					//!< Pointer to the Temperature on the host
+		float2  dt_T;				    //!< Delta_T/Temperature on the host
 		int m_block_size;				//!< The block size to run on the GPU
-
+		vector< uint4 * > h_state;		//!< The initiating state vector for the RNG
+		vector< uint4 * > d_state;		//!< Pointer to the initiating state vector for the RNG on the GPU
+		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
 	};

@@ -66,7 +66,7 @@ using namespace std;
 	\param seed	Seed for initializing the RNG
 */
 StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed):
-ForceCompute(pdata), m_T(Temp), m_dt(deltaT)
+ForceCompute(pdata), m_T(Temp), m_dt(deltaT), m_seed(seed)
 	{
 	if (m_T <= 0.0)
 		{

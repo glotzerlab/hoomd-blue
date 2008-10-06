@@ -52,6 +52,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda_runtime.h"
 
 #include <stdexcept>
+#include <stdlib.h>
+#include <math.h>
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -110,21 +112,40 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	// allocate the coeff data on the CPU
 	h_gammas = new float1[m_pdata->getNTypes()];
 
-	// allocate the Temperature data on the GPU
-	nbytes = sizeof(float1);
+
+	// Make deltaT and Temperature data structure
+	dt_T = make_float2(deltaT, Temp);
+
+
+	//ALLOCATE STATEVECTOR FOR RNG
 	
-	d_T.resize(exec_conf.gpu.size());
+	d_state.resize(exec_conf.gpu.size());
+	h_state.resize(exec_conf.gpu.size());
+	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
+
+		unsigned int local_num = m_pdata->getLocalNum(cur_gpu);
+		unsigned int num_blocks = (int)ceil((double) local_num/ (double) m_block_size);
+		unsigned int nbytes = num_blocks * m_block_size * 4 * sizeof(unsigned int); 
+
+		// The only stipulation stated for the xorshift RNG is that at least one of
+		// the seeds x,y,z,w is non-zero, but might as well start them all off as random		
+		h_state[cur_gpu] = new uint4[num_blocks * m_block_size];
+
+        // based on the seed, each gpu is given a unique (but repeatable) set of integers.
+        srand((1 + cur_gpu) * m_seed); 
+		for (unsigned int x = 0; x < num_blocks*m_block_size; x++) {
+			*h_state[x] = make_uint4(rand(), rand(), rand(), rand());
+			}	
+		
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_T[cur_gpu]), nbytes));
-		assert(d_gammass[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *) d_T[cur_gpu], Temp, nbytes));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_state[cur_gpu]), nbytes));
+		assert(d_state[cur_gpu]);
+		
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *)&d_state[cur_gpu]), h_state[cur_gpu], nbytes, cudaMemcpyHostToDevice));
+		
 		}
-	// allocate the Temperature data on the CPU
-	h_T = new float1;
-	
-	//ALLOCATE STATEVECTOR FOR RNG
 
 	}
 	
@@ -143,11 +164,12 @@ StochasticForceComputeGPU::~StochasticForceComputeGPU()
 
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		assert(d_T[cur_gpu]);
+		assert(d_state[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_T[cur_gpu]));
-		}
-	delete [] h_T;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_state[cur_gpu]));
+		
+		delete [] d_state[cur_gpu]; 
+		}	
 	}	
 	
 	
@@ -193,20 +215,16 @@ void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 
 void StochasticForceComputeGPU::setT(Scalar T)
 	{
-	assert(h_T);
+	assert(dt_T);
 	if (T <= 0)
 		{
 		cerr << endl << "***Error! Trying to set a Temperature <= 0 " << endl << endl;
 		throw runtime_error("StochasticForceComputeGpu::setT argument error");
 		}
 	
-	// set gamma coeffs 
-	*h_T = make_float1(T);
-	
-	int nbytes = sizeof(float1);
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_T[cur_gpu], h_T, nbytes, cudaMemcpyHostToDevice));
+	// set Temperature
+	dt_T = make_float2(m_dt, T);		
+		
 	}	
 		
 /*! \post The stochastic forces are computed for the given timestep on the GPU. 
@@ -217,25 +235,16 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	// check the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
-/*
-	// start by updating the neighborlist
-	m_nlist->compute(timestep);
-	
 	// start the profile
-	if (m_prof) m_prof->push(exec_conf, "LJ pair");
-	
-	// access the neighbor list, which just selects the neighborlist into the device's memory, copying
-	// it there if needed
-	vector<gpu_nlist_array>& nlist = m_nlist->getListGPU();
+	if (m_prof) m_prof->push(exec_conf, "Stochastic Baths");
 
 	// access the particle data
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
-	gpu_boxsize box = m_pdata->getBoxGPU();
 	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_ljforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_stochasticforce, m_d_forces[cur_gpu], &pdata[cur_gpu], dt_T, d_gammas[cur_gpu], d_state[cur_gpu], m_pdata->getNTypes(), m_block_size));
 		}
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->sync();
@@ -245,14 +254,12 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
 
-	Scalar avg_neigh = m_nlist->estimateNNeigh();
-	int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
-	int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 16) + n_calc * (4 + 16);
-	int64_t flops = n_calc * (3+12+5+2+2+6+3+7);
-	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
-*/	
+//	int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 16) + n_calc * (4 + 16);
+//	int64_t flops = n_calc * (3+12+5+2+2+6+3+7);
+//	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
+	
 	}
-
+/*
 void export_StochasticForceComputeGPU()
 	{
 	class_<StochasticForceComputeGPU, boost::shared_ptr<StochasticForceComputeGPU>, bases<StochasticForceCompute>, boost::noncopyable >
@@ -260,7 +267,7 @@ void export_StochasticForceComputeGPU()
 		.def("setBlockSize", &StochasticForceComputeGPU::setBlockSize)
 		;
 	}
-
+*/
 #ifdef WIN32
 #pragma warning( pop )
 #endif

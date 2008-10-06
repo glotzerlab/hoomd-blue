@@ -77,7 +77,8 @@ class StochasticForceCompute :	public ForceCompute
 		virtual void computeForces(unsigned int timestep);
 
 		Scalar m_T;			//!< Temperature of the bath
-		Scalar m_dt;      //!< friction coefficient of the bath
+		Scalar m_dt;		//!< friction coefficient of the bath
+		unsigned int m_seed; //!< initializing seed for RNG
 		unsigned int m_ntypes; //!< Store the number of particle types
 		Scalar * __restrict__ m_gamma;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 	};
