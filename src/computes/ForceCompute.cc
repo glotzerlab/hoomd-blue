@@ -52,10 +52,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 using namespace std;
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
@@ -384,7 +382,6 @@ void ForceCompute::compute(unsigned int timestep)
 	m_particles_sorted = false;
 	}
 	
-#ifdef USE_PYTHON
 
 //! Wrapper class for wrapping pure virtual methodos of ForceCompute in python
 class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
@@ -402,18 +399,13 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
 			}
 	};
 
-// a decision has been made to not support python classes derived from force computes at this time:
-// only export the public interface
-
 void export_ForceCompute()
 	{
 	class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
 		("ForceCompute", init< boost::shared_ptr<ParticleData> >())
 		.def("acquire", &ForceCompute::acquire, return_value_policy<copy_const_reference>())
-		//.def("computeForces", pure_virtual(&ForceCompute::computeForces))
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

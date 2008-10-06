@@ -96,9 +96,7 @@ struct ExecutionConfiguration
 	#endif
 	};
 
-#ifdef USE_PYTHON
 //! Exports ExecutionConfiguration to python
 void export_ExecutionConfiguration();
-#endif
 	
 #endif

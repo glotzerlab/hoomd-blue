@@ -50,10 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Logger.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <stdexcept>
 #include <iomanip>
@@ -203,7 +201,6 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 		}
 	}
 	
-#ifdef USE_PYTHON
 void export_Logger()
 	{
 	class_<Logger, boost::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>
@@ -215,7 +212,6 @@ void export_Logger()
 		.def("setDelimiter", &Logger::setDelimiter)
 		;
 	}
-#endif	
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -74,9 +74,7 @@ class NVTUpdaterGPU : public NVTUpdater
 		void freeNVTData();
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the NVTUpdater class to python
 void export_NVTUpdaterGPU();
-#endif
 
 #endif

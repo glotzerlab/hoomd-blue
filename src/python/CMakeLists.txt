@@ -53,9 +53,6 @@ endif(USE_STATIC)
 find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_PATH})
 
-# setup the python module for compilation
-add_definitions(-DUSE_PYTHON)
-
 # here is where we actually compile the python module version of the library
 if (USE_CUDA)
 cuda_add_library (${HOOMD_PYTHON_MODULE} ${LIB_MODE} ${HOOMD_CPU_SRCS}

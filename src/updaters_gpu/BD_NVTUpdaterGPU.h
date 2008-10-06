@@ -64,9 +64,7 @@ class BD_NVTUpdaterGPU : public BD_NVTUpdater
 		
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the BD_NVTUpdaterGPU class to python
 void export_BD_NVTUpdaterGPU();
-#endif
 	
 #endif

@@ -44,10 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <sstream>
 #include <fstream>
@@ -399,14 +397,12 @@ void BinnedNeighborList::printStats()
 	}
 	
 	
-#ifdef USE_PYTHON
 void export_BinnedNeighborList()
 	{
 	class_<BinnedNeighborList, boost::shared_ptr<BinnedNeighborList>, bases<NeighborList>, boost::noncopyable >
 		("BinnedNeighborList", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

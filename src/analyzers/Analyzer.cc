@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "Analyzer.h"
 
@@ -78,7 +76,6 @@ void Analyzer::setProfiler(boost::shared_ptr<Profiler> prof)
 	m_prof = prof;
 	}
 
-#ifdef USE_PYTHON
 //! Wrapper class to expose pure virtual method to python
 class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
 	{
@@ -104,7 +101,6 @@ void export_Analyzer()
 		.def("setProfiler", &Analyzer::setProfiler)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

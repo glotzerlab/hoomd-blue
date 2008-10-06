@@ -75,10 +75,8 @@ class MOL2DumpWriter : public Analyzer
 		bool m_written;			//!< Set to true if the file has been written
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the MOL2DumpWriter class to python
 void export_MOL2DumpWriter();
-#endif
 
 #endif
 

@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 
@@ -889,8 +887,6 @@ void NeighborList::computeSimple()
 	if (m_prof) m_prof->pop(15*N*(N-1)/2, 3*sizeof(Scalar)*N*(N-1)/2 + N*3*sizeof(Scalar) + uint64_t(n_neigh)*sizeof(unsigned int));
 	}
 	
-	
-#ifdef USE_PYTHON
 
 //! helper function for accessing an element of the neighbor list vector: python __getitem__
 /*! \param nlist Neighbor list to extract a column from
@@ -940,8 +936,6 @@ void export_NeighborList()
 		.value("full", NeighborList::full)
 	;
 	}
-
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

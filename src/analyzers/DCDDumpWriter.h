@@ -106,9 +106,7 @@ class DCDDumpWriter : public Analyzer
 		
 	};
 
-#ifdef USE_PYTHON
 //! Exports the DCDDumpWriter class to python
 void export_DCDDumpWriter();
-#endif
 
 #endif

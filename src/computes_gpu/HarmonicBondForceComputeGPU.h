@@ -96,10 +96,8 @@ class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute
 		virtual void computeForces(unsigned int timestep);
 	};
 	
-#ifdef USE_PYTHON
 //! Export the BondForceComputeGPU class to python
 void export_HarmonicBondForceComputeGPU();
-#endif
 
 #endif
 

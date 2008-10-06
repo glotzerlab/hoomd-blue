@@ -161,17 +161,10 @@ class ForceCompute : public Compute
 		virtual void computeForces(unsigned int timestep)=0;
 	private:
 		Scalar *m_data;	//!< The pointer where the memory is actually allocated
-		
-		#ifdef USE_PYTHON
-		//! export_ForceCompute() needs to be a friend to export protected members
-		friend void export_ForceCompute();
-		#endif
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the ForceCompute class to python
 void export_ForceCompute();
-#endif
 	
 #endif
 

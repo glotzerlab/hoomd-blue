@@ -44,10 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "LJForceCompute.h"
 #include <stdexcept>
@@ -332,7 +330,6 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop(flops, mem_transfer);
 	}
 
-#ifdef USE_PYTHON
 void export_LJForceCompute()
 	{
 	class_<LJForceCompute, boost::shared_ptr<LJForceCompute>, bases<ForceCompute>, boost::noncopyable >
@@ -340,7 +337,6 @@ void export_LJForceCompute()
 		.def("setParams", &LJForceCompute::setParams)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <math.h>
 #include <stdexcept>
@@ -554,7 +552,6 @@ void SFCPackUpdater::getSortedOrder()
 		}
 	}
 
-#ifdef USE_PYTHON
 void export_SFCPackUpdater()
 	{
 	class_<SFCPackUpdater, boost::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
@@ -562,7 +559,6 @@ void export_SFCPackUpdater()
 		.def("setBinWidth", &SFCPackUpdater::setBinWidth)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

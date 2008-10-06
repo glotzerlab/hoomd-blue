@@ -79,9 +79,7 @@ class IMDInterface : public Analyzer
 		bool m_active;			//!< True if we have received a go command
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the IMDInterface class to python
 void export_IMDInterface();
-#endif
 	
 #endif

@@ -46,10 +46,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "NPTUpdater.h"
 #include <math.h>
@@ -377,7 +375,6 @@ Scalar NPTUpdater::computeTemperature()
 
         }
 	
-#ifdef USE_PYTHON
 void export_NPTUpdater()
 	{
 	class_<NPTUpdater, boost::shared_ptr<NPTUpdater>, bases<Integrator>, boost::noncopyable>
@@ -389,7 +386,6 @@ void export_NPTUpdater()
 		;
 		
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

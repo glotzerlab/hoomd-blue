@@ -114,9 +114,7 @@ class BD_NVTUpdater : public Integrator
 
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the BD_NVTUpdater class to python
 void export_BD_NVTUpdater();
-#endif
 	
 #endif

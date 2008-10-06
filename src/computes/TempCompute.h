@@ -81,9 +81,7 @@ class TempCompute : public Compute
 		void computeTemp();
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the TempCompute class to python
 void export_TempCompute();
-#endif
 
 #endif

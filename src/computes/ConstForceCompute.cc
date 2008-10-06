@@ -44,10 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "ConstForceCompute.h"
 
@@ -101,7 +99,6 @@ void ConstForceCompute::computeForces(unsigned int timestep)
 	}
 
 
-#ifdef USE_PYTHON
 void export_ConstForceCompute()
 	{
 	class_< ConstForceCompute, boost::shared_ptr<ConstForceCompute>, bases<ForceCompute>, boost::noncopyable >
@@ -109,7 +106,6 @@ void export_ConstForceCompute()
 		.def("setForce", &ConstForceCompute::setForce)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

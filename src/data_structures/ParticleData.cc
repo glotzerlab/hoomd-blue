@@ -57,10 +57,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "ParticleData.h"
 #include "Profiler.h"
@@ -1098,8 +1096,6 @@ void ParticleData::communicatePosition()
 	}
 	
 #endif
-	
-#ifdef USE_PYTHON
 
 //! Helper for python __str__ for BoxDim
 /*! Formats the box dim into a nice string
@@ -1213,7 +1209,6 @@ void export_ParticleData()
 		.def("__str__", &print_ParticleData)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

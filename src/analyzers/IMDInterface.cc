@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "IMDInterface.h"
 
@@ -275,13 +273,11 @@ void IMDInterface::analyze(unsigned int timestep)
 		}
 	}
 	
-#ifdef USE_PYTHON
 void export_IMDInterface()
 	{
 	class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>("IMDInterface", init< boost::shared_ptr<ParticleData>, int >())
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -240,10 +240,8 @@ class NeighborList : public Compute
 
 	};
 	
-#ifdef USE_PYTHON
 //! Exports NeighborList to python
 void export_NeighborList();
-#endif
 
 #endif
 

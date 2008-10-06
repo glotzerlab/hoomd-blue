@@ -127,9 +127,7 @@ class Integrator : public Updater
 		#endif
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the NVEUpdater class to python
 void export_Integrator();
-#endif
 	
 #endif

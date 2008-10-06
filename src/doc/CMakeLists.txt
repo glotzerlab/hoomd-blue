@@ -54,12 +54,6 @@ set(DOXYGEN_PREDEFINED "")
 #	set(DOXYGEN_ADDITIONAL_EXCLUSIONS " */cuda/* */computes_gpu/*")
 #endif(USE_CUDA)
 
-#if(USE_PYTHON)
-	set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \\\nUSE_PYTHON=1")
-#else(USE_PYTHON)
-#	set(DOXYGEN_ADDITIONAL_EXCLUSIONS "${DOXYGEN_ADDITIONAL_EXCLUSIONS} */python/* */lib/python-module/*")
-#endif(USE_PYTHON)
-
 # disable DOT in doxygen if dot is not found
 if(DOXYGEN_DOT_PATH)
 	set(DOXYGEN_HAVE_DOT "YES")

@@ -53,10 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdexcept>
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 
@@ -255,7 +253,6 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 */	
 	}
 
-#ifdef USE_PYTHON
 void export_StochasticForceComputeGPU()
 	{
 	class_<StochasticForceComputeGPU, boost::shared_ptr<StochasticForceComputeGPU>, bases<StochasticForceCompute>, boost::noncopyable >
@@ -263,7 +260,6 @@ void export_StochasticForceComputeGPU()
 		.def("setBlockSize", &StochasticForceComputeGPU::setBlockSize)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

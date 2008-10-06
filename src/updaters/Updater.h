@@ -108,10 +108,8 @@ class Updater : boost::noncopyable
 		
 	};
 	
-#ifdef USE_PYTHON
 //! Export the Updater class to python
 void export_Updater();
-#endif
 		
 #endif
 

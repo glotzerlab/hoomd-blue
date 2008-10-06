@@ -86,9 +86,7 @@ class NVEUpdater : public Integrator
 		Scalar m_limit_val;	//!< The maximum distance a particle is to move in one step
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the NVEUpdater class to python
 void export_NVEUpdater();
-#endif
 	
 #endif

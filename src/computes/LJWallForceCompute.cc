@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "LJWallForceCompute.h"
 #include "WallData.h"
@@ -253,7 +251,6 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop();
 	}
 
-#ifdef USE_PYTHON
 void export_LJWallForceCompute()
 	{
 	class_<LJWallForceCompute, boost::shared_ptr<LJWallForceCompute>, bases<ForceCompute>, boost::noncopyable >
@@ -261,7 +258,6 @@ void export_LJWallForceCompute()
 		.def("setParams", &LJWallForceCompute::setParams)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

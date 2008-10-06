@@ -111,10 +111,8 @@ class SFCPackUpdater : public Updater
 		
 	};
 	
-#ifdef USE_PYTHON
 //! Export the SFCPackUpdater class to python
 void export_SFCPackUpdater();
-#endif
 		
 #endif
 

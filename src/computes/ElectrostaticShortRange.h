@@ -113,10 +113,8 @@ class ElectrostaticShortRange : public ForceCompute
 		//! Actually compute the forces
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the ElectrostaticShortRange class to python
 // void export_ElectrostaticShortRange();
-#endif
 
 #endif
 #endif

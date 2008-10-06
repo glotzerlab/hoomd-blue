@@ -86,9 +86,7 @@ class LJForceComputeGPU : public LJForceCompute
 		virtual void computeForces(unsigned int timestep);
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the LJForceComputeGPU class to python
 void export_LJForceComputeGPU();
-#endif
 
 #endif

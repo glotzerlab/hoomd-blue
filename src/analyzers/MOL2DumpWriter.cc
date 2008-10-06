@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <fstream>
 #include <stdexcept>
@@ -168,7 +166,6 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 	m_written = true;
 	}
 
-#ifdef USE_PYTHON
 void export_MOL2DumpWriter()
 	{
 	class_<MOL2DumpWriter, boost::shared_ptr<MOL2DumpWriter>, bases<Analyzer>, boost::noncopyable>
@@ -177,7 +174,6 @@ void export_MOL2DumpWriter()
 		;
 	// no .defs, everything is inherited
 	}
-#endif
 	
 #ifdef WIN32
 #pragma warning( pop )

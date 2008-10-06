@@ -55,7 +55,6 @@ Table of contents:
 HOOMD requires a number of prerequisite software packages and libraries to be compiled. 
 
 - Python >= 2.3 
-	- <em>optional</em>, but highly recommended to enable scripted simulations
 - boost >= 1.32.0
 - CMake >= 2.6.0
 	- >= 2.6.1 is recommended on Windows due to an annoying bug in 2.6.0
@@ -283,9 +282,6 @@ Here is a list of all the build options that can be changed by CMake.
  	- Must be set to \b ON to enable the \b USE_CUDA option (GPUs are single precision)
  - \b USE_CUDA - Enable compiling of the GPU accelerated computations using CUDA
  	- Requires the CUDA Toolkit to be installed
- - \b USE_PYTHON - Set to \b ON to enable the building of the python module.
- 	- Required for the use of the high-level scripting system
- 	- Requries python to be installed, and a matching version of boost.python.
  - \b USE_STATIC - Controls the compiling and linking of static libraries
  	- When set to \b ON, \b libhoomd is compiled as a static library and all 
  		other libraries (i.e. boost) are linked statically if possible.

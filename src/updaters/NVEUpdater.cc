@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "NVEUpdater.h"
 #include <math.h>
@@ -274,7 +272,6 @@ void NVEUpdater::update(unsigned int timestep)
 		}
 	}
 	
-#ifdef USE_PYTHON
 void export_NVEUpdater()
 	{
 	class_<NVEUpdater, boost::shared_ptr<NVEUpdater>, bases<Integrator>, boost::noncopyable>
@@ -282,7 +279,6 @@ void export_NVEUpdater()
 		.def("setLimit", &NVEUpdater::setLimit)
 		.def("removeLimit", &NVEUpdater::removeLimit);
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

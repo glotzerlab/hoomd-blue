@@ -102,10 +102,8 @@ class HOOMDDumpWriter : public Analyzer
 		bool m_output_wall;			//!< true if the walls should be written
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the HOOMDDumpWriter class to python
 void export_HOOMDDumpWriter();
-#endif
 
 #endif
 

@@ -53,10 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 using namespace std;
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 using namespace boost;
@@ -173,14 +171,12 @@ void NeighborListNsqGPU::buildNlist()
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 
-#ifdef USE_PYTHON
 void export_NeighborListNsqGPU()
 	{
 	class_<NeighborListNsqGPU, boost::shared_ptr<NeighborListNsqGPU>, bases<NeighborList>, boost::noncopyable >
 		("NeighborListNsqGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

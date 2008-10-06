@@ -44,10 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "HarmonicBondForceCompute.h"
 
@@ -264,7 +262,6 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop(flops, mem_transfer);
 	}
 	
-#ifdef USE_PYTHON
 void export_HarmonicBondForceCompute()
 	{
 	class_<HarmonicBondForceCompute, boost::shared_ptr<HarmonicBondForceCompute>, bases<ForceCompute>, boost::noncopyable >
@@ -272,7 +269,6 @@ void export_HarmonicBondForceCompute()
 		.def("setParams", &HarmonicBondForceCompute::setParams)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

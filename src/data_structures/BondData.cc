@@ -47,10 +47,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "ParticleData.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 using namespace boost;
@@ -401,8 +399,6 @@ void BondData::copyBondTable()
 	}
 #endif
 
-
-#ifdef USE_PYTHON
 void export_BondData()
 	{
 	class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<ParticleData *, unsigned int>())
@@ -413,7 +409,6 @@ void export_BondData()
 		;
 	
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -56,10 +56,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <math.h>
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 
@@ -678,7 +676,6 @@ void BinnedNeighborListGPU::printStats()
 	cout << "bins Nmax = " << m_gpu_bin_data[0].Nmax << " / Nbins = " << Nbins << endl;
 	}
 
-#ifdef USE_PYTHON
 void export_BinnedNeighborListGPU()
 	{
 	class_<BinnedNeighborListGPU, boost::shared_ptr<BinnedNeighborListGPU>, bases<NeighborList>, boost::noncopyable >
@@ -686,7 +683,6 @@ void export_BinnedNeighborListGPU()
 		.def("setBlockSize", &BinnedNeighborListGPU::setBlockSize)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

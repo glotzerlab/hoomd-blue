@@ -154,10 +154,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		std::vector<std::string> m_bond_type_mapping;	//!< The created mapping between bond types and ids
 	};
 	
-#ifdef USE_PYTHON
 //! Exports HOOMDInitializer to python
 void export_HOOMDInitializer();
-#endif
 
 #endif
 

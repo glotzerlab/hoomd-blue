@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 using namespace std;
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "ElectrostaticShortRange.h"
 #include <stdexcept>
@@ -316,7 +314,6 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 	}
 #undef EWALD_F 
 #undef TOL
-#ifdef USE_PYTHON
 /* void export_ElectrostaticShortRange()
 	{
 	class_<ElectrostaticShortRange,bases<ForceCompute>, boost::noncopyable >
@@ -325,7 +322,6 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 		;
 	} 
 */
-#endif
 
 #endif
 

@@ -88,10 +88,8 @@ class BinnedNeighborList : public NeighborList
 		void updateListFromBins();
 	};
 
-#ifdef USE_PYTHON
 //! Exports the BinnedNeighborList class to python
 void export_BinnedNeighborList();
-#endif
 
 #endif
 

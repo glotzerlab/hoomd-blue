@@ -102,11 +102,9 @@ class Analyzer : boost::noncopyable
 		const boost::shared_ptr<ParticleData> m_pdata;	//!< The particle data this analyzer is associated with
 		boost::shared_ptr<Profiler> m_prof;				//!< The profiler this analyzer is to use
 	};
-	
-#ifdef USE_PYTHON
+
 //! Export the Analyzer class to python
 void export_Analyzer();
-#endif
 
 #endif
 

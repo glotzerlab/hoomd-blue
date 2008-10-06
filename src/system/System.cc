@@ -51,10 +51,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "System.h"
 #include "SignalHandler.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <stdexcept>
 
@@ -525,7 +523,6 @@ void System::generateStatusLine()
 	cout << "Time " << t_elap << " | Step " << m_cur_tstep << " / " << m_end_tstep << " | TPS " << TPS << " | ETA " << ETA << endl;
 	}
 
-#ifdef USE_PYTHON
 void export_System()
 	{
 	class_< System, boost::shared_ptr<System>, boost::noncopyable > ("System", init< boost::shared_ptr<ParticleData>, unsigned int >())
@@ -556,7 +553,6 @@ void export_System()
 		.def("getLastTPS", &System::getLastTPS)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

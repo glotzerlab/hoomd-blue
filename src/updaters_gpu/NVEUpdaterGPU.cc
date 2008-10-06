@@ -54,10 +54,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 using namespace boost;
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 using namespace std;
 
@@ -136,14 +134,12 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		}
 	}
 	
-#ifdef USE_PYTHON
 void export_NVEUpdaterGPU()
 	{
 	class_<NVEUpdaterGPU, boost::shared_ptr<NVEUpdaterGPU>, bases<NVEUpdater>, boost::noncopyable>
 		("NVEUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar >())
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

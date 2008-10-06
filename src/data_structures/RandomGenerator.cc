@@ -52,11 +52,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 using namespace boost::python;
-#endif
 
 using namespace std;
 
@@ -655,7 +653,6 @@ bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particle
 	return false;
 	}
 	
-#ifdef USE_PYTHON
 class ParticleGeneratorWrap : public ParticleGenerator, public wrapper<ParticleGenerator>
 	{
 	public:
@@ -701,7 +698,6 @@ void export_RandomGenerator()
 		// all methods are internal C++ methods
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

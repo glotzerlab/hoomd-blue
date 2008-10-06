@@ -68,9 +68,7 @@ class ConstForceCompute : public ForceCompute
 		virtual void computeForces(unsigned int timestep);
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the ConstForceComputeClass to python
 void export_ConstForceCompute();
-#endif
 
 #endif

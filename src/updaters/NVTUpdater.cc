@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "NVTUpdater.h"
 #include <math.h>
@@ -206,7 +204,6 @@ void NVTUpdater::update(unsigned int timestep)
 		}
 	}
 	
-#ifdef USE_PYTHON
 void export_NVTUpdater()
 	{
 	class_<NVTUpdater, boost::shared_ptr<NVTUpdater>, bases<Integrator>, boost::noncopyable>
@@ -216,7 +213,6 @@ void export_NVTUpdater()
 		;
 		
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

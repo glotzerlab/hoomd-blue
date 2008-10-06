@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "StochasticForceCompute.h"
 #include <stdexcept>
@@ -182,7 +180,6 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 	}
 
 /*
-#ifdef USE_PYTHON
 void export_StochasticForceCompute()
 	{
 	class_<StochasticForceCompute, boost::shared_ptr<StochasticForceCompute>, bases<ForceCompute>, boost::noncopyable >
@@ -190,7 +187,6 @@ void export_StochasticForceCompute()
 		.def("setParams", &StochasticForceCompute::setParams)
 		;
 	}
-#endif
 */
 #ifdef WIN32
 #pragma warning( pop )

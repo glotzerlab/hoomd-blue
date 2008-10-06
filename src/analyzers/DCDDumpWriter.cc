@@ -58,11 +58,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "DCDDumpWriter.h"
 #include "time.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
-
 using namespace std;
 
 //! File position of NFILE in DCD header
@@ -289,14 +286,12 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
 	write_int(file, timestep);
 	}
 
-#ifdef USE_PYTHON
 void export_DCDDumpWriter()
 	{
 	class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
 		("DCDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string, unsigned int>())
 		;
 	}	
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

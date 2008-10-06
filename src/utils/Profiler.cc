@@ -53,11 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Profiler.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
-
 using namespace std;
 
 ////////////////////////////////////////////////////
@@ -256,7 +253,6 @@ std::ostream& operator<<(ostream &o, Profiler& prof)
 	return o;
 	}
 
-#ifdef USE_PYTHON
 //! Helper function to get the formatted output of a Profiler in python
 /*! Outputs the profiler timings to a string
 	\param prof Profiler to generate output from
@@ -275,7 +271,6 @@ void export_Profiler()
 		.def("__str__", &print_profiler)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

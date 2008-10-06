@@ -88,9 +88,7 @@ class HarmonicBondForceCompute : public ForceCompute
 		virtual void computeForces(unsigned int timestep);
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the BondForceCompute class to python
 void export_HarmonicBondForceCompute();
-#endif
 
 #endif

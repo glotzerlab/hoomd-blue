@@ -91,9 +91,7 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 		virtual void computeForces(unsigned int timestep);
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the StochasticForceComputeGPU class to python
 void export_StochasticForceComputeGPU();
-#endif
 
 #endif

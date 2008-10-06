@@ -148,10 +148,8 @@ class ClockSource
 		int64_t m_start_time; //!< Stores a base time to reference from
 	};
 
-#ifdef USE_PYTHON
 //! Exports the ClockSource class to python
 void export_ClockSource();
-#endif
 
 inline int64_t ClockSource::getTime() const
 	{

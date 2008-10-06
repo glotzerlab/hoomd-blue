@@ -423,14 +423,12 @@ class ParticleData : boost::noncopyable
 		bool inBox();
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the BoxDim class to python
 void export_BoxDim();
 //! Exports ParticleDataInitializer to python
 void export_ParticleDataInitializer();
 //! Exports ParticleData to python
 void export_ParticleData();
-#endif
 
 #endif
 

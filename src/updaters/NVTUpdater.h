@@ -85,9 +85,7 @@ class NVTUpdater : public Integrator
 		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the NVTUpdater class to python
 void export_NVTUpdater();
-#endif	
 
 #endif

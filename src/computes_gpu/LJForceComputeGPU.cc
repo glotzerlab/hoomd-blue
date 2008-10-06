@@ -53,10 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdexcept>
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 
@@ -229,7 +227,6 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 
-#ifdef USE_PYTHON
 void export_LJForceComputeGPU()
 	{
 	class_<LJForceComputeGPU, boost::shared_ptr<LJForceComputeGPU>, bases<LJForceCompute>, boost::noncopyable >
@@ -237,7 +234,6 @@ void export_LJForceComputeGPU()
 		.def("setBlockSize", &LJForceComputeGPU::setBlockSize)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -78,17 +78,15 @@ else (WIN32 AND NOT UNIX)
 	# faulty as it is not necesarily true that the found python interpreter is
 	# the same as the one that is linked against. But then, packaging will
 	# only be done by me and I know what I'm doing with this.
-	if (USE_PYTHON)
-		find_package(PythonInterp REQUIRED)
-		exec_program(${PYTHON_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS -V
-				OUTPUT_VARIABLE PYTHON_VER_UNFORMATTED)
-		# remove the space from the string
-		string(REPLACE " " "" PYTHON_VER_NOSPACE ${PYTHON_VER_UNFORMATTED})
-		# remove the minor version
-		string(SUBSTRING ${PYTHON_VER_NOSPACE} 0 9 PYTHON_VER)
+	find_package(PythonInterp REQUIRED)
+	exec_program(${PYTHON_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS -V
+			OUTPUT_VARIABLE PYTHON_VER_UNFORMATTED)
+	# remove the space from the string
+	string(REPLACE " " "" PYTHON_VER_NOSPACE ${PYTHON_VER_UNFORMATTED})
+	# remove the minor version
+	string(SUBSTRING ${PYTHON_VER_NOSPACE} 0 9 PYTHON_VER)
 
-		set(CPACK_SYSTEM_NAME "${CPACK_SYSTEM_NAME}-${PYTHON_VER}")
-	endif (USE_PYTHON)
+	set(CPACK_SYSTEM_NAME "${CPACK_SYSTEM_NAME}-${PYTHON_VER}")
 endif (WIN32 AND NOT UNIX)	
 
 if (WIN32)

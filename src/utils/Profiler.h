@@ -156,10 +156,8 @@ class Profiler
 		friend std::ostream& operator<<(std::ostream &o, Profiler& prof);
 	};
 
-#ifdef USE_PYTHON
 //! Exports the Profiler class to python
 void export_Profiler();
-#endif
 
 //! Output operator for Profiler	
 std::ostream& operator<<(std::ostream &o, Profiler& prof);

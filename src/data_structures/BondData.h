@@ -167,9 +167,7 @@ class BondData : boost::noncopyable
 		#endif
 	};
 
-#ifdef USE_PYTHON
 //! Exports BondData to python
 void export_BondData();
-#endif
 
 #endif

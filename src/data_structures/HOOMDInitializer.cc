@@ -57,10 +57,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 using namespace boost;
 
@@ -590,7 +588,6 @@ std::vector<std::string> HOOMDInitializer::getTypeMapping() const
 	return m_type_mapping;
 	}
 
-#ifdef USE_PYTHON
 void export_HOOMDInitializer()
 	{
 	class_< HOOMDInitializer, bases<ParticleDataInitializer> >("HOOMDInitializer", init<const string&>())
@@ -598,7 +595,6 @@ void export_HOOMDInitializer()
 		.def("getTimeStep", &HOOMDInitializer::getTimeStep)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

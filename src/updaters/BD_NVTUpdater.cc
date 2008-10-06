@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "BD_NVTUpdater.h"
 #include <math.h>
@@ -463,8 +461,6 @@ void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::
 
 #endif
 	
-	
-#ifdef USE_PYTHON
 void export_BD_NVTUpdater()
 	{
 	class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<Integrator>, boost::noncopyable>
@@ -474,7 +470,6 @@ void export_BD_NVTUpdater()
 		.def("setLimit", &BD_NVTUpdater::setLimit)
 		.def("removeLimit", &BD_NVTUpdater::removeLimit);
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

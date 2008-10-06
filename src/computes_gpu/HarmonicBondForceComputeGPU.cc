@@ -50,10 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicBondForceComputeGPU.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 using namespace boost;
@@ -164,7 +162,6 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 	
-#ifdef USE_PYTHON
 void export_HarmonicBondForceComputeGPU()
 	{
 	class_<HarmonicBondForceComputeGPU, boost::shared_ptr<HarmonicBondForceComputeGPU>, bases<HarmonicBondForceCompute>, boost::noncopyable >
@@ -172,7 +169,6 @@ void export_HarmonicBondForceComputeGPU()
 		.def("setBlockSize", &HarmonicBondForceComputeGPU::setBlockSize)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

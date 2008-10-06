@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "ZeroMomentumUpdater.h"
 
@@ -114,14 +112,12 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 	if (m_prof) m_prof->pop();
 	}
 	
-#ifdef USE_PYTHON
 void export_ZeroMomentumUpdater()
 	{
 	class_<ZeroMomentumUpdater, boost::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
 		("ZeroMomentumUpdater", init< boost::shared_ptr<ParticleData> >())
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

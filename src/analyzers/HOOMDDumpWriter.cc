@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <sstream>
 #include <fstream>
@@ -252,7 +250,6 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	m_pdata->release();
 	}
 
-#ifdef USE_PYTHON
 void export_HOOMDDumpWriter()
 	{
 	class_<HOOMDDumpWriter, boost::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
@@ -264,7 +261,6 @@ void export_HOOMDDumpWriter()
 		.def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
 		;
 	}
-#endif
 	
 #ifdef WIN32
 #pragma warning( pop )

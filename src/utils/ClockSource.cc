@@ -53,11 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <iomanip>
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
-
 using namespace std;
 
 /*! A newly constructed ClockSource should read ~0 when getTime() is called. There is no other way to reset the clock*/
@@ -84,14 +81,12 @@ std::string ClockSource::formatHMS(int64_t t)
 	return str.str();
 	}
 
-#ifdef USE_PYTHON
 void export_ClockSource()
 	{
 	class_<ClockSource>("ClockSource")
 		.def("getTime", &ClockSource::getTime)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -64,9 +64,7 @@ class NVEUpdaterGPU : public NVEUpdater
 		
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the NVEUpdaterGPU class to python
 void export_NVEUpdaterGPU();
-#endif
 	
 #endif

@@ -48,10 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "TempRescaleUpdater.h"
 
@@ -131,7 +129,6 @@ void TempRescaleUpdater::setT(Scalar tset)
 		}
 	}
 
-#ifdef USE_PYTHON
 void export_TempRescaleUpdater()
 	{
 	class_<TempRescaleUpdater, boost::shared_ptr<TempRescaleUpdater>, bases<Updater>, boost::noncopyable>
@@ -139,7 +136,6 @@ void export_TempRescaleUpdater()
 		.def("setT", &TempRescaleUpdater::setT)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

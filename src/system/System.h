@@ -263,9 +263,7 @@ class System
 		Scalar m_last_TPS;	//!< Stores the average TPS from the last run
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the System class to python
 void export_System();
-#endif
 	
 #endif

@@ -50,10 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FENEBondForceComputeGPU.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <boost/bind.hpp>
 using namespace boost;
@@ -163,7 +161,6 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 	
-#ifdef USE_PYTHON
 void export_FENEBondForceComputeGPU()
 	{
 	class_<FENEBondForceComputeGPU, boost::shared_ptr<FENEBondForceComputeGPU>, bases<FENEBondForceCompute>, boost::noncopyable >
@@ -171,7 +168,6 @@ void export_FENEBondForceComputeGPU()
 		.def("setBlockSize", &FENEBondForceComputeGPU::setBlockSize)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

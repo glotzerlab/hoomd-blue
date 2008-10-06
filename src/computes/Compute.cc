@@ -44,10 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <iostream>
 using namespace std;
@@ -107,7 +105,6 @@ bool Compute::shouldCompute(unsigned int timestep)
 	return false;
 	}
 	
-#ifdef USE_PYTHON
 //! Wrapper class for handling virtual methods of Compute in python
 class ComputeWrap : public Compute, public wrapper<Compute>
 	{
@@ -171,13 +168,8 @@ void export_Compute()
 		.def("compute", pure_virtual(&Compute::compute))
 		.def("printStats", &Compute::printStats, &ComputeWrap::default_printStats)
 		.def("setProfiler", &Compute::setProfiler)
-		//.def("shouldCompute", &Compute::shouldCompute, &ComputeWrap::default_shouldCompute)
-		//.def_readonly("m_pdata", &Compute::m_pdata)
-		//.def_readonly("m_prof", &Compute::m_prof)
 		;
 	}
-
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

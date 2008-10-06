@@ -56,10 +56,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "Initializers.h"
 #include "WallData.h"
@@ -338,7 +336,6 @@ void RandomInitializerWithWalls::initWallData(boost::shared_ptr<WallData> wall_d
 	}
 
 
-#ifdef USE_PYTHON
 void export_SimpleCubicInitializer()
 	{
 	class_< SimpleCubicInitializer, bases<ParticleDataInitializer> >("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
@@ -359,7 +356,6 @@ void export_RandomInitializerWithWalls()
 		;
 	// no need to .def methods, they are all inherited
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

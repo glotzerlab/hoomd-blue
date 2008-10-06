@@ -81,41 +81,4 @@ void output_version_info(bool verbose)
 	if (string(CUDA_BUILD_TYPE) != string("Device"))
 		cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
 	#endif
-	
-	#ifdef USE_CUDA_BUG_WORKAROUND
-	cout << "WARNING: CUDA Bug workaround is in place. GPU performance is 1/2 of what it should be." << endl;
-	#endif
-
-	// if verbose output was requested, let the user know how everything was configured for the build
-	if (verbose)
-		{
-		// set all the options to a default and modify them within ifdefs
-		string use_cuda = "no";
-		string use_python = "no";
-		string precision = "double";
-		string use_static = "no";
-
-		#ifdef USE_CUDA
-		use_cuda = "yes";
-		#endif
-
-		#ifdef USE_PYTHON
-		use_python = "yes";
-		#endif
-
-		#ifdef SINGLE_PRECISION
-		precision = "single";
-		#endif
-
-		#ifdef USE_STATIC
-		use_static = "yes";
-		#endif
-
-		cout << "CUDA enabled:             " << use_cuda << endl;
-		cout << "python module enabled:    " << use_python << endl;
-		cout << "Floating point precision: " << precision << endl;
-		cout << "Static library build:     " << use_static << endl;
-
-		cout << endl;
-		}
 	}

@@ -107,9 +107,7 @@ class BinnedNeighborListGPU : public NeighborList
 		void freeGPUBinData();
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the BinnedNeighborListGPU class to python
 void export_BinnedNeighborListGPU();
-#endif
 
 #endif

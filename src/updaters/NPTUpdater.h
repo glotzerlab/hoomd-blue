@@ -114,9 +114,7 @@ class NPTUpdater : public Integrator
 		
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the NPTUpdater class to python
 void export_NPTUpdater();
-#endif	
 
 #endif

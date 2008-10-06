@@ -112,12 +112,11 @@ set(HOOMD_LIB hoomd)
 set(HOOMD_PYTHON_MODULE hoomd_python_module)
 set(HOOMD_EXE hoomd_exe)
 
-# setup python library and executable
-if(USE_PYTHON)
-	# find the python interpreter
-	find_package(PythonInterp REQUIRED)
-	add_subdirectory (python)
-endif(USE_PYTHON)	
+#################################
+## setup python library and executable
+# find the python interpreter, first
+find_package(PythonInterp REQUIRED)
+add_subdirectory (python)
 
 ################################
 # set up unit tests

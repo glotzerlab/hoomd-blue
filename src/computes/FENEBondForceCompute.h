@@ -92,9 +92,7 @@ class FENEBondForceCompute : public ForceCompute
 		virtual void computeForces(unsigned int timestep);
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the BondForceCompute class to python
 void export_FENEBondForceCompute();
-#endif
 
 #endif

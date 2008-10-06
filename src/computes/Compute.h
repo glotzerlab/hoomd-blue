@@ -129,10 +129,8 @@ class Compute : boost::noncopyable
 		friend void export_Compute();
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the Compute class to python
 void export_Compute();
-#endif
 		
 #endif
 

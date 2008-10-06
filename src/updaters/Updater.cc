@@ -44,10 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "Updater.h"
 
@@ -78,7 +76,6 @@ void Updater::setProfiler(boost::shared_ptr<Profiler> prof)
 	m_prof = prof;
 	}
 
-#ifdef USE_PYTHON
 //! Wrapper class to expose pure virtual method to python
 class UpdaterWrap: public Updater, public wrapper<Updater>
 	{
@@ -104,7 +101,6 @@ void export_Updater()
 		.def("setProfiler", &Updater::setProfiler)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

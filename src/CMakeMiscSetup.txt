@@ -70,10 +70,6 @@ if (WIN32)
 	endif(CMAKE_CL_64)
 endif (WIN32)
 
-#################################
-## Optional build of boost.python interface
-OPTION(USE_PYTHON "Build the boost.python hoomd module" ON)
-
 ##################################
 ## SSE and floating point compilation options
 # msvc 2005 doesn't define __SSE__ or __SSE2__, so we define them for it

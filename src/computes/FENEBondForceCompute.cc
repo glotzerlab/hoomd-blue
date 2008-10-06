@@ -44,10 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include "FENEBondForceCompute.h"
 
@@ -307,7 +305,6 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop(m_bond_data->getNumBonds() * (3+9+5+13+2+16), m_pdata->getN() * 5 * sizeof(Scalar) + m_bond_data->getNumBonds() * ( (4) * sizeof(unsigned int) + (6+2+20) ) );
 	}
 	
-#ifdef USE_PYTHON
 void export_FENEBondForceCompute()
 	{
 	class_<FENEBondForceCompute, boost::shared_ptr<FENEBondForceCompute>, bases<ForceCompute>, boost::noncopyable >
@@ -315,7 +312,6 @@ void export_FENEBondForceCompute()
 		.def("setParams", &FENEBondForceCompute::setParams)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

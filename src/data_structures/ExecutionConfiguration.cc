@@ -50,10 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 #endif
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <stdexcept>
 #include <iostream>
@@ -205,7 +203,6 @@ void ExecutionConfiguration::callAll(const boost::function< cudaError_t (void) >
 	}
 #endif
 
-#ifdef USE_PYTHON
 void export_ExecutionConfiguration()
 	{
 	scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
@@ -220,7 +217,6 @@ void export_ExecutionConfiguration()
 		.value("CPU", ExecutionConfiguration::CPU)
 	;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

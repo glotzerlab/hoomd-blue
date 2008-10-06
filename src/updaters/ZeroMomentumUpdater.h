@@ -67,9 +67,7 @@ class ZeroMomentumUpdater : public Updater
 		virtual void update(unsigned int timestep);
 	};
 	
-#ifdef USE_PYTHON
 //! Export the ZeroMomentumUpdater to python
 void export_ZeroMomentumUpdater();
-#endif
 	
 #endif

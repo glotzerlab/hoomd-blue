@@ -50,10 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TempCompute.h"
 
-#ifdef USE_PYTHON
 #include <boost/python.hpp>
 using namespace boost::python;
-#endif
 
 #include <iostream>
 using namespace std;
@@ -109,7 +107,6 @@ void TempCompute::computeTemp()
 	if (m_prof) m_prof->pop();
 	}
 
-#ifdef USE_PYTHON
 void export_TempCompute()
 	{
 	class_<TempCompute, boost::shared_ptr<TempCompute>, bases<Compute>, boost::noncopyable >
@@ -118,7 +115,6 @@ void export_TempCompute()
 		.def("getTemp", &TempCompute::getTemp)
 		;
 	}
-#endif
 
 #ifdef WIN32
 #pragma warning( pop )

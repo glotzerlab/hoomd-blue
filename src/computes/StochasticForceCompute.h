@@ -83,10 +83,8 @@ class StochasticForceCompute :	public ForceCompute
 	};
 
 
-#ifdef USE_PYTHON
 //! Exports the StochasticForceCompute class to python
 void export_StochasticForceCompute();
-#endif
 
 
 #endif

@@ -74,9 +74,7 @@ class TempRescaleUpdater : public Updater
 		Scalar m_tset;			//!< Temperature set point
 	};
 	
-#ifdef USE_PYTHON
 //! Export the TempRescaleUpdater to python
 void export_TempRescaleUpdater();
-#endif
 	
 #endif

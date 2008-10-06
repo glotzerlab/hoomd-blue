@@ -142,13 +142,11 @@ class RandomInitializerWithWalls : public RandomInitializer
 
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the SimpleCubicInitializer class to python
 void export_SimpleCubicInitializer();
 //! Exports the RandomInitializer class to python
 void export_RandomInitializer();
 //! Exports the RandomInitializerWithWalls class to python
 void export_RandomInitializerWithWalls();
-#endif
 
 #endif

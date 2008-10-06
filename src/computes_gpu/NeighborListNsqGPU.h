@@ -74,10 +74,8 @@ class NeighborListNsqGPU : public NeighborList
 		void buildNlist();
 	};
 	
-#ifdef USE_PYTHON
 //! Exports the NeighborListNsqGPU class to python
 void export_NeighborListNsqGPU();
-#endif
 
 #endif
 
