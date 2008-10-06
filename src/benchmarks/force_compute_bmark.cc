@@ -214,8 +214,11 @@ void benchmark(shared_ptr<ForceCompute> fc)
 		{
 		if (nrepeat % 500 == 0)
 			{
-			cout << ".";
-			cout.flush();
+			if (!quiet)
+				{
+				cout << ".";
+				cout.flush();
+				}
 			}
 		}
 

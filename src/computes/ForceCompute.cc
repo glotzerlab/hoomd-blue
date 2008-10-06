@@ -144,7 +144,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 
 	if (!exec_conf.gpu.empty())
 		{
-		cout << "***Warning! Virial data structure not yet implemented on the GPU" << endl;
+		// cout << "***Warning! Virial data structure not yet implemented on the GPU" << endl;
 		
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
