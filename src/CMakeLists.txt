@@ -106,8 +106,7 @@ include (CMakeFFTSetup.txt)
 
 #################################
 ## Name the output targets
-# set the variable of the library that is generated from all this code
-set(HOOMD_LIB hoomd)
+
 # name of the python module and hoomd executable targets
 set(HOOMD_PYTHON_MODULE hoomd_python_module)
 set(HOOMD_EXE hoomd_exe)
@@ -116,6 +115,9 @@ set(HOOMD_EXE hoomd_exe)
 ## setup python library and executable
 # find the python interpreter, first
 find_package(PythonInterp REQUIRED)
+# find the python libraries to link to
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_PATH})
 add_subdirectory (python)
 
 ################################
@@ -126,7 +128,6 @@ add_subdirectory (unit_tests)
 ################################
 ## Process subdirectories
 add_subdirectory (benchmarks)
-add_subdirectory (lib)
 add_subdirectory (share)
 add_subdirectory (scripts)
 

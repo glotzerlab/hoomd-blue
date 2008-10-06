@@ -49,9 +49,6 @@ else(USE_STATIC)
 	set(LIB_MODE SHARED)
 endif(USE_STATIC)
 
-# find the python libraries to link to
-find_package(PythonLibs REQUIRED)
-include_directories(${PYTHON_INCLUDE_PATH})
 
 # here is where we actually compile the python module version of the library
 if (USE_CUDA)

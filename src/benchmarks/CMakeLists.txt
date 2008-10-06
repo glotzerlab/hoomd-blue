@@ -40,10 +40,15 @@
 # libraries
 # only add the boost library if not win32, since it provides an auto-linking mechanism
 if (WIN32)
-	set(LIBS ${HOOMD_LIB} ${WINSOCK_LIB})
+	set(LIBS hoomd_python_module ${WINSOCK_LIB})
 else (WIN32)
-	set(LIBS ${HOOMD_LIB} ${Boost_THREAD_LIBRARY}
-	${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SIGNALS_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+	set(LIBS hoomd_python_module ${Boost_THREAD_LIBRARY}
+			${Boost_FILESYSTEM_LIBRARY}
+			${Boost_PYTHON_LIBRARY}
+			${Boost_PROGRAM_OPTIONS_LIBRARY} 
+			${Boost_SIGNALS_LIBRARY} 
+			${CMAKE_THREAD_LIBS_INIT}
+			${PYTHON_LIBRARIES})
 endif (WIN32)
 
 ###################################

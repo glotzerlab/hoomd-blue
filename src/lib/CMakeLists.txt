@@ -38,53 +38,9 @@
 # $Id$
 # $URL$
 
-if(USE_STATIC)
-	set(LIB_MODE STATIC)
-else(USE_STATIC)
-	set(LIB_MODE SHARED)
-endif(USE_STATIC)
-
-# here is where we actually compile the library
-if (USE_CUDA)
-cuda_add_library (${HOOMD_LIB} ${LIB_MODE} ${HOOMD_CPU_SRCS} ${HOOMD_GPU_SRCS})
-else (USE_CUDA)
-add_library (${HOOMD_LIB} ${LIB_MODE} ${HOOMD_CPU_SRCS})
-endif (USE_CUDA)
-
-# link the library to its dependancies (but only on non win32 since the linking
-# is automatic there
-if(NOT WIN32)
-	target_link_libraries(${HOOMD_LIB} ${Boost_THREAD_LIBRARY} ${Boost_SIGNALS_LIBRARY})
-endif(NOT WIN32)
-
-if(WIN32)
-	target_link_libraries(${HOOMD_LIB} ${WINSOCK_LIB})
-endif(WIN32)
-
-# install the library if this is not a static build
-if (NOT USE_STATIC)
-	install(TARGETS ${HOOMD_LIB}
-		LIBRARY DESTINATION lib
-		CONFIGURATIONS Release
-		)
-endif (NOT USE_STATIC)
-
 # install the hoomd_script python module
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python-module
 	DESTINATION ${LIB_INSTALL_DIR}
 	CONFIGURATIONS Release
 	PATTERN ".svn" EXCLUDE
 	)
-
-#################################
-## Create source file groups
-source_group(utils FILES ${UTILS_SRCS})
-source_group(data_structures FILES ${DATA_STRUCT_SRCS})
-source_group(computes FILES ${COMPUTES_SRCS})
-source_group(computes_gpu FILES ${COMPUTES_GPU_SRCS})
-source_group(analyzers FILES ${ANALYZER_SRCS})
-source_group(extern FILES ${EXTERN_SRCS})
-source_group(updaters FILES ${UPDATER_SRCS})
-source_group(updaters_gpu FILES ${UPDATER_GPU_SRCS})
-source_group(cuda FILES ${CUDA_SRCS})
-source_group(system FILES ${SYSTEM_SRCS})

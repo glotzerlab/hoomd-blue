@@ -59,7 +59,7 @@ file(GLOB UPDATER_GPU_SRCS ${HOOMD_SOURCE_DIR}/updaters_gpu/*.cc ${HOOMD_SOURCE_
 file(GLOB ANALYZER_SRCS ${HOOMD_SOURCE_DIR}/analyzers/*.cc ${HOOMD_SOURCE_DIR}/analyzers/*.h)
 file(GLOB EXTERN_SRCS ${HOOMD_SOURCE_DIR}/extern/*.cc ${HOOMD_SOURCE_DIR}/extern/*.h)
 file(GLOB SYSTEM_SRCS ${HOOMD_SOURCE_DIR}/system/*.cc ${HOOMD_SOURCE_DIR}/system/*.h)
-file(GLOB PYTHON_SRCS ${HOOMD_SOURCE_DIR}/python/*.cc)
+file(GLOB PYTHON_SRCS ${HOOMD_SOURCE_DIR}/python/hoomd_module.cc)
 file(GLOB CUDA_SRCS ${HOOMD_SOURCE_DIR}/cuda/*.cu CUDA_SRCS ${HOOMD_SOURCE_DIR}/cuda/*.h)
 
 # make some convenience variables

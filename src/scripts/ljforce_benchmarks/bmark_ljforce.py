@@ -3,7 +3,7 @@
 import os;
 
 # for GTX 280
-args_base = "--half_nlist=0 -q --block_size=96";
+args_base = "--half_nlist=0 -q --block_size=96 --sort=0";
 
 # for CPU
 # args_base = "-q";
