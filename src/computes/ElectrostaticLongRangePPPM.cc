@@ -118,11 +118,20 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
     // allocate space for polynomial needed to compute the influence function
 
 	Denom_Coeff=new Scalar[P_order];
+	
+	// construct the polynomials needed to compute the denominator coefficients of the influence function
+    Denominator_Poly_G();
+
 
 	// allocate space for polynomial need to compute the charge distribution on the grid
-
 	P_coeff=new Scalar*[P_order];
 	for(unsigned int i=0;i<P_order;i++)P_coeff[i]=new Scalar[P_order]; 
+
+	// Compute the polynomial coefficients needed for the charge distribution
+	ComputePolyCoeff();
+		
+	// the charge distribution on the grid is quite different if the number is odd or even so
+	// we decide at run time whether to use the rho even or rho odd function
 
 	if(P_order%2) make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_odd;
 	else make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_even;
@@ -384,6 +393,11 @@ void ElectrostaticLongRangePPPM::ComputePolyCoeff(void)
 
 void ElectrostaticLongRangePPPM::Compute_G(void)
 {
+	vector<Scalar> v_num;
+	Scalar xsi,ysi,zsi;
+	Scalar k_x,k_y,k_z;
+	Scalar k_per_x,k_per_y,k_per_z,k_per_norm;
+
 	for(unsigned int i=0;i<N_mesh_x;i++){
 	for(unsigned int j=0;j<N_mesh_y;j++){
 	for(unsigned int k=0;k<N_mesh_z;k++){
@@ -393,15 +407,28 @@ void ElectrostaticLongRangePPPM::Compute_G(void)
 	}
     
 	for(unsigned int i=0;i<N_mesh_x;i++){
+		k_x=2*i*M_PI/h_x;
+		k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x; 
+        xsi=sin(k_x);
 	for(unsigned int j=0;j<N_mesh_y;j++){
+		k_y=2*j*M_PI/h_y;
+		k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
+        ysi=sin(k_y);
 	for(unsigned int k=0;k<N_mesh_z;k++){
-		G_Inf[i][j][k]=0.0;
+		k_z=2*k*M_PI/h_z;
+		k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/h_z;
+        zsi=sin(k_z);
+
+		k_per_norm=k_per_x*k_per_x+k_per_y*k_per_y+k_per_z*k_per_z; // modulus of the derivative
+		v_num=Numerator_G(k_x,k_y,k_z);	
+
+		G_Inf[i][j][k]=(k_per_x*v_num[0]+k_per_y*v_num[1]+k_per_z*v_num[2])/(k_per_norm*Denominator_G(xsi,ysi,zsi));
 	}
 	}
 	}
 
 
-
+	// Influence function has been computed
 
 }
 
@@ -513,49 +540,12 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	// start the profile
 	if (m_prof) m_prof->push("ElecLongRange");
 	
-	// access the particle data
-	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
-	// sanity check
-	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-	
 	// tally up the number of forces calculated
 	int64_t n_calc = 0;
 	
-	// need to start from a zero force, potential energy and virial
-	// (MEM TRANSFER 5*N Scalars)
-	memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
-	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
-	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
-	memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
-	memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
+	//assign the charge to the grid
 
-	// for each particle
-	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		{
-		// access the particle's position and charge (MEM TRANSFER: 4 Scalars)
-		Scalar xi = arrays.x[i];
-		Scalar yi = arrays.y[i];
-		Scalar zi = arrays.z[i];
-
-		Scalar q_i=arrays.charge[i];
-		
-		// zero force, potential energy, and virial for the current particle
-		Scalar fxi = 0.0;
-		Scalar fyi = 0.0;
-		Scalar fzi = 0.0;
-		Scalar pei = 0.0;
-		Scalar viriali = 0.0;
-		
-		
-		// (FLOPS: 5 / MEM TRANSFER: 10 Scalars)
-		m_fx[i] += fxi;
-		m_fy[i] += fyi;
-		m_fz[i] += fzi;
-		m_pe[i] += pei;
-		m_virial[i] += viriali;
-		}
-		
-	m_pdata->release();
+	make_rho();
 	
 	#ifdef USE_CUDA
 	// the force data is now only up to date on the cpu
