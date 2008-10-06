@@ -120,12 +120,9 @@ if(USE_PYTHON)
 endif(USE_PYTHON)	
 
 ################################
-# option to enable unit tests
-OPTION(USE_TEST  "Enable building of unit tests" ON)
-if (USE_TEST)
-	enable_testing()
-	add_subdirectory (unit_tests)
-endif (USE_TEST)
+# set up unit tests
+enable_testing()
+add_subdirectory (unit_tests)
 
 ################################
 ## Process subdirectories

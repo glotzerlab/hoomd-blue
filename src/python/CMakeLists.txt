@@ -38,10 +38,8 @@
 # $Id$
 # $URL$
 
-# enable testing if it is requested
-if (USE_TEST)
-	enable_testing()
-endif (USE_TEST)
+# enable unit tests
+enable_testing()
 
 # setup the library compile mode
 if(USE_STATIC)
