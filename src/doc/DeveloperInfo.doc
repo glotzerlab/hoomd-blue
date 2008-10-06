@@ -74,7 +74,7 @@ Table of contents:
 	- \ref sec_system_class_rationale
 	- \ref sec_system_class_requirements
 - \subpage page_hoomd_script_design
-
+- \subpage page_gpu_impl
 */
 
 /*!
@@ -300,7 +300,7 @@ data structure will also contain the simulation box setup, as this seems the bes
 		memory. This will also make it easier to make a copy of the particle data 
 		structure.
 - Serializable (<b>TODO</b>)
-- Non-copyable (<b>TODO</b>)
+- Non-copyable
 - Provide an acquire/release mechanism for low level access to the data. Read only 
 	and read/write accesses should be separately handled. Data can be acquired 
 	either on the CPU or GPU
@@ -359,7 +359,7 @@ requirement remains.
 - Stores a pointer to the particle data, initialized on instantiation
 - Provide a virtual print statistics function (and clear statistics, so the user can do so if they wish)
 - Store an optional pointer to a Profiler for use in profiling the compute
-- Non-copyable (<b>TODO</b>)
+- Non-copyable
  
 <b>Derived class requirements:</b>
 - Serializable
@@ -822,5 +822,82 @@ automatic creation.
 
 <b>9. System.run</b>
 We can't forget the run command!
+
+<hr>
+\ref page_gpu_impl "Next Page"
+*/
+
+
+/*!
+\page page_gpu_impl GPU implementation
+
+<b>Rationale/Implementation notes</b>
+
+HOOMD's design goals target the fastest possible single machine performance for MD simulations.
+To obtain, this every single calculation that can be done on the GPU must be done there to maximize 
+performance and minimize the time spent copying data from the GPU <-> CPU. Still, all classes whether 
+they be GPU or CPU must interoperate with each other, so acquire methods (see \ref page_particle_data) 
+must be used to implement this. Every GPU compute/updater should have a corresponding CPU version,
+both for comparison/validation and for use in small simulations on the CPU. Usually, this is best done 
+by having the GPU compute inherit from the CPU compute and override the calculation methods. In this manner
+any caller of the class doesn't need to know where the calculations are to be performed.
+
+<b>Multi-GPU</b>
+
+To get the fastest possible single workstation performance, every GPU compute/updater should execute
+on multiple GPUs. CUDA is designed for a peer to peer multi-GPU program, but that model does not
+work well with HOOMD's design. So, GPUWorker was created to allow for calling GPU kernels 
+on mutiple GPUs from a single master thread. The most common data-parallel breakdown of any 
+portion of MD is to assign one thread per particle. Thus, HOOMD's multi-GPU implementation
+assings N/N_gpus particles to each GPU.
+
+Some data is stored on all GPUs (like particle positions) and others only store what is needed
+on that GPU (like forces and the Neighborlist). Carefully read the documentation for these data
+structures to find out which is whicn. Typically, a kernel will define two idices: \a local_pidx is the
+\b local index or the index of which particle is being handled that is local to this GPU. 
+\a global_pidx is the global index of the particle and indexes into those data structures that
+have all particles on all GPUs.
+
+Several different designs for the communication between multiple GPUs are being tested. This will be
+updated with the details when a working method is found, tested, and debugged.
+
+<b>C programming</b>
+
+CUDA does allow some c++ features, but they are flaky and work on some platforms but not others.
+As such, all CUDA code is separated into a separate cuda/ directory and into .cu files to flag that
+they are to be compiled by nvcc. All code in .cu files must predominately be C code. Overall management
+of the data structures and tasks is done by the mother C++ class, but the buts of the work is done by
+having that class call the C procedures from the .cu files.  One area where C++ programming can be helpful
+is in managing the memory allocation/deallocation in the GPU data structures. Accessor methods can even 
+be used on the GPU to perform some level of data-hiding, although these mask the underlying data access
+pattern and may lead to confusion in how to best organize the threads and blocks. These can be done as 
+shown below.
+
+\code
+struct SomeDataGPU
+	{
+	float *data;
+	__host__ cudaError_t allocate(int N);	// allocates memory in data
+	__host__ cudaError_t deallocate(int N); // frees memory in data
+	__device__ float accessor(int i);	// accesses element i
+	}
+\endcode
+
+HOOMD currently doesn't use many of these classes to clean up all the messy code, but that will change soon.
+
+<b>Data structures</b>
+
+Unfortunately, I cannot document the data structure choices at this high level. All data structures
+used in the GPU computes are intimately tied to the structure of the GPU kernel. See the actual
+kernel source code for more information.
+
+<b>Dig through the code</b>
+
+There are 1001 more nitty-gritty details that anyone implementing CUDA kernels in HOOMD must know,
+and there is no way I can go over them all here at a high level. One simply must look into the existing
+code and see how things are done.
+
+<hr>
+\ref page_dev_info "Back to Table of Contents"
 
 */
