@@ -67,14 +67,30 @@ using namespace std;
 	\param deltaT Time step to use
 */
 BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : Integrator(pdata, deltaT), 
-	m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp), 
-	#ifdef USE_CUDA
-	m_bdfc(new StochasticForceComputeGPU(pdata, deltaT, m_T, seed))
-	#else
-	m_bdfc(new StochasticForceCompute(pdata, deltaT, m_T, seed))
-	#endif
+	m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp)
 	{
+
+
 	cout << "Adding on Stochastic Bath with deltaT = " << deltaT << " and Temp  = " << m_T << endl; 	
+
+	
+	// check the execution configuration
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	if (exec_conf.exec_mode == ExecutionConfiguration::CPU )
+		using_gpu = false;
+	else using_gpu = true;
+	cout << exec_conf.exec_mode << endl;
+	cout << "Using GPU " << using_gpu << endl;
+ 
+     
+	#ifdef USE_CUDA
+	if (using_gpu) m_bdfc_gpu =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(pdata, deltaT, m_T, seed));
+	#endif
+	
+	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(pdata, deltaT, m_T, seed));
+    
+	
+	
 	}
 
 /*! \param Temp Temperature of the Stochastic Bath
@@ -83,7 +99,13 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 void BD_NVTUpdater::setT(Scalar Temp) 
 	{	
 	 m_T = Temp;
-	 m_bdfc->setT(m_T); 
+	 
+	#ifdef USE_CUDA
+	if (using_gpu)
+	m_bdfc_gpu->setT(m_T);
+	#endif
+	
+	m_bdfc->setT(m_T); 
 	}	
 
 /*! Once the limit is set, future calls to update() will never move a particle 
@@ -412,9 +434,9 @@ void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::
 		}
 	
 		//handle the gpu stochastic forcecompute
-		assert(m_bdfc);
-		m_bdfc->compute(timestep);		
-		m_bdfc->acquireGPU();
+		assert(m_bdfc_gpu);
+		m_bdfc_gpu->compute(timestep);		
+		m_bdfc_gpu->acquireGPU();
 
 	// compute the forces
 	for (unsigned int i = 0; i < m_forces.size(); i++)

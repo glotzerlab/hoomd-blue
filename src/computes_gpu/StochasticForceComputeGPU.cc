@@ -71,15 +71,8 @@ using namespace std;
 StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) 
 	: StochasticForceCompute(pdata, deltaT, Temp, seed)
 	{
-	// check the execution configuration
+	cout << "Initializing StochasticForceComputeGPU" << endl;
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	// only one GPU is currently supported
-	if (exec_conf.gpu.size() == 0)
-		{
-		cerr << endl << "***Error! Creating a StochasticForceComputeGPU with no GPU in the execution configuration" << endl << endl;
-		throw std::runtime_error("Error initializing StochasticForceComputeGPU");
-		}
-		
 
 //  I DO NOT KNOW IF THIS APPLIES TO THIS FORCE		
 	// default block size is the highest performance in testing on different hardware
@@ -98,6 +91,8 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 		m_block_size = 96;
 		}
 
+	cout << "initializing StochasticForceComputeGPU  - 1" << endl;
+
 	// allocate the gamma data on the GPU
 	int nbytes = sizeof(float1)*m_pdata->getNTypes();
 	
@@ -112,6 +107,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	// allocate the coeff data on the CPU
 	h_gammas = new float1[m_pdata->getNTypes()];
 
+	cout << "initializing StochasticForceComputeGPU  - 2" << endl;
 
 	// Make deltaT and Temperature data structure
 	dt_T = make_float2(deltaT, Temp);
@@ -144,6 +140,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 		assert(d_state[cur_gpu]);
 		
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *)&d_state[cur_gpu]), h_state[cur_gpu], nbytes, cudaMemcpyHostToDevice));
+	cout << "initialized StochasticForceComputeGPU" << endl;
 		
 		}
 

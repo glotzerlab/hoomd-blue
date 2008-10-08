@@ -80,7 +80,7 @@ __device__ inline void xorshift_RNG(uint4 &rng_state) {
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
 
 //! Texture for reading particle positions
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 
 //! Kernel for calculating stochastic forces
 /*! This kernel is called to apply stochastic heat bath forces to all N particles in conjunction with a Brownian Dynamics Simulations
@@ -91,7 +91,6 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	\param gammas Gamma coefficients that govern the coupling of the particle to the bath.
 	\param gamma_length length of the gamma array (number of particle types)
 	\param d_state The state vector for the RNG.
-	\param threads_per_block Self-Explainatory
 	
 	\a gammas is a pointer to an array in memory. \c gamma[i].x is \a gamma for the particle type \a i.
 	The values in d_gammas are read into shared memory, so \c gamma_length*sizeof(float1) bytes of extern 
@@ -103,7 +102,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	The RNG state vectors should permit a coalesced read, but this fact should be checked.
 	
 */
-extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, float2 d_dt_T, float1 *d_gammas, int gamma_length, uint4 * d_state, int threads_per_block)
+extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, float2 d_dt_T, float1 *d_gammas, int gamma_length, uint4 * d_state)
 	{
 	
 	// read in the gammas (1 dimensional array)
@@ -129,10 +128,11 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
+	int global_idx = blockIdx.x * blockDim.x + threadIdx.x + pdata.local_beg;
+	float type_f = tex1Dfetch(pdata_type_tex, global_idx*4 + 3);
+	int typ = __float_as_int(type_f);
 	
 	// Calculate Coefficient of Friction
-	int typ = __float_as_int(pos.w);
 	//type = 0;   //May use this for benchmarking the impact of doing a second texture read just for particle type
 	float coeff_fric = sqrtf(6.0f * s_gammas[typ].x * d_dt_T.y/ d_dt_T.x);
 	
@@ -144,7 +144,7 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 	
     // Each thread of each block has a unique state that is loaded once from global memory
 	uint4 rng_state;
-    rng_state = d_state[blockIdx.x * threads_per_block + threadIdx.x];
+    rng_state = d_state[blockIdx.x * blockDim.x + threadIdx.x];
 
 	// Generate random number and generate x, y, and z forces respectively
 	xorshift_RNG(rng_state);
@@ -160,7 +160,7 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 	d_forces[pidx] = force;	
 	
     // State is written back to global memory
-    d_state[blockIdx.x * threads_per_block + threadIdx.x] = rng_state;	
+    d_state[blockIdx.x * blockDim.x + threadIdx.x] = rng_state;	
 	
 	}
 
@@ -193,12 +193,12 @@ cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float
 		return error;
 
 	// bind the position texture  (this is done only to retrieve the particle type)
-	error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_type_tex, pdata->pos, sizeof(float4) * pdata->N);
 	if (error != cudaSuccess)
 		return error;		
 
     // run the kernel
-    stochasticForces_kernel<<< grid, threads, sizeof(float1)*gamma_length>>>(d_forces, *pdata, d_dt_T, d_gammas, gamma_length, d_state, M);
+    stochasticForces_kernel<<< grid, threads, sizeof(float1)*gamma_length>>>(d_forces, *pdata, d_dt_T, d_gammas, gamma_length, d_state);
 
 	if (!g_gpu_error_checking)
 		{

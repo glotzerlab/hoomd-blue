@@ -96,6 +96,8 @@ class BD_NVTUpdater : public Integrator
 		Scalar m_limit_val;	//!< The maximum distance a particle is to move in one step
 		Scalar m_T;			//!< The Temperature of the Stochastic Bath
 		
+		bool using_gpu;    //!<  Flag to indicate which version of StochasticForceCompute should be used.
+		
 		void computeBDAccelerations(unsigned int timestep, const std::string& profile_name);  
 		
 		#ifdef USE_CUDA 
@@ -106,11 +108,11 @@ class BD_NVTUpdater : public Integrator
 		vector<float4 **> m_d_force_data_ptrs;
 		
 		//! The GPU version of the StochasticForceCompute
-		boost::shared_ptr<StochasticForceComputeGPU> m_bdfc;
-		#else
+		boost::shared_ptr<StochasticForceComputeGPU> m_bdfc_gpu;
+		#endif
 		//! The CPU version of the StochasticForceCompute
 		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
-		#endif
+
 
 	};
 	
