@@ -212,7 +212,6 @@ void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 
 void StochasticForceComputeGPU::setT(Scalar T)
 	{
-	assert(dt_T);
 	if (T <= 0)
 		{
 		cerr << endl << "***Error! Trying to set a Temperature <= 0 " << endl << endl;
