@@ -37,33 +37,40 @@
 # $Id$
 # $URL$
 
-# libraries
-# only add the boost library if not win32, since it provides an auto-linking mechanism
+# setup flags to specify installation directories for files, these differ in
+# linux and windows
+if (WIN32)
+	# The "." needs to be there to install to the root directory of
+	# the specified install path, "" doesn't work
+	set(DATA_INSTALL_DIR ".")
+	set(LIB_INSTALL_DIR "bin")
+	set(BIN_INSTALL_DIR "bin")
+else (WIN32)
+	set(DATA_INSTALL_DIR "share/hoomd")
+	set(LIB_INSTALL_DIR "lib/hoomd")
+	set(BIN_INSTALL_DIR "bin")
+endif (WIN32)
+ 
 
-set(LIBS hoomd_python_module ${HOOMD_COMMON_LIBS})
+################################
+## Version information
+set(HOOMD_VERSION_MAJOR "0")
+set(HOOMD_VERSION_MINOR "8")
+set(HOOMD_VERSION_PATCH "0")
+set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
+set(HOOMD_SUBVERSION_BUILD "1")
 
-###################################
-## Setup all of the test executables
-add_executable(neighborlist_bmark neighborlist_bmark.cc)
-target_link_libraries(neighborlist_bmark ${LIBS})
+# users may not have subversion installed, search for it and set an unknown version if that is
+# the case
+find_program(SVNVERSION_EXE "svnversion" DOC "svnversion executable")
+mark_as_advanced(SVNVERSION_EXE)
+if (SVNVERSION_EXE)
+	exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} ARGS ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
+else (SVNVERSION_EXE)
+	set(SVNVERSION "NA")
+endif (SVNVERSION_EXE)
 
-add_executable(force_compute_bmark force_compute_bmark.cc)
-target_link_libraries(force_compute_bmark ${LIBS})
-
-# install the executables
-install(TARGETS neighborlist_bmark force_compute_bmark
-	RUNTIME DESTINATION ${LIB_INSTALL_DIR}
-	CONFIGURATIONS Release
-	)
-	
-if (USE_CUDA)
-add_executable(pdata_gpucopy_bmark pdata_gpucopy_bmark.cc)
-target_link_libraries(pdata_gpucopy_bmark ${LIBS})
-
-# install the executables
-install(TARGETS pdata_gpucopy_bmark
-	RUNTIME DESTINATION ${LIB_INSTALL_DIR}
-	CONFIGURATIONS Release
-	)
-endif (USE_CUDA)
-
+if(HOOMD_SUBVERSION_BUILD)
+	string(REGEX REPLACE ":" "_" SVNVERSION_UNDERSCORE ${SVNVERSION})
+	set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION}_beta${SVNVERSION_UNDERSCORE}")
+endif(HOOMD_SUBVERSION_BUILD)

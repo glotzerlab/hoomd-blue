@@ -69,8 +69,6 @@
 #
 # CUDA_INCLUDE         -- Include directory for cuda headers.
 # CUDA_TARGET_LINK     -- Cuda RT library. 
-# CUDA_CUT_INCLUDE     -- Include directory for cuda SDK headers (cutil.h).   
-# CUDA_CUT_TARGET_LINK -- SDK libraries.
 # CUDA_NVCC_FLAGS      -- Additional NVCC command line arguments. NOTE: 
 #                         multiple arguments must be semi-colon delimited 
 #                         e.g. --compiler-options;-Wall
@@ -212,60 +210,15 @@ IF (NOT CUDA_TARGET_LINK)
       CUDA_LIB
       FOUND_CUDA
       FOUND_CUDART
+      CUDA_BUILD_CUBIN
+      CUDA_NVCC_FLAGS
+      CUDA_INSTALL_PREFIX
       )
   ELSE(FOUND_CUDART)
     MESSAGE(FATAL_ERROR "Could not find cuda libraries.")
   ENDIF(FOUND_CUDART)
   
 ENDIF(NOT CUDA_TARGET_LINK)
-
-# CUDA_CUT_INCLUDE
-IF(NOT CUDA_CUT_INCLUDE)
-  FIND_PATH(FOUND_CUT_INCLUDE
-    cutil.h
-    PATHS ${CUDA_INSTALL_PREFIX}/local/NVSDK0.2/common/inc
-          ${CUDA_INSTALL_PREFIX}/NVSDK0.2/common/inc
-          ${CUDA_INSTALL_PREFIX}/NV_CUDA_SDK/common/inc
-          $ENV{HOME}/NVIDIA_CUDA_SDK/common/inc
-          $ENV{HOME}/NVIDIA_CUDA_SDK_MACOSX/common/inc
-          $ENV{NVSDKCUDA_ROOT}/common/inc
-    DOC "Location of cutil.h"
-    )
-  IF(FOUND_CUT_INCLUDE)
-    SET(CUDA_CUT_INCLUDE ${FOUND_CUT_INCLUDE})
-    MARK_AS_ADVANCED(
-      FOUND_CUT_INCLUDE
-      )
-  ENDIF(FOUND_CUT_INCLUDE)
-ENDIF(NOT CUDA_CUT_INCLUDE)
-
-
-# CUDA_CUT_TARGET_LINK
-IF(NOT CUDA_CUT_TARGET_LINK)
-  FIND_LIBRARY(FOUND_CUT
-    cutil
-    cutil32
-    PATHS ${CUDA_INSTALL_PREFIX}/local/NVSDK0.2/lib
-          ${CUDA_INSTALL_PREFIX}/NVSDK0.2/lib
-          ${CUDA_INSTALL_PREFIX}/NV_CUDA_SDK/lib
-          $ENV{HOME}/NVIDIA_CUDA_SDK/lib
-          $ENV{HOME}/NVIDIA_CUDA_SDK_MACOSX/lib
-          $ENV{NVSDKCUDA_ROOT}/common/lib
-    NO_DEFAULT_PATH
-    NO_CMAKE_ENVIRONMENT_PATH
-    NO_CMAKE_PATH
-    NO_SYSTEM_ENVIRONMENT_PATH
-    NO_CMAKE_SYSTEM_PATH
-    DOC "Location of cutil library"
-    )
-  IF(FOUND_CUT)
-    SET(CUDA_CUT_TARGET_LINK ${FOUND_CUT})
-    MARK_AS_ADVANCED(
-      FOUND_CUT
-      )
-  ENDIF(FOUND_CUT)
-ENDIF(NOT CUDA_CUT_TARGET_LINK)
-
 
 ###############################################################################
 # Add include directories to pass to the nvcc command.

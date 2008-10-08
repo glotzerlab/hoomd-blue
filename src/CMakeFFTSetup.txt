@@ -81,6 +81,16 @@ if (USE_FFTW)
 		HINTS ${FFTW_LIBRARY_SEARCH_DIRS}
 		DOC "FFTW3 library"
 		)
+		
+	# hide the variables if the user doesn't need to see them
+	if (FFTW_LIBRARY)
+		mark_as_advanced(
+			FFTW_LIBRARAY
+			FFTW_INCLUDE_DIR
+			FFTW_ROOT
+			)
+	endif (FFTW_LIBRARY)
+			
 endif (USE_FFTW)
 		
 

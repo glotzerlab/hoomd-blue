@@ -37,29 +37,13 @@
 # $Id$
 # $ $URL$
 
-######
-# setup libraries to link
-# only add the boost library if not win32, since it provides an auto-linking mechanism
-if (WIN32)
-	set(LIBS hoomd_python_module ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
-else (WIN32)
-	set(LIBS hoomd_python_module
-			${Boost_THREAD_LIBRARY}
-			${Boost_FILESYSTEM_LIBRARY}
-			${Boost_SIGNALS_LIBRARY}
+###############################
+# add the boost unit tests framework lib but only on non-win32
+if (NOT WIN32)
+	set(ADDITIONAL_LIBS hoomd_python_module
 			${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-			${Boost_PYTHON_LIBRARY}
-			${PYTHON_LIBRARIES}
-			${CMAKE_THREAD_LIBS_INIT})
-
-	if(Boost_SYSTEM_LIBRARY)
-		set(LIBS ${LIBS} ${Boost_SYSTEM_LIBRARY})
-	endif(Boost_SYSTEM_LIBRARY)
-endif (WIN32)
-
-if (FFTW_LIBRARY)
-	set(LIBS ${LIBS} ${FFTW_LIBRARAY})
-endif (FFTW_LIBRARY)
+			)
+endif (NOT WIN32)
 
 ####################################
 ## Setup valgrind options
@@ -77,10 +61,22 @@ enable_testing()
 
 ###################################
 ## Setup all of the test executables in a for loop
-set(TEST_LIST utils_test pdata_test neighborlist_test bond_force_test fenebond_force_test
-	lj_force_test lj_wall_compute_test nve_updater_test nvt_updater_test bdnvt_updater_test 
-	npt_updater_test temp_rescale_updater_test xml_reader_writer_test system_test 
-	ElectrostaticShortRange_force_test zero_momentum_updater_test)
+set(TEST_LIST 
+	pdata_test
+	utils_test
+	bond_force_test
+	fenebond_force_test
+	lj_wall_compute_test
+	neighborlist_test
+	lj_force_test
+	nve_updater_test
+	nvt_updater_test
+	zero_momentum_updater_test
+	temp_rescale_updater_test
+	xml_reader_writer_test system_test
+	ElectrostaticShortRange_force_test
+	bdnvt_updater_test
+	npt_updater_test)
 
 if(USE_CUDA)
 	set(TEST_LIST ${TEST_LIST} gpu_worker_test)
@@ -89,7 +85,7 @@ endif(USE_CUDA)
 foreach (CUR_TEST ${TEST_LIST})
 	# add and link the unit test executable
 	add_executable(${CUR_TEST} ${CUR_TEST}.cc)
-	target_link_libraries(${CUR_TEST} ${LIBS})
+	target_link_libraries(${CUR_TEST} hoomd_python_module ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
 
 	# add it to the unit test list
 	get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)

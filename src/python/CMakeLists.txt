@@ -38,58 +38,35 @@
 # $Id$
 # $URL$
 
-# enable unit tests
+# enable unit tests in this directory
 enable_testing()
-
-# setup the library compile mode
-if(USE_STATIC)
-	set(LIB_MODE STATIC)
-	add_definitions(-DBOOST_PYTHON_STATIC_LIB)
-else(USE_STATIC)
-	set(LIB_MODE SHARED)
-endif(USE_STATIC)
-
 
 # here is where we actually compile the python module version of the library
 if (USE_CUDA)
-cuda_add_library (${HOOMD_PYTHON_MODULE} ${LIB_MODE} ${HOOMD_CPU_SRCS}
+cuda_add_library (hoomd_python_module ${HOOMD_LIB_MODE} ${HOOMD_CPU_SRCS}
 ${HOOMD_GPU_SRCS} ${PYTHON_SRCS})
 else (USE_CUDA)
-add_library (${HOOMD_PYTHON_MODULE} ${LIB_MODE} ${HOOMD_CPU_SRCS}
+add_library (hoomd_python_module ${HOOMD_LIB_MODE} ${HOOMD_CPU_SRCS}
 ${PYTHON_SRCS})
 endif (USE_CUDA)
-
-set(BOOST_LIBS ${Boost_THREAD_LIBRARY} 
-			   ${Boost_FILESYSTEM_LIBRARY} ${Boost_PYTHON_LIBRARY}
-			   ${Boost_SIGNALS_LIBRARY})
-
-if (Boost_SYSTEM_LIBRARY)
-	set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
-endif (Boost_SYSTEM_LIBRARY)
 
 ##################################
 # change the name of the library if it is dynamic
 if (NOT USE_STATIC)
-	# link the library to its dependancies (but only on non win32 since the linking
-	# is automatic there
-	if(NOT WIN32)
-		target_link_libraries(${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${PYTHON_LIBRARIES} ${FFTW_LIBRARAY})
-	endif(NOT WIN32)
+	# link the library to its dependancies
+	target_link_libraries(hoomd_python_module ${HOOMD_COMMON_LIBS})
 
-	if(WIN32)
-		target_link_libraries(${HOOMD_PYTHON_MODULE} ${WINSOCK_LIB} ${FFTW_LIBRARAY})
-	endif(WIN32)
 	# tweak the properties of the output to make a more useful python module
-	set_target_properties(${HOOMD_PYTHON_MODULE} PROPERTIES PREFIX "" OUTPUT_NAME "hoomd")
+	set_target_properties(hoomd_python_module PROPERTIES PREFIX "" OUTPUT_NAME "hoomd")
 
 	# .dylib is not regognized as a python module by python on Mac OS X
 	if(APPLE)
-		set_target_properties(${HOOMD_PYTHON_MODULE} PROPERTIES SUFFIX ".so")
+		set_target_properties(hoomd_python_module PROPERTIES SUFFIX ".so")
 	endif(APPLE)
 	
 	# also: only install the library if it is dynamic  and not in windows
 	if (NOT WIN32)
-		install(TARGETS ${HOOMD_PYTHON_MODULE}
+		install(TARGETS hoomd_python_module
 			LIBRARY DESTINATION ${LIB_INSTALL_DIR}/python-module
 			CONFIGURATIONS Release
 			)
@@ -105,7 +82,7 @@ if (NOT USE_STATIC)
 			RENAME hoomd
 			)
 	endif (NOT WIN32)
-endif (NOT USE_STATIC)	
+endif (NOT USE_STATIC)
 
 ########################
 ## now setup the hoomd executable
@@ -117,29 +94,24 @@ if (UNIX AND NOT APPLE)
 	find_library(UTIL_LIB util /usr/lib)
 	find_library(DL_LIB dl /usr/lib)
 	set(ADDITIONAL_LIBS ${UTIL_LIB} ${DL_LIB})
+	if (DL_LIB AND UTIL_LIB)
+	mark_as_advanced(UTIL_LIB DL_LIB)
+	endif (DL_LIB AND UTIL_LIB)
 endif (UNIX AND NOT APPLE)
 	
-# setup the libraries to link to
-# only add the boost library if not win32, since it provides an auto-linking mechanism
-if (WIN32)
-    set(LIBS ${HOOMD_PYTHON_MODULE} ${WINSOCK_LIB} ${PYTHON_LIBRARIES} ${FFTW_LIBRARAY})
-else (WIN32)
-    set(LIBS ${HOOMD_PYTHON_MODULE} ${BOOST_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${PYTHON_LIBRARIES} ${FFTW_LIBRARAY} ${ADDITIONAL_LIBS})
-endif (WIN32)
-
 # setup the python runner executable
 # it won't link dynamically with the changed name above, but there really isn't a need to create a dynamically
 # linked version as it can be loaded into python directly
 if (USE_STATIC)
-	add_executable(${HOOMD_EXE} hoomd.cc)
-	target_link_libraries(${HOOMD_EXE} ${LIBS})
-	set_target_properties(${HOOMD_EXE} 
-		PROPERTIES PREFIX "" 
+	add_executable(hoomd hoomd.cc)
+	target_link_libraries(hoomd hoomd_python_module ${HOOMD_COMMON_LIBS} ${ADDITIONAL_LIBS})
+	set_target_properties(hoomd
+		PROPERTIES PREFIX ""
 		OUTPUT_NAME "hoomd"
 		)
 	
 	# install the executable
-	install(TARGETS ${HOOMD_EXE}
+	install(TARGETS hoomd
 		RUNTIME DESTINATION ${LIB_INSTALL_DIR}
 		CONFIGURATIONS Release
 		)
@@ -156,7 +128,7 @@ if (USE_STATIC)
 			)
 			
 	# add the hoomd_script tests to the unit test list
-	get_target_property(CUR_TEST_EXE ${HOOMD_EXE} LOCATION)
+	get_target_property(CUR_TEST_EXE hoomd LOCATION)
 
 	# unfortunately, this needs to be handled differently in visual studio
 	if (MSVC)

@@ -86,3 +86,11 @@ option(SINGLE_PRECISION "Use single precision math" ON)
 ##################################
 ## find the threads library
 find_package(Threads)
+
+#################################
+## setup python library and executable
+# find the python interpreter, first
+find_package(PythonInterp REQUIRED)
+# find the python libraries to link to
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_PATH})

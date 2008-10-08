@@ -50,44 +50,9 @@ set(CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/CMake/cuda"
 	"${CMAKE_MODULE_PATH}")
 	
-# setup flags to specify installation directories for files, these differ in
-# linux and windows
-if (WIN32)
-	# The "." needs to be there to install to the root directory of
-	# the specified install path, "" doesn't work
-	set(DATA_INSTALL_DIR ".")
-	set(LIB_INSTALL_DIR "bin")
-	set(BIN_INSTALL_DIR "bin")
-else (WIN32)
-	set(DATA_INSTALL_DIR "share/hoomd")
-	set(LIB_INSTALL_DIR "lib/hoomd")
-	set(BIN_INSTALL_DIR "bin")
-endif (WIN32)
- 
 
-################################
-## Version information
-set(HOOMD_VERSION_MAJOR "0")
-set(HOOMD_VERSION_MINOR "8")
-set(HOOMD_VERSION_PATCH "0")
-set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
-set(HOOMD_SUBVERSION_BUILD "1")
-
-# users may not have subversion installed, search for it and set an unknown version if that is
-# the case
-find_program(SVNVERSION_EXE "svnversion" DOC "svnversion executable")
-mark_as_advanced(SVNVERSION_EXE)
-if (SVNVERSION_EXE)
-	exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} ARGS ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
-else (SVNVERSION_EXE)
-	set(SVNVERSION "NA")
-endif (SVNVERSION_EXE)
-
-if(HOOMD_SUBVERSION_BUILD)
-	string(REGEX REPLACE ":" "_" SVNVERSION_UNDERSCORE ${SVNVERSION})
-	set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION}_beta${SVNVERSION_UNDERSCORE}")
-endif(HOOMD_SUBVERSION_BUILD)
-
+# setup the install directories and setup HOOMD_VERSION
+include (CMakeInstSetup.txt)
 
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION}")
 
@@ -104,26 +69,36 @@ include (CMakeSRCSetup.txt)
 # Configure the FFT libraries
 include (CMakeFFTSetup.txt)
 
-#################################
-## Name the output targets
-
-# name of the python module and hoomd executable targets
-set(HOOMD_PYTHON_MODULE hoomd_python_module)
-set(HOOMD_EXE hoomd_exe)
-
-#################################
-## setup python library and executable
-# find the python interpreter, first
-find_package(PythonInterp REQUIRED)
-# find the python libraries to link to
-find_package(PythonLibs REQUIRED)
-include_directories(${PYTHON_INCLUDE_PATH})
-add_subdirectory (python)
-
 ################################
-# set up unit tests
-enable_testing()
-add_subdirectory (unit_tests)
+## Define common libraries used by every target in HOOMD
+if (WIN32)
+	set(HOOMD_COMMON_LIBS hoomd_python_module ${FFTW_LIBRARAY} ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
+else (WIN32)
+	set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
+			${Boost_FILESYSTEM_LIBRARY}
+			${Boost_PYTHON_LIBRARY}
+			${Boost_PROGRAM_OPTIONS_LIBRARY}
+			${Boost_SIGNALS_LIBRARY}
+			)
+	if (Boost_SYSTEM_LIBRARY)
+		set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
+	endif (Boost_SYSTEM_LIBRARY)
+			
+	set(HOOMD_COMMON_LIBS
+			${BOOST_LIBS}
+			${CMAKE_THREAD_LIBS_INIT}
+			${FFTW_LIBRARAY}
+			${PYTHON_LIBRARIES}
+			)
+endif (WIN32)
+
+# setup the library compile mode
+if(USE_STATIC)
+	set(HOOMD_LIB_MODE STATIC)
+	add_definitions(-DBOOST_PYTHON_STATIC_LIB)
+else(USE_STATIC)
+	set(HOOMD_LIB_MODE SHARED)
+endif(USE_STATIC)
 
 ################################
 ## Process subdirectories
@@ -131,9 +106,15 @@ add_subdirectory (lib)
 add_subdirectory (benchmarks)
 add_subdirectory (share)
 add_subdirectory (scripts)
+add_subdirectory (python)
+
+################################
+# set up unit tests
+enable_testing()
+add_subdirectory (unit_tests)
 
 ###############################
-## allow for optional inclusion of the doxygen build
+## allow for optional inclusion of the doxygen documentation build
 OPTION(USE_DOXYGEN "Enable generation of source code documentation with doxygen (if installed)" OFF)
 if(USE_DOXYGEN)
 	add_subdirectory (doc)
