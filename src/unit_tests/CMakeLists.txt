@@ -57,6 +57,7 @@ if (VALGRIND)
 	option(USE_VALGRIND OFF "Enable running of unit tests through valgrind")
 
 	set(VALGRIND_COMMON_ARGS "--leak-check=full;--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/cudart_valgrind.supp;--error-exitcode=1")
+	mark_as_advanced(VALGRIND)
 endif (VALGRIND)
 
 enable_testing()
