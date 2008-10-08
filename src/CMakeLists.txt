@@ -127,6 +127,7 @@ add_subdirectory (unit_tests)
 
 ################################
 ## Process subdirectories
+add_subdirectory (lib)
 add_subdirectory (benchmarks)
 add_subdirectory (share)
 add_subdirectory (scripts)
