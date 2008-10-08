@@ -71,6 +71,10 @@ if (WIN32)
 	endif(CMAKE_CL_64)
 endif (WIN32)
 
+if (WINSOCK_LIB)
+mark_as_advanced(WINSOCK_LIB)
+endif (WINSOCK_LIB)
+
 ##################################
 ## SSE and floating point compilation options
 # msvc 2005 doesn't define __SSE__ or __SSE2__, so we define them for it

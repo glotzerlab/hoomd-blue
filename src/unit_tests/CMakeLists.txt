@@ -47,8 +47,10 @@ endif (NOT WIN32)
 
 ####################################
 ## Setup valgrind options
+if (UNIX AND NOT APPLE)
 find_program(VALGRIND valgrind DOC 
 	"valgrind executable for advanced regression tests")
+endif (UNIX AND NOT APPLE)
 
 ## User gets an option to enable valgrind tests
 if (VALGRIND)

@@ -74,4 +74,7 @@ if (NOT CMAKE_CL_64)
 add_definitions(-DBOOST_BIND_ENABLE_STDCALL)
 endif (NOT CMAKE_CL_64)
 
+# hide the diagnostic lib definitions variable
+mark_as_advanced(Boost_LIB_DIAGNOSTIC_DEFINITIONS)
+
 endif (WIN32)
