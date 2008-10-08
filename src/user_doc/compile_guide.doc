@@ -288,6 +288,11 @@ Here is a list of all the build options that can be changed by CMake.
  	- When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
  		other libraries are linked dynamically if possible.
  	- Note: \b USE_STATIC=OFF is not supported on windows. 
+ 	- Note 2: \b USE_STATIC defaults ON and can only be set off from the command line 
+ 		and when configuring a clean build directory.
+		Example:
+ 		\code ccmake -D USE_STATIC=OFF ../src
+ 		\endcode
  - \b USE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
  
 There are a few options for controling the CUDA compilation.

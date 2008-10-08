@@ -39,8 +39,9 @@
 
 #################################
 ## Optional static build
-## Enabling the static build will link as many libraries as possible statically
-OPTION(USE_STATIC "Link as many libraries as possible statically" ON)
+## USE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
+OPTION(USE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" ON)
+mark_as_advanced(USE_STATIC)
 if (USE_STATIC)
 	add_definitions(-DUSE_STATIC)
 endif(USE_STATIC)
