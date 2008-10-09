@@ -83,12 +83,25 @@ else (WIN32)
 	if (Boost_SYSTEM_LIBRARY)
 		set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
 	endif (Boost_SYSTEM_LIBRARY)
-			
+
+	## An update to to CentOS5's python broke linking of the hoomd exe. According
+	## to an ancient post online, adding -lutil fixed this in python 2.2
+	set(ADDITIONAL_LIBS "")
+	if (UNIX AND NOT APPLE)
+		find_library(UTIL_LIB util /usr/lib)
+		find_library(DL_LIB dl /usr/lib)
+		set(ADDITIONAL_LIBS ${UTIL_LIB} ${DL_LIB})
+		if (DL_LIB AND UTIL_LIB)
+		mark_as_advanced(UTIL_LIB DL_LIB)
+		endif (DL_LIB AND UTIL_LIB)
+	endif (UNIX AND NOT APPLE)
+
 	set(HOOMD_COMMON_LIBS
 			${BOOST_LIBS}
 			${CMAKE_THREAD_LIBS_INIT}
 			${FFTW_LIBRARAY}
 			${PYTHON_LIBRARIES}
+			${ADDITIONAL_LIBS}
 			)
 endif (WIN32)
 

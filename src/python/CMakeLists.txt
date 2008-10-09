@@ -86,25 +86,13 @@ endif (NOT USE_STATIC)
 
 ########################
 ## now setup the hoomd executable
-
-## An update to to CentOS5's python broke linking of the hoomd exe. According
-## to an ancient post online, adding -lutil fixed this in python 2.2
-set(ADDITIONAL_LIBS "")
-if (UNIX AND NOT APPLE)
-	find_library(UTIL_LIB util /usr/lib)
-	find_library(DL_LIB dl /usr/lib)
-	set(ADDITIONAL_LIBS ${UTIL_LIB} ${DL_LIB})
-	if (DL_LIB AND UTIL_LIB)
-	mark_as_advanced(UTIL_LIB DL_LIB)
-	endif (DL_LIB AND UTIL_LIB)
-endif (UNIX AND NOT APPLE)
 	
 # setup the python runner executable
 # it won't link dynamically with the changed name above, but there really isn't a need to create a dynamically
 # linked version as it can be loaded into python directly
 if (USE_STATIC)
 	add_executable(hoomd hoomd.cc)
-	target_link_libraries(hoomd hoomd_python_module ${HOOMD_COMMON_LIBS} ${ADDITIONAL_LIBS})
+	target_link_libraries(hoomd hoomd_python_module ${HOOMD_COMMON_LIBS})
 	set_target_properties(hoomd
 		PROPERTIES PREFIX ""
 		OUTPUT_NAME "hoomd"
