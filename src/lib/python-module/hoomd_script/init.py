@@ -145,7 +145,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 	bond_ab = hoomd.std_vector_uint();
 		
 	# create the generator
-	generator.addGenerator(N, hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, 100));
+	generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, 100));
 	
 	# set the separation radius
 	generator.setSeparationRadius(name, min_dist/2.0);
@@ -316,7 +316,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 			raise RuntimeError("Error creating random polymers");
 		
 		# create the generator
-		generator.addGenerator(poly['count'], hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, 100));
+		generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, 100));
 		
 		
 	# check that all used types are in the separation list
