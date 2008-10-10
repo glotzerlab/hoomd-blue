@@ -71,7 +71,6 @@ using namespace std;
 StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) 
 	: StochasticForceCompute(pdata, deltaT, Temp, seed)
 	{
-	cout << "Initializing StochasticForceComputeGPU" << endl;
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
 //  I DO NOT KNOW IF THIS APPLIES TO THIS FORCE		
@@ -91,7 +90,6 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 		m_block_size = 96;
 		}
 
-	cout << "initializing StochasticForceComputeGPU  - 1" << endl;
 
 	// allocate the gamma data on the GPU
 	int nbytes = sizeof(float1)*m_pdata->getNTypes();
@@ -107,7 +105,6 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	// allocate the coeff data on the CPU
 	h_gammas = new float1[m_pdata->getNTypes()];
 
-	cout << "initializing StochasticForceComputeGPU  - 2" << endl;
 
 	// Make deltaT and Temperature data structure
 	dt_T = make_float2(deltaT, Temp);
@@ -132,15 +129,14 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
         // based on the seed, each gpu is given a unique (but repeatable) set of integers.
         srand((1 + cur_gpu) * m_seed); 
 		for (unsigned int x = 0; x < num_blocks*m_block_size; x++) {
-			*h_state[x] = make_uint4(rand(), rand(), rand(), rand());
+			h_state[cur_gpu][x] = make_uint4(rand(), rand(), rand(), rand());
 			}	
-		
+
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_state[cur_gpu]), nbytes));
 		assert(d_state[cur_gpu]);
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *)&d_state[cur_gpu]), h_state[cur_gpu], nbytes, cudaMemcpyHostToDevice));
-	cout << "initialized StochasticForceComputeGPU" << endl;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *) d_state[cur_gpu]), h_state[cur_gpu], nbytes, cudaMemcpyHostToDevice));
 		
 		}
 
@@ -166,8 +162,63 @@ StochasticForceComputeGPU::~StochasticForceComputeGPU()
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_state[cur_gpu]));
 		
 		delete [] d_state[cur_gpu]; 
+		delete [] h_state[cur_gpu];
 		}	
 	}	
+	
+void StochasticForceComputeGPU::checkRNGstate()
+	{
+	cout << "Check RNG State" << endl;
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	vector< uint4 * > h_state_current;	
+	h_state_current.resize(exec_conf.gpu.size());
+	
+	bool outofsync = false;
+
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		
+		unsigned int local_num = m_pdata->getLocalNum(cur_gpu);
+		unsigned int num_blocks = (int)ceil((double) local_num/ (double) m_block_size);
+		unsigned int nbytes = num_blocks * m_block_size * 4 * sizeof(unsigned int); 
+		
+		h_state_current[cur_gpu] = new uint4[num_blocks * m_block_size];
+		assert(d_state[cur_gpu]);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *) h_state_current[cur_gpu]), d_state[cur_gpu], nbytes, cudaMemcpyDeviceToHost));
+		
+		for (unsigned int thread_val = 0; thread_val < local_num; thread_val++) {
+			xorshift_rngCPU(h_state[cur_gpu][thread_val]);
+			xorshift_rngCPU(h_state[cur_gpu][thread_val]);
+			xorshift_rngCPU(h_state[cur_gpu][thread_val]);
+			if (h_state[cur_gpu][thread_val].x - h_state_current[cur_gpu][thread_val].x + h_state[cur_gpu][thread_val].y - h_state_current[cur_gpu][thread_val].y + h_state[cur_gpu][thread_val].z - h_state_current[cur_gpu][thread_val].z + h_state[cur_gpu][thread_val].w - h_state_current[cur_gpu][thread_val].w != 0)
+				{
+				cout << "RNG out of sync for gpu " << cur_gpu << " thread " << thread_val << endl;
+				outofsync=true;
+				}
+			}
+		}
+
+	if (!outofsync) cout << "GPU_RNG and CPU_RNG in_sync " << endl;
+	
+	deviceToHostCopy();
+	
+	
+	cout << "Stochastic Force on Particle 0 " << m_h_staging[0].x << " " << m_h_staging[0].y << " " << m_h_staging[0].z << " " << endl;
+
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++) delete [] h_state_current[cur_gpu];
+	}
+	
+void StochasticForceComputeGPU::xorshift_rngCPU(uint4 &rng_state)
+	{
+	unsigned int tmp;
+
+    tmp = (rng_state.x ^ (rng_state.x << 11)); 
+    rng_state.x = rng_state.y;
+    rng_state.y = rng_state.z;
+    rng_state.z = rng_state.w;
+    rng_state.w = ((rng_state.w ^ (rng_state.w >> 19)) ^ (tmp ^ (tmp >> 8)));
+	}
+
 	
 	
 /*! \param block_size Size of the block to run on the device
@@ -219,9 +270,32 @@ void StochasticForceComputeGPU::setT(Scalar T)
 		}
 	
 	// set Temperature
-	dt_T = make_float2(m_dt, T);		
+	m_T = T;
+	dt_T = make_float2(m_dt, m_T);		
+	cout << "Set T to " << m_T << endl;	
+	}	
+
+/*! \post The timestep of the Stochastic Bath \a T
+	\note \a deltaT is a low level parameter used in the calculation. 
+	
+	\param deltaT timestep of Stochastic Bath
+*/
+
+void StochasticForceComputeGPU::setDeltaT(Scalar deltaT)
+	{
+	if (deltaT <= 0)
+		{
+		cerr << endl << "***Error! Trying to set a timestep <= 0 " << endl << endl;
+		throw runtime_error("StochasticForceComputeGpu::setDeltaT argument error");
+		}
+	
+	m_dt=deltaT;
+	
+	// set Temperature
+	dt_T = make_float2(m_dt, m_T);		
 		
 	}	
+
 		
 /*! \post The stochastic forces are computed for the given timestep on the GPU. 
  	\param timestep Current time step of the simulation

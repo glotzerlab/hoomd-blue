@@ -63,11 +63,16 @@ class StochasticForceCompute :	public ForceCompute
 		//! Destructor
 		~StochasticForceCompute();
 		
+		virtual void checkRNGstate(){ cout << "Check RNG State - No GPU" << endl; }
+		
 		//! Sets force parameters
 		virtual void setParams(unsigned int typ, Scalar gamma);
 		
 		//! Sets Temperature Parameter
 		virtual void setT(Scalar Temp) { m_T = Temp; }
+		
+		//! Sets timestep Parameter
+		virtual void setDeltaT(Scalar deltaT) { m_dt = deltaT; }		
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
@@ -75,7 +80,7 @@ class StochasticForceCompute :	public ForceCompute
 	protected:
 		//! Computes forces
 		virtual void computeForces(unsigned int timestep);
-
+		
 		Scalar m_T;			//!< Temperature of the bath
 		Scalar m_dt;		//!< friction coefficient of the bath
 		unsigned int m_seed; //!< initializing seed for RNG

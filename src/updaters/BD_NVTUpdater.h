@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Updater.h"
-#include "Integrator.h"
+#include "NVEUpdater.h"
 #include "StochasticForceCompute.h"
 #ifdef USE_CUDA
 #include "StochasticForceComputeGPU.h"
@@ -63,14 +63,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	
 	\ingroup updaters
 */
-class BD_NVTUpdater : public Integrator
+class BD_NVTUpdater : public NVEUpdater
 	{
 	public:
 		//! Constructor
 		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
 		
+		//! Attaches the Stochastic Bath Temperature
+		void addStochasticBath(); 
+				
 		//! Resets the Stochastic Bath Temperature
 		void setT(Scalar Temp); 
+
+		//! Resets the simulation timestep
+		void setDeltaT(Scalar deltaT) {m_deltaT = deltaT; stochastic_force->setDeltaT(deltaT); Integrator::setDeltaT(deltaT);}		
 
 		//! Resets the Stochastic Bath Temperature
 		void setGamma(unsigned int type, Scalar gamma) {assert(m_bdfc); m_bdfc->setParams(type,gamma);} 
@@ -80,6 +86,9 @@ class BD_NVTUpdater : public Integrator
 		
 		//! Removes the limit
 		void removeLimit();
+		
+		//! Removes all ForceComputes from the list
+		virtual void removeForceComputes();
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
@@ -95,23 +104,22 @@ class BD_NVTUpdater : public Integrator
 		bool m_limit;		//!< True if we should limit the distance a particle moves in one step
 		Scalar m_limit_val;	//!< The maximum distance a particle is to move in one step
 		Scalar m_T;			//!< The Temperature of the Stochastic Bath
-		
+		Scalar m_deltaT;    //!< The simulation time step
+		unsigned int m_seed;//!< The seed for the RNG of the Stochastic Bath 
+		bool m_bath;		//!< Whether the bath has been set or not
+		unsigned int m_bath_index; //!<< The index of the stochastic force compute in the force compute list		
 		bool using_gpu;    //!<  Flag to indicate which version of StochasticForceCompute should be used.
 		
-		void computeBDAccelerations(unsigned int timestep, const std::string& profile_name);  
 		
 		#ifdef USE_CUDA 
-		//! helper function to compute accelerations on the GPU
-		void computeBDAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
-
-		//! Force data pointers on the device
-		vector<float4 **> m_d_force_data_ptrs;
-		
 		//! The GPU version of the StochasticForceCompute
 		boost::shared_ptr<StochasticForceComputeGPU> m_bdfc_gpu;
 		#endif
+		
 		//! The CPU version of the StochasticForceCompute
 		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
+		
+		boost::shared_ptr<StochasticForceCompute> stochastic_force;
 
 
 	};

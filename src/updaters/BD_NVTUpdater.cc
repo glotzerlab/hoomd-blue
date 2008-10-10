@@ -66,8 +66,8 @@ using namespace std;
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
 */
-BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : Integrator(pdata, deltaT), 
-	m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp)
+BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : NVEUpdater(pdata, deltaT), 
+	m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp), m_deltaT(deltaT), m_seed(seed), m_bath(false)
 	{
 
 
@@ -81,17 +81,44 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 	else using_gpu = true;
 	cout << exec_conf.exec_mode << endl;
 	cout << "Using GPU " << using_gpu << endl;
- 
-     
+
+	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_pdata, m_deltaT, m_T, m_seed));  
 	#ifdef USE_CUDA
-	if (using_gpu) m_bdfc_gpu =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(pdata, deltaT, m_T, seed));
-	#endif
+	if (using_gpu) m_bdfc_gpu =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_pdata, m_deltaT, m_T, m_seed));
+	#endif    
 	
-	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(pdata, deltaT, m_T, seed));
-    
-	
-	
+	addStochasticBath();
+
 	}
+
+void BD_NVTUpdater::addStochasticBath()
+	{
+	if (m_bath)	cout << "Stochastic Bath Already Added" << endl;
+	else {
+
+		#ifdef USE_CUDA
+		if (using_gpu) {
+			this->addForceCompute(m_bdfc_gpu);	
+			}	
+		#endif 
+		if (!using_gpu) {
+			this->addForceCompute(m_bdfc);	
+			}
+
+		m_bath_index = m_forces.size() - 1;	
+		
+		boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
+		assert(stochastic_force);
+	    
+		// Checking that this works!
+		stochastic_force->setT(m_T);
+
+		m_bath = true;
+		cout << "Stochastic Bath at force index " << m_bath_index << endl;
+		}
+		
+	}
+
 
 /*! \param Temp Temperature of the Stochastic Bath
 */
@@ -99,13 +126,8 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 void BD_NVTUpdater::setT(Scalar Temp) 
 	{	
 	 m_T = Temp;
-	 
-	#ifdef USE_CUDA
-	if (using_gpu)
-	m_bdfc_gpu->setT(m_T);
-	#endif
-	
-	m_bdfc->setT(m_T); 
+	boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
+	stochastic_force->setT(m_T); 
 	}	
 
 /*! Once the limit is set, future calls to update() will never move a particle 
@@ -125,6 +147,15 @@ void BD_NVTUpdater::removeLimit()
 	{
 	m_limit = false;
 	}
+
+/*! Disables the ForceComputes
+*/
+void BD_NVTUpdater::removeForceComputes()
+	{
+	m_bath = false;
+	Integrator::removeForceComputes();
+	}
+
 	
 /*! BD_NVTUpdater provides
 	- \c nve_kinetic_energy
@@ -195,293 +226,14 @@ Scalar BD_NVTUpdater::getLogValue(const std::string& quantity)
 */
 void BD_NVTUpdater::update(unsigned int timestep)
 	{
-	assert(m_pdata);
-	static bool gave_warning = false;
-
-	if (m_forces.size() == 0 && !gave_warning)
-		{
-		cout << "Notice: No forces defined in BD_NVTUpdater, Continuing anyways" << endl;
-		gave_warning = true;
-		}
-
-	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
-	if (!m_accel_set)
-		{
-		m_accel_set = true;
-		computeBDAccelerations(timestep, "BD_NVT");
-		}
-
-	if (m_prof)
-		{
-		m_prof->push("BD_NVT");
-		m_prof->push("Half-step 1");
-		}
-		
-	// access the particle data arrays
-	ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-	assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
-	assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
-	
-	// now we can get on with the velocity verlet
-	// r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
-	// v(t+deltaT/2) = v(t) + (1/2)a*deltaT
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		Scalar dx = arrays.vx[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT*m_deltaT;
-		Scalar dy = arrays.vy[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT*m_deltaT;
-		Scalar dz = arrays.vz[j]*m_deltaT + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT*m_deltaT;
-		
-		// limit the movement of the particles
-		if (m_limit)
-			{
-			Scalar len = sqrt(dx*dx + dy*dy + dz*dz);
-			if (len > m_limit_val)
-				{
-				dx = dx / len * m_limit_val;
-				dy = dy / len * m_limit_val;
-				dz = dz / len * m_limit_val;
-				}
-			}
-		
-		arrays.x[j] += dx;
-		arrays.y[j] += dy;
-		arrays.z[j] += dz;
-		
-		arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-		arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-		arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
-		}
-		
-	// We aren't done yet! Need to fix the periodic boundary conditions
-	// this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
-	// get a local copy of the simulation box too
-	const BoxDim& box = m_pdata->getBox();
-	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
-	
-	// precalculate box lenghts
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
-
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		// wrap the particle around the box
-		if (arrays.x[j] >= box.xhi)
-			arrays.x[j] -= Lx;
-		else
-		if (arrays.x[j] < box.xlo)
-			arrays.x[j] += Lx;
-			
-		if (arrays.y[j] >= box.yhi)
-			arrays.y[j] -= Ly;
-		else
-		if (arrays.y[j] < box.ylo)
-			arrays.y[j] += Ly;
-			
-		if (arrays.z[j] >= box.zhi)
-			arrays.z[j] -= Lz;
-		else
-		if (arrays.z[j] < box.zlo)
-			arrays.z[j] += Lz;
-		}
-	
-	// release the particle data arrays so that they can be accessed to add up the accelerations
-	m_pdata->release();
-	
-	// functions that computeBDAccelerations calls profile themselves, so suspend
-	// the profiling for now
-	if (m_prof)
-		{
-		m_prof->pop();
-		m_prof->pop();
-		}
-
-	// for the next half of the step, we need the accelerations at t+deltaT
-	computeBDAccelerations(timestep+1, "BD_NVT");
-	
-	if (m_prof)
-		{
-		m_prof->push("BD_NVT");
-		m_prof->push("Half-step 2");
-		}
-	
-	// get the particle data arrays again so we can update the 2nd half of the step
-	arrays = m_pdata->acquireReadWrite();
-	
-	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
-		arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
-		arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
-		
-		// limit the movement of the particles
-		if (m_limit)
-			{
-			Scalar vel = sqrt(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
-			if ( (vel*m_deltaT) > m_limit_val)
-				{
-				arrays.vx[j] = arrays.vx[j] / vel * m_limit_val / m_deltaT;
-				arrays.vy[j] = arrays.vy[j] / vel * m_limit_val / m_deltaT;
-				arrays.vz[j] = arrays.vz[j] / vel * m_limit_val / m_deltaT;
-				}
-			}
-		}
-
-	m_pdata->release();
-	
-	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
-	if (m_prof)
-		{
-		m_prof->pop();
-		m_prof->pop();
-		}
+	if (!m_bath) addStochasticBath();
+	NVEUpdater::update(timestep);
 	}
 
 /*! \param timestep Current timestep
 	\param profiler_name Name of the profiler element to continue timing under
 	\post \c arrays.ax, \c arrays.ay, and \c arrays.az are set based on the forces computed by the ForceComputes
 */
-void BD_NVTUpdater::computeBDAccelerations(unsigned int timestep, const std::string& profiler_name)
-	{
-	// this code is written in reduced units, so m=1. I set it here just in case the code is ever
-	// modified to support other masses
-	Scalar minv = 1.0;
-	
-	//handle the stochastic forcecompute
-	assert(m_bdfc);
-	m_bdfc->compute(timestep);		
-	
-	// compute the forces
-	for (unsigned int i = 0; i < m_forces.size(); i++)
-		{
-		assert(m_forces[i]);
-		m_forces[i]->compute(timestep);
-		}
-
-	if (m_prof)
-		{
-		m_prof->push(profiler_name);
-		m_prof->push("Sum accel");
-		}
-		
-	// now, get our own access to the arrays and add up the accelerations
-	ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-
-	// start by zeroing the acceleration arrays
-	memset((void *)arrays.ax, 0, sizeof(Scalar)*arrays.nparticles);
-	memset((void *)arrays.ay, 0, sizeof(Scalar)*arrays.nparticles);
-	memset((void *)arrays.az, 0, sizeof(Scalar)*arrays.nparticles);
-	
-	// account for the stochastic bath impact on accelerations.
-	assert(m_bdfc);
-	ForceDataArrays force_arrays = m_bdfc->acquire();
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		arrays.ax[j] += force_arrays.fx[j]*minv;
-		arrays.ay[j] += force_arrays.fy[j]*minv;
-		arrays.az[j] += force_arrays.fz[j]*minv;
-		}
-	
-	// now, add up the accelerations
-	for (unsigned int i = 0; i < m_forces.size(); i++)
-		{
-		assert(m_forces[i]);
-		ForceDataArrays force_arrays = m_forces[i]->acquire();
-		
-		for (unsigned int j = 0; j < arrays.nparticles; j++)
-			{
-			arrays.ax[j] += force_arrays.fx[j]*minv;
-			arrays.ay[j] += force_arrays.fy[j]*minv;
-			arrays.az[j] += force_arrays.fz[j]*minv;
-			}
-		}
-      
-
-	m_pdata->release();
-	
-	if (m_prof)
-		{
-		m_prof->pop(6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*3*m_pdata->getN()*(1+2*m_forces.size()));
-		m_prof->pop();
-		}
-	}	
-
-#ifdef USE_CUDA
-
-/*! \param timestep Current timestep
-	\param profiler_name Name of the profiler element to continue timing under
-	\param sum_accel If set to true, forces will be summed into pdata.accel
-
-	\post \c arrays.ax, \c arrays.ay, and \c arrays.az on the GPU are set based on the forces computed by the ForceComputes
-
-	\note Setting sum_accel to true is convenient, but incurs an extra kernel call's overhead in a 
-		performance hit. This is measured to be ~2% in real simulations. If at all possible,
-		design the integrator to use sum_accel=false and perform the sum in the integrator using
-		integrator_sum_forces_inline()
-*/
-
-
-void BD_NVTUpdater::computeBDAccelerationsGPU(unsigned int timestep, const std::string& profiler_name, bool sum_accel)
-	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	if (exec_conf.gpu.empty())
-		{
-		cerr << endl << "***Error! Integrator asked to compute GPU accelerations but there is no GPU in the execution configuration" << endl << endl;
-		throw runtime_error("Error computing accelerations");
-		}
-	
-		//handle the gpu stochastic forcecompute
-		assert(m_bdfc_gpu);
-		m_bdfc_gpu->compute(timestep);		
-		m_bdfc_gpu->acquireGPU();
-
-	// compute the forces
-	for (unsigned int i = 0; i < m_forces.size(); i++)
-		{
-		assert(m_forces[i]);
-		m_forces[i]->compute(timestep);
-		
-		// acquire each computation on the GPU as we go
-		m_forces[i]->acquireGPU();
-		}
-
-	// only perform the sum if requested
-	if (sum_accel)
-		{
-		if (m_prof)
-			{
-			m_prof->push(profiler_name);
-			m_prof->push(exec_conf, "Sum accel");
-			}
-		
-		// acquire the particle data on the GPU and add the forces into the acceleration
-		vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-
-		// sum up all the forces
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			{
-			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(boost::bind(integrator_sum_forces, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size() + 1));
-			}
-			
-		exec_conf.syncAll();
-			
-		// done
-		m_pdata->release();
-
-//NEED TO HANDLE PROFILING CORRECTLY (i.e. add Stochastic part)		
-		if (m_prof)
-			{
-			m_prof->pop(exec_conf, 6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(1+m_forces.size()));
-			m_prof->pop();
-			}
-		}
-	}
-
-#endif
 	
 void export_BD_NVTUpdater()
 	{

@@ -70,13 +70,19 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 		
 		//! Destructor
 		virtual ~StochasticForceComputeGPU();
-		
+       
+	    //! Debugging function
+		void checkRNGstate();
+
 		//! Set the force parameters
 		virtual void setParams(unsigned int typ, Scalar gamma);
 		
 		//! Sets Temperature Parameter
 		virtual void setT(Scalar Temp);
-		
+
+		//! Sets timestep Parameter
+		virtual void setDeltaT(Scalar deltaT);		
+				
 		//! Sets the block size to run at
 		void setBlockSize(int block_size);
 
@@ -87,9 +93,10 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 		int m_block_size;				//!< The block size to run on the GPU
 		vector< uint4 * > h_state;		//!< The initiating state vector for the RNG
 		vector< uint4 * > d_state;		//!< Pointer to the initiating state vector for the RNG on the GPU
-		
+
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
+		virtual void xorshift_rngCPU(uint4 &rng_state);
 	};
 	
 //! Exports the StochasticForceComputeGPU class to python
