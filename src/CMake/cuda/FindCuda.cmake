@@ -119,7 +119,7 @@ SET(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
 IF(NOT CUDA_INSTALL_PREFIX)
   FIND_PATH(CUDA_INSTALL_PREFIX
     NAMES nvcc nvcc.exe
-    PATHS /usr/local/cuda /opt/cuda ENV CUDA_BIN_PATH
+    PATHS /usr/local/cuda /opt/cuda /opt/cuda-1.1 /opt/cuda-2.0 /opt/cuda-2.1 ENV CUDA_BIN_PATH
     PATH_SUFFIXES bin
     DOC "Toolkit location."
     )
