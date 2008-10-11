@@ -58,7 +58,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //#include "StochasticForceCompute.h"
 #include "BD_NVTUpdater.h"
 #ifdef USE_CUDA
-#include "NVEUpdaterGPU.h"
+#include "BD_NVTUpdaterGPU.h"
 #endif
 
 #include "BinnedNeighborList.h"
@@ -137,8 +137,8 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 			//VarianceE += pow((KE-Scalar(1.5)*1000*Temp),2);
 			AvgT += Scalar(2.0)*KE/(3*1000);
 			//cout << "Average Temperature at time step " << i << " is " << AvgT << endl;
+			pdata->release();
 			}
-		pdata->release();
 
 		bdnvt_up->update(i);
 		}
@@ -186,8 +186,9 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 			// mass = 1.0;  k = 1.0;
 			AvgT += Scalar(2.0)*KE/(3*1000);
+			pdata->release();
 			}
-		pdata->release();
+			
 		bdnvt_up->update(i);
 		}
 	AvgT /= Scalar(50000.0/100.0);
@@ -229,8 +230,8 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 			// mass = 1.0;  k = 1.0;
 			AvgT += Scalar(2.0)*KE/(3*1000);
+			pdata->release();
 			}
-		pdata->release();
 		bdnvt_up->update(i);
 		}
 	AvgT /= Scalar(50000.0/100.0);
@@ -303,8 +304,8 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator)
 			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 			// mass = 1.0;  k = 1.0;
 			AvgT += Scalar(2.0)*KE/(3*1000);
+			pdata->release();
 			}
-		pdata->release();
 		bdnvt_up->update(i);
 		}
 	AvgT /= Scalar(50000.0/100.0);
@@ -381,8 +382,8 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator)
 			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 			// mass = 1.0;  k = 1.0;
 			AvgT += Scalar(2.0)*KE/(3*1000);
+			pdata->release();
 			}
-		pdata->release();
 
 		bdnvt_up->update(i);
 		}
@@ -408,8 +409,8 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator)
 			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 			// mass = 1.0;  k = 1.0;
 			AvgT += Scalar(2.0)*KE/(3*1000);
+			pdata->release();
 			}
-		pdata->release();
 
 		bdnvt_up->update(i);
 		}
@@ -429,8 +430,16 @@ shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<ParticleData> pdat
 	{
 	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(pdata, deltaT, Temp, seed));
 	}
-		
+
+#ifdef USE_CUDA
+//! BD_NVTUpdaterGPU factory for the unit tests
+shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)
+	{
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(pdata, deltaT, Temp, seed));
+	}
+#endif		
 	
+#ifndef USE_CUDA	
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
@@ -449,6 +458,30 @@ BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
 	bd_updater_lj_tests(bdnvt_creator);
 	}
+#endif
+
+#ifdef USE_CUDA
+//! boost test case for base class integration tests
+BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
+	{
+	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
+	bd_updater_tests(bdnvt_creator_gpu);
+	}
+	
+BOOST_AUTO_TEST_CASE( BDUpdaterGPU_twoparticles_tests )
+	{
+	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
+	bd_twoparticles_updater_tests(bdnvt_creator_gpu);
+	}
+	
+BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
+	{
+	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
+	bd_updater_lj_tests(bdnvt_creator_gpu);
+	}
+
+#endif
+
 
 #ifdef WIN32
 #pragma warning( pop )

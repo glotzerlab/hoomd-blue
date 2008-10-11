@@ -79,7 +79,7 @@ class BD_NVTUpdater : public NVEUpdater
 		void setDeltaT(Scalar deltaT) {m_deltaT = deltaT; stochastic_force->setDeltaT(deltaT); Integrator::setDeltaT(deltaT);}		
 
 		//! Resets the Stochastic Bath Temperature
-		void setGamma(unsigned int type, Scalar gamma) {assert(m_bdfc); m_bdfc->setParams(type,gamma);} 
+		void setGamma(unsigned int type, Scalar gamma) {boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	assert(stochastic_force); stochastic_force->setParams(type,gamma);} 
 				
 		//! Sets the movement limit
 		void setLimit(Scalar limit);

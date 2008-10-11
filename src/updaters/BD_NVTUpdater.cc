@@ -79,7 +79,7 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 	if (exec_conf.exec_mode == ExecutionConfiguration::CPU )
 		using_gpu = false;
 	else using_gpu = true;
-	cout << exec_conf.exec_mode << endl;
+
 	cout << "Using GPU " << using_gpu << endl;
 
 	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_pdata, m_deltaT, m_T, m_seed));  
