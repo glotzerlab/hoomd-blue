@@ -97,14 +97,11 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 		cout << "Update the system - 0.4" << endl;
 		computeAccelerationsGPU(timestep, "BD_NVT", true);
 	    
-		cout << "Address the stochastic force" << endl;
 		
 		boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
 		assert(stochastic_force); 
-		stochastic_force->setT(m_T);
-		
 		stochastic_force->checkRNGstate();
-		
+	
 		}
 
 	if (m_prof)
@@ -137,6 +134,9 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
 	computeAccelerationsGPU(timestep+1, "BD_NVT.GPU", false);
+	boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
+	assert(stochastic_force); 
+	stochastic_force->checkRNGstate();
 	
 	cout << "Update the system - 3" << endl;
 

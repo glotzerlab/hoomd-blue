@@ -92,23 +92,20 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 
 
 	// allocate the gamma data on the GPU
-	int nbytes = sizeof(float1)*m_pdata->getNTypes();
-	
+	int nbytes = sizeof(float)*m_pdata->getNTypes();
+	// allocate the coeff data on the CPU
+	h_gammas = new float[m_pdata->getNTypes()];
+	//All gamma coefficients initialized to 1.0
+	for (unsigned int j = 0; j < m_pdata->getNTypes(); j++) h_gammas[j] = 1.0;  
 	d_gammas.resize(exec_conf.gpu.size());
+	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_gammas[cur_gpu]), nbytes));
 		assert(d_gammas[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_gammas[cur_gpu], 1.0, nbytes));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void **)(void *) d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
 		}
-	// allocate the coeff data on the CPU
-	h_gammas = new float1[m_pdata->getNTypes()];
-
-
-	// Make deltaT and Temperature data structure
-	dt_T = make_float2(deltaT, Temp);
-
 
 	//ALLOCATE STATEVECTOR FOR RNG
 	
@@ -196,15 +193,23 @@ void StochasticForceComputeGPU::checkRNGstate()
 				outofsync=true;
 				}
 			}
+		
+		//check gammas!
+		assert(d_gammas[cur_gpu]);
+		nbytes = sizeof(float)*m_pdata->getNTypes();
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *) h_gammas), d_gammas[cur_gpu], nbytes, cudaMemcpyDeviceToHost));
+	    cout << "Gammas of particle type 0 is : " << h_gammas[0] << endl;
+		
 		}
-
 	if (!outofsync) cout << "GPU_RNG and CPU_RNG in_sync " << endl;
 	
+	/*
 	deviceToHostCopy();
-	
-	
-	cout << "Stochastic Force on Particle 0 " << m_h_staging[0].x << " " << m_h_staging[0].y << " " << m_h_staging[0].z << " " << endl;
-
+	for (unsigned int j = 0; j < m_pdata->getN(); j++) {
+		cout << "Stochastic Force on Particle " << j << " : " << m_h_staging[j].x << " " << m_h_staging[j].y << " " << m_h_staging[j].z << " " << m_h_staging[j].w << endl;
+		}
+	*/	
+		
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++) delete [] h_state_current[cur_gpu];
 	}
 	
@@ -247,9 +252,9 @@ void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 		}
 	
 	// set gamma coeffs 
-	h_gammas[typ] = make_float1(gamma);
+	h_gammas[typ] = gamma;
 	
-	int nbytes = sizeof(float1)*m_pdata->getNTypes();
+	int nbytes = sizeof(float)*m_pdata->getNTypes();
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
@@ -270,8 +275,7 @@ void StochasticForceComputeGPU::setT(Scalar T)
 		}
 	
 	// set Temperature
-	m_T = T;
-	dt_T = make_float2(m_dt, m_T);		
+	m_T = T;	
 	cout << "Set T to " << m_T << endl;	
 	}	
 
@@ -291,8 +295,6 @@ void StochasticForceComputeGPU::setDeltaT(Scalar deltaT)
 	
 	m_dt=deltaT;
 	
-	// set Temperature
-	dt_T = make_float2(m_dt, m_T);		
 		
 	}	
 
@@ -314,7 +316,7 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_stochasticforce, m_d_forces[cur_gpu], &pdata[cur_gpu], dt_T, d_gammas[cur_gpu], d_state[cur_gpu], m_pdata->getNTypes(), m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_stochasticforce, m_d_forces[cur_gpu], &pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], d_state[cur_gpu], m_pdata->getNTypes(), m_block_size));
 		}
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->sync();

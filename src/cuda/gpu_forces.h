@@ -91,7 +91,7 @@ cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsi
 //////////////////////////// Stochastic Bath
 
 //! Add a Stochastic Bath for BD NVT
-cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float2 d_dt_T, float1 *d_gammas, uint4 *d_state, int gamma_length, int M);
+cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M);
 
 
 //////////////////////////// Bond table stuff

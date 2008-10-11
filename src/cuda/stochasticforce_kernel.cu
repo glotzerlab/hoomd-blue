@@ -87,13 +87,14 @@ texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 
 	\param d_forces Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on
-	\param d_dt_T Holds the timestep of the simulation and temperature of the bath
+	\param dt Timestep of the simulation
+	\param T Temperature of the bath
 	\param gammas Gamma coefficients that govern the coupling of the particle to the bath.
 	\param gamma_length length of the gamma array (number of particle types)
 	\param d_state The state vector for the RNG.
 	
 	\a gammas is a pointer to an array in memory. \c gamma[i].x is \a gamma for the particle type \a i.
-	The values in d_gammas are read into shared memory, so \c gamma_length*sizeof(float1) bytes of extern 
+	The values in d_gammas are read into shared memory, so \c gamma_length*sizeof(float) bytes of extern 
 	shared memory must be allocated for the kernel call.
 	
 	Developer information:
@@ -102,11 +103,11 @@ texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 	The RNG state vectors should permit a coalesced read, but this fact should be checked.
 	
 */
-extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, float2 d_dt_T, float1 *d_gammas, int gamma_length, uint4 * d_state)
+extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, float dt, float T, float *d_gammas, int gamma_length, uint4 * d_state)
 	{
 	
 	// read in the gammas (1 dimensional array)
-	extern __shared__ float1 s_gammas[];
+	extern __shared__ float s_gammas[];
 	for (int cur_offset = 0; cur_offset < gamma_length; cur_offset += blockDim.x)
 		{
 		if (cur_offset + threadIdx.x < gamma_length)
@@ -134,7 +135,7 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 	
 	// Calculate Coefficient of Friction
 	//type = 0;   //May use this for benchmarking the impact of doing a second texture read just for particle type
-	float coeff_fric = sqrtf(6.0f * s_gammas[typ].x * d_dt_T.y/ d_dt_T.x);
+	float coeff_fric = sqrtf(6.0f * s_gammas[typ] * T/ dt);
 	
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -148,16 +149,18 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 
 	// Generate random number and generate x, y, and z forces respectively
 	xorshift_RNG(rng_state);
-	force.x += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ].x*vel.x;
+	force.x += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ]*vel.x;
 	xorshift_RNG(rng_state);
-	force.y += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ].x*vel.y;
+	force.y += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ]*vel.y;
 	xorshift_RNG(rng_state);
-	force.z += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ].x*vel.z;
+	force.z += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ]*vel.z;
 
 	// stochastic forces do not contribute to potential energy
 
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
 	d_forces[pidx] = force;	
+//	d_forces[pidx] = make_float4(coeff_fric, dt, T, s_gammas[typ]);  //doing this just to verify it works.
+//	d_forces[pidx] = make_float4(vel.x, vel.y, vel.z, 0.0f);  //doing this just to verify it works.
 	
     // State is written back to global memory
     d_state[blockIdx.x * blockDim.x + threadIdx.x] = rng_state;	
@@ -167,7 +170,8 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 
 /*! \param d_forces Device memory to write forces to
 	\param pdata Particle data on the GPU to perform the calculation on
-	\param d_dt_T Timestep and Temperature values
+	\param dt Timestep
+	\param T Temperature values
 	\param d_gammas The coefficients of friction for each particle type
 	\param gamma_length  The length of d_gamma array
 	\param d_state The state vector for the RNG used in thread
@@ -176,7 +180,7 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float2 d_dt_T, float1 *d_gammas, uint4 *d_state, int gamma_length, int M)
+cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M)
 	{
 	assert(pdata);
 	assert(d_gammas);
@@ -198,7 +202,7 @@ cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float
 		return error;		
 
     // run the kernel
-    stochasticForces_kernel<<< grid, threads, sizeof(float1)*gamma_length>>>(d_forces, *pdata, d_dt_T, d_gammas, gamma_length, d_state);
+    stochasticForces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(d_forces, *pdata, dt, T, d_gammas, gamma_length, d_state);
 
 	if (!g_gpu_error_checking)
 		{
