@@ -158,7 +158,6 @@ StochasticForceComputeGPU::~StochasticForceComputeGPU()
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_state[cur_gpu]));
 		
-		delete [] d_state[cur_gpu]; 
 		delete [] h_state[cur_gpu];
 		}	
 	}	
