@@ -103,7 +103,7 @@ texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 	The RNG state vectors should permit a coalesced read, but this fact should be checked.
 	
 */
-extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, float dt, float T, float *d_gammas, int gamma_length, uint4 * d_state)
+extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, float dt, float T, float *d_gammas, int gamma_length, uint4 * d_state)
 	{
 	
 	// read in the gammas (1 dimensional array)
@@ -116,21 +116,20 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 	__syncthreads();
 	
 	// start by identifying which particle we are to handle
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	
-	if (idx >= pdata.local_num)
+	if (idx_local >= pdata.local_num)
 		return;
 	
-	int pidx = idx + pdata.local_beg;
+	int idx_global = idx_local + pdata.local_beg;
 
 	// read in the velocity of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
+	float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	int global_idx = blockIdx.x * blockDim.x + threadIdx.x + pdata.local_beg;
-	float type_f = tex1Dfetch(pdata_type_tex, global_idx*4 + 3);
+	float type_f = tex1Dfetch(pdata_type_tex, idx_global*4 + 3);
 	int typ = __float_as_int(type_f);
 	
 	// Calculate Coefficient of Friction
@@ -158,17 +157,16 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 	// stochastic forces do not contribute to potential energy
 
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
-	d_forces[pidx] = force;	
-//	d_forces[pidx] = make_float4(coeff_fric, dt, T, s_gammas[typ]);  //doing this just to verify it works.
-//	d_forces[pidx] = make_float4(vel.x, vel.y, vel.z, 0.0f);  //doing this just to verify it works.
+	force_data.force[idx_global] = force;
+//	force_data.force[idx_global] = make_float4(coeff_fric, dt, T, s_gammas[typ]);  //doing this just to verify it works.
+//	force_data.force[idx_global] = make_float4(vel.x, vel.y, vel.z, 0.0f);  //doing this just to verify it works.
 	
     // State is written back to global memory
-    d_state[blockIdx.x * blockDim.x + threadIdx.x] = rng_state;	
-	
+    d_state[blockIdx.x * blockDim.x + threadIdx.x] = rng_state;
 	}
 
 
-/*! \param d_forces Device memory to write forces to
+/*! \param force_data Force data on GPU to write forces to
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param dt Timestep
 	\param T Temperature values
@@ -180,16 +178,16 @@ extern "C" __global__ void stochasticForces_kernel(float4 *d_forces, gpu_pdata_a
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M)
+cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M)
 	{
 	assert(pdata);
 	assert(d_gammas);
 	assert(d_state);
 	assert(gamma_length > 0);
 
-    // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata->local_num/ (double)M), 1, 1);
-    dim3 threads(M, 1, 1);
+	// setup the grid to run the kernel
+	dim3 grid( (int)ceil((double)pdata->local_num/ (double)M), 1, 1);
+	dim3 threads(M, 1, 1);
 
 	// bind the velocity texture
 	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
@@ -199,10 +197,10 @@ cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float
 	// bind the position texture  (this is done only to retrieve the particle type)
 	error = cudaBindTexture(0, pdata_type_tex, pdata->pos, sizeof(float4) * pdata->N);
 	if (error != cudaSuccess)
-		return error;		
-
+		return error;
+		
     // run the kernel
-    stochasticForces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(d_forces, *pdata, dt, T, d_gammas, gamma_length, d_state);
+    stochasticForces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(force_data, *pdata, dt, T, d_gammas, gamma_length, d_state);
 
 	if (!g_gpu_error_checking)
 		{

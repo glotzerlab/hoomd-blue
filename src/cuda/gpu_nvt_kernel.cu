@@ -65,23 +65,23 @@ extern __shared__ float nvt_sdata[];
 
 extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float denominv, float deltaT, gpu_boxsize box)
 	{
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	int pidx = idx + pdata.local_beg;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx_global = idx_local + pdata.local_beg;
 	// do Nose-Hoover integrate
 	
-	float vsq;	
-	if (idx < pdata.local_num)
+	float vsq;
+	if (idx_local < pdata.local_num)
 		{
 		// update positions to the next timestep and update velocities to the next half step
-		float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
+		float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
 		
 		float px = pos.x;
 		float py = pos.y;
 		float pz = pos.z;
 		float pw = pos.w;
 		
-		float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
-		float4 accel = tex1Dfetch(pdata_accel_tex, pidx);
+		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
+		float4 accel = tex1Dfetch(pdata_accel_tex, idx_global);
 		
 		vel.x = (vel.x + (1.0f/2.0f) * accel.x * deltaT) * denominv;
 		px += vel.x * deltaT;
@@ -104,8 +104,8 @@ extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_d
 		pos2.w = pw;
 						
 		// write out the results
-		pdata.pos[pidx] = pos2;
-		pdata.vel[pidx] = vel;
+		pdata.pos[idx_global] = pos2;
+		pdata.vel[idx_global] = vel;
 	
 		// now we need to do the partial K sums
 	
@@ -140,7 +140,7 @@ extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_d
 
 cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float Xi, float deltaT)
 	{
-    assert(pdata);
+	assert(pdata);
 	assert(d_nvt_data);
 
     // setup the grid to run the kernel
@@ -177,22 +177,22 @@ cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data
 
 extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
 	{
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	int pidx = idx + pdata.local_beg;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx_global = idx_local + pdata.local_beg;
 	
-	float4 accel = integrator_sum_forces_inline(idx, pidx, pdata.local_num, force_data_ptrs, num_forces);
-	if (idx < pdata.local_num)
+	float4 accel = integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	if (idx_local < pdata.local_num)
 		{
-		float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
+		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 			
 		vel.x += (1.0f/2.0f) * deltaT * (accel.x - Xi * vel.x);
 		vel.y += (1.0f/2.0f) * deltaT * (accel.y - Xi * vel.y);
 		vel.z += (1.0f/2.0f) * deltaT * (accel.z - Xi * vel.z);
 		
 		// write out data
-		pdata.vel[pidx] = vel;
+		pdata.vel[idx_global] = vel;
 		// since we calculate the acceleration, we need to write it for the next step
-		pdata.accel[pidx] = accel;
+		pdata.accel[idx_global] = accel;
 		}
 	}
 

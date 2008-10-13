@@ -65,6 +65,161 @@ ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL)
 	{
 	}
 	
+#ifdef USE_CUDA
+/*! \post \a d_data.force, \a d_data.virial and \a h_staging are all set to NULL
+	\post \a m_num, \a m_num_local, and \a m_local_start are all set to 0
+*/
+ForceDataArraysGPU::ForceDataArraysGPU()
+	{
+	// zero pointers
+	d_data.force = NULL;
+	d_data.virial = NULL;
+	h_staging = NULL;
+	// zero flags
+	m_num_local = m_local_start = 0;
+	}
+	
+/*! \pre allocate() has not previously been called
+	\post Memory is allocated on the GPU for the force data
+	\note allocate() \b must be called on the GPU on which the data is going to be used
+*/
+cudaError_t ForceDataArraysGPU::allocate(unsigned int num_local, unsigned int local_start)
+	{
+	// sanity checks
+	assert(h_staging == NULL);
+	
+	// allocate GPU data and check for errors
+	cudaError_t error = d_data.allocate(num_local);
+	if (error != cudaSuccess)
+		return error;
+		
+	// allocate host staging memory and check for errors
+	error = cudaMallocHost((void **)((void *)&h_staging), num_local*sizeof(float4));
+	if (error != cudaSuccess)
+		return error;
+	
+	// fill out variables
+	m_num_local = num_local;
+	m_local_start = local_start;
+	
+	// all done, return success
+	return cudaSuccess;
+	}
+	
+/*! \pre allocate() has previously been called
+	\post All allocated memory is freed
+	\note deallocate() \b must be called on the same GPU as allocate()
+*/
+cudaError_t ForceDataArraysGPU::deallocate()
+	{
+	// sanity checks
+	assert(h_staging != NULL);
+	
+	// free the memory on the GPU and check for errors
+	cudaError_t error = d_data.deallocate();
+	if (error != cudaSuccess)
+		return error;
+		
+	// free the staging memory and check for errors
+	error = cudaFreeHost((void*)h_staging);
+	if (error != cudaSuccess)
+		return error;
+	
+	// all done, return success
+	return cudaSuccess;
+	}
+	
+/*! \pre All data has been allocated and initialized
+	\post Data from \a h_data is copied to the GPU data in \a d_data
+	\param fx source of fx
+	\param fy source of fy
+	\param fz source of fz
+	\param pe source of pe
+	\param virial source of virial
+*/
+cudaError_t ForceDataArraysGPU::hostToDeviceCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial)
+	{
+	// sanity checks
+	assert(fx != NULL);
+	assert(fy != NULL);
+	assert(fz != NULL);
+	assert(pe != NULL);
+	assert(virial != NULL);
+	assert(d_data.force != NULL);
+	assert(d_data.virial != NULL);
+	assert(m_num_local != 0);
+	
+	// start by filling out the staging array with interleaved forces
+	for (unsigned int i = 0; i < m_num_local; i++)
+		{
+		unsigned int global_idx = i + m_local_start;
+		h_staging[i] = make_float4(fx[global_idx],
+									fy[global_idx],
+									fz[global_idx],
+									pe[global_idx]);
+		}
+			
+	// copy it to the device and check for errors
+	cudaError_t error = cudaMemcpy(d_data.force, h_staging, sizeof(float4)*m_num_local, cudaMemcpyHostToDevice);
+	if (error != cudaSuccess)
+		return error;
+		
+	// copy virial to the device and check for errors
+	error = cudaMemcpy(d_data.virial, virial, sizeof(float)*m_num_local, cudaMemcpyHostToDevice);
+	if (error != cudaSuccess)
+		return error;
+		
+	// all done, return success
+	return cudaSuccess;
+	}
+		
+/*! \pre All data has been allocated and initialized
+	\post Data from the GPU \a d_data is copied to the host in \a h_data
+	\param fx desitnation for the fx
+	\param fy desitnation for the fy
+	\param fz desitnation for the fz
+	\param pe desitnation for the pe
+	\param virial desitnation for the virial
+*/
+cudaError_t ForceDataArraysGPU::deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial)
+	{
+	// sanity checks
+	assert(fx != NULL);
+	assert(fy != NULL);
+	assert(fz != NULL);
+	assert(pe != NULL);
+	assert(virial != NULL);
+	assert(d_data.force != NULL);
+	assert(d_data.virial != NULL);
+	assert(m_num_local != 0);
+	
+	// copy from the device to the staging area
+	cudaError_t error = cudaMemcpy(h_staging, d_data.force, sizeof(float4)*m_num_local, cudaMemcpyDeviceToHost);
+	if (error != cudaSuccess)
+		return error;
+		
+	// start by filling out the staging array with interleaved forces
+	for (unsigned int i = 0; i < m_num_local; i++)
+		{
+		unsigned int global_idx = i + m_local_start;
+		float4 f = h_staging[i];
+		fx[global_idx] = f.x;
+		fy[global_idx] = f.y;
+		fz[global_idx] = f.z;
+		pe[global_idx] = f.w;
+		}
+	
+	// copy virial to the device and check for errors
+	error = cudaMemcpy(virial, d_data.virial, sizeof(float)*m_num_local, cudaMemcpyDeviceToHost);
+	if (error != cudaSuccess)
+		return error;
+		
+	// all done, return success
+	return cudaSuccess;
+	}
+
+#endif
+	
 /*! \param pdata ParticleData to compute forces on
 	\post The Compute is initialized and all memory needed for the forces is allocated
 	\post \c fx, \c fy, \c fz pointers in m_arrays are set
@@ -77,81 +232,30 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	#endif	
-				
-	// allocate the memory here in the same way as with the ParticleData: put all 3
-	// arrays back to back. 256-byte align the data so that uninterleaved <-> interleaved
-	// translation can be done easily
-	#ifdef USE_CUDA
-	// start by adding up the number of bytes needed for the Scalar arrays, rounding up by 256
-	unsigned int single_xarray_bytes = sizeof(Scalar) * pdata->getN();
-	if ((single_xarray_bytes & 255) != 0)
-		single_xarray_bytes += 256 - (single_xarray_bytes & 255);
-	
-	// total all bytes from scalar arrays
-	m_nbytes = single_xarray_bytes * 5;
-	
-	if (!exec_conf.gpu.empty())
-		{
-		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_data), m_nbytes));	
-		}
-	else
-		m_data = (Scalar *)malloc(m_nbytes);
-	#else
-	// start by adding up the number of bytes needed for the Scalar arrays
-	unsigned int single_xarray_bytes = sizeof(Scalar) * pdata->getN();
-	
-	// total all bytes from scalar arrays
-	m_nbytes = single_xarray_bytes * 5;
-	m_data = (Scalar *)malloc(m_nbytes);
 	#endif
-
-	assert(m_data);
-
-	// Now that m_data is allocated, we need to play some pointer games to assign
-	// the x,y,z, etc... pointers
-	char *cur_byte = (char *)m_data;
-	m_arrays.fx = m_fx = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-	m_arrays.fy = m_fy = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-	m_arrays.fz = m_fz = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-	m_arrays.pe = m_pe = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
-	m_arrays.virial = m_virial = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	
-	// should be good to go now
-	assert(m_fx);
-	assert(m_fy);
-	assert(m_fz);
-	assert(m_pe);
-	assert(m_arrays.fx);
-	assert(m_arrays.fy);
-	assert(m_arrays.fz);
-	assert(m_arrays.pe);
+	// allocate data on the host
+	unsigned int num_particles = m_pdata->getN();
+	m_arrays.fx = m_fx = new Scalar[num_particles];
+	m_arrays.fy = m_fy = new Scalar[num_particles];
+	m_arrays.fz = m_fz = new Scalar[num_particles];
+	m_arrays.pe = m_pe = new Scalar[num_particles];
+	m_arrays.virial = m_virial = new Scalar[num_particles];
 	
-	// zero the data
-	memset((void*)m_data, 0, m_nbytes);
+	// zero host data
+	for (unsigned int i = 0; i < num_particles; i++)
+		m_fx[i] = m_fy[i] = m_fz[i] = m_pe[i] = m_virial[i] = Scalar(0.0);
 	
 	#ifdef USE_CUDA
-	// make space for all the memory pointers
-	m_d_forces.resize(exec_conf.gpu.size());
-	m_d_staging.resize(exec_conf.gpu.size());
-	
-	// allocate device memory for the forces and staging memory
-	m_uninterleave_pitch = single_xarray_bytes/4;
-	m_single_xarray_bytes = single_xarray_bytes;
-
+	// setup ForceDataArrays on each GPU
+	m_gpu_forces.resize(exec_conf.gpu.size());
+		
 	if (!exec_conf.gpu.empty())
 		{
-		// cout << "***Warning! Virial data structure not yet implemented on the GPU" << endl;
+		exec_conf.tagAll(__FILE__, __LINE__);
 		
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			{
-			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_d_forces[cur_gpu]), single_xarray_bytes*4) );
-			exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging[cur_gpu]), single_xarray_bytes*4) );
-			}
-		
-		m_h_staging = new float4[pdata->getN()];
+			exec_conf.gpu[cur_gpu]->call(bind(&ForceDataArraysGPU::allocate, &m_gpu_forces[cur_gpu], m_pdata->getLocalNum(cur_gpu), m_pdata->getLocalBeg(cur_gpu)));
 		
 		deviceToHostCopy();
 		m_data_location = cpugpu;
@@ -168,34 +272,25 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 */
 ForceCompute::~ForceCompute()
 	{
-	assert(m_data);
-		
-	// free the data, which needs to be condtionally compiled for CUDA and non CUDA builds
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	if (!exec_conf.gpu.empty())
-		exec_conf.gpu[0]->call(bind(cudaFreeHost, m_data));
-	else
-		free(m_data);
-	#else
-	free(m_data);
-	#endif
+	#endif	
 	
-	m_data = NULL;
+	// free the host data
+	delete[] m_fx;
 	m_arrays.fx = m_fx = NULL;
+	delete[] m_fy;
 	m_arrays.fy = m_fy = NULL;
+	delete[] m_fz;
 	m_arrays.fz = m_fz = NULL;
+	delete[] m_pe;
 	m_arrays.pe = m_pe = NULL;
+	delete[] m_virial;
+	m_arrays.virial = m_virial = NULL;
 	
 	#ifdef USE_CUDA
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{	
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_d_forces[cur_gpu]));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_d_staging[cur_gpu]));
-		}
-	
-	if (!exec_conf.gpu.empty())
-		delete[] m_h_staging;
+		exec_conf.gpu[cur_gpu]->call(bind(&ForceDataArraysGPU::deallocate, &m_gpu_forces[cur_gpu]));
 	#endif
 
 	m_sort_connection.disconnect();
@@ -273,7 +368,7 @@ const ForceDataArrays& ForceCompute::acquire()
 	from call to call. The call still must be made, however, to ensure that
 	the data has been copied to the GPU.
 */
-vector<float4 *>& ForceCompute::acquireGPU()
+vector<ForceDataArraysGPU>& ForceCompute::acquireGPU()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (exec_conf.gpu.empty())
@@ -291,28 +386,27 @@ vector<float4 *>& ForceCompute::acquireGPU()
 			hostToDeviceCopy();
 			// now we are in the cpugpu state
 			m_data_location = cpugpu;
-			return m_d_forces;
+			return m_gpu_forces;
 			break;
 		case cpugpu:
 			// if the data is up to date on both the cpu and gpu, life is easy
 			// state remains the same, and return it
-			return m_d_forces;
+			return m_gpu_forces;
 			break;
 		case gpu:
 			// if the data resides on the gpu, life is easy
 			// state remains the same, and return it     
-			return m_d_forces;
+			return m_gpu_forces;
 			break;
 		default:
 			// anything other than the above is an undefined state!
 			assert(false);
-			return m_d_forces;	
-			break;		
+			return m_gpu_forces;
+			break;
 		}
 	}
 
-/*! The data copy is performed efficiently by transferring data as it is on the CPU
-	(256 byte aligned arrays) and then interleaving it on the GPU
+/*! Force data from the host is copied to each GPU in the execution configuration.
 */
 void ForceCompute::hostToDeviceCopy()
 	{
@@ -321,15 +415,11 @@ void ForceCompute::hostToDeviceCopy()
 	
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		// copy force data to the staging area
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_data, m_single_xarray_bytes*4, cudaMemcpyHostToDevice));
-		// interleave the data
-		exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_d_forces[cur_gpu], m_d_staging[cur_gpu], m_pdata->getN(), m_uninterleave_pitch));
-		}
-	
+		exec_conf.gpu[cur_gpu]->callAsync(bind(&ForceDataArraysGPU::hostToDeviceCopy, &m_gpu_forces[cur_gpu], m_fx, m_fy, m_fz, m_pe, m_virial));
+	exec_conf.syncAll();
+			
 	//if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
 	}
 
@@ -342,24 +432,10 @@ void ForceCompute::deviceToHostCopy()
 
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		// get local particle indices
-		unsigned int local_beg = m_pdata->getLocalBeg(cur_gpu);
-		unsigned int local_num = m_pdata->getLocalNum(cur_gpu);
-		
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		// copy force data
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_h_staging, m_d_forces[cur_gpu] + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
-		// fill out host forces
-		for (unsigned int i = 0; i < local_num; i++)
-			{
-			m_fx[local_beg + i] = m_h_staging[i].x;
-			m_fy[local_beg + i] = m_h_staging[i].y;
-			m_fz[local_beg + i] = m_h_staging[i].z;
-			m_pe[local_beg + i] = m_h_staging[i].w;
-			}
-		}
+		exec_conf.gpu[cur_gpu]->callAsync(bind(&ForceDataArraysGPU::deviceToHostCopy, &m_gpu_forces[cur_gpu], m_fx, m_fy, m_fz, m_pe, m_virial));
+	exec_conf.syncAll();
 	
 	//if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
 	}

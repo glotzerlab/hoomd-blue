@@ -142,7 +142,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	
 	unsigned int exceedsR0 = 0;
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_fenebondforce_sum, m_d_forces[0], &pdata[0], &box, &gpu_bondtable[0], m_gpu_params, m_bond_data->getNBondTypes(), m_block_size, exceedsR0));
+	exec_conf.gpu[0]->call(bind(gpu_fenebondforce_sum, m_gpu_forces[0].d_data, &pdata[0], &box, &gpu_bondtable[0], m_gpu_params, m_bond_data->getNBondTypes(), m_block_size, exceedsR0));
 	
 	//check the fene bondlength violation condition
 	if (exceedsR0)

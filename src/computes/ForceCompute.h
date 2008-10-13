@@ -51,6 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_CUDA
 #include "gpu_pdata.h"
+#include "gpu_forces.h"
 #endif
 
 /*! \file ForceCompute.h
@@ -64,8 +65,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \c fx, \c fy, \c fz have length equal to the number of particles and store the x,y,z 
 	components of the force on that particle. \a pe is also included as the potential energy
 	for each particle, if it can be defined for the force. \a virial is the per particle virial
-	These pointers are 256-byte aligned on CUDA compilations, in the order fx, fy, fz, pe, virial.
-	
+		
 	The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
 	The per particle virial is defined such that \f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
 */
@@ -80,6 +80,38 @@ struct ForceDataArrays
 	Scalar const * __restrict__ pe; //!< Potential energy
 	Scalar const * __restrict__ virial; //!< Virial
 	};
+	
+#ifdef USE_CUDA
+//! Structure for managing force data on the GPU
+/*! ForceDataArraysGPU is very closely tied in with ForceCompute and neither can exist without
+	the other (at least when compiling for the GPU). ForceCompute uses ForceDataArraysGPU
+	to store the force data on each GPU in the execution configuration. ForceDataArraysGPU does
+	all the dirty work of allocating memory and performing the host to/from device transfers.
+*/
+struct ForceDataArraysGPU
+	{
+	//! Zeros pointers
+	ForceDataArraysGPU();
+	
+	gpu_force_data_arrays d_data;		//!< Data stored on the GPU
+	
+	private:
+		//! Allocates memory
+		cudaError_t allocate(unsigned int num_local, unsigned int local_start);
+		//! Frees memory
+		cudaError_t deallocate();
+		//! Copies from the host to the device
+		cudaError_t hostToDeviceCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial);
+		//! Copies from the device to the host
+		cudaError_t deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial);
+		
+		unsigned int m_num_local;			//!< Number of particles local to this GPU
+		unsigned int m_local_start;			//!< Starting index of local data in global array
+		float4 *h_staging;					//!< Host memory array for staging interleaved data	
+		
+		friend class ForceCompute;
+	};
+#endif
 
 //! Defines an interface for computing forces on each particle
 /*! Derived classes actually provide the implementation that computes the forces.
@@ -105,7 +137,7 @@ class ForceCompute : public Compute
 
 		#ifdef USE_CUDA
 		//! Access the computed force data on the GPU
-		vector<float4*>& acquireGPU();
+		vector<ForceDataArraysGPU>& acquireGPU();
 		#endif
 		
 		//! Computes the forces
@@ -140,18 +172,13 @@ class ForceCompute : public Compute
 			gpu		//!< Particle data was last modified on the GPU
 			};
 
-		DataLocation m_data_location;   	//!< Where the neighborlist data currently lives
-		vector<float4 *> m_d_forces;		//!< Storage location for forces on the device
-		vector<float *> m_d_staging;		//!< Staging array where values are (un)interleaved
-		float4 *m_h_staging;				//!< Host memory staging area for force data
-		unsigned int m_uninterleave_pitch;	//!< Remember the pitch between x,y,z,type in the uninterleaved data
-		unsigned int m_single_xarray_bytes;	//!< Remember the number of bytes allocated for a single float array
-
+		DataLocation m_data_location;   			//!< Where the neighborlist data currently lives
+		vector<ForceDataArraysGPU> m_gpu_forces;	//!< Storage location for forces on the device
+		
 		//! Helper function to move data from the host to the device
 		void hostToDeviceCopy();
 		//! Helper function to move data from the device to the host
 		void deviceToHostCopy();
-		
 		#endif
 
 		//! Actually perform the computation of the forces
@@ -159,8 +186,6 @@ class ForceCompute : public Compute
 			\param timestep Current time step
 		 */
 		virtual void computeForces(unsigned int timestep)=0;
-	private:
-		Scalar *m_data;	//!< The pointer where the memory is actually allocated
 	};
 	
 //! Exports the ForceCompute class to python

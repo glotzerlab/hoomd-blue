@@ -82,7 +82,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	Each thread will calculate the total force on one particle.
 	The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, gpu_boxsize box)
+extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, gpu_boxsize box)
 	{
 	// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
@@ -94,19 +94,19 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	__syncthreads();
 	
 	// start by identifying which particle we are to handle
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	
-	if (idx >= pdata.local_num)
+	if (idx_local >= pdata.local_num)
 		return;
 	
-	int pidx = idx + pdata.local_beg;
+	int idx_global = idx_local + pdata.local_beg;
 	
 	// load in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[pidx];
+	int n_neigh = nlist.n_neigh[idx_global];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
+	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
 	
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -122,7 +122,7 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 		if (neigh_idx < n_neigh)
 		{
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
-		int cur_neigh = nlist.list[nlist.pitch*neigh_idx + pidx];
+		int cur_neigh = nlist.list[nlist.pitch*neigh_idx + idx_global];
 		
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -170,11 +170,11 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	// potential energy per particle must be halved
 	force.w *= 0.5f;
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
-	d_forces[pidx] = force;
+	force_data.force[idx_global] = force;
 	}
 
 
-/*! \param d_forces Device memory to write forces to
+/*! \param force_data Force data on GPU to write forces to
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param nlist Neighbor list stored on the gpu
@@ -185,7 +185,7 @@ extern "C" __global__ void calcLJForces_kernel(float4 *d_forces, gpu_pdata_array
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int M)
+cudaError_t gpu_ljforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int M)
 	{
 	assert(pdata);
 	assert(nlist);
@@ -202,7 +202,7 @@ cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsi
 		return error;
 
     // run the kernel
-    calcLJForces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(d_forces, *pdata, *nlist, d_coeffs, coeff_width, r_cutsq, *box);
+    calcLJForces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, *pdata, *nlist, d_coeffs, coeff_width, r_cutsq, *box);
 
 	if (!g_gpu_error_checking)
 		{

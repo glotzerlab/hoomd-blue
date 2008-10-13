@@ -885,6 +885,23 @@ struct SomeDataGPU
 
 HOOMD currently doesn't use many of these classes to clean up all the messy code, but that will change soon.
 
+<b>Naming conventions</b>
+
+Naming conventions through most of HOOMD are:
+	- Name classes with mixed case, upper case for each new word : \b ThisIsAClassName
+	- Member variables prefixed with \b m_ to call out that this is a member variable.
+	- Member variables are all lowercase with underscores separating words: \b m_this_is_a_member_variable
+
+To facilitate identifying variables that are on the host/device, code that has a member variable allocated on the GPU
+will name it like this: \b d_this_is_a_device_member_variable. Similarly, \b h_ will be used for host variables where
+there is any doubt that the particlar variable might or might not be on the device.
+
+In NVCC code, the style is C and not C++. 
+	- So functions are named with a \b gpu_ prefix gpu_this_is_a_gpu_function
+	- Kernels have a \b _kernel suffix : \b i_am_a_force_sum_kernel
+	- Most variables and other things are named similarly.
+	- \b d_ and \b h_ prefixes are to be used when appropriate
+
 <b>Data structures</b>
 
 Unfortunately, I cannot document the data structure choices at this high level. All data structures

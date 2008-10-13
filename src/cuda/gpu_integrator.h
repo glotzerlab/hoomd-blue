@@ -60,8 +60,7 @@ extern "C" cudaError_t integrator_sum_forces(gpu_pdata_arrays *pdata, float4** f
 	but can be used in an existing kernel to avoid the overhead of additional kernel
 	launches.
 	
-	\param idx Thread index
-	\param pidx Particle index to sum forces for
+	\param idx_local Thread index
 	\param local_num number of particles local to this GPU
 	\param force_data_ptrs list of force data pointers
 	\param num_forces number of force pointes in the list
@@ -76,7 +75,7 @@ extern "C" cudaError_t integrator_sum_forces(gpu_pdata_arrays *pdata, float4** f
 	\note Uses a small amount of shared memory. Every thread participating in the kernel must 
 	call this function. Coalescing is achieved when pidx = blockDim.x*blockIDx.x + threadIdx.x
 */
-__device__ float4 integrator_sum_forces_inline(unsigned int idx, unsigned int pidx, unsigned int local_num, float4 **force_data_ptrs, int num_forces)
+__device__ float4 integrator_sum_forces_inline(unsigned int idx_local, unsigned int local_num, float4 **force_data_ptrs, int num_forces)
 	{
 	// each block loads in the pointers
 	__shared__ float4 *force_ptrs[32];
@@ -85,13 +84,13 @@ __device__ float4 integrator_sum_forces_inline(unsigned int idx, unsigned int pi
 	__syncthreads();
 
 	float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	if (idx < local_num)
+	if (idx_local < local_num)
 		{
 		// sum the acceleration
 		for (int i = 0; i < num_forces; i++)
 			{
 			float4 *d_force = force_ptrs[i];
-			float4 f = d_force[pidx];
+			float4 f = d_force[idx_local];
 		
 			accel.x += f.x;
 			accel.y += f.y;

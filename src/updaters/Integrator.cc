@@ -127,7 +127,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 				h_force_data_ptrs[i] = NULL;
 			
 			for (unsigned int i = 0; i < m_forces.size(); i++)
-				h_force_data_ptrs[i] = m_forces[i]->acquireGPU()[cur_gpu];
+				h_force_data_ptrs[i] = m_forces[i]->acquireGPU()[cur_gpu].d_data.force;
 			
 			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs[cur_gpu], (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
 			}

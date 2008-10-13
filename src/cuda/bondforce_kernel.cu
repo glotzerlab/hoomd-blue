@@ -60,20 +60,20 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading bond parameters
 texture<float2, 1, cudaReadModeElementType> bond_params_tex;
 
-extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arrays pdata, gpu_bondtable_array blist, gpu_boxsize box)
+extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_bondtable_array blist, gpu_boxsize box)
 	{
 	// start by identifying which particle we are to handle
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	int pidx = idx + pdata.local_beg;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx_global = idx_local + pdata.local_beg;
 	
-	if (idx >= pdata.local_num)
+	if (idx_local >= pdata.local_num)
 		return;
 	
 	// load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-	int n_bonds = blist.n_bonds[pidx];
+	int n_bonds = blist.n_bonds[idx_global];
 
 	// read in the position of our particle. (MEM TRANSFER: 16 bytes)
-	float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
+	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
 
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -83,10 +83,10 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 		{
 		// the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
 		#ifdef _DEVICEEMU
-		uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + pidx];
+		uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_global];
 		#else
 		// the volatile is needed to force the compiler to load the uint2 coalesced
-		volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + pidx];
+		volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_global];
 		#endif
 		
 		int cur_bond_idx = cur_bond.x;
@@ -127,11 +127,11 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 	force.w *= 0.5f;
 	
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
-	d_forces[pidx] = force;
+	force_data.force[idx_local] = force;
 	}
 
 
-/*! \param d_forces Device memory to write forces to
+/*! \param force_data Force data on GPU to write forces to
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param btable List of bonds stored on the GPU
@@ -145,7 +145,7 @@ extern "C" __global__ void calcBondForces_kernel(float4 *d_forces, gpu_pdata_arr
 	\a d_params should include one float2 element per bond type. The x component contains K the spring constant
 	and the y component contains r_0 the equilibrium length.
 */
-cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size)
+cudaError_t gpu_bondforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size)
 	{
 	assert(pdata);
 	assert(btable);
@@ -167,7 +167,7 @@ cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_box
 		return error;
 
 	// run the kernel
-	calcBondForces_kernel<<< grid, threads>>>(d_forces, *pdata, *btable, *box);
+	calcBondForces_kernel<<< grid, threads>>>(force_data, *pdata, *btable, *box);
 	
 	if (!g_gpu_error_checking)
 		{

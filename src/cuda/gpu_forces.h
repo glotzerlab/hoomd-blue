@@ -50,9 +50,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \file gpu_forces.h
  	\brief Declares functions and data structures for calculating forces on the GPU
- 	\details Functions in this file are NOT to be called by anyone not knowing 
-		exactly what they are doing. They are designed to be used solely by 
-		LJForceComputeGPU and BondForceComputeGPU.
+ 	\details Functions in this file are intended for internal use by particular
+	Compute classes, such as LJForceComputeGPU and BondForceComputeGPU. They should
+	not be called outside of their intended classes.
 */
 
 extern "C" {
@@ -82,26 +82,46 @@ struct gpu_bondtable_array
 	int *checkr;            //! used to see if bond length condition is violated (fene)
 	};
 
+//! Force data stored on the GPU
+/*! Stores device pointers to allocated force data on the GPU. \a force[local_idx] holds the
+	x,y,z componets of the force and the potential energy in w for particle \em local_idx.
+	\a virial[local_idx] holds the single particle virial value for particle \em local_idx. See
+	 ForceDataArrays for a definition of what the single particle virial and potential energy
+	 mean.
+	
+	Only forces for particles belonging to a GPU are stored there, thus each array
+	is allocated to be of length \a local_num (see gpu_pdata_arrays)
+*/
+struct gpu_force_data_arrays
+	{
+	float4 *force;	//!< Force in \a x, \a y, \a z and the single particle potential energy in \a w.
+	float *virial;	//!< Single particle virial
+	
+	//! Allocates memory
+	cudaError_t allocate(unsigned int num_local);
+	//! Frees memory
+	cudaError_t deallocate();
+	};
 
 ///////////////////////////// LJ params
 
 //! Perform the lj force calculation
-cudaError_t gpu_ljforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int M);
+cudaError_t gpu_ljforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int M);
 
 //////////////////////////// Stochastic Bath
 
 //! Add a Stochastic Bath for BD NVT
-cudaError_t gpu_stochasticforce(float4 *d_forces, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M);
+cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M);
 
 
 //////////////////////////// Bond table stuff
 
 //! Sum bond forces
-cudaError_t gpu_bondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size);
+cudaError_t gpu_bondforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size);
 
 
 //! Sum fene bond forces
-cudaError_t gpu_fenebondforce_sum(float4 *d_forces, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float4 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0);
+cudaError_t gpu_fenebondforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float4 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0);
 }
 
 #endif

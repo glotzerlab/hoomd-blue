@@ -315,7 +315,7 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_stochasticforce, m_d_forces[cur_gpu], &pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], d_state[cur_gpu], m_pdata->getNTypes(), m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_stochasticforce, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], d_state[cur_gpu], m_pdata->getNTypes(), m_block_size));
 		}
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->sync();

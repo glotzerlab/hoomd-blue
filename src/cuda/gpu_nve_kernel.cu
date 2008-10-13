@@ -63,16 +63,16 @@ texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 
 extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float deltaT, bool limit, float limit_val, gpu_boxsize box)
 	{
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	int pidx = idx + pdata.local_beg;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx_global = idx_local + pdata.local_beg;
 	// do velocity verlet update
 	// r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
 	// v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 	
-	if (idx < pdata.local_num)
+	if (idx_local < pdata.local_num)
 		{
 		// read the particle's posision (MEM TRANSFER: 16 bytes)
-		float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
+		float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
 		
 		float px = pos.x;
 		float py = pos.y;
@@ -80,8 +80,8 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		float pw = pos.w;
 		
 		// read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-		float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
-		float4 accel = tex1Dfetch(pdata_accel_tex, pidx);
+		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
+		float4 accel = tex1Dfetch(pdata_accel_tex, idx_global);
 		
 		// update the position (FLOPS: 15)
 		float dx = vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
@@ -122,8 +122,8 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		pos2.w = pw;
 						
 		// write out the results (MEM_TRANSFER: 32 bytes)
-		pdata.pos[pidx] = pos2;
-		pdata.vel[pidx] = vel;
+		pdata.pos[idx_global] = pos2;
+		pdata.vel[idx_global] = vel;
 		}	
 	}
 
@@ -166,16 +166,16 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 
 extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	int pidx = idx + pdata.local_beg;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx_global = idx_local + pdata.local_beg;
 	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
 
 	// sum the acceleration on this particle: (MEM TRANSFER: 16 bytes * number of forces FLOPS: 3 * number of forces)
-	float4 accel = integrator_sum_forces_inline(idx, pidx, pdata.local_num, force_data_ptrs, num_forces);
-	if (idx < pdata.local_num)
+	float4 accel = integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	if (idx_local < pdata.local_num)
 		{
 		// read the current particle velocity (MEM TRANSFER: 16 bytes)
-		float4 vel = tex1Dfetch(pdata_vel_tex, pidx);
+		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 		
 		// update the velocity (FLOPS: 6)
 		vel.x += (1.0f/2.0f) * accel.x * deltaT;
@@ -194,9 +194,9 @@ extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **forc
 			}
 		
 		// write out data (MEM TRANSFER: 32 bytes)
-		pdata.vel[pidx] = vel;
+		pdata.vel[idx_global] = vel;
 		// since we calculate the acceleration, we need to write it for the next step
-		pdata.accel[pidx] = accel;
+		pdata.accel[idx_global] = accel;
 		}
 	}
 	

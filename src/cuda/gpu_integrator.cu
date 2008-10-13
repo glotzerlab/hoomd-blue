@@ -64,32 +64,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 __global__ void integrator_sum_forces_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces)
 	{
-	// each block loads in the pointers
-	__shared__ float4 *force_ptrs[32];
-	if (threadIdx.x < 32)
-		force_ptrs[threadIdx.x] = force_data_ptrs[threadIdx.x];
-	__syncthreads();
-
 	// calculate the index we will be handling
-	int idx = blockDim.x * blockIdx.x + threadIdx.x;
-	int pidx = idx + pdata.local_beg;
+	int idx_local = blockDim.x * blockIdx.x + threadIdx.x;
+	int idx_global = idx_local + pdata.local_beg;
 
-	if (idx < pdata.local_num)
+	if (idx_local < pdata.local_num)
 		{
 		// sum the acceleration
-		float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-		for (int i = 0; i < num_forces; i++)
-			{
-			float4 *d_force = force_ptrs[i];
-			float4 f = d_force[pidx];
-	
-			accel.x += f.x;
-			accel.y += f.y;
-			accel.z += f.z;
-			}
-	
+		float4 accel = integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+		
 		// write out the result
-		pdata.accel[pidx] = accel;
+		pdata.accel[idx_global] = accel;
 		}
 	}
 

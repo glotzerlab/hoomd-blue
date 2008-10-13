@@ -147,7 +147,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_bondforce_sum, m_d_forces[cur_gpu], &pdata[cur_gpu], &box, &gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_bondforce_sum, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], &box, &gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size));
 		}
 	
 	exec_conf.syncAll();	
