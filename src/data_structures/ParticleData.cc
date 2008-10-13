@@ -159,6 +159,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 		
 	#ifdef USE_CUDA
 	m_gpu_pdata.resize(m_exec_conf.gpu.size());
+	m_exec_conf.tagAll(__FILE__, __LINE__);
 	#endif
 	
 	// allocate memory
@@ -240,6 +241,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		
 	#ifdef USE_CUDA
 	m_gpu_pdata.resize(m_exec_conf.gpu.size());
+	m_exec_conf.tagAll(__FILE__, __LINE__);
 	#endif
 	
 	// allocate memory
@@ -707,6 +709,7 @@ void ParticleData::allocate(unsigned int N)
 	//////////////////////////////////////////////////////
 	// allocate the memory on the CPU, use pinned memory if compiling for the GPU
 	#ifdef USE_CUDA
+	m_exec_conf.tagAll(__FILE__, __LINE__);
 	if (!m_exec_conf.gpu.empty())
 		{
 		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, &m_data, m_nbytes));
