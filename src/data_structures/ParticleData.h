@@ -106,6 +106,16 @@ class WallData;
 // Forward declaration of BondData
 class BondData;
 
+//! Defines a simple structure to deal with complex numbers
+/*! This structure is useful to deal with complex numbers for such situations
+    as Fourier transforms. Note that we do not need any to define any operations and the 
+	default constructor is good enough 
+*/
+struct CScalar{
+	Scalar r; //!< Real part
+	Scalar i; //!< Imaginary part
+};
+
 //! Stores box dimensions
 /*! All particles in the ParticleData structure are inside of a box. This struct defines
 	that box. Inside is defined as x >= xlo && x < xhi, and similarly for y and z. 
