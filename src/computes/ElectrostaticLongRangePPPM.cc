@@ -165,7 +165,6 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	//deallocate polynomial coefficients
 	
 	for(unsigned int i=0;i<P_order;i++) delete[] P_coeff[i]; 
-
 	delete[] P_coeff;
 	
 	delete[] Denom_Coeff;
