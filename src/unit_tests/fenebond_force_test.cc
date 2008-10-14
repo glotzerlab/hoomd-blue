@@ -72,6 +72,8 @@ using namespace boost;
 
 //! Helper macro for testing if two numbers are close
 #define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
+//! Helper macro for testing if a number is small
+#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
 
 //! Global tolerance for floating point comparisons
 #ifdef SINGLE_PRECISION
@@ -107,8 +109,11 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	fc_2->compute(0);
 	ForceDataArrays force_arrays = fc_2->acquire();
 	// check that the force is correct, it should be 0 since we haven't created any bonds yet
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.0, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 	
 	// add a bond and check again
 	pdata_2->getBondData()->addBond(Bond(0, 0, 1));
@@ -117,14 +122,17 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	// this time there should be a force
 	force_arrays = fc_2->acquire();
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -30.581156, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);	
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 1.33177578 + 0.25/2, tol);
-	cout << "virial1: " << force_arrays.virial[0] << endl;
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 4.58717, tol);
 		
 	// check that the two forces are negatives of each other
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -force_arrays.fz[1], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], force_arrays.pe[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 4.58717, tol);
 
 	// rearrange the two particles in memory and see if they are properly updated
 	arrays = pdata_2->acquireReadWrite();
@@ -178,31 +186,37 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 5.71016443 + 0.25/2, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 24.9495, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -187.121131, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 5.71016443 + 0.25/2, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 24.9495, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 184.573762, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2],  6.05171988 + 0.25/2, tol);	
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2],  6.05171988 + 0.25/2, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], 24.6098, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -184.573762, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 6.05171988 + 0.25/2, tol);	
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 6.05171988 + 0.25/2, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], 24.6098, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[4], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[4], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 186.335166, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[4], 5.7517282 + 0.25/2, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[4], 24.8447, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[5], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[5], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5], -186.335166, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[5],  5.7517282 + 0.25/2, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[5], 24.8447, tol);
 
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
@@ -240,23 +254,27 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 7.08810039/2.0, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 14.475, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 7.08810039/2.0, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], 14.475, tol);
 
 	// the bottom left particle should have a force pulling up and to the right
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -86.850028653, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 7.08810039, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 14.475*2.0, tol);
 
 	// and the top left particle should have a force pulling down and to the right
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 86.85002865, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 7.08810039, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], 14.475*2.0, tol);
 	}
 	
 //! Compares the output of two FENEBondForceComputes
@@ -329,40 +347,6 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 		}
 	}
 	
-//! Check ConstForceCompute to see that it operates properly
-void const_force_test()
-	{
-	// Generate a simple test particle data
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0)));
-	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-	arrays.x[1] = Scalar(0.9);
-	arrays.y[1] = arrays.z[1] = 0.0;
-	pdata_2->release();
-
-	// Create the ConstForceCompute and check that it works properly
-	ConstForceCompute fc(pdata_2, Scalar(-1.3), Scalar(2.5), Scalar(45.67));
-	ForceDataArrays force_arrays = fc.acquire();
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -1.3, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 2.5, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 45.67, tol);
-
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -1.3, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 2.5, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], 45.67, tol);
-
-	// check the setforce method
-	fc.setForce(Scalar(67.54), Scalar(22.1), Scalar(-1.4));
-	force_arrays = fc.acquire();
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 67.54, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 22.1, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -1.4, tol);
-
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 67.54, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 22.1, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -1.4, tol);
-	}
-
 //! FEBEBondForceCompute creator for bond_force_basic_tests()
 shared_ptr<FENEBondForceCompute> base_class_bf_creator(shared_ptr<ParticleData> pdata)
 	{
@@ -401,12 +385,6 @@ BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_compare )
 	}
 	
 #endif
-
-//! boost test case for constant forces
-BOOST_AUTO_TEST_CASE( ConstForceCompute_basic )
-	{
-	const_force_test();
-	}
 
 #ifdef WIN32
 #pragma warning( pop )

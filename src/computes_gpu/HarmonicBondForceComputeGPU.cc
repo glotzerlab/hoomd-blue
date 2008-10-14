@@ -157,8 +157,8 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	
 	m_pdata->release();
 	
-	int64_t mem_transfer = m_pdata->getN() * 4+16+16 + m_bond_data->getNumBonds() * 2 * (8+16+8);
-	int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+7);
+	int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_bond_data->getNumBonds() * 2 * (8+16+8);
+	int64_t flops = m_bond_data->getNumBonds() * 2 * (3+12+16+3+7);
 	if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 	

@@ -110,6 +110,7 @@ extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data,
 	
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float virial = 0.0f;
 
 	// loop over neighbors
 	#ifdef ARCH_SM13
@@ -156,9 +157,11 @@ extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data,
 		float r6inv = r2inv*r2inv*r2inv;
 		// calculate the force magnitude / r (FLOPS: 6)
 		float forcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
+		// calculate the virial (FLOPS: 3)
+		virial += float(1.0/6.0) * rsq * forcemag_divr;
 		// calculate the pair energy (FLOPS: 3)
 		float pair_eng = r6inv * (lj1 * r6inv - lj2);
-				
+
 		// add up the force vector components (FLOPS: 7)
 		force.x += dx * forcemag_divr;
 		force.y += dy * forcemag_divr;
@@ -169,8 +172,9 @@ extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data,
 	
 	// potential energy per particle must be halved
 	force.w *= 0.5f;
-	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
+	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
 	force_data.force[idx_local] = force;
+	force_data.virial[idx_local] = virial;
 	}
 
 
@@ -197,6 +201,8 @@ cudaError_t gpu_ljforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_a
     dim3 threads(M, 1, 1);
 
 	// bind the texture
+	pdata_pos_tex.normalized = false;
+	pdata_pos_tex.filterMode = cudaFilterModePoint;	
 	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
 	if (error != cudaSuccess)
 		return error;

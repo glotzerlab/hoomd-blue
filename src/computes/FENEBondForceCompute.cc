@@ -203,7 +203,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 	memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
 	
 	// for each of the bonds
-	const unsigned int size = (unsigned int)m_bond_data->getNumBonds(); 
+	const unsigned int size = (unsigned int)m_bond_data->getNumBonds();
 	for (unsigned int i = 0; i < size; i++)
 		{
 		// lookup the tag of each of the particles participating in the bond
@@ -278,7 +278,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));		
 		
 		// calculate virial (FLOPS: 2)
-		Scalar bond_virial = -Scalar(1.0/6.0) * rsq * (forcemag_divr + WCAforcemag_divr);
+		Scalar bond_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
 		
 		// add the force to the particles
 		// (MEM TRANSFER: 20 Scalars / FLOPS 16)

@@ -128,17 +128,19 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.575, tol);
-	cout << "virial0: " << force_arrays.virial[0] << endl;
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -1.15, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.575, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
 	
 	// now change sigma and alpha so we can check that it is computing the right force
 	sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
@@ -153,18 +155,21 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 3.5815110377468, tol);
-	cout << "virial1: " << force_arrays.virial[0] << endl;
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 17.416537590989, tol);
 
 	// center particle should still be a 0 force by symmetry
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], 1e-5);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], 1e-5);
+	// there is still an energy and virial, though
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 7.1630220754935, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 34.833075181975, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 93.09822608552962, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 3.581511037746, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], 17.416537590989, tol);
 	
 	// swap the order of particles 0 ans 2 in memory to check that the force compute handles this properly
 	arrays = pdata_3->acquireReadWrite();
@@ -223,7 +228,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator)
 	shared_ptr<NeighborList> nlist_6(new NeighborList(pdata_6, Scalar(1.3), Scalar(3.0)));
 	shared_ptr<LJForceCompute> fc_6 = lj_creator(pdata_6, nlist_6, Scalar(1.3));
 		
-	// first test: setup a sigma of 1.0 so that all forces will be 0
+	// choose a small sigma so that all interactions are attractive
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(0.5);
 	Scalar alpha = Scalar(0.45);
@@ -245,31 +250,37 @@ void lj_force_periodic_test(ljforce_creator lj_creator)
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -1.18299976747949, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], -0.15773330233059, tol);
 
 	// particle 1 should be pulled right
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 1.18299976747949, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], 1e-5);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], 1e-5);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], -0.15773330233059, tol);
 	
 	// particle 2 should be pulled down
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -1.77449965121923, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], -0.23659995349591, tol);
 
 	// particle 3 should be pulled up
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 1.77449965121923, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[3], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], 1e-5);	
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], 1e-5);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], -0.23659995349591, tol);
 	
 	// particle 4 should be pulled back
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], -2.95749941869871, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[4], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[4], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[4], -0.39433325582651, tol);
 
 	// particle 3 should be pulled forward
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5], 2.95749941869871, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[5], 1e-5);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[5], 1e-5);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[5], -0.39433325582651, tol);
 	}
 	
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
@@ -310,6 +321,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 		BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], tol);
 		BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], tol);
 		BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], tol);
+		BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], tol);
 		}
 	}
 	

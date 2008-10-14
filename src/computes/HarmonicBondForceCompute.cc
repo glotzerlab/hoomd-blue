@@ -234,7 +234,7 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 		Scalar bond_eng = Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] - r) * (m_r_0[bond.type] - r);
 		
 		// calculate the virial (FLOPS: 2)
-		Scalar bond_virial = -Scalar(1.0/6.0) * rsq * forcemag_divr;
+		Scalar bond_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
 		
 		// add the force to the particles (FLOPS: 16 / MEM TRANSFER: 20 Scalars)
 		m_fx[idx_b] += forcemag_divr * dx;

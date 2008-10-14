@@ -77,6 +77,8 @@ extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_dat
 
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	// initialize the virial to 0
+	float virial = 0.0f;
 	
 	// loop over neighbors
 	for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
@@ -115,7 +117,10 @@ extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_dat
 		float rinv = rsqrtf(rsq);
 		float forcemag_divr = K * (r_0 * rinv - 1.0f);
 		float bond_eng = 0.5f * K * (r_0 - 1.0f / rinv) * (r_0 - 1.0f / rinv);
-				
+		
+		// add up the virial (FLOPS: 3)
+		virial += float(1.0/6.0) * rsq * forcemag_divr;
+		
 		// add up the forces (FLOPS: 7)
 		force.x += dx * forcemag_divr;
 		force.y += dy * forcemag_divr;
@@ -126,8 +131,9 @@ extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_dat
 	// energy is double counted: multiply by 0.5
 	force.w *= 0.5f;
 	
-	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
+	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
 	force_data.force[idx_local] = force;
+	force_data.virial[idx_local] = virial;
 	}
 
 
