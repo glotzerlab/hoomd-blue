@@ -170,7 +170,7 @@ extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data,
 	// potential energy per particle must be halved
 	force.w *= 0.5f;
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
-	force_data.force[idx_global] = force;
+	force_data.force[idx_local] = force;
 	}
 
 

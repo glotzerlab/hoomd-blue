@@ -124,7 +124,7 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		// write out the results (MEM_TRANSFER: 32 bytes)
 		pdata.pos[idx_global] = pos2;
 		pdata.vel[idx_global] = vel;
-		}	
+		}
 	}
 
 cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT, bool limit, float limit_val)

@@ -165,7 +165,7 @@ cudaError_t ForceDataArraysGPU::hostToDeviceCopy(Scalar *fx, Scalar *fy, Scalar 
 		return error;
 		
 	// copy virial to the device and check for errors
-	error = cudaMemcpy(d_data.virial, virial, sizeof(float)*m_num_local, cudaMemcpyHostToDevice);
+	error = cudaMemcpy(d_data.virial, virial + m_local_start, sizeof(float)*m_num_local, cudaMemcpyHostToDevice);
 	if (error != cudaSuccess)
 		return error;
 		
@@ -210,7 +210,7 @@ cudaError_t ForceDataArraysGPU::deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar 
 		}
 	
 	// copy virial to the device and check for errors
-	error = cudaMemcpy(virial, d_data.virial, sizeof(float)*m_num_local, cudaMemcpyDeviceToHost);
+	error = cudaMemcpy(virial + m_local_start, d_data.virial, sizeof(float)*m_num_local, cudaMemcpyDeviceToHost);
 	if (error != cudaSuccess)
 		return error;
 		
@@ -257,7 +257,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			exec_conf.gpu[cur_gpu]->call(bind(&ForceDataArraysGPU::allocate, &m_gpu_forces[cur_gpu], m_pdata->getLocalNum(cur_gpu), m_pdata->getLocalBeg(cur_gpu)));
 		
-		deviceToHostCopy();
+		hostToDeviceCopy();
 		m_data_location = cpugpu;
 		}
 	else

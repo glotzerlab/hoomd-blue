@@ -157,9 +157,9 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	// stochastic forces do not contribute to potential energy
 
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
-	force_data.force[idx_global] = force;
-//	force_data.force[idx_global] = make_float4(coeff_fric, dt, T, s_gammas[typ]);  //doing this just to verify it works.
-//	force_data.force[idx_global] = make_float4(vel.x, vel.y, vel.z, 0.0f);  //doing this just to verify it works.
+	force_data.force[idx_local] = force;
+//	force_data.force[idx_local] = make_float4(coeff_fric, dt, T, s_gammas[typ]);  //doing this just to verify it works.
+//	force_data.force[idx_local] = make_float4(vel.x, vel.y, vel.z, 0.0f);  //doing this just to verify it works.
 	
     // State is written back to global memory
     d_state[blockIdx.x * blockDim.x + threadIdx.x] = rng_state;
