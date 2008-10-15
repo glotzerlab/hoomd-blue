@@ -76,7 +76,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	{
 	// check the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	// only one GPU is currently supported
+	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
 		cerr << endl << "***Error! Creating a BinnedNeighborListGPU with no GPU in the execution configuration" << endl << endl;
@@ -103,13 +103,13 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
 	if (deviceProp.major == 1 && deviceProp.minor < 2)
-		m_block_size = 192;
+		m_block_size = 64;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 448;
+		m_block_size = 416;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
-		m_block_size = 448;
+		m_block_size = 416;
 		}
 	
 	// bogus values for last value

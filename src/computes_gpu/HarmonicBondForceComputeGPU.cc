@@ -61,16 +61,19 @@ using namespace std;
 /*! \param pdata ParticleData to compute bond forces on
 */
 HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: HarmonicBondForceCompute(pdata), m_block_size(64)
+	: HarmonicBondForceCompute(pdata)
 	{
 	// check the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	// only one GPU is currently supported
+	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
 		cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
 		throw std::runtime_error("Error initializing BondForceComputeGPU");
 		}
+		
+	// default block size is the highest performance in testing on different hardware
+	m_block_size = 192;
 	
 	// allocate and zero device memory
 	m_gpu_params.resize(exec_conf.gpu.size());

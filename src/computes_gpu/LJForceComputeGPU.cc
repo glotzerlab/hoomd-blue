@@ -73,7 +73,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 	{
 	// check the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	// only one GPU is currently supported
+	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
 		cerr << endl << "***Error! Creating a LJForceComputeGPU with no GPU in the execution configuration" << endl << endl;
@@ -93,7 +93,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));	
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
 	if (deviceProp.major == 1 && deviceProp.minor < 2)
-		m_block_size = 384;
+		m_block_size = 352;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
 		m_block_size = 96;
 	else
