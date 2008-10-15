@@ -40,6 +40,7 @@
 import globals;
 import sys;
 import hoomd;
+import util;
 
 ## \package hoomd_script.force
 # \brief Other types of forces
@@ -108,7 +109,7 @@ class _force:
 	# force.disable()
 	# \endcode
 	def disable(self):
-		print "force.disable()";
+		util.print_status_line();
 		
 		# check that we have been initialized properly
 		if self.cpp_force == None:
@@ -133,7 +134,7 @@ class _force:
 	#
 	# See disable() for a detailed description.
 	def enable(self):
-		print "force.enable()";
+		util.print_status_line();
 		
 		# check that we have been initialized properly
 		if self.cpp_force == None:
@@ -178,7 +179,7 @@ class constant(_force):
 	# const = force.constant(fx=0.4, fy=1.0, fz=0.5)
 	# \endcode
 	def __init__(self, fx, fy, fz):
-		print "force.constant(fx =", fx, ", fy =", fy, ", fz =", fz, ")";
+		util.print_status_line();
 		
 		# initialize the base class
 		_force.__init__(self);

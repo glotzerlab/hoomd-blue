@@ -71,6 +71,7 @@
 import hoomd;
 import globals;
 import sys;
+import util;
 
 ## \internal
 # \brief Base class for integrators
@@ -141,7 +142,7 @@ class nvt(_integrator):
 	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
 	# \endcode
 	def __init__(self, dt, T, tau):
-		print "integrate.nvt(dt=", dt, ", T=", T, ", tau=", tau, ")";
+		util.print_status_line();
 		
 		# initialize base class
 		_integrator.__init__(self);
@@ -175,7 +176,7 @@ class nvt(_integrator):
 	# integrator.set_params(dt=3e-3, T=2.0)
 	# \endcode
 	def set_params(self, dt=None, T=None, tau=None):
-		print "nvt.set_params(dt=", dt, ", T=", T, ", tau=", tau, ")";
+		util.print_status_line();
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
@@ -211,7 +212,7 @@ class npt(_integrator):
 	# integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
 	# \endcode
 	def __init__(self, dt, T, tau, P, tauP):
-		print "integrate.npt(dt=", dt, ", T=", T, ", tau=", tau, ", P=", P, ", tauP=", tauP, ")";
+		util.print_status_line();
 		
 		# initialize base class
 		_integrator.__init__(self);
@@ -249,7 +250,7 @@ class npt(_integrator):
 	# integrator.set_params(dt=3e-3, T=2.0, P=1.0)
 	# \endcode
 	def set_params(self, dt=None, T=None, tau=None, P=None, tauP=None):
-		print "nvt.set_params(dt=", dt, ", T=", T, ", tau=", tau, ")";
+		util.print_status_line();
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
@@ -287,7 +288,7 @@ class nve(_integrator):
 	# integrate.nve(dt=0.005, limit=0.01)
 	# \endcode
 	def __init__(self, dt, limit=None):
-		print "integrate.nve(dt=", dt, ", limit=", limit, ")";
+		util.print_status_line();
 		
 		# initialize base class
 		_integrator.__init__(self);
@@ -322,7 +323,7 @@ class nve(_integrator):
 	# integrator.set_params(dt=3e-3)
 	# \endcode
 	def set_params(self, dt=None):
-		print "nvt.set_params(dt=", dt, ")";
+		util.print_status_line();
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
@@ -353,7 +354,7 @@ class bdnvt(_integrator):
 	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01)
 	# \endcode
 	def __init__(self, dt, T, limit=None, seed=0):
-		print "integrate.bdnvt(dt=", dt, ", T=", T," limit=", limit, ", seed = ", seed, ")";
+		util.print_status_line();
 		
 		# initialize base class
 		_integrator.__init__(self);
@@ -388,7 +389,7 @@ class bdnvt(_integrator):
 	# integrator.set_params(T=2.0)
 	# \endcode
 	def set_params(self, dt=None, T=None):
-		print "bdnvt.set_params(dt=", dt, ", T=", T, ")";
+		util.print_status_line();
 		# check that proper initialization has occured
 		if self.cpp_integrator == None:
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";

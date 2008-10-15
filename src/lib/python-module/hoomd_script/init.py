@@ -45,6 +45,7 @@ import update;
 
 import math;
 import sys;
+import util;
 
 ## \internal
 # \brief Parsed command line options
@@ -75,7 +76,7 @@ _options = {};
 # other commands in hoomd_script to be run. For more details
 # on the file format read by this command, see \ref page_xml_file_format.
 def read_xml(filename):
-	print "init.read_xml(filename=", filename, ")";
+	util.print_status_line();
 	
 	# parse command line
 	_parse_command_line();
@@ -117,7 +118,7 @@ def read_xml(filename):
 # All particles are created with the same type, given by \a name.
 #
 def create_random(N, phi_p, name="A", min_dist=0.7):
-	print "init.create_random(N =", N, ", phi_p =", phi_p, ", name = ", name, ", min_dist =", min_dist, ")";
+	util.print_status_line();
 	
 	# parse command line
 	_parse_command_line();
@@ -242,7 +243,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # \note 4. The %bond type is named 'polymer' must be used in specifying %bond coefficients in command such as 
 # bond.harmonic
 def create_random_polymers(box, polymers, separation, seed=1):
-	print "init.create_random_polymers(box =", box, ", polymers =", polymers, ", separation = ", separation, ", seed =", seed, ")";
+	util.print_status_line();
 	
 	# parse command line
 	_parse_command_line();

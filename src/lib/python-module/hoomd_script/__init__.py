@@ -39,6 +39,7 @@
 
 import hoomd;
 import sys;
+import util;
 
 ## \package hoomd_script
 # \brief Base module for the user-level scripting API
@@ -85,7 +86,7 @@ __all__ = ["analyze", "bond", "dump", "force", "globals", "init",
 # can slow the simulation on the GPU by ~5 percent, so only enable profiling for testing
 # and troubleshooting purposes.
 def run(tsteps, profile=False):
-	print "run(", tsteps, ")";
+	util.print_status_line();
 	# check if initialization has occured
 	if (globals.system == None):
 		print >> sys.stderr, "\n***Error! Cannot run before initialization\n";

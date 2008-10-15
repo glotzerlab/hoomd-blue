@@ -42,6 +42,7 @@ import globals;
 import hoomd;
 import sys;
 import math;
+import util;
 
 ## \package hoomd_script.wall
 # \brief Commands that specify %wall forces
@@ -91,7 +92,7 @@ class lj(force._force):
 	#
 	# \note Coefficients must be set with set_coeff() before the simulation can be run().
 	def __init__(self, r_cut):
-		print "wall.lj(r_cut =", r_cut, ")";
+		util.print_status_line();
 		
 		# initialize the base class
 		force._force.__init__(self);
@@ -131,7 +132,7 @@ class lj(force._force):
 	# The coefficients for every particle type in the simulation must be set 
 	# before the run() can be started.
 	def set_coeff(self, particle_type, epsilon, sigma, alpha):
-		print "lj_wall.set_coeff(", particle_type, ", epsilon =", epsilon, ", sigma =", sigma, ", alpha =", alpha, ")";
+		util.print_status_line();
 		
 		# calculate the parameters
 		lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);

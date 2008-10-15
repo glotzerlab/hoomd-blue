@@ -42,6 +42,7 @@ import globals;
 import math;
 import hoomd;
 import sys;
+import util;
 
 ## \package hoomd_script.bond
 # \brief Commands that specify %bond forces
@@ -73,7 +74,7 @@ class harmonic(force._force):
 	# harmonic = bond.harmonic()
 	# \endcode
 	def __init__(self):
-		print "bond.harmonic()";
+		util.print_status_line();
 		
 		# check that some bonds are defined
 		if globals.particle_data.getBondData().getNumBonds() == 0:
@@ -119,7 +120,7 @@ class harmonic(force._force):
 	# The coefficients for every %bond type in the simulation must be set 
 	# before the run() can be started.
 	def set_coeff(self, bond_type, k, r0):
-		print "harmonic.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ")";
+		util.print_status_line();
 		
 		# set the parameters for the appropriate type
 		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0);
@@ -162,7 +163,7 @@ class fene(force._force):
 	# fene = bond.fene()
 	# \endcode
 	def __init__(self):
-		print "bond.fene()";
+		util.print_status_line();
 		
 		# check that some bonds are defined
 		if globals.particle_data.getBondData().getNumBonds() == 0:
@@ -210,7 +211,7 @@ class fene(force._force):
 	# The coefficients for every %bond type in the simulation must be set 
 	# before the run() can be started.
 	def set_coeff(self, bond_type, k, r0, sigma, epsilon):
-		print "fene.set_coeff(", bond_type, ", k =", k, ", r0 =", r0, ", sigma =", sigma, ", epsilon=", epsilon, ")";
+		util.print_status_line();
 		
 		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0, sigma, epsilon);
 		# track which particle types we have set

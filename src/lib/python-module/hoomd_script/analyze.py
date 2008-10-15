@@ -40,6 +40,7 @@
 import hoomd;
 import globals;
 import sys;
+import util;
 
 ## \package hoomd_script.analyze
 # \brief Commands that %analyze the system and provide some output
@@ -113,7 +114,7 @@ class _analyzer:
 	# analyzer.disable()
 	# \endcode
 	def disable(self):
-		print "analyzer.disable()";
+		util.print_status_line();
 		
 		# check that we have been initialized properly
 		if self.cpp_analyzer == None:
@@ -138,7 +139,7 @@ class _analyzer:
 	#
 	# See disable() for a detailed description.
 	def enable(self):
-		print "analyzer.enable()";
+		util.print_status_line();
 		
 		# check that we have been initialized properly
 		if self.cpp_analyzer == None:
@@ -174,7 +175,7 @@ class _analyzer:
 	# analyzer.set_period(10)
 	# \endcode
 	def set_period(self, period):
-		print "analyzer.set_period(", period, ")";
+		util.print_status_line();
 		
 		if self.enabled:
 			globals.system.setAnalyzerPeriod(self.analyzer_name, period);
@@ -211,7 +212,7 @@ class imd(_analyzer):
 	# imd = analyze.imd(port=12345, period=1000)
 	# \endcode
 	def __init__(self, port, period):
-		print "analyze.imd(port =", port, ")";
+		util.print_status_line();
 		
 		# initialize base class
 		_analyzer.__init__(self);
@@ -258,7 +259,7 @@ class log(_analyzer):
 	# By default, columns in the log file are separated by tabs, suitable for importing as a 
 	# tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
 	def __init__(self, filename, quantities, period):
-		print "analyze.log(filename =", filename, ", quantities =", quantities, ", period =", period, ")";
+		util.print_status_line();
 		
 		# initialize base class
 		_analyzer.__init__(self);
@@ -294,7 +295,7 @@ class log(_analyzer):
 	# logger.set_params(quantities=['harmonic_energy'], delimiter=',');
 	# \endcode
 	def set_params(self, quantities=None, delimiter=None):
-		print "log.set_params(quantities =", quantities, ", delimiter =", delimiter, ")";
+		util.print_status_line();
 		
 		if quantities != None:
 			# set the logged quantities

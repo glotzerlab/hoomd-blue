@@ -69,6 +69,7 @@ import force;
 import hoomd;
 import math;
 import sys;
+import util;
 
 ## Defines %pair coefficients
 # 
@@ -147,7 +148,7 @@ class coeff:
 	# set for a type %pair, then executing coeff.set('A', 'B', epsilon=1.1) will %update 
 	# the value of epsilon and leave sigma as it was previously set.
 	def set(self, a, b, **coeffs):
-		print "coeff.set(", a, ",", b, ",", coeffs, ")";
+		util.print_status_line();
 		
 		# create the pair if it hasn't been created it
 		if (not (a,b) in self.values) and (not (b,a) in self.values):
@@ -334,7 +335,7 @@ class nlist:
 	# nlist.set_params(r_buff = 0.7, check_period = 4)
 	# \endcode
 	def set_params(self, r_buff=None, check_period=None):
-		print "nlist.set_params(r_buff =", r_buff, " , check_period =", check_period, ")";
+		util.print_status_line();
 		
 		if self.cpp_nlist == None:
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
@@ -412,7 +413,7 @@ class lj(force._force):
 	# \note Pair coefficients for all type pairs in the simulation must be
 	# set before it can be started with run()
 	def __init__(self, r_cut):
-		print "pair.lj(r_cut =", r_cut, ")";
+		util.print_status_line();
 		
 		# initialize the base class
 		force._force.__init__(self);

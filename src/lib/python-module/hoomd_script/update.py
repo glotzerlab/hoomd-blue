@@ -39,6 +39,7 @@
 
 import hoomd;
 import globals;
+import util;
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
@@ -111,7 +112,7 @@ class _updater:
 	# updater.disable()
 	# \endcode
 	def disable(self):
-		print "updater.disable()";
+		util.print_status_line();
 		
 		# check that we have been initialized properly
 		if self.cpp_updater == None:
@@ -136,7 +137,7 @@ class _updater:
 	#
 	# See disable() for a detailed description.
 	def enable(self):
-		print "updater.enable()";
+		util.print_status_line();
 		
 		# check that we have been initialized properly
 		if self.cpp_updater == None:
@@ -172,7 +173,7 @@ class _updater:
 	# updater.set_period(10)
 	# \endcode
 	def set_period(self, period):
-		print "updater.set_period(", period, ")";
+		util.print_status_line();
 		if self.enabled:
 			globals.system.setUpdaterPeriod(self.updater_name, period);
 		else:
@@ -231,7 +232,7 @@ class sort(_updater):
 	# sorter.set_params(bin_width=2.0)
 	# \endcode
 	def set_params(self, bin_width=None):
-		print "sorter.set_params(bin_width =", bin_width, ")";
+		util.print_status_line();
 	
 		# check that proper initialization has occured
 		if self.cpp_updater == None:
@@ -262,7 +263,7 @@ class rescale_temp(_updater):
 	# update.rescale_temp(period=100, T=1.03)
 	# \endcode
 	def __init__(self, T, period=1):
-		print "update.rescale_temp(T =", T, ")";
+		util.print_status_line();
 	
 		# initialize base class
 		_updater.__init__(self);
@@ -285,7 +286,7 @@ class rescale_temp(_updater):
 	# rescaler.set_params(T=2.0)
 	# \endcode
 	def set_params(self, T=None):
-		print "rescaler.set_params(T=", T, ")";
+		util.print_status_line();
 	
 		# check that proper initialization has occured
 		if self.cpp_updater == None:
@@ -314,7 +315,7 @@ class zero_momentum(_updater):
 	# zeroer= update.zero_momentum(period=10)
 	# \endcode
 	def __init__(self, period=1):
-		print "update.zero_momentum(period =", period, ")";
+		util.print_status_line();
 	
 		# initialize base class
 		_updater.__init__(self);

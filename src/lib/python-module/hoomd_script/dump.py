@@ -48,6 +48,7 @@ import hoomd;
 import globals;
 import analyze;
 import sys;
+import util;
 
 ## Writes simulation snapshots in the HOOMD XML format
 #
@@ -75,7 +76,7 @@ class xml(analyze._analyzer):
 	# By default, only particle positions are output to the dump files. This can be changed
 	# with set_params().
 	def __init__(self, filename, period):
-		print "dump.xml(filename =", filename, ", period=", period, ")";
+		util.print_status_line();
 	
 		# initialize base class
 		analyze._analyzer.__init__(self);
@@ -106,7 +107,7 @@ class xml(analyze._analyzer):
 	# xml.set_params(bond=True)
 	# \endcode
 	def set_params(self, position=None, velocity=None, type=None, wall=None, bond=None):
-		print "xml.set_params(position=", position, ", velocity=",velocity,", type=", type, ")";
+		util.print_status_line();
 	
 		# check that proper initialization has occured
 		if self.cpp_analyzer == None:
@@ -145,7 +146,7 @@ class mol2(analyze._analyzer):
 	# dump.mol2(filename="structure.mol2")
 	# \endcode
 	def __init__(self, filename):
-		print "dump.mol2(filename =", filename, ")";
+		util.print_status_line();
 	
 		# initialize base class
 		analyze._analyzer.__init__(self);
@@ -192,7 +193,7 @@ class dcd(analyze._analyzer):
 	# dcd = dump.dcd(filename"data/dump.dcd", period=1000)
 	# \endcode
 	def __init__(self, filename, period):
-		print "dump.dcd(filename =", filename, ", period=", period, ")";
+		util.print_status_line();
 		
 		# initialize base class
 		analyze._analyzer.__init__(self);
@@ -202,14 +203,14 @@ class dcd(analyze._analyzer):
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
 	
 	def enable(self):
-		print "updater.enable()";
+		util.print_status_line();
 		
 		if self.enabled == False:
 			print >> sys.stderr, "\n***Error! you cannot re-enable DCD output after it has been disabled\n";
 			raise RuntimeError('Error enabling updater');
 	
 	def set_period(self, period):
-		print "updater.set_period(", period, ")";
+		util.print_status_line();
 		
 		print >> sys.stderr, "\n***Error! you cannot change the period of a dcd dump writer\n";
 		raise RuntimeError('Error changing updater period');
