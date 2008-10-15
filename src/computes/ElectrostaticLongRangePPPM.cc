@@ -36,15 +36,22 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*! \file ElectrostaticLongRangePPPM.cc
+	\brief Contains the code for the ElectrostaticLongRangePPPM class
+*/
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4244 )
 #endif
 
-
 // conditionally compile only if a fast fourier transform is defined
 #ifdef USE_FFT
+
+#ifdef WIN32
 #define _USE_MATH_DEFINES
+#endif
+
 #include <math.h>
 
 #include <boost/math/special_functions/sinc.hpp>
@@ -55,14 +62,9 @@ using namespace std;
 #include "ElectrostaticLongRangePPPM.h"
 #include <stdexcept>
 
-
-/*! \file ElectrostaticLongRangePPPM.cc
-	\brief Contains the code for the ElectrostaticLongRangePPPM class
-*/
-
 using namespace std;
 
-/*!     \param pdata Particle Data to compute forces on
+/*! \param pdata Particle Data to compute forces on
 	\param alpha Split parameter of short vs long range electrostatics (see header file for more info) 
 */
 ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata, unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z,unsigned int P_order_a, Scalar alpha,bool third_law_m)
@@ -72,8 +74,8 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	
 	if (alpha < 0.0)
 		{
-		cerr << endl << "***Error! Negative alpha in ElectrostaticShortRange makes no sense" << endl << endl;
-		throw runtime_error("Error initializing ElectrostaticShortRange");
+		cerr << endl << "***Error! Negative alpha in ElectrostaticLongRangePPPM makes no sense" << endl << endl;
+		throw runtime_error("Error initializing ElectrostaticLongRange");
 		}
 
 	//Cast mesh sizes as a scalar
@@ -97,20 +99,20 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	h_z= S_mesh_z/Lz;
 
 	//allocate space for the density and the influence function
-	rho_real=new Scalar**[N_mesh_z];
-	rho_kspace=new Scalar**[N_mesh_z];
+	rho_real=new CScalar**[N_mesh_z];
+	rho_kspace=new CScalar**[N_mesh_z];
 	G_Inf=new Scalar**[N_mesh_z];
 
 	for(unsigned int i=0;i<N_mesh_z;i++){
-		rho_real[i]=new Scalar*[N_mesh_y];
-		rho_kspace[i]=new Scalar*[N_mesh_y];
+		rho_real[i]=new CScalar*[N_mesh_y];
+		rho_kspace[i]=new CScalar*[N_mesh_y];
 		G_Inf[i]=new Scalar*[N_mesh_y];
 	}
 
 	for(unsigned int j=0;j<N_mesh_z;j++){
 	for(unsigned int i=0;i<N_mesh_y;i++){
-		rho_real[i][j]=new Scalar[N_mesh_x];
-		rho_kspace[i][j]=new Scalar[N_mesh_x];
+		rho_real[i][j]=new CScalar[N_mesh_x];
+		rho_kspace[i][j]=new CScalar[N_mesh_x];
 		G_Inf[i][j]=new Scalar[N_mesh_x];
 	}
 	}
@@ -168,8 +170,6 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	delete[] P_coeff;
 	
 	delete[] Denom_Coeff;
-
-	
 }
 
 void ElectrostaticLongRangePPPM::make_rho(void)
@@ -185,7 +185,8 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
     for(unsigned int i=0;i<N_mesh_x;i++){
 	for(unsigned int j=0;j<N_mesh_y;j++){
 	for(unsigned int k=0;k<N_mesh_z;k++){
-		rho_real[i][j][k]=0.0;
+		(rho_real[i][j][k]).r=0.0;
+		(rho_real[i][j][k]).i=0.0;
 	}
 	}
 	}
@@ -231,7 +232,7 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 				ind_y=iy_floor+lx+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
 		for(int lz=-P_half+1;lz<=P_half;lz++){
 			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lx)/N_mesh_z)*N_mesh_z-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
+				(rho_real[ind_x][ind_y][ind_z]).r+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
 	    }
 		}
 		}
@@ -247,7 +248,8 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
     for(unsigned int i=0;i<N_mesh_x;i++){
 	for(unsigned int j=0;j<N_mesh_y;j++){
 	for(unsigned int k=0;k<N_mesh_z;k++){
-		rho_real[i][j][k]=0.0;
+		(rho_real[i][j][k]).r=0.0;
+		(rho_real[i][j][k]).i=0.0;
 	}
 	}
 	}
@@ -307,7 +309,7 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 				ind_y=iy_lat+lx+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
 		for(int lz=-P_half;lz<=P_half;lz++){
 			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lx)/N_mesh_z)*N_mesh_z-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
-				rho_real[ind_x][ind_y][ind_z]+=q_i*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
+				(rho_real[ind_x][ind_y][ind_z]).r+=q_i*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
 	    }
 		}
 		}

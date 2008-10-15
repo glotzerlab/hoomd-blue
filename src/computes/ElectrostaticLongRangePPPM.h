@@ -36,25 +36,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// conditionally compile only if fast fourier transforms are defined
-
-#ifdef USE_FFT
-
-#include <boost/shared_ptr.hpp>
-#include <vector>
-
-using namespace std;
-
-#include "ForceCompute.h"
-
 /*! \file ElectrostaticLongRangePPPM.h
-	\brief Declares a class for computing the short range part of the electrostatic force and energy
+	\brief Declares a class for computing the PPPM long range electrostatic force
 */
 
-#ifndef __ELECTROSTATICLONGRANGEPPPM_H__
-#define __ELECTROSTATICLONGRANGEPPPM_H__
 
-//! Computes the Long-range electrostatic part of the force by using the PPPM approximation
+//! Long-range electrostatic force by the PPPM method
 /*! In order for this class to be useful it needs to be complemented with a class that computes the short-range electrostatic part
     The total pair force is summed for each particle when compute() is called.
 	This class requires the use of Fast Fourier Transforms, which are defined somewhere else
@@ -67,15 +54,29 @@ using namespace std;
 	M. Deserno and C. Holm
 	J. Chem. Phys. 109, 7678 (1998).
 
-	NOTE: This class does not compute the parameter alpha, it uses the alpha as specified. 
+	\note This class does not compute the parameter alpha, it uses the alpha as specified. 
 	
 	Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but 
 	a more typical usage will be to add the force compute to NVEUpdator or NVTUpdator. 
 	
 	This base class defines the interface for performing the long-range part of the electrostatic force 
 	computations using the PPPM method. It does provide a functional, single threaded method for computing the forces. 
-
+	
+	\ingroup computes
 */
+
+#include <boost/shared_ptr.hpp>
+#include <vector>
+using namespace std;
+#include "ForceCompute.h"
+
+#ifndef __ELECTROSTATICLONGRANGEPPPM_H__
+#define __ELECTROSTATICLONGRANGEPPPM_H__
+
+using namespace std;
+
+#ifdef USE_FFT
+
 class ElectrostaticLongRangePPPM : public ForceCompute
 	{
 	public:
@@ -102,8 +103,8 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	    Scalar h_x;                  //!< Spacing along the x axis
 	    Scalar h_y;                  //!< Spacing along the y axis
 	    Scalar h_z;                  //!< Spacing along the z axis
-	    Scalar ***rho_real;          //!< density of charge on the mesh
-	    Scalar ***rho_kspace;        //!< density of charge in Fourier space
+	    CScalar ***rho_real;          //!< density of charge on the mesh
+	    CScalar ***rho_kspace;        //!< density of charge in Fourier space
 	    Scalar ***G_Inf;             //!< Precomputed proximity function
 		Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
 		void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
