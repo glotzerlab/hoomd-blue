@@ -67,6 +67,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_CUDA
 #include "NeighborListNsqGPU.h"
 #include "BinnedNeighborListGPU.h"
+#include "gpu_settings.h"
 #endif
 
 #include "SFCPackUpdater.h"
@@ -174,7 +175,21 @@ void benchmark(shared_ptr<NeighborList> nl) {
 	int count = 2;
 
 	// do a warmup run so memory allocations don't change the benchmark numbers
+	#ifdef USE_CUDA
+	// also check for errors during the warm up run
+	g_gpu_error_checking = true;
+	try {
+	#endif
 	nl->compute(count++);
+	#ifdef USE_CUDA
+	} 
+	catch (runtime_error e)
+		{
+		cout << "n/a s/step" << endl;
+		return;
+		}
+	#endif
+	
 
 	int64_t tstart = clk.getTime();
 	int64_t tend;

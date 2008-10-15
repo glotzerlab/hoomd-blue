@@ -408,7 +408,7 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 		while (overflow)
 			{
 			int new_height = (int)(Scalar(m_gpu_nlist[0].height) * 1.2);
-			cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+			// cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
 			freeGPUData();
 			allocateGPUData(new_height);
 			updateExclusionData();

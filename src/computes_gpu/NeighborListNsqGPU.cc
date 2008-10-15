@@ -123,7 +123,7 @@ void NeighborListNsqGPU::compute(unsigned int timestep)
 		while (overflow)
 			{
 			int new_height = m_gpu_nlist[0].height * 2;
-			cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+			// cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
 			freeGPUData();
 			allocateGPUData(new_height);
 			updateExclusionData();

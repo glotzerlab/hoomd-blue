@@ -82,7 +82,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 	
 	if (m_ntypes > 44)
 		{
-		cerr << endl << "**Error! LJForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
+		cerr << endl << "***Error! LJForceComputeGPU cannot handle " << m_ntypes << " types" << endl << endl;
 		throw runtime_error("Error initializing LJForceComputeGPU");
 		}
 		
@@ -98,7 +98,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 		m_block_size = 96;
 	else
 		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
+		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for LJForceComputeGPU" << endl;
 		m_block_size = 96;
 		}
 

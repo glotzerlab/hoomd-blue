@@ -72,6 +72,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_CUDA
 #include "LJForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
+#include "gpu_settings.h"
 #endif
 
 #include "HOOMDVersion.h"
@@ -198,7 +199,20 @@ void benchmark(shared_ptr<ForceCompute> fc)
 	int count = 2;
 
 	// do a warmup run so memory allocations don't change the benchmark numbers
+	#ifdef USE_CUDA
+	// also check for errors during the warm up run
+	g_gpu_error_checking = true;
+	try {
+	#endif
 	fc->compute(count++);
+	#ifdef USE_CUDA
+	} 
+	catch (runtime_error e)
+		{
+		cout << "n/a s/step" << endl;
+		return;
+		}
+	#endif
 
 	int64_t tstart = clk.getTime();
 	int64_t tend;
@@ -279,7 +293,7 @@ int main(int argc, char **argv)
 		cerr << "Error parsing command line: " << e.what() << endl;
 		cout << desc;
 		cout << "Available ForceComputes are: ";
-		cout << "LJ, LJ.Threads, Bond ";
+		cout << "LJ, Bond ";
 		#ifdef USE_CUDA
 		cout << "LJ.GPU, and Bond.GPU" << endl;
 		#else
