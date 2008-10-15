@@ -165,6 +165,12 @@ void BinnedNeighborList::updateBins()
 	// for each particle
 	for (unsigned int n = 0; n < arrays.nparticles; n++)
 		{
+		if (isnan(arrays.x[n]) || isnan(arrays.y[n]) || isnan(arrays.z[n]))
+			{
+			cerr << endl << "***Error! Particle " << n << " has NaN for its position." << endl << endl;
+			throw runtime_error("Error binning particles");
+			}		
+		
 		// find the bin each particle belongs in
 		unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex);
 		unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley);
