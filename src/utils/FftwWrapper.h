@@ -51,14 +51,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\note Due to licensing conflicts fftw cannot distributed by HOOMD.
 */
 
+#ifdef USE_FFTW
+
 #include "FFTClass.h"
 #include "fftw3.h"
 
 #ifdef WIN32
  #define _USE_MATH_DEFINES
 #endif
-
-#ifdef USING_FFTW
 
 class FftwWrapper:public FFTClass
     {
