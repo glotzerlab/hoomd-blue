@@ -36,6 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef USE_FFTW
+
 #include "fftw_wrapper.h"
 #include <math.h>
 
@@ -187,3 +189,5 @@ double fftw_wrapper::Initial_Conf_Imag(double x,double y)
 {
   return -(1-exp(-x))*exp(-1.0)*sin(2*M_PI*y/x)/(1+exp(-2.0)-2*exp(-1.0)*cos(2*M_PI*y/x));	
 }
+
+#endif

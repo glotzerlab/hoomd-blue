@@ -40,6 +40,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __FFTW__WRAPPER__
 #define __FFTW__WRAPPER__
 
+#ifdef USE_FFTW
+
 /*! \file fftw_wrapper.h
 	\brief Adapts fftw for use in HOOMD
 */
@@ -93,4 +95,7 @@ class fftw_wrapper:public fft_class
 			double Initial_Conf_Imag(double x,double y); //<! Defines the imag part of an initial configuration
 			
 };
+
+#endif
+
 #endif

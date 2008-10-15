@@ -39,6 +39,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __FFT_CLASS_H__
 #define __FFT_CLASS_H__
 
+#ifdef USE_FFT
+
 #include "ParticleData.h"
 
 /*! \file fft_class.h
@@ -58,5 +60,7 @@ class fft_class{
 	virtual void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar ***in,CScalar ***out)=0;    //!< 3D FFT of real matrix in, result stored in matrix out, forward is implictly assumed
 	virtual void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***in,Scalar ***out)=0;    //!< 3D FFT of complex matrix in, result is real and stored in matrix out, backward is implictly assumed
 };
+
+#endif
 
 #endif
