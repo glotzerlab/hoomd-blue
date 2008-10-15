@@ -60,7 +60,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //#ifdef USING_FFTW
 
-class FftwWrapper:public FFTtClass
+class FftwWrapper:public FFTClass
     {
 	public:
 			FftwWrapper();   //!< void constructor
