@@ -78,6 +78,7 @@ set(TEST_LIST
 	temp_rescale_updater_test
 	xml_reader_writer_test system_test
 	ElectrostaticShortRange_force_test
+	Fourier_transform_test
 	bdnvt_updater_test
 	npt_updater_test)
 
