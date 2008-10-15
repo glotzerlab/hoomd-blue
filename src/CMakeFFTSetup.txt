@@ -50,12 +50,12 @@ option(USE_FFTW "Link to the FFTW library" OFF)
 option(I_WILL_NOT_DISTRUBUTE_THIS_HOOMD "Enable to indicate that you will not distrubute this build of HOOMD" OFF)
 
 if (USE_FFTW)
+	add_definitions(-DUSE_FFTW)
+	
 	if (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
 		message(SEND_ERROR "FFTW is under the GPLv2 license. A HOOMD build linked to it cannot be distributed without  violating that license, as HOOMD is released under the new BSD license. Specify that you will not distribute this build of HOOMD by setting the I_WILL_NOT_DISTRUBUTE_THIS_HOOMD option to ON")
 	endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
-
-	#tell the system that fftw is the actual fft used
-	add_definitions(-DUSING_FFTW)
+	
 	# setup the FFTW search directories based on a FFTW root dir specified in CMake
 	set(FFTW_ROOT "" CACHE PATH "Root directory containing FFTW")
 	set(FFTW_INCLUDE_SEARCH_DIRS
@@ -94,6 +94,6 @@ if (USE_FFTW)
 	endif (FFTW_LIBRARY)
 			
 endif (USE_FFTW)
-		
 
 endif (USE_FFT)
+

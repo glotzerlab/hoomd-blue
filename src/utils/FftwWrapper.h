@@ -39,10 +39,19 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef __FFTW__WRAPPER__
 #define __FFTW__WRAPPER__
+#ifdef USE_FFTW
 
 /*! \file FftwWrapper.h
 	\brief Adapts fftw for use in HOOMD
 */
+
+#include "FFTClass.h"
+
+#include "fftw3.h"
+
+#ifdef WIN32
+#define _USE_MATH_DEFINES
+#endif
 
 //! Implements fftw for HOOMD
 /*! fftw stands for fastest fourier transform in the west, see http://www.fftw.org/ for
@@ -50,16 +59,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	The fftw used in this class is done in double precision.
 	\note Due to licensing conflicts fftw cannot distributed by HOOMD.
 */
-
-#include "FFTClass.h"
-#include "fftw3.h"
-
-#ifdef WIN32
-#define _USE_MATH_DEFINES
-#endif
-
-//#ifdef USING_FFTW
-
 class FftwWrapper:public FFTClass
     {
 	public:
@@ -85,4 +84,4 @@ class FftwWrapper:public FFTClass
 			
 };
 #endif
-//#endif
+#endif
