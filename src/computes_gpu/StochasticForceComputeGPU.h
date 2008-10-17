@@ -53,13 +53,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __STOCHASTICFORCECOMPUTEGPU_H__
 #define __STOCHASTICFORCECOMPUTEGPU_H__
 
-//! Computes Lennard-Jones forces on each particle using the GPU
-/*! Lennard-Jones pair forces are calucated much faster on the GPU. This class 
+//! Computes a stochastic force on each particle using the GPU
+/*! Stochastic forces are calculated much faster on the GPU. This class 
 	has the same public	interface as StochasticForceCompute so that they can be used interchangably. 
 	
 	\b Developer information: <br>
 	This class operates as a wrapper around CUDA code written in C and compiled by 
-	nvcc. See ljforcesum_kernel.cu for detailed internal documentation.
+	nvcc. See stochasticforce_kernel.cu for detailed internal documentation.
 	\ingroup computes
 */
 class StochasticForceComputeGPU : public StochasticForceCompute
@@ -95,10 +95,10 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
+		
+		//! Calculate the state of the RNG on the CPU (for debugging purposes only)
 		virtual void xorshift_rngCPU(uint4 &rng_state);
 	};
 	
-//! Exports the StochasticForceComputeGPU class to python
-void export_StochasticForceComputeGPU();
 
 #endif

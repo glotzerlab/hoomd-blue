@@ -64,6 +64,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicBondForceCompute.h"
 #include "LJForceCompute.h"
+#include "StochasticForceCompute.h"
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
@@ -72,6 +73,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_CUDA
 #include "LJForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
+#include "StochasticForceComputeGPU.h"
 #include "gpu_settings.h"
 #endif
 
@@ -156,7 +158,18 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		result = tmp;
 		}
 	#endif
-		
+
+	// handle creation of the various stochastic force computes
+	if (fc_name == "SF")
+		result = shared_ptr<ForceCompute>(new StochasticForceCompute(pdata, 0.005, 1.0, 0));
+	#ifdef USE_CUDA
+	if (fc_name == "SF.GPU")
+		{
+		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(pdata, 0.005, 1.0, 0));
+		tmp->setBlockSize(block_size);
+		result = tmp;
+		}
+	#endif		
 	return result;
 	}
 	
@@ -293,9 +306,9 @@ int main(int argc, char **argv)
 		cerr << "Error parsing command line: " << e.what() << endl;
 		cout << desc;
 		cout << "Available ForceComputes are: ";
-		cout << "LJ, Bond ";
+		cout << "LJ, Bond, and SF ";
 		#ifdef USE_CUDA
-		cout << "LJ.GPU, and Bond.GPU" << endl;
+		cout << "LJ.GPU, Bond.GPU, and SF.GPU" << endl;
 		#else
 		cout << endl;
 		#endif

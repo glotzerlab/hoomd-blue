@@ -52,16 +52,22 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define RNG_MAX             ((unsigned int)4294967295)
 
 /*! \file stochasticforce_kernel.cu
-	\brief Contains code for the stochastic force sum kernel on the GPU
+	\brief Contains code for the stochastic force kernel on the GPU
 	\details Functions in this file are NOT to be called by anyone not knowing 
 		exactly what they are doing. They are designed to be used solely by 
 		StochasticForceComputeGPU.
 */
 
 
-// Inlined device function that updates rng_state
-// Random number generation based on this paper: http://www.jstatsoft.org/v08/i14/
-// With 16 bytes of state, RNG period is 2^128
+//! Inlined device function that updates rng_state
+/*! Random number generation based on this paper: http://www.jstatsoft.org/v08/i14/
+    With 16 bytes of state, RNG period is 2^128
+	\param rng_state The four register state of the random number generator for the thread
+	
+	Developer Information:
+	Unclear how to account for the bitwise and bit shift operations below in the flop count
+
+*/
 __device__ inline void xorshift_RNG(uint4 &rng_state) {
     unsigned int tmp;
 
@@ -93,13 +99,13 @@ texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 	\param gamma_length length of the gamma array (number of particle types)
 	\param d_state The state vector for the RNG.
 	
-	\a gammas is a pointer to an array in memory. \c gamma[i].x is \a gamma for the particle type \a i.
+	\a gammas is a pointer to an array in memory. \c gamma[i] is \a gamma for the particle type \a i.
 	The values in d_gammas are read into shared memory, so \c gamma_length*sizeof(float) bytes of extern 
 	shared memory must be allocated for the kernel call.
 	
 	Developer information:
 	Each block will calculate the forces on a block of particles.
-	Each thread will calculate the total force on one particle.
+	Each thread will calculate the total stochastic force on one particle.
 	The RNG state vectors should permit a coalesced read, but this fact should be checked.
 	
 */
@@ -127,8 +133,8 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	// (MEM TRANSFER: 16 bytes)
 	float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 
-	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
-	// (MEM TRANSFER: 16 bytes)
+	// read in the type of our particle. A texture read of only the fourth part of the position float4 (where type is stored) is used.  
+	// (MEM TRANSFER: 4 bytes)
 	float type_f = tex1Dfetch(pdata_type_tex, idx_global*4 + 3);
 	int typ = __float_as_int(type_f);
 	
@@ -158,10 +164,8 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
 	force_data.force[idx_local] = force;
-//	force_data.force[idx_local] = make_float4(coeff_fric, dt, T, s_gammas[typ]);  //doing this just to verify it works.
-//	force_data.force[idx_local] = make_float4(vel.x, vel.y, vel.z, 0.0f);  //doing this just to verify it works.
 	
-    // State is written back to global memory
+    // State is written back to global memory (MEM TRANSFER: 16 bytes) 
     d_state[blockIdx.x * blockDim.x + threadIdx.x] = rng_state;
 	}
 

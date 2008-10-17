@@ -81,7 +81,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));	
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
 	if (deviceProp.major == 1 && deviceProp.minor < 2)
-		m_block_size = 384;
+		m_block_size = 128;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
 		m_block_size = 96;
 	else
@@ -161,7 +161,10 @@ StochasticForceComputeGPU::~StochasticForceComputeGPU()
 		delete [] h_state[cur_gpu];
 		}	
 	}	
-	
+
+/*! \post Debugging call written to check values.  Not for normal use. 
+	\note Either turn into something generally functional, or remove
+*/	
 void StochasticForceComputeGPU::checkRNGstate()
 	{
 	cout << "Check RNG State" << endl;
@@ -211,7 +214,10 @@ void StochasticForceComputeGPU::checkRNGstate()
 		
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++) delete [] h_state_current[cur_gpu];
 	}
-	
+
+/*! \post For use for verifying the RNG behavior on the GPU during debugging.  Not for normal use. Calculates the next state of the RNG. 
+	\param rng_state current state of the RNG
+*/	
 void StochasticForceComputeGPU::xorshift_rngCPU(uint4 &rng_state)
 	{
 	unsigned int tmp;
@@ -223,8 +229,7 @@ void StochasticForceComputeGPU::xorshift_rngCPU(uint4 &rng_state)
     rng_state.w = ((rng_state.w ^ (rng_state.w >> 19)) ^ (tmp ^ (tmp >> 8)));
 	}
 
-	
-	
+		
 /*! \param block_size Size of the block to run on the device
 	Performance of the code may be dependant on the block size run
 	on the GPU. \a block_size should be set to be a multiple of 32.
@@ -330,15 +335,7 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 //	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	
 	}
-/*
-void export_StochasticForceComputeGPU()
-	{
-	class_<StochasticForceComputeGPU, boost::shared_ptr<StochasticForceComputeGPU>, bases<StochasticForceCompute>, boost::noncopyable >
-		("StochasticForceComputeGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, unsigned int >())
-		.def("setBlockSize", &StochasticForceComputeGPU::setBlockSize)
-		;
-	}
-*/
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
