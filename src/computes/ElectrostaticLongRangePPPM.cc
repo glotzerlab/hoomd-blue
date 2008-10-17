@@ -67,8 +67,8 @@ using namespace std;
 /*! \param pdata Particle Data to compute forces on
 	\param alpha Split parameter of short vs long range electrostatics (see header file for more info) 
 */
-ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata, unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z,unsigned int P_order_a, Scalar alpha,bool third_law_m)
-	:ForceCompute(pdata),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),third_law(third_law_m)
+ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata, unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z,unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m)
+	:ForceCompute(pdata),FFT(FFTP),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),third_law(third_law_m)
 	{
 	assert(m_pdata);
 	
@@ -102,11 +102,21 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	rho_real=new CScalar**[N_mesh_z];
 	rho_kspace=new CScalar**[N_mesh_z];
 	G_Inf=new Scalar**[N_mesh_z];
+    fx_kspace=new CScalar**[N_mesh_z];
+    fy_kspace=new CScalar**[N_mesh_z];
+    fz_kspace=new CScalar**[N_mesh_z];
+    e_kspace=new CScalar**[N_mesh_z];
+    v_kspace=new CScalar**[N_mesh_z];
 
 	for(unsigned int i=0;i<N_mesh_z;i++){
 		rho_real[i]=new CScalar*[N_mesh_y];
 		rho_kspace[i]=new CScalar*[N_mesh_y];
 		G_Inf[i]=new Scalar*[N_mesh_y];
+		fx_kspace[i]=new CScalar*[N_mesh_y];
+	    fy_kspace[i]=new CScalar*[N_mesh_y];
+		fz_kspace[i]=new CScalar*[N_mesh_y];
+		e_kspace[i]=new CScalar*[N_mesh_y];
+		v_kspace[i]=new CScalar*[N_mesh_y];
 	}
 
 	for(unsigned int j=0;j<N_mesh_z;j++){
@@ -114,6 +124,11 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 		rho_real[i][j]=new CScalar[N_mesh_x];
 		rho_kspace[i][j]=new CScalar[N_mesh_x];
 		G_Inf[i][j]=new Scalar[N_mesh_x];
+		fx_kspace[i][j]=new CScalar[N_mesh_x];
+	    fy_kspace[i][j]=new CScalar[N_mesh_x];
+		fz_kspace[i][j]=new CScalar[N_mesh_x];
+		e_kspace[i][j]=new CScalar[N_mesh_x];
+		v_kspace[i][j]=new CScalar[N_mesh_x];
 	}
 	}
     
@@ -151,6 +166,11 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 		delete[] rho_real[i][j];
 		delete[] rho_kspace[i][j];
 		delete[] G_Inf[i][j];
+		delete[] fx_kspace[i][j];
+	    delete[] fy_kspace[i][j];
+		delete[] fz_kspace[i][j];
+		delete[] e_kspace[i][j];
+		delete[] v_kspace[i][j];
 	}
 	}
 
@@ -158,11 +178,21 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 		delete[] rho_real[i];
 		delete[] rho_kspace[i];
 		delete[] G_Inf[i];
+		delete[] fx_kspace[i];
+	    delete[] fy_kspace[i];
+		delete[] fz_kspace[i];
+		delete[] e_kspace[i];
+		delete[] v_kspace[i];
 	}
 		
 	delete[] rho_real;
 	delete[] rho_kspace;
 	delete[] G_Inf;
+	delete[] fx_kspace;
+	delete[] fy_kspace;
+    delete[] fz_kspace;
+    delete[] e_kspace;
+    delete[] v_kspace;
 		
 	//deallocate polynomial coefficients
 	
@@ -543,10 +573,56 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	
 	// tally up the number of forces calculated
 	int64_t n_calc = 0;
+
+	// access the particle data
+	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
+	// sanity check
+	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+	
+	// need to start from a zero force, energy and virial
+	// (MEM TRANSFER: 5*N scalars)
+	memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
+	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
+	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
+	memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
+	memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
 	
 	//assign the charge to the grid
-
 	make_rho();
+
+	//compute rho in k space
+	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,rho_real,rho_kspace,-1);
+
+	//compute energy in k-space
+
+	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
+		(e_kspace[i][j][k]).r=G_Inf[i][j][k]*((rho_kspace[i][j][k]).r);
+		(e_kspace[i][j][k]).i=G_Inf[i][j][k]*((rho_kspace[i][j][k]).i);
+	}
+	}
+	}
+
+    //compute forces in k-space
+
+	Scalar k_per_x,k_per_y,k_per_z;
+
+	for(unsigned int i=0;i<N_mesh_x;i++){
+	k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x;
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
+	for(unsigned int k=0;k<N_mesh_z;k++){
+	k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/h_z;
+		(fx_kspace[i][j][k]).r=k_per_x*((e_kspace[i][j][k]).r);
+		(fx_kspace[i][j][k]).i=k_per_x*((e_kspace[i][j][k]).i);
+		(fy_kspace[i][j][k]).r=k_per_y*((e_kspace[i][j][k]).r);
+		(fy_kspace[i][j][k]).i=k_per_y*((e_kspace[i][j][k]).i);
+		(fz_kspace[i][j][k]).r=k_per_z*((e_kspace[i][j][k]).r);
+		(fz_kspace[i][j][k]).i=k_per_z*((e_kspace[i][j][k]).i);
+	}
+	}
+	}
 	
 	#ifdef USE_CUDA
 	// the force data is now only up to date on the cpu

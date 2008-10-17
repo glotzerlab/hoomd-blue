@@ -76,12 +76,13 @@ using namespace std;
 using namespace std;
 
 #ifdef USE_FFT
+#include "FFTClass.h"
 
 class ElectrostaticLongRangePPPM : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata,unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z, unsigned int P_order_a, Scalar alpha,bool third_law_m);
+		ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata,unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z, unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m);
 		
 		//! Destructor
 		virtual ~ElectrostaticLongRangePPPM();
@@ -93,6 +94,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	    unsigned int N_mesh_z;       //!< number of points in the mesh along the z axis
 	    unsigned int P_order;        //!< The charge assignment on the mesh is of order P
 	    BoxDim box;                  //!< Copy of the simulation box
+		boost::shared_ptr<FFTClass> FFT; //!< Fast Fourier Transform pointer
 		bool third_law;              //!< Whether to use third law or not
 		Scalar S_mesh_x;             //!< number of points in the mesh along the x axis as a scalar
 	    Scalar S_mesh_y;             //!< number of points in the mesh along the y axis as a scalar
@@ -105,7 +107,12 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	    Scalar h_z;                  //!< Spacing along the z axis
 	    CScalar ***rho_real;          //!< density of charge on the mesh
 	    CScalar ***rho_kspace;        //!< density of charge in Fourier space
-	    Scalar ***G_Inf;             //!< Precomputed proximity function
+	    Scalar ***G_Inf;              //!< Precomputed proximity function
+		CScalar ***fx_kspace;         //!< force in k-space, x component
+		CScalar ***fy_kspace;         //!< force in k-space, y component
+		CScalar ***fz_kspace;         //!< force in k-space, z component
+		CScalar ***e_kspace;          //!< Energy in k-space
+		CScalar ***v_kspace;          //!< virial in k-space
 		Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
 		void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
 		Scalar *Denom_Coeff;         //!< Coefficients of the polynomial to compute the denominator of the influence function
