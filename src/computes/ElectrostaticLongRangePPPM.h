@@ -87,6 +87,24 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		//! Destructor
 		virtual ~ElectrostaticLongRangePPPM();
 
+		//! function making the charge assignment
+		virtual void make_rho(void);   
+
+		//! Delivers the charge density on the grid, convenient for unit testing
+		const CScalar & Show_rho_real(unsigned int ix,unsigned int iy,unsigned int iz) const;
+		
+		//! Delivers the Influence function, convenient for unit testing
+		const Scalar & Influence_function(unsigned int ix,unsigned int iy,unsigned int iz) const;
+		
+		//! Delivers number of mesh points in the x axis, convenient for unit testing
+		unsigned int N_mesh_x_axis(void) const;
+
+		//! Delivers number of mesh points in the y axis, convenient for unit testing
+		unsigned int N_mesh_y_axis(void) const;
+
+		//! Delivers number of mesh points in the z axis, convenient for unit testing
+		unsigned int N_mesh_z_axis(void) const;
+
 	protected:
 	    Scalar m_alpha;              //!< split parameter of the short-range vs long-range forces.
 	    unsigned int N_mesh_x;       //!< number of points in the mesh along the x axis
@@ -105,7 +123,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	    Scalar h_x;                  //!< Spacing along the x axis
 	    Scalar h_y;                  //!< Spacing along the y axis
 	    Scalar h_z;                  //!< Spacing along the z axis
-	    CScalar ***rho_real;          //!< density of charge on the mesh
+		CScalar ***rho_real;          //!< density of charge on the mesh
 	    CScalar ***rho_kspace;        //!< density of charge in Fourier space
 	    Scalar ***G_Inf;              //!< Precomputed proximity function
 		CScalar ***fx_kspace;         //!< force in k-space, x component
@@ -113,15 +131,25 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		CScalar ***fz_kspace;         //!< force in k-space, z component
 		CScalar ***e_kspace;          //!< Energy in k-space
 		CScalar ***v_kspace;          //!< virial in k-space
+		CScalar ***fx_real;           //!< force on mesh points, x component
+		CScalar ***fy_real;           //!< force on mesh points, y component
+		CScalar ***fz_real;           //!< force on mesh points, z component
+		CScalar ***e_real;            //!< Energy on mesh points 
+		CScalar ***v_real;            //!< virial on mesh points 
 		Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
 		void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
+		void (ElectrostaticLongRangePPPM::*back_interpolate_helper)(CScalar ***,Scalar *); //!<function to pointer to ide implementation details
 		Scalar *Denom_Coeff;         //!< Coefficients of the polynomial to compute the denominator of the influence function
 		
-		virtual void make_rho(void);         //!<Actual function making the charge assignment
+		
 		virtual Scalar Poly(int n,Scalar x); //<!Polynomial that computes the fraction of charge at point x
-
+		virtual void back_interpolate(CScalar ***Grid,Scalar *Continuum); //<! Backinterpolate mesh grid points into continuum for P even
+		
 		virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
 		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
+		virtual void back_interpolate_even(CScalar ***Grid,Scalar *Continuum);//<! Backinterpolate mesh grid points into continuum for P even
+        virtual void back_interpolate_odd(CScalar ***Grid,Scalar *Continuum);//<! Backinterpolate mesh grid points into continuum for P odd
+
 		virtual void ComputePolyCoeff(void); //!<Compute the coefficients of the Polynomial (encoded in P_coeff)
 		
 		virtual void Compute_G(void);        //!<Compute the influence function
