@@ -56,6 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 
 class FFTClass{
+	public:
 	virtual void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***in,CScalar ***out,int sig)=0;	//!< 3D FFT of complex matrix in, result stored in matrix out, sign=-1 (forward) or +1 (backward)
 	virtual void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar ***in,CScalar ***out)=0;    //!< 3D FFT of real matrix in, result stored in matrix out, forward is implictly assumed
 	virtual void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***in,Scalar ***out)=0;    //!< 3D FFT of complex matrix in, result is real and stored in matrix out, backward is implictly assumed
