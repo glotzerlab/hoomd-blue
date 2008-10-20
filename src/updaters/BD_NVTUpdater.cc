@@ -80,8 +80,6 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 		using_gpu = false;
 	else using_gpu = true;
 
-	cout << "Using GPU " << using_gpu << endl;
-
 	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_pdata, m_deltaT, m_T, m_seed));  
 	#ifdef USE_CUDA
 	if (using_gpu) m_bdfc_gpu =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_pdata, m_deltaT, m_T, m_seed));
@@ -110,11 +108,7 @@ void BD_NVTUpdater::addStochasticBath()
 		boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
 		assert(stochastic_force);
 	    
-		// Checking that this works!
-		stochastic_force->setT(m_T);
-
 		m_bath = true;
-		cout << "Stochastic Bath at force index " << m_bath_index << endl;
 		}
 		
 	}

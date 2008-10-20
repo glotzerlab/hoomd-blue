@@ -111,7 +111,7 @@ void StochasticForceCompute::setParams(unsigned int typ, Scalar gamma)
 	{
 	if (typ >= m_pdata->getNTypes())
 		{
-		cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ << endl << endl;
+		cerr << endl << "***Error! Trying to set gamma params for a non existant type! " << typ << endl << endl;
 		throw runtime_error("Error setting params in StochasticForceCompute");
 		}
 	
@@ -179,15 +179,6 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop();
 	}
 
-/*
-void export_StochasticForceCompute()
-	{
-	class_<StochasticForceCompute, boost::shared_ptr<StochasticForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("StochasticForceCompute", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, unsigned int >())
-		.def("setParams", &StochasticForceCompute::setParams)
-		;
-	}
-*/
 #ifdef WIN32
 #pragma warning( pop )
 #endif

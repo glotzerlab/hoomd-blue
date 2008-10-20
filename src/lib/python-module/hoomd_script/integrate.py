@@ -349,8 +349,8 @@ class bdnvt(_integrator):
 	#
 	# \b Examples:
 	# \code
-	# integrate.bdnvt(dt=0.005, T=1.0)
-	# integrator = integrate.bdnvt(dt=5e-3, T=1.0)
+	# integrate.bdnvt(dt=0.005, T=1.0, seed=5)
+	# integrator = integrate.bdnvt(dt=5e-3, T=1.0, seed=100)
 	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01)
 	# \endcode
 	def __init__(self, dt, T, limit=None, seed=0):
