@@ -63,6 +63,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicBondForceCompute.h"
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
+#include "YukawaForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
@@ -286,6 +287,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_HarmonicBondForceCompute();
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
+	export_YukawaForceCompute();	
 	export_LJWallForceCompute();
 	export_TempCompute();
 	export_NeighborList();
