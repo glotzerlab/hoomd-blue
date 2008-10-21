@@ -108,6 +108,11 @@ struct gpu_force_data_arrays
 //! Perform the lj force calculation
 cudaError_t gpu_ljforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int M);
 
+///////////////////////////// Yukawa params
+
+//! Perform the yukawa force calculation
+cudaError_t gpu_yukawaforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float *d_coeffs, int coeff_width, float r_cutsq, float kappa, int M);
+
 //////////////////////////// Stochastic Bath
 
 //! Add a Stochastic Bath for BD NVT
