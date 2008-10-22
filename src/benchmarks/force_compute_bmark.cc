@@ -64,6 +64,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicBondForceCompute.h"
 #include "LJForceCompute.h"
+#include "YukawaForceCompute.h"
 #include "StochasticForceCompute.h"
 
 #include "BinnedNeighborList.h"
@@ -72,6 +73,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_CUDA
 #include "LJForceComputeGPU.h"
+#include "YukawaForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "StochasticForceComputeGPU.h"
 #include "gpu_settings.h"
@@ -93,6 +95,8 @@ bool quiet = false;
 unsigned int nthreads = 1;
 //! cutoff radius for pair forces (for applicable computes)
 Scalar r_cut = Scalar(3.0);
+//! screening length (for applicable computes)
+Scalar kappa = Scalar(1.0);
 //! buffer radius for pair forces (for applicable computes)
 Scalar r_buff = Scalar(0.8);
 //! block size for calculation (for applicable computes)
@@ -169,7 +173,20 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
-	#endif		
+	#endif	
+	
+	// handle creation of the various lennard=jones computes
+	if (fc_name == "Yukawa")
+		result = shared_ptr<ForceCompute>(new YukawaForceCompute(pdata, nlist, r_cut, kappa));
+	#ifdef USE_CUDA
+	if (fc_name == "Yukawa.GPU")
+		{
+		shared_ptr<YukawaForceComputeGPU> tmp = shared_ptr<YukawaForceComputeGPU>(new YukawaForceComputeGPU(pdata, nlist, r_cut, kappa));
+		tmp->setBlockSize(block_size);
+		result = tmp;
+		}
+	#endif
+				
 	return result;
 	}
 	
@@ -278,6 +295,7 @@ int main(int argc, char **argv)
 		("phi_p", value<Scalar>(&phi_p)->default_value(Scalar(0.2)), "Volume fraction of particles in test system")
 		("r_cut", value<Scalar>(&r_cut)->default_value(Scalar(3.0)), "Cutoff radius for pair force sum")
 		("r_buff", value<Scalar>(&r_buff)->default_value(Scalar(0.8)), "Buffer radius for pair force sum")
+		("kappa", value<Scalar>(&kappa)->default_value(Scalar(1.0)), "Screening length for yukawa pair force sum")
 		("nthreads,t", value<unsigned int>(&nthreads)->default_value(1), "Number of threads to execute (for multithreaded computes)")
 		("block_size", value<unsigned int>(&block_size)->default_value(128), "Block size for GPU computes")
 		("quiet,q", value<bool>(&quiet)->default_value(false)->zero_tokens(), "Only output time per computation")
@@ -306,9 +324,9 @@ int main(int argc, char **argv)
 		cerr << "Error parsing command line: " << e.what() << endl;
 		cout << desc;
 		cout << "Available ForceComputes are: ";
-		cout << "LJ, Bond, and SF ";
+		cout << "LJ, Yukawa, Bond, and SF ";
 		#ifdef USE_CUDA
-		cout << "LJ.GPU, Bond.GPU, and SF.GPU" << endl;
+		cout << "LJ.GPU, Yukawa.GPU, Bond.GPU, and SF.GPU" << endl;
 		#else
 		cout << endl;
 		#endif

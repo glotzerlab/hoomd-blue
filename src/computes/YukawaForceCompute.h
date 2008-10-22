@@ -82,7 +82,8 @@ class YukawaForceCompute : public ForceCompute
 		//! Set the parameters for a single type pair
 		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon);
 		
-		// Would it be worthwhile to be able to change kappa?
+		//! Set Kappa Parameter
+		virtual void setKappa(Scalar kappa) { m_kappa=kappa; }
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
