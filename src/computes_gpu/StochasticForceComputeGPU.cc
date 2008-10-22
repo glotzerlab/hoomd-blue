@@ -73,6 +73,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
+//  I DO NOT KNOW IF THIS APPLIES TO THIS FORCE		
 	// default block size is the highest performance in testing on different hardware
 	// choose based on compute capability of the device
 	cudaDeviceProp deviceProp;
@@ -106,8 +107,8 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void **)(void *) d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
 		}
 
-	
 	//ALLOCATE STATEVECTOR FOR RNG
+	
 	d_state.resize(exec_conf.gpu.size());
 	h_state.resize(exec_conf.gpu.size());
 	
@@ -123,7 +124,6 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 		h_state[cur_gpu] = new uint4[num_blocks * m_block_size];
 
         // based on the seed, each gpu is given a unique (but repeatable) set of integers.
-		cout << "Using seed " << m_seed << endl;
         srand((1 + cur_gpu) * m_seed); 
 		for (unsigned int x = 0; x < num_blocks*m_block_size; x++) {
 			h_state[cur_gpu][x] = make_uint4(rand(), rand(), rand(), rand());
@@ -165,7 +165,7 @@ StochasticForceComputeGPU::~StochasticForceComputeGPU()
 /*! \post Debugging call written to check values.  Not for normal use. 
 	\note Either turn into something generally functional, or remove
 */	
-void StochasticForceComputeGPU::checkRNGstate(unsigned int delta_timesteps)
+void StochasticForceComputeGPU::checkRNGstate()
 	{
 	cout << "Check RNG State" << endl;
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -185,27 +185,23 @@ void StochasticForceComputeGPU::checkRNGstate(unsigned int delta_timesteps)
 		assert(d_state[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *) h_state_current[cur_gpu]), d_state[cur_gpu], nbytes, cudaMemcpyDeviceToHost));
 		
-		for ( unsigned int i =0; i < delta_timesteps; i++) 
-			for (unsigned int thread_val = 0; thread_val < local_num; thread_val++) {
-				xorshift_rngCPU(h_state[cur_gpu][thread_val]);
-				xorshift_rngCPU(h_state[cur_gpu][thread_val]);
-				xorshift_rngCPU(h_state[cur_gpu][thread_val]);
-				}
-
 		for (unsigned int thread_val = 0; thread_val < local_num; thread_val++) {
+			xorshift_rngCPU(h_state[cur_gpu][thread_val]);
+			xorshift_rngCPU(h_state[cur_gpu][thread_val]);
+			xorshift_rngCPU(h_state[cur_gpu][thread_val]);
 			if (h_state[cur_gpu][thread_val].x - h_state_current[cur_gpu][thread_val].x + h_state[cur_gpu][thread_val].y - h_state_current[cur_gpu][thread_val].y + h_state[cur_gpu][thread_val].z - h_state_current[cur_gpu][thread_val].z + h_state[cur_gpu][thread_val].w - h_state_current[cur_gpu][thread_val].w != 0)
 				{
 				cout << "RNG out of sync for gpu " << cur_gpu << " thread " << thread_val << endl;
 				outofsync=true;
 				}
 			}
-		/*	
+		
 		//check gammas!
 		assert(d_gammas[cur_gpu]);
 		nbytes = sizeof(float)*m_pdata->getNTypes();
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,(void **)((void *) h_gammas), d_gammas[cur_gpu], nbytes, cudaMemcpyDeviceToHost));
 	    cout << "Gammas of particle type 0 is : " << h_gammas[0] << endl;
-		*/
+		
 		}
 	if (!outofsync) cout << "GPU_RNG and CPU_RNG in_sync " << endl;
 	
@@ -284,6 +280,7 @@ void StochasticForceComputeGPU::setT(Scalar T)
 	
 	// set Temperature
 	m_T = T;	
+	cout << "Set T to " << m_T << endl;	
 	}	
 
 /*! \post The timestep of the Stochastic Bath \a T

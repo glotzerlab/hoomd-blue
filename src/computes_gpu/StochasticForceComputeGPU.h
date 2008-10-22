@@ -72,7 +72,7 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 		virtual ~StochasticForceComputeGPU();
        
 	    //! Debugging function
-		void checkRNGstate(unsigned int delta_timesteps);
+		void checkRNGstate();
 
 		//! Set the force parameters
 		virtual void setParams(unsigned int typ, Scalar gamma);
