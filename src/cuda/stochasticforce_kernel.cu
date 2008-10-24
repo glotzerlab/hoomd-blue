@@ -67,6 +67,9 @@ texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
 //! Texture for reading particle positions
 texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 
+//! Texture for reading particle tags
+texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
+
 //! Kernel for calculating stochastic forces
 /*! This kernel is called to apply stochastic heat bath forces to all N particles in conjunction with a Brownian Dynamics Simulations
 
@@ -117,6 +120,10 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	float type_f = tex1Dfetch(pdata_type_tex, idx_global*4 + 3);
 	int typ = __float_as_int(type_f);
 	
+	// read in the tag of our particle. 
+	// (MEM TRANSFER: 4 bytes)
+	unsigned int ptag = tex1Dfetch(pdata_tag_tex, idx_global);	
+	
 	// Calculate Coefficient of Friction
 	//type = 0;   //May use this for benchmarking the impact of doing a second texture read just for particle type
 	float coeff_fric = sqrtf(6.0f * s_gammas[typ] * T/ dt);
@@ -125,7 +132,7 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	
 	//Initialize the Random Number Generator
-	Saru s(idx_global, iteration, seed); // 3 dimensional seeding
+	Saru s(ptag, iteration, seed); // 3 dimensional seeding
 
 	float randomx=s.f(-1.0, 1.0);
 	float randomy=s.f(-1.0, 1.0);
@@ -175,6 +182,11 @@ cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pda
 	error = cudaBindTexture(0, pdata_type_tex, pdata->pos, sizeof(float4) * pdata->N);
 	if (error != cudaSuccess)
 		return error;
+	
+	// bind the tag texture
+	error = cudaBindTexture(0, pdata_tag_tex, pdata->tag, sizeof(unsigned int) * pdata->N);
+	if (error != cudaSuccess)
+		return error;		
 		
     // run the kernel
     stochasticForces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(force_data, *pdata, dt, T, d_gammas, gamma_length, seed, iteration);
