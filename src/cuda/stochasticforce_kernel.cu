@@ -42,6 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu_forces.h"
 #include "gpu_pdata.h"
 #include "gpu_settings.h"
+#include "saruprngCUDA.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -49,7 +50,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#define RNG_MAX             ((unsigned int)4294967295)
 
 /*! \file stochasticforce_kernel.cu
 	\brief Contains code for the stochastic force kernel on the GPU
@@ -57,27 +57,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 		exactly what they are doing. They are designed to be used solely by 
 		StochasticForceComputeGPU.
 */
-
-
-//! Inlined device function that updates rng_state
-/*! Random number generation based on this paper: http://www.jstatsoft.org/v08/i14/
-    With 16 bytes of state, RNG period is 2^128
-	\param rng_state The four register state of the random number generator for the thread
-	
-	Developer Information:
-	Unclear how to account for the bitwise and bit shift operations below in the flop count
-
-*/
-__device__ inline void xorshift_RNG(uint4 &rng_state) {
-    unsigned int tmp;
-
-    tmp = (rng_state.x ^ (rng_state.x << 11)); 
-    rng_state.x = rng_state.y;
-    rng_state.y = rng_state.z;
-    rng_state.z = rng_state.w;
-    rng_state.w = ((rng_state.w ^ (rng_state.w >> 19)) ^ (tmp ^ (tmp >> 8)));
-}
-
 
 
 ///////////////////////////////////////// Stochastic params
@@ -97,7 +76,7 @@ texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 	\param T Temperature of the bath
 	\param gammas Gamma coefficients that govern the coupling of the particle to the bath.
 	\param gamma_length length of the gamma array (number of particle types)
-	\param d_state The state vector for the RNG.
+	\param seed Seed value that will be incoporated into the seed of the Saru RNG
 	
 	\a gammas is a pointer to an array in memory. \c gamma[i] is \a gamma for the particle type \a i.
 	The values in d_gammas are read into shared memory, so \c gamma_length*sizeof(float) bytes of extern 
@@ -109,7 +88,7 @@ texture<float, 1, cudaReadModeElementType> pdata_type_tex;
 	The RNG state vectors should permit a coalesced read, but this fact should be checked.
 	
 */
-extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, float dt, float T, float *d_gammas, int gamma_length, uint4 * d_state)
+extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, float dt, float T, float *d_gammas, int gamma_length, unsigned int seed, unsigned int iteration)
 	{
 	
 	// read in the gammas (1 dimensional array)
@@ -144,29 +123,24 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-
-    // Random Number Generator
-    float INV_RNG_MAX = 1.0f / __uint2float_rz(RNG_MAX);
 	
-    // Each thread of each block has a unique state that is loaded once from global memory
-	uint4 rng_state;
-    rng_state = d_state[blockIdx.x * blockDim.x + threadIdx.x];
+	//Initialize the Random Number Generator
+	Saru s(idx_global, iteration, seed); // 3 dimensional seeding
+
+	float randomx=s.f(-1.0, 1.0);
+	float randomy=s.f(-1.0, 1.0);
+	float randomz=s.f(-1.0, 1.0);
 
 	// Generate random number and generate x, y, and z forces respectively
-	xorshift_RNG(rng_state);
-	force.x += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ]*vel.x;
-	xorshift_RNG(rng_state);
-	force.y += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ]*vel.y;
-	xorshift_RNG(rng_state);
-	force.z += (2.0f*(__uint2float_rz(rng_state.w) * INV_RNG_MAX)-1.0f) * coeff_fric - s_gammas[typ]*vel.z;
+	force.x += randomx*coeff_fric - s_gammas[typ]*vel.x;
+	force.y += randomy*coeff_fric - s_gammas[typ]*vel.y;
+	force.z += randomz*coeff_fric - s_gammas[typ]*vel.z;
 
 	// stochastic forces do not contribute to potential energy
 
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 16 bytes)
 	force_data.force[idx_local] = force;
 	
-    // State is written back to global memory (MEM TRANSFER: 16 bytes) 
-    d_state[blockIdx.x * blockDim.x + threadIdx.x] = rng_state;
 	}
 
 
@@ -176,17 +150,16 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	\param T Temperature values
 	\param d_gammas The coefficients of friction for each particle type
 	\param gamma_length  The length of d_gamma array
-	\param d_state The state vector for the RNG used in thread
+	\param seed seed for the RNG to use in thread  (is hashed with other internal timestep depedent seeds)
 	\param M Block size to execute
 	
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M)
+cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, unsigned int seed, unsigned int iteration, int gamma_length, int M)
 	{
 	assert(pdata);
 	assert(d_gammas);
-	assert(d_state);
 	assert(gamma_length > 0);
 
 	// setup the grid to run the kernel
@@ -204,7 +177,7 @@ cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pda
 		return error;
 		
     // run the kernel
-    stochasticForces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(force_data, *pdata, dt, T, d_gammas, gamma_length, d_state);
+    stochasticForces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(force_data, *pdata, dt, T, d_gammas, gamma_length, seed, iteration);
 
 	if (!g_gpu_error_checking)
 		{

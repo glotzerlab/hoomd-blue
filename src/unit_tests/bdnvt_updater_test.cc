@@ -159,7 +159,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
 	//cout << "Energy Variance " << VarianceE <<  " " << 3.0/2.0*Temp*Temp*1000 << endl;
 
 	//Dividing a very large number by a very large number... not great accuracy!
-    MY_BOOST_CHECK_CLOSE(D, 2.0, 2.5);
+    MY_BOOST_CHECK_CLOSE(D, 2.0, 3);
 	MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 2.5);
 	pdata->release();
 	

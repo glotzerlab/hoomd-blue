@@ -70,9 +70,6 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 		
 		//! Destructor
 		virtual ~StochasticForceComputeGPU();
-       
-	    //! Debugging function
-		void checkRNGstate();
 
 		//! Set the force parameters
 		virtual void setParams(unsigned int typ, Scalar gamma);
@@ -90,14 +87,10 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 		vector<float *> d_gammas;		//!< Pointer to the coefficients on the GPU
 		float * h_gammas;				//!< Pointer to the coefficients on the host
 		int m_block_size;				//!< The block size to run on the GPU
-		vector< uint4 * > h_state;		//!< The initiating state vector for the RNG
-		vector< uint4 * > d_state;		//!< Pointer to the initiating state vector for the RNG on the GPU
 
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
 		
-		//! Calculate the state of the RNG on the CPU (for debugging purposes only)
-		virtual void xorshift_rngCPU(uint4 &rng_state);
 	};
 	
 

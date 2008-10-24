@@ -116,7 +116,7 @@ cudaError_t gpu_yukawaforce_sum(const gpu_force_data_arrays& force_data, gpu_pda
 //////////////////////////// Stochastic Bath
 
 //! Add a Stochastic Bath for BD NVT
-cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, uint4 *d_state, int gamma_length, int M);
+cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, unsigned int seed, unsigned int iteration, int gamma_length, int M);
 
 
 //////////////////////////// Bond table stuff
