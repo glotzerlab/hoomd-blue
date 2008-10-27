@@ -102,7 +102,7 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	rho_real=new CScalar**[N_mesh_z];
 	rho_kspace=new CScalar**[N_mesh_z];
 	G_Inf=new Scalar**[N_mesh_z];
-    fx_kspace=new CScalar**[N_mesh_z];
+	fx_kspace=new CScalar**[N_mesh_z];
     fy_kspace=new CScalar**[N_mesh_z];
     fz_kspace=new CScalar**[N_mesh_z];
     e_kspace=new CScalar**[N_mesh_z];
@@ -119,12 +119,12 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 		rho_kspace[i]=new CScalar*[N_mesh_y];
 		G_Inf[i]=new Scalar*[N_mesh_y];
 		fx_kspace[i]=new CScalar*[N_mesh_y];
-	    fy_kspace[i]=new CScalar*[N_mesh_y];
+		fy_kspace[i]=new CScalar*[N_mesh_y];
 		fz_kspace[i]=new CScalar*[N_mesh_y];
 		e_kspace[i]=new CScalar*[N_mesh_y];
 		v_kspace[i]=new CScalar*[N_mesh_y];
 		fx_real[i]=new CScalar*[N_mesh_y];
-	    fy_real[i]=new CScalar*[N_mesh_y];
+		fy_real[i]=new CScalar*[N_mesh_y];
 		fz_real[i]=new CScalar*[N_mesh_y];
 		e_real[i]=new CScalar*[N_mesh_y];
 		v_real[i]=new CScalar*[N_mesh_y];
@@ -136,12 +136,12 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 		rho_kspace[i][j]=new CScalar[N_mesh_x];
 		G_Inf[i][j]=new Scalar[N_mesh_x];
 		fx_kspace[i][j]=new CScalar[N_mesh_x];
-	    fy_kspace[i][j]=new CScalar[N_mesh_x];
+		fy_kspace[i][j]=new CScalar[N_mesh_x];
 		fz_kspace[i][j]=new CScalar[N_mesh_x];
 		e_kspace[i][j]=new CScalar[N_mesh_x];
 		v_kspace[i][j]=new CScalar[N_mesh_x];
 		fx_real[i][j]=new CScalar[N_mesh_x];
-	    fy_real[i][j]=new CScalar[N_mesh_x];
+		fy_real[i][j]=new CScalar[N_mesh_x];
 		fz_real[i][j]=new CScalar[N_mesh_x];
 		e_real[i][j]=new CScalar[N_mesh_x];
 		v_real[i][j]=new CScalar[N_mesh_x];
@@ -152,9 +152,8 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 
 	Denom_Coeff=new Scalar[P_order];
 	
-	// construct the polynomials needed to compute the denominator coefficients of the influence function
-    Denominator_Poly_G();
-
+	// construct the polynomials needed to compute the denominator coefficients of the influence function 
+	Denominator_Poly_G();
 
 	// allocate space for polynomial need to compute the charge distribution on the grid
 	P_coeff=new Scalar*[P_order];
@@ -174,6 +173,12 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 		make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_even;
 		back_interpolate_helper=&ElectrostaticLongRangePPPM::back_interpolate_even;
 	}
+
+	//compute the influence function
+
+	Compute_G();
+
+	//this finalizes the construction of the class
 }
 
 ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
@@ -187,12 +192,12 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 		delete[] rho_kspace[i][j];
 		delete[] G_Inf[i][j];
 		delete[] fx_kspace[i][j];
-	    delete[] fy_kspace[i][j];
+		delete[] fy_kspace[i][j];
 		delete[] fz_kspace[i][j];
 		delete[] e_kspace[i][j];
 		delete[] v_kspace[i][j];
 		delete[] fx_real[i][j];
-	    delete[] fy_real[i][j];
+		delete[] fy_real[i][j];
 		delete[] fz_real[i][j];
 		delete[] e_real[i][j];
 		delete[] v_real[i][j];
@@ -204,12 +209,12 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 		delete[] rho_kspace[i];
 		delete[] G_Inf[i];
 		delete[] fx_kspace[i];
-	    delete[] fy_kspace[i];
+		delete[] fy_kspace[i];
 		delete[] fz_kspace[i];
 		delete[] e_kspace[i];
 		delete[] v_kspace[i];
 		delete[] fx_real[i];
-	    delete[] fy_real[i];
+		delete[] fy_real[i];
 		delete[] fz_real[i];
 		delete[] e_real[i];
 		delete[] v_real[i];
@@ -220,20 +225,20 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	delete[] G_Inf;
 	delete[] fx_kspace;
 	delete[] fy_kspace;
-    delete[] fz_kspace;
-    delete[] e_kspace;
-    delete[] v_kspace;
+	delete[] fz_kspace;
+	delete[] e_kspace;
+	delete[] v_kspace;
 	delete[] fx_real;
 	delete[] fy_real;
-    delete[] fz_real;
-    delete[] e_real;
-    delete[] v_real;
+	delete[] fz_real;
+	delete[] e_real;
+	delete[] v_real;
 
 	//deallocate polynomial coefficients
 	
 	for(unsigned int i=0;i<P_order;i++) delete[] P_coeff[i]; 
-	delete[] P_coeff;
-	
+
+	delete[] P_coeff;	
 	delete[] Denom_Coeff;
 }
 
@@ -659,6 +664,12 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 	int n_y=static_cast<int>(m_alpha*h_y*sqrt(10*log(10.0))/3.16)+1;
 	int n_z=static_cast<int>(m_alpha*h_z*sqrt(10*log(10.0))/3.16)+1;
 
+	//identify the zero mode
+
+	bool is_mode_k_zero=false;
+
+	if( (fabs(kx)<1/Lx)&&(fabs(ky)<1/Ly)&&(fabs(kz)<1/Lz)) is_mode_k_zero=true;
+    
 	//we will use double precision and then cast it to Scalar
 
 	double kx_n,ky_n,kz_n,k_mod;
@@ -678,7 +689,10 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 			for(int j_z=-n_z;j_z<=n_z;j_z++){
 						kz_n=kz+2*j_z*M_PI/h_z;
 						skz=pow(boost::math::sinc_pi(kz_n*h_z/2.0),static_cast<int>(2*P_order));
-					
+	
+						//the zero mode (k_x^2+k_y^2+k_z^2=0) requires special treatment
+						if((is_mode_k_zero)&&(!(j_z==0))&&(!(j_y==0))&&(!(j_x==0))){
+
 						sk_all=skx*sky*skz;
 						k_mod=kx_n*kx_n+ky_n*ky_n+kz_n*kz_n;
 						
@@ -687,7 +701,7 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 						D_cum_x+=D_exp*sk_all/k_mod;
 						D_cum_y+=D_exp*sk_all/k_mod;
 						D_cum_z+=D_exp*sk_all/k_mod;
-
+						}
 
 										}
 									}
@@ -746,6 +760,15 @@ const CScalar & ElectrostaticLongRangePPPM::Show_rho_real(unsigned int ix,unsign
 	}
 }
 
+const int & ElectrostaticLongRangePPPM::Poly_coeff_Grid(unsigned int i,unsigned int j)
+{
+	if((i<P_order)&&(j<P_order)) return P_coeff[i][j];
+	else
+	{
+		cerr << endl << "***Error! attempting to access a non existing value of the Polynomial coefficient" << endl << endl;
+		throw runtime_error("Error in Poly_coeff_Grid member function of ElectrostaticLongRangePPPM class ");
+	}
+}
 
 unsigned int ElectrostaticLongRangePPPM::N_mesh_x_axis(void) const
 {	

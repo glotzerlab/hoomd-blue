@@ -92,6 +92,9 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 
 		//! Delivers the charge density on the grid, convenient for unit testing
 		const CScalar & Show_rho_real(unsigned int ix,unsigned int iy,unsigned int iz) const;
+
+		//! Show the value of the polynomial coefficients for charge distribution, convenient for unit testing
+		const int & Poly_coeff_Grid(unsigned int i,unsigned int j);
 		
 		//! Delivers the Influence function, convenient for unit testing
 		const Scalar & Influence_function(unsigned int ix,unsigned int iy,unsigned int iz) const;
@@ -106,26 +109,26 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		unsigned int N_mesh_z_axis(void) const;
 
 	protected:
-	    Scalar m_alpha;              //!< split parameter of the short-range vs long-range forces.
-	    unsigned int N_mesh_x;       //!< number of points in the mesh along the x axis
-	    unsigned int N_mesh_y;       //!< number of points in the mesh along the y axis
-	    unsigned int N_mesh_z;       //!< number of points in the mesh along the z axis
-	    unsigned int P_order;        //!< The charge assignment on the mesh is of order P
-	    BoxDim box;                  //!< Copy of the simulation box
+		Scalar m_alpha;              //!< split parameter of the short-range vs long-range forces.
+		unsigned int N_mesh_x;       //!< number of points in the mesh along the x axis
+		unsigned int N_mesh_y;       //!< number of points in the mesh along the y axis
+		unsigned int N_mesh_z;       //!< number of points in the mesh along the z axis
+		unsigned int P_order;        //!< The charge assignment on the mesh is of order P
+		BoxDim box;                  //!< Copy of the simulation box
 		boost::shared_ptr<FFTClass> FFT; //!< Fast Fourier Transform pointer
 		bool third_law;              //!< Whether to use third law or not
 		Scalar S_mesh_x;             //!< number of points in the mesh along the x axis as a scalar
-	    Scalar S_mesh_y;             //!< number of points in the mesh along the y axis as a scalar
-	    Scalar S_mesh_z;             //!< number of points in the mesh along the z axis as a scalar
-	    Scalar Lx;                   //!< Length size of the system along the x direction
-	    Scalar Ly;                   //!< Length size of the system along the y direction
-	    Scalar Lz;                   //!< Length size of the system along the z direction
-	    Scalar h_x;                  //!< Spacing along the x axis
-	    Scalar h_y;                  //!< Spacing along the y axis
-	    Scalar h_z;                  //!< Spacing along the z axis
+		Scalar S_mesh_y;             //!< number of points in the mesh along the y axis as a scalar
+		Scalar S_mesh_z;             //!< number of points in the mesh along the z axis as a scalar
+		Scalar Lx;                   //!< Length size of the system along the x direction
+		Scalar Ly;                   //!< Length size of the system along the y direction
+		Scalar Lz;                   //!< Length size of the system along the z direction
+		Scalar h_x;                  //!< Spacing along the x axis
+		Scalar h_y;                  //!< Spacing along the y axis
+		Scalar h_z;                  //!< Spacing along the z axis
 		CScalar ***rho_real;          //!< density of charge on the mesh
-	    CScalar ***rho_kspace;        //!< density of charge in Fourier space
-	    Scalar ***G_Inf;              //!< Precomputed proximity function
+		CScalar ***rho_kspace;        //!< density of charge in Fourier space
+		Scalar ***G_Inf;              //!< Precomputed proximity function
 		CScalar ***fx_kspace;         //!< force in k-space, x component
 		CScalar ***fy_kspace;         //!< force in k-space, y component
 		CScalar ***fz_kspace;         //!< force in k-space, z component
@@ -148,7 +151,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
 		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
 		virtual void back_interpolate_even(CScalar ***Grid,Scalar *Continuum);//<! Backinterpolate mesh grid points into continuum for P even
-        virtual void back_interpolate_odd(CScalar ***Grid,Scalar *Continuum);//<! Backinterpolate mesh grid points into continuum for P odd
+		virtual void back_interpolate_odd(CScalar ***Grid,Scalar *Continuum);//<! Backinterpolate mesh grid points into continuum for P odd
 
 		virtual void ComputePolyCoeff(void); //!<Compute the coefficients of the Polynomial (encoded in P_coeff)
 		
@@ -157,7 +160,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z); //<!Numerator of the influence function (without the derivative);
 		void Denominator_Poly_G(void);       //!<Compute the coefficients of the Polynomial Denom_Coeff
 
-       	virtual void computeForces(unsigned int timestep); //! Actually compute the forces
+		virtual void computeForces(unsigned int timestep); //! Actually compute the forces
 	};
 	
 
