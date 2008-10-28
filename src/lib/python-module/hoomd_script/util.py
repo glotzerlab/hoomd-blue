@@ -52,5 +52,5 @@ def print_status_line():
 		print "hoomd_script executing unknown command";
 	file_name, line, module, code = stack[-3];
 	
-	message = file_name + ":" + str(line) + "  /  " + code;
+	message = file_name + ":" + str(line).zfill(3) + "  |  " + code;
 	print message;

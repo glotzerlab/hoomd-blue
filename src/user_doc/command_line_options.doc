@@ -35,7 +35,6 @@ that appears to be caused by the failure of a calculation to run on the GPU, you
 can run with GPU error checking enabled to check for any errors returned by the GPU.
 
 To do this, run the script with the \c --gpu_error_checking command line option:
-You can always run
 \code
 hoomd some_script.hoomd --gpu_error_checking
 \endcode

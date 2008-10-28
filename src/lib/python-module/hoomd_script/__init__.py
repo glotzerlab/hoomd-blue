@@ -100,5 +100,8 @@ def run(tsteps, profile=False):
 	for logger in globals.loggers:
 		logger.update_quantities();
 	globals.system.enableProfiler(profile);
+	
+	print "** starting run **"
 	globals.system.run(int(tsteps));
+	print "** run complete **"
 	

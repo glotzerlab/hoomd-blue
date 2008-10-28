@@ -78,8 +78,8 @@ $ hoomd test.hoomd
 \endcode
 And you should see output that looks something like this:
 \code
-HOOMD 0.7.1
-Compiled: Thu Sep 11 12:11:14 CDT 2008
+HOOMD 0.8.0
+Compiled: Tue Oct 28 08:33:32 CDT 2008
 Copyright, 2008, Ames Laboratory Iowa State University
 -----
 http://www.ameslab.gov/hoomd/
@@ -88,14 +88,20 @@ This code is the implementation of the algorithms discussed in:
    Purpose Molecular Dynamics Fully Implemented on Graphics Processing
    Units', Journal of Computational Physics 227 (2008) 5342-5359
 -----
-init.create_random(N = 100 , phi_p = 0.01 , name =  A , min_dist = 0.7 )
-pair.lj(r_cut = 3.0 )
-coeff.set( A , A , {'epsilon': 1.0, 'sigma': 1.0, 'alpha': 1.0} )
-integrate.nvt(dt= 0.005 , T= 1.2 , tau= 0.5 )
-run( 10000.0 )
-Time 00:00:00 | Step 10000 / 10000 | TPS 47220.8 | ETA 00:00:00
-Average TPS: 47204.1
+test.hoomd:004  |  init.create_random(N=100, phi_p=0.01, name='A')
+test.hoomd:007  |  lj = pair.lj(r_cut=3.0)
+test.hoomd:008  |  lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+test.hoomd:011  |  integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+test.hoomd:014  |  run(10e3)
+** starting run **
+Time 00:00:00 | Step 10000 / 10000 | TPS 41990.9 | ETA 00:00:00
+Average TPS: 41976.2
 ---------
+-- Neighborlist stats:
+449 updates / 20 forced updates
+n_neigh_min: 0 / n_neigh_max: 10 / n_neigh_avg: 2.23
+bins_min: 0 / bins_max: 4 / bins_avg: 1.5625
+** run complete **
 \endcode
 
 <b>That's it!</b> You've just run your first simulation with HOOMD.
@@ -105,34 +111,46 @@ Average TPS: 47204.1
 
 The first few lines of output are just a header notifying you which version of HOOMD you are running and when
 it was compiled along with a link to the website and the reference to the paper discussing the algorithms
-used in HOOMD. 
+used in HOOMD.
 
-The simulation output starts at \link hoomd_script.init.create_random() init.create_random()\endlink.
-Notice that these lines are matches to those
-that were specified in the script, with some differences. HOOMD prints out each script command before executing
-it in order to give you some idea of where in the script the execution is. This can be potentially very 
-useful in debugging problems as it will allow you to hone in on the command in the script that is failing.
-The format of the printed lines is somewhat different than what was typed in due to the way Python handles data structures.
+The simulation output starts at: 
+\code test.hoomd:004  |  init.create_random(N=100, phi_p=0.01, name='A') \endcode
+Each hoomd_script command prints the file:line where it was run along with the entire text of the command.
+This can be potentially very useful in debugging problems as it will allow you to hone in on the command in the 
+script that is producing the error message.
 
 When a \link hoomd_script.run() run()\endlink command is executed, HOOMD steps the simulation forward that many time steps. While
 it is doing so, it periodically prints out status lines like the one seen above.
 \code
-Time 00:00:00 | Step 10000 / 10000 | TPS 14374.6 | ETA 00:00:00
+Time 00:00:00 | Step 10000 / 10000 | TPS 41990.9 | ETA 00:00:00
 \endcode
- - \b Time is the total time spent (so far) in the current \link hoomd_script.run() run()\endlink command in HH:MM:SS
+ - \b Time is the total time spent (so far) in the current simulation in HH:MM:SS (totaled over multiple \link hoomd_script.run() run()\endlink commands) 
  - <b>Step current / final</b> prints the \em current time step the simulation is at and the \em final time step of the \link hoomd_script.run() run()\endlink
  - \b TPS is the current rate (in <b>T</b>ime steps <b>P</b>er <b>S</b>econd) at which the simulation is progressing.
- - \b ETA is the estimated time to completion of the \link hoomd_script.run() run()\endlink in HH:MM:SS
+ - \b ETA is the estimated time to completion of the current \link hoomd_script.run() run()\endlink in HH:MM:SS
 
 Since this run was so short, only one line was printed at the end. Modify the script to run a few million
 time steps and run it to see what happens in longer simulations. Or just see here...
 \code
-Time 00:00:10 | Step 177392 / 1000000000 | TPS 17739.1 | ETA 15:39:22
-Time 00:00:20 | Step 351126 / 1000000000 | TPS 17373.4 | ETA 15:58:59
-Time 00:00:30 | Step 534085 / 1000000000 | TPS 18295.8 | ETA 15:10:28
-Time 00:00:40 | Step 716375 / 1000000000 | TPS 18229 | ETA 15:13:38
-Time 00:00:50 | Step 896707 / 1000000000 | TPS 18033.2 | ETA 15:23:23
+Time 00:00:10 | Step 488501 / 10000000 | TPS 48850.1 | ETA 00:03:14
+Time 00:00:20 | Step 976312 / 10000000 | TPS 48781.1 | ETA 00:03:04
+Time 00:00:30 | Step 1462718 / 10000000 | TPS 48640.5 | ETA 00:02:55
+Time 00:00:40 | Step 1950647 / 10000000 | TPS 48792.8 | ETA 00:02:44
+Time 00:00:50 | Step 2436905 / 10000000 | TPS 48625.4 | ETA 00:02:35
+Time 00:01:00 | Step 2924701 / 10000000 | TPS 48779.5 | ETA 00:02:25
+Time 00:01:10 | Step 3410821 / 10000000 | TPS 48612 | ETA 00:02:15
 \endcode
+
+The final bit of output at the end of the run prints statistics from various parts of the computation.
+In this example, only the neighbor list prints statistics.
+\code
+---------
+-- Neighborlist stats:
+449 updates / 20 forced updates
+n_neigh_min: 0 / n_neigh_max: 10 / n_neigh_avg: 2.23
+bins_min: 0 / bins_max: 4 / bins_avg: 1.5625
+\endcode
+Differently configured simulation scripts may print additional information here.
 
 <hr>
 <h2>Dissecting the script</h2>
