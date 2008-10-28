@@ -760,7 +760,7 @@ const CScalar & ElectrostaticLongRangePPPM::Show_rho_real(unsigned int ix,unsign
 	}
 }
 
-const int & ElectrostaticLongRangePPPM::Poly_coeff_Grid(unsigned int i,unsigned int j)
+const Scalar & ElectrostaticLongRangePPPM::Poly_coeff_Grid(unsigned int i,unsigned int j)
 {
 	if((i<P_order)&&(j<P_order)) return P_coeff[i][j];
 	else
