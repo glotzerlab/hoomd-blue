@@ -276,6 +276,10 @@ class npt(_integrator):
 # limit can be specified to the movement a particle is allowed to make in one time step. 
 # After a few thousand time steps with the limit set, the system should be in a safe state 
 # to continue with unconstrained integration.
+#
+# \note With an active limit, Newton's third law is effectively \b not obeyed and the system 
+# can gain linear momentum. Activate the update.zero_momentum updater during the limited nve
+# run to prevent this.
 class nve(_integrator):
 	## Specifies the NVE integrator
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
@@ -334,18 +338,32 @@ class nve(_integrator):
 			self.cpp_integrator.setDeltaT(dt);
 	
 
-## BD NVT Integration via NVE simulation with StochasticForceCompute added
+## NVT integration via Brownian dynamics
 #
 # integrate.bdnvt performs constant volume, fixed average temperature simuation based on a 
-# NVE simulation with a Stochastic heat bath added. For poor initial conditions that include overlapping atoms, a 
+# NVE simulation with added damping and stochastic heat bath forces.
+#
+# The total added %force \f$ \vec{F}\f$ is
+# \f[ \vec{F} = -\gamma \cdot \vec{v} + \vec{F}_{\mathrm{rand}} \f]
+# where \f$ \vec{v} \f$ is the particle's velocity and \f$ \vec{F}_{\mathrm{rand}} \f$
+# is a random force with magnitude chosen via the fluctuation-dissipation theorem
+# to be consistent with the specified drag (\a gamma) and temperature (\a T).
+# 
+# For poor initial conditions that include overlapping atoms, a 
 # limit can be specified to the movement a particle is allowed to make in one time step. 
 # After a few thousand time steps with the limit set, the system should be in a safe state 
 # to continue with unconstrained integration.
+#
+# \note With an active limit, Newton's third law is effectively \b not obeyed and the system 
+# can gain linear momentum. Activate the update.zero_momentum updater during the limited bdnvt
+# run to prevent this.
 class bdnvt(_integrator):
 	## Specifies the BD NVT integrator
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
 	# \param T Temperature of the simuation \a T
 	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
+	# \param seed Random seed to use for the run. Otherwise identical simulations with different seeds set will follow 
+	# different trajectories.
 	#
 	# \b Examples:
 	# \code
@@ -376,6 +394,7 @@ class bdnvt(_integrator):
 	
 	## Changes parameters of an existing integrator
 	# \param dt New time step (if set)
+	# \param T New temperature (if set)
 	#
 	# To change the parameters of an existing integrator, you must save it in a variable when it is
 	# specified, like so:
