@@ -652,7 +652,8 @@ bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particle
 	// we've tried and we've failed
 	return false;
 	}
-	
+
+//! Helper class to allow boost.python wrapping of ParticleGenerator
 class ParticleGeneratorWrap : public ParticleGenerator, public wrapper<ParticleGenerator>
 	{
 	public:

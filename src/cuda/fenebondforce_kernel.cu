@@ -60,6 +60,12 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading bond parameters
 texture<float4, 1, cudaReadModeElementType> bond_params_tex;
 
+//! Kernel for caculating FENE bond forces on the GPU
+/*! \param force_data Data to write the compute forces to
+	\param pdata Particle data arrays to calculate forces on
+	\param blist Bond data to use in calculating the forces
+	\param box Box dimensions for periodic boundary condition handling
+*/
 extern "C" __global__ void calcFENEBondForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_bondtable_array blist, gpu_boxsize box)
 	{
 	// start by identifying which particle we are to handle

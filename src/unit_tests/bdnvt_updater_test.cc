@@ -70,7 +70,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-/*! \file BD_NVTupdater_test.cc
+/*! \file bdnvt_updater_test.cc
 	\brief Implements unit tests for BD_NVTUpdater and descendants
 	\ingroup unit_tests
 */
@@ -440,19 +440,21 @@ shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<ParticleData> pdata, Scal
 #endif		
 	
 #ifndef USE_CUDA	
-//! boost test case for base class integration tests
+//! Basic test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
 	bd_updater_tests(bdnvt_creator);
 	}
-	
+
+//! two particle test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
 	bd_twoparticles_updater_tests(bdnvt_creator);
 	}
-	
+
+//! extended LJ-liquid test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
@@ -461,19 +463,21 @@ BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 #endif
 
 #ifdef USE_CUDA
-//! boost test case for base class integration tests
+//! Basic test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
 	bd_updater_tests(bdnvt_creator_gpu);
 	}
 	
+//! two particle test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
 	bd_twoparticles_updater_tests(bdnvt_creator_gpu);
 	}
 	
+//! extended LJ-liquid test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);

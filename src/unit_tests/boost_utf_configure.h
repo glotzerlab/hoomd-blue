@@ -76,9 +76,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #if (BOOST_VERSION < 103300)
 //! Compatibility macro to make older versions of boost look like newer ones
 #define BOOST_AUTO_TEST_CASE( f ) BOOST_AUTO_UNIT_TEST( f )
-
+//! Compatibility macro to make older versions of boost look like newer ones
 #define BOOST_CHECK_SMALL( f, tol ) BOOST_CHECK( (f) < (tol) )
-#define BOOST_REQUIRE_EQUAL( a, b) BOOST_REQUIRE( (a) == (b) ) 
+//! Compatibility macro to make older versions of boost look like newer ones
+#define BOOST_REQUIRE_EQUAL( a, b) BOOST_REQUIRE( (a) == (b) )
 #endif
 
 #endif

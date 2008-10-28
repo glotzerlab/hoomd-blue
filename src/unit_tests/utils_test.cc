@@ -62,7 +62,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 //! perform some simple checks on the clock source code
-BOOST_AUTO_TEST_CASE( ClockSource_test )
+BOOST_AUTO_TEST_CASE(ClockSource_test)
 	{
 	ClockSource c1;
 	int64_t t = c1.getTime();
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE( ClockSource_test )
 	}
 	
 //! perform some simple checks on the profiler code
-BOOST_AUTO_TEST_CASE ( Profiler_test )
+BOOST_AUTO_TEST_CASE(Profiler_test)
 	{
 	// ProfileDataElem tests
 	// constructor test

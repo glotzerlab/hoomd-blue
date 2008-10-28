@@ -77,9 +77,10 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
 	\param pdata Particle data on the GPU to calculate forces on
 	\param dt Timestep of the simulation
 	\param T Temperature of the bath
-	\param gammas Gamma coefficients that govern the coupling of the particle to the bath.
+	\param d_gammas Gamma coefficients that govern the coupling of the particle to the bath.
 	\param gamma_length length of the gamma array (number of particle types)
 	\param seed Seed value that will be incoporated into the seed of the Saru RNG
+	\param iteration current time step (hashed with other quantities to seed the RNG)
 	
 	\a gammas is a pointer to an array in memory. \c gamma[i] is \a gamma for the particle type \a i.
 	The values in d_gammas are read into shared memory, so \c gamma_length*sizeof(float) bytes of extern 
@@ -157,6 +158,7 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	\param T Temperature values
 	\param d_gammas The coefficients of friction for each particle type
 	\param gamma_length  The length of d_gamma array
+	\param iteration current time step (hashed with other quantities to seed the RNG)
 	\param seed seed for the RNG to use in thread  (is hashed with other internal timestep depedent seeds)
 	\param M Block size to execute
 	

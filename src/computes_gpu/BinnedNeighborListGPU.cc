@@ -126,16 +126,31 @@ BinnedNeighborListGPU::~BinnedNeighborListGPU()
 	freeGPUBinData();
 	}
 	
-// this function will generate a Z-order traversal through the 3d array Mx by My x Mz
-// it is done recursively through an octree subdivision over a power of 2 dimension Mmax which must be greater
-// than Mx, My, and Mz (values that don't fit into the real grid are omitted)
-// w on the first call should be equal to Mmax
-// i,j,k on the first call should be 0
-// cur_val on the first call should be 0
-
-// as it recurses down, w will be decreased appropriately
-// mem_location[i*Mz*My + j*Mz + k] will be filled out with the location to put
-// bin i,j,k in memory so it will be in the Z-order
+//! Helper function to generate a Z curve through a 3D grid
+/*! \param i recursive variable tracking the current i-position in the 3D array
+	\param j recursive variable tracking the current j-position in the 3D array
+	\param k recursive variable tracking the current k-position in the 3D array
+	\param w recursive variable tracking the current width of the cells being handled
+	\param Mmax Mmax needs to be the next highest power of 2 greater than the longest dimension in the i,j,k direction
+	\param Mx Actual dimension of the box in the i-direction
+	\param My Actual dimension of the box in the j-direction
+	\param Mz Actual dimension of the box in the k-direction
+	\param mem_location memory array to be filled out with the traversal order
+	\param cur_val variable global to all recursive calls used to increment the value output to \a mem_location
+	
+	See below for details.
+	
+	this function will generate a Z-order traversal through the 3d array Mx by My x Mz
+	it is done recursively through an octree subdivision over a power of 2 dimension Mmax which must be greater
+	than Mx, My, and Mz (values that don't fit into the real grid are omitted)
+	w on the first call should be equal to Mmax
+	i,j,k on the first call should be 0
+	cur_val on the first call should be 0
+	
+	as it recurses down, w will be decreased appropriately
+	mem_location[i*Mz*My + j*Mz + k] will be filled out with the location to put
+	bin i,j,k in memory so it will be in the Z-order
+*/
 static void generateTraversalOrder(unsigned int i, unsigned int j, unsigned int k, unsigned int w, unsigned int Mmax, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int *mem_location, unsigned int &cur_val)
 	{
 	if (w == 1)
@@ -648,7 +663,7 @@ bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
 	// create a temporary copy of r_max sqaured
-	Scalar r_buffsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));	
+	Scalar r_buffsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));
 	
 	int result = 0;
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)

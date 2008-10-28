@@ -73,6 +73,11 @@ struct gpu_nlist_array
 	uint4 *exclusions;
 	};
 
+//! Structure of arrays storing the bins particles are placed in on the GPU
+/*! This structure is in a current state of flux. Consider it documented as being
+	poorly documented :)
+	\todo update documentation
+*/
 struct gpu_bin_array
         {
         // these are 4D arrays with indices i,j,k,n. i,j,k index the bin and each goes from 0 to Mx-1,My-1,Mz-1 respectively.

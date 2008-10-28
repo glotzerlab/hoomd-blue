@@ -67,7 +67,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	\param d_forces Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on
 	\param nlist Neigbhor list data on the GPU to use to calculate the forces
-	\param coeffs Coefficients to the lennard jones force.
+	\param d_coeffs Coefficients to the lennard jones force.
 	\param coeff_width Width of the coefficient matrix
 	\param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
 		set to 0
@@ -186,10 +186,14 @@ extern "C" __global__ void calcYukawaForces_kernel(gpu_force_data_arrays force_d
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param nlist Neighbor list stored on the gpu
+	\param d_coeffs Coefficients to the lennard jones force.
+	\param coeff_width Width of the coefficient matrix
 	\param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the 
 		force is set to 0
 	\param kappa Screening Length
 	\param M Block size to execute
+	
+	This is just a driver for calcYukawaForces_kernel, see it for more details.
 	
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()

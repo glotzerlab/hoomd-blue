@@ -224,11 +224,7 @@ void BD_NVTUpdater::update(unsigned int timestep)
 	NVEUpdater::update(timestep);
 	}
 
-/*! \param timestep Current timestep
-	\param profiler_name Name of the profiler element to continue timing under
-	\post \c arrays.ax, \c arrays.ay, and \c arrays.az are set based on the forces computed by the ForceComputes
-*/
-	
+//! Exports the BD_NVTUpdater class to python	
 void export_BD_NVTUpdater()
 	{
 	class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<Integrator>, boost::noncopyable>

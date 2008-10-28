@@ -48,14 +48,19 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file gpu_nlist.cu
+/*! \file gpu_nlist_data.cu
 	\brief Contains code for working with the neighbor list data structure on the GPU
 */
 
-/////////////////////////////////////////////////////////
-// bin data
-
-//////////////////////////////////////////////////////////
+//! Checks if the neighbor list needs updating
+/*! \param pdata Particle data to check
+	\param nlist Current neighbor list build from that particle data
+	\param r_buffsq A precalculated copy of r_buff*r_buff
+	\param box Box dimensions for periodic boundary handling
+	
+	If any particle has moved a distance larger than r_buffsq since the last neighbor list update, 
+	nlist.needs_update is set to 1.
+*/
 __global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata, gpu_nlist_array nlist, float r_buffsq, gpu_boxsize box)
 	{
 	// each thread will compare vs it's old position to see if the list needs updating
@@ -86,6 +91,15 @@ __global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata, gpu_
 	}
 
 //! Check if the neighborlist needs updating
+/*! \param pdata Particle data to check
+	\param box Box dimensions for periodic boundary handling
+	\param nlist Current neighbor list build from that particle data
+	\param r_buffsq A precalculated copy of r_buff*r_buff
+	\param result Pointer to write the result to
+	
+	If any particle has moved a distance larger than r_buffsq since the last neighbor list update, 
+	*result is set to 1. Otherwide *result is set to 0.
+*/
 cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_buffsq, int *result)
 	{
 	assert(pdata);

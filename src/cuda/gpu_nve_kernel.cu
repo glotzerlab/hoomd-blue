@@ -58,9 +58,19 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! The texture for reading the pdata pos array
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+//! The texture for reading the pdata vel array
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
+//! The texture for reading the pdata accel array
 texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 
+//! Takes the first half-step forward in the velocity-verlet NVE integration
+/*! \param pdata Particle data to step forward 1/2 step
+	\param deltaT timestep
+	\param limit If \a limit is true, then the dynamics will be limited so that particles do not move 
+		a distance further than \a limit_val in one step.
+	\param limit_val Length to limit particle distance movement to
+	\param box Box dimensions for periodic boundary condition handling
+*/
 extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float deltaT, bool limit, float limit_val, gpu_boxsize box)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -127,6 +137,14 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		}
 	}
 
+//! Takes the first half-step forward in the velocity-verlet NVE integration
+/*! \param pdata Particle data to step forward 1/2 step
+	\param box Box dimensions for periodic boundary condition handling
+	\param deltaT Amount of real time to step forward in one time step
+	\param limit If \a limit is true, then the dynamics will be limited so that particles do not move 
+		a distance further than \a limit_val in one step.
+	\param limit_val Length to limit particle distance movement to
+*/
 cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT, bool limit, float limit_val)
 	{
     assert(pdata);
@@ -163,7 +181,15 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 		}
 	}
 
-
+//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
+/*! \param pdata Particle data to step forward in time
+	\param force_data_ptrs List of pointers to forces on each particle
+	\param num_forces Number of forces listed in \a force_data_ptrs
+	\param deltaT Amount of real time to step forward in one time step
+	\param limit If \a limit is true, then the dynamics will be limited so that particles do not move 
+		a distance further than \a limit_val in one step.
+	\param limit_val Length to limit particle distance movement to
+*/
 extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -199,7 +225,16 @@ extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **forc
 		pdata.accel[idx_global] = accel;
 		}
 	}
-	
+
+//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
+/*! \param pdata Particle data to step forward in time
+	\param force_data_ptrs List of pointers to forces on each particle
+	\param num_forces Number of forces listed in \a force_data_ptrs
+	\param deltaT Amount of real time to step forward in one time step
+	\param limit If \a limit is true, then the dynamics will be limited so that particles do not move 
+		a distance further than \a limit_val in one step.
+	\param limit_val Length to limit particle distance movement to
+*/
 cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
     assert(pdata);

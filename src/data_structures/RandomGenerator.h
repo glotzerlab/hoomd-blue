@@ -72,6 +72,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 class GeneratedParticles
 	{
 	public:
+		//! Stores a single particle in GeneratedParticles
 		struct particle
 			{
 			//! Default constructor

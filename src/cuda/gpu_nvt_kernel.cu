@@ -54,15 +54,25 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! The texture for reading the pdata pos array
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+//! The texture for reading the pdata vel array
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
+//! The texture for reading the pdata accel array
 texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 
+//! Shared memory used in reducing the mv^2 sum
 extern __shared__ float nvt_sdata[];
 
 /*! \file gpu_nvt_kernel.cu
 	\brief Contains code for the NVT kernel on the GPU
 */
 
+//! Takes the first 1/2 step forward in the NVT integration step
+/*! \param pdata Particle Data to step forward in time
+	\param d_nvt_data Temporary data storage used in the NVT temperature calculation
+	\param denominv Intermediate variable computed on the host and used in the NVT integration step
+	\param deltaT Amount of real time to step forward in one time step
+	\param box Box dimensions for periodic boundary condition handling
+*/
 extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float denominv, float deltaT, gpu_boxsize box)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -138,6 +148,13 @@ extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_d
 		}
 	}
 
+//! Takes the first 1/2 step forward in the NVT integration step
+/*! \param pdata Particle Data to step forward in time
+	\param box Box dimensions for periodic boundary condition handling
+	\param d_nvt_data Temporary data storage used in the NVT temperature calculation
+	\param Xi Current value of the NVT degree of freedom Xi
+	\param deltaT Amount of real time to step forward in one time step
+*/
 cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float Xi, float deltaT)
 	{
 	assert(pdata);
@@ -174,7 +191,14 @@ cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data
 		}
 	}
 
-
+//! Takes the second 1/2 step forward in the NVT integration step
+/*! \param pdata Particle Data to step forward in time
+	\param d_nvt_data Temporary data storage used in the NVT temperature calculation
+	\param force_data_ptrs List of pointers to forces on each particle
+	\param num_forces Number of forces listed in \a force_data_ptrs
+	\param Xi current value of the NVT degree of freedom Xi
+	\param deltaT Amount of real time to step forward in one time step
+*/
 extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -196,7 +220,14 @@ extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data 
 		}
 	}
 
-
+//! Takes the second 1/2 step forward in the NVT integration step
+/*! \param pdata Particle Data to step forward in time
+	\param d_nvt_data Temporary data storage used in the NVT temperature calculation
+	\param force_data_ptrs List of pointers to forces on each particle
+	\param num_forces Number of forces listed in \a force_data_ptrs
+	\param Xi current value of the NVT degree of freedom Xi
+	\param deltaT Amount of real time to step forward in one time step
+*/
 cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
 	{
     assert(pdata);
@@ -227,7 +258,15 @@ cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 *
 	}
 	
 
-// This kernel is designed to be a 1-block kernel for summing the total Ksum
+//! Makes the final mv^2 sum on the GPU
+/*! \param d_nvt_data Temporary NVT data holding the partial sums
+	
+	nvt_pre_step_kernel reduces the mv^2 sum per block. This kernel completes the task
+	and makes the final mv^2 sum on each GPU. It is up to the host to read these
+	values and get the final total.
+
+	This kernel is designed to be a 1-block kernel for summing the total Ksum
+*/
 extern "C" __global__ void nvt_reduce_ksum_kernel(gpu_nvt_data d_nvt_data)
 	{
 	float Ksum = 0.0f;
@@ -260,6 +299,11 @@ extern "C" __global__ void nvt_reduce_ksum_kernel(gpu_nvt_data d_nvt_data)
 		*d_nvt_data.Ksum = Ksum;
 	}
 	
+//! Makes the final mv^2 sum on the GPU
+/*! \param d_nvt_data Temporary NVT data holding the partial sums
+	
+	this is just a driver for nvt_reduce_ksum kernel: see it for details
+*/
 cudaError_t nvt_reduce_ksum(gpu_nvt_data *d_nvt_data)
 	{
 	assert(d_nvt_data);

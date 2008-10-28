@@ -958,6 +958,7 @@ void ParticleData::hostToDeviceCopy()
 	// if (m_prof) m_prof->pop(m_exec_conf, 0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 	}
 
+//! Basic union for coverting ints <-> floats
 union floatint
 	{
 	float f;

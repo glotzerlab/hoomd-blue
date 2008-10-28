@@ -67,7 +67,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	\param d_forces Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on
 	\param nlist Neigbhor list data on the GPU to use to calculate the forces
-	\param coeffs Coefficients to the lennard jones force.
+	\param d_coeffs Coefficients to the lennard jones force.
 	\param coeff_width Width of the coefficient matrix
 	\param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
 		set to 0
@@ -182,12 +182,16 @@ extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data,
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param nlist Neighbor list stored on the gpu
+	\param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
+		pair i,j. The x-component is lj1 and the y-component is lj2.
+	\param coeff_width Width of the \a d_coeffs matrix.
 	\param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the 
 		force is set to 0
 	\param M Block size to execute
 	
 	\returns Any error code resulting from the kernel launch
-	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+	
+	This is just a driver for calcLJForces_kernel, see the documentation for it for more information.
 */
 cudaError_t gpu_ljforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int M)
 	{
