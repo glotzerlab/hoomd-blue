@@ -111,6 +111,7 @@ class Logger : public Analyzer
 		Scalar getValue(const std::string &quantity, int timestep);
 	};
 	
+//! exports the Logger class to python
 void export_Logger();
 
 #endif

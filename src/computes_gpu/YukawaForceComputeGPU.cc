@@ -64,6 +64,7 @@ using namespace std;
 /*! \param pdata Particle Data to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
+	\param kappa Coefficient to use in calculating the force
 	\post memory is allocated and the parameter epsilon is set to 0.0
 	\note The YukawaForceComputeGPU does not own the Neighborlist, the caller should
 		delete the neighborlist when done.

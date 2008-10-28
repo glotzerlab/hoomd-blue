@@ -78,7 +78,7 @@ const Scalar tol = Scalar(1);
 typedef boost::function<shared_ptr<FftwWrapper> (unsigned int N_x,unsigned int N_y,unsigned int N_z)> fftw_creator;
 	
 //! Test the fftw wrapper class for HOOMD
-/*! 
+/*! \param fftw_test Creator class to create the fftw wrapper
 	\note Only fftw is implemented, but the same test can be applied to any other fft
 */
 void fftw_accuracy_test(fftw_creator fftw_test)
@@ -194,11 +194,12 @@ BOOST_AUTO_TEST_CASE(fftw_test_accuracy)
 	}
 
 
-// these functions are the exact analytical solution of real and imaginary part
+//! these functions are the exact analytical solution of real and imaginary part
 double Exact_Conf_real(double x,double y)
 {
   return (1-exp(-x))*(1-exp(-1.0)*cos(2*M_PI*y/x))/(1+exp(-2.0)-2*exp(-1.0)*cos(2*M_PI*y/x));	
 }
+//! these functions are the exact analytical solution of real and imaginary part
 double Exact_Conf_Imag(double x,double y)
 {
   return -(1-exp(-x))*exp(-1.0)*sin(2*M_PI*y/x)/(1+exp(-2.0)-2*exp(-1.0)*cos(2*M_PI*y/x));	

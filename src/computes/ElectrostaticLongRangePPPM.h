@@ -78,6 +78,10 @@ using namespace std;
 #ifdef USE_FFT
 #include "FFTClass.h"
 
+//! Long range electrostatic forces via PPPM
+/*! \ingroup computes
+	\todo document me!
+*/
 class ElectrostaticLongRangePPPM : public ForceCompute
 	{
 	public:
@@ -145,23 +149,24 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		Scalar *Denom_Coeff;         //!< Coefficients of the polynomial to compute the denominator of the influence function
 		
 		
-		virtual Scalar Poly(int n,Scalar x); //<!Polynomial that computes the fraction of charge at point x
-		virtual void back_interpolate(CScalar ***Grid,Scalar *Continuum); //<! Backinterpolate mesh grid points into continuum for P even
+		virtual Scalar Poly(int n,Scalar x); //!< Polynomial that computes the fraction of charge at point x
+		virtual void back_interpolate(CScalar ***Grid,Scalar *Continuum); //!< Backinterpolate mesh grid points into continuum for P even
 		
 		virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
 		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
-		virtual void back_interpolate_even(CScalar ***Grid,Scalar *Continuum);//<! Backinterpolate mesh grid points into continuum for P even
-		virtual void back_interpolate_odd(CScalar ***Grid,Scalar *Continuum);//<! Backinterpolate mesh grid points into continuum for P odd
+		virtual void back_interpolate_even(CScalar ***Grid,Scalar *Continuum);//!< Backinterpolate mesh grid points into continuum for P even
+		virtual void back_interpolate_odd(CScalar ***Grid,Scalar *Continuum);//!< Backinterpolate mesh grid points into continuum for P odd
 
 		virtual void ComputePolyCoeff(void); //!<Compute the coefficients of the Polynomial (encoded in P_coeff)
 		
 		virtual void Compute_G(void);        //!<Compute the influence function
 		virtual Scalar Denominator_G(Scalar x,Scalar y,Scalar z); //!< Denominator of the influence function (without the derivative square)
-		virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z); //<!Numerator of the influence function (without the derivative);
+		virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z); //!< Numerator of the influence function (without the derivative);
 		void Denominator_Poly_G(void);       //!<Compute the coefficients of the Polynomial Denom_Coeff
 
-		virtual void computeForces(unsigned int timestep); //! Actually compute the forces
-	};
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+		};
 	
 
 #endif

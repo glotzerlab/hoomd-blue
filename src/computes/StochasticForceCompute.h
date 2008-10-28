@@ -63,8 +63,6 @@ class StochasticForceCompute :	public ForceCompute
 		//! Destructor
 		~StochasticForceCompute();
 		
-		virtual void checkRNGstate(){ cout << "Check RNG State - No GPU" << endl; }
-		
 		//! Sets force parameters
 		virtual void setParams(unsigned int typ, Scalar gamma);
 		

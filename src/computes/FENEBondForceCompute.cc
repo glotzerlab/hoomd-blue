@@ -104,9 +104,8 @@ FENEBondForceCompute::~FENEBondForceCompute()
 /*! \param type Type of the bond to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param r_0 maximum bond length for the force computation
-	\param lj1 First parameter used to calcluate forces
-	\param lj2 Second parameter used to calculate forces
-	\param lj3 Third parameter used to calculate energy
+	\param sigma Value of sigma in the force calculation
+	\param epsilon Value of epsilon in the force calculation
 
 	Sets parameters for the potential of a particular bond type
 */

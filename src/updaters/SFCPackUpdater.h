@@ -92,7 +92,7 @@ class SFCPackUpdater : public Updater
 		virtual void update(unsigned int timestep);
 		
 		//! Set the bin width
-		/*! \a bin_width New bin width to set */
+		/*! \param bin_width New bin width to set */
 		void setBinWidth(Scalar bin_width) { m_bin_width = bin_width; }
 		
 	private:

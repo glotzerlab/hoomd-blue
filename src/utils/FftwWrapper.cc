@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 using  namespace std;
 
-/*! \file fftw_wrapper.cc
+/*! \file FftwWrapper.cc
 	\brief Implements the code for the fftw_wrapper class
 */
 
@@ -56,18 +56,11 @@ FftwWrapper::FftwWrapper(){
 			out_b=NULL;
 			plan_is_defined=false;
 }
-/*!				\param N_x number of grid points in the x axis
-			    \param N_y number of grid points in the y axis
-			    \param N_z number of grid points in the z axis
-				\param in_f input data for forward fft
-				\param out_f output data for forward fft
-				\param in_b input data for backward fft
-				\param out_b output data for backward fft
-				\param p_forward structure defining the forward plan for fft
-				\param p_backward structure defining the backward plan for fft
-                \param plan_is_defined make sure plan is defined only once
-*/
 
+/*!				\param Nx number of grid points in the x axis
+			    \param Ny number of grid points in the y axis
+			    \param Nz number of grid points in the z axis
+*/
 FftwWrapper::FftwWrapper(unsigned int Nx,unsigned int Ny,unsigned int Nz):N_x(Nx),N_y(Ny),N_z(Nz)
 {
 		unsigned int uni_ind;

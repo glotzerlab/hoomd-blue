@@ -201,6 +201,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 		}
 	}
 	
+
 void export_Logger()
 	{
 	class_<Logger, boost::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>

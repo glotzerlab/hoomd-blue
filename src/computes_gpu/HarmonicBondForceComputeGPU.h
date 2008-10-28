@@ -89,8 +89,8 @@ class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute
 		
 	protected:
 		int m_block_size;		//!< Block size to run calculation on
-		vector<float2 *> m_gpu_params;	//! Parameters stored on the GPU
-		float2 *m_host_params;	//! Host parameters
+		vector<float2 *> m_gpu_params;	//!< Parameters stored on the GPU
+		float2 *m_host_params;	//!< Host parameters
 		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);

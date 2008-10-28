@@ -56,10 +56,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __BD_NVTUPDATER_H__
 
 //! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant energy (BD_NVT) dynamics. Particle positions and velocities are 
-	updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
-	in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on 
-	each particle.
+/*! This updater performes constant N, constant volume, constant energy (BD_NVT) dynamics. 
+	Particle positions and velocities are updated according to the velocity verlet algorithm. 
+	The forces that drive this motion are defined external to this class in ForceCompute. Any 
+	number of ForceComputes can be given, the resulting forces will be summed to produce a net 
+	force on each particle.
+	
+	BD_NVTUpdater internally creates it's own StochasticForceCompute to handle the calculation
+	of the stochastic and drag forces needed for BD.
 	
 	\ingroup updaters
 */
@@ -118,7 +122,7 @@ class BD_NVTUpdater : public NVEUpdater
 		
 		//! The CPU version of the StochasticForceCompute
 		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
-		
+		//! ?? What is this for?
 		boost::shared_ptr<StochasticForceCompute> stochastic_force;
 
 

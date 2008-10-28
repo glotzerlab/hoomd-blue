@@ -522,8 +522,10 @@ unsigned int RandomGenerator::getTypeId(const std::string& name)
 	m_type_mapping.push_back(name);
 	return (unsigned int)m_type_mapping.size()-1;
 	}
-	
-// helper function to generate a [0..1] float
+
+//! Helper function to generate a [0..1] float
+/*! \param rnd Random number generator to use
+*/
 static Scalar random01(boost::mt19937& rnd)
 	{
 	unsigned int val = rnd();
@@ -665,7 +667,8 @@ class ParticleGeneratorWrap : public ParticleGenerator, public wrapper<ParticleG
 			
 		//! Calls overidden ParticleGenerator::generateParticles()
 		/*! \param particles Place generated particles here after a GeneratedParticles::canPlace() check
-			\param starT_idx Starting index to generate particles at
+			\param rnd Random number benerator to use
+			\param start_idx Starting index to generate particles at
 			Derived classes must implement this method. RandomGenerator will 
 			call it to generate the particles. Particles should be placed at indices
 			\a start_idx, \a start_idx + 1, ... \a start_idx + getNumToGenerate()-1

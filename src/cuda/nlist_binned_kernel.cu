@@ -50,10 +50,26 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
+/*! \file nlist_binned_kernel.cu
+	\brief Contains code for the kernel that implements the binned O(N) neighbor list on the GPU
+*/
+
+//! sentinel value signifying an empty slot in a bin
 #define EMPTY_BIN 0xffffffff
 
+//! Texture for reading pdata pos
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+//! Texture for reading the idxlist from the bin arrays
 texture<unsigned int, 2, cudaReadModeElementType> bin_idxlist_tex;
+
+//! Transposes the bin idx list on the GPU
+/*! \param pdata Particle data to read positions from
+	\param bins Bin data for the particles
+	
+	This kernel reads in bins.idxlist (generated on the host) and writes out a transposed
+	array in binds.coord_idxlist. The transposed array also includes the particle position
+	along with the index for quick reading and use in the neighbor list build kernel.
+*/
 extern "C" __global__ void gpu_nlist_idxlist2coord_kernel(gpu_pdata_arrays pdata, gpu_bin_array bins)
 	{
 	// each thread writes the coord_idxlist of a single bin
@@ -80,7 +96,14 @@ extern "C" __global__ void gpu_nlist_idxlist2coord_kernel(gpu_pdata_arrays pdata
  	bins.coord_idxlist[bins.coord_idxlist_width * blockIdx.y + binidx] = coord_idx;
 	}
 	
-//! Take the idxlist and generate coord_idxlist
+//! Transposes the bin idx list on the GPU
+/*! \param pdata Particle data to read positions from
+	\param bins Bin data for the particles
+	\param curNmax Maximum number of particles in any of the bins
+	\param block_size Block size to run on the device
+	
+	see gpu_nlist_idxlist2coord_kernel for details
+*/
 cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins, int curNmax, int block_size)
 	{
 	assert(bins);
@@ -118,21 +141,35 @@ cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins
 		}
 	}
 
-// textures used in this kernel: commented out because textures are managed globally currently
+//! Texture for reading coord_idxlist from the binned particle data
 texture<float4, 2, cudaReadModeElementType> nlist_coord_idxlist_tex;
+//! Texture for reading the bins adjacent to a given bin
 texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
+//! Texture for reading the location of a given bin in memory
 texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 
-/*! \file nlist_binned_kernel.cu
-	\brief Contains code for the kernel that implements the binned O(N) neighbor list on the GPU
+
+//! Generates the neighbor list from the binned particles
+/*! \param pdata Particle data to generate the neighbor list for
+	\param bins The binned particles
+	\param nlist Neighbor list to write out to
+	\param r_maxsq Precalculated value for r_max*r_max
+	\param actual_Nmax Number of particles currently in the largest bin
+	\param box Box dimensions for handling periodic boundary conditions
+	\param scalex Scale factor to convert particle position to bin i-coordinate
+	\param scaley Scale factor to convert particle position to bin j-coordinate
+	\param scalez Scale factor to convert particle position to bin k-coordinate
+	
+	This kernel runs one thread per particle: Thread \a i handles particle \a i.
+	The bin of particle \a i is first determined. Neighboring bins are read from
+	the bin_adj_tex. Partilces in each neighboring bin are read from the nlist_coord_idxlist_tex
+	and compared to see if they are neighbors.
+	
+	This whole processes involves a lot of looping over and reading randomly from
+	textures, but the 2D texture cache helps a lot and the process reaches near
+	peak bandwidth on the device. It seems more wasteful than a one block per cell
+	method, but actually is ~40% faster.
 */
-
-// upating the list from the bins will involve looping over all the particles in the bin and 
-// comparing them to all particles in this and neighboring bins
-// each block will process one bin. Since each particle is only placed in one bin, each block thus processes
-// a block of particles (though which particles it processes is random)
-// Empty bin entries will be set to 0xffffffff to allow for efficient handling
-
 extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, unsigned int actual_Nmax, gpu_boxsize box, float scalex, float scaley, float scalez)
 	{
 	// each thread is going to compute the neighbor list for a single particle
@@ -221,7 +258,18 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	nlist.n_neigh[my_pidx] = n_neigh;
 	nlist.last_updated_pos[my_pidx] = my_pos;
 	}
+
+//! Generate the neighbor list on the GPU
+/*!	\param pdata Particle data to generate the neighbor list for
+	\param box Box dimensions for handling periodic boundary conditions	
+	\param bins The binned particles
+	\param nlist Neighbor list to write out to
+	\param r_maxsq Precalculated value for r_max*r_max
+	\param curNmax Number of particles currently in the largest bin
+	\param block_size Block size to run the kernel on the device
 	
+	See updateFromBins_new for more information
+*/
 cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_array *bins, gpu_nlist_array *nlist, float r_maxsq, int curNmax, int block_size)
 	{
 	assert(bins);

@@ -64,7 +64,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Kernel for calculating lj forces
 /*! This kerenel is called to calculate the lennard-jones forces on all N particles
 
-	\param d_forces Device memory array to write calculated forces to
+	\param force_data Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on
 	\param nlist Neigbhor list data on the GPU to use to calculate the forces
 	\param d_coeffs Coefficients to the lennard jones force.

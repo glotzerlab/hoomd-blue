@@ -44,15 +44,12 @@ if (DOXYGEN)
 # configure exclusions based on USE_* options
 set(DOXYGEN_PREDEFINED "")
 
-# policy change: always build all documentation even on platforms that don't have CUDA/Python
-# uncomment the next 9 commented lines to restore the old policy
+# policy change: always build all documentation even on platforms that don't
+# have CUDA/Python/FFT/whatever
 
-#set(DOXYGEN_ADDITIONAL_EXCLUSIONS "")
-#if(USE_CUDA)
-	set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " USE_CUDA=1")
-#else(USE_CUDA)
-#	set(DOXYGEN_ADDITIONAL_EXCLUSIONS " */cuda/* */computes_gpu/*")
-#endif(USE_CUDA)
+set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"USE_CUDA=1\" \\
+	\"USE_FFT=1\" \\
+	\"USE_FFTW=1\" ")
 
 # disable DOT in doxygen if dot is not found
 if(DOXYGEN_DOT_PATH)

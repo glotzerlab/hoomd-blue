@@ -77,9 +77,11 @@ class GeneratedParticles
 			{
 			//! Default constructor
 			particle() : x(0.0), y(0.0), z(0.0), type("") {}
-			Scalar x,y,z;
-			std::string type;
-			unsigned int type_id;
+			Scalar x;	//!< X-coordinate
+			Scalar y;	//!< Y-coordinate
+			Scalar z;	//!< Z-coordinate
+			std::string type;	//!< Particle's type name
+			unsigned int type_id;	//!< Particle's type id
 			};
 			
 		//! Constructor
@@ -107,7 +109,7 @@ class GeneratedParticles
 	
 		std::vector<particle> m_particles;					//!< The generated particles
 		BoxDim m_box;										//!< Box the particles are in
-		std::vector< std::vector<unsigned int> > m_bins;	//! Bins the particles are placed in for efficient distance checks
+		std::vector< std::vector<unsigned int> > m_bins;	//!< Bins the particles are placed in for efficient distance checks
 		int m_Mx;		//!< Number of bins in the x direction
 		int m_My;		//!< Number of bins in the y direction
 		int m_Mz;		//!< Number of bins in the z direction
@@ -163,7 +165,8 @@ class ParticleGenerator
 		
 		//! Actually generate the requested particles
 		/*! \param particles Place generated particles here after a GeneratedParticles::canPlace() check
-			\param starT_idx Starting index to generate particles at
+			\param rnd Random number generator to use
+			\param start_idx Starting index to generate particles at
 			Derived classes must implement this method. RandomGenerator will 
 			call it to generate the particles. Particles should be placed at indices
 			\a start_idx, \a start_idx + 1, ... \a start_idx + getNumToGenerate()-1

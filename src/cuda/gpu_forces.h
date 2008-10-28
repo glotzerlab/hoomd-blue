@@ -79,7 +79,7 @@ struct gpu_bondtable_array
 	uint2 *bonds;			//!< bond list
 	unsigned int height;	//!< height of the bond list
 	unsigned int pitch;		//!< width (in elements) of the bond list
-	int *checkr;            //! used to see if bond length condition is violated (fene)
+	int *checkr;            //!< used to see if bond length condition is violated (fene)
 	};
 
 //! Force data stored on the GPU

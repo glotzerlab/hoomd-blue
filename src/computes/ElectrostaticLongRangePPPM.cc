@@ -65,7 +65,15 @@ using namespace std;
 using namespace std;
 
 /*! \param pdata Particle Data to compute forces on
-	\param alpha Split parameter of short vs long range electrostatics (see header file for more info) 
+	\param Mmesh_x I have no idea: whoever wrote this needs to write better documentation
+	\param Mmesh_y I have no idea: whoever wrote this needs to write better documentation
+	\param Mmesh_z I have no idea: whoever wrote this needs to write better documentation
+	\param P_order_a I have no idea: whoever wrote this needs to write better documentation
+	\param alpha I have no idea: whoever wrote this needs to write better documentation
+	\param FFTP I have no idea: whoever wrote this needs to write better documentation
+	\param third_law_m I have no idea: whoever wrote this needs to write better documentation
+	
+	\todo document me!
 */
 ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata, unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z,unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m)
 	:ForceCompute(pdata),FFT(FFTP),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),third_law(third_law_m)

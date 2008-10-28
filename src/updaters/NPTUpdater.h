@@ -83,7 +83,7 @@ class NPTUpdater : public Integrator
 		virtual void setP(Scalar P) { m_P = P; }
 
 		//! Update the nuP value
-		/*! \param nuP New pressure constant to set
+		/*! \param tauP New pressure constant to set
 		*/		
 		virtual void setTauP(Scalar tauP) { m_tauP = tauP; }
 

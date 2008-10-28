@@ -61,6 +61,8 @@ using namespace std;
 
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
+	\param Temp Temperature to set
+	\param seed Random seed to use for the random force compuataion
 */
 BD_NVTUpdaterGPU::BD_NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : BD_NVTUpdater(pdata, deltaT, Temp, seed)
 	{

@@ -79,7 +79,10 @@ ForceDataArraysGPU::ForceDataArraysGPU()
 	m_num_local = m_local_start = 0;
 	}
 	
-/*! \pre allocate() has not previously been called
+/*! \param num_local Number of particles local to this GPU
+	\param local_start Starting index of the particles local to this GPU
+
+	\pre allocate() has not previously been called
 	\post Memory is allocated on the GPU for the force data
 	\note allocate() \b must be called on the GPU on which the data is going to be used
 */

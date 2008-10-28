@@ -228,6 +228,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 /*! Calls the initializer's members to determine the number of particles, box size and then
 	uses it to fill out the position and velocity data.
 	\param init Initializer to use
+	\param exec_conf Execution configuration to run on
 */
 ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration& exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
 	{
@@ -961,8 +962,8 @@ void ParticleData::hostToDeviceCopy()
 //! Basic union for coverting ints <-> floats
 union floatint
 	{
-	float f;
-	unsigned int i;
+	float f;		//!< float to read/write
+	unsigned int i;	//!< int to read/write at the same memory location
 	};
 
 /*! Particle data is copied from the GPU to the CPU

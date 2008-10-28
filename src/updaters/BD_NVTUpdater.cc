@@ -65,6 +65,8 @@ using namespace std;
 
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
+	\param Temp Temperature to set
+	\param seed Random seed to use for the random force compuataion
 */
 BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : NVEUpdater(pdata, deltaT), 
 	m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp), m_deltaT(deltaT), m_seed(seed), m_bath(false)
@@ -124,8 +126,10 @@ void BD_NVTUpdater::setT(Scalar Temp)
 	stochastic_force->setT(m_T); 
 	}	
 
-/*! Once the limit is set, future calls to update() will never move a particle 
-	a distance larger than limit in a single time step
+/*! \param limit Distance to limit particle movement each time step
+
+	Once the limit is set, future calls to update() will never move a particle 
+	a distance larger than the limit in a single time step
 */
 void BD_NVTUpdater::setLimit(Scalar limit)
 	{

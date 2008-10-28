@@ -63,8 +63,10 @@ NVEUpdater::NVEUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : I
 	{
 	}
 
-/*! Once the limit is set, future calls to update() will never move a particle 
-	a distance larger than limit in a single time step
+/*! \param limit Distance to limit particle movement each time step
+
+	Once the limit is set, future calls to update() will never move a particle 
+	a distance larger than the limit in a single time step
 */
 void NVEUpdater::setLimit(Scalar limit)
 	{

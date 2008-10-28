@@ -67,21 +67,31 @@ class FftwWrapper:public FFTClass
 			FftwWrapper(unsigned int N_x,unsigned int N_y,unsigned int N_z); //!< constructor
 			~FftwWrapper(void); //!< destructor
 
-			void fftw_define(unsigned int N_x,unsigned int N_y,unsigned int N_z); //<! Redefines the class if constructed by void constructor
-	           
-			void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***Dat_in,CScalar ***Dat_out,int sig); //<! fft transform complex to complex
-			void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar ***Dat_in,CScalar ***Dat_out);  //<! fft transform real to complex
-			void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***Dat_in,Scalar ***Dat_out);  //<! fft transform complex to real
+			//! Redefines the class if constructed by void constructor
+			void fftw_define(unsigned int N_x,unsigned int N_y,unsigned int N_z); 
+			
+			//! fft transform complex to complex
+			void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***Dat_in,CScalar ***Dat_out,int sig);
+			
+			//! fft transform real to complex
+			void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar ***Dat_in,CScalar ***Dat_out);
+			
+			//! fft transform complex to real
+			void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***Dat_in,Scalar ***Dat_out);
 
 	private:
-			unsigned int N_x,N_y,N_z;
-			fftw_complex *in_f, *out_f;
-			fftw_complex *in_b, *out_b;
-			fftw_plan p_forward;
-			fftw_plan p_backward;
-			bool plan_is_defined;
-			double Initial_Conf_real(double x,double y); //<! Defines the real part of an initial configuration
-			double Initial_Conf_Imag(double x,double y); //<! Defines the imag part of an initial configuration
+			unsigned int N_x;	//!< I have no idea: the writer of this code needs to write better documentation
+			unsigned int N_y;	//!< I have no idea: the writer of this code needs to write better documentation
+			unsigned int N_z;	//!< I have no idea: the writer of this code needs to write better documentation
+			fftw_complex *in_f;		//!< I have no idea: the writer of this code needs to write better documentation
+			fftw_complex *out_f;	//!< I have no idea: the writer of this code needs to write better documentation
+			fftw_complex *in_b;		//!< I have no idea: the writer of this code needs to write better documentation
+			fftw_complex *out_b;	//!< I have no idea: the writer of this code needs to write better documentation
+			fftw_plan p_forward;	//!< I have no idea: the writer of this code needs to write better documentation
+			fftw_plan p_backward;	//!< I have no idea: the writer of this code needs to write better documentation
+			bool plan_is_defined;	//!< I have no idea: the writer of this code needs to write better documentation
+			double Initial_Conf_real(double x,double y); //!< Defines the real part of an initial configuration
+			double Initial_Conf_Imag(double x,double y); //!< Defines the imag part of an initial configuration
 			
 };
 #endif

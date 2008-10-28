@@ -89,8 +89,12 @@ const Scalar tol = 1e-3;
 typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) > nptup_creator;
 	
 
-//! Compares the output from NPTUpdater, averages pressure and temeprature and comares them with 
-//! given pressures and temperatures.  
+//! Basic functionality test of a generic NPTUpdater
+/*! \param npt_creator Creator to be used in generating the NPTUpdater to test
+
+	Compares the output from NPTUpdater, averages pressure and temeprature and comares them with 
+	given pressures and temperatures.
+*/
 void npt_updater_test(nptup_creator npt_creator)
 	{
 	const unsigned int N = 1000;

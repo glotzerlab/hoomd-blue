@@ -62,15 +62,15 @@ extern "C" {
 */
 struct gpu_nlist_array
 	{
-	unsigned int *n_neigh;
-	unsigned int *list;
-	unsigned int height;
-	unsigned int pitch;
-	float4 *last_updated_pos;
-	int *needs_update;
-	int *overflow;
+	unsigned int *n_neigh;	//!< n_neigh[i] is the number of neighbors of particle with index i
+	unsigned int *list;		//!< list[i*pitch + j] is the index of the j'th neighbor of particle i
+	unsigned int height;	//!< Maximum number of neighbors that can be stored for any particle
+	unsigned int pitch;		//!< width of the list in elements
+	float4 *last_updated_pos;	//!< Holds the positions of the particles as they were when the list was last updated
+	int *needs_update;		//!< Flag set to 1 when the neighbor list needs to be updated
+	int *overflow;			//!< Flag set to 1 when the neighbor list overflows and needs to be expanded
 	
-	uint4 *exclusions;
+	uint4 *exclusions;		//!< exclusions[i] lists all the particles that are to be excluded from being neighbors with [i] by index
 	};
 
 //! Structure of arrays storing the bins particles are placed in on the GPU
@@ -83,21 +83,22 @@ struct gpu_bin_array
         // these are 4D arrays with indices i,j,k,n. i,j,k index the bin and each goes from 0 to Mx-1,My-1,Mz-1 respectively.
         // index into the data with idxdata[i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax  + n]
 		// n goes from 0 to Nmax - 1.
-        unsigned int Mx,My,Mz,Nmax,Nparticles,coord_idxlist_width;
+        unsigned int Mx;	//!< X-dimension of the cell grid
+        unsigned int My;	//!< Y-dimension of the cell grid
+        unsigned int Mz;	//!< Z-dimension of the cell grid
+        unsigned int Nmax;	//!< Maximum number of particles each cell can hold
+        usigned int Nparticles;		//!< Total number of particles binned
+        unsigned int coord_idxlist_width;	//!< Width of the coord_idxlist data
 		
-        // idxdata stores the index of the particles in the bins
-		unsigned int *idxlist;
-		cudaArray *idxlist_array;
+        unsigned int *idxlist;	//!< \a Mx x \a My x \a Mz x \a Nmax 4D array holding the indices of the particles in each cell
+		cudaArray *idxlist_array;	//!< An array memory copy of \a idxlist for 2D texturing
 		
-		// coord_idxlist stores the coordinates and the index of the particles in the bins
-		float4 *coord_idxlist;
-		cudaArray *coord_idxlist_array;
+		float4 *coord_idxlist;	//!< \a Mx x \a My x \a Mz x \a Nmax 4D array holding the positions and indices of the particles in each cell (x,y,z are position and w holds the index)
+		cudaArray *coord_idxlist_array;	//!< An array memory copy of \a coord_idxlist for 2D texturing
 		
-		// mem_location maps a bin index to the actual bin location that should be read from memory
-		unsigned int *mem_location;
+		unsigned int *mem_location;		//!< Maps a bin index i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax to the actual location in memory where it is stored
 		
-		// bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = bin)
-		cudaArray *bin_adj_array;
+		cudaArray *bin_adj_array;	//!< bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = neighboring bin memory location)
 		};
 
 //! Generate the neighborlist (N^2 algorithm)

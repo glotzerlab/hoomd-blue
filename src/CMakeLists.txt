@@ -127,12 +127,9 @@ enable_testing()
 add_subdirectory (unit_tests)
 
 ###############################
-## allow for optional inclusion of the doxygen documentation build
-OPTION(USE_DOXYGEN "Enable generation of source code documentation with doxygen (if installed)" OFF)
-if(USE_DOXYGEN)
-	add_subdirectory (doc)
-	add_subdirectory (user_doc)
-endif(USE_DOXYGEN)
+## include documentation directories
+add_subdirectory (doc)
+add_subdirectory (user_doc)
 
 add_subdirectory (installer)
 

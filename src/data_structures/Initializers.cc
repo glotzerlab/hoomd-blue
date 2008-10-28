@@ -70,6 +70,7 @@ using namespace boost::python;
 	apart from each other.
 	\param M Number of particles along a side of the cube
 	\param spacing Separation between particles
+	\param type_name Name of the particle type to create
 */
 SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name) : m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
 	{
@@ -144,6 +145,7 @@ std::vector<std::string> SimpleCubicInitializer::getTypeMapping() const
 /*! \param N number of particles to create
 	\param phi_p Packing fraction of particles in the box
 	\param min_dist Minimum distance two particles will be placed apart
+	\param type_name Name of the particle type to create
 	\note assumes particles have a diameter of 1
 */
 RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name) : m_N(N), m_phi_p(phi_p), m_min_dist(min_dist), m_type_name(type_name)
@@ -289,6 +291,7 @@ std::vector<std::string> RandomInitializer::getTypeMapping() const
 	\param phi_p Packing fraction of particles in the box
 	\param min_dist Minimum distance two particles will be placed apart
 	\param wall_buffer Distance from the edge of the box to place the walls
+	\param type_name Name of the particle type to create
 	\note assumes particles have a diameter of 1
 */
 RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer, const std::string &type_name) 

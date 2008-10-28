@@ -73,7 +73,7 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
 //! Kernel for calculating stochastic forces
 /*! This kernel is called to apply stochastic heat bath forces to all N particles in conjunction with a Brownian Dynamics Simulations
 
-	\param d_forces Device memory array to write calculated forces to
+	\param force_data Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on
 	\param dt Timestep of the simulation
 	\param T Temperature of the bath

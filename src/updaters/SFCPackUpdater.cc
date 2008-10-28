@@ -409,9 +409,9 @@ static vector<unsigned int> permute(int p, const vector<unsigned int>& in)
 	\param w Number of grid cells wide at the current recursion level
 	\param Mx Width of the entire grid (it is cubic, same width in all 3 directions)
 	\param cell_order Current permutation order to traverse cells along
-	\param travseral_order Traversal order to build up
+	\param traversal_order Traversal order to build up
 	\pre \a traversal_order.size() == 0
-	\pre Initial call should be with \a i = \a j = \a k = 0, \a w = \w Mx, \a cell_order = (0,1,2,3,4,5,6,7,8) 
+	\pre Initial call should be with \a i = \a j = \a k = 0, \a w = \a Mx, \a cell_order = (0,1,2,3,4,5,6,7,8) 
 	\post traversal order contains the grid index (i*Mx*Mx + j*Mx + k) of each grid point
 		listed in the order of the hilbert curve
 */

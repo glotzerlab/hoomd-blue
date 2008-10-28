@@ -64,10 +64,10 @@ cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_
 //! Data structure storing needed intermediate values for NVT integration
 struct gpu_nvt_data
 	{
-	float *partial_Ksum; // NBlocks elements, each is a partial sum of m*v^2
-	float *Ksum;	// fully reduced Ksum on one GPU
-	int NBlocks;	// Number of blocks in the computation (must be a power of 2)
-	int block_size;
+	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
+	float *Ksum;	//!< fully reduced Ksum on one GPU
+	int NBlocks;	//!< Number of blocks in the computation (must be a power of 2)
+	int block_size;	//!< Block size of the kernel to be run on the device
 	};
 
 //! Does the first step of the computation
