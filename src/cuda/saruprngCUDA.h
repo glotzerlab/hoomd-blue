@@ -98,6 +98,8 @@ class Saru {
   __device__ inline double d();
   __device__ inline float f(float low, float high);
   __device__ inline double d(double low, double high);
+
+  uint2 state;
    
  private:
    
@@ -166,7 +168,6 @@ class Saru {
      { state.y=advanceAnyWeyl<oWeylOffset, oWeylPeriod-oWeylDelta, 
 	 oWeylPeriod, steps>(state.y); }
       
-  uint2 state;
 };
 
 // partial specialization to make a special case for step of 1

@@ -87,7 +87,7 @@ struct gpu_bin_array
         unsigned int My;	//!< Y-dimension of the cell grid
         unsigned int Mz;	//!< Z-dimension of the cell grid
         unsigned int Nmax;	//!< Maximum number of particles each cell can hold
-        usigned int Nparticles;		//!< Total number of particles binned
+        unsigned int Nparticles;		//!< Total number of particles binned
         unsigned int coord_idxlist_width;	//!< Width of the coord_idxlist data
 		
         unsigned int *idxlist;	//!< \a Mx x \a My x \a Mz x \a Nmax 4D array holding the indices of the particles in each cell
