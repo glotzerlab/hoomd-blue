@@ -63,6 +63,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "HarmonicBondForceCompute.h"
+#include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
 #include "YukawaForceCompute.h"
 #include "StochasticForceCompute.h"
@@ -75,6 +76,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "LJForceComputeGPU.h"
 #include "YukawaForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
+#include "FENEBondForceComputeGPU.h"
 #include "StochasticForceComputeGPU.h"
 #include "gpu_settings.h"
 #endif
@@ -132,7 +134,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	{
 	shared_ptr<ForceCompute> result;
 	
-	// handle creation of the various lennard=jones computes
+	// handle creation of the various lennard-jones computes
 	if (fc_name == "LJ")
 		result = shared_ptr<ForceCompute>(new LJForceCompute(pdata, nlist, r_cut));
 	#ifdef USE_CUDA
@@ -162,6 +164,25 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		result = tmp;
 		}
 	#endif
+	
+	// handle the FENE bonds
+	if (fc_name == "FENE")
+		{
+		shared_ptr<FENEBondForceCompute> tmp = shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(pdata));
+		tmp->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
+		init_bond_tables(pdata);
+		result = tmp;
+		}
+	#ifdef USE_CUDA
+	if (fc_name == "FENE.GPU")
+		{
+		shared_ptr<FENEBondForceComputeGPU> tmp = shared_ptr<FENEBondForceComputeGPU>(new FENEBondForceComputeGPU(pdata));
+		tmp->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
+		init_bond_tables(pdata);
+		tmp->setBlockSize(block_size);
+		result = tmp;
+		}
+	#endif	
 
 	// handle creation of the various stochastic force computes
 	if (fc_name == "SF")
@@ -175,7 +196,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		}
 	#endif	
 	
-	// handle creation of the various lennard=jones computes
+	// handle creation of the yukawa force compute
 	if (fc_name == "Yukawa")
 		result = shared_ptr<ForceCompute>(new YukawaForceCompute(pdata, nlist, r_cut, kappa));
 	#ifdef USE_CUDA
@@ -186,7 +207,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		result = tmp;
 		}
 	#endif
-				
+	
 	return result;
 	}
 	
@@ -324,9 +345,9 @@ int main(int argc, char **argv)
 		cerr << "Error parsing command line: " << e.what() << endl;
 		cout << desc;
 		cout << "Available ForceComputes are: ";
-		cout << "LJ, Yukawa, Bond, and SF ";
+		cout << "LJ, Yukawa, Bond, FENE and SF ";
 		#ifdef USE_CUDA
-		cout << "LJ.GPU, Yukawa.GPU, Bond.GPU, and SF.GPU" << endl;
+		cout << "LJ.GPU, Yukawa.GPU, Bond.GPU, FENE.GPU and SF.GPU" << endl;
 		#else
 		cout << endl;
 		#endif

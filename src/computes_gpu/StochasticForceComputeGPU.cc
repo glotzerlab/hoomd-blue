@@ -86,7 +86,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 		m_block_size = 96;
 	else
 		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
+		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for StochasticForceComputeGPU" << endl;
 		m_block_size = 96;
 		}
 
