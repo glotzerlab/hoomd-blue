@@ -98,7 +98,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		const CScalar & Show_rho_real(unsigned int ix,unsigned int iy,unsigned int iz) const;
 
 		//! Show the value of the polynomial coefficients for charge distribution, convenient for unit testing
-		const Scalar & Poly_coeff_Grid(unsigned int i,unsigned int j);
+		const Scalar & Poly_coeff_Grid(unsigned int i,unsigned int j) const;
 		
 		//! Delivers the Influence function, convenient for unit testing
 		const Scalar & Influence_function(unsigned int ix,unsigned int iy,unsigned int iz) const;
