@@ -72,7 +72,7 @@ include (CMakeFFTSetup.txt)
 ################################
 ## Define common libraries used by every target in HOOMD
 if (WIN32)
-	set(HOOMD_COMMON_LIBS hoomd_python_module ${FFTW_LIBRARAY} ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
+	set(HOOMD_COMMON_LIBS hoomd_python_module ${FFTW_LIBRARY} ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
 else (WIN32)
 	set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
 			${Boost_FILESYSTEM_LIBRARY}
