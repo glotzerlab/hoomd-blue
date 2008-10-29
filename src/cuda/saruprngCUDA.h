@@ -99,8 +99,10 @@ class Saru {
   __device__ inline float f(float low, float high);
   __device__ inline double d(double low, double high);
 
-  uint2 state;
-   
+#ifdef _DEVICEEMU
+   uint2 state;
+#endif   
+
  private:
    
    /* compile-time metaprograms to compute LCG and Weyl advancement */
@@ -167,6 +169,11 @@ class Saru {
    template <unsigned int steps> __device__ inline  void rewindWeyl()
      { state.y=advanceAnyWeyl<oWeylOffset, oWeylPeriod-oWeylDelta, 
 	 oWeylPeriod, steps>(state.y); }
+	 
+#ifndef _DEVICEEMU
+     uint2 state;
+#endif 
+	
       
 };
 
