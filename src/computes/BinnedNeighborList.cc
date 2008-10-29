@@ -44,7 +44,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 
 // windoze calls isnan by a different name....
-#define isnan _isnanf
+#include <float.h>
+#define isnan _isnan
 #endif
 
 #include <math.h>
