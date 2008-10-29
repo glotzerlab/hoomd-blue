@@ -52,10 +52,17 @@ def print_status_line():
 		print "hoomd_script executing unknown command";
 	file_name, line, module, code = stack[-3];
 	
-	# if the code is not provided, assume that this is an 
-	# interactive interpreter session and don't print anything
-	if not code:
+	# if we are in interactive mode, there is no need to print anything: the
+	# interpreter loop does it for us. We can make that check by testing if
+	# sys.ps1 is defined (this is not a hack, the python documentation states 
+	# that ps1 is _only_ defined in interactive mode
+	if 'ps1' in sys.__dict__:
 		return
+
+	# piped input from stdin doesn't provide a code line, handle the situation 
+	# gracefully
+	if not code:
+		code = "<unknown code>";
 	
 	# build and print the message line
 	message = file_name + ":" + str(line).zfill(3) + "  |  " + code;
