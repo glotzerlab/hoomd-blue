@@ -169,7 +169,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	if (fc_name == "FENE")
 		{
 		shared_ptr<FENEBondForceCompute> tmp = shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(pdata));
-		tmp->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
+		tmp->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
 		init_bond_tables(pdata);
 		result = tmp;
 		}
@@ -177,7 +177,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	if (fc_name == "FENE.GPU")
 		{
 		shared_ptr<FENEBondForceComputeGPU> tmp = shared_ptr<FENEBondForceComputeGPU>(new FENEBondForceComputeGPU(pdata));
-		tmp->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
+		tmp->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
 		init_bond_tables(pdata);
 		tmp->setBlockSize(block_size);
 		result = tmp;
@@ -186,11 +186,11 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 
 	// handle creation of the various stochastic force computes
 	if (fc_name == "SF")
-		result = shared_ptr<ForceCompute>(new StochasticForceCompute(pdata, 0.005, 1.0, 0));
+		result = shared_ptr<ForceCompute>(new StochasticForceCompute(pdata, Scalar(0.005), Scalar(1.0), 0));
 	#ifdef USE_CUDA
 	if (fc_name == "SF.GPU")
 		{
-		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(pdata, 0.005, 1.0, 0));
+		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(pdata, Scalar(0.005), Scalar(1.0), 0));
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}

@@ -291,8 +291,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	
 	shared_ptr<HarmonicBondForceCompute> fc1 = bf_creator1(pdata);
 	shared_ptr<HarmonicBondForceCompute> fc2 = bf_creator2(pdata);
-	fc1->setParams(0, 300.0, 1.6);
-	fc2->setParams(0, 300.0, 1.6);
+	fc1->setParams(0, Scalar(300.0), Scalar(1.6));
+	fc2->setParams(0, Scalar(300.0), Scalar(1.6));
 
 	// displace particles a little so all forces aren't alike
 	ParticleDataArrays arrays = pdata->acquireReadWrite();

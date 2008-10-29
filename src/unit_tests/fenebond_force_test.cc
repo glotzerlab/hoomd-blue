@@ -103,7 +103,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 
 	// create the bond force compute to check
 	shared_ptr<FENEBondForceCompute> fc_2 = bf_creator(pdata_2);
-	fc_2->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
+	fc_2->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
 
 	// compute the force and check the results
 	fc_2->compute(0);
@@ -171,9 +171,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	pdata_6->release();
 	
 	shared_ptr<FENEBondForceCompute> fc_6 = bf_creator(pdata_6);
-	fc_6->setParams(0, 1.5, 1.1, 1.0, 1.0/4.0);
-	fc_6->setParams(1, 2.0*1.5, 1.1, 1.0, 1.0/4.0);
-	fc_6->setParams(2, 1.5, 1.0, 1.0, 1.0/4.0);
+	fc_6->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
+	fc_6->setParams(1, Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
+	fc_6->setParams(2, Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0/4.0));
 	
 	pdata_6->getBondData()->addBond(Bond(0, 0,1));
 	pdata_6->getBondData()->addBond(Bond(1, 2,3));
@@ -241,7 +241,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 
 	// build the bond force compute and try it out
 	shared_ptr<FENEBondForceCompute> fc_4 = bf_creator(pdata_4);
-	fc_4->setParams(0, 1.5, 1.75, 1.2, 1.0/4.0);
+	fc_4->setParams(0, Scalar(1.5), Scalar(1.75), Scalar(1.2), Scalar(1.0/4.0));
 	// only add bonds on the left, top, and bottom of the square
 	pdata_4->getBondData()->addBond(Bond(0, 2,3));
 	pdata_4->getBondData()->addBond(Bond(0, 2,0));
@@ -291,8 +291,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	
 	shared_ptr<FENEBondForceCompute> fc1 = bf_creator1(pdata);
 	shared_ptr<FENEBondForceCompute> fc2 = bf_creator2(pdata);
-	fc1->setParams(0, 300.0, 1.6, 1.0, 1.0/4.0);
-	fc2->setParams(0, 300.0, 1.6, 1.0, 1.0/4.0);
+	fc1->setParams(0, Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0/4.0));
+	fc2->setParams(0, Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0/4.0));
 
 	// displace particles a little so all forces aren't alike
 	ParticleDataArrays arrays = pdata->acquireReadWrite();

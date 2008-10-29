@@ -42,7 +42,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4244 )
+
+// windoze calls isnan by a different name....
+#define isnan _isnanf
 #endif
+
+#include <math.h>
 
 #include <boost/python.hpp>
 using namespace boost::python;
