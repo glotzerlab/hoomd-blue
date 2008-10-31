@@ -83,6 +83,7 @@ set(TEST_LIST
 if (USE_FFT)
 	set(TEST_LIST ${TEST_LIST} 
 	ElectrostaticShortRange_force_test
+	ElectrostaticLongRange_PPPM_test
 	Fourier_transform_test)
 endif (USE_FFT)
 
