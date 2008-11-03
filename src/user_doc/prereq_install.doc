@@ -248,23 +248,33 @@ if you have Mac OS X 10.4, or 3.0 if you have Mac OS X 10.5.
 <b>2. Install python</b><br>
 If you are running Mac OS X 10.4, you need to download and install the latest 
 version of python (2.5.1) from http://www.python.org/download/ . 
-Users on 10.5 (Leopard) probably can skip this step (unknown, I don't have a 10.5 machine to test on).
+Users on 10.5 (Leopard) probably skip this step.
 
 <b>3. Download and compile boost</b><br>
 Building boost is a fairly complicated and time consuming process.
 
-Start by downloading \b boost-1.34.1.tar.bz2 from http://www.boost.org/. Extract the tarball and 
+Start by downloading \b boost_1_36_0.tar.bz2 from http://www.boost.org/. Extract the tarball and 
 configure boost for building with the following commands.
 \code
- $ tar -xjf boost_1_34_1.tar.bz2 
- $ cd boost_1_34_1
- $ ./configure --with-python=/Library/Frameworks/Python.framework/Versions/Current/bin/python
-Building Boost.Jam with toolset darwin... tools/jam/src/bin.macosxppc/bjam
-Detecting Python version... 2.5
-Detecting Python root... /Library/Frameworks/Python.framework/Versions/2.5
-Unicode/ICU support for Boost.Regex?... not found.
+ $ tar -xjf boost_1_36_0.tar.bz2 
+ $ cd boost_1_36_0
+ $ ./configure
+lding Boost.Jam with toolset darwin... 
+tools/jam/src/bin.macosxx86/bjam
+-n Detecting Python version... 
+2.5
+-n Detecting Python root... 
+/System/Library/Frameworks/Python.framework/Versions/2.5
+-n Unicode/ICU support for Boost.Regex?... 
+not found.
 Generating Boost.Build configuration in user-config.jam...
 Generating Makefile...
+\endcode
+
+Users who downloaded and installed python from www.python.org may need to run the configure command
+with the following arugment in order for python to properly be detected.
+\code
+ $ ./configure --with-python=/Library/Frameworks/Python.framework/Versions/Current/bin/python
 \endcode
 
 Now, the default settings from configure generate unoptimized boost libraries. 
@@ -280,7 +290,7 @@ BJAM=./tools/jam/src/bin.macosxppc/bjam
 BJAM=./tools/jam/src/bin.macosxppc/bjam optimization=speed
 \endcode
 Then save and exit the text editor.
-If you are compiling boost 1.35, you need to make the following change instead:
+If you are compiling boost 1.35 or newer, you need to make the following change instead:
 \code
 BJAM_CONFIG=variant=release threading=multi link=shared,static
 \endcode
@@ -291,7 +301,7 @@ Now, run the command
 \endcode
 and wait a \e long time for everything to compile. At the end, you should see a message saying
 \code
- ...updated 1426 targets...
+...updated 747 targets...
 \endcode
 
 Now, you are ready to install the library (requires administrator privleges).
@@ -300,7 +310,7 @@ Now, you are ready to install the library (requires administrator privleges).
 \endcode
 After typing in your password and a considerably shorter wait, you should see
 \code
- ...updated 1426 targets...
+...updated 7079 targets...
 \endcode
 again. Boost is now installed.
 
@@ -322,7 +332,7 @@ any changes you make that affect any of the *GPU classes.
 Go to http://developer.nvidia.com/object/cuda.html#downloads and download the latest CUDA toolkit. Double-click
 on the downloaded package to install it. 
 
-One more step needs to be performed so that applications can find the CUDA libraries. Open up ~/.bashrc in your
+One more step needs to be performed so that applications can find the CUDA libraries. Open up ~/.bash_profile in your
 favorite text editor and add the following line:
 \code
 export DYLD_LIBRARY_PATH=/usr/local/cuda/lib:$DYLD_LIBRARY_PATH
@@ -338,7 +348,8 @@ Subversion is used for version control. You need to install it if you have commi
 work on active development of HOOMD, or if you just want to download and compile the latest and greatest
 version.
 
-Subversion on Mac OS X is most easily installed from the dmg from here: http://downloads.open.collab.net/binaries.html
+Subversion is included in Mac OS X 10.5 and newer. If you are building HOOMD on an older version, 
+subversion on Mac OS X is most easily installed from the dmg from here: http://downloads.open.collab.net/binaries.html
 
 <b>7. Doxygen</b><br>
 If you want to build this documentation from source, you will need to install Doxygen. There 
@@ -479,8 +490,7 @@ TortoiseSVN is a nice graphical interface to subversion that integrates into the
 windows explorer. Download from here: http://tortoisesvn.net/
 
 If you prefer a command line, you can download one from here: 
-http://subversion.tigris.org/project_packages.html#binary-packages.
-You really only need the file \b svn-1.4.5-setup.exe. 
+http://www.sliksvn.com/en/download
 
 There is nothing against installing both. One useful reason to do this
 is to enable HOOMD executables to report the svnversion they were 
