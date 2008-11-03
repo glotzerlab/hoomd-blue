@@ -86,7 +86,7 @@ const Scalar MIN_force=Scalar(1.0e-9);
 typedef function<shared_ptr<ElectrostaticLongRangePPPM> (shared_ptr<ParticleData> pdata,unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z, unsigned int P_order_a, Scalar alpha, shared_ptr<FFTClass> FFTP,bool third_law_m)> LongRangePPPM_creator;
 	
 //! Test the ability of the Short Range Electrostatic force compute to actually calculate forces
-/*! 
+/*! \param LongRangePPPM_object_n1 I have no idea: the write of this code needs to document it better
 	\note With the creator as a parameter, the same code can be used to test any derived child
 		of ElectrostaticLongRangePPPM
 */
