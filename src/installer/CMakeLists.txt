@@ -106,4 +106,9 @@ endif (CMAKE_CL_64)
 
 include(CPack)
 
+# need to install vs dlls on windows
+if(WIN32)
+include(InstallRequiredSystemLibraries)
+endif(WIN32)
+
 endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
