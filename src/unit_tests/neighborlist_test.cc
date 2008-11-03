@@ -279,7 +279,6 @@ void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creato
 	std::vector<unsigned int> tmp_list1;
 	std::vector<unsigned int> tmp_list2;
 	
-	cout << endl << endl;
 	// check to make sure that every neighbor matches
 	for (unsigned int i = 0; i < pdata->getN(); i++)
 		{

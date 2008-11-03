@@ -78,7 +78,7 @@ using namespace std;
 	\post The storage mode defaults to half
 */
 NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) 
-	: Compute(pdata), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_force_update(true), m_updates(0), m_forced_updates(0)
+	: Compute(pdata), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
 	{
 	#ifdef USE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -260,15 +260,13 @@ void NeighborList::compute(unsigned int timestep)
 
 	if (m_prof) m_prof->push("Neighbor");
 	
+	// update the exclusion data if this is a forced update
+	if (m_force_update)
+		updateExclusionData();
+	
+	// check if the list needs to be updated and update it
 	if (needsUpdating(timestep))
-		{
-		computeSimple();
-		
-		#ifdef USE_CUDA
-		// after computing, the device now resides on the CPU
-		m_data_location = cpu;
-		#endif
-		}
+		buildNlist();
 	
 	if (m_prof) m_prof->pop();
 	}
@@ -630,8 +628,83 @@ void NeighborList::copyExclusionsFromBonds()
 		to this method that returned true.
 	\returns false If none of the particles has been moved more than 1/2 of the buffer distance since the last call to this
 		method that returned true.
-	\note This is designed to be called if (needsUpdating()) then update every step. It internally handles the copy
-		of the particle data into the last arrays so the caller doesn't need to.
+*/
+bool NeighborList::distanceCheck()
+	{
+	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+	// sanity check
+	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+
+	// profile
+	if (m_prof) m_prof->push("Dist check");	
+
+	// temporary storage for the result
+	bool result = false;
+	
+	// get a local copy of the simulation box too
+	const BoxDim& box = m_pdata->getBox();
+	// sanity check
+	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+
+	// precalculate box lenghts
+	Scalar Lx = box.xhi - box.xlo;
+	Scalar Ly = box.yhi - box.ylo;
+	Scalar Lz = box.zhi - box.zlo;
+
+	// actually scan the array looking for values over 1/2 the buffer distance
+	Scalar maxsq = (m_r_buff/Scalar(2.0))*(m_r_buff/Scalar(2.0));
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		{
+		Scalar dx = arrays.x[i] - m_last_x[i];
+		Scalar dy = arrays.y[i] - m_last_y[i];
+		Scalar dz = arrays.z[i] - m_last_z[i];
+		
+		// if the vector crosses the box, pull it back
+		if (dx >= box.xhi)
+			dx -= Lx;
+		else
+		if (dx < box.xlo)
+			dx += Lx;
+		
+		if (dy >= box.yhi)
+			dy -= Ly;
+		else
+		if (dy < box.ylo)
+			dy += Ly;
+					
+		if (dz >= box.zhi)
+			dz -= Lz;
+		else
+		if (dz < box.zlo)
+			dz += Lz;
+
+		if (dx*dx + dy*dy + dz*dz >= maxsq)
+			{
+			result = true;
+			m_updates += 1;
+			break;
+			}
+		}
+
+	// if we are updating, update the last position arrays
+	if (result)
+		{
+		memcpy((void *)m_last_x, arrays.x, sizeof(Scalar)*arrays.nparticles);
+		memcpy((void *)m_last_y, arrays.y, sizeof(Scalar)*arrays.nparticles);
+		memcpy((void *)m_last_z, arrays.z, sizeof(Scalar)*arrays.nparticles);
+		}
+
+	// don't worry about computing flops here, this is fast
+	if (m_prof) m_prof->pop();
+		
+	m_pdata->release();
+	return result;
+	}
+
+/*! \returns true If the neighbor list needs to be updated
+	\returns false If the neighbor list does not need to be updated
+	\note This is designed to be called if (needsUpdating()) then update every step. 
+		It internally handles many state variables that rely on this assumption.
 	\param timestep Current time step in the simulation
 */
 bool NeighborList::needsUpdating(unsigned int timestep)
@@ -642,14 +715,15 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 		return true;
 	if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
 		return false;
+	
+	// check if this is a dangerous time
+	// we are dangerous if m_every is greater than 1 and this is the first check after the 
+	// last build
+	bool dangerous = false;
+	if (m_every > 1 && timestep == (m_last_updated_tstep + m_every))
+		dangerous = true;
 			
-	// scan through the particle data arrays and calculate distances
-	if (m_prof) m_prof->push("Dist check");	
-
-	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-	// sanity check
-	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-
+	// temporary storage for return result
 	bool result = false;
 
 	// if the update has been forced, the result defaults to true
@@ -657,71 +731,33 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 		{
 		result = true;
 		m_force_update = false;
-		m_forced_updates += m_pdata->getN();
+		m_forced_updates += 1;
 		m_last_updated_tstep = timestep;
+		
+		// when an update is forced, there is no way to tell if the build
+		// is dangerous or not: filter out the false positive errors
+		dangerous = false;
 		}
 	else
 		{
-		// get a local copy of the simulation box too
-		const BoxDim& box = m_pdata->getBox();
-		// sanity check
-		assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-	
-		// precalculate box lenghts
-		Scalar Lx = box.xhi - box.xlo;
-		Scalar Ly = box.yhi - box.ylo;
-		Scalar Lz = box.zhi - box.zlo;
-
-		// actually scan the array looking for values over 1/2 the buffer distance
-		Scalar maxsq = (m_r_buff/Scalar(2.0))*(m_r_buff/Scalar(2.0));
-		for (unsigned int i = 0; i < arrays.nparticles; i++)
+		// not a forced update, perform the distance check to determine
+		// if the list needs to be updated
+		result = distanceCheck();
+		
+		if (result)
 			{
-			Scalar dx = arrays.x[i] - m_last_x[i];
-			Scalar dy = arrays.y[i] - m_last_y[i];
-			Scalar dz = arrays.z[i] - m_last_z[i];
-			
-			// if the vector crosses the box, pull it back
-			if (dx >= box.xhi)
-				dx -= Lx;
-			else
-			if (dx < box.xlo)
-				dx += Lx;
-			
-			if (dy >= box.yhi)
-				dy -= Ly;
-			else
-			if (dy < box.ylo)
-				dy += Ly;
-						
-			if (dz >= box.zhi)
-				dz -= Lz;
-			else
-			if (dz < box.zlo)
-				dz += Lz;
-
-			if (dx*dx + dy*dy + dz*dz >= maxsq)
-				{
-				result = true;
-				m_updates += m_pdata->getN();
-				break;
-				}
+			m_last_updated_tstep = timestep;
+			m_updates += 1;
 			}
 		}
-
-	// if we are updating, update the last position arrays
-	if (result)
+		
+	// warn the user if this is a dangerous build
+	if (result && dangerous)
 		{
-		memcpy((void *)m_last_x, arrays.x, sizeof(Scalar)*arrays.nparticles);
-		memcpy((void *)m_last_y, arrays.y, sizeof(Scalar)*arrays.nparticles);
-		memcpy((void *)m_last_z, arrays.z, sizeof(Scalar)*arrays.nparticles);
-		m_last_updated_tstep = timestep;
+		cout << "***Warning! Dangerous neighborlist build occured. Continuing this simulation may produce incorrect results and/or program crashes. Decrease the neighborlist check_period and rerun." << endl;
+		m_dangerous_updates += 1;
 		}
 
-	m_pdata->release();
-
-	// don't worry about computing flops here, this is fast
-	if (m_prof) m_prof->pop();
-	
 	return result;
 	}
 
@@ -732,7 +768,7 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 void NeighborList::printStats()
 	{
 	cout << "-- Neighborlist stats:" << endl;
-	cout << m_updates/m_pdata->getN() << " updates / " << m_forced_updates/m_pdata->getN() << " forced updates" << endl;
+	cout << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
 
 	// copy the list back from the device if we need to
 	#ifdef USE_CUDA
@@ -769,7 +805,7 @@ void NeighborList::printStats()
 	\c r_cut \c + \c r_buff from particle \c i, includes either i < j or all neighbors depending 
 	on the mode set by setStorageMode()
 */
-void NeighborList::computeSimple()
+void NeighborList::buildNlist()
 	{
 	// sanity check
 	assert(m_pdata);
@@ -877,6 +913,11 @@ void NeighborList::computeSimple()
 		}
 
 	m_pdata->release();
+	
+	#ifdef USE_CUDA
+	// after computing, the device now resides on the CPU
+	m_data_location = cpu;
+	#endif
 
 	// upate the profile
 	// the number of evaluations made is the number of pairs which is = N(N-1)/2

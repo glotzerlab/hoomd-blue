@@ -66,12 +66,12 @@ class NeighborListNsqGPU : public NeighborList
 		//! Destructor
 		virtual ~NeighborListNsqGPU();
 		
-		//! Computes the NeighborList if it needs updating
-		virtual void compute(unsigned int timestep);
-		
 	private:
-		//! Actually builds the neighbor list
-		void buildNlist();
+		//! Builds the neighbor list
+		virtual void buildNlist();
+		
+		//! Attempts to builds the neighbor list
+		virtual void buildNlistAttempt();
 	};
 	
 //! Exports the NeighborListNsqGPU class to python

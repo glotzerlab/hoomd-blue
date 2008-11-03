@@ -78,30 +78,20 @@ BinnedNeighborList::BinnedNeighborList(boost::shared_ptr<ParticleData> pdata, Sc
 	{
 	}
 
-/*! Updates the neighborlist if it has not yet been updated this times step
- 	\param timestep Current time step of the simulation
+/*! All steps needed to build the neighbor list are performed.
+	These include:
+		- Updating the bins
+		- Using the bins to update the neighbor list
 */
-void BinnedNeighborList::compute(unsigned int timestep)
+void BinnedNeighborList::buildNlist()
 	{
-	// skip if we shouldn't compute this step
-	if (!shouldCompute(timestep) && !m_force_update)
-		return;
-
-	if (m_prof) m_prof->push("Neighbor");
-
-	// update the list (if it needs it)
-	if (needsUpdating(timestep))
-		{
-		updateBins();
-		updateListFromBins();
-
-		#ifdef USE_CUDA
-		// after computing, the device now resides on the CPU
-		m_data_location = cpu;
-		#endif
-		}
-
-	if (m_prof) m_prof->pop();
+	updateBins();
+	updateListFromBins();
+	
+	#ifdef USE_CUDA
+	// after computing, the device now resides on the CPU
+	m_data_location = cpu;
+	#endif
 	}
 
 /*! \post \c m_bins, \c m_binned_x, \c m_binned_y, and \c m_binned_z are updated with the current particle 

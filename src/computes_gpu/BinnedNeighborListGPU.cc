@@ -349,73 +349,74 @@ void BinnedNeighborListGPU::freeGPUBinData()
 	m_host_idxlist = NULL;
 	}
 
-/*! Updates the neighborlist if it has not yet been updated this times step
- 	\param timestep Current timestep to compute for
+/*! Makes all the calls needed to bring the neighbor list up to date on the GPU.
+	This requires building the cell list, copying it to the GPU and then 
+	attempting to build the list repeatedly, increasing the allocated 
+	memory each time until the list does not overflow.
 */
-void BinnedNeighborListGPU::compute(unsigned int timestep)
+void BinnedNeighborListGPU::buildNlist()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
-	// skip if we shouldn't compute this step
-	if (!shouldCompute(timestep) && !m_force_update)
-		return;
+	// bin the particles
+	updateBinsUnsorted();
+		
+	// copy those bins to the GPU
+	if (m_prof) m_prof->push(exec_conf, "Bin copy");
+		
+	unsigned int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My * m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax * sizeof(unsigned int);
 
-	if (m_storage_mode != full)
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
-		throw runtime_error("Error computing neighbor list");
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice));
 		}
-
-	if (m_prof) m_prof->push(exec_conf, "Neighbor");
+	exec_conf.syncAll();
 	
-	// need to update the exclusion data if anything has changed
-	if (m_force_update)
-		updateExclusionData();
-
-	// update the list (if it needs it)
-	if (needsUpdating(timestep))
+	if (m_prof) m_prof->pop(exec_conf, 0, nbytes*(unsigned int)exec_conf.gpu.size());
+	// transpose the bins for a better memory access pattern on the GPU
+	
+	if (m_prof) m_prof->push(exec_conf, "Transpose");
+	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		// bin the particles
-		updateBinsUnsorted();
-		
-		// copy those bins to the GPU
-		if (m_prof) m_prof->push(exec_conf, "Bin copy");
-		
-		unsigned int nbytes = m_gpu_bin_data[0].Mx * m_gpu_bin_data[0].My * m_gpu_bin_data[0].Mz * m_gpu_bin_data[0].Nmax * sizeof(unsigned int);
-
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			{
-			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice));
-			}
-		exec_conf.syncAll();
-		
-		if (m_prof) m_prof->pop(exec_conf, 0, nbytes*(unsigned int)exec_conf.gpu.size());
-		// transpose the bins for a better memory access pattern on the GPU
-		if (m_prof) m_prof->push(exec_conf, "Transpose");
-		vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 256));
+		}
+	exec_conf.syncAll();
 	
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			{
-			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_idxlist2coord, &pdata[cur_gpu], &m_gpu_bin_data[cur_gpu], m_curNmax, 256));
-			}
-		exec_conf.syncAll();
+	m_pdata->release();
 		
-		m_pdata->release();
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{	
+		exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].coord_idxlist_array, 0, 0, m_gpu_bin_data[cur_gpu].coord_idxlist, m_gpu_bin_data[cur_gpu].coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice));
+		}
+	if (m_prof) m_prof->pop(exec_conf, 0);
 		
-		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			{	
-			exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].coord_idxlist_array, 0, 0, m_gpu_bin_data[cur_gpu].coord_idxlist, m_gpu_bin_data[cur_gpu].coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice));
-			}
-		if (m_prof) m_prof->pop(exec_conf, 0);
+	// update the neighbor list using the bins. Need to check for overflows
+	// and increase the size of the list as needed
+	updateListFromBins();
 		
-		// update the neighbor list using the bins. Need to check for overflows
-		// and increase the size of the list as needed
+	int overflow = 0;
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		int overflow_tmp = 0;
+		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &overflow_tmp, m_gpu_nlist[cur_gpu].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+		overflow = overflow || overflow_tmp;
+		}
+		
+	while (overflow)
+		{
+		int new_height = (int)(Scalar(m_gpu_nlist[0].height) * 1.2);
+		// cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+		freeGPUData();
+		allocateGPUData(new_height);
+		updateExclusionData();
+		
 		updateListFromBins();
-		
-		int overflow = 0;
+		overflow = 0;
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
 			int overflow_tmp = 0;
@@ -423,33 +424,9 @@ void BinnedNeighborListGPU::compute(unsigned int timestep)
 			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &overflow_tmp, m_gpu_nlist[cur_gpu].overflow, sizeof(int), cudaMemcpyDeviceToHost));
 			overflow = overflow || overflow_tmp;
 			}
-			
-		while (overflow)
-			{
-			int new_height = (int)(Scalar(m_gpu_nlist[0].height) * 1.2);
-			// cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
-			freeGPUData();
-			allocateGPUData(new_height);
-			updateExclusionData();
-			
-			updateListFromBins();
-			overflow = 0;
-			for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-				{
-				int overflow_tmp = 0;
-				exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-				exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &overflow_tmp, m_gpu_nlist[cur_gpu].overflow, sizeof(int), cudaMemcpyDeviceToHost));
-				overflow = overflow || overflow_tmp;
-				}
-			}
-			
-		#ifdef USE_CUDA
-		// after computing, the device now resides on the CPU
-		m_data_location = gpu;
-		#endif
 		}
 		
-	if (m_prof)	m_prof->pop(exec_conf);
+	m_data_location = gpu;
 	}
 
 void BinnedNeighborListGPU::updateBinsUnsorted()
@@ -611,6 +588,12 @@ void BinnedNeighborListGPU::updateListFromBins()
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
+	if (m_storage_mode != full)
+		{
+		cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
+		throw runtime_error("Error computing neighbor list");
+		}
+
 	// sanity check
 	assert(m_pdata);
 		
@@ -637,29 +620,17 @@ void BinnedNeighborListGPU::updateListFromBins()
 	int64_t mem_transfer = m_pdata->getN() * (32 + 4 + 8 + 27 * (4 + m_curNmax * 16));
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
-	
 
-
-//! Test if the list needs updating
-bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
+/*! \returns true If any of the particles have been moved more than 1/2 of the buffer distance since the last call
+		to this method that returned true.
+	\returns false If none of the particles has been moved more than 1/2 of the buffer distance since the last call to this
+		method that returned true.
+*/
+bool BinnedNeighborListGPU::distanceCheck()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
-	if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
-		return false;
-	
-	if (m_force_update)
-		{
-		m_force_update = false;
-		m_forced_updates += m_pdata->getN();
-		m_last_updated_tstep = timestep;
-		return true;
-		}
-		
-	if (m_r_buff < 1e-6)
-		return true;
-
 	// scan through the particle data arrays and calculate distances
 	if (m_prof) m_prof->push(exec_conf, "Dist check");
 		
@@ -682,14 +653,7 @@ bool BinnedNeighborListGPU::needsUpdating(unsigned int timestep)
 
 	if (m_prof) m_prof->pop(exec_conf);
 
-	if (result)
-		{
-		m_last_updated_tstep = timestep;
-		m_updates += m_pdata->getN();
-		return true;
-		}
-	else
-		return false;
+	return result;
 	}
 
 void BinnedNeighborListGPU::printStats()

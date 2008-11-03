@@ -63,9 +63,6 @@ class BinnedNeighborListGPU : public NeighborList
 
 		virtual ~BinnedNeighborListGPU();
 
-		//! Computes the NeighborList if it needs updating
-		virtual void compute(unsigned int timestep);
-		
 		//! Prints statistics on the neighbor list
 		virtual void printStats();
 		
@@ -91,14 +88,17 @@ class BinnedNeighborListGPU : public NeighborList
 		int m_block_size;				//!< Block size to use when performing the calculations on the GPU
 		unsigned int *m_mem_location;	//!< Memory location of bins (Z-order curve)
 
+		//! Builds the neighbor list
+		virtual void buildNlist();
+		
 		//! Puts the particles into their bins
 		void updateBinsUnsorted();
 	
 		//! Updates the neighborlist using the binned data
 		void updateListFromBins();
 
-		//! Test if the list needs updating
-		virtual bool needsUpdating(unsigned int timestep);
+		//! Performs the distance check
+		virtual bool distanceCheck();
 		
 		//! Helper function to allocate bin data
 		void allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax);

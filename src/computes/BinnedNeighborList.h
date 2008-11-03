@@ -64,9 +64,6 @@ class BinnedNeighborList : public NeighborList
 		//! Constructor
 		BinnedNeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff);
 				
-		//! Computes the NeighborList if it needs updating
-		virtual void compute(unsigned int timestep);
-		 
 		//! Print statistics on the neighborlist
 		virtual void printStats();
 
@@ -86,6 +83,10 @@ class BinnedNeighborList : public NeighborList
 	
 		//! Updates the neighborlist using the binned data
 		void updateListFromBins();
+		
+		//! Builds the neighbor list
+		virtual void buildNlist();		
+		
 	};
 
 //! Exports the BinnedNeighborList class to python

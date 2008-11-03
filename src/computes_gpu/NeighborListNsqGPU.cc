@@ -91,55 +91,48 @@ NeighborListNsqGPU::~NeighborListNsqGPU()
 	{
 	}
 		 
-void NeighborListNsqGPU::compute(unsigned int timestep)
+/*! Makes all the calls needed to bring the neighbor list up to date on the GPU.
+	This requires attempting to build the list repeatedly, increasing the allocated 
+	memory each time until the list does not overflow.
+*/
+void NeighborListNsqGPU::buildNlist()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	assert(exec_conf.gpu.size() == 1);
+	buildNlistAttempt();
+		
+	// handle when the neighbor list overflows
+	int overflow = 0;
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+	while (overflow)
+		{
+		int new_height = m_gpu_nlist[0].height * 2;
+		// cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+		freeGPUData();
+		allocateGPUData(new_height);
+		updateExclusionData();
+		
+		buildNlist();
+		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+		}
+		
+	m_data_location = gpu;
+	}
 	
-	// skip if we shouldn't compute this step
-	if (!shouldCompute(timestep) && !m_force_update)
-		return;
+/*! Builds the neighbor list on the GPU and flags an overflow if the list would overflow the
+	current allocated memory.
+*/
+void NeighborListNsqGPU::buildNlistAttempt()
+	{
+	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
 	if (m_storage_mode != full)
 		{
 		cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
 		throw runtime_error("Error computing neighbor list in NeighborListNsqGPU");
-		}
+		}	
 	
-	if (m_prof) m_prof->push(exec_conf, "Neighbor");
-		
-	// need to update the exclusion data if anything has changed
-	if (m_force_update)
-		updateExclusionData();
-		
-	if (needsUpdating(timestep))
-		{
-		buildNlist();
-		
-		// handle when the neighbor list overflows
-		int overflow = 0;
-		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
-		while (overflow)
-			{
-			int new_height = m_gpu_nlist[0].height * 2;
-			// cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
-			freeGPUData();
-			allocateGPUData(new_height);
-			updateExclusionData();
-			
-			buildNlist();
-			exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
-			}
-		}
-		
-	if (m_prof) m_prof->pop(exec_conf);
-	}
-	
-void NeighborListNsqGPU::buildNlist()
-	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// access the particle data
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
@@ -158,8 +151,6 @@ void NeighborListNsqGPU::buildNlist()
 	// calculate the nlist
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
 	exec_conf.gpu[0]->call(bind(gpu_nlist_nsq, &pdata[0], &box, &m_gpu_nlist[0], r_max_sq));
-
-	m_data_location = gpu;
 
 	// amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
 	int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;

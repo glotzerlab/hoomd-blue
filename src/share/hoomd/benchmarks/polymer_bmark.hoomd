@@ -25,7 +25,6 @@ lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
-nlist.set_params(check_period=10)
 
 # NVT integration
 integrate.nvt(dt=0.005, T=T, tau=0.5)
@@ -35,6 +34,10 @@ run(2000)
 
 # quick benchmark
 run(2000, profile=True)
+
+# the system is thermally equilibrated, we can now bump up the 
+# check period for a slight boost in performance
+nlist.set_params(check_period=10)
 
 # run the full benchmark
 run(50000)

@@ -145,7 +145,7 @@ class NeighborList : public Compute
 		virtual void printStats();
 
 		//! Computes the NeighborList if it needs updating
-		virtual void compute(unsigned int timestep);
+		void compute(unsigned int timestep);
 
 		//! Change the cuttoff radius
 		void setRCut(Scalar r_cut, Scalar r_buff);
@@ -185,22 +185,10 @@ class NeighborList : public Compute
 
 		std::vector< std::vector<unsigned int> > m_list; //!< The neighbor list itself
 		storageMode m_storage_mode;	//!< The storage mode
-		bool m_force_update;	//!< Flag to handle the forcing of neighborlist updates
-
-		int64_t m_updates;			//!< Number of particles updated (non-forced)
-		int64_t m_forced_updates;	//!< Number of forced particle updates
-
+		
 		boost::signals::connection m_sort_connection;	//!< Connection to the ParticleData sort signal
 		
-		Scalar *m_last_x;		//!< x coordinates of last updated particle positions
-		Scalar *m_last_y;		//!< y coordinates of last updated particle positions
-		Scalar *m_last_z;		//!< z coordinates of last updated particle positions
-		
 		std::vector< ExcludeList > m_exclusions; //!< Stores particle exclusion lists BY TAG
-
-		unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
-		unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
-
 
 		#ifdef USE_CUDA
 		//! Simple type for identifying where the most up to date particle data is
@@ -223,20 +211,34 @@ class NeighborList : public Compute
 		void deviceToHostCopy();
 		//! Helper function to update the exclusion data on the device
 		void updateExclusionData();
-
-		#endif
-
-		//! Test if the list needs updating
-		virtual bool needsUpdating(unsigned int timestep);
-		 
-		//! Performs the computations for the simple neighbor list algorithm
-		virtual void computeSimple();
-		
 		//! Helper function to allocate data
 		void allocateGPUData(int height);
-		
 		//! Helper function to free data
 		void freeGPUData();
+		#endif
+	
+		//! Performs the distance check
+		virtual bool distanceCheck();
+
+		//! Builds the neighbor list
+		virtual void buildNlist();
+		
+	private:
+		int64_t m_updates;			//!< Number of times the neighbor list has been updated
+		int64_t m_forced_updates;	//!< Number of times the neighbor list has been foribly updated
+		int64_t m_dangerous_updates;	//!< Number of dangerous builds counted
+
+		bool m_force_update;	//!< Flag to handle the forcing of neighborlist updates
+
+		unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
+		unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
+
+		Scalar *m_last_x;		//!< x coordinates of last updated particle positions
+		Scalar *m_last_y;		//!< y coordinates of last updated particle positions
+		Scalar *m_last_z;		//!< z coordinates of last updated particle positions
+		
+		//! Test if the list needs updating
+		bool needsUpdating(unsigned int timestep);		
 
 	};
 	
