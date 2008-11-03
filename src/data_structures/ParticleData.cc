@@ -270,7 +270,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	init.initArrays(m_arrays);
 	
 	// it is an error for particles to be initialized outside of their box
-	if (!inBox())
+	if (!inBox(false))
 		{
 		cerr << endl << "***Error! Not all particles were found inside the given box" << endl << endl;
 		throw runtime_error("Error initializing ParticleData");
@@ -327,7 +327,7 @@ const BoxDim & ParticleData::getBox() const
 void ParticleData::setBox(const BoxDim &box)
 	{
 	m_box = box;
-	assert(inBox());
+	assert(inBox(true));
 		
 	#ifdef USE_CUDA
 	// setup the box
@@ -367,7 +367,7 @@ const ParticleDataArraysConst & ParticleData::acquireReadOnly()
 	// sanity check
 	assert(m_data);
 	assert(!m_acquired);
-	assert(inBox());
+	assert(inBox(true));
 	m_acquired = true;
 	
 	#ifdef USE_CUDA
@@ -417,7 +417,7 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
 	// sanity check
 	assert(m_data);
 	assert(!m_acquired);
-	assert(inBox());
+	assert(inBox(true));
 	m_acquired = true;
 	
 	#ifdef USE_CUDA
@@ -881,11 +881,16 @@ void ParticleData::deallocate()
 	m_arrays_const.tag = m_arrays.tag = 0;
 	}
 	
-/*! \return true If and only if all particles are in the simulation box
+/*! \param need_aquire set to true if the inBox check should aquire the data before checking
+	\return true If and only if all particles are in the simulation box
 	\note This function is only called in debug builds
 */
-bool ParticleData::inBox()
+bool ParticleData::inBox(bool need_aquire)
 	{
+	#ifdef USE_CUDA
+	if (need_aquire && m_data_location == gpu)
+		deviceToHostCopy();
+	#endif
 	for (unsigned int i = 0; i < m_arrays.nparticles; i++)
 		{
 		if (m_arrays.x[i] < m_box.xlo-Scalar(1e-5) || m_arrays.x[i] > m_box.xhi+Scalar(1e-5))

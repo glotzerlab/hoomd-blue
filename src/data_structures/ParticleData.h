@@ -430,7 +430,7 @@ class ParticleData : boost::noncopyable
 		//! Deallocates data
 		void deallocate();
 		//! Helper function to check that particles are in the box
-		bool inBox();
+		bool inBox(bool need_aquire);
 	};
 	
 //! Exports the BoxDim class to python
