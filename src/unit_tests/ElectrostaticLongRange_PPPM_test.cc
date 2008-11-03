@@ -90,7 +90,6 @@ typedef function<shared_ptr<ElectrostaticLongRangePPPM> (shared_ptr<ParticleData
 	\note With the creator as a parameter, the same code can be used to test any derived child
 		of ElectrostaticLongRangePPPM
 */
-
 void LongRangePPPM_PositionGrid(LongRangePPPM_creator LongRangePPPM_object_n1)
 	{
 	cout << "Testing charge distribution on the grid in class ElectrostaticLongRangePPPM" << endl;

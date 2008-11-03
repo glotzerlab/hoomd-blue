@@ -105,7 +105,7 @@ void BD_NVTUpdater::addStochasticBath()
 			this->addForceCompute(m_bdfc);	
 			}
 
-		m_bath_index = m_forces.size() - 1;	
+		m_bath_index = (unsigned int)m_forces.size() - 1;	
 		
 		boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
 		assert(stochastic_force);
