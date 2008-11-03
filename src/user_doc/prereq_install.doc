@@ -384,6 +384,12 @@ These are accomplished in the image above with the $(PLATFORMSDK_DIR) environmen
 but you do not need to do the same, just type in the full path where you installed the
 platform SDK directly or use the file chooser dialog box.
 
+\b Note: If you intend to build installer packages to be redistributed, make sure that the 
+registry key [HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\8.0;InstallDir] is set 
+properly (typically C:\\Program Files (x86)\\Microsoft Visual Studio 8\\Common7\\IDE). You
+need this to get proper installation of the VS redistributable dlls required to run HOOMD
+on user's machines.
+
 \section software_req_install_windows_python Python
 
 Download and install python binaries from http://www.python.org. If you choose to 
