@@ -260,9 +260,11 @@ void NeighborList::compute(unsigned int timestep)
 
 	if (m_prof) m_prof->push("Neighbor");
 	
+	#ifdef USE_CUDA
 	// update the exclusion data if this is a forced update
 	if (m_force_update)
 		updateExclusionData();
+	#endif
 	
 	// check if the list needs to be updated and update it
 	if (needsUpdating(timestep))
