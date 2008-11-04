@@ -41,12 +41,8 @@ find_package(Doxygen)
 
 if (DOXYGEN)
 
-# configure exclusions based on USE_* options
-set(DOXYGEN_PREDEFINED "")
-
 # policy change: always build all documentation even on platforms that don't
 # have CUDA/Python/FFT/whatever
-
 set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"USE_CUDA=1\" \\
 	\"USE_FFT=1\" \\
 	\"USE_FFTW=1\" ")
@@ -78,7 +74,8 @@ add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/doc/html/index.html
 					${HOOMD_SOURCE_DIR}/unit_tests/*.cc
 					${HOOMD_SOURCE_DIR}/benchmarks/*.cc
 					${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script/*.py
-					${HOOMD_SOURCE_DIR}/doc/Doxyfile.in)
+					${HOOMD_SOURCE_DIR}/doc/Doxyfile.in
+					${HOOMD_SOURCE_DIR}/doc/DoxygenLayout.xml)
 
 add_custom_target (doc ALL DEPENDS ${HOOMD_BINARY_DIR}/doc/html/index.html)
 

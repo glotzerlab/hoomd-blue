@@ -82,7 +82,8 @@ add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/user_doc/html/index.html
 					${HOOMD_SOURCE_DIR}/user_doc/*.css
 					${HOOMD_SOURCE_DIR}/doc/*.doc
 					${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script/*.py
-					${HOOMD_SOURCE_DIR}/user_doc/Doxyfile.in)
+					${HOOMD_SOURCE_DIR}/user_doc/Doxyfile.in
+					${HOOMD_SOURCE_DIR}/user_doc/DoxygenLayout.xml)
 
 add_custom_target (user_doc ALL DEPENDS ${HOOMD_BINARY_DIR}/user_doc/html/index.html)
 
