@@ -251,6 +251,10 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 						*nlist.overflow = 1;
 					}
 				}
+			else
+				{
+				break;
+				}
 			}
 		}
 	
