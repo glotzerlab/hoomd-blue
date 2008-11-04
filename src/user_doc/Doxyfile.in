@@ -553,16 +553,16 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = "${HOOMD_SOURCE_DIR}/user_doc/installation_guide.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/quick_start.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/examples.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/index.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/xml_file_format.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/command_line_options.doc" \
+                         "${HOOMD_SOURCE_DIR}/user_doc/conversion_scripts.doc" \
                          "${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc" \
                          "${HOOMD_SOURCE_DIR}/user_doc/prereq_install.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/quick_start.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/command_line_options.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/examples.doc" \
                          "${HOOMD_SOURCE_DIR}/user_doc/license.doc" \
                          "${HOOMD_SOURCE_DIR}/user_doc/credits.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/xml_file_format.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/conversion_scripts.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/index.doc" \
                          "${HOOMD_SOURCE_DIR}/lib/python-module/hoomd_script"
 
 # This tag can be used to specify the character encoding of the source files 
