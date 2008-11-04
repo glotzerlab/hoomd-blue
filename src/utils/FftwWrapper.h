@@ -44,13 +44,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Adapts fftw for use in HOOMD
 */
 
-//! Implements fftw for HOOMD
-/*! fftw stands for fastest fourier transform in the west, see http://www.fftw.org/ for
-    proper documentation and details. 
-	The fftw used in this class is done in double precision.
-	\note Due to licensing conflicts fftw cannot distributed by HOOMD.
-*/
-
 #ifdef USE_FFTW
 
 #include "FFTClass.h"
@@ -60,6 +53,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
  #define _USE_MATH_DEFINES
 #endif
 
+//! Implements fftw for HOOMD
+/*! fftw stands for fastest fourier transform in the west, see http://www.fftw.org/ for
+    proper documentation and details. 
+	The fftw used in this class is done in double precision.
+	\note Due to licensing conflicts fftw cannot distributed with HOOMD.
+	\todo After putting in placeholder documentation in FFTClass, I'm not doing so again
+	it is the responsibility of the author to properly document the code so I'm not fixing it.
+*/
 class FftwWrapper:public FFTClass
     {
 	public:

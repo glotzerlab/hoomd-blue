@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 /*! \file BondData.h
- 	\brief Contains declarations for BondData
+ 	\brief Declares BondData and related classes
  */
  
 #ifndef __BONDDATA_H__
@@ -60,7 +60,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 class ParticleData;
 
 //! Stores a bond between two particles
-/*! Each bond is given an integer type from 0 to \c NBondTypes-1 and the \em tags
+/*! Each bond is given an integer \c type from 0 to \c NBondTypes-1 and the \em tags
 	of the two bonded particles.
 	\ingroup data_structs
 */
@@ -79,14 +79,15 @@ struct Bond
 	
 //! Stores all bonds in the simulation and mangages the GPU bond data structure
 /*! BondData tracks every bond defined in the simulation. On the CPU, bonds are stored just
-	as a simple vector of Bond structs. A ParticleData instance owns a single BondData which
-	classes such as BondForceCompute can access for their needs.
+	as a simple vector of Bond structs. On the GPU, the list of bonds is decomposed into a 
+	table with every column listing the bonds of a single particle: see 
+	gpu_bondtable_array for more info.
 	
-	On the GPU, the list of bonds is decomposed into a table with every column listing the
-	bonds of a single particle: see gpu_bondtable_array for more info.
+	A ParticleData instance owns a single BondData which classes such as BondForceCompute 
+	can access for their needs.
 	
 	Bonds can be dynamically added, although doing this on a per-timestep basis can 
-	slow performance significantly. However, for simplicity and convinence, the number
+	slow performance significantly. For simplicity and convinence, however, the number
 	of bond types cannot change after initialization.
 	\ingroup data_structs
 */
@@ -142,6 +143,9 @@ class BondData : boost::noncopyable
 		boost::signals::connection m_sort_connection;	//!< Connection to the resort signal from ParticleData
 		
 		//! Helper function to set the dirty flag when particles are resorted
+		/*! setDirty() just sets the \c m_bonds_dirty flag when partciles are sorted or a bond is added.
+			The flag is used to test if the data structure needs updating on the GPU.
+		*/
 		void setDirty() { m_bonds_dirty = true; }
 			
 		#ifdef USE_CUDA

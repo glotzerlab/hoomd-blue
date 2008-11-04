@@ -47,8 +47,6 @@ using  namespace std;
 /*! \file FftwWrapper.cc
 	\brief Implements the code for the fftw_wrapper class
 */
-
-
 FftwWrapper::FftwWrapper(){
 			in_f=NULL;
 			out_f=NULL;

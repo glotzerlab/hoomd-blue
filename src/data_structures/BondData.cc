@@ -58,7 +58,7 @@ using namespace boost;
 using namespace std;
 
 /*! \file BondData.cc
- 	\brief Contains definitions for BondData.
+ 	\brief Defines BondData.
  */
 
 /*! \param pdata ParticleData these bonds refer into

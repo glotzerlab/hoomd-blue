@@ -47,15 +47,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 /*! \file FENEBondForceCompute.h
-	\brief Declares a class for computing fene bonds
+	\brief Declares FENEBondForceCompute
 */
 
 #ifndef __FENEBONDFORCECOMPUTE_H__
 #define __FENEBONDFORCECOMPUTE_H__
 
-//! Computes bond forces on each particle
-/*! This is just a simple FENE spring bond force: V = -1/2 K | r_0| ^ 2*ln[1-(|r|/|R_0|)^2]/ .  
-	R_0 is the maximum length of the spring.  When r is greater than R_0, V = infinity.
+//! Computes FENE bond forces
+/*! FENE+WCA forces are computed on all bonded particles in the simulation.
 	
 	After construction, this class will not compute this potential for any particles by default.
 	Bonds where this potential is computed must be defined in the BondData attached to the ParticleData.

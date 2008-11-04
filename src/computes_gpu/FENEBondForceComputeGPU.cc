@@ -121,7 +121,7 @@ void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0,
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float4), cudaMemcpyHostToDevice));
 	}
 
-/*! Internal method for computing the forces on the GPU. 
+/*! Internal method for computing the forces on the GPU.
 	\post The force data on the GPU is written with the calculated forces
 	
 	\param timestep Current time step of the simulation

@@ -59,7 +59,7 @@ using namespace boost::python;
 #include "BinnedNeighborList.h"
 
 /*! \file BinnedNeighborList.cc
-	\brief Contains code for the BinnedNeighborList class
+	\brief Defines the BinnedNeighborList class
 */
 
 #include <algorithm>
@@ -70,7 +70,7 @@ using namespace std;
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffere radius around \a r_cut in which neighbors will be included
 	
-	\post NeighborList is initialized and the list memory has been allocated,
+	\post The neighbor list is initialized and the list memory has been allocated,
 		but the list will not be computed until compute is called.
 	\post The storage mode defaults to half
 */
@@ -124,6 +124,7 @@ void BinnedNeighborList::updateBins()
 	m_My = (unsigned int)((box.yhi - box.ylo) / (m_r_cut + m_r_buff));
 	m_Mz = (unsigned int)((box.zhi - box.zlo) / (m_r_cut + m_r_buff));
 
+	// check for an invalid box size: too small a box results in duplicate neighbors
 	if (m_Mx < 3 || m_My < 3 || m_Mz < 3)
 		{
 		cout << m_r_cut+m_r_buff << " " << box.xhi - box.xlo << endl;

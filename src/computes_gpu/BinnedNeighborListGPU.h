@@ -51,8 +51,24 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __BINNED_NEIGHBORLIST_GPU_H__
 #define __BINNED_NEIGHBORLIST_GPU_H__
 
-//! Binned neighborlist on the GPU
-/*! \todo document me
+//! Efficient neighbor list constrution for large N implemented on the GPU
+/*! BinnedNeighborListGPU implements exactly the same algorithm as BinnedNeighborList,
+	but on the GPU.
+
+	The method used is in an internal state of flux right now. Here is a brief summary of how it is
+	currently implemented.
+	 - Particles are currently binned on the CPU (index only)
+	 - Once transferred to the GPU, the binned indices are transposed and x,y,z coords
+		are interleaved with them
+	 - A kernel is launched on the GPU that reads this transposed/interleaved 
+		bin list using textures to generate the neighbor list
+	
+	Currently, bins are ordered in memory based on a Z-order curve. m_mem_location[bin_idx]
+	gives the real index at which to access that bin in memory.
+
+	See nlist_binned_kernel.cu and gpu_nlist_data.cu for the GPU kernels that implement
+	the binned neighbor list.
+ 
 	\ingroup computes
 */
 class BinnedNeighborListGPU : public NeighborList
@@ -67,6 +83,11 @@ class BinnedNeighborListGPU : public NeighborList
 		virtual void printStats();
 		
 		//! Sets the block size of the calculation on the GPU
+		/*! \param block_size Block size to set
+		
+			setBlockSize() sets the block size to be used for the main time consuming kernel that
+			generates the neighbor list
+		*/
 		void setBlockSize(int block_size) { m_block_size = block_size; }
 
 	protected:

@@ -71,9 +71,9 @@ using namespace std;
 /*! \param pdata Particle data the neighborlist is to compute neighbors for
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffer distance to include around the cutoff
-	\post NeighborList is initialized and the list memory has been allocated,
+	\post The neighbor list is initialized and the list memory has been allocated,
 		but the list will not be computed until compute is called.
-	\post The storage mode defaults to full and cannot be set to half
+	\post The storage mode defaults to full
 	\sa NeighborList
 */
 BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) : NeighborList(pdata, r_cut, r_buff)
@@ -179,6 +179,14 @@ static void generateTraversalOrder(unsigned int i, unsigned int j, unsigned int 
 		}
 	}
 
+/*! \param Mx Number of bins in the x direction
+	\param My Number of bins in the y direction
+	\param Mz Number of bins in the z direction
+	\param Nmax Maximum number of particles stored in any given bin
+
+	\pre Bins are not allocated
+	\post All memory needed for the bin data structure on the GPU is allocated along with the host mirror versions
+*/
 void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -321,7 +329,9 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		}
 	}
 	
-
+/*! \pre allocateGPUBinData() has been called
+	\post Bin data is freed
+*/
 void BinnedNeighborListGPU::freeGPUBinData()
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
@@ -429,6 +439,12 @@ void BinnedNeighborListGPU::buildNlist()
 	m_data_location = gpu;
 	}
 
+/*! Particles are copied to the CPU and the binning step is done, putting the index of each particle
+	into each bin. This is all done in the host memory copies of the bin arrays, they are not
+	copied to the GPU here.
+
+	\pre GPU Bin data has been allocated.
+*/
 void BinnedNeighborListGPU::updateBinsUnsorted()
 	{
 	assert(m_pdata);
@@ -581,7 +597,11 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 	// note, we don't copy the binned values to the device yet, that is for the compute to do
 	}
 
-/*!
+/*! Sets up and executes the needed kernel calls to generate the actual neighbor list
+	from the previously binned data.
+	
+	\pre updateBinsUnsorted() has been called.
+	\pre The bin data has been copied to the GPU and transposed into the idxlist_coord array
 */
 void BinnedNeighborListGPU::updateListFromBins()
 	{
@@ -656,6 +676,9 @@ bool BinnedNeighborListGPU::distanceCheck()
 	return result;
 	}
 
+/*! This method just adds a few statistic numbers specific to this class. The base class method is called
+	first to get the more general stats from there.
+*/
 void BinnedNeighborListGPU::printStats()
 	{
 	NeighborList::printStats();

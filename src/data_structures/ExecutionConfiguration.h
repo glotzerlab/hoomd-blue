@@ -53,11 +53,23 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
-	This is just a skeleton of what ExecutionConfiguration will eventually be.
-	It currently only contains a list of GPUWorkers that the system is
-	to use in executing the simulation. Current code only uses one GPU,
-	so the vector is used for future expansion purposes.
+	ExecutionConfiguration is a data structure needed to support HOOMD's unorthodox
+	multi-GPU usage model. One GPUWorker thread is launched for each GPU that the run
+	will execute on. The list of worker threads is maintained in ExecutionConfiguration::gpu.
+	All calls to these GPUs must go through the corresponding worker thread in the list
+	(see GPUWorker for examples).
 	
+	A few handy methods are defined to make working with more than one GPU simpler:
+		- syncAll() calls sync() on each GPUWorker thread
+		- callAll() makes a call() on each GPUWorker thread
+		- tagAll()  tags the current position on each GPUWorker thread
+
+	The execution configuration is determined at the beginning of the run and must 
+	remain static for the entire run. It can be accessed from the ParticleData of the
+	system. As to which particles/forces/etc go to which GPU in a multi-GPU environment,
+	that is not determined here. See ParticleData and ForceCompute for a basic rundown
+	on how that is broken up.	
+
 	The execution mode is specified in exec_mode. This is only to be taken as a hint,
 	different compute classes are free to execute on either the CPU or GPU. The only
 	requirement is that those executing on the GPU must use the gpu workers in the vector.

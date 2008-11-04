@@ -66,10 +66,6 @@ using namespace boost;
 /*! Code previous to the creation of ExecutionConfiguration always used
 	CUDA device 0 by default. To maintain continuity, a default constructed
 	ExecutionConfiguration will do the same.
-	
-	When the full multi-gpu code is written, ExecutionConfiguration will 
-	by default use all of the GPUs found in the device. This will provide the
-	user with the default fastest performance with no need for command line options.
 */
 ExecutionConfiguration::ExecutionConfiguration()
 	{

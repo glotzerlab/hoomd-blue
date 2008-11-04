@@ -43,19 +43,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 /*! \file BinnedNeighborList.h
-	\brief Defines an optimized O(N) neighbor list generator
+	\brief Declares the BinnedNeighborList class
 */
 
 #ifndef __BINNED_NEIGHBORLIST_H__
 #define __BINNED_NEIGHBORLIST_H__
 
-//! A more efficient neighborlist algorithm for very large N
-/*! This implementation puts particles into cubic "bins" with side length r_max. Then, each
-	particle can only have neighbors from it's bin and neighboring bins. Thus, as long as the 
+//! Efficient neighbor list construction for large N
+/*! See NeighborList for a definition of what a neighbor list is and how it is computed. 
+	This class calculates the same result using a more efficient algorithm.
+
+	Particles are put into cubic "bins" with side length r_max. Then each
+	particle can only have neighbors from it's bin and neighboring bins. Thus as long as the 
 	density is mostly uniform: the N^2 algorithm is transformed into an O(N) algorithm.
 	
-	Neighbor lists are generated much faster with BinnedNeighborList than
-	NeighborList, even for small systems of only 1000 particles.
 	\ingroup computes
 */
 class BinnedNeighborList : public NeighborList

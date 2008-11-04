@@ -58,17 +58,19 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __FENEBONDFORCECOMPUTEGPU_H__
 
 //! Implements the fene bond force calculation on the GPU
-/*! Bond forces are calucated much faster on the GPU. This class has the same public
-	interface as BondForceCompute so that they can be used interchangably. 
+/*! FENEBondForceComputeGPU implements the same calculations as FENEBondForceCompute,
+	but executing on the GPU.
 	
+	The calculation on the GPU is structured after that used in HarmonicBondForceCompute.
+	See its documentation for more implementation details.
+
 	Per-type parameters are stored in a simple global memory area pointed to by
-	\a m_gpu_params. They are stored as float4's with the \a x component being K and the
-	\a y component being r_0.
+	\a m_gpu_params. They are stored as float4's with the \a x component set to  K, the
+	\a y component set to r_0, the z component set to epsilon and the \a w component
+	set to sigma.
 	
-	\b Developer information: <br>
-	This class operates as a wrapper around CUDA code written in C and compiled by 
-	nvcc. See bondforce_kernel.cu for detailed internal documentation.
-	\sa BondForceCompute
+	The GPU computation is implemented in fenebondforce_kernel.cu
+	
 	\ingroup computes
 */
 class FENEBondForceComputeGPU : public FENEBondForceCompute

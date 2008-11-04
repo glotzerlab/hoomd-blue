@@ -57,11 +57,11 @@ using namespace boost::python;
 using namespace std;
 
 /*! \file FENEBondForceCompute.cc
-	\brief Contains code for the FENEBondForceCompute class
+	\brief Defines the FENEBondForceCompute class
 */
 
 /*! \param pdata Particle data to compute forces on
-	\post Memory is allocated, and forces are zeroed.
+	\post Memory is allocated, default parameters are set and forces are zeroed.
 */
 FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
 	m_K(NULL), m_r_0(NULL), m_lj1(NULL), m_lj2(NULL), m_epsilon(NULL)
@@ -146,7 +146,9 @@ std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 	list.push_back("fene_energy");
 	return list;
 	}
-	
+
+/*! \param quantity Name of the quantity to get the log value of
+*/	
 Scalar FENEBondForceCompute::getLogValue(const std::string& quantity)
 	{
 	if (quantity == string("fene_energy"))
@@ -156,7 +158,7 @@ Scalar FENEBondForceCompute::getLogValue(const std::string& quantity)
 		}
 	else
 		{
-		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for BondForceCompute" << endl << endl;
+		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for FENEBondForceCompute" << endl << endl;
 		throw runtime_error("Error getting log value");
 		}
 	}	
@@ -248,7 +250,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		assert(dy >= box.ylo && dx < box.yhi);
 		assert(dz >= box.zlo && dx < box.zhi);
 
-///ALL FLOPS NEED TO BE FIXED
+		//ALL FLOPS NEED TO BE FIXED
 		// on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * \vec{r} + (12*lj1/r^12 - 6*lj2/r^6) *\vec{r}
 		// FLOPS: 5
 		Scalar rsq = dx*dx+dy*dy+dz*dz;
