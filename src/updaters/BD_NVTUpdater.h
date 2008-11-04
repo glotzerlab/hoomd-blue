@@ -55,12 +55,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __BD_NVTUPDATER_H__
 #define __BD_NVTUPDATER_H__
 
-//! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant energy (BD_NVT) dynamics. 
-	Particle positions and velocities are updated according to the velocity verlet algorithm. 
-	The forces that drive this motion are defined external to this class in ForceCompute. Any 
-	number of ForceComputes can be given, the resulting forces will be summed to produce a net 
-	force on each particle.
+//! Brownian dynamics integration of particles
+/*! This updater performes constant N, constant volume, constant energy dynamics, with 
+	random and drag forces applied (BD_NVT). Particle positions and velocities are updated 
+	according to the velocity verlet algorithm. The forces that drive this motion are 
+	defined external to this class in ForceCompute. Any number of ForceComputes can be given, 
+	the resulting forces will be summed to produce a net force on each particle.
 	
 	BD_NVTUpdater internally creates it's own StochasticForceCompute to handle the calculation
 	of the stochastic and drag forces needed for BD.
@@ -73,24 +73,23 @@ class BD_NVTUpdater : public NVEUpdater
 		//! Constructor
 		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
 		
-		//! Attaches the Stochastic Bath Temperature
-		void addStochasticBath(); 
-				
-		//! Resets the Stochastic Bath Temperature
+		//! Sets the Stochastic Bath Temperature
 		void setT(Scalar Temp); 
 
 		//! Resets the simulation timestep
 		void setDeltaT(Scalar deltaT) {m_deltaT = deltaT; stochastic_force->setDeltaT(deltaT); Integrator::setDeltaT(deltaT);}		
 
-		//! Resets the Stochastic Bath Temperature
-		void setGamma(unsigned int type, Scalar gamma) {boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	assert(stochastic_force); stochastic_force->setParams(type,gamma);} 
+		//! Sets the type-dependant drag coefficient
+		/*! \param type Particle type index to set the coefficient on
+			\param gamma Drag coefficient to set
+		*/
+		void setGamma(unsigned int type, Scalar gamma) 
+			{
+			boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
+			assert(stochastic_force); 
+			stochastic_force->setParams(type,gamma);
+			} 
 				
-		//! Sets the movement limit
-		void setLimit(Scalar limit);
-		
-		//! Removes the limit
-		void removeLimit();
-		
 		//! Removes all ForceComputes from the list
 		virtual void removeForceComputes();
 		
@@ -114,6 +113,8 @@ class BD_NVTUpdater : public NVEUpdater
 		unsigned int m_bath_index; //!<< The index of the stochastic force compute in the force compute list		
 		bool using_gpu;    //!<  Flag to indicate which version of StochasticForceCompute should be used.
 		
+		//! Attaches the Stochastic Bath Temperature
+		void addStochasticBath(); 
 		
 		#ifdef USE_CUDA 
 		//! The GPU version of the StochasticForceCompute

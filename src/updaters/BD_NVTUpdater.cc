@@ -91,6 +91,10 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 
 	}
 
+/*! The StochasticForceCompute is added to the list \a m_forces. 
+	The index to which it is added is tracked in a m_bath_index so that other calls
+	can reference it to set coefficients.
+*/
 void BD_NVTUpdater::addStochasticBath()
 	{
 	if (m_bath)	cout << "Stochastic Bath Already Added" << endl;
@@ -117,8 +121,7 @@ void BD_NVTUpdater::addStochasticBath()
 
 
 /*! \param Temp Temperature of the Stochastic Bath
-*/
-	
+*/	
 void BD_NVTUpdater::setT(Scalar Temp) 
 	{	
 	 m_T = Temp;
@@ -126,27 +129,9 @@ void BD_NVTUpdater::setT(Scalar Temp)
 	stochastic_force->setT(m_T); 
 	}	
 
-/*! \param limit Distance to limit particle movement each time step
-
-	Once the limit is set, future calls to update() will never move a particle 
-	a distance larger than the limit in a single time step
-*/
-void BD_NVTUpdater::setLimit(Scalar limit)
-	{
-	assert(limit > 0.0);
-	
-	m_limit = true;
-	m_limit_val = limit;
-	}
-		
-/*! Disables the limit, allowing particles to move normally
-*/
-void BD_NVTUpdater::removeLimit()
-	{
-	m_limit = false;
-	}
-
 /*! Disables the ForceComputes
+	Since the base class removes all force computes, this class flags that the stochastic bath
+	has been removed so it can be re-added when it is needed.
 */
 void BD_NVTUpdater::removeForceComputes()
 	{
@@ -156,7 +141,8 @@ void BD_NVTUpdater::removeForceComputes()
 
 	
 /*! BD_NVTUpdater provides
-	- \c nve_kinetic_energy
+	- \c nvt_kinetic_energy
+	- \c temperature
 */
 std::vector< std::string > BD_NVTUpdater::getProvidedLogQuantities()
 	{

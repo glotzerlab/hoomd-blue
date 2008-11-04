@@ -67,15 +67,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Base class for analysis of particle data
 /*! An Analyzer is a concept that encapsulates some process that is performed during
 	the simulation with the sole purpose of outputting data to the user in some fashion.
-	The results of an Analyzer can not modify the simulation in any way: that is what
-	Updaters are for. In general, analyzers are likely to only be called every 1,000 
-	time steps or much less often (this value entirely up to the user's discrestion).
+	The results of an Analyzer can not modify the simulation in any way, that is what
+	the Updater classes are for. In general, analyzers are likely to only be called every 1,000 
+	time steps or much less often (this value entirely at the user's discrestion).
 	The System class will handle this. An Analyzer just needs to perform its calculations
 	and make its output every time analyze() is called.
 
 	By design Analyzers can reference any number of Computes while performing their
 	analysis. The base class provides no methods for doing this, derived classes must
-	make their own implementation (it is recomenned to pass a pointer to the Compute
+	implement the tracking of the attached Compute classes (via shared pointers) 
+	themselves. (it is recomenned to pass a shared pointer to the Compute
 	into the constructor of the derived class).
 
 	See \ref page_dev_info for more information

@@ -50,8 +50,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __BD_NVTUPDATER_GPU_H__
 #define __BD_NVTUPDATER_GPU_H__
 
-//! BD_NVT
+//! Brownian dynamics integration of particles
 /*!	\ingroup updaters
+	See BD_NVTUpdater for details. This class implements the same calculations on the GPU.	
 */
 class BD_NVTUpdaterGPU : public BD_NVTUpdater
 	{
