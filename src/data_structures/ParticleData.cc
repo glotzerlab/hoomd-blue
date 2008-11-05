@@ -266,6 +266,11 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		m_arrays.tag[i] = i;
 		}
 	
+	// need to set m_data_location before any call to setBox
+	#ifdef USE_CUDA
+	m_data_location = cpu;
+	#endif
+	
 	setBox(init.getBox());
 	init.initArrays(m_arrays);
 	
