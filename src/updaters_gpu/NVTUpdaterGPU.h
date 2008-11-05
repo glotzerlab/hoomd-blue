@@ -51,8 +51,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __NVTUPDATER_GPU_H__
 #define __NVTUPDATER_GPU_H__
 
-//! NVT
-/*! \ingroup updaters
+//! NVT via Nose-Hoover on the GPU
+/*!	NVTUpdaterGPU implements exactly the same caclulations as NVTUpdater, but on the GPU.
+	
+	The GPU kernel that accomplishes this can be found in gpu_nvt_kernel.cu
+
+	\ingroup updaters
 */
 class NVTUpdaterGPU : public NVTUpdater
 	{

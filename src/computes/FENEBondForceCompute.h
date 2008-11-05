@@ -55,9 +55,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes FENE bond forces
 /*! FENE+WCA forces are computed on all bonded particles in the simulation.
-	
-	After construction, this class will not compute this potential for any particles by default.
-	Bonds where this potential is computed must be defined in the BondData attached to the ParticleData.
+
+	The bonds which forces are computed on are accessed from ParticleData::getBondData
 	\ingroup computes
 */
 class FENEBondForceCompute : public ForceCompute

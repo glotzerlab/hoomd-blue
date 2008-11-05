@@ -66,7 +66,7 @@ using namespace boost;
 using namespace std;
 
 /*! \file NeighborList.cc
-	\brief Contains code for the NeighborList class
+	\brief Defines the NeighborList class
 */
 
 /*! \param pdata Particle data the neighborlist is to compute neighbors for

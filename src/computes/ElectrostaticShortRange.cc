@@ -58,8 +58,11 @@ using namespace boost::python;
 // #define _USE_MATH_DEFINES
 // #include <math.h>
 
-#define EWALD_F  1.128379167  // This number is just 2/sqrt(Pi) 
-#define TOL 1e-6  //This is a tolerance number for the spacing of the look up table
+//! This number is just 2/sqrt(Pi)
+#define EWALD_F  1.128379167
+
+//! This is a tolerance number for the spacing of the look up table
+#define TOL 1e-6
 // It is completely unlikely that m_delta is ever chosen < TOL
 
 

@@ -66,7 +66,7 @@ using namespace std;
  	\brief Contains definitions for RandomGenerator and related classes.
  */
 
-/*! \param n_particles Number of particles that will be generate
+/*! \param n_particles Number of particles that will be generated
 	\param box Box the particles are generated in
 	\param radii Mapping of particle types to their minimum separation radius
 	
@@ -379,7 +379,7 @@ void GeneratedParticles::undoPlace(unsigned int idx)
 /*! \param a Tag of the first particle in the bond
 	\param b Tag of the second particle in the bond
 	
-	Adds a bond between particles with tags \a and \b
+	Adds a bond between particles with tags \a a and \a b
 */
 void GeneratedParticles::addBond(unsigned int a, unsigned int b)
 	{

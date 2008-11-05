@@ -72,6 +72,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 	The removeAll method can be used to clear all registered computes and updaters. hoomd_script will 
 	removeAll() and re-register all active computes and updaters before every run()
+	
+	\ingroup analyzers
 */
 class Logger : public Analyzer
 	{
@@ -98,8 +100,10 @@ class Logger : public Analyzer
 		void analyze(unsigned int timestep);
 		
 	private:
-		std::string m_delimiter;	//!< The delimiter to put between columns in the file
-		std::ofstream m_file;		//!< The file we write out to
+		//! The delimiter to put between columns in the file
+		std::string m_delimiter;
+		//! The file we write out to
+		std::ofstream m_file;
 		//! A map of computes indexed by logged quantity that they provide
 		std::map< std::string, boost::shared_ptr<Compute> > m_compute_quantities;
 		//! A map of updaters indexed by logged quantity that they provide

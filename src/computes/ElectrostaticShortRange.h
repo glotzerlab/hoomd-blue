@@ -46,7 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 /*! \file ElectrostaticShortRange.h
-	\brief Declares a class for computing the short range part of the electrostatic force and energy
+	\brief Declares a ElectroStaticShortRange
 */
 
 #ifndef __ELECTROSTATICSHORTRANGE_H__
@@ -91,29 +91,31 @@ class ElectrostaticShortRange : public ForceCompute
 		Scalar m_r_cut;	//!< Cuttoff radius beyond which the force is set to 0
 	    Scalar m_alpha;  //!< split parameter of the short-range vs long-range forces.
 
-		Scalar m_delta; 
-		/*!< spacing of the table lookup to compute forces, 
+		//! spacing of the table lookup to compute forces, 
+		/*!
 		the look up table is build at the discrete points 
 		defined between 0 and r_cut+2*m_delta in intervals of m_delta, a typical 
-		value with modest memory use that gives very high accuraccy is m_delta=\sigma/10 
-		but \sigma/5 gives accurate enough results */
-
-		Scalar m_min_value;
-		/*!< In a MD the value of the force is never computed at dd=0, that is, where 
+		value with modest memory use that gives very high accuraccy is m_delta=sigma/10 
+		but sigma/5 gives accurate enough results */
+		Scalar m_delta; 
+		
+		//! Minimum value in lookup table
+		/*! In a MD the value of the force is never computed at dd=0, that is, where 
 		particles are in close contact. m_min_value is the minimum separation expected 
 		for two particles, this value is user-supplied, yet important as if for whatever
 		reason this number is too small, the tables may contain errors at 
 		short-distance that may go unnoticed. The program does not check whether the 
-		values calculated satisfy this constraint. A consevative value could be \sigma/4 */
+		values calculated satisfy this constraint. A consevative value could be sigma/4 */
+		Scalar m_min_value;
 
-		Scalar *f_table; //!look up table for force
-		Scalar *e_table; //! look up table for energy
+		Scalar *f_table; //!< look up table for force
+		Scalar *e_table; //!< look up table for energy
 
-		virtual void computeForces(unsigned int timestep);
 		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
 	};
 	
-//! Exports the ElectrostaticShortRange class to python
+// Exports the ElectrostaticShortRange class to python
 // void export_ElectrostaticShortRange();
 
 #endif

@@ -59,15 +59,15 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-/*! \post \c fx, \c fy, \c fz are all set to NULL
+/*! \post \c fx, \c fy, \c fz, \c pe, and \c virial are all set to NULL
 */
-ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL)
+ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL), pe(NULL), virial(NULL)
 	{
 	}
 	
 #ifdef USE_CUDA
 /*! \post \a d_data.force, \a d_data.virial and \a h_staging are all set to NULL
-	\post \a m_num, \a m_num_local, and \a m_local_start are all set to 0
+	\post \a m_num_local and \a m_local_start are set to 0
 */
 ForceDataArraysGPU::ForceDataArraysGPU()
 	{
@@ -367,7 +367,7 @@ const ForceDataArrays& ForceCompute::acquire()
 	were computed there.
 	\returns Data pointer to the forces on the GPU
 
-	\note For performance reasons, the returned pointer will \b not change
+	\note For performance reasons, the returned pointers will \b not change
 	from call to call. The call still must be made, however, to ensure that
 	the data has been copied to the GPU.
 */

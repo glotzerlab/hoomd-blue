@@ -134,7 +134,6 @@ LJForceComputeGPU::~LJForceComputeGPU()
 /*! \param block_size Size of the block to run on the device
 	Performance of the code may be dependant on the block size run
 	on the GPU. \a block_size should be set to be a multiple of 32.
-	\todo error check value
 */
 void LJForceComputeGPU::setBlockSize(int block_size)
 	{

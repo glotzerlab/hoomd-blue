@@ -58,7 +58,12 @@ extern "C" {
 	is encoded in the 4th float in the position float4 as an integer. Device code
 	can decode this type data with __float_as_int();
 	
-	All the pointers in this structure will be allocated on the device.
+	All the pointers in this structure are allocated on the device.
+	
+	This structure is about to be rewritten. Consider it being documented as poorly documented
+	for now.
+	
+	\ingroup gpu_data_structs
 */
 struct gpu_pdata_arrays
 	{
@@ -75,8 +80,10 @@ struct gpu_pdata_arrays
 	};
 
 //! Store the box size on the GPU
-/*	\note For performance reasons, the GPU code is allowed to assume that the box goes
+/*!	\note For performance reasons, the GPU code is allowed to assume that the box goes
 	from -L/2 to L/2, and the box dimensions in this structure must reflect that.
+	
+	\ingroup gpu_data_structs
 */
 struct gpu_boxsize
 	{

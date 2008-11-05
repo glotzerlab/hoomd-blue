@@ -53,8 +53,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __NEIGHBORLIST_NSQ_GPU_H__
 
 //! Computes a Neibhorlist from the particles
-/*! \todo document me
-	\todo proper memory allocation
+/*!	Calculates the same neighbor list that NeighborList does, but on the GPU.
+	
+	This class implements the same O(N^2) algorithm as the base class.
+	
+	The GPU kernel that does the calculations can be found in nlist_nsq_kernel.cu.
 	\ingroup computes
 */
 class NeighborListNsqGPU : public NeighborList

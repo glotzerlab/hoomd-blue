@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 /*! \file Initializers.h
-	\brief Defines a few initializers for setting up ParticleData instances
+	\brief Declares a few initializers for setting up ParticleData instances
 */
 
 #include "ParticleData.h"

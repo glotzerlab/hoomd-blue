@@ -54,11 +54,25 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 extern "C" {
 
+/*! \ingroup data_structs
+	@{
+*/
+
+/*! \defgroup gpu_data_structs GPU data structures
+	\brief Data structures stored on the GPU
+	\details See \ref page_dev_info for more information
+*/
+
+/*! @}
+*/
+
 //! Structure of arrays of the neighborlist data as it resides on the GPU
 /*! The list is arranged as height rows of \a N columns with the given pitch.
 	Each column i is the neighborlist for particle i. 
 	\a n_neigh lists the number of neighbors in each column
 	Each column has a fixed height \c height.
+	
+	\ingroup gpu_data_structs
 */
 struct gpu_nlist_array
 	{
@@ -76,13 +90,14 @@ struct gpu_nlist_array
 //! Structure of arrays storing the bins particles are placed in on the GPU
 /*! This structure is in a current state of flux. Consider it documented as being
 	poorly documented :)
-	\todo update documentation
+	
+	These are 4D arrays with indices i,j,k,n. i,j,k index the bin and each goes from 0 to Mx-1,My-1,Mz-1 respectively.
+	Index into the data with idxdata[i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax  + n] where n goes from 0 to Nmax - 1.
+	
+	\ingroup gpu_data_structs
 */
 struct gpu_bin_array
         {
-        // these are 4D arrays with indices i,j,k,n. i,j,k index the bin and each goes from 0 to Mx-1,My-1,Mz-1 respectively.
-        // index into the data with idxdata[i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax  + n]
-		// n goes from 0 to Nmax - 1.
         unsigned int Mx;	//!< X-dimension of the cell grid
         unsigned int My;	//!< Y-dimension of the cell grid
         unsigned int Mz;	//!< Z-dimension of the cell grid

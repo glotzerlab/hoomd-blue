@@ -125,7 +125,9 @@ std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
 	list.push_back("harmonic_energy");
 	return list;
 	}
-	
+
+/*! \param quantity Name of the quantity to get the log value of
+*/
 Scalar HarmonicBondForceCompute::getLogValue(const std::string& quantity)
 	{
 	if (quantity == string("harmonic_energy"))

@@ -106,6 +106,8 @@ SomeClass cls(gpu);
 	\note GPUWorker works in both Linux and Windows (tested with VS2005). However,
 	in Windows, you need to define BOOST_BIND_ENABLE_STDCALL in your project options
 	in order to be able to call CUDA runtime API functions with boost::bind.
+	
+	\ingroup utils
 */
 class GPUWorker
 	{

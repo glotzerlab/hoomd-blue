@@ -230,7 +230,11 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 	\param profiler_name Name of the profiler element to continue timing under
 	\param sum_accel If set to true, forces will be summed into pdata.accel
 
-	\post \c arrays.ax, \c arrays.ay, and \c arrays.az on the GPU are set based on the forces computed by the ForceComputes
+	\post All forces are computed on the GPU.
+	
+	\post If \a sum_accel is set, \c gpu_pdata_arrays.accel is filled out on the GPU are set based on the 
+		forces computed by the ForceComputes. If it is not set, you need to sum them in your own 
+		integration kernel (see below)
 
 	\note Setting sum_accel to true is convenient, but incurs an extra kernel call's overhead in a 
 		performance hit. This is measured to be ~2% in real simulations. If at all possible,

@@ -59,7 +59,21 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __HOOMD_INITIALIZER_H__
 
 //! Initializes particle data from a Hoomd input file
-/*! \ingroup data_structs
+/*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
+	For more information on the XML file format design see \ref page_dev_info. Although, HOOMD's 
+	user guide probably has a more up to date documentation on the format.
+	
+	When HOOMDInitializer is instantiated, it reads in the XML file specified in the constructor
+	and parses it into internal data structures. The initializer is then ready to be passed
+	to ParticleData which will then make the needed calls to copy the data into its representation.
+	
+	HOOMD's XML file format and this class are designed to be very extensible. Parsers for inidividual
+	XML nodes are written in separate functions and stored by name in the map \c m_parser_map. As the 
+	main parser loops through, it reads in xml nodes and fires of parsers from this map to parse each 
+	of them. Adding a new node to the file format parser is as simple as adding a new node parser function
+	(like parsePositionNode()) and adding it to the map in the constructor.
+	
+	\ingroup data_structs
 */
 class HOOMDInitializer : public ParticleDataInitializer
 	{
@@ -121,7 +135,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		BoxDim m_box;	//!< Simulation box read from the file
 		bool m_box_read;	//!< Stores the box we read in
 
-		struct vec //!< simple vec for storing particle data
+		//! simple vec for storing particle data
+		struct vec
 			{
 			//! Default construtor
 			vec() : x(0.0), y(0.0), z(0.0)

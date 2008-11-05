@@ -58,17 +58,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __HARMONICBONDFORCECOMPUTEGPU_H__
 
 //! Implements the harmonic bond force calculation on the GPU
-/*! Bond forces are calucated much faster on the GPU. This class has the same public
-	interface as BondForceCompute so that they can be used interchangably. 
+/*!	HarmonicBondForceComputeGPU implements the same calculations as HarmonicBondForceCompute,
+	but executing on the GPU.
 	
 	Per-type parameters are stored in a simple global memory area pointed to by
 	\a m_gpu_params. They are stored as float2's with the \a x component being K and the
 	\a y component being r_0.
 	
-	\b Developer information: <br>
-	This class operates as a wrapper around CUDA code written in C and compiled by 
-	nvcc. See bondforce_kernel.cu for detailed internal documentation.
-	\sa BondForceCompute
+	The GPU kernel can be found in bondforce_kernel.cu.
+
 	\ingroup computes
 */
 class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute

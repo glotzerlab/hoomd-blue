@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 /*! \file LJForceCompute.h
-	\brief Declares a class for computing lennard jones forces
+	\brief Declares the LJForceCompute class
 */
 
 #ifndef __LJFORCECOMPUTE_H__
@@ -61,13 +61,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	Then set parameters for all possible pairs of types by calling setParams. 
 	
 	Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but 
-	a more typical usage will be to add the force compute to NVEUpdator or NVTUpdator. 
+	a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater. 
 	
-	This base class defines the interface for performing Lennard-Jones force computations. It does provide
-	a functional, single threaded method for computing the forces. A faster multi-threaded version
-	is LJForceComputeThreaded which will perform its computations in parallel across all processor cores in a
-	system. If compiled with CUDA support, there is LJForceComputeGPU which is roughly 60x faster than 
-	this class at computing forces.
 	\ingroup computes
 */
 class LJForceCompute : public ForceCompute

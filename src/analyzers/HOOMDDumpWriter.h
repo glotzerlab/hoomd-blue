@@ -66,12 +66,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	numberical order.
 
 	To include positions, velocities and types, see: setOutputPosition() setOutputVelocity()
-	and setOutputType(). Similarly, walls and bonds can be inluced with setOutputWall() and 
+	and setOutputType(). Similarly, walls and bonds can be included with setOutputWall() and 
 	setOutputBond().
 	
 	Future versions will include the ability to dump forces on each particle to the file also.
 
 	For information on the structure of the xml file format: see \ref page_dev_info
+	Although, HOOMD's  user guide probably has a more up to date documentation on the format.
 	\ingroup analyzers
 */
 class HOOMDDumpWriter : public Analyzer

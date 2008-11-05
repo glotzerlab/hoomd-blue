@@ -1141,7 +1141,7 @@ void export_BoxDim()
 		;
 	}
 
-//! Wrapper class needed for exposing virtual functions to c++
+//! Wrapper class needed for exposing virtual functions to python
 class ParticleDataInitializerWrap : public ParticleDataInitializer, public wrapper<ParticleDataInitializer>
 	{
 	public:

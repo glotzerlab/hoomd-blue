@@ -45,7 +45,9 @@ if (DOXYGEN)
 # have CUDA/Python/FFT/whatever
 set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"USE_CUDA=1\" \\
 	\"USE_FFT=1\" \\
-	\"USE_FFTW=1\" ")
+	\"USE_FFTW=1\" \\ 
+	\"NVCC=1\" \\
+	\"BOOST_VERSION=103500\" ")
 
 # disable DOT in doxygen if dot is not found
 if(DOXYGEN_DOT_PATH)

@@ -78,9 +78,6 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<ParticleData> pdata, Scalar bin
 	}
 	
 /*! Performs the sort. 
-	\note The neighborlist is set to a forced recompute on the next call to compute
-		overriding the normal rules when compute is called multiple times in a single 
-		time step
 	\note In an updater list, this sort should be done first, before anyone else
 		gets ahold of the particle data
 		

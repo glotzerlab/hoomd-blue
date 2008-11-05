@@ -55,7 +55,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file ForceCompute.h
-	\brief Declares a generic force computation
+	\brief Declares the ForceCompute class
 */
 
 #ifndef __FORCECOMPUTE_H__
@@ -64,10 +64,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Handy structure for passing the force arrays around
 /*! \c fx, \c fy, \c fz have length equal to the number of particles and store the x,y,z 
 	components of the force on that particle. \a pe is also included as the potential energy
-	for each particle, if it can be defined for the force. \a virial is the per particle virial
+	for each particle, if it can be defined for the force. \a virial is the per particle virial.
 		
 	The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
+	
 	The per particle virial is defined such that \f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
+	
+	\ingroup data_structs
 */
 struct ForceDataArrays
 	{
@@ -77,8 +80,8 @@ struct ForceDataArrays
 	Scalar const * __restrict__ fx; //!< x-component of the force
 	Scalar const * __restrict__ fy; //!< y-component of the force
 	Scalar const * __restrict__ fz; //!< z-component of the force
-	Scalar const * __restrict__ pe; //!< Potential energy
-	Scalar const * __restrict__ virial; //!< Virial
+	Scalar const * __restrict__ pe; //!< per-particle potential energy
+	Scalar const * __restrict__ virial; //!< per-particle virial
 	};
 	
 #ifdef USE_CUDA
@@ -87,6 +90,11 @@ struct ForceDataArrays
 	the other (at least when compiling for the GPU). ForceCompute uses ForceDataArraysGPU
 	to store the force data on each GPU in the execution configuration. ForceDataArraysGPU does
 	all the dirty work of allocating memory and performing the host to/from device transfers.
+	
+	Internal storage of the pointers to device memory where the data is stored can be accessed
+	via the gpu_force_data_arrays member \c d_data.
+	
+	\ingroup data_structs
 */
 struct ForceDataArraysGPU
 	{
@@ -117,10 +125,11 @@ struct ForceDataArraysGPU
 /*! Derived classes actually provide the implementation that computes the forces.
 	This base class exists so that some other part of the code can have a list of 
 	ForceComputes without needing to know what types of forces are being calculated.
-	The base class also implements the CPU <-> GPU copies of the force data.
+	The base class also implements the data structures both on the CPU and GPU 
+	and handles the CPU <-> GPU copies of the force data.
 	
 	Like with ParticleData forces are stored with contiguous x,y,z components on the CPU
-	and interleaved ones on the GPU. Translation is done on the device in a staging area.
+	and interleaved ones on the GPU.
 	\ingroup computes
 */
 class ForceCompute : public Compute
@@ -150,13 +159,18 @@ class ForceCompute : public Compute
 		bool m_particles_sorted;	//!< Flag set to true when particles are resorted in memory
 
 		//! Helper function called when particles are sorted
+		/*! setParticlesSorted() is passed as a slot to the particle sort signal.
+			It is used to flag \c m_particles_sorted so that a second call to compute
+			with the same timestep can properly recaculate the forces, which are stored
+			by index.
+		*/
 		void setParticlesSorted()	{ m_particles_sorted = true; }
 
 		Scalar * __restrict__ m_fx;	//!< x-component of the force
 		Scalar * __restrict__ m_fy; //!< y-component of the force
 		Scalar * __restrict__ m_fz; //!< z-component of the force
-		Scalar * __restrict__ m_pe; //!< Potential energy
-		Scalar * __restrict__ m_virial; //!< Virial
+		Scalar * __restrict__ m_pe; //!< per-particle potential energy (see ForceDataArrays for definition)
+		Scalar * __restrict__ m_virial; //!< per-particle virial (see ForceDataArrays for definition)
 		int m_nbytes;	//!< stores the number of bytes of memory allocated
 		
 		boost::signals::connection m_sort_connection;	//!< Connection to the signal notifying when particles are resorted
@@ -182,7 +196,8 @@ class ForceCompute : public Compute
 		#endif
 
 		//! Actually perform the computation of the forces
-		/*! This is pure virtual here. Sub-classes must implement this function
+		/*! This is pure virtual here. Sub-classes must implement this function. It will be called by
+			the base class compute() when the forces need to be computed.
 			\param timestep Current time step
 		 */
 		virtual void computeForces(unsigned int timestep)=0;

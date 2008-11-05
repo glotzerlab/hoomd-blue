@@ -50,8 +50,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __NVEUPDATER_GPU_H__
 #define __NVEUPDATER_GPU_H__
 
-//! NVE
-/*!	\ingroup updaters
+//! NVE via velocity verlet on the GPU
+/*!	NVEUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
+	
+	The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
+	
+	\ingroup updaters
 */
 class NVEUpdaterGPU : public NVEUpdater
 	{

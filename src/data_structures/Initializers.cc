@@ -63,6 +63,10 @@ using namespace boost::python;
 #include "WallData.h"
 
 
+/*! \file Initializers.cc
+	\brief Defines a few initializers for setting up ParticleData instances
+*/
+
 ////////////////////////////////////////////////////////////////////////////////
 // Simple Cubic Initializer
 

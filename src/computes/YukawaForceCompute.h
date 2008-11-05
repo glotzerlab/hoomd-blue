@@ -63,11 +63,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but 
 	a more typical usage will be to add the force compute to NVEUpdator or NVTUpdator. 
 	
-	This base class defines the interface for performing Lennard-Jones force computations. It does provide
-	a functional, single threaded method for computing the forces. A faster multi-threaded version
-	is YukawaForceComputeThreaded which will perform its computations in parallel across all processor cores in a
-	system. If compiled with CUDA support, there is YukawaForceComputeGPU which is roughly 60x faster than 
-	this class at computing forces.
 	\ingroup computes
 */
 class YukawaForceCompute : public ForceCompute
@@ -97,9 +92,6 @@ class YukawaForceCompute : public ForceCompute
 		Scalar m_kappa; //!< Kappa
 		unsigned int m_ntypes;	//!< Store the width and height of lj1 and lj2 here
 		
-		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
-		// level concepts like mixing. That is for the caller to handle. So, I only store 
-		// lj1 and lj2 here
 		Scalar * __restrict__ m_epsilon;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 		
 		//! Actually compute the forces

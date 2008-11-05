@@ -47,6 +47,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
+/*! \file gpu_forces.cu
+ 	\brief Defines functions and data structures for calculating forces on the GPU
+*/
+
 /*! \pre allocate() has not previously been called
 	\post Memory for \a force and \a virial is allocated on the device
 	\param num_local Number of particles local to the GPU on which this is being called

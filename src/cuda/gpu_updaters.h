@@ -61,13 +61,20 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
 
 /////////////////////////////////////// NVT stuff
-//! Data structure storing needed intermediate values for NVT integration
+
+//! Stores intermediate values for NVT integration
+/*! NVT integration (NVTUpdaterGPU) requires summing up the kinetic energy of the system.
+	gpu_nvt_data stores the needed auxiliary data structure needed to do the standard reduction
+	sum.
+	
+	\ingroup gpu_data_structs
+*/
 struct gpu_nvt_data
 	{
 	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
 	float *Ksum;	//!< fully reduced Ksum on one GPU
-	int NBlocks;	//!< Number of blocks in the computation (must be a power of 2)
-	int block_size;	//!< Block size of the kernel to be run on the device
+	int NBlocks;	//!< Number of blocks in the computation
+	int block_size;	//!< Block size of the kernel to be run on the device (must be a power of 2)
 	};
 
 //! Does the first step of the computation

@@ -47,19 +47,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 /*! \file LJForceComputeGPU.h
-	\brief Declares a class for computing lennard jones forces on the GPU
+	\brief Declares the class LJForceComputeGPU
 */
 
 #ifndef __LJFORCECOMPUTEGPU_H__
 #define __LJFORCECOMPUTEGPU_H__
 
 //! Computes Lennard-Jones forces on each particle using the GPU
-/*! Lennard-Jones pair forces are calucated much faster on the GPU. This class 
-	has the same public	interface as LJForceCompute so that they can be used interchangably. 
+/*! Calculates the same forces as LJForceCompute, but on the GPU.
 	
-	\b Developer information: <br>
-	This class operates as a wrapper around CUDA code written in C and compiled by 
-	nvcc. See ljforcesum_kernel.cu for detailed internal documentation.
+	The GPU kernel for calculating the forces is in ljforcesum_kernel.cu.
 	\ingroup computes
 */
 class LJForceComputeGPU : public LJForceCompute

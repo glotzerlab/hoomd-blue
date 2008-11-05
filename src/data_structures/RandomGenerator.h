@@ -86,7 +86,9 @@ class GeneratedParticles
 			
 		//! Constructor
 		GeneratedParticles(unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
-		//! Constructor
+		//! Empty constructor
+		/*! Included so that GeneratedParticles can be stored in a vector.
+		*/
 		GeneratedParticles() { }
 		
 		//! Check if a particle can be placed while obeying the separation radii
@@ -118,7 +120,8 @@ class GeneratedParticles
 		Scalar m_scalez;		//!< Scale factor to convert z to a bin coord
 		std::map< std::string, Scalar > m_radii;	//!< Separation radii accessed by particle type
 		
-		struct bond		//!< Structure representing a single bond
+		//! Structure representing a single bond
+		struct bond
 			{
 			//! Default constructor
 			bond() : tag_a(0), tag_b(0)
@@ -175,7 +178,8 @@ class ParticleGenerator
 	};
 	
 //! Generates random polymers
-/*! This ParticleGenerator can be used to generate systems of bead-spring polymers of any combination of
+/*! \ingroup data_structs
+	This ParticleGenerator can be used to generate systems of bead-spring polymers of any combination of
 	partile types specified in an array.
 */
 class PolymerParticleGenerator : public ParticleGenerator

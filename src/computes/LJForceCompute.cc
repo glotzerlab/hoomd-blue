@@ -51,7 +51,7 @@ using namespace boost::python;
 #include <stdexcept>
 
 /*! \file LJForceCompute.cc
-	\brief Contains code for the LJForceCompute class
+	\brief Defines the LJForceCompute class
 */
 
 using namespace std;

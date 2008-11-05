@@ -58,7 +58,7 @@ using std::string;
 #endif
 
 /*! \file NeighborList.h
-	\brief Declares a simple neibhorlist compute
+	\brief Declares the NeighborList class
 */
 
 #ifndef __NEIGHBORLIST_H__
@@ -77,7 +77,7 @@ using std::string;
 	each method. Since the goal of HOOMD is to explore all these possibilities, the 
 	NeighborLists will support both of these modes via a switch: setStorageMode(); 
 	
-	In particular, classes such as LJForceCompute and LJForceComputeThreaded can work with
+	In particular, classes such as LJForceCompute can work with
 	either setting, full or half, but they are faster with the half setting. However,
 	LJForceComputeGPU requires that the neighbor list storage mode is set to full.
 	
@@ -102,8 +102,6 @@ using std::string;
 	
 	The calculated neighbor list can be read using getList().
 	
-	Implementation details: The whole forceUpdate() and needsUpdating() scheme is complicated, requiring 
-	the cooperation of the subclass with the base class. It will be rewritten eventually.
 	\ingroup computes
 */
 class NeighborList : public Compute

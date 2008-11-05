@@ -149,6 +149,7 @@ struct BoxDim
 		- All particles are inside the box (see BoxDim)
 		- Each rtag element refers uniquely to a single particle (care should be taken
 			by the user not to to clobber this)
+			
 	More importantly, there are some assumptions that cannot be made:
 		- Data may be in a different order next time the arrays are acquired
 		- Pointers may be in a different location in memory next time the arrays are acquired
@@ -286,11 +287,11 @@ class ParticleDataInitializer
 	\c i, and the index of a particle with tag \c tag can be read from <code>arrays.rtag[tag]</code>.
 	
 	In order to help other classes deal with particles changing indices, any class that 
-	changes the order must call setSortedTimestep(). Any class interested in determining
-	when the last resort was done can find out by calling getSortedTimestep().
+	changes the order must call notifyParticleSort(). Any class interested in being notified
+	can subscribe to the signal by calling connectParticleSort().
 	
 	\note When writing to the particle data, particles must not be moved outside the box.
-	In debug builds, release() will fail an assertion if this is done.
+	In debug builds, any aquire will fail an assertion if this is done.
 	\ingroup data_structs
 */
 class ParticleData : boost::noncopyable

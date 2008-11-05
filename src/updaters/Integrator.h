@@ -71,22 +71,22 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 	Any number of ForceComputes can be used to specify the net force
 	for use with this integrator. They are added via calling
-	addForceCompute().
-
-	Currently, a maximum of 32 ForceComputes are supported. If there is ever
-	a need for this to be increased, it can be done without too much trouble,
-	but 32 should be much more than sufficient for any simulation.
+	addForceCompute(). Although there is a current, a maximum of 32 ForceComputes 
+	supported on the GPU. If there is ever a need for this to be increased, it can 
+	be done without too much trouble, but 32 should be much more than sufficient 
+	for any simulation.
 	
-	Integrators take "ownership" of the particle's accellerations. Any other updater that modifies the particles accelerations
-	will produce undefined results. If accelerations are to be modified, they must be done through forces, and added to 
+	Integrators take "ownership" of the particle's accellerations. Any other updater 
+	that modifies the particles accelerations will produce undefined results. If 
+	accelerations are to be modified, they must be done through forces, and added to 
 	an Integrator via addForceCompute().
 	
-	No such ownership is taken of the particle positions and velocities. Other Updaters can modify particle positions and
-	velocities as they wish. Those updates will be taken into account by the Integrator. It would probably make the most sense
-	to have such updaters run BEFORE the Integrator, since an Integrator actually moves the particles to the next time step.
-	This is handled correctly by System.
+	No such ownership is taken of the particle positions and velocities. Other Updaters 
+	can modify particle positions and velocities as they wish. Those updates will be taken 
+	into account by the Integrator. It would probably make the most sense to have such updaters 
+	run BEFORE the Integrator, since an Integrator actually moves the particles to the next time
+	step. This is handled correctly by System.
 	
-
 	\ingroup updaters
 */
 class Integrator : public Updater

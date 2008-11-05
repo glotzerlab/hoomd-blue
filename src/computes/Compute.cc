@@ -66,9 +66,9 @@ Compute::Compute(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata), m_last
 	assert(pdata->getN() > 0);
 	}
 		
-/*! It is useful for the user to know where computation time is spent, so all Analyzers
+/*! It is useful for the user to know where computation time is spent, so all Computes
 	should profile themselves. This method sets the profiler for them to use.
-	This method does not need to be called, as Analyzers will not profile themselves
+	This method does not need to be called, as Computes will not profile themselves
 	on a NULL profiler
 	\param prof Pointer to a profiler for the compute to use. Set to NULL 
 		(boost::shared_ptr<Profiler>()) to stop the 

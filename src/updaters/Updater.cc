@@ -63,13 +63,14 @@ Updater::Updater(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata)
 	assert(pdata->getN() > 0);
 	}
 		
-/*! It is useful for the user to know where the bottleneck is. All Updaters
+/*! It is useful for the user to know where computation time is spent, so all Updaters
 	should profile themselves. This method sets the profiler for them to use.
- 	This method does not need to be called, as Computes will not profile themselves
- 	on a NULL profiler
- 	\param prof Pointer to a profiler for the compute to use. Set to NULL to stop the 
- 		compute from profiling itself.
- 	\note Derived classes MUST check for m_prof != NULL before calling any profiler methods.
+	This method does not need to be called, as Updaters will not profile themselves
+	on a NULL profiler
+	\param prof Pointer to a profiler for the compute to use. Set to NULL 
+		(boost::shared_ptr<Profiler>()) to stop the 
+		analyzer from profiling itself.
+	\note Derived classes MUST check if m_prof is set before calling any profiler methods.
 */
 void Updater::setProfiler(boost::shared_ptr<Profiler> prof)
 	{

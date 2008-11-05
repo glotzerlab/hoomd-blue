@@ -66,10 +66,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	Any added Analyzers or Updaters can be removed as desired and run()
 	can be called multiple times if a multiple stage simulation is needed.
 	
-	Note: An Integrator is just a specially written Updater. At the moment,
-	there doesn't seem to be a real need to separate the two with different
-	base classes. Perhaps in the future this will be the route to take.
-	
 	Calling run() will step forward the specified number of time steps.
 	During each time step, the Analyzers added have their Analyzer::analyze()
 	methods called first, in the order in which they were added. A period

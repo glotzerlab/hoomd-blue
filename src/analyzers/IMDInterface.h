@@ -51,9 +51,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __IMD_INTERFACE_H__
 
 //! Iterfaces with VMD through the IMD communcations port
-/*! This analyzer should be often. When not connected to
+/*! analyze() can be called very often. When not connected to
 	VMD, it will do nothing. After a connection has been established,
-	it will transmit particle positions to VMD when analyze() is called.
+	which can only happen during a call to analyze(), further calls will 
+	transmit particle positions to VMD.
 	
 	In its current implementation, only a barebones set of commands are 
 	supported. The sending of any command that is not understood will

@@ -50,9 +50,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \file gpu_forces.h
  	\brief Declares functions and data structures for calculating forces on the GPU
- 	\details Functions in this file are intended for internal use by particular
-	Compute classes, such as LJForceComputeGPU and BondForceComputeGPU. They should
-	not be called outside of their intended classes.
 */
 
 extern "C" {
@@ -72,6 +69,8 @@ extern "C" {
 	The particle with \b index (not tag) \em i is bonded to particle \em bond.x
 	with bond type \em bond.y. Each particle may have a different number of bonds as
 	indicated in \em n_bonds[i].
+	
+	\ingroup gpu_data_structs
 */
 struct gpu_bondtable_array
 	{
@@ -91,6 +90,8 @@ struct gpu_bondtable_array
 	
 	Only forces for particles belonging to a GPU are stored there, thus each array
 	is allocated to be of length \a local_num (see gpu_pdata_arrays)
+	
+	\ingroup gpu_data_structs
 */
 struct gpu_force_data_arrays
 	{

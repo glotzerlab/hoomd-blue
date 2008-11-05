@@ -53,11 +53,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __HARMONICBONDFORCECOMPUTE_H__
 #define __HARMONICBONDFORCECOMPUTE_H__
 
-//! Computes bond forces on each particle
-/*! This is just a simple harmonic bond force: V = 1/2 K (|vec{Delta r}| - r_0|) ^ 2 . 
-	
-	After construction, this class will not compute this potential for any particles by default.
-	Bonds where this potential is computed must be defined in the BondData attached to the ParticleData.
+//! Computes harmonic bond forces on each particle
+/*! Harmonic bond forces are computed on every particle in the simulation.
+
+	The bonds which forces are computed on are accessed from ParticleData::getBondData
 	\ingroup computes
 */
 class HarmonicBondForceCompute : public ForceCompute

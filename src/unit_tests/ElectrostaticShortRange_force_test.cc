@@ -65,6 +65,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <math.h>
 
+//! This number is just 2/sqrt(Pi)
 #define EWALD_F  1.128379167
 using namespace std;
 using namespace boost;
@@ -88,10 +89,6 @@ const Scalar MIN_force=Scalar(1.0e-9);
 typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)> ElectrostaticShortRange_force_creator;
 	
 //! Test the ability of the Short Range Electrostatic force compute to actually calculate forces
-/*! 
-	\note With the creator as a parameter, the same code can be used to test any derived child
-		of ElectrostaticShortRange
-*/
 void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator)
 	{
 	cout << "Testing the accuracy of the look up table in ElectrostaticShortRange" << endl;
@@ -170,6 +167,8 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 	}
 	}
 	}
+
+//! Tests periodic boundary conditions
 void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator)
 {
     cout << "Testing periodic conditions in the calculation of ElectrostaticShortRange" << endl;
