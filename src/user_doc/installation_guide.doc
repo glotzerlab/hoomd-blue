@@ -162,11 +162,11 @@ Check out the \ref page_quick_start to learn how to use HOOMD.
  -# Make sure that the Apple \b Software \b Update tool has installed all updates related to the video drivers. 
  -# Extract the HOOMD package using your favorite tool or by running
  	\code
- tar -xvjf hoomd-0.7.1-unknown-arch-Python2.5.tar.bz2
+ tar -xvjf hoomd-0.8.0-Darwin-i386-Python2.5.tar.bz2
  	\endcode
  	in a terminal (modify the filename to match the one you downloaded of course).
  -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
-    i.e. /home/joaander/software/hoomd-0.7.1-unkown-arch
+    i.e. /home/joaander/software/hoomd-0.8.0-Darwin-i386-Python2.5
  -# Add EXTRACTED_LOCATION/bin to your $PATH. 
   See http://www.newlinuxuser.com/howto-add-a-directory-to-my-path-statementvariable/
   for instructions. You will probably need to log out and back in for the path setting 
@@ -178,10 +178,10 @@ hoomd
 \endcode
 in any terminal. You should see something like this:
 \code
-Python 2.4.4 (#1, Nov  4 2007, 17:29:36)
-[GCC 4.1.2 (Gentoo 4.1.2)] on linux2
+Python 2.5.1 (r251:54863, Apr 15 2008, 22:57:26) 
+[GCC 4.0.1 (Apple Inc. build 5465)] on darwin
 Type "help", "copyright", "credits" or "license" for more information.
->>> 
+>>>  
 \endcode
 Press CTRL-D to exit.
 
