@@ -1078,7 +1078,9 @@ void ParticleData::communicatePosition()
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		int local_beg = m_gpu_pdata[cur_gpu].local_beg;
 		int local_num = m_gpu_pdata[cur_gpu].local_num;
+		
 		m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_h_staging+local_beg, m_gpu_pdata[cur_gpu].pos + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
+		
 		num_bytes += local_num*sizeof(float4);
 		}
 		
@@ -1095,12 +1097,14 @@ void ParticleData::communicatePosition()
 		if (local_beg != 0)
 			{
 			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos, m_h_staging, (local_beg)*sizeof(float4), cudaMemcpyHostToDevice));
+			
 			num_bytes += (local_beg)*sizeof(float4);
 			}
 			
 		if (local_end != getN())
 			{
 			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos + local_end, m_h_staging + local_end, (getN() - local_end)*sizeof(float4), cudaMemcpyHostToDevice));
+			
 			num_bytes += (getN() - local_end)*sizeof(float4);
 			}
 		}
