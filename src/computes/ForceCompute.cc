@@ -356,6 +356,11 @@ const ForceDataArrays& ForceCompute::acquire()
 			break;
         }
 
+	// the apple compiler thinks we could get to here, make it happy
+	// anything other than the above is an undefined state!
+	assert(false);
+	return m_arrays;	
+
     #else
 
 	return m_arrays;
