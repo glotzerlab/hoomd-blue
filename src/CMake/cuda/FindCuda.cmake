@@ -302,7 +302,7 @@ MACRO(CUDA_add_custom_commands cuda_target)
 
 
 
-	    COMMENT "Building NVCC -cubin File: ${NVCC_generated_cubin_file}\n"
+	    COMMENT "Building NVCC -cubin File: ${NVCC_generated_cubin_file}"
       )
   ELSE (CUDA_BUILD_TYPE MATCHES "Device" AND CUDA_BUILD_CUBIN)
     # Depend on something that will exist.
@@ -323,7 +323,7 @@ MACRO(CUDA_add_custom_commands cuda_target)
       # MAIN_DEPENDENCY ${source_file}
       DEPENDS ${source_file}
       DEPENDS ${CUDA_NVCC_DEPEND}
-	  COMMENT "Building NVCC Dependency File: ${NVCC_generated_dependency_file}\n"
+	  COMMENT "Building NVCC Dependency File: ${NVCC_generated_dependency_file}"
     )
     
     # Build the CMake readible dependency file
@@ -352,7 +352,7 @@ MACRO(CUDA_add_custom_commands cuda_target)
            --keep
            -cuda -o ${generated_file} 
            ${CUDA_NVCC_INCLUDE_ARGS}
-       COMMENT "Building NVCC ${source_file}: ${generated_file}\n"
+       COMMENT "Building NVCC ${source_file}: ${generated_file}"
       )
     	
     SET(cuda_cu_sources ${cuda_cu_sources} ${source_file})
