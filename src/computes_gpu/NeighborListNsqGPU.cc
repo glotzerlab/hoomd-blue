@@ -70,8 +70,6 @@ using namespace boost;
 NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) 
 	: NeighborList(pdata, r_cut, r_buff)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
 		{
@@ -97,7 +95,6 @@ NeighborListNsqGPU::~NeighborListNsqGPU()
 */
 void NeighborListNsqGPU::buildNlist()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	buildNlistAttempt();
 		
 	// handle when the neighbor list overflows
@@ -125,8 +122,6 @@ void NeighborListNsqGPU::buildNlist()
 */
 void NeighborListNsqGPU::buildNlistAttempt()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-
 	if (m_storage_mode != full)
 		{
 		cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;

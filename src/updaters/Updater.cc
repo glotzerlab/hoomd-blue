@@ -56,7 +56,7 @@ using namespace boost::python;
 /*! \param pdata Particle data this compute will act on. Must not be NULL.
 	\post The Updater is constructed with the given particle data and a NULL profiler.
 */
-Updater::Updater(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata)
+Updater::Updater(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata), exec_conf(pdata->getExecConf())
 	{
 	// sanity check
 	assert(pdata);

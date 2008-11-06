@@ -195,7 +195,7 @@ cudaError_t gpu_fenebondforce_sum(const gpu_force_data_arrays& force_data, gpu_p
 	assert(block_size != 0);
 
 	// setup the grid to run the kernel
-	dim3 grid( (int)ceil((double)pdata->N/ (double)block_size), 1, 1);
+	dim3 grid( (int)ceil((double)pdata->local_num / (double)block_size), 1, 1);
 	dim3 threads(block_size, 1, 1);
 
 	// bind the textures

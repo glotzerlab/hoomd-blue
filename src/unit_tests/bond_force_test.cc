@@ -278,7 +278,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	}
 	
 //! Compares the output of two HarmonicBondForceComputes
-void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2)
+void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, ExecutionConfiguration exec_conf)
 	{
 	const unsigned int M = 10;
 	const unsigned int N = M*M*M;
@@ -287,7 +287,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	// use a simple cubic array of particles so that random bonds
 	// don't result in huge forces on a random particle arrangement
 	SimpleCubicInitializer sc_init(M, 1.5, "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(sc_init));
+	shared_ptr<ParticleData> pdata(new ParticleData(sc_init, exec_conf));
 	
 	shared_ptr<HarmonicBondForceCompute> fc1 = bf_creator1(pdata);
 	shared_ptr<HarmonicBondForceCompute> fc2 = bf_creator2(pdata);
@@ -424,9 +424,23 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
 	{
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-	bond_force_comparison_tests(bf_creator, bf_creator_gpu);
+	bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration());
 	}
 	
+//! boost test case for comparing calculation on the CPU to multi-gpu ones
+BOOST_AUTO_TEST_CASE( HarmonicBondForce_MultiGPU_compare)
+	{
+	vector<unsigned int> gpu_list;
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	
+	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
+	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
+	bond_force_comparison_tests(bf_creator, bf_creator_gpu, exec_conf);
+	}
 #endif
 
 //! boost test case for constant forces

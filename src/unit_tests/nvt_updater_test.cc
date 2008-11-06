@@ -1152,17 +1152,17 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator)
 	}
 
 //! Compares the output from one NVEUpdater to another
-void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_creator2)
+void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_creator2, ExecutionConfiguration exec_conf)
 	{
-	const unsigned int N = 500;
+	const unsigned int N = 1000;
 	
 	// create two identical random particle systems to simulate
 	RandomInitializer rand_init1(N, Scalar(0.2), Scalar(0.9), "A");
 	RandomInitializer rand_init2(N, Scalar(0.2), Scalar(0.9), "A");
 	rand_init1.setSeed(12345);
-	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1));
+	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1, exec_conf));
 	rand_init2.setSeed(12345);
-	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2));
+	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2, exec_conf));
 
 	shared_ptr<NeighborList> nlist1(new NeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
 	shared_ptr<NeighborList> nlist2(new NeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
@@ -1240,8 +1240,24 @@ BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
 	{
 	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
-	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu);
+	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration());
 	}
+	
+//! boost test case for comparing the CPU and multi-GPU updaters
+BOOST_AUTO_TEST_CASE( NVTUpdaterMultiGPU_comparison_tests)
+	{
+	vector<unsigned int> gpu_list;
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	
+	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
+	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
+	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, exec_conf);
+	}
+		
 #endif
 
 #ifdef WIN32

@@ -77,7 +77,6 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 
 	
 	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (exec_conf.exec_mode == ExecutionConfiguration::CPU )
 		using_gpu = false;
 	else using_gpu = true;

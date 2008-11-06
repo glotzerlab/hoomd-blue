@@ -59,7 +59,7 @@ using namespace std;
 /*! \param pdata Particle data this compute will act on. Must not be NULL.
 	\post The Compute is constructed with the given particle data and a NULL profiler.
 */
-Compute::Compute(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata), m_last_computed(0), m_first_compute(true)
+Compute::Compute(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata), exec_conf(pdata->getExecConf()), m_last_computed(0), m_first_compute(true)
 	{
 	// sanity check
 	assert(pdata);

@@ -71,9 +71,7 @@ using namespace std;
 StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) 
 	: StochasticForceCompute(pdata, deltaT, Temp, seed)
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-
-//  I DO NOT KNOW IF THIS APPLIES TO THIS FORCE		
+	//  I DO NOT KNOW IF THIS APPLIES TO THIS FORCE		
 	// default block size is the highest performance in testing on different hardware
 	// choose based on compute capability of the device
 	cudaDeviceProp deviceProp;
@@ -89,8 +87,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for StochasticForceComputeGPU" << endl;
 		m_block_size = 96;
 		}
-
-
+		
 	// allocate the gamma data on the GPU
 	int nbytes = sizeof(float)*m_pdata->getNTypes();
 	// allocate the coeff data on the CPU
@@ -99,9 +96,9 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	for (unsigned int j = 0; j < m_pdata->getNTypes(); j++) h_gammas[j] = 1.0;  
 	d_gammas.resize(exec_conf.gpu.size());
 	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_gammas[cur_gpu]), nbytes));
 		assert(d_gammas[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void **)(void *) d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
@@ -113,11 +110,10 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 StochasticForceComputeGPU::~StochasticForceComputeGPU()
 	{
 	// deallocate our memory
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		assert(d_gammas[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_gammas[cur_gpu]));
 		}
 	delete[] h_gammas;
@@ -152,7 +148,8 @@ void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 	h_gammas[typ] = gamma;
 	
 	int nbytes = sizeof(float)*m_pdata->getNTypes();
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
 	}
@@ -162,7 +159,6 @@ void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 	
 	\param T Temperature of Stochastic Bath
 */
-
 void StochasticForceComputeGPU::setT(Scalar T)
 	{
 	if (T <= 0)
@@ -181,7 +177,6 @@ void StochasticForceComputeGPU::setT(Scalar T)
 	
 	\param deltaT timestep of Stochastic Bath
 */
-
 void StochasticForceComputeGPU::setDeltaT(Scalar deltaT)
 	{
 	if (deltaT <= 0)
@@ -201,22 +196,18 @@ void StochasticForceComputeGPU::setDeltaT(Scalar deltaT)
 */
 void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
 	// start the profile
 	if (m_prof) m_prof->push(exec_conf, "Stochastic Baths");
 
 	// access the particle data
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	
+	// call the kernel on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_stochasticforce, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
-		}
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->sync();
+
+	exec_conf.syncAll();
 	
 	m_pdata->release();
 	
@@ -225,8 +216,10 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 
 //	int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 16) + n_calc * (4 + 16);
 //	int64_t flops = n_calc * (3+12+5+2+2+6+3+7);
-//	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
+	// if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	
+	// I'm not sure why the above is commented out, but we cannot have a push (above) without a pop! - JA
+	if (m_prof) m_prof->pop();
 	}
 
 #ifdef WIN32

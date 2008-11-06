@@ -78,8 +78,6 @@ using namespace std;
 */
 BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) : NeighborList(pdata, r_cut, r_buff)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
@@ -189,7 +187,6 @@ static void generateTraversalOrder(unsigned int i, unsigned int j, unsigned int 
 */
 void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
 	// use mallocPitch to make sure that memory accesses are coalesced	
@@ -334,7 +331,6 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 */
 void BinnedNeighborListGPU::freeGPUBinData()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
@@ -366,7 +362,6 @@ void BinnedNeighborListGPU::freeGPUBinData()
 */
 void BinnedNeighborListGPU::buildNlist()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
 	// bin the particles
@@ -448,8 +443,7 @@ void BinnedNeighborListGPU::buildNlist()
 void BinnedNeighborListGPU::updateBinsUnsorted()
 	{
 	assert(m_pdata);
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-
+		
 	// start up the profile
 	if (m_prof) m_prof->push(exec_conf, "Bin");
 
@@ -605,7 +599,6 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 */
 void BinnedNeighborListGPU::updateListFromBins()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
 	if (m_storage_mode != full)
@@ -648,7 +641,6 @@ void BinnedNeighborListGPU::updateListFromBins()
 */
 bool BinnedNeighborListGPU::distanceCheck()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	assert(exec_conf.gpu.size() >= 1);
 	
 	// scan through the particle data arrays and calculate distances

@@ -72,8 +72,6 @@ using namespace std;
 YukawaForceComputeGPU::YukawaForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa) 
 	: YukawaForceCompute(pdata, nlist, r_cut, kappa)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
@@ -107,9 +105,9 @@ YukawaForceComputeGPU::YukawaForceComputeGPU(boost::shared_ptr<ParticleData> pda
 	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
 	
 	d_coeffs.resize(exec_conf.gpu.size());
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
 		assert(d_coeffs[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
@@ -121,12 +119,10 @@ YukawaForceComputeGPU::YukawaForceComputeGPU(boost::shared_ptr<ParticleData> pda
 
 YukawaForceComputeGPU::~YukawaForceComputeGPU()
 	{
-	// deallocate our memory
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.tagAll(__FILE__, __LINE__);	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		assert(d_coeffs[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_coeffs[cur_gpu]));
 		}
 	delete[] h_coeffs;
@@ -167,7 +163,7 @@ void YukawaForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scal
 	h_coeffs[typ2*m_pdata->getNTypes() + typ1] = epsilon;
 	
 	int nbytes = sizeof(float)*m_pdata->getNTypes()*m_pdata->getNTypes();
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_coeffs[cur_gpu], h_coeffs, nbytes, cudaMemcpyHostToDevice));
 	}
@@ -179,9 +175,6 @@ void YukawaForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scal
 */
 void YukawaForceComputeGPU::computeForces(unsigned int timestep)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
 	// start by updating the neighborlist
 	m_nlist->compute(timestep);
 	
@@ -204,13 +197,12 @@ void YukawaForceComputeGPU::computeForces(unsigned int timestep)
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_yukawaforce_sum, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_kappa, m_block_size));
 		}
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->sync();
+	exec_conf.syncAll();
 	
 	m_pdata->release();
 	

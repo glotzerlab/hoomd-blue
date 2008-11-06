@@ -78,7 +78,6 @@ NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 void NVEUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
@@ -97,9 +96,13 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	gpu_boxsize box = m_pdata->getBoxGPU();
 
 	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
+	
+	// call the pre-step kernel on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->call(bind(nve_pre_step, &d_pdata[cur_gpu], &box, m_deltaT, m_limit, m_limit_val));
 		
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(nve_pre_step, &d_pdata[0], &box, m_deltaT, m_limit, m_limit_val));
+	exec_conf.syncAll();
 	
 	uint64_t mem_transfer = m_pdata->getN() * (16+32+32);
 	uint64_t flops = m_pdata->getN() * (15+3+9+12);
@@ -113,15 +116,20 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	if (m_prof) m_prof->pop(exec_conf);
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
-	computeAccelerationsGPU(timestep+1, "NVE.GPU", false);
+	computeAccelerationsGPU(timestep+1, "NVE", false);
 	
 	if (m_prof) m_prof->push(exec_conf, "NVE");
 	if (m_prof) m_prof->push(exec_conf, "Half-step 2");
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(nve_step, &d_pdata[0], m_d_force_data_ptrs[0], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+	
+	// call the post-step kernel on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)	
+		exec_conf.gpu[cur_gpu]->call(bind(nve_step, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+		
+	exec_conf.syncAll();
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step

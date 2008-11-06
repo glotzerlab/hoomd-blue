@@ -66,7 +66,6 @@ using namespace std;
 */
 NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : NVTUpdater(pdata, deltaT, tau, T)
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// at least one GPU is needed
 	if (exec_conf.gpu.size() == 0)
 		{
@@ -87,14 +86,13 @@ NVTUpdaterGPU::~NVTUpdaterGPU()
 */
 void NVTUpdaterGPU::allocateNVTData(int block_size)
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
+	// allocate the memory for the partial m*v^2 sums on each GPU	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		d_nvt_data[cur_gpu].block_size = block_size;
 		d_nvt_data[cur_gpu].NBlocks = m_pdata->getLocalNum(cur_gpu) / block_size + 1;
 		
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].partial_Ksum), d_nvt_data[cur_gpu].NBlocks * sizeof(float)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].Ksum), sizeof(float)));
 		}
@@ -102,11 +100,10 @@ void NVTUpdaterGPU::allocateNVTData(int block_size)
 
 void NVTUpdaterGPU::freeNVTData()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-
+	// free the memory for the partial m*v^2 sums on each GPU	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_nvt_data[cur_gpu].partial_Ksum));
 		d_nvt_data[cur_gpu].partial_Ksum = NULL;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_nvt_data[cur_gpu].Ksum));
@@ -119,7 +116,6 @@ void NVTUpdaterGPU::freeNVTData()
 void NVTUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
@@ -138,11 +134,11 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 
 	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
 		
+	// launch the pre-step kernel on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_pre_step, &d_pdata[cur_gpu], &box, &d_nvt_data[cur_gpu], m_Xi, m_deltaT));
-		}
+
 	exec_conf.syncAll();
 	
 	if (m_prof) m_prof->pop(exec_conf, 36*m_pdata->getN(), 80 * m_pdata->getN());
@@ -166,15 +162,14 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		m_prof->push(exec_conf, "Reducing");
 		}
 		
-	// reduce the Ksum values on the GPU
+	// reduce the Ksum values on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_reduce_ksum, &d_nvt_data[cur_gpu]));
-		}
+
 	exec_conf.syncAll();
 		
-	// copy the values from the GPU to the CPU and complete the sum
+	// copy the values from the GPUs to the CPU and complete the sum
 	float Ksum_total = 0.0f;
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
@@ -193,10 +188,11 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
 	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_step, &d_pdata[cur_gpu], &d_nvt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_deltaT));
 	exec_conf.syncAll();
-		
+	
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step

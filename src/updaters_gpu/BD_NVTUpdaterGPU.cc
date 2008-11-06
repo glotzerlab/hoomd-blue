@@ -66,7 +66,6 @@ using namespace std;
 */
 BD_NVTUpdaterGPU::BD_NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : BD_NVTUpdater(pdata, deltaT, Temp, seed)
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// at least one GPU is needed
 	if (exec_conf.gpu.size() == 0)
 		{
@@ -82,7 +81,6 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	
 //	cout << "Update the system timestep " << timestep << endl;
 	assert(m_pdata);
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
 //	cout << "Update the system 0.05" << endl;
 
@@ -116,8 +114,12 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 
 	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
 		
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(nve_pre_step, &d_pdata[0], &box, m_deltaT, m_limit, m_limit_val));
+	// call the pre-step kernel on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->call(bind(nve_pre_step, &d_pdata[cur_gpu], &box, m_deltaT, m_limit, m_limit_val));
+		
+	exec_conf.syncAll();
 	
 //	cout << "Update the system - 1" << endl;
 
@@ -135,7 +137,7 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 //	cout << "Update the system - 2" << endl;
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
-	computeAccelerationsGPU(timestep+1, "BD_NVT.GPU", false);
+	computeAccelerationsGPU(timestep+1, "BD_NVT", false);
 //	boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
 //	assert(stochastic_force); 
 //	stochastic_force->checkRNGstate();
@@ -148,8 +150,13 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(nve_step, &d_pdata[0], m_d_force_data_ptrs[0], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+	
+	// call the post-step kernel on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)	
+		exec_conf.gpu[cur_gpu]->call(bind(nve_step, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+		
+	exec_conf.syncAll();
 	m_pdata->release();
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step

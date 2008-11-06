@@ -71,8 +71,6 @@ using namespace std;
 LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
 	: LJForceCompute(pdata, nlist, r_cut)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
@@ -95,7 +93,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 	if (deviceProp.major == 1 && deviceProp.minor < 2)
 		m_block_size = 256;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 96;
+		m_block_size = 352;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for LJForceComputeGPU" << endl;
@@ -120,12 +118,11 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 
 LJForceComputeGPU::~LJForceComputeGPU()
 	{
-	// deallocate our memory
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// free the coefficients on the GPU
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		assert(d_coeffs[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_coeffs[cur_gpu]));
 		}
 	delete[] h_coeffs;
@@ -169,7 +166,7 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 	h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float2(lj1, lj2);
 	
 	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_coeffs[cur_gpu], h_coeffs, nbytes, cudaMemcpyHostToDevice));
 	}
@@ -181,9 +178,6 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 */
 void LJForceComputeGPU::computeForces(unsigned int timestep)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
 	// start by updating the neighborlist
 	m_nlist->compute(timestep);
 	
@@ -206,13 +200,11 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
+	// run the kernel on all GPUs in parallel
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_ljforce_sum, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
-		}
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->sync();
+	exec_conf.syncAll();
 	
 	m_pdata->release();
 	

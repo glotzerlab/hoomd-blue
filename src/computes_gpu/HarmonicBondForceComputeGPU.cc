@@ -63,8 +63,6 @@ using namespace std;
 HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
 	: HarmonicBondForceCompute(pdata)
 	{
-	// check the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
@@ -77,9 +75,9 @@ HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<Parti
 	
 	// allocate and zero device memory
 	m_gpu_params.resize(exec_conf.gpu.size());
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_bond_data->getNBondTypes()*sizeof(float2)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_bond_data->getNBondTypes()*sizeof(float2)));
 		}
@@ -91,10 +89,9 @@ HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<Parti
 HarmonicBondForceComputeGPU::~HarmonicBondForceComputeGPU()
 	{
 	// free memory on the GPU
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{	
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
 		m_gpu_params[cur_gpu] = NULL;
 		}
@@ -119,13 +116,9 @@ void HarmonicBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar 
 	m_host_params[type] = make_float2(K, r_0);
 	
 	// copy the parameters to the GPU
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_bond_data->getNBondTypes()*sizeof(float2), cudaMemcpyHostToDevice));
-		}
 	}
 
 /*! Internal method for computing the forces on the GPU. 
@@ -135,9 +128,6 @@ void HarmonicBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar 
 */
 void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	{
-	// get the execution configuration
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
 	// start the profile
 	if (m_prof) m_prof->push(exec_conf, "Harmonic");
 		
@@ -147,12 +137,10 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
 	
+	// run the kernel in parallel on all GPUs
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_bondforce_sum, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], &box, &gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size));
-		}
-	
 	exec_conf.syncAll();	
 		
 	// the force data is now only up to date on the gpu

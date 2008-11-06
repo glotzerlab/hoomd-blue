@@ -119,6 +119,8 @@ class Updater : boost::noncopyable
 	protected:
 		const boost::shared_ptr<ParticleData> m_pdata;	//!< The particle data this compute is associated with
 		boost::shared_ptr<Profiler> m_prof;				//!< The profiler this compute is to use
+		const ExecutionConfiguration& exec_conf;			//!< Cached reference to the execution configuration
+		
 		
 	};
 	

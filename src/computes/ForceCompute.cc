@@ -233,10 +233,6 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	assert(pdata);
 	assert(pdata->getN());
 	
-	#ifdef USE_CUDA
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	#endif
-	
 	// allocate data on the host
 	unsigned int num_particles = m_pdata->getN();
 	m_arrays.fx = m_fx = new Scalar[num_particles];
@@ -275,10 +271,6 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 */
 ForceCompute::~ForceCompute()
 	{
-	#ifdef USE_CUDA
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	#endif	
-	
 	// free the host data
 	delete[] m_fx;
 	m_arrays.fx = m_fx = NULL;
@@ -378,7 +370,6 @@ const ForceDataArrays& ForceCompute::acquire()
 */
 vector<ForceDataArraysGPU>& ForceCompute::acquireGPU()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (exec_conf.gpu.empty())
 		{
 		cerr << endl << "***Error! Acquiring forces on GPU, but there is no GPU in the exection configuration" << endl << endl;
@@ -421,8 +412,6 @@ void ForceCompute::hostToDeviceCopy()
 	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
 	// if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
 	
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-	
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(&ForceDataArraysGPU::hostToDeviceCopy, &m_gpu_forces[cur_gpu], m_fx, m_fy, m_fz, m_pe, m_virial));
@@ -437,9 +426,7 @@ void ForceCompute::deviceToHostCopy()
 	{
 	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
 	// if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
-
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-
+	
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(&ForceDataArraysGPU::deviceToHostCopy, &m_gpu_forces[cur_gpu], m_fx, m_fy, m_fz, m_pe, m_virial));
