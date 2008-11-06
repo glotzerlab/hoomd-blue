@@ -93,7 +93,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));	
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
 	if (deviceProp.major == 1 && deviceProp.minor < 2)
-		m_block_size = 352;
+		m_block_size = 256;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
 		m_block_size = 96;
 	else

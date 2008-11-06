@@ -107,7 +107,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
 	if (deviceProp.major == 1 && deviceProp.minor < 2)
-		m_block_size = 64;
+		m_block_size = 192;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
 		m_block_size = 416;
 	else

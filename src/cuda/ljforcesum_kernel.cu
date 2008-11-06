@@ -112,6 +112,10 @@ extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data,
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float virial = 0.0f;
 
+	// prefetch neighbor index
+	int cur_neigh = 0;
+	int next_neigh = nlist.list[idx_global];
+
 	// loop over neighbors
 	#ifdef ARCH_SM13
 	// sm13 offers warp voting which makes this hardware bug workaround less of a performance penalty
@@ -123,7 +127,10 @@ extern "C" __global__ void calcLJForces_kernel(gpu_force_data_arrays force_data,
 		if (neigh_idx < n_neigh)
 		{
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
-		int cur_neigh = nlist.list[nlist.pitch*neigh_idx + idx_global];
+		// prefetch the next value and set the current one
+		cur_neigh = next_neigh;
+		if (neigh_idx+1 < nlist.height)
+			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
 		
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
