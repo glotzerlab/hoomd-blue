@@ -39,63 +39,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "gpu_forces.h"
+#include "ForceCompute.cuh"
+#include "gpu_pdata.h"
 
-#ifdef WIN32
-#include <cassert>
-#else
-#include <assert.h>
+/*! \file StochasticForceGPU.cuh
+	\brief Declares GPU kernel code for calculating the stochastic forces. Used by StochasticForceComputeGPU.
+*/
+
+#ifndef __STOCHASTICFORCEGPU_CUH__
+#define __STOCHASTICFORCEGPU_CUH__
+
+//! Kernel driver that computes stochastic forces on the GPU for StochasticForceComputeGPU
+cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, float dt, float T, float *d_gammas, unsigned int seed, unsigned int iteration, int gamma_length, int block_size);
+
 #endif
-
-/*! \file gpu_forces.cu
- 	\brief Defines functions and data structures for calculating forces on the GPU
-*/
-
-/*! \pre allocate() has not previously been called
-	\post Memory for \a force and \a virial is allocated on the device
-	\param num_local Number of particles local to the GPU on which this is being called
-	\note allocate() \b must be called on the GPU it is to allocate data on
-*/
-cudaError_t gpu_force_data_arrays::allocate(unsigned int num_local)
-	{
-	// sanity checks
-	assert(force == NULL);
-	assert(virial == NULL);
-	
-	// allocate force and check for errors
-	cudaError_t error = cudaMalloc((void **)((void *)&force), sizeof(float4)*num_local);
-	if (error != cudaSuccess)
-		return error;
-		
-	// allocate virial and check for errors
-	error = cudaMalloc((void **)((void *)&virial), sizeof(float)*num_local);
-	if (error != cudaSuccess)
-		return error;
-		
-	// all done, return success
-	return cudaSuccess;
-	}
-	
-/*! \pre allocate() has been called
-	\post Memory for \a force and \a virial is freed on the device
-	\note deallocate() \b must be called on the same GPU as allocate()
-*/
-cudaError_t gpu_force_data_arrays::deallocate()
-	{
-	// sanity checks
-	assert(force != NULL);
-	assert(virial != NULL);
-	
-	// free force and check for errors
-	cudaError_t error = cudaFree((void*)force);
-	if (error != cudaSuccess)
-		return error;
-		
-	// free virial and check for errors
-	error = cudaFree((void*)virial);
-	if (error != cudaSuccess)
-		return error;
-	
-	// all done, return success
-	return cudaSuccess;
-	}

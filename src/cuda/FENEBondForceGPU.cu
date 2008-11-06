@@ -39,8 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "gpu_forces.h"
-#include "gpu_pdata.h"
+#include "FENEBondForceGPU.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -50,23 +49,23 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-/*! \file bondforce_kernel.cu
-	\brief Contains code that implements the bond force sum on the GPU.
+/*! \file FENEBondForceGPU.cu
+	\brief Defines GPU kernel code for calculating the FENE bond forces. Used by FENEBondForceComputeGPU.
 */
 
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Texture for reading bond parameters
-texture<float2, 1, cudaReadModeElementType> bond_params_tex;
+texture<float4, 1, cudaReadModeElementType> bond_params_tex;
 
-//! Kernel for caculating harmonic bond forces on the GPU
+//! Kernel for caculating FENE bond forces on the GPU
 /*! \param force_data Data to write the compute forces to
 	\param pdata Particle data arrays to calculate forces on
-	\param blist Bond data to use in calculating the forces
 	\param box Box dimensions for periodic boundary condition handling
+	\param blist Bond data to use in calculating the forces
 */
-extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_bondtable_array blist, gpu_boxsize box)
+extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_bondtable_array blist)
 	{
 	// start by identifying which particle we are to handle
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -89,7 +88,8 @@ extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_dat
 	// loop over neighbors
 	for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
 		{
-		// the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
+		// MEM TRANSFER: 8 bytes
+		// the volatile fails to compile in device emulation mode
 		#ifdef _DEVICEEMU
 		uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_global];
 		#else
@@ -100,7 +100,7 @@ extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_dat
 		int cur_bond_idx = cur_bond.x;
 		int cur_bond_type = cur_bond.y;
 		
-		// get the bonded particle's position (MEM TRANSFER: 16 bytes)
+		// get the bonded particle's position (MEM_TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
 	
 		// calculate dr (FLOPS: 3)
@@ -114,30 +114,57 @@ extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_dat
 		dz -= box.Lz * rintf(dz * box.Lzinv);
 		
 		// get the bond parameters (MEM TRANSFER: 8 bytes)
-		float2 params = tex1Dfetch(bond_params_tex, cur_bond_type);
+		float4 params = tex1Dfetch(bond_params_tex, cur_bond_type);
 		float K = params.x;
 		float r_0 = params.y;
-		
-		// FLOPS: 16
+		// lj1 is defined as 4*epsilon*sigma^12
+		float lj1 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z;
+		// lj2 is defined as 4*epsilon*sigma^6
+		float lj2 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z;
+		float epsilon = params.w;
+
+						
+		// FLOPS: 5
 		float rsq = dx*dx + dy*dy + dz*dz;
-		float rinv = rsqrtf(rsq);
-		float forcemag_divr = K * (r_0 * rinv - 1.0f);
-		float bond_eng = 0.5f * K * (r_0 - 1.0f / rinv) * (r_0 - 1.0f / rinv);
+		//float r = sqrtf(rsq);
 		
+		// calculate 1/r^2 (FLOPS: 2)
+		float r2inv;
+		if (rsq >= 1.01944064370214f)  // comparing to the WCA limit
+			r2inv = 0.0f;
+		else
+			r2inv = 1.0f / rsq;
+	
+		// calculate 1/r^6 (FLOPS: 2)
+		float r6inv = r2inv*r2inv*r2inv;
+		// calculate the force magnitude / r (FLOPS: 6)
+		float wcaforcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
+		// calculate the pair energy (FLOPS: 3)
+		// For WCA interaction, this energy is low by epsilon.  This is corrected in the logger.
+		float pair_eng = r6inv * (lj1 * r6inv - lj2) + epsilon;
+		
+		// FLOPS: 7
+		float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0)) + wcaforcemag_divr;
+		float bond_eng = -0.5f * K * r_0*r_0*logf(1.0f - rsq/(r_0*r_0));
+				
 		// add up the virial (FLOPS: 3)
 		virial += float(1.0/6.0) * rsq * forcemag_divr;
-		
+				
 		// add up the forces (FLOPS: 7)
 		force.x += dx * forcemag_divr;
 		force.y += dy * forcemag_divr;
 		force.z += dz * forcemag_divr;
-		force.w += bond_eng;
+		force.w += bond_eng + pair_eng;
+		
+		// Checking to see if bond length restriction is violated.
+		if (rsq >= r_0*r_0) *blist.checkr = 1;
+		
 		}
 		
 	// energy is double counted: multiply by 0.5
 	force.w *= 0.5f;
 	
-	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
 	force_data.force[idx_local] = force;
 	force_data.virial[idx_local] = virial;
 	}
@@ -147,40 +174,50 @@ extern "C" __global__ void calcBondForces_kernel(gpu_force_data_arrays force_dat
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param btable List of bonds stored on the GPU
-	\param d_params K and r_0 params packed as float2 variables
+	\param d_params K, r_0, lj1, and lj2 params packed as float4 variables
 	\param n_bond_types Number of bond types in d_params
 	\param block_size Block size to use when performing calculations
+	\param exceedsR0 output parameter set to true if any bond exceeds the length of r_0
 	
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 	
-	\a d_params should include one float2 element per bond type. The x component contains K the spring constant
-	and the y component contains r_0 the equilibrium length.
+	\a d_params should include one float4 element per bond type. The x component contains K the spring constant
+	and the y component contains r_0 the equilibrium length, z and w contain lj1 and lj2.
 */
-cudaError_t gpu_bondforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bondtable_array *btable, float2 *d_params, unsigned int n_bond_types, int block_size)
+cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float4 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0)
 	{
-	assert(pdata);
-	assert(btable);
 	assert(d_params);
 	// check that block_size is valid
 	assert(block_size != 0);
 
 	// setup the grid to run the kernel
-	dim3 grid( (int)ceil((double)pdata->local_num / (double)block_size), 1, 1);
+	dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
 	dim3 threads(block_size, 1, 1);
 
 	// bind the textures
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 		
-	error = cudaBindTexture(0, bond_params_tex, d_params, sizeof(float2) * n_bond_types);
+	error = cudaBindTexture(0, bond_params_tex, d_params, sizeof(float4) * n_bond_types);
+	if (error != cudaSuccess)
+		return error;
+		
+	// start by zeroing check value on the device
+	error = cudaMemcpy(btable.checkr, &exceedsR0,
+			sizeof(int), cudaMemcpyHostToDevice);
 	if (error != cudaSuccess)
 		return error;
 
 	// run the kernel
-	calcBondForces_kernel<<< grid, threads>>>(force_data, *pdata, *btable, *box);
-	
+	gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(force_data, pdata, box, btable);	
+
+	error = cudaMemcpy(&exceedsR0, btable.checkr,
+			sizeof(int), cudaMemcpyDeviceToHost);	
+	if (error != cudaSuccess)
+		return error;
+
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;
@@ -191,4 +228,3 @@ cudaError_t gpu_bondforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata
 		return cudaGetLastError();
 		}
 	}
-

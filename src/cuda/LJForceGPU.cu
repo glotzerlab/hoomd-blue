@@ -36,12 +36,11 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: yukawaforcesum_kernel.cu 1365 2008-10-14 17:47:02Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/cuda/yukawaforcesum_kernel.cu $
+// $Id$
+// $URL$
 
-#include "gpu_forces.h"
-#include "gpu_pdata.h"
 #include "gpu_settings.h"
+#include "LJForceGPU.cuh"
 
 #ifdef WIN32
 #include <cassert>
@@ -49,19 +48,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file yukawaforcesum_kernel.cu
-	\brief Contains code for the Yukawa force sum kernel on the GPU
-	\details Functions in this file are NOT to be called by anyone not knowing 
-		exactly what they are doing. They are designed to be used solely by 
-		YukawaForceComputeGPU.
+/*! \file LJForceGPU.cu
+	\brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
 */
-
-///////////////////////////////////////// Yukawa params
 
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
-//! Kernel for calculating yukawa forces
+//! Kernel for calculating lj forces
 /*! This kerenel is called to calculate the lennard-jones forces on all N particles
 
 	\param force_data Device memory array to write calculated forces to
@@ -71,22 +65,21 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	\param coeff_width Width of the coefficient matrix
 	\param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
 		set to 0
-	\param kappa Screening Length
 	\param box Box dimensions used to implement periodic boundary conditions
 	
-	\a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j] is epsilon for the type pair \a i, \a j.
-	The values in d_coeffs are read into shared memory, so 
-	\c coeff_width*coeff_width*sizeof(float) bytes of extern shared memory must be allocated for the kernel call.
+	\a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a lj1 for the type pair \a i, \a j.
+	Similarly, .y is the \a lj2 parameter. The values in d_coeffs are read into shared memory, so 
+	\c coeff_width*coeff_width*sizeof(float2) bytes of extern shared memory must be allocated for the kernel call.
 	
 	Developer information:
 	Each block will calculate the forces on a block of particles.
 	Each thread will calculate the total force on one particle.
 	The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-extern "C" __global__ void calcYukawaForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_nlist_array nlist, float *d_coeffs, int coeff_width, float r_cutsq, float kappa, gpu_boxsize box)
+extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq)
 	{
 	// read in the coefficients
-	extern __shared__ float s_coeffs[];
+	extern __shared__ float2 s_coeffs[];
 	for (int cur_offset = 0; cur_offset < coeff_width*coeff_width; cur_offset += blockDim.x)
 		{
 		if (cur_offset + threadIdx.x < coeff_width*coeff_width)
@@ -113,6 +106,10 @@ extern "C" __global__ void calcYukawaForces_kernel(gpu_force_data_arrays force_d
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float virial = 0.0f;
 
+	// prefetch neighbor index
+	int cur_neigh = 0;
+	int next_neigh = nlist.list[idx_global];
+
 	// loop over neighbors
 	#ifdef ARCH_SM13
 	// sm13 offers warp voting which makes this hardware bug workaround less of a performance penalty
@@ -124,7 +121,10 @@ extern "C" __global__ void calcYukawaForces_kernel(gpu_force_data_arrays force_d
 		if (neigh_idx < n_neigh)
 		{
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
-		int cur_neigh = nlist.list[nlist.pitch*neigh_idx + idx_global];
+		// prefetch the next value and set the current one
+		cur_neigh = next_neigh;
+		if (neigh_idx+1 < nlist.height)
+			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
 		
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -142,29 +142,26 @@ extern "C" __global__ void calcYukawaForces_kernel(gpu_force_data_arrays force_d
 		// calculate r squard (FLOPS: 5)
 		float rsq = dx*dx + dy*dy + dz*dz;
 		
-		// calculate r and rinv (FLOPS: 2)
-		float r = sqrtf(rsq);
-		
-		float rinv;
+		// calculate 1/r^2 (FLOPS: 2)
+		float r2inv;
 		if (rsq >= r_cutsq)
-			rinv = 0.0f;
+			r2inv = 0.0f;
 		else
-			rinv = 1.0f / r;		
-		
-		// calculate 1/r^2 (FLOPS: 1)
-		float r2inv = rinv*rinv;
-		
+			r2inv = 1.0f / rsq;
+
 		// lookup the coefficients between this combination of particle types
 		int typ_pair = __float_as_int(neigh_pos.w) * coeff_width + __float_as_int(pos.w);
-		float epsilon = s_coeffs[typ_pair];
+		float lj1 = s_coeffs[typ_pair].x;
+		float lj2 = s_coeffs[typ_pair].y;
 	
+		// calculate 1/r^6 (FLOPS: 2)
+		float r6inv = r2inv*r2inv*r2inv;
 		// calculate the force magnitude / r (FLOPS: 6)
-		float forcemag_divr = epsilon*expf(-kappa*r)*r2inv*(kappa + rinv);
-		
+		float forcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
 		// calculate the virial (FLOPS: 3)
 		virial += float(1.0/6.0) * rsq * forcemag_divr;
 		// calculate the pair energy (FLOPS: 3)
-		float pair_eng = epsilon*expf(-kappa*r)*rinv;
+		float pair_eng = r6inv * (lj1 * r6inv - lj2);
 
 		// add up the force vector components (FLOPS: 7)
 		force.x += dx * forcemag_divr;
@@ -186,38 +183,35 @@ extern "C" __global__ void calcYukawaForces_kernel(gpu_force_data_arrays force_d
 	\param pdata Particle data on the GPU to perform the calculation on
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param nlist Neighbor list stored on the gpu
-	\param d_coeffs Coefficients to the lennard jones force.
-	\param coeff_width Width of the coefficient matrix
+	\param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
+		pair i,j. The x-component is lj1 and the y-component is lj2.
+	\param coeff_width Width of the \a d_coeffs matrix.
 	\param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the 
 		force is set to 0
-	\param kappa Screening Length
-	\param M Block size to execute
-	
-	This is just a driver for calcYukawaForces_kernel, see it for more details.
+	\param block_size Block size to execute
 	
 	\returns Any error code resulting from the kernel launch
-	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
+	
+	This is just a driver for calcLJForces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_yukawaforce_sum(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float *d_coeffs, int coeff_width, float r_cutsq, float kappa, int M)
+cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int block_size)
 	{
-	assert(pdata);
-	assert(nlist);
 	assert(d_coeffs);
 	assert(coeff_width > 0);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata->local_num/ (double)M), 1, 1);
-    dim3 threads(M, 1, 1);
+    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+    dim3 threads(block_size, 1, 1);
 
 	// bind the texture
 	pdata_pos_tex.normalized = false;
 	pdata_pos_tex.filterMode = cudaFilterModePoint;	
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
     // run the kernel
-    calcYukawaForces_kernel<<< grid, threads, sizeof(float)*coeff_width*coeff_width >>>(force_data, *pdata, *nlist, d_coeffs, coeff_width, r_cutsq, kappa, *box);
+    gpu_compute_lj_forces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
 
 	if (!g_gpu_error_checking)
 		{

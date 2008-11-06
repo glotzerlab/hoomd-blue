@@ -36,11 +36,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: stochasticforce_kernel.cu 1269 2008-09-22 22:37:32Z phillicl $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/cuda/stochasticforce_kernel.cu $
+// $Id$
+// $URL$
 
-#include "gpu_forces.h"
-#include "gpu_pdata.h"
+#include "StochasticForceGPU.cuh"
 #include "gpu_settings.h"
 #include "saruprngCUDA.h"
 
@@ -51,15 +50,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-/*! \file stochasticforce_kernel.cu
-	\brief Contains code for the stochastic force kernel on the GPU
-	\details Functions in this file are NOT to be called by anyone not knowing 
-		exactly what they are doing. They are designed to be used solely by 
-		StochasticForceComputeGPU.
+/*! \file StochasticForceGPU.cu
+	\brief Defines GPU kernel code for calculating the stochastic forces. Used by StochasticForceComputeGPU.
 */
-
-
-///////////////////////////////////////// Stochastic params
 
 //! Texture for reading particle velocities
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
@@ -92,7 +85,7 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
 	The RNG state vectors should permit a coalesced read, but this fact should be checked.
 	
 */
-extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, float dt, float T, float *d_gammas, int gamma_length, unsigned int seed, unsigned int iteration)
+extern "C" __global__ void gpu_compute_stochastic_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, float dt, float T, float *d_gammas, int gamma_length, unsigned int seed, unsigned int iteration)
 	{
 	
 	// read in the gammas (1 dimensional array)
@@ -160,38 +153,37 @@ extern "C" __global__ void stochasticForces_kernel(gpu_force_data_arrays force_d
 	\param gamma_length  The length of d_gamma array
 	\param iteration current time step (hashed with other quantities to seed the RNG)
 	\param seed seed for the RNG to use in thread  (is hashed with other internal timestep depedent seeds)
-	\param M Block size to execute
+	\param block_size Block size to execute
 	
 	\returns Any error code resulting from the kernel launch
 	\note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
-cudaError_t gpu_stochasticforce(const gpu_force_data_arrays& force_data, gpu_pdata_arrays *pdata, float dt, float T, float *d_gammas, unsigned int seed, unsigned int iteration, int gamma_length, int M)
+cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, float dt, float T, float *d_gammas, unsigned int seed, unsigned int iteration, int gamma_length, int block_size)
 	{
-	assert(pdata);
 	assert(d_gammas);
 	assert(gamma_length > 0);
 
 	// setup the grid to run the kernel
-	dim3 grid( (int)ceil((double)pdata->local_num/ (double)M), 1, 1);
-	dim3 threads(M, 1, 1);
+	dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind the velocity texture
-	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
 	// bind the position texture  (this is done only to retrieve the particle type)
-	error = cudaBindTexture(0, pdata_type_tex, pdata->pos, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_type_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 	
 	// bind the tag texture
-	error = cudaBindTexture(0, pdata_tag_tex, pdata->tag, sizeof(unsigned int) * pdata->N);
+	error = cudaBindTexture(0, pdata_tag_tex, pdata.tag, sizeof(unsigned int) * pdata.N);
 	if (error != cudaSuccess)
-		return error;		
+		return error;
 		
     // run the kernel
-    stochasticForces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(force_data, *pdata, dt, T, d_gammas, gamma_length, seed, iteration);
+    gpu_compute_stochastic_forces_kernel<<< grid, threads, sizeof(float)*gamma_length>>>(force_data, pdata, dt, T, d_gammas, gamma_length, seed, iteration);
 
 	if (!g_gpu_error_checking)
 		{
