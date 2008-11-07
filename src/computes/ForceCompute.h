@@ -51,7 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_CUDA
 #include "gpu_pdata.h"
-#include "gpu_forces.h"
+#include "ForceCompute.cuh"
 #endif
 
 /*! \file ForceCompute.h

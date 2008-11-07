@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "FENEBondForceCompute.h"
-#include "gpu_forces.h"
+#include "FENEBondForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>

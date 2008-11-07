@@ -53,7 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
-#include "gpu_forces.h"
+#include "BondData.cuh"
 #endif
 
 // forward declaration of ParticleData to avoid circular references

@@ -42,7 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "LJForceCompute.h"
 #include "NeighborList.h"
 #include "gpu_nlist.h"
-#include "gpu_forces.h"
+#include "LJForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
 

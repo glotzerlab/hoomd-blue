@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "HarmonicBondForceCompute.h"
-#include "gpu_forces.h"
+#include "HarmonicBondForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>

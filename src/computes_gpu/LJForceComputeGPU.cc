@@ -203,7 +203,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	// run the kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_ljforce_sum, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_lj_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
 	exec_conf.syncAll();
 	
 	m_pdata->release();

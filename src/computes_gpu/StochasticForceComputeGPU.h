@@ -40,9 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/computes_gpu/StochasticForceComputeGPU.h $
 
 #include "StochasticForceCompute.h"
-#include "NeighborList.h"
-#include "gpu_nlist.h"
-#include "gpu_forces.h"
+#include "StochasticForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
 

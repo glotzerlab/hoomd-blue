@@ -205,7 +205,7 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	// call the kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_stochasticforce, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
 
 	exec_conf.syncAll();
 	

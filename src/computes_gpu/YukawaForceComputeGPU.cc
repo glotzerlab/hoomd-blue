@@ -200,7 +200,7 @@ void YukawaForceComputeGPU::computeForces(unsigned int timestep)
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_yukawaforce_sum, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], &box, &nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_kappa, m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_yukawa_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_kappa, m_block_size));
 		}
 	exec_conf.syncAll();
 	

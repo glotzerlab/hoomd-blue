@@ -71,6 +71,7 @@ add_custom_command (OUTPUT ${HOOMD_BINARY_DIR}/doc/html/index.html
 					DEPENDS ${HOOMD_CPU_SRCS} ${HOOMD_GPU_SRCS}
 					${HOOMD_SOURCE_DIR}/cuda/*.cu
 					${HOOMD_SOURCE_DIR}/cuda/*.h
+					${HOOMD_SOURCE_DIR}/cuda/*.cuh
 					${HOOMD_SOURCE_DIR}/doc/*.doc
 					${HOOMD_SOURCE_DIR}/user_doc/*.doc
 					${HOOMD_SOURCE_DIR}/unit_tests/*.cc

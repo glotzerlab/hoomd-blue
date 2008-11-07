@@ -140,8 +140,8 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	// run the kernel in parallel on all GPUs
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_bondforce_sum, m_gpu_forces[cur_gpu].d_data, &pdata[cur_gpu], &box, &gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size));
-	exec_conf.syncAll();	
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_harmonic_bond_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size));
+	exec_conf.syncAll();
 		
 	// the force data is now only up to date on the gpu
 	m_data_location = gpu;
