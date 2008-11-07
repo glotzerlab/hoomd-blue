@@ -39,38 +39,37 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#ifndef _FORCECOMPUTE_H_
-#define _FORCECOMPUTE_H_
-
-#include <stdio.h>
-#include <cuda_runtime.h>
-
-/*! \file ForceCompute.cuh
- 	\brief Declares data structures for calculating forces on the GPU. Used by ForceCompute and descendants.
+/*! \file NVTUpdaterGPU.cuh
+	\brief Declares GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.
 */
 
-//! Force data stored on the GPU
-/*! Stores device pointers to allocated force data on the GPU. \a force[local_idx] holds the
-	x,y,z componets of the force and the potential energy in w for particle \em local_idx.
-	\a virial[local_idx] holds the single particle virial value for particle \em local_idx. See
-	 ForceDataArrays for a definition of what the single particle virial and potential energy
-	 mean.
-	
-	Only forces for particles belonging to a GPU are stored there, thus each array
-	is allocated to be of length \a local_num (see gpu_pdata_arrays)
+#include "ParticleData.cuh"
+
+#ifndef __NVTUPDATER_CUH__
+#define __NVTUPDATER_CUH__
+
+//! Stores intermediate values for NVT integration
+/*! NVT integration (NVTUpdaterGPU) requires summing up the kinetic energy of the system.
+	gpu_nvt_data stores the needed auxiliary data structure needed to do the standard reduction
+	sum.
 	
 	\ingroup gpu_data_structs
 */
-struct gpu_force_data_arrays
+struct gpu_nvt_data
 	{
-	float4 *force;	//!< Force in \a x, \a y, \a z and the single particle potential energy in \a w.
-	float *virial;	//!< Single particle virial
-	
-	//! Allocates memory
-	cudaError_t allocate(unsigned int num_local);
-	
-	//! Frees memory
-	cudaError_t deallocate();
+	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
+	float *Ksum;	//!< fully reduced Ksum on one GPU
+	int NBlocks;	//!< Number of blocks in the computation
+	int block_size;	//!< Block size of the kernel to be run on the device (must be a power of 2)
 	};
+
+//! Kernel driver for the first part of the NVT update called by NVTUpdaterGPU
+cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nvt_data &d_nvt_data, float Xi, float deltaT);
+
+//! Kernel driver for the Ksum reduction final pass called by NVTUpdaterGPU
+cudaError_t gpu_nvt_reduce_ksum(const gpu_nvt_data &d_nvt_data);
+
+//! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
+cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata, const gpu_nvt_data &d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT);
 
 #endif

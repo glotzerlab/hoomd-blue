@@ -57,7 +57,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 
 #ifdef USE_CUDA
-#include "gpu_integrator.h"
+#include "Integrator.cuh"
 #endif
 
 

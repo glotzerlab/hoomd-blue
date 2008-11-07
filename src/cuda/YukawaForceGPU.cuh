@@ -43,7 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.cuh"
 #include "ParticleData.cuh"
 
-/*! \file LJForceGPU.cuh
+/*! \file YukawaForceGPU.cuh
 	\brief Declares GPU kernel code for calculating Yukawa pair forces. Used by YukawaForceComputeGPU.
 */
 

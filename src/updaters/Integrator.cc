@@ -57,7 +57,7 @@ using namespace boost::python;
 using namespace boost;
 
 #ifdef USE_CUDA
-#include "gpu_integrator.h"
+#include "Integrator.cuh"
 #endif
 
 using namespace std;
@@ -268,7 +268,7 @@ void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::strin
 		// call the force sum kernel on all GPUs in parallel
 		exec_conf.tagAll(__FILE__, __LINE__);
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->callAsync(bind(integrator_sum_forces, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size()));
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_integrator_sum_accel, d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size()));
 			
 		exec_conf.syncAll();
 			

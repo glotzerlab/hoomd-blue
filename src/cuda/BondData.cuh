@@ -49,9 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\brief GPU data structures used in BondData
 */
 
-extern "C" 
-{
-
 //! Bond data stored on the GPU
 /*! gpu_bondtable_array stores all of the bonds between particles on the GPU.
 	It is structured similar to gpu_nlist_array in that a single column in the list
@@ -75,7 +72,5 @@ struct gpu_bondtable_array
 	unsigned int pitch;		//!< width (in elements) of the bond list
 	int *checkr;            //!< used to see if bond length condition is violated (fene)
 	};
-
-}
 
 #endif

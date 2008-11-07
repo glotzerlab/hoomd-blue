@@ -39,8 +39,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "gpu_updaters.h"
-#include "gpu_integrator.h"
+#include "NVTUpdaterGPU.cuh"
+#include "Integrator.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -61,8 +61,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 //! Shared memory used in reducing the mv^2 sum
 extern __shared__ float nvt_sdata[];
 
-/*! \file gpu_nvt_kernel.cu
-	\brief Contains code for the NVT kernel on the GPU
+/*! \file NVTUpdaterGPU.cu
+	\brief Defines GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.
 */
 
 //! Takes the first 1/2 step forward in the NVT integration step
@@ -72,7 +72,7 @@ extern __shared__ float nvt_sdata[];
 	\param deltaT Amount of real time to step forward in one time step
 	\param box Box dimensions for periodic boundary condition handling
 */
-extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float denominv, float deltaT, gpu_boxsize box)
+extern "C" __global__ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nvt_data d_nvt_data, float denominv, float deltaT)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
@@ -147,38 +147,34 @@ extern "C" __global__ void nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_d
 		}
 	}
 
-//! Takes the first 1/2 step forward in the NVT integration step
 /*! \param pdata Particle Data to step forward in time
 	\param box Box dimensions for periodic boundary condition handling
 	\param d_nvt_data Temporary data storage used in the NVT temperature calculation
 	\param Xi Current value of the NVT degree of freedom Xi
 	\param deltaT Amount of real time to step forward in one time step
 */
-cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data *d_nvt_data, float Xi, float deltaT)
+cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nvt_data &d_nvt_data, float Xi, float deltaT)
 	{
-	assert(pdata);
-	assert(d_nvt_data);
-
-    // setup the grid to run the kernel
-    int M = d_nvt_data->block_size;
-    dim3 grid( d_nvt_data->NBlocks, 1, 1);
-    dim3 threads(M, 1, 1);
+	// setup the grid to run the kernel
+	int block_size = d_nvt_data.block_size;
+	dim3 grid( d_nvt_data.NBlocks, 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind the textures
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-	error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-	error = cudaBindTexture(0, pdata_accel_tex, pdata->accel, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 	
 	// run the kernel
-    nvt_pre_step_kernel<<< grid, threads, M * sizeof(float) >>>(*pdata, *d_nvt_data, 1.0f / (1.0f + deltaT/2.0f * Xi), deltaT, *box);
+	gpu_nvt_pre_step_kernel<<< grid, threads, block_size * sizeof(float) >>>(pdata, box, d_nvt_data, 1.0f / (1.0f + deltaT/2.0f * Xi), deltaT);
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;
@@ -198,12 +194,13 @@ cudaError_t nvt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nvt_data
 	\param Xi current value of the NVT degree of freedom Xi
 	\param deltaT Amount of real time to step forward in one time step
 */
-extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
+extern "C" __global__ void gpu_nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
 	
-	float4 accel = integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	// note: assumes mass=1.0
+	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
 	if (idx_local < pdata.local_num)
 		{
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
@@ -219,7 +216,6 @@ extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data 
 		}
 	}
 
-//! Takes the second 1/2 step forward in the NVT integration step
 /*! \param pdata Particle Data to step forward in time
 	\param d_nvt_data Temporary data storage used in the NVT temperature calculation
 	\param force_data_ptrs List of pointers to forces on each particle
@@ -227,23 +223,20 @@ extern "C" __global__ void nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_data 
 	\param Xi current value of the NVT degree of freedom Xi
 	\param deltaT Amount of real time to step forward in one time step
 */
-cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
+cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata, const gpu_nvt_data &d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT)
 	{
-    assert(pdata);
-	assert(d_nvt_data);
-
-    // setup the grid to run the kernel
-    int M = d_nvt_data->block_size;
-    dim3 grid( d_nvt_data->NBlocks, 1, 1);
-    dim3 threads(M, 1, 1);
+	// setup the grid to run the kernel
+	int block_size = d_nvt_data.block_size;
+	dim3 grid( d_nvt_data.NBlocks, 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind the texture
-	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-    // run the kernel
-    nvt_step_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_nvt_data, force_data_ptrs, num_forces, Xi, deltaT);
+	// run the kernel
+	gpu_nvt_step_kernel<<< grid, threads >>>(pdata, d_nvt_data, force_data_ptrs, num_forces, Xi, deltaT);
 	
 	if (!g_gpu_error_checking)
 		{
@@ -266,7 +259,7 @@ cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 *
 
 	This kernel is designed to be a 1-block kernel for summing the total Ksum
 */
-extern "C" __global__ void nvt_reduce_ksum_kernel(gpu_nvt_data d_nvt_data)
+extern "C" __global__ void gpu_nvt_reduce_ksum_kernel(gpu_nvt_data d_nvt_data)
 	{
 	float Ksum = 0.0f;
 
@@ -298,22 +291,20 @@ extern "C" __global__ void nvt_reduce_ksum_kernel(gpu_nvt_data d_nvt_data)
 		*d_nvt_data.Ksum = Ksum;
 	}
 	
-//! Makes the final mv^2 sum on the GPU
 /*! \param d_nvt_data Temporary NVT data holding the partial sums
 	
 	this is just a driver for nvt_reduce_ksum kernel: see it for details
 */
-cudaError_t nvt_reduce_ksum(gpu_nvt_data *d_nvt_data)
+cudaError_t gpu_nvt_reduce_ksum(const gpu_nvt_data &d_nvt_data)
 	{
-	assert(d_nvt_data);
+	// setup the grid to run the kernel
+	int block_size = 256;
+	dim3 grid( 1, 1, 1);
+	dim3 threads(block_size, 1, 1);
 
-    // setup the grid to run the kernel
-    int M = 128;
-    dim3 grid( 1, 1, 1);
-    dim3 threads(M, 1, 1);
-
-    // run the kernel
-    nvt_reduce_ksum_kernel<<< grid, threads, M*sizeof(float) >>>(*d_nvt_data);
+	// run the kernel
+	gpu_nvt_reduce_ksum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_nvt_data);
+	
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;

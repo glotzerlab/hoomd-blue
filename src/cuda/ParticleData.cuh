@@ -49,8 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\brief Declares GPU kernel code and data structure functions used by ParticleData
 */
 
-extern "C" {
-
 //! Structure of arrays of the particle data as it resides on the GPU
 /*! Stores pointers to the particles positions, velocities, acceleartions, and particle tags.
 	Particle type information is most likely needed along with the position, so the type
@@ -103,6 +101,5 @@ cudaError_t gpu_interleave_float4(float4 *d_out, float *d_in, int N, int pitch);
 cudaError_t gpu_generate_pdata_test(gpu_pdata_arrays *pdata);
 //! Read from the pos texture and write into the vel array (for unit testing)
 cudaError_t gpu_pdata_texread_test(gpu_pdata_arrays *pdata); 
-}
 
 #endif	

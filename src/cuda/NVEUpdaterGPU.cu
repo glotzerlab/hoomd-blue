@@ -39,8 +39,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "gpu_updaters.h"
-#include "gpu_integrator.h"
+#include "Integrator.cuh"
+#include "NVEUpdaterGPU.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -51,8 +51,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
-/*! \file gpu_nve_kernel.cu
-	\brief Contains kernel code for the NVE integrator on the GPU
+/*! \file NVEUpdaterGPU.cu
+	\brief Defines GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
 */
 
 //! The texture for reading the pdata pos array
@@ -70,7 +70,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 	\param limit_val Length to limit particle distance movement to
 	\param box Box dimensions for periodic boundary condition handling
 */
-extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float deltaT, bool limit, float limit_val, gpu_boxsize box)
+extern "C" __global__ void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, float deltaT, bool limit, float limit_val)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
@@ -136,7 +136,6 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		}
 	}
 
-//! Takes the first half-step forward in the velocity-verlet NVE integration
 /*! \param pdata Particle data to step forward 1/2 step
 	\param box Box dimensions for periodic boundary condition handling
 	\param deltaT Amount of real time to step forward in one time step
@@ -144,30 +143,28 @@ extern "C" __global__ void nve_pre_step_kernel(gpu_pdata_arrays pdata, float del
 		a distance further than \a limit_val in one step.
 	\param limit_val Length to limit particle distance movement to
 */
-cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT, bool limit, float limit_val)
+cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float deltaT, bool limit, float limit_val)
 	{
-    assert(pdata);
-
-    // setup the grid to run the kernel
-    int M = 256;
-    dim3 grid( (pdata->local_num/M) + 1, 1, 1);
-    dim3 threads(M, 1, 1);
+	// setup the grid to run the kernel
+	int block_size = 256;
+	dim3 grid( (pdata.local_num/block_size) + 1, 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind the textures
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-	error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-	error = cudaBindTexture(0, pdata_accel_tex, pdata->accel, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
     // run the kernel
-    nve_pre_step_kernel<<< grid, threads >>>(*pdata, deltaT, limit, limit_val, *box);
+    gpu_nve_pre_step_kernel<<< grid, threads >>>(pdata, box, deltaT, limit, limit_val);
 	
 	if (!g_gpu_error_checking)
 		{
@@ -189,14 +186,15 @@ cudaError_t nve_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, float deltaT
 		a distance further than \a limit_val in one step.
 	\param limit_val Length to limit particle distance movement to
 */
-extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
+extern "C" __global__ void gpu_nve_step_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
 	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
 
+	// note: assumes mass = 1.0
 	// sum the acceleration on this particle: (MEM TRANSFER: 16 bytes * number of forces FLOPS: 3 * number of forces)
-	float4 accel = integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
 	if (idx_local < pdata.local_num)
 		{
 		// read the current particle velocity (MEM TRANSFER: 16 bytes)
@@ -225,7 +223,6 @@ extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **forc
 		}
 	}
 
-//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
 /*! \param pdata Particle data to step forward in time
 	\param force_data_ptrs List of pointers to forces on each particle
 	\param num_forces Number of forces listed in \a force_data_ptrs
@@ -234,22 +231,21 @@ extern "C" __global__ void nve_step_kernel(gpu_pdata_arrays pdata, float4 **forc
 		a distance further than \a limit_val in one step.
 	\param limit_val Length to limit particle distance movement to
 */
-cudaError_t nve_step(gpu_pdata_arrays *pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
+cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
 	{
-    assert(pdata);
-
-    // setup the grid to run the kernel
-    int M = 192;
-    dim3 grid( (pdata->local_num/M) + 1, 1, 1);
-    dim3 threads(M, 1, 1);
+	
+	// setup the grid to run the kernel
+	int block_size = 192;
+	dim3 grid( (pdata.local_num/block_size) + 1, 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind the texture
-	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-    // run the kernel
-    nve_step_kernel<<< grid, threads >>>(*pdata, force_data_ptrs, num_forces, deltaT, limit, limit_val);
+	// run the kernel
+	gpu_nve_step_kernel<<< grid, threads >>>(pdata, force_data_ptrs, num_forces, deltaT, limit, limit_val);
 
 	if (!g_gpu_error_checking)
 		{

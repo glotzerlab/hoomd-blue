@@ -51,8 +51,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Declares data structures and methods used by NeighborList and descendants
 */
 
-extern "C" {
-
 /*! \ingroup data_structs
 	@{
 */
@@ -88,6 +86,5 @@ struct gpu_nlist_array
 
 //! Check if the neighborlist needs updating
 cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_buffsq, int *result);
-}
 
 #endif

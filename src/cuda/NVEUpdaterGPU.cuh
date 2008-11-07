@@ -39,38 +39,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#ifndef _FORCECOMPUTE_H_
-#define _FORCECOMPUTE_H_
-
-#include <stdio.h>
-#include <cuda_runtime.h>
-
-/*! \file ForceCompute.cuh
- 	\brief Declares data structures for calculating forces on the GPU. Used by ForceCompute and descendants.
+/*! \file NVEUpdaterGPU.cuh
+	\brief Declares GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
 */
 
-//! Force data stored on the GPU
-/*! Stores device pointers to allocated force data on the GPU. \a force[local_idx] holds the
-	x,y,z componets of the force and the potential energy in w for particle \em local_idx.
-	\a virial[local_idx] holds the single particle virial value for particle \em local_idx. See
-	 ForceDataArrays for a definition of what the single particle virial and potential energy
-	 mean.
-	
-	Only forces for particles belonging to a GPU are stored there, thus each array
-	is allocated to be of length \a local_num (see gpu_pdata_arrays)
-	
-	\ingroup gpu_data_structs
-*/
-struct gpu_force_data_arrays
-	{
-	float4 *force;	//!< Force in \a x, \a y, \a z and the single particle potential energy in \a w.
-	float *virial;	//!< Single particle virial
-	
-	//! Allocates memory
-	cudaError_t allocate(unsigned int num_local);
-	
-	//! Frees memory
-	cudaError_t deallocate();
-	};
+#ifndef __NVEUPDATER_CUH__
+#define __NVEUPDATER_CUH__
+
+//! Kernel driver for the first part of the NVE update called by NVEUpdaterGPU
+cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float deltaT, bool limit, float limit_val);
+
+//! Kernel driver for the second part of the NVE update called by NVEUpdaterGPU
+cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
 
 #endif

@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "NPTUpdater.h"
-#include "gpu_updaters.h"
+#include "NPTUpdaterGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
 

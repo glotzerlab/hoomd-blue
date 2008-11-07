@@ -46,7 +46,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "NPTUpdaterGPU.h"
-#include "gpu_updaters.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -302,7 +301,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->callAsync(bind(npt_pre_step, &d_pdata[cur_gpu], &box, &d_npt_data[cur_gpu], m_Xi, m_Eta, m_deltaT));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_pre_step, d_pdata[cur_gpu], box, d_npt_data[cur_gpu], m_Xi, m_Eta, m_deltaT));
 		}
 	exec_conf.syncAll();
 	
@@ -334,7 +333,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	if (m_prof) m_prof->pop(exec_conf);
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
-	computeAccelerationsGPU(timestep+1, "NPT.GPU", false);
+	computeAccelerationsGPU(timestep+1, "NPT", false);
 	// compute temperature for the next half time step
 	m_curr_T = computeTemperature();
 	// compute pressure for the next half time step
@@ -350,7 +349,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	d_pdata = m_pdata->acquireReadWriteGPU();
 	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-	  exec_conf.gpu[cur_gpu]->callAsync(bind(npt_step, &d_pdata[cur_gpu], &d_npt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_Eta, m_deltaT));
+	  exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_step, d_pdata[cur_gpu], d_npt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_Eta, m_deltaT));
 	exec_conf.syncAll();
 		
 	m_pdata->release();
@@ -385,19 +384,13 @@ float NPTUpdaterGPU::computeTemperature()
 	      m_prof->push(exec_conf, "NPT");
 	      m_prof->push(exec_conf, "Reducing Ksum");
 	    }
-	  
+		
+	// compute the Ksum values on each GPU in parallel
 	  for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 	    {
 	      exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-	      exec_conf.gpu[cur_gpu]->callAsync(bind(npt_temperature, &d_pdata[cur_gpu], &d_npt_data[cur_gpu]));
-	    }
-	  exec_conf.syncAll();
-
-	  // reduce the Ksum values on the GPU
-	  for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-	    {
-	      exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-	      exec_conf.gpu[cur_gpu]->callAsync(bind(npt_reduce_ksum, &d_npt_data[cur_gpu]));
+	      exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_temperature, d_npt_data[cur_gpu], d_pdata[cur_gpu]));
+	      exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_reduce_ksum, d_npt_data[cur_gpu]));
 	    }
 	  exec_conf.syncAll();
 	  
@@ -448,11 +441,11 @@ endl << endl;
 	// acquire the particle data on the GPU and add the forces into the acceleration
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
 
-	// sum up all the forces
+	// sum up all the forces ??? copied and pasted comment doesn't apply
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 	  {
 	    exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-	    exec_conf.gpu[cur_gpu]->callAsync(bind(integrator_sum_virials, &d_pdata[cur_gpu], m_d_virial_data_ptrs[cur_gpu], (int)m_forces.size(),&d_npt_data[cur_gpu]));
+	    exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_integrator_sum_virials, d_npt_data[cur_gpu], d_pdata[cur_gpu], m_d_virial_data_ptrs[cur_gpu], (int)m_forces.size()));
 	  }
 
 	exec_conf.syncAll();
@@ -460,19 +453,12 @@ endl << endl;
 	// done
 	m_pdata->release();
 
+	// compute Psum on each GPU in parallel
 	 for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 	    {
 	      exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-	      exec_conf.gpu[cur_gpu]->callAsync(bind(npt_pressure, &d_pdata[cur_gpu], &d_npt_data[cur_gpu]));
-	    }
-	  exec_conf.syncAll();
-
-
-	// reduce the Psum values on the GPU
-	  for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-	    {
-	      exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-	      exec_conf.gpu[cur_gpu]->callAsync(bind(npt_reduce_psum, &d_npt_data[cur_gpu]));
+	      exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_pressure, d_npt_data[cur_gpu], d_pdata[cur_gpu]));
+	      exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_reduce_psum, d_npt_data[cur_gpu]));
 	    }
 	  exec_conf.syncAll();
 	  

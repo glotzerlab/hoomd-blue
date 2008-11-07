@@ -49,7 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "NVTUpdaterGPU.h"
-#include "gpu_updaters.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -112,6 +111,8 @@ void NVTUpdaterGPU::freeNVTData()
 	}
 
 /*! \param timestep Current time step of the simulation
+
+	Calls gpu_nvt_pre_step, gpu_nvt_reduce_ksum, and gpu_nvt_step to do the dirty work.
 */
 void NVTUpdaterGPU::update(unsigned int timestep)
 	{
@@ -137,7 +138,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	// launch the pre-step kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_pre_step, &d_pdata[cur_gpu], &box, &d_nvt_data[cur_gpu], m_Xi, m_deltaT));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_pre_step, d_pdata[cur_gpu], box, d_nvt_data[cur_gpu], m_Xi, m_deltaT));
 
 	exec_conf.syncAll();
 	
@@ -154,7 +155,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	if (m_prof) m_prof->pop(exec_conf);
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
-	computeAccelerationsGPU(timestep+1, "NVT.GPU", false);
+	computeAccelerationsGPU(timestep+1, "NVT", false);
 	
 	if (m_prof)
 		{
@@ -165,7 +166,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	// reduce the Ksum values on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_reduce_ksum, &d_nvt_data[cur_gpu]));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_reduce_ksum, d_nvt_data[cur_gpu]));
 
 	exec_conf.syncAll();
 		
@@ -190,7 +191,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(nvt_step, &d_pdata[cur_gpu], &d_nvt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_deltaT));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_step, d_pdata[cur_gpu], d_nvt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_deltaT));
 	exec_conf.syncAll();
 	
 	m_pdata->release();

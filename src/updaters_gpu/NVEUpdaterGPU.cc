@@ -49,7 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "NVEUpdaterGPU.h"
-#include "gpu_updaters.h"
+#include "NVEUpdaterGPU.cuh"
 
 #include <boost/bind.hpp>
 using namespace boost;
@@ -74,6 +74,8 @@ NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 	}
 
 /*! \param timestep Current time step of the simulation
+
+	Calls gpu_nve_pre_step and gpu_nve_step to do the dirty work.
 */
 void NVEUpdaterGPU::update(unsigned int timestep)
 	{
@@ -100,7 +102,7 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	// call the pre-step kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->call(bind(nve_pre_step, &d_pdata[cur_gpu], &box, m_deltaT, m_limit, m_limit_val));
+		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_pre_step, d_pdata[cur_gpu], box, m_deltaT, m_limit, m_limit_val));
 		
 	exec_conf.syncAll();
 	
@@ -127,7 +129,7 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	// call the post-step kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)	
-		exec_conf.gpu[cur_gpu]->call(bind(nve_step, &d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_step, d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
 		
 	exec_conf.syncAll();
 	m_pdata->release();

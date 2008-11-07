@@ -37,9 +37,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "ParticleData.cuh"
-#include "gpu_updaters.h"
-#include "gpu_integrator.h"
+#include "NPTUpdaterGPU.cuh"
+#include "Integrator.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -50,19 +49,24 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
-//! The texture for reading the pdata pos array
-texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
-texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
-texture<float, 1, cudaReadModeElementType> pdata_virial_tex;
-
-extern __shared__ float npt_sdata[];
-
-/*! \file gpu_npt_kernel.cu
-	\brief Contains code for the NPT kernel on the GPU
+/*! \file NVTUpdaterGPU.cu
+	\brief Defines GPU kernel code for NPT integration on the GPU. Used by NPTUpdaterGPU.
 */
 
-__device__ float integrator_sum_virials_inline(unsigned int idx_local, unsigned int local_num, float **virial_data_ptrs, int num_virials)
+//! Texture for reading the pdata pos array
+texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
+//! Texture for reading the pdata vel array
+texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
+//! Texture for reading the pdata accel array
+texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
+
+//! Shared data used by NPT kernels for sum reductions
+extern __shared__ float npt_sdata[];
+
+//! For inexplicable reasons, the author has decided that is is best not to document his code
+/*! \todo document me
+*/
+__device__ float gpu_integrator_sum_virials_inline(unsigned int idx_local, unsigned int local_num, float **virial_data_ptrs, int num_virials)
 	{
 	// each block loads in the pointers
 	__shared__ float *virial_ptrs[32];
@@ -86,49 +90,46 @@ __device__ float integrator_sum_virials_inline(unsigned int idx_local, unsigned 
 	return virial;
 	}
 
-//! Kernel for summing virials on the GPU
-/*! \param pdata Particle data arrays
+//! Sums the varoius virials on the GPU
+/*! \param nptdata NPT data storage structure
+	\param pdata Particle data arrays
 	\param virial_data_ptrs list of virial data pointers
 	\param num_virials number of virial points in the list
 
-	\a virial_data_ptrs contains up to 32 pointers. Each points to N float's in memory
-	All virials are summed into pdata.virial. 
-
+	\a virial_data_ptrs contains up to 32 pointers. Each points to pdata.local_num float's in memory
+	All virials are summed into nptdata.virial
 */
-__global__ void integrator_sum_virials_kernel(gpu_pdata_arrays pdata, float **virial_data_ptrs, int num_virials, gpu_npt_data *nptdata)
+extern "C" __global__ void gpu_integrator_sum_virials_kernel(gpu_npt_data nptdata, gpu_pdata_arrays pdata, float **virial_data_ptrs, int num_virials)
 	{
 	// calculate the index we will be handling
 	int idx_local = blockDim.x * blockIdx.x + threadIdx.x;
 
-	float virial = integrator_sum_virials_inline(idx_local, pdata.local_num, virial_data_ptrs, num_virials);
+	float virial = gpu_integrator_sum_virials_inline(idx_local, pdata.local_num, virial_data_ptrs, num_virials);
 
 	if (idx_local < pdata.local_num)
 		{
 		// write out the result
-		nptdata->virial[idx_local] = virial;
-		
+		nptdata.virial[idx_local] = virial;
 		}
 	}
 
-/*! Every virial on every particle is summed up into \a pdata.virial
+/*! Every virial on every particle is summed up into \a nptpdata.virial
 
+	\param nptdata NPT data storage structure
     \param pdata Particle data to write virial sum to
     \param virial_list List of pointers to virial data to sum
     \param num_virials Number of forces in \a virial_list
 
     \returns Any error code from the kernel call retrieved via cudaGetLastError()
-    \note Always returns cudaSuccess in release builds for performance reasons
 */
-cudaError_t integrator_sum_virials(gpu_pdata_arrays *pdata, float** virial_list, int num_virials, gpu_npt_data* nptdata)
+cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata, const gpu_pdata_arrays &pdata, float** virial_list, int num_virials)
 	{
 	// sanity check
-	assert(pdata);
-	assert(virial_list);
 	assert(num_virials < 32);
 
-	const int M = 256;
+	const int block_size = 192;
 
-	integrator_sum_virials_kernel<<< pdata->local_num/M+1, M >>>(*pdata, virial_list, num_virials, nptdata);
+	gpu_integrator_sum_virials_kernel<<< pdata.local_num/block_size+1, block_size >>>(nptdata, pdata, virial_list, num_virials);
 
 	if (!g_gpu_error_checking)
 		{
@@ -142,12 +143,22 @@ cudaError_t integrator_sum_virials(gpu_pdata_arrays *pdata, float** virial_list,
     }
 
 
-
-extern "C" __global__ void npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_npt_data d_npt_data, float exp_v_fac, float exp_r_fac, float deltaT, gpu_boxsize box, float box_len_scale)
+//! For inexplicable reasons, the author has decided that is is best not to document his code
+/*! \param pdata Particle data arrays to integrate forward 1/2 step
+	\param box Box dimensions that the particles are in
+	\param d_npt_data NPT data structure for storing data specific to NPT integration
+	\param exp_v_fac For inexplicable reasons, the author has decided that is is best not to document his code
+	\param exp_r_fac For inexplicable reasons, the author has decided that is is best not to document his code
+	\param deltaT Time to advance (for one full step)
+	\param box_len_scale For inexplicable reasons, the author has decided that is is best not to document his code
+	
+	\todo document me
+*/
+extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, gpu_npt_data d_npt_data, float exp_v_fac, float exp_r_fac, float deltaT, float box_len_scale)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
-	// do Nose-Hoover integrate
+	// do Nose-Hoover integrate ??? Copied and pasted comment doesn't apply
 	
 	if (idx_local < pdata.local_num)
 		{
@@ -197,7 +208,7 @@ extern "C" __global__ void npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_npt_d
 		pdata.pos[idx_global] = pos2;
 		pdata.vel[idx_global] = vel;
 	
-		// now we need to do the partial K sums
+		// now we need to do the partial K sums  ??? copied and pasted comments do not apply
 	
 		// compute our contribution to the sum
 		// NOTE: mass = 1.0
@@ -205,26 +216,32 @@ extern "C" __global__ void npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_npt_d
 	
 	}
 
-cudaError_t npt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_npt_data *d_npt_data, float Xi, float Eta, float deltaT)
-	{
-	assert(pdata);
-	assert(d_npt_data);
+/*! \param pdata Particle Data to operate on
+	\param box Current box dimensions the particles are in
+	\param d_npt_data NPT specific data structures
+	\param Xi For inexplicable reasons, the author has decided that is is best not to document his code
+	\param Eta For inexplicable reasons, the author has decided that is is best not to document his code
+	\param deltaT Time to move forward in one whole step
 
+	\todo document me!
+*/
+cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_npt_data &d_npt_data, float Xi, float Eta, float deltaT)
+	{
 	// setup the grid to run the kernel
-	int M = d_npt_data->block_size;
-	dim3 grid( d_npt_data->NBlocks, 1, 1);
-	dim3 threads(M, 1, 1);
+	int block_size = d_npt_data.block_size;
+	dim3 grid( d_npt_data.NBlocks, 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind the textures
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-	error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
-	error = cudaBindTexture(0, pdata_accel_tex, pdata->accel, sizeof(float4) * pdata->N);
+	error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 	
@@ -237,7 +254,7 @@ cudaError_t npt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_npt_data
 	//printf("Xi = %f\n", Xi);
 	//printf("deltaT = %f\n", deltaT);
 
-	npt_pre_step_kernel<<< grid, threads, M * sizeof(float) >>>(*pdata, *d_npt_data, exp_v_fac, exp_r_fac, deltaT, *box, box_len_scale);
+	gpu_npt_pre_step_kernel<<< grid, threads >>>(pdata, box, d_npt_data, exp_v_fac, exp_r_fac, deltaT, box_len_scale);
 
 	if (!g_gpu_error_checking)
 		{
@@ -250,13 +267,23 @@ cudaError_t npt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_npt_data
 		}
 	}
 
-
-extern "C" __global__ void npt_step_kernel(gpu_pdata_arrays pdata, gpu_npt_data d_npt_data, float4 **force_data_ptrs, int num_forces, float exp_v_fac, float deltaT)
+//! For inexplicable reasons, the author has decided that is is best not to document his code
+/*! \param pdata Particle data arrays to integrate forward 1/2 step
+	\param d_npt_data NPT data structure for storing data specific to NPT integration
+	\param force_data_ptrs Pointers to the forces in device memory
+	\param num_forces Number of forces in \a force_data_ptrs
+	\param exp_v_fac For inexplicable reasons, the author has decided that is is best not to document his code
+	\param deltaT Time to advance (for one full step)
+	
+	\todo document me
+*/
+extern "C" __global__ void gpu_npt_step_kernel(gpu_pdata_arrays pdata, gpu_npt_data d_npt_data, float4 **force_data_ptrs, int num_forces, float exp_v_fac, float deltaT)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
 	
-	float4 accel = integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	// note assumes mac is 1.0
+	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
 	if (idx_local < pdata.local_num)
 		{
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
@@ -272,25 +299,31 @@ extern "C" __global__ void npt_step_kernel(gpu_pdata_arrays pdata, gpu_npt_data 
 		}
 	}
 
+/*! \param pdata Particle Data to operate on
+	\param d_npt_data NPT specific data structures
+	\param force_data_ptrs Pointers to the forces in device memory
+	\param num_forces Number of forces in \a force_data_ptrs
+	\param Xi For inexplicable reasons, the author has decided that is is best not to document his code
+	\param Eta For inexplicable reasons, the author has decided that is is best not to document his code
+	\param deltaT Time to move forward in one whole step
 
-cudaError_t npt_step(gpu_pdata_arrays *pdata, gpu_npt_data *d_npt_data, float4 **force_data_ptrs, int num_forces, float Xi, float Eta, float deltaT)
+	\todo document me!
+*/
+cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata, const gpu_npt_data &d_npt_data, float4 **force_data_ptrs, int num_forces, float Xi, float Eta, float deltaT)
 	{
-	  assert(pdata);
-	  assert(d_npt_data);
-
 	  // setup the grid to run the kernel
-	  int M = d_npt_data->block_size;
-	  dim3 grid( d_npt_data->NBlocks, 1, 1);
-	  dim3 threads(M, 1, 1);
+	  int block_size = d_npt_data.block_size;
+	  dim3 grid( d_npt_data.NBlocks, 1, 1);
+	  dim3 threads(block_size, 1, 1);
 	  float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);
 
 	  // bind the texture
-	  cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	  cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	  if (error != cudaSuccess)
 		return error;
 
 	  // run the kernel
-	  npt_step_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_npt_data, force_data_ptrs, num_forces, exp_v_fac, deltaT);
+	  gpu_npt_step_kernel<<< grid, threads >>>(pdata, d_npt_data, force_data_ptrs, num_forces, exp_v_fac, deltaT);
 	  
 	  if (!g_gpu_error_checking)
 	        {
@@ -303,9 +336,11 @@ cudaError_t npt_step(gpu_pdata_arrays *pdata, gpu_npt_data *d_npt_data, float4 *
 		}
 	}
 	
-
-// This kernel is designed to be a 1-block kernel for summing the total Ksum
-extern "C" __global__ void npt_reduce_ksum_kernel(gpu_npt_data d_npt_data)
+//! For inexplicable reasons, the author has decided that is is best not to document his code
+/*! \param d_npt_data NPT specific data structures
+	\todo document me!
+*/
+extern "C" __global__ void gpu_npt_reduce_ksum_kernel(gpu_npt_data d_npt_data)
 	{
 	float Ksum = 0.0f;
 
@@ -340,17 +375,19 @@ extern "C" __global__ void npt_reduce_ksum_kernel(gpu_npt_data d_npt_data)
 	  }
 	}
 	
-cudaError_t npt_reduce_ksum(gpu_npt_data *d_npt_data)
+/*! \param d_npt_data NPT specific data structures
+	\todo document me!
+*/
+cudaError_t gpu_npt_reduce_ksum(const gpu_npt_data &d_npt_data)
 	{
-	assert(d_npt_data);
-
 	// setup the grid to run the kernel
-	int M = 128;
+	int block_size = 128;
 	dim3 grid( 1, 1, 1);
-	dim3 threads(M, 1, 1);
+	dim3 threads(block_size, 1, 1);
 	
 	// run the kernel
-	npt_reduce_ksum_kernel<<< grid, threads, M*sizeof(float) >>>(*d_npt_data);
+	gpu_npt_reduce_ksum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data);
+	
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;
@@ -360,10 +397,14 @@ cudaError_t npt_reduce_ksum(gpu_npt_data *d_npt_data)
 		cudaThreadSynchronize();
 		return cudaGetLastError();
 		}
-	}	
+	}
 
-
-extern "C" __global__ void npt_temperature_kernel(gpu_pdata_arrays pdata, gpu_npt_data d_npt_data)
+//! For inexplicable reasons, the author has decided that is is best not to document his code
+/*! \param d_npt_data NPT specific data structures
+	\param pdata Particle data to compute temperature of
+	\todo document me!
+*/
+extern "C" __global__ void gpu_npt_temperature_kernel(gpu_npt_data d_npt_data, gpu_pdata_arrays pdata)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
@@ -371,9 +412,8 @@ extern "C" __global__ void npt_temperature_kernel(gpu_pdata_arrays pdata, gpu_np
 	float vsq;
 	if (idx_local < pdata.local_num)
 		{
-
-		  float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
-		  vsq = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
+		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
+		vsq = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
 		}
 	else
 		{
@@ -400,37 +440,43 @@ extern "C" __global__ void npt_temperature_kernel(gpu_pdata_arrays pdata, gpu_np
 		}
 	}
 
-
-cudaError_t npt_temperature(gpu_pdata_arrays *pdata, gpu_npt_data *d_npt_data)
+/*! \param d_npt_data NPT specific data structures
+	\param pdata Particle data to compute temperature of
+	\todo document me!
+*/
+cudaError_t gpu_npt_temperature(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata)
 	{
-	assert(d_npt_data);
-
 	// setup the grid to run the kernel
-	int M = d_npt_data->block_size;
+	int block_size = d_npt_data.block_size;
 	dim3 grid( 1, 1, 1);
-	dim3 threads(M, 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind velocity to the texture
-	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata->vel, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
 	// run the kernel
-	npt_temperature_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_npt_data);
+	gpu_npt_temperature_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data, pdata);
+	
 	if (!g_gpu_error_checking)
 		{
-		 return cudaSuccess;
+		return cudaSuccess;
 		}
 	else
-	        {
+		{
 		cudaThreadSynchronize();
 		return cudaGetLastError();
 		}
-	}	
+	}
 
 
-// This kernel is designed to be a 1-block kernel for summing the total Psum
-extern "C" __global__ void npt_reduce_psum_kernel(gpu_npt_data d_npt_data)
+//! For inexplicable reasons, the author has decided that is is best not to document his code
+/*! \param d_npt_data NPT specific data structures
+	\param pdata Particle data to compute pressure of
+	\todo document me!
+*/
+extern "C" __global__ void gpu_npt_reduce_psum_kernel(gpu_npt_data d_npt_data)
 	{
 	float Psum = 0.0f;
 
@@ -454,7 +500,7 @@ extern "C" __global__ void npt_reduce_psum_kernel(gpu_npt_data d_npt_data)
 			__syncthreads();
 			}
 
-		// everybody sums up Ksum
+		// everybody sums up Psum
 		Psum += npt_sdata[0];
 		}
 	
@@ -464,18 +510,20 @@ extern "C" __global__ void npt_reduce_psum_kernel(gpu_npt_data d_npt_data)
 		//printf("Psum = %f\n", Psum);
 	  }
 	}
-	
-cudaError_t npt_reduce_psum(gpu_npt_data *d_npt_data)
-	{
-	assert(d_npt_data);
 
+/*! \param d_npt_data NPT specific data structures
+	\param pdata Particle data to compute temperature of
+	\todo document me!
+*/
+cudaError_t gpu_npt_reduce_psum(const gpu_npt_data &d_npt_data)
+	{
 	// setup the grid to run the kernel
-	int M = 128;
+	int block_size = 128;
 	dim3 grid( 1, 1, 1);
-	dim3 threads(M, 1, 1);
+	dim3 threads(block_size, 1, 1);
 	
 	// run the kernel
-	npt_reduce_psum_kernel<<< grid, threads, M*sizeof(float) >>>(*d_npt_data);
+	gpu_npt_reduce_psum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data);
 	//printf("d_npt_data.Psum = %f\n", (*d_npt_data).Psum);
 	if (!g_gpu_error_checking)
 		{
@@ -486,22 +534,24 @@ cudaError_t npt_reduce_psum(gpu_npt_data *d_npt_data)
 		cudaThreadSynchronize();
 		return cudaGetLastError();
 		}
-	}	
+	}
 
-
-
-
-extern "C" __global__ void npt_pressure_kernel(gpu_pdata_arrays pdata, gpu_npt_data d_npt_data)
+//! For inexplicable reasons, the author has decided that is is best not to document his code
+/*! \param d_npt_data NPT specific data structures
+	\param pdata Particle data to compute temperature of
+	\todo document me!
+*/
+extern "C" __global__ void gpu_npt_pressure_kernel(gpu_npt_data d_npt_data, gpu_pdata_arrays pdata)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-	// do Nose-Hoover integrate
+	// do Nose-Hoover integrate ??? copied and pasted comment doesn't apply
 	
 	//printf("pdata.local_num = %d\n",  pdata.local_num);
 	
 	float virial = 0.0f;
 	if (idx_local < pdata.local_num)
 	  {
-		 virial = tex1Dfetch(pdata_virial_tex, idx_local);
+		virial = d_npt_data.virial[idx_local];
 		 //printf("virial[%d] = %f\n", idx_local, virial);
 	  }	
 
@@ -525,32 +575,26 @@ extern "C" __global__ void npt_pressure_kernel(gpu_pdata_arrays pdata, gpu_npt_d
 		}
 	}
 
-
-
-cudaError_t npt_pressure(gpu_pdata_arrays *pdata, gpu_npt_data *d_npt_data)
+/*! \param d_npt_data NPT specific data structures
+	\param pdata Particle data to compute temperature of
+	\todo document me!
+*/
+cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata)
 	{
-	assert(d_npt_data);
-
 	// setup the grid to run the kernel
-	int M = d_npt_data->block_size;
+	int block_size = d_npt_data.block_size;
 	dim3 grid( 1, 1, 1);
-	dim3 threads(M, 1, 1);
-
-	// bind texture for virials
-	cudaError_t error = cudaBindTexture(0, pdata_virial_tex, d_npt_data->virial, sizeof(float) * pdata->local_num);
-	if (error != cudaSuccess)
-		return error;
-
-	//printf("M = %d\n", M);
+	dim3 threads(block_size, 1, 1);
 
 	// run the kernel
-	npt_pressure_kernel<<< grid, threads, M*sizeof(float) >>>(*pdata, *d_npt_data);
+	gpu_npt_pressure_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data, pdata);
+	
 	if (!g_gpu_error_checking)
 		{
 		 return cudaSuccess;
 		}
 	else
-	        {
+		{
 		cudaThreadSynchronize();
 		return cudaGetLastError();
 		}
