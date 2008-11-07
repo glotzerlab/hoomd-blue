@@ -492,7 +492,9 @@ void NeighborList::deviceToHostCopy()
 */
 void NeighborList::updateExclusionData()
 	{
-	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+	// cannot update unless we are running on a GPU
+	if (exec_conf.gpu.empty())
+		return;
 	
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 	
