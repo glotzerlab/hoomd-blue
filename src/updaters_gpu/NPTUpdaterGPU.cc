@@ -264,6 +264,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 		// use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
 		// is calculated correctly
 		computeAccelerationsGPU(timestep, "NPT", true);
+		
 		m_curr_T = computeTemperature();  // Compute temperature and pressure for the first time step
 		m_curr_P = computePressure();
 		}
@@ -315,6 +316,8 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	
 	// for the next half of the step, we need the accelerations at t+deltaT
 	computeAccelerationsGPU(timestep+1, "NPT", false);
+	
+	if (m_prof) m_prof->push(exec_conf, "NPT");
 	// compute temperature for the next half time step
 	m_curr_T = computeTemperature();
 	// compute pressure for the next half time step

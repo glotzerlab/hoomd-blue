@@ -536,8 +536,7 @@ extern "C" __global__ void gpu_npt_reduce_psum_kernel(gpu_npt_data d_npt_data)
 	}
 
 /*! \param d_npt_data NPT specific data structures
-	\param pdata Particle data to compute temperature of
-	
+		
 	This is just a driver for gpu_npt_reduce_psum_kernel(). See it for more details.
 */
 cudaError_t gpu_npt_reduce_psum(const gpu_npt_data &d_npt_data)
