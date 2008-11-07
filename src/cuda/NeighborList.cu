@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "gpu_nlist.h"
+#include "NeighborList.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -48,8 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file gpu_nlist_data.cu
-	\brief Contains code for working with the neighbor list data structure on the GPU
+/*! \file NeighborList.cu
+	\brief Defines data structures and methods used by NeighborList and descendants
 */
 
 //! Checks if the neighbor list needs updating

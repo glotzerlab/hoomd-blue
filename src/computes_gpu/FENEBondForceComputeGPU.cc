@@ -126,6 +126,8 @@ void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0,
 	\post The force data on the GPU is written with the calculated forces
 	
 	\param timestep Current time step of the simulation
+	
+	Calls gpu_compute_fene_bond_forces to do the dirty work.
 */
 void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	{

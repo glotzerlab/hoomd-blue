@@ -39,46 +39,23 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-/*! \file NeighborListNsqGPU.h
-	\brief Declares the NeighborListNsqGPU class
+#ifndef _NEIGHBORLISTNSQGPU_CUH_
+#define _NEIGHBORLISTNSQGPU_CUH_
+
+#include <stdio.h>
+#include <cuda_runtime.h>
+
+#include "NeighborList.cuh"
+
+/*! \file NeighborListNsqGPU.cuh
+	\brief Declares data structures and methods used by NeighborListNsqGPU
 */
 
-#include <vector>
-#include "NeighborList.h"
-#include "NeighborListNsqGPU.cuh"
+extern "C" {
 
-#include <boost/shared_ptr.hpp>
+//! Kernel driver to run GPU code called by NeighborListNsqGPU
+cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float r_maxsq);
 
-#ifndef __NEIGHBORLIST_NSQ_GPU_H__
-#define __NEIGHBORLIST_NSQ_GPU_H__
-
-//! Computes a Neibhorlist from the particles
-/*!	Calculates the same neighbor list that NeighborList does, but on the GPU.
-	
-	This class implements the same O(N^2) algorithm as the base class.
-	
-	The GPU kernel that does the calculations can be found in nlist_nsq_kernel.cu.
-	\ingroup computes
-*/
-class NeighborListNsqGPU : public NeighborList
-	{
-	public:
-		//! Constructs the compute
-		NeighborListNsqGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff);
-
-		//! Destructor
-		virtual ~NeighborListNsqGPU();
-		
-	private:
-		//! Builds the neighbor list
-		virtual void buildNlist();
-		
-		//! Attempts to builds the neighbor list
-		virtual void buildNlistAttempt();
-	};
-	
-//! Exports the NeighborListNsqGPU class to python
-void export_NeighborListNsqGPU();
+}
 
 #endif
-

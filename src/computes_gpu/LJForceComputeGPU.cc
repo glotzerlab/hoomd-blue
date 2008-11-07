@@ -175,6 +175,8 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 	The neighborlist's compute method is called to ensure that it is up to date
 	before forces are computed.
  	\param timestep Current time step of the simulation
+ 	
+ 	Calls gpu_compute_lj_forces to do the dirty work.
 */
 void LJForceComputeGPU::computeForces(unsigned int timestep)
 	{

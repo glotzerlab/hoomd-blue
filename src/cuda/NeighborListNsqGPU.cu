@@ -38,7 +38,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-#include "gpu_nlist.h"
+
+#include "NeighborListNsqGPU.cuh"
 #include "ParticleData.cuh"
 #include "gpu_settings.h"
 
@@ -50,18 +51,18 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file nlist_nsq_kernel.cu
-	\brief Contains kernel code that implements the O(N^2) kernel on the GPU
+/*! \file NeighborListNsqGPU.cu
+	\brief Defines data structures and methods used by NeighborListNsqGPU
 */
 
 //! Compile time determined block size for the NSQ neighbor list calculation
 const int NLIST_BLOCK_SIZE = 128;
 
 //! Generate the neighbor list on the GPU in O(N^2) time
-/*! \param pdata Particles to generate the neighbor list from
-	\param nlist Neighbor list to write out
-	\param r_maxsq Precalculated value for r_max*r_max
+/*! \param nlist Neighbor list to write out
+	\param pdata Particles to generate the neighbor list from
 	\param box Box dimensions for handling periodic boundary conditions
+	\param r_maxsq Precalculated value for r_max*r_max
 	
 	each thread is to compute the neighborlist for a single particle i
 	each block will load a bunch of particles into shared mem and then each thread will compare it's particle
@@ -71,7 +72,7 @@ const int NLIST_BLOCK_SIZE = 128;
 	the way this funciton loads data, all data arrays need to be padded so they have a multiple of 
 	blockDim.x elements. 	
 */
-extern "C" __global__ void generateNlistNSQ(gpu_pdata_arrays pdata, gpu_nlist_array nlist, float r_maxsq, gpu_boxsize box) 
+extern "C" __global__ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata, gpu_boxsize box, float r_maxsq)
 	{
 	// shared data to store all of the particles we compare against
 	__shared__ float sdata[NLIST_BLOCK_SIZE*4];
@@ -166,30 +167,27 @@ extern "C" __global__ void generateNlistNSQ(gpu_pdata_arrays pdata, gpu_nlist_ar
 	}
 
 //! Generate the neighbor list on the GPU in O(N^2) time
-/*! \param pdata Particles to generate the neighbor list from
+/*! \param nlist Neighbor list to write out
+	\param pdata Particles to generate the neighbor list from
 	\param box Box dimensions for handling periodic boundary conditions
-	\param nlist Neighbor list to write out
 	\param r_maxsq Precalculated value for r_max*r_max
 		
 	see generateNlistNSQ for more information
 */
-cudaError_t gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_maxsq)
+cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float r_maxsq)
 	{
-	assert(pdata);
-	assert(nlist);
-	
 	// setup the grid to run the kernel
 	int M = NLIST_BLOCK_SIZE;
-	dim3 grid( (pdata->N/M) + 1, 1, 1);
+	dim3 grid( (pdata.N/M) + 1, 1, 1);
 	dim3 threads(M, 1, 1);
 	
 	// zero the overflow check
-	cudaError_t error = cudaMemset(nlist->overflow, 0, sizeof(int));
+	cudaError_t error = cudaMemset(nlist.overflow, 0, sizeof(int));
 	if (error != cudaSuccess)
 		return error;	
 	
 	// run the kernel
-	generateNlistNSQ<<< grid, threads >>>(*pdata, *nlist, r_maxsq, *box);
+	gpu_compute_nlist_nsq_kernel<<< grid, threads >>>(nlist, pdata, box, r_maxsq);
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;

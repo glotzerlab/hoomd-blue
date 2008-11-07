@@ -39,17 +39,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#ifndef _CUDA_NLIST_H_
-#define _CUDA_NLIST_H_
+#ifndef _NEIGHBORLIST_CUH_
+#define _NEIGHBORLIST_CUH_
 
 #include <stdio.h>
 #include <cuda_runtime.h>
 
 #include "ParticleData.cuh"
 
-/*! \file gpu_nlist.h
-	\brief Declares structures and functions for working with neighbor lists on the GPU
-	\ingroup cuda_code
+/*! \file NeighborList.cuh
+	\brief Declares data structures and methods used by NeighborList and descendants
 */
 
 extern "C" {
@@ -87,47 +86,8 @@ struct gpu_nlist_array
 	uint4 *exclusions;		//!< exclusions[i] lists all the particles that are to be excluded from being neighbors with [i] by index
 	};
 
-//! Structure of arrays storing the bins particles are placed in on the GPU
-/*! This structure is in a current state of flux. Consider it documented as being
-	poorly documented :)
-	
-	These are 4D arrays with indices i,j,k,n. i,j,k index the bin and each goes from 0 to Mx-1,My-1,Mz-1 respectively.
-	Index into the data with idxdata[i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax  + n] where n goes from 0 to Nmax - 1.
-	
-	\ingroup gpu_data_structs
-*/
-struct gpu_bin_array
-        {
-        unsigned int Mx;	//!< X-dimension of the cell grid
-        unsigned int My;	//!< Y-dimension of the cell grid
-        unsigned int Mz;	//!< Z-dimension of the cell grid
-        unsigned int Nmax;	//!< Maximum number of particles each cell can hold
-        unsigned int Nparticles;		//!< Total number of particles binned
-        unsigned int coord_idxlist_width;	//!< Width of the coord_idxlist data
-		
-        unsigned int *idxlist;	//!< \a Mx x \a My x \a Mz x \a Nmax 4D array holding the indices of the particles in each cell
-		cudaArray *idxlist_array;	//!< An array memory copy of \a idxlist for 2D texturing
-		
-		float4 *coord_idxlist;	//!< \a Mx x \a My x \a Mz x \a Nmax 4D array holding the positions and indices of the particles in each cell (x,y,z are position and w holds the index)
-		cudaArray *coord_idxlist_array;	//!< An array memory copy of \a coord_idxlist for 2D texturing
-		
-		unsigned int *mem_location;		//!< Maps a bin index i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax to the actual location in memory where it is stored
-		
-		cudaArray *bin_adj_array;	//!< bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = neighboring bin memory location)
-		};
-
-//! Generate the neighborlist (N^2 algorithm)
-cudaError_t gpu_nlist_nsq(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_maxsq);
-
-//! Generate the neighborlist from bins (O(N) algorithm)
-cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_array *bins, gpu_nlist_array *nlist, float r_maxsq, int curNmax, int block_size);
-
-//! Take the idxlist and generate coord_idxlist
-cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins, int curNmax, int block_size);
-	
 //! Check if the neighborlist needs updating
 cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_buffsq, int *result);
 }
 
 #endif
-

@@ -41,7 +41,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "YukawaForceCompute.h"
 #include "NeighborList.h"
-#include "gpu_nlist.h"
 #include "YukawaForceGPU.cuh"
 
 #include <boost/shared_ptr.hpp>

@@ -38,8 +38,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-#include "gpu_nlist.h"
-#include "ParticleData.cuh"
+
+#include "NeighborListBinnedGPU.cuh"
 #include "gpu_settings.h"
 
 #include <stdio.h>
@@ -50,8 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file nlist_binned_kernel.cu
-	\brief Contains code for the kernel that implements the binned O(N) neighbor list on the GPU
+/*! \file NeighborListBinnedGPU.cuh
+	\brief Defines GPU code and data structure methods used in BinnedNeighborListGPU
 */
 
 //! sentinel value signifying an empty slot in a bin
@@ -150,12 +150,12 @@ texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 
 
 //! Generates the neighbor list from the binned particles
-/*! \param pdata Particle data to generate the neighbor list for
+/*! \param nlist Neighbor list to write out to
+	\param pdata Particle data to generate the neighbor list for
+	\param box Box dimensions for handling periodic boundary conditions
 	\param bins The binned particles
-	\param nlist Neighbor list to write out to
 	\param r_maxsq Precalculated value for r_max*r_max
 	\param actual_Nmax Number of particles currently in the largest bin
-	\param box Box dimensions for handling periodic boundary conditions
 	\param scalex Scale factor to convert particle position to bin i-coordinate
 	\param scaley Scale factor to convert particle position to bin j-coordinate
 	\param scalez Scale factor to convert particle position to bin k-coordinate
@@ -170,7 +170,7 @@ texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 	peak bandwidth on the device. It seems more wasteful than a one block per cell
 	method, but actually is ~40% faster.
 */
-extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_array bins, gpu_nlist_array nlist, float r_maxsq, unsigned int actual_Nmax, gpu_boxsize box, float scalex, float scaley, float scalez)
+extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_bin_array bins, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez)
 	{
 	// each thread is going to compute the neighbor list for a single particle
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -264,25 +264,22 @@ extern "C" __global__ void updateFromBins_new(gpu_pdata_arrays pdata, gpu_bin_ar
 	}
 
 //! Generate the neighbor list on the GPU
-/*!	\param pdata Particle data to generate the neighbor list for
+/*!	\param nlist Neighbor list to write out to
+	\param pdata Particle data to generate the neighbor list for
 	\param box Box dimensions for handling periodic boundary conditions	
 	\param bins The binned particles
-	\param nlist Neighbor list to write out to
 	\param r_maxsq Precalculated value for r_max*r_max
 	\param curNmax Number of particles currently in the largest bin
 	\param block_size Block size to run the kernel on the device
 	
 	See updateFromBins_new for more information
 */
-cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_array *bins, gpu_nlist_array *nlist, float r_maxsq, int curNmax, int block_size)
+cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size)
 	{
-	assert(bins);
-	assert(pdata);
-	assert(nlist);
 	assert(block_size > 0);
 
 	// setup the grid to run the kernel
-	int nblocks = (int)ceil((double)pdata->local_num/ (double)block_size);
+	int nblocks = (int)ceil((double)pdata.local_num/ (double)block_size);
 	
 	dim3 grid(nblocks, 1, 1);
 	dim3 threads(block_size, 1, 1);
@@ -290,29 +287,29 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	// bind the textures
 	nlist_coord_idxlist_tex.normalized = false;
 	nlist_coord_idxlist_tex.filterMode = cudaFilterModePoint;
-	cudaError_t error = cudaBindTextureToArray(nlist_coord_idxlist_tex, bins->coord_idxlist_array);
+	cudaError_t error = cudaBindTextureToArray(nlist_coord_idxlist_tex, bins.coord_idxlist_array);
 	if (error != cudaSuccess)
 		return error;
 		
 	bin_adj_tex.normalized = false;
 	bin_adj_tex.filterMode = cudaFilterModePoint;
-	error = cudaBindTextureToArray(bin_adj_tex, bins->bin_adj_array);
+	error = cudaBindTextureToArray(bin_adj_tex, bins.bin_adj_array);
 	if (error != cudaSuccess)
 		return error;
 		
-	error = cudaBindTexture(0, mem_location_tex, bins->mem_location, sizeof(unsigned int)*bins->Mx*bins->My*bins->Mz);
+	error = cudaBindTexture(0, mem_location_tex, bins.mem_location, sizeof(unsigned int)*bins.Mx*bins.My*bins.Mz);
 	if (error != cudaSuccess)
 		return error;
 			
 	// zero the overflow check
-	error = cudaMemset(nlist->overflow, 0, sizeof(int));
+	error = cudaMemset(nlist.overflow, 0, sizeof(int));
 	if (error != cudaSuccess)
 		return error;
 	
 	// make even bin dimensions
-	float binx = (box->Lx) / float(bins->Mx);
-	float biny = (box->Ly) / float(bins->My);
-	float binz = (box->Lz) / float(bins->Mz);
+	float binx = (box.Lx) / float(bins.Mx);
+	float biny = (box.Ly) / float(bins.My);
+	float binz = (box.Lz) / float(bins.Mz);
 
 	// precompute scale factors to eliminate division in inner loop
 	float scalex = 1.0f / binx;
@@ -320,7 +317,7 @@ cudaError_t gpu_nlist_binned(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_bin_
 	float scalez = 1.0f / binz;
 
 	// run the kernel
-	updateFromBins_new<<< grid, threads>>>(*pdata, *bins, *nlist, r_maxsq, curNmax, *box, scalex, scaley, scalez);
+	gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
 	
 	if (!g_gpu_error_checking)
 		{

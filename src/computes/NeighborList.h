@@ -54,7 +54,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using std::string;
 
 #ifdef USE_CUDA
-#include "gpu_nlist.h"
+#include "NeighborList.cuh"
 #endif
 
 /*! \file NeighborList.h

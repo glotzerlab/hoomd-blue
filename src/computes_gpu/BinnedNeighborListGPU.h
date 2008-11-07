@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "NeighborList.h"
-#include "gpu_nlist.h"
+#include "NeighborListBinnedGPU.cuh"
 
 #include <boost/shared_ptr.hpp>
 

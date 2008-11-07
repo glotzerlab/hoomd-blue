@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "ForceCompute.cuh"
-#include "gpu_nlist.h"
+#include "NeighborList.cuh"
 #include "ParticleData.cuh"
 
 /*! \file LJForceGPU.cuh

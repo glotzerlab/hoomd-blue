@@ -168,10 +168,12 @@ void YukawaForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scal
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_coeffs[cur_gpu], h_coeffs, nbytes, cudaMemcpyHostToDevice));
 	}
 		
-/*! \post The lennard jones forces are computed for the given timestep on the GPU. 
+/*! \post The Yukawa forces are computed for the given timestep on the GPU. 
 	The neighborlist's compute method is called to ensure that it is up to date
 	before forces are computed.
  	\param timestep Current time step of the simulation
+ 	
+ 	Calls gpu_compute_yukawa_forces to do the dirty work.
 */
 void YukawaForceComputeGPU::computeForces(unsigned int timestep)
 	{

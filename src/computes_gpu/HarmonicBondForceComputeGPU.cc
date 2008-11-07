@@ -125,6 +125,8 @@ void HarmonicBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar 
 	\post The force data on the GPU is written with the calculated forces
 	
 	\param timestep Current time step of the simulation
+	
+	Calls gpu_compute_harmonic_bond_forces to do the dirty work.
 */
 void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 	{

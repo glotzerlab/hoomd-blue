@@ -119,6 +119,8 @@ void NeighborListNsqGPU::buildNlist()
 	
 /*! Builds the neighbor list on the GPU and flags an overflow if the list would overflow the
 	current allocated memory.
+	
+	Calls gpu_compute_nlist_nsq to do the dirty work.
 */
 void NeighborListNsqGPU::buildNlistAttempt()
 	{
@@ -145,7 +147,7 @@ void NeighborListNsqGPU::buildNlistAttempt()
 	
 	// calculate the nlist
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_nlist_nsq, &pdata[0], &box, &m_gpu_nlist[0], r_max_sq));
+	exec_conf.gpu[0]->call(bind(gpu_compute_nlist_nsq, m_gpu_nlist[0], pdata[0], box, r_max_sq));
 
 	// amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
 	int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;

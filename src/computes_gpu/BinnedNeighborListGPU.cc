@@ -596,6 +596,8 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 	
 	\pre updateBinsUnsorted() has been called.
 	\pre The bin data has been copied to the GPU and transposed into the idxlist_coord array
+	
+	Calls gpu_compute_nlist_binned to do the dirty work.
 */
 void BinnedNeighborListGPU::updateListFromBins()
 	{
@@ -622,7 +624,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{	
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nlist_binned, &pdata[cur_gpu], &box, &m_gpu_bin_data[cur_gpu], &m_gpu_nlist[cur_gpu], r_max_sq, m_curNmax, m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], r_max_sq, m_curNmax, m_block_size));
 		}
 		
 	exec_conf.syncAll();

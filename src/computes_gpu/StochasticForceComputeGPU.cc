@@ -193,6 +193,8 @@ void StochasticForceComputeGPU::setDeltaT(Scalar deltaT)
 		
 /*! \post The stochastic forces are computed for the given timestep on the GPU. 
  	\param timestep Current time step of the simulation
+ 	
+ 	Calls gpu_compute_stochastic_forces to do the dirty work.
 */
 void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	{
