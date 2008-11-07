@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "ForceCompute.cuh"
-#include "gpu_pdata.h"
+#include "ParticleData.cuh"
 
 /*! \file StochasticForceGPU.cuh
 	\brief Declares GPU kernel code for calculating the stochastic forces. Used by StochasticForceComputeGPU.

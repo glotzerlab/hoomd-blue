@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <cuda_runtime.h>
 
-#include "gpu_pdata.h"
+#include "ParticleData.cuh"
 
 /*! \file gpu_updaters.h
 	\brief Declares structures and classes for all of the Updaters on the GPU

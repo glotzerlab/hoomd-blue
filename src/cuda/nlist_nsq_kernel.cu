@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 #include "gpu_nlist.h"
-#include "gpu_pdata.h"
+#include "ParticleData.cuh"
 #include "gpu_settings.h"
 
 #include <stdio.h>

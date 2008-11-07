@@ -73,7 +73,7 @@ typedef double Scalar;
 using namespace std;
 
 #ifdef USE_CUDA
-#include "gpu_pdata.h"
+#include "ParticleData.cuh"
 #endif
 
 #include "ExecutionConfiguration.h"

@@ -39,7 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "gpu_pdata.h"
+#include "ParticleData.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -48,8 +48,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file gpu_pdata.cu
- 	\brief Contains code and kernels for methods defined in gpu_pdata.h
+/*! \file ParticleData.cu
+ 	\brief Contains GPU kernel code and data structure functions used by ParticleData
 */
 
 //! Kernel for un-interleaving float4 input into float output
@@ -62,18 +62,18 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 extern "C" __global__ void uninterleave_float4_kernel(float *d_out, float4 *d_in, int N, int pitch)
     {
-    int pidx  = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (pidx < N)
-        {
-        float4 in = d_in[pidx];
-        
+	int pidx  = blockDim.x * blockIdx.x + threadIdx.x;
+	
+	if (pidx < N)
+		{
+		float4 in = d_in[pidx];
+		
 		d_out[pidx] = in.x;
-        d_out[pidx+pitch] = in.y;
-        d_out[pidx+pitch+pitch] = in.z;
-        d_out[pidx+pitch+pitch+pitch] = in.w;
-        }
-    }
+		d_out[pidx+pitch] = in.y;
+		d_out[pidx+pitch+pitch] = in.z;
+		d_out[pidx+pitch+pitch+pitch] = in.w;
+		}
+	}
 
 
 /*! The most efficient data storage on the device is to put x,y,z,type into a float4

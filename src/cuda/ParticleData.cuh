@@ -39,15 +39,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#ifndef _CUDA_PDATA_H_
-#define _CUDA_PDATA_H_
+#ifndef _PARTICLEDATA_CUH_
+#define _PARTICLEDATA_CUH_
 
 #include <stdio.h>
 #include <cuda_runtime.h>
 
-/*! \file gpu_pdata.h
- 	\brief Declares extremely low-level functions for working with particle data on the GPU
- 	\ingroup cuda_code
+/*! \file ParticleData.cuh
+ 	\brief Declares GPU kernel code and data structure functions used by ParticleData
 */
 
 extern "C" {

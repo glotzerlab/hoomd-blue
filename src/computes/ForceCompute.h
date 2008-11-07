@@ -50,7 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Compute.h"
 
 #ifdef USE_CUDA
-#include "gpu_pdata.h"
+#include "ParticleData.cuh"
 #include "ForceCompute.cuh"
 #endif
 

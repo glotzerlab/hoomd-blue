@@ -46,7 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GPU_INTEGRATOR_H__
 #define __GPU_INTEGRATOR_H__
 
-#include "gpu_pdata.h"
+#include "ParticleData.cuh"
 
 //! Sums forces on the GPU
 extern "C" cudaError_t integrator_sum_forces(gpu_pdata_arrays *pdata, float4** force_list, int num_forces);

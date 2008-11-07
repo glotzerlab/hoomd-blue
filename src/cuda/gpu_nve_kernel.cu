@@ -39,7 +39,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "gpu_pdata.h"
 #include "gpu_updaters.h"
 #include "gpu_integrator.h"
 #include "gpu_settings.h"
