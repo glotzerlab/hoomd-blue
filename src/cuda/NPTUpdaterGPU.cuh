@@ -47,7 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 
-/*! \file NVTUpdaterGPU.cuh
+/*! \file NPTUpdaterGPU.cuh
 	\brief Declares GPU kernel code for NPT integration on the GPU. Used by NPTUpdaterGPU.
 */
 
