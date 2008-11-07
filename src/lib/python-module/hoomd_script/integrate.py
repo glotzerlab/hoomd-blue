@@ -221,9 +221,7 @@ class npt(_integrator):
 		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
 			self.cpp_integrator = hoomd.NPTUpdater(globals.particle_data, dt, tau, tauP, T, P);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			print "NPT on GPU note yet implemented!"
-			raise RuntimeError("Error creating NPT integrator");
-			#self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.particle_data, dt, tau, T);
+			self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.particle_data, dt, tau, tauP, T, P);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVT integrator");
@@ -419,42 +417,5 @@ class bdnvt(_integrator):
 			self.cpp_integrator.setDeltaT(dt);
 		if T != None:
 			self.cpp_integrator.setT(T);
-
-	## Sets gamma parameter for a particle type
-	# \param a Particle type
-	# \param gamma Gamma for particle type (see below for examples)
-	#
-	# Calling set() results in the gamma parameter being set for a single type %pair.
-	# Particle types are identified by name, and parameters are also added by name. 
-	#
-	# The gamma parameter determines how strongly a particular particle is coupled to 
-	# the stochastic bath.  The higher the gamma, the more strongly coupled.
-	#
-	# Particle types with their gamma values not set will automatically default to gamma = 1.0 
-	# It is not an error, however, to specify gammas for particle types that do not exist in the simulation.
-	# This can be useful in defining a simulation for many different types of particles even
-	# when some simulations only include a subset.
-	#
-	# \b Examples:
-	# \code
-	# bd.set('A', gamma=2.0)
-	# \endcode
-	#
-	def set(self, a, gamma):
-		util.print_status_line();
-		
-		# check that proper initialization has occured
-		if self.cpp_integrator == None:
-			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-			raise RuntimeError('Error updating forces');
-		
-		ntypes = globals.particle_data.getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
-		
-		# change the parameters
-		for i in xrange(0,ntypes):
-			if a == type_list[i]:
-				self.cpp_integrator.setGamma(i,gamma);	
+	
 

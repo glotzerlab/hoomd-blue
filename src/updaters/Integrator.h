@@ -102,7 +102,7 @@ class Integrator : public Updater
 		virtual void update(unsigned int timestep);
 		
 		//! Add a ForceCompute to the list
-		void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+		virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
 				
 		//! Removes all ForceComputes from the list
 		virtual void removeForceComputes();

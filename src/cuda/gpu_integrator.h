@@ -52,6 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" cudaError_t integrator_sum_forces(gpu_pdata_arrays *pdata, float4** force_list, int num_forces);
 
 
+
 // only define device function when compiled with NVCC
 #ifdef NVCC
 

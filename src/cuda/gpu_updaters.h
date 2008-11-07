@@ -86,6 +86,42 @@ cudaError_t nvt_reduce_ksum(gpu_nvt_data *d_nvt_data);
 //! Does the second step of the computaiton
 cudaError_t nvt_step(gpu_pdata_arrays *pdata, gpu_nvt_data *d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT);
 
+/////////////////////////////////////// NPT stuff
+//! Data structure storing needed intermediate values for NPT integration
+struct gpu_npt_data
+	{
+	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
+	float *Ksum;	//!< fully reduced Ksum on one GPU
+	float *partial_Psum; //!< NBlocks elements, each is a partial sum of virials
+	float *Psum;  //!< fully reduced Psum on one GPU
+        float *virial;  //!< Stores virials 
+	int NBlocks;	//!< Number of blocks in the computation (must be a power of 2)
+	int block_size; //!< Block size of the kernel to be run on the device
+	};
+
+
+//! Does the first step of the computation
+  cudaError_t npt_pre_step(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_npt_data *d_npt_data, float Xi, float Eta, float deltaT);
+
+//! Makes the final reduction pass to calculate the total Ksum
+cudaError_t npt_reduce_ksum(gpu_npt_data *d_npt_data);
+
+//! Does the second step of the computaiton
+cudaError_t npt_step(gpu_pdata_arrays *pdata, gpu_npt_data *d_npt_data, float4 **force_data_ptrs, int num_forces, float Xi, float Eta, float deltaT);
+
+//! Computes temeprature
+cudaError_t npt_temperature(gpu_pdata_arrays *pdata, gpu_npt_data *d_npt_data);
+
+//! Computes pressure
+cudaError_t npt_pressure(gpu_pdata_arrays *pdata, gpu_npt_data *d_npt_data);
+
+//! Makes the final reducton pass to calculate total Psum
+cudaError_t npt_reduce_psum(gpu_npt_data *d_npt_data);
+
+//! Sums virials on the GPU
+// Note: It is most natural to be declared here as it uses gpu_npt_data as an input parameter
+extern "C" cudaError_t integrator_sum_virials(gpu_pdata_arrays *pdata, float** virial_list, int num_virials, gpu_npt_data* nptdata);
+
 }
 
 #endif

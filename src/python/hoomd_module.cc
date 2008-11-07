@@ -89,6 +89,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef USE_CUDA
 #include "NVTUpdaterGPU.h"
 #include "NVEUpdaterGPU.h"
+#include "NPTUpdaterGPU.h"
 #include "BD_NVTUpdaterGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
@@ -323,6 +324,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	#ifdef USE_CUDA
 	export_NVEUpdaterGPU();
 	export_NVTUpdaterGPU();
+	export_NPTUpdaterGPU();
 	export_BD_NVTUpdaterGPU();
 	#endif
 
