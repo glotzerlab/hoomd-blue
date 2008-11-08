@@ -102,7 +102,7 @@ __device__ float gpu_integrator_sum_virials_inline(unsigned int idx_local, unsig
 	return virial;
 	}
 
-//! Sums the varoius virials on the GPU
+//! Sums the various virials on the GPU
 /*! \param nptdata NPT data storage structure
 	\param pdata Particle data arrays
 	\param virial_data_ptrs list of virial data pointers
@@ -161,26 +161,26 @@ cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata, const gpu_pd
 	}
 
 
-//! For inexplicable reasons, the author has decided that is is best not to document his code
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
 	\param box Box dimensions that the particles are in
 	\param d_npt_data NPT data structure for storing data specific to NPT integration
-	\param exp_v_fac For inexplicable reasons, the author has decided that is is best not to document his code
-	\param exp_r_fac For inexplicable reasons, the author has decided that is is best not to document his code
+	\param exp_v_fac exp_v_fac = \f$\exp(-\frac 1 4 (\eta+\xi)*\delta T)\f$ is the scaling factor for
+velocity update and is a result of coupling to the thermo/barostat
+	\param exp_r_fac exp_r_fac = \f$\exp(\frac 1 2 \eta\delta T)\f$ is the scaling factor for
+position update and is a result of coupling to the thermo/barostat
 	\param deltaT Time to advance (for one full step)
-	\param box_len_scale For inexplicable reasons, the author has decided that is is best not to document his code
-	
-	\todo document me
+	\param box_len_scale box size dilatation
 */
 extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, gpu_npt_data d_npt_data, float exp_v_fac, float exp_r_fac, float deltaT, float box_len_scale)
 	{
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-	int idx_global = idx_local + pdata.local_beg;
-	// do Nose-Hoover integrate ??? Copied and pasted comment doesn't apply
-	
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // particle index on local GPU
+	int idx_global = idx_local + pdata.local_beg; // global particle index across all GPUs
+
+	// propagate velocity from t to t+1/2*deltaT and position from t to t+deltaT
+	// according to the Nose-Hoover barostat
 	if (idx_local < pdata.local_num)
 		{
-		// update positions to the next timestep and update velocities to the next half step
+		  // fetch particle position
 		float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
 		
 		float px = pos.x;
@@ -188,9 +188,12 @@ extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		float pz = pos.z;
 		float pw = pos.w;
 		
+		// fetch particle velocity and acceleration
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 		float4 accel = tex1Dfetch(pdata_accel_tex, idx_global);
 		
+		// propagate velocity by half a time step and position by the full time step
+		// according to the Nose-Hoover barostat
 		vel.x = vel.x*exp_v_fac*exp_v_fac + (1.0f/2.0f) * deltaT*exp_v_fac*accel.x;
 		px = px*exp_r_fac*exp_r_fac + vel.x*exp_r_fac*deltaT;
 
@@ -201,7 +204,8 @@ extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		pz = pz*exp_r_fac*exp_r_fac + vel.z*exp_r_fac*deltaT;
 
 	
-		// time to fix the periodic boundary conditions	
+		// rescale particle position to fit into the new rescaled box 
+		// and fix periodic boundary conditions
 		px -= box_len_scale*box.Lx * rintf(px * box.Lxinv/box_len_scale);
 		py -= box_len_scale*box.Ly * rintf(py * box.Lyinv/box_len_scale);
 		pz -= box_len_scale*box.Lz * rintf(pz * box.Lzinv/box_len_scale);
@@ -222,8 +226,8 @@ extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 /*! \param pdata Particle Data to operate on
 	\param box Current box dimensions the particles are in
 	\param d_npt_data NPT specific data structures
-	\param Xi For inexplicable reasons, the author has decided that is is best not to document his code
-	\param Eta For inexplicable reasons, the author has decided that is is best not to document his code
+	\param Xi theromstat variable in Nose-Hoover barostat
+	\param Eta barostat variable in Nose-Hoover barostat
 	\param deltaT Time to move forward in one whole step
 
 	This is just a kernel driver for gpu_integrator_pre_step_kernel(). See it for more details.
@@ -248,11 +252,13 @@ cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &b
 	if (error != cudaSuccess)
 		return error;
 	
+	// precalculate scaling factors for baro/thermostat
+	float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);  // velocity scaling
+	float exp_r_fac = exp(1.0f/2.0f*Eta*deltaT);        // position scaling
+
+	float box_len_scale = exp(Eta*deltaT);  // box length dilatation factor
+
 	// run the kernel
-	float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);
-	float exp_r_fac = exp(1.0f/2.0f*Eta*deltaT);
-	float box_len_scale = exp(Eta*deltaT);
-	
 	gpu_npt_pre_step_kernel<<< grid, threads >>>(pdata, box, d_npt_data, exp_v_fac, exp_r_fac, deltaT, box_len_scale);
 
 	if (!g_gpu_error_checking)
@@ -266,27 +272,30 @@ cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &b
 		}
 	}
 
-//! For inexplicable reasons, the author has decided that is is best not to document his code
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
 	\param d_npt_data NPT data structure for storing data specific to NPT integration
 	\param force_data_ptrs Pointers to the forces in device memory
 	\param num_forces Number of forces in \a force_data_ptrs
-	\param exp_v_fac For inexplicable reasons, the author has decided that is is best not to document his code
+	\param exp_v_fac exp_v_fac = \f$\exp(-\frac 1 4 (\eta+\xi)*\delta T)\f$ is the scaling factor for
+velocity update and is a result of coupling to the thermo/barostat
 	\param deltaT Time to advance (for one full step)
 	
-	\todo document me
 */
 extern "C" __global__ void gpu_npt_step_kernel(gpu_pdata_arrays pdata, gpu_npt_data d_npt_data, float4 **force_data_ptrs, int num_forces, float exp_v_fac, float deltaT)
 	{
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-	int idx_global = idx_local + pdata.local_beg;
+	int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // local particle index on this GPU
+	int idx_global = idx_local + pdata.local_beg; // global particle index across all GPUs
 	
 	// note assumes mac is 1.0
+	// add up all forces
 	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
 	if (idx_local < pdata.local_num)
 		{
+		  // fetch velocities
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 			
+		// propagate velocities from t+1/2*deltaT to t+deltaT according to the 
+		// Nose-Hoover barostat
 		vel.x = vel.x*exp_v_fac*exp_v_fac + (1.0f/2.0f)*deltaT*exp_v_fac*accel.x;
 		vel.y = vel.y*exp_v_fac*exp_v_fac + (1.0f/2.0f)*deltaT*exp_v_fac*accel.y;
 		vel.z = vel.z*exp_v_fac*exp_v_fac + (1.0f/2.0f)*deltaT*exp_v_fac*accel.z;
@@ -302,8 +311,8 @@ extern "C" __global__ void gpu_npt_step_kernel(gpu_pdata_arrays pdata, gpu_npt_d
 	\param d_npt_data NPT specific data structures
 	\param force_data_ptrs Pointers to the forces in device memory
 	\param num_forces Number of forces in \a force_data_ptrs
-	\param Xi For inexplicable reasons, the author has decided that is is best not to document his code
-	\param Eta For inexplicable reasons, the author has decided that is is best not to document his code
+	\param Xi theromstat variable in Nose-Hoover barostat
+	\param Eta baromstat variable in Nose-Hoover barostat
 	\param deltaT Time to move forward in one whole step
 
 	This is just a kernel driver for gpu_npt_step_kernel(). See it for more details.
@@ -314,6 +323,8 @@ cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata, const gpu_npt_data &d_np
 	  int block_size = d_npt_data.block_size;
 	  dim3 grid( d_npt_data.NBlocks, 1, 1);
 	  dim3 threads(block_size, 1, 1);
+
+	  // precalulate velocity scaling factor due to Nose-Hoover barostat dynamics
 	  float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);
 
 	  // bind the texture
@@ -335,14 +346,14 @@ cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata, const gpu_npt_data &d_np
 		}
 	}
 	
-//! Completes the sums of m*v^2 over every particle in the simulation
+//! Completes the sums of \f$mv^2\f$ over every particle in the simulation
 /*! \param d_npt_data NPT specific data structures
 	
 	\pre gpu_npt_temperature_kernel() must be called first to fill out the partial sums in \a d_npt_data.
 	\a d_npt_data.NBlocks partial sums are written there to be added up here.
 	
 	gpu_npt_reduce_ksum_kernel() is a very simple 1-block kernel run that completes the partial sums
-	and writes the final m*v^2 sum for this GPU out to *d_npt_data.Ksum. It must be run with one
+	and writes the final \f$mv^2\f$ sum for this GPU out to *d_npt_data.Ksum. It must be run with one
 	block and a power of 2 for a block size with blockDim.x*sizeof(float) bytes of dynamic shared 
 	memory allocated.
 	
@@ -409,13 +420,13 @@ cudaError_t gpu_npt_reduce_ksum(const gpu_npt_data &d_npt_data)
 		}
 	}
 
-//! Computes the first-pass m*v^2 sum
+//! Computes the first-pass \f$mv^2\f$ sum
 /*! \param d_npt_data NPT specific data structures
 	\param pdata Particle data to compute temperature of
 	
 	\a d_npt_data.NBlocks blocks are to be run with \a d_npt_data.block_size width. Each thread
-	reads in the velocity of a single particle, calculates m*v^2 and then each block makes a 
-	parallel reduction pass to compute the partial m*v^2 sums. \a d_npt_data.NBlocks partial sums
+	reads in the velocity of a single particle, calculates \f$mv^2\f$ and then each block makes a 
+	parallel reduction pass to compute the partial \f$mv^2\f$ sums. \a d_npt_data.NBlocks partial sums
 	are written out to \a d_npt_data.partial_Ksum which will be later summed in gpu_npt_reduce_ksum_kernel().
 */
 extern "C" __global__ void gpu_npt_temperature_kernel(gpu_npt_data d_npt_data, gpu_pdata_arrays pdata)
@@ -492,8 +503,8 @@ cudaError_t gpu_npt_temperature(const gpu_npt_data &d_npt_data, const gpu_pdata_
 	\pre gpu_npt_pressure_kernel() must be called first to fill out the partial sums in \a d_npt_data.
 	\a d_npt_data.NBlocks partial sums are written there to be added up here.
 	
-	gpu_npt_reduce_psum_kernel() is a very simple 1-block kernel run that completes the partial sums
-	and writes the final virial sum for this GPU out to *d_npt_data.Psum. It must be run with one
+	gpu_npt_reduce_wsum_kernel() is a very simple 1-block kernel run that completes the partial sums
+	and writes the final virial sum for this GPU out to *d_npt_data.Wsum. It must be run with one
 	block and a power of 2 for a block size with blockDim.x*sizeof(float) bytes of dynamic shared 
 	memory allocated.
 	
@@ -501,16 +512,16 @@ cudaError_t gpu_npt_temperature(const gpu_npt_data &d_npt_data, const gpu_pdata_
 	wide. Each thread participates in a fully coalesced load of the partial sums and then a parallel 
 	reduction is employed to complete the sum.
 */
-extern "C" __global__ void gpu_npt_reduce_psum_kernel(gpu_npt_data d_npt_data)
+extern "C" __global__ void gpu_npt_reduce_wsum_kernel(gpu_npt_data d_npt_data)
 	{
-	float Psum = 0.0f;
+	float Wsum = 0.0f;
 
 	// sum up the values in the partial sum via a sliding window
 	for (int start = 0; start < d_npt_data.NBlocks; start += blockDim.x)
 		{
 		__syncthreads();
 		if (start + threadIdx.x < d_npt_data.NBlocks)
-			npt_sdata[threadIdx.x] = d_npt_data.partial_Psum[start + threadIdx.x];
+			npt_sdata[threadIdx.x] = d_npt_data.partial_Wsum[start + threadIdx.x];
 		else
 			npt_sdata[threadIdx.x] = 0.0f;
 		__syncthreads();
@@ -525,21 +536,21 @@ extern "C" __global__ void gpu_npt_reduce_psum_kernel(gpu_npt_data d_npt_data)
 			__syncthreads();
 			}
 
-		// everybody sums up Psum
-		Psum += npt_sdata[0];
+		// everybody sums up Wsum
+		Wsum += npt_sdata[0];
 		}
 	
 	if (threadIdx.x == 0)
 		{
-		*d_npt_data.Psum = Psum;
+		*d_npt_data.Wsum = Wsum;
 	  	}
 	}
 
 /*! \param d_npt_data NPT specific data structures
 		
-	This is just a driver for gpu_npt_reduce_psum_kernel(). See it for more details.
+	This is just a driver for gpu_npt_reduce_wsum_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_reduce_psum(const gpu_npt_data &d_npt_data)
+cudaError_t gpu_npt_reduce_wsum(const gpu_npt_data &d_npt_data)
 	{
 	// setup the grid to run the kernel
 	int block_size = 128;
@@ -547,8 +558,8 @@ cudaError_t gpu_npt_reduce_psum(const gpu_npt_data &d_npt_data)
 	dim3 threads(block_size, 1, 1);
 	
 	// run the kernel
-	gpu_npt_reduce_psum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data);
-	//printf("d_npt_data.Psum = %f\n", (*d_npt_data).Psum);
+	gpu_npt_reduce_wsum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data);
+	
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;
@@ -567,14 +578,12 @@ cudaError_t gpu_npt_reduce_psum(const gpu_npt_data &d_npt_data)
 	\a d_npt_data.NBlocks blocks are to be run with \a d_npt_data.block_size width. Each thread
 	reads in the total virial on a single particle and then each block makes a 
 	parallel reduction pass to compute the partial virial sums. \a d_npt_data.NBlocks partial sums
-	are written out to \a d_npt_data.partial_Psum which will be later summed in gpu_npt_reduce_psum_kernel().
+	are written out to \a d_npt_data.partial_Wsum which will be later summed in gpu_npt_reduce_wsum_kernel().
 */
 extern "C" __global__ void gpu_npt_pressure_kernel(gpu_npt_data d_npt_data, gpu_pdata_arrays pdata)
 	{
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-	// do Nose-Hoover integrate ??? copied and pasted comment doesn't apply
-	
-	//printf("pdata.local_num = %d\n",  pdata.local_num);
+
+        int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // particle's local index on this GPU
 	
 	float virial = 0.0f;
 	if (idx_local < pdata.local_num)
@@ -598,7 +607,7 @@ extern "C" __global__ void gpu_npt_pressure_kernel(gpu_npt_data d_npt_data, gpu_
 	// write out our partial sum
 	if (threadIdx.x == 0)
 		{
-		d_npt_data.partial_Psum[blockIdx.x] = npt_sdata[0];
+		d_npt_data.partial_Wsum[blockIdx.x] = npt_sdata[0];
 		}
 	}
 

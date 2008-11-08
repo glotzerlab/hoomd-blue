@@ -114,11 +114,13 @@ Scalar NPTUpdaterGPU::getLogValue(const std::string& quantity)
 		}
 	else if (quantity == string("npt_temperature"))
 		{
-		  return computeTemperature();
+		  return m_curr_T;
+		  //return computeTemperature();
 		}
 	else if (quantity == string("npt_pressure"))
 	        {
-	          return computePressure();
+		  return m_curr_P;
+	          //return computePressure();
 	        }
 	else if (quantity == string("npt_volume"))
 	        {
@@ -157,8 +159,8 @@ void NPTUpdaterGPU::allocateNPTData(int block_size)
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].partial_Ksum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].Ksum), sizeof(float)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].partial_Psum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].Psum), sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].partial_Wsum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].Wsum), sizeof(float)));
 		local_num = d_pdata[cur_gpu].local_num;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].virial), local_num * sizeof(float)));
 
@@ -166,6 +168,8 @@ void NPTUpdaterGPU::allocateNPTData(int block_size)
 	m_pdata->release();
 
 	}
+
+// frees memory
 
 void NPTUpdaterGPU::freeNPTData()
 	{
@@ -178,18 +182,20 @@ void NPTUpdaterGPU::freeNPTData()
 		d_npt_data[cur_gpu].partial_Ksum = NULL;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].Ksum));
 		d_npt_data[cur_gpu].Ksum = NULL;
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].partial_Psum));
-		d_npt_data[cur_gpu].partial_Psum = NULL;
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].Psum));
-		d_npt_data[cur_gpu].Psum = NULL;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].partial_Wsum));
+		d_npt_data[cur_gpu].partial_Wsum = NULL;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].Wsum));
+		d_npt_data[cur_gpu].Wsum = NULL;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].virial));
 		d_npt_data[cur_gpu].virial = NULL;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)m_d_virial_data_ptrs[cur_gpu]));
 		}
 	}
 
-/*! \param fc ForceCompute to add	
-     also add virial compute
+/*! Calls parent Integrator::addForceCompute before setting up virial compute
+
+    \param fc ForceCompute to add	
+
 */
 void NPTUpdaterGPU::addForceCompute(boost::shared_ptr<ForceCompute> fc)
        {
@@ -257,7 +263,8 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	int N = m_pdata->getN();
 	m_timestep = timestep;
 	
-	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
+	// if we haven't been called before, then the accelerations
+	// have not been set and we need to calculate them
 	if (!m_accel_set)
 		{
 		m_accel_set = true;
@@ -265,8 +272,8 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 		// is calculated correctly
 		computeAccelerationsGPU(timestep, "NPT", true);
 		
-		m_curr_T = computeTemperature();  // Compute temperature and pressure for the first time step
-		m_curr_P = computePressure();
+		m_curr_T = computeTemperature();  // Compute temperature for the first time step
+		m_curr_P = computePressure();     // Compute pressure for the first time step
 		}
 
 	if (m_prof) m_prof->push(exec_conf, "NPT");
@@ -277,13 +284,15 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 
 	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
 		
-	// advance thermostat(m_Xi) half a time step
+	// advance thermostat (m_Xi) half a time step
 	m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T - 1.0f)*m_deltaT;
 
 	// advance barostat (m_Eta) half time step
 	m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T)*(m_curr_P - m_P)*m_deltaT;
 
-	// advance volume ??
+	
+	// perform first half of the time step; propagate velocities for 1/2*deltaT and
+        // positions for full deltaT
 	
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
@@ -294,8 +303,11 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	
 	if (m_prof) m_prof->pop(exec_conf, 36*m_pdata->getN(), 80 * m_pdata->getN());
 
+	// advance volume 
+
 	m_V *= exp(3.0f*m_Eta*m_deltaT);
 
+	// rescale box length
 	float box_len_scale = exp(m_Eta*m_deltaT);
 	m_Lx *= box_len_scale;
 	m_Ly *= box_len_scale;
@@ -318,6 +330,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	computeAccelerationsGPU(timestep+1, "NPT", false);
 	
 	if (m_prof) m_prof->push(exec_conf, "NPT");
+
 	// compute temperature for the next half time step
 	m_curr_T = computeTemperature();
 	// compute pressure for the next half time step
@@ -328,6 +341,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
 	
+	// 2nd half time step; propagate velocities from t+1/2*deltaT to t+deltaT
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_step, d_pdata[cur_gpu], d_npt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_Eta, m_deltaT));
@@ -342,17 +356,22 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 		m_prof->pop();
 		}
 	
-	// Update m_Eta
+	// Update barostat variable m_Eta to t+deltaT
 	m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T)*(m_curr_P - m_P)*m_deltaT;
 
-	// Update m_Xi
+	// Update thermostat variable m_Xi to t+deltaT
 	m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T - 1.0f)*m_deltaT;
 	}
 
+/*! Calculates current temperature of the system
+    \returns current temperature of the system
+ */
+
 float NPTUpdaterGPU::computeTemperature()
 	{
+        // acquire the particle data on the GPU
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-	float g = 3.0f*m_pdata->getN();
+	float g = 3.0f*m_pdata->getN(); // Number of degrees of freedom g = 3*N
 	
 	if (m_prof) m_prof->push(exec_conf, "Compute Temp");
 		
@@ -381,6 +400,10 @@ float NPTUpdaterGPU::computeTemperature()
 	return Ksum_total / g;
 	}
 
+/*! Calculates current pressure of the system
+    \returns current pressure of the system
+ */
+
 float NPTUpdaterGPU::computePressure()
 	{
 	if (m_prof) m_prof->push("Compute Press");
@@ -388,19 +411,19 @@ float NPTUpdaterGPU::computePressure()
 	// Number of particles
 	unsigned int N = m_pdata->getN();
 	
-	// acquire the particle data on the GPU and add the forces into the acceleration
+	// acquire the particle data on the GPU 
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
 	
 	exec_conf.tagAll(__FILE__, __LINE__);
 	
-	// sum up virials and then total the Psum on each GPU in parallel
+	// sum up virials and then total the Wsum on each GPU in parallel
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_integrator_sum_virials, d_npt_data[cur_gpu], d_pdata[cur_gpu], m_d_virial_data_ptrs[cur_gpu], (int)m_forces.size()));
 		
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_pressure, d_npt_data[cur_gpu], d_pdata[cur_gpu]));
 		
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_reduce_psum, d_npt_data[cur_gpu]));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_reduce_wsum, d_npt_data[cur_gpu]));
 		}
 	exec_conf.syncAll();
 	
@@ -412,14 +435,14 @@ float NPTUpdaterGPU::computePressure()
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		float Wsum_tmp;
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &Wsum_tmp, d_npt_data[cur_gpu].Psum, sizeof(float), cudaMemcpyDeviceToHost));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &Wsum_tmp, d_npt_data[cur_gpu].Wsum, sizeof(float), cudaMemcpyDeviceToHost));
 		
 		Wsum_total += Wsum_tmp;
 		}
 		
 	if (m_prof) m_prof->pop();
 
-	return (N * m_curr_T + Wsum_total)/m_V; 
+	return (N * m_curr_T + Wsum_total)/m_V; // return presssure PV = N*T + W
 	}
 	
 void export_NPTUpdaterGPU()

@@ -56,8 +56,8 @@ struct gpu_npt_data
 	{
 	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
 	float *Ksum;	//!< fully reduced Ksum on one GPU
-	float *partial_Psum; //!< NBlocks elements, each is a partial sum of virials
-	float *Psum;  //!< fully reduced Psum on one GPU
+	float *partial_Wsum; //!< NBlocks elements, each is a partial sum of virials
+	float *Wsum;  //!< fully reduced Psum on one GPU
 	float *virial;  //!< Stores virials
 	int NBlocks;	//!< Number of blocks in the computation
 	int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
@@ -79,10 +79,10 @@ cudaError_t gpu_npt_reduce_ksum(const gpu_npt_data &d_npt_data);
 //! Kernel driver for calculating the initial pass Ksum on the GPU. Used by NPTUpdaterGPU
 cudaError_t gpu_npt_temperature(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata);
 
-//! Kernel driver for calculating the final pass Psum on the GPU. Used by NPTUpdaterGPU
-cudaError_t gpu_npt_reduce_psum(const gpu_npt_data &d_npt_data);
+//! Kernel driver for calculating the final pass Wsum on the GPU. Used by NPTUpdaterGPU
+cudaError_t gpu_npt_reduce_wsum(const gpu_npt_data &d_npt_data);
 
-//! Kernel driver for calculating the initial pass Ksum on the GPU. Used by NPTUpdaterGPU
+//! Kernel driver for calculating the initial pass Wsum on the GPU. Used by NPTUpdaterGPU
 cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata);
 
 #endif

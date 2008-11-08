@@ -81,7 +81,7 @@ extern "C" __global__ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 	float vsq;
 	if (idx_local < pdata.local_num)
 		{
-		// update positions to the next timestep and update velocities to the next half step
+       		// update positions to the next timestep and update velocities to the next half step
 		float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
 		
 		float px = pos.x;
