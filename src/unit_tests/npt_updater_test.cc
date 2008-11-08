@@ -56,7 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstForceCompute.h"
 #include "NPTUpdater.h"
 #ifdef USE_CUDA
-//#include "NPTUpdaterGPU.h"
+#include "NPTUpdaterGPU.h"
 #endif
 
 #include "BinnedNeighborList.h"
@@ -98,7 +98,7 @@ typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, 
 void npt_updater_test(nptup_creator npt_creator)
 	{
 	const unsigned int N = 1000;
-	Scalar T = 1.0;
+	Scalar T = 2.0;
 	Scalar P = 1.0;
 
 	// create two identical random particle systems to simulate
@@ -145,10 +145,80 @@ void npt_updater_test(nptup_creator npt_creator)
 
 	avrT /= 40000.0;
 	avrP /= 40000.0;
-	Scalar rough_tol = 1.0;
+	Scalar rough_tol = 2.0;
 	MY_BOOST_CHECK_CLOSE(T, avrT, rough_tol);
 	MY_BOOST_CHECK_CLOSE(P, avrP, rough_tol);
 	
+	}
+
+//! Compares the output from one NVEUpdater to another
+void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_creator2, ExecutionConfiguration exec_conf)
+	{
+	const unsigned int N = 1000;
+	Scalar T = 2.0;
+	Scalar P = 1.0;
+	
+	// create two identical random particle systems to simulate
+	RandomInitializer rand_init1(N, Scalar(0.2), Scalar(0.9), "A");
+	RandomInitializer rand_init2(N, Scalar(0.2), Scalar(0.9), "A");
+	rand_init1.setSeed(12345);
+	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1, exec_conf));
+	rand_init2.setSeed(12345);
+	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2, exec_conf));
+
+	shared_ptr<NeighborList> nlist1(new NeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist2(new NeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
+	
+	shared_ptr<LJForceCompute> fc1(new LJForceCompute(pdata1, nlist1, Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc2(new LJForceCompute(pdata2, nlist2, Scalar(3.0)));
+		
+	// setup some values for alpha and sigma
+	Scalar epsilon = Scalar(1.0);
+	Scalar sigma = Scalar(1.2);
+	Scalar alpha = Scalar(0.45);
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	
+	// specify the force parameters
+	fc1->setParams(0,0,lj1,lj2);
+	fc2->setParams(0,0,lj1,lj2);
+
+	shared_ptr<NPTUpdater> npt1 = npt_creator1(pdata1, Scalar(0.005),Scalar(1.0),Scalar(1.0),T,P);
+	shared_ptr<NPTUpdater> npt2 = npt_creator2(pdata2, Scalar(0.005),Scalar(1.0),Scalar(1.0),T,P);
+
+	npt1->addForceCompute(fc1);
+	npt2->addForceCompute(fc2);
+
+	for (int i = 0; i < 10000; i++)
+	  {
+	  npt1->update(i);
+	  npt2->update(i);
+	  }
+
+	// now do the averaging for next 100k steps
+	Scalar avrT1 = 0.0;
+	Scalar avrT2 = 0.0;
+	Scalar avrP1 = 0.0;
+	Scalar avrP2 = 0.0;
+	for (int i = 10001; i < 50000; i++)
+	       {
+                 avrT1 += npt1->computeTemperature();
+                 avrT2 += npt2->computeTemperature();
+		 avrP1 += npt1->computePressure();
+		 avrP2 += npt2->computePressure();
+		 npt1->update(i);
+		 npt2->update(i);
+	       }
+
+	avrT1 /= 40000.0;
+	avrT2 /= 40000.0;
+	avrP1 /= 40000.0;
+	avrP2 /= 40000.0;
+	Scalar rough_tol = 1.0;
+	MY_BOOST_CHECK_CLOSE(avrT1, avrT2, rough_tol);
+	MY_BOOST_CHECK_CLOSE(avrP1, avrP2, rough_tol);
+
+
 	}
 	
 //! NPTUpdater factory for the unit tests
@@ -159,25 +229,36 @@ shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<ParticleData> pdata, Sc
 	
 #ifdef USE_CUDA
 //! NPTUpdaterGPU factory for the unit tests
-/*shared_ptr<NPTUpdater> gpu_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
+shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
 	{
-	  return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(pdata, deltaT, tau, tauP, T, P));
-	}*/
+	  return shared_ptr<NPTUpdater>(new NPTUpdaterGPU(pdata, deltaT, tau, tauP, T, P));
+	}
 #endif
 	
 	
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NPTUpdater_tests )
 	{
-	  nptup_creator npt_creator = bind(base_class_npt_creator, _1, _2,_3,_4,_5,_6);
+	nptup_creator npt_creator = bind(base_class_npt_creator, _1, _2,_3,_4,_5,_6);
 	npt_updater_test(npt_creator);
 	}
 	
 	
 #ifdef USE_CUDA
 
-// Need to add some stuff in here when NPT finaly gets implemented on GPU
+//! boost test case for base class integration tests
+BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_tests )
+	{
+	nptup_creator npt_creator = bind(gpu_npt_creator, _1, _2,_3,_4,_5,_6);
+	npt_updater_test(npt_creator);
+	}
 
+BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_comparison_tests)
+	{
+	nptup_creator npt_creator_gpu = bind(gpu_npt_creator, _1, _2, _3,_4,_5,_6);
+	nptup_creator npt_creator = bind(base_class_npt_creator, _1, _2, _3,_4,_5,_6);
+	npt_updater_compare_test(npt_creator, npt_creator_gpu, ExecutionConfiguration());
+	}
 #endif
 
 #ifdef WIN32

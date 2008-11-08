@@ -154,8 +154,6 @@ void NPTUpdater::update(unsigned int timestep)
 		computeAccelerations(timestep, "NPT");
 		m_curr_T = computeTemperature();  // Compute temperature and pressure for the first time step
 		m_curr_P = computePressure();
-		cout << "m_curr_T = " << m_curr_T << endl;
-		cout << "m_curr_P = " << m_curr_P << endl;
 		}
 
 	if (m_prof)
