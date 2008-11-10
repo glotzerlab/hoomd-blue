@@ -104,8 +104,19 @@ HOOMD.
 If your distribution doesn't have a new enough version of boost, you can build it by hand. Go
 to http://www.boost.org , download the latest source code and unpack it. cd to the source directory and run
 \code
- $ mkdir ~/software
- $ ./configure --with-python-version=2.5 --prefix=~/software/
+ $ mkdir /home/user/software
+ $ ./configure --with-python-version=2.5 --prefix=/home/user/software/
+\endcode
+
+By default, only shared libraries are built. HOOMD expects static libraries by default,
+so open up Makefile in your favorite text editor and  make the following change 
+(for building boost 1.35 or newer):
+\code
+BJAM_CONFIG=variant=release threading=multi link=shared,static
+\endcode
+
+Then you can build and install boost with the following commands.
+\code
  $ make
  $ make install
 \endcode
@@ -281,15 +292,8 @@ We can't have that since HOOMD is all about speed, so open the Makefile
 \code
  $ open Makefile
 \endcode
-and edit the first line from
-\code
-BJAM=./tools/jam/src/bin.macosxppc/bjam
-\endcode to
-\code
-BJAM=./tools/jam/src/bin.macosxppc/bjam optimization=speed
-\endcode
-Then save and exit the text editor.
-If you are compiling boost 1.35 or newer, you need to make the following change instead:
+
+You need to make the following change (for building boost 1.35 or newer):
 \code
 BJAM_CONFIG=variant=release threading=multi link=shared,static
 \endcode
