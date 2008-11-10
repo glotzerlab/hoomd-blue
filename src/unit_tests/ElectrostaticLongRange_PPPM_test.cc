@@ -43,22 +43,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//You need a fft defined in order to pass this text
-#ifdef USE_FFTW
-
 //! Name the unit test module
 #define BOOST_TEST_MODULE ElectrostaticLongRangePPPMTests
 #include "boost_utf_configure.h"
-
 
 #include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
-
-#include "ElectrostaticLongRangePPPM.h"
-#include "FFTClass.h"
-#include "FftwWrapper.h"
 
 #include "ParticleData.h"
 
@@ -66,6 +58,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 using namespace boost;
+
+
+//You need a fft defined in order to pass this text
+#ifdef USE_FFTW
+
+#include "ElectrostaticLongRangePPPM.h"
+#include "FFTClass.h"
+#include "FftwWrapper.h"
 
 /*! \file ElectrostaticLongRange_PPPM_test.cc
 	\brief Implements unit tests for ElectrostaticLongRangePPPM and descendants
@@ -166,6 +166,13 @@ BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_test)
 	LongRangePPPM_PositionGrid(LongRangePPPM_creator_base);
 }
 
+#else
+
+// We can't have the unit test passing if the code wasn't even compiled!
+BOOST_AUTO_TEST_CASE(dummy_test)
+	{
+	BOOST_FAIL("ElectrostaticLongRange_PPPM not compiled");
+	}
 #endif
 
 #ifdef WIN32

@@ -77,15 +77,18 @@ set(TEST_LIST
 	zero_momentum_updater_test
 	temp_rescale_updater_test
 	xml_reader_writer_test system_test
-	bdnvt_updater_test
-	npt_updater_test)
-
+	ElectrostaticShortRange_force_test)
+	
 if (USE_FFT)
 	set(TEST_LIST ${TEST_LIST} 
-	ElectrostaticShortRange_force_test
 	ElectrostaticLongRange_PPPM_test
 	Fourier_transform_test)
 endif (USE_FFT)
+
+	# put the longest tests last
+	set(TEST_LIST ${TEST_LIST}
+	bdnvt_updater_test
+	npt_updater_test)
 
 if(USE_CUDA)
 	set(TEST_LIST ${TEST_LIST} gpu_worker_test)

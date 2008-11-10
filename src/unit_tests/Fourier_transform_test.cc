@@ -36,8 +36,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-#ifdef USE_FFTW
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
@@ -49,19 +47,22 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define BOOST_TEST_MODULE Fourier_transform_test
 #include "boost_utf_configure.h"
 
-
 #include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "FftwWrapper.h"
 #include "ParticleData.h"
 
 #include <math.h>
 
 using namespace std;
 using namespace boost;
+
+
+#ifdef USE_FFTW
+
+#include "FftwWrapper.h"
 
 /*! \file Fourier_transform_test.cc
 	\brief Implements two simple unit tests for fft
@@ -205,7 +206,18 @@ double Exact_Conf_Imag(double x,double y)
   return -(1-exp(-x))*exp(-1.0)*sin(2*M_PI*y/x)/(1+exp(-2.0)-2*exp(-1.0)*cos(2*M_PI*y/x));	
 }
 
+#else
+
+// We can't have the unit test passing if the code wasn't even compiled!
+BOOST_AUTO_TEST_CASE(dummy_test)
+	{
+	BOOST_FAIL("Fourier_transform_test not compiled");
+	}
+
+#endif
+
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-#endif
+
