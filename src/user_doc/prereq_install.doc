@@ -104,8 +104,7 @@ HOOMD.
 If your distribution doesn't have a new enough version of boost, you can build it by hand. Go
 to http://www.boost.org , download the latest source code and unpack it. cd to the source directory and run
 \code
- $ cd ~
- $ mkdir software
+ $ mkdir ~/software
  $ ./configure --with-python-version=2.5 --prefix=~/software/
  $ make
  $ make install
