@@ -123,13 +123,17 @@ add_subdirectory (python)
 
 ################################
 # set up unit tests
-enable_testing()
-add_subdirectory (unit_tests)
+if (USE_TEST)
+	enable_testing()
+	add_subdirectory (unit_tests)
+endif (USE_TEST)
 
 ###############################
 ## include documentation directories
-add_subdirectory (doc)
-add_subdirectory (user_doc)
+if (USE_DOXYGEN)
+	add_subdirectory (doc)
+	add_subdirectory (user_doc)
+endif (USE_DOXYGEN)
 
 add_subdirectory (installer)
 

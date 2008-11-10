@@ -46,6 +46,14 @@ if (USE_STATIC)
 	add_definitions(-DUSE_STATIC)
 endif(USE_STATIC)
 
+#################################
+## Optionally enable unit tests
+OPTION(USE_TEST "Enables unit tests" ON)
+
+#################################
+## Optionally enable documentation build
+OPTION(USE_DOXYGEN "Enables building of documentation with doxygen" ON)
+
 ################################
 ## thread safe compiling
 if(WIN32)

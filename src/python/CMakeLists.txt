@@ -39,7 +39,9 @@
 # $URL$
 
 # enable unit tests in this directory
-enable_testing()
+if (USE_TEST)
+	enable_testing()
+endif (USE_TEST)
 
 # here is where we actually compile the python module version of the library
 if (USE_CUDA)
