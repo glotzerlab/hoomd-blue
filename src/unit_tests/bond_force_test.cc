@@ -90,11 +90,11 @@ typedef boost::function<shared_ptr<HarmonicBondForceCompute>  (shared_ptr<Partic
 	\note With the creator as a parameter, the same code can be used to test any derived child
 		of the BondForceCompute
 */
-void bond_force_basic_tests(bondforce_creator bf_creator)
+void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration exec_conf)
 	{
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box with only one bond type
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 1));
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 1, exec_conf));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9);
@@ -160,7 +160,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of bond
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 3));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 3, exec_conf));
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -221,7 +221,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator)
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1));
+	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1, exec_conf));
 	arrays = pdata_4->acquireReadWrite();
 	// make a square of particles
 	arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
@@ -349,10 +349,10 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	}
 	
 //! Check ConstForceCompute to see that it operates properly
-void const_force_test()
+void const_force_test(ExecutionConfiguration exec_conf)
 	{
 	// Generate a simple test particle data
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0)));
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9);
@@ -408,7 +408,7 @@ shared_ptr<HarmonicBondForceCompute> gpu_bf_creator(shared_ptr<ParticleData> pda
 BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
 	{
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-	bond_force_basic_tests(bf_creator);
+	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 #ifdef USE_CUDA
@@ -416,7 +416,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
 BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_basic )
 	{
 	bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
-	bond_force_basic_tests(bf_creator);
+	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 	
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
 	{
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-	bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration());
+	bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 	
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
@@ -446,7 +446,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForce_MultiGPU_compare)
 //! boost test case for constant forces
 BOOST_AUTO_TEST_CASE( ConstForceCompute_basic )
 	{
-	const_force_test();
+	const_force_test(ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 #ifdef WIN32

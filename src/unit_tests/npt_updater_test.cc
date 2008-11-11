@@ -95,7 +95,7 @@ typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, 
 	Compares the output from NPTUpdater, averages pressure and temeprature and comares them with 
 	given pressures and temperatures.
 */
-void npt_updater_test(nptup_creator npt_creator)
+void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_conf)
 	{
 	const unsigned int N = 1000;
 	Scalar T = 2.0;
@@ -104,7 +104,7 @@ void npt_updater_test(nptup_creator npt_creator)
 	// create two identical random particle systems to simulate
 	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
 	rand_init.setSeed(12345);
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init));
+	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
 
 	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(pdata, Scalar(2.5), Scalar(0.8)));
 
@@ -131,7 +131,9 @@ void npt_updater_test(nptup_creator npt_creator)
 	// step for a 10,000 timesteps to relax pessure and tempreratue
 	// before computing averages
 	for (int i = 0; i < 10000; i++)
+		{
 		npt->update(i);
+		}
 
 	// now do the averaging for next 100k steps
 	Scalar avrT = 0.0;
@@ -240,7 +242,7 @@ shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<ParticleData> pdata, Scalar de
 BOOST_AUTO_TEST_CASE( NPTUpdater_tests )
 	{
 	nptup_creator npt_creator = bind(base_class_npt_creator, _1, _2,_3,_4,_5,_6);
-	npt_updater_test(npt_creator);
+	npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
 	
@@ -250,14 +252,14 @@ BOOST_AUTO_TEST_CASE( NPTUpdater_tests )
 BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_tests )
 	{
 	nptup_creator npt_creator = bind(gpu_npt_creator, _1, _2,_3,_4,_5,_6);
-	npt_updater_test(npt_creator);
+	npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 
 BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_comparison_tests)
 	{
 	nptup_creator npt_creator_gpu = bind(gpu_npt_creator, _1, _2, _3,_4,_5,_6);
 	nptup_creator npt_creator = bind(base_class_npt_creator, _1, _2, _3,_4,_5,_6);
-	npt_updater_compare_test(npt_creator, npt_creator_gpu, ExecutionConfiguration());
+	npt_updater_compare_test(npt_creator, npt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 #endif
 

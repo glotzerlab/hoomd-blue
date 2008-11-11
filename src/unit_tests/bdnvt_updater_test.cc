@@ -91,14 +91,14 @@ const Scalar tol = 1e-3;
 typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)> bdnvtup_creator;
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
-void bd_updater_tests(bdnvtup_creator bdnvt_creator)
+void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
 	{
 	// check that a Brownian Dynamics integrator results in a correct diffusion coefficient
 	// and correct average temperature.  Change the temperature and gamma and show this produces 
 	// a correct temperature and diffuction coefficent  
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4));
+	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -253,13 +253,13 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator)
    }
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
-void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator)
+void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
 	{
 	// check that a Brownian Dynamics integrator results in a correct diffusion coefficients
 	// and correct average temperature when applied to a population of two different particle types 
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4));
+	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -331,11 +331,11 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator)
 	}
 	
 //! Apply the Stochastic BD Bath to 1000 LJ Particles
-void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator)
+void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
 	{
 	// check that a stochastic force applied on top of NVE integrator for a 1000 LJ particles stilll produces the correct average temperature
 	// Build a 1000 particle system with particles scattered on the x, y, and z axes.
-	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4));
+	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -438,52 +438,49 @@ shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<ParticleData> pdata, Scal
 	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(pdata, deltaT, Temp, seed));
 	}
 #endif		
-	
-#ifndef USE_CUDA	
+
 //! Basic test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
-	bd_updater_tests(bdnvt_creator);
+	bd_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 //! two particle test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
-	bd_twoparticles_updater_tests(bdnvt_creator);
+	bd_twoparticles_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 //! extended LJ-liquid test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
-	bd_updater_lj_tests(bdnvt_creator);
+	bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
-#endif
 
 #ifdef USE_CUDA
 //! Basic test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
-	bd_updater_tests(bdnvt_creator_gpu);
+	bd_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 	
 //! two particle test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
-	bd_twoparticles_updater_tests(bdnvt_creator_gpu);
+	bd_twoparticles_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 	
 //! extended LJ-liquid test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
-	bd_updater_lj_tests(bdnvt_creator_gpu);
+	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
-
 #endif
 
 

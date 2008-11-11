@@ -93,7 +93,7 @@ typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<ParticleData> pda
 	\note With the creator as a parameter, the same code can be used to test any derived child
 		of LJForceCompute
 */
-void lj_force_particle_test(ljforce_creator lj_creator)
+void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
 	{
 	// this 3-particle test subtly checks several conditions
 	// the particles are arranged on the x axis,  1   2   3
@@ -103,7 +103,7 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	// a particle and ignore a particle outside the radius
 	
 	// periodic boundary conditions will be handeled in another test
-	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1));
+	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(pow(2.0,1.0/6.0)); arrays.y[1] = arrays.z[1] = 0.0;
@@ -199,7 +199,7 @@ void lj_force_particle_test(ljforce_creator lj_creator)
 	\note This test also indirectly verifies the ability of the force compute to handle multiple
 		particle types.
 */
-void lj_force_periodic_test(ljforce_creator lj_creator)
+void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
 	{
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
@@ -208,7 +208,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator)
 	// build a 6 particle system with particles across each boundary
 	// also test the ability of the force compute to use different particle types
 	
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 3));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 3, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -347,14 +347,14 @@ shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<ParticleData> pdata, shared
 BOOST_AUTO_TEST_CASE( LJForce_particle )
 	{
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_particle_test(lj_creator_base);
+	lj_force_particle_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( LJForce_periodic )
 	{
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_periodic_test(lj_creator_base);
+	lj_force_periodic_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
 # ifdef USE_CUDA
@@ -362,14 +362,14 @@ BOOST_AUTO_TEST_CASE( LJForce_periodic )
 BOOST_AUTO_TEST_CASE( LJForceGPU_particle )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
-	lj_force_particle_test(lj_creator_gpu);
+	lj_force_particle_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( LJForceGPU_periodic )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
-	lj_force_periodic_test(lj_creator_gpu);
+	lj_force_periodic_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 
 //! boost test case for comparing GPU output to base class output
@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_compare )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_comparison_test(lj_creator_base, lj_creator_gpu, ExecutionConfiguration());
+	lj_force_comparison_test(lj_creator_base, lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 	
 //! boost test case for comparing multi-GPU output to base class output

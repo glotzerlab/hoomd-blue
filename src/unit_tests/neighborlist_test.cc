@@ -75,11 +75,11 @@ using namespace boost;
 typedef boost::function<shared_ptr<NeighborList> (shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)> nlist_creator_typ;
 
 //! Performs basic functionality tests on a neighbor list
-void neighborlist_basic_tests(nlist_creator_typ nlist_creator)
+void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
 	{
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(25.0)));
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(25.0), 1, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = arrays.y[1] = arrays.z[1] = 3.25;
@@ -121,7 +121,7 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator)
 	// there are way too many permutations to test here, so I will simply
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0)));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -185,9 +185,9 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator)
 	}
 
 //! Tests the ability of the neighbor list to exclude particle pairs
-void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator)
+void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
 	{
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0)));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
 	// lets make this test simple: put all 6 particles on top of each other and 
 	// see if the exclusion code can ignore 4 of the particles
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
@@ -244,12 +244,12 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator)
 	}
 
 //! Test two implementations of NeighborList and verify that the output is identical
-void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creator_typ nlist_creator2)
+void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creator_typ nlist_creator2, ExecutionConfiguration exec_conf)
 	{
 	// construct the particle system
-	RandomInitializer init(300, Scalar(0.016778), Scalar(0.9), "A");
+	RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
 	
-	shared_ptr<ParticleData> pdata(new ParticleData(init));
+	shared_ptr<ParticleData> pdata(new ParticleData(init, exec_conf));
 		
 	shared_ptr<NeighborList> nlist1 = nlist_creator1(pdata, Scalar(3.0), Scalar(0.4));
 	nlist1->setStorageMode(NeighborList::full);
@@ -326,8 +326,8 @@ shared_ptr<NeighborList> gpu_binned_nlist_creator(shared_ptr<ParticleData> pdata
 BOOST_AUTO_TEST_CASE( NeighborList_tests )
 	{
 	nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
-	neighborlist_basic_tests(base_creator);
-	neighborlist_exclusion_tests(base_creator);
+	neighborlist_basic_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	neighborlist_exclusion_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 //! boost test case for BinnedNeighborList
@@ -336,9 +336,9 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborList_tests )
 	nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
 	nlist_creator_typ binned_creator = bind(binned_nlist_creator, _1, _2, _3);
 	
-	neighborlist_basic_tests(binned_creator);
-	neighborlist_exclusion_tests(binned_creator);
-	neighborlist_comparison_test(base_creator, binned_creator);
+	neighborlist_basic_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	neighborlist_exclusion_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	neighborlist_comparison_test(base_creator, binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
 #ifdef USE_CUDA
@@ -348,9 +348,9 @@ BOOST_AUTO_TEST_CASE( NeighborListNsqGPU_tests )
 	nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
 	nlist_creator_typ gpu_creator = bind(gpu_nsq_nlist_creator, _1, _2, _3);
 	
-	neighborlist_basic_tests(gpu_creator);
-	neighborlist_exclusion_tests(gpu_creator);
-	neighborlist_comparison_test(base_creator, gpu_creator);
+	neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 	
 //! boost test case for BinnedNeighborListGPU
@@ -359,10 +359,27 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborListGPU_tests )
 	nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
 	nlist_creator_typ gpu_creator = bind(gpu_binned_nlist_creator, _1, _2, _3);
 	
-	neighborlist_basic_tests(gpu_creator);
-	neighborlist_exclusion_tests(gpu_creator);
-	neighborlist_comparison_test(base_creator, gpu_creator);
+	neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
+
+//! boost test case for BinnedNeighborListGPU multi-gpu
+BOOST_AUTO_TEST_CASE( BinnedNeighborListMultiGPU_tests )
+	{
+	nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
+	nlist_creator_typ gpu_creator = bind(gpu_binned_nlist_creator, _1, _2, _3);
+	
+	vector<unsigned int> gpu_list;
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	gpu_list.push_back(0);
+	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	
+	neighborlist_comparison_test(base_creator, gpu_creator, exec_conf);
+	}
+
 #endif
 
 #ifdef WIN32

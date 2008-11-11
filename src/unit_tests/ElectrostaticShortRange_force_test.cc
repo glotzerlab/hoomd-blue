@@ -89,11 +89,11 @@ const Scalar MIN_force=Scalar(1.0e-9);
 typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)> ElectrostaticShortRange_force_creator;
 	
 //! Test the ability of the Short Range Electrostatic force compute to actually calculate forces
-void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator)
+void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator, ExecutionConfiguration exec_conf)
 	{
 	cout << "Testing the accuracy of the look up table in ElectrostaticShortRange" << endl;
 	// Simple test to check the accuracy of the look up table
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1));
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0; arrays.charge[0]=1.0;
 	// A positively charged particle is located at the origin
@@ -169,14 +169,14 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 	}
 
 //! Tests periodic boundary conditions
-void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator)
+void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator, ExecutionConfiguration exec_conf)
 {
     cout << "Testing periodic conditions in the calculation of ElectrostaticShortRange" << endl;
     // Here we are going to place particles next to the boundary of the box and see that 
 	// periodic boudnary conditions work as expected
 	// simuilar test as in lj_force_test
 
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6,BoxDim(20.0,40.0,60.0),1));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6,BoxDim(20.0,40.0,60.0),1, 0, exec_conf));
 	ParticleDataArrays arrays=pdata_6->acquireReadWrite();
 	
 	arrays.x[0]=Scalar(-9.6);arrays.y[0]=Scalar(0.0);arrays.z[0]=Scalar(0.0);arrays.charge[0]=1.0;
@@ -249,14 +249,14 @@ shared_ptr<ElectrostaticShortRange> base_class_ShortRangeElectrostatic_creator(s
 BOOST_AUTO_TEST_CASE(ElectrostaticShortRange_force_accuracy)
 	{
 	ElectrostaticShortRange_force_creator ElectrostaticShortRange_creator_base = bind(base_class_ShortRangeElectrostatic_creator, _1, _2, _3, _4, _5,_6);
-	ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_creator_base);
+	ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 //! boost test periodic boundary conditions
 BOOST_AUTO_TEST_CASE(ElectrostaticShortRange_force_periodic)
 	{
 	ElectrostaticShortRange_force_creator ElectrostaticShortRange_creator_base = bind(base_class_ShortRangeElectrostatic_creator, _1, _2, _3, _4, _5,_6);
-	ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_creator_base);
+	ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 

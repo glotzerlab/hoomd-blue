@@ -1111,12 +1111,12 @@ shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<ParticleData> pdata, Scalar de
 #endif
 
 //! Integrate 1 particle through time and compare to a mathematical solution
-void nvt_updater_integrate_tests(nvtup_creator nvt_creator)
+void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfiguration exec_conf)
 	{
 	// check that the nvt updater can actually integrate particle positions and velocities correctly
 	// start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 4));
+	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 4, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -1224,7 +1224,7 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 //! Compares the output of NVTUpdater to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 	{
-	nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4));
+	nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 
@@ -1232,7 +1232,7 @@ BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 //! Compares the output of NVTUpdaterGPU to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_mathematica_compare )
 	{
-	nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4));
+	nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters
@@ -1240,7 +1240,7 @@ BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
 	{
 	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
-	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration());
+	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 	
 //! boost test case for comparing the CPU and multi-GPU updaters
