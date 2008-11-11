@@ -249,23 +249,32 @@ class log(_analyzer):
 	# \param filename File to write the log to
 	# \param quantities List of quantities to log
 	# \param period Quantities are logged every \a period time steps
+	# \param header_prefix (optional) Specify a string to print before the header
 	#
 	# \b Examples:
 	# \code
-	# analyze.log(filename='mylog.log', quantities=['lj_energy'], period=100)
-	# logger = analyze.log(quantities=['lj_energy', 'harmonic_energy', 'nve_kinetic_energy'], period=1000, filename='full.log')
+	# logger = analyze.log(filename='mylog.log', quantities=['lj_energy'], period=100)
+	# analyze.log(quantities=['lj_energy', 'harmonic_energy', 'nve_kinetic_energy'], period=1000, filename='full.log')
+	# analyze.log(filename='mylog.log', quantities=['lj_energy'], period=100, header_prefix='#')
+	# analyze.log(filename='mylog.log', quantities=['harmonic_energy'], period=10, header_prefix='Log of harmonic energy, run 5\n')
 	# \endcode
 	#
 	# By default, columns in the log file are separated by tabs, suitable for importing as a 
 	# tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
-	def __init__(self, filename, quantities, period):
+	# 
+	# The \a header_prefix can be used in a number of ways. It specifies a simple string that
+	# will be printed before the header line of the output file. One handy way to use this
+	# is to specify header_prefix='#' so that \c gnuplot will ignore the header line
+	# automatically. Another use-case would be to specify a descriptive line containing
+	# details of the current run. Examples of each of these cases are given above.
+	def __init__(self, filename, quantities, period, header_prefix=''):
 		util.print_status_line();
 		
 		# initialize base class
 		_analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.Logger(globals.particle_data, filename);
+		self.cpp_analyzer = hoomd.Logger(globals.particle_data, filename, header_prefix);
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
 		
 		# set the logged quantities

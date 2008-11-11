@@ -59,11 +59,12 @@ using namespace std;
 
 /*! \param pdata Specified for Analyzer, but not used directly by Logger
 	\param fname File name to write the log to
+	\param header_prefix String to write before the header
 	
 	Constructing a logger will open the file \a fname, overwriting it if it exists.
 */
-Logger::Logger(boost::shared_ptr<ParticleData> pdata, const std::string& fname)
-	: Analyzer(pdata), m_delimiter("\t"), m_file(fname.c_str())
+Logger::Logger(boost::shared_ptr<ParticleData> pdata, const std::string& fname, const std::string& header_prefix)
+	: Analyzer(pdata), m_delimiter("\t"), m_header_prefix(header_prefix), m_file(fname.c_str())
 	{
 	// open the file
 	if (!m_file.good())
@@ -138,6 +139,8 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 		cout << "***Warning! No quantities specified for logging" << endl;
 		return;
 		}
+	// write out the header prefix
+	m_file << m_header_prefix;
 	
 	// write all but the last of the quantities separated by the delimiter
 	for (unsigned int i = 0; i < quantities.size()-1; i++)
@@ -205,7 +208,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 void export_Logger()
 	{
 	class_<Logger, boost::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>
-		("Logger", init< boost::shared_ptr<ParticleData>, const std::string& >())
+		("Logger", init< boost::shared_ptr<ParticleData>, const std::string&, const std::string& >())
 		.def("registerCompute", &Logger::registerCompute)
 		.def("registerUpdater", &Logger::registerUpdater)
 		.def("removeAll", &Logger::removeAll)
