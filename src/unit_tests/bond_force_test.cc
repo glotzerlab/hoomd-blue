@@ -280,53 +280,23 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 //! Compares the output of two HarmonicBondForceComputes
 void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, ExecutionConfiguration exec_conf)
 	{
-	const unsigned int M = 10;
-	const unsigned int N = M*M*M;
+	const unsigned int N = 1000;
 	
 	// create a particle system to sum forces on
-	// use a simple cubic array of particles so that random bonds
-	// don't result in huge forces on a random particle arrangement
-	SimpleCubicInitializer sc_init(M, 1.5, "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(sc_init, exec_conf));
+	// just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
+	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
+	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
 	
 	shared_ptr<HarmonicBondForceCompute> fc1 = bf_creator1(pdata);
 	shared_ptr<HarmonicBondForceCompute> fc2 = bf_creator2(pdata);
 	fc1->setParams(0, Scalar(300.0), Scalar(1.6));
 	fc2->setParams(0, Scalar(300.0), Scalar(1.6));
 
-	// displace particles a little so all forces aren't alike
-	ParticleDataArrays arrays = pdata->acquireReadWrite();
-	BoxDim box = pdata->getBox();
-	for (unsigned int i = 0; i < N; i++)
-		{
-		arrays.x[i] += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.01);
-		if (arrays.x[i] < box.xlo)
-			arrays.x[i] = box.xlo;
-		if (arrays.x[i] > box.xhi)
-			arrays.x[i] = box.xhi;
-		
-		arrays.y[i] += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.05);
-		if (arrays.y[i] < box.ylo)
-			arrays.y[i] = box.ylo;
-		if (arrays.y[i] > box.yhi)
-			arrays.y[i] = box.yhi;
-		
-		arrays.z[i] += Scalar((rand())/Scalar(RAND_MAX) - 0.5) * Scalar(0.001);
-		if (arrays.z[i] < box.zlo)
-			arrays.z[i] = box.zlo;
-		if (arrays.z[i] > box.zhi)
-			arrays.z[i] = box.zhi;
-		}
-	pdata->release();
-
 	// add bonds
-	for (unsigned int i = 0; i < M; i++)
-		for (unsigned int j = 0; j < M; j++)
-			for (unsigned int k = 0; k < M-1; k++)
-				{
-				pdata->getBondData()->addBond(Bond(0, i*M*M + j*M + k, i*M*M + j*M + k + 1));
-				}
-
+	for (unsigned int i = 0; i < N-1; i++)
+		{
+		pdata->getBondData()->addBond(Bond(0, i, i+1));
+		}
 		
 	// compute the forces
 	fc1->compute(0);
