@@ -89,10 +89,6 @@ const Scalar tol = 1e-6;
 typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)> ljforce_creator;
 	
 //! Test the ability of the lj force compute to actually calucate forces
-/*! \param lj_creator Function that creates a BondForceCompute
-	\note With the creator as a parameter, the same code can be used to test any derived child
-		of LJForceCompute
-*/
 void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
 	{
 	// this 3-particle test subtly checks several conditions
@@ -193,12 +189,6 @@ void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	}
 
 //! Tests the ability of a LJForceCompute to handle periodic boundary conditions
-/*! \param lj_creator Function that creates a BondForceCompute
-	\note With the creator as a parameter, the same code can be used to test any derived child
-		of LJForceCompute
-	\note This test also indirectly verifies the ability of the force compute to handle multiple
-		particle types.
-*/
 void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
 	{
 	////////////////////////////////////////////////////////////////////

@@ -90,11 +90,6 @@ typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, 
 	
 
 //! Basic functionality test of a generic NPTUpdater
-/*! \param npt_creator Creator to be used in generating the NPTUpdater to test
-
-	Compares the output from NPTUpdater, averages pressure and temeprature and comares them with 
-	given pressures and temperatures.
-*/
 void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_conf)
 	{
 	const unsigned int N = 1000;
@@ -255,6 +250,7 @@ BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_tests )
 	npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 
+//! boost test case for comparing the GPU integrator to the CPU one
 BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_comparison_tests)
 	{
 	nptup_creator npt_creator_gpu = bind(gpu_npt_creator, _1, _2, _3,_4,_5,_6);

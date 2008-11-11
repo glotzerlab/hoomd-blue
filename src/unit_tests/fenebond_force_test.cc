@@ -86,10 +86,6 @@ const Scalar tol = 1e-6;
 typedef boost::function<shared_ptr<FENEBondForceCompute>  (shared_ptr<ParticleData> pdata)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-/*! \param bf_creator Function that creates a BondForceCompute
-	\note With the creator as a parameter, the same code can be used to test any derived child
-		of the BondForceCompute
-*/
 void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration exec_conf)
 	{
 	/////////////////////////////////////////////////////////
