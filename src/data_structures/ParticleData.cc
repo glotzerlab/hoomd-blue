@@ -791,6 +791,13 @@ void ParticleData::allocate(unsigned int N)
 			}
 		else
 			{
+			// we need at least as many particles as GPUs or bad things will happen
+			if (N < m_exec_conf.gpu.size()*32)
+				{
+				cerr << endl << "***Error! Allocating fewer than 32 particles per GPU" << endl << endl;
+				throw runtime_error("Error allocating ParticleData");
+				}
+			
 			int particles_per_gpu = N / (int)m_exec_conf.gpu.size();
 		
 			// round particles per gpu to a multiple of 32 for coalescing
