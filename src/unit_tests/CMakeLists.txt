@@ -67,7 +67,7 @@ enable_testing()
 set(TEST_LIST 
 	pdata_test
 	utils_test
-	bond_force_test
+	harmonic_bond_force_test
 	fenebond_force_test
 	lj_wall_compute_test
 	neighborlist_test

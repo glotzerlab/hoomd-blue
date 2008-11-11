@@ -65,7 +65,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-/*! \file bond_force_test.cc
+/*! \file harmonic_bond_force_test.cc
 	\brief Implements unit tests for BondForceCompute and child classes
 	\ingroup unit_tests
 */
