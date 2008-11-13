@@ -96,9 +96,6 @@ class BD_NVTUpdater : public NVEUpdater
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
 		
-		//! Returns a list of log quantities this compute calculates
-		virtual std::vector< std::string > getProvidedLogQuantities(); 
-		
 		//! Calculates the requested log value and returns it
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 		

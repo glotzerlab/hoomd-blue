@@ -89,55 +89,6 @@ NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 	allocateNPTData(128);
 	}
 
-/*! NPTUpdaterGPU provides
-        - \c npt_timestep
-	- \c npt_temperature
-	- \c npt_pressure
-	- \c npt_volume
-*/
-std::vector< std::string > NPTUpdaterGPU::getProvidedLogQuantities()
-	{
-	vector<string> list;
-	list.push_back("npt_timestep");
-	list.push_back("npt_temperature");
-	list.push_back("npt_pressure");
-	list.push_back("npt_volume");
-	list.push_back("npt_conserved");
-	return list;
-	}
-	
-Scalar NPTUpdaterGPU::getLogValue(const std::string& quantity, unsigned int timestep)
-	{
-	if (quantity == string("npt_timestep"))
-		{
-		  return timestep;
-		}
-	else if (quantity == string("npt_temperature"))
-		{
-		  return m_curr_T;
-		  //return computeTemperature();
-		}
-	else if (quantity == string("npt_pressure"))
-	        {
-		  return m_curr_P;
-	          //return computePressure();
-	        }
-	else if (quantity == string("npt_volume"))
-	        {
-		  return m_V;
-		}
-	else if (quantity == string("npt_conserved"))
-	        {
-		  return 0.0; // not implemented yet!
-		}
-	else
-		{
-		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for NPTUpdater" << endl;
-		throw runtime_error("Error getting log value");
-		}
-	}	
-
-
 NPTUpdaterGPU::~NPTUpdaterGPU()
 	{
 	freeNPTData();
@@ -271,8 +222,8 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 		// is calculated correctly
 		computeAccelerationsGPU(timestep, "NPT", true);
 		
-		m_curr_T = computeTemperature();  // Compute temperature for the first time step
-		m_curr_P = computePressure();     // Compute pressure for the first time step
+		m_curr_T = computeTemperature(timestep);  // Compute temperature for the first time step
+		m_curr_P = computePressure(timestep);     // Compute pressure for the first time step
 		}
 
 	if (m_prof) m_prof->push(exec_conf, "NPT");
@@ -331,9 +282,9 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	if (m_prof) m_prof->push(exec_conf, "NPT");
 
 	// compute temperature for the next half time step
-	m_curr_T = computeTemperature();
+	m_curr_T = computeTemperature(timestep+1);
 	// compute pressure for the next half time step
-	m_curr_P = computePressure();
+	m_curr_P = computePressure(timestep+1);
 	
 	if (m_prof) m_prof->push(exec_conf, "Half-step 2");
 	
@@ -362,11 +313,11 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T - 1.0f)*m_deltaT;
 	}
 
-/*! Calculates current temperature of the system
+/*! \param timestep Current time step of the simulation
+	Calculates current temperature of the system
     \returns current temperature of the system
  */
-
-float NPTUpdaterGPU::computeTemperature()
+Scalar NPTUpdaterGPU::computeTemperature(unsigned int timestep)
 	{
         // acquire the particle data on the GPU
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
@@ -399,11 +350,11 @@ float NPTUpdaterGPU::computeTemperature()
 	return Ksum_total / g;
 	}
 
-/*! Calculates current pressure of the system
+/*! \param timestep Current time step of the simulation
+	Calculates current pressure of the system
     \returns current pressure of the system
  */
-
-float NPTUpdaterGPU::computePressure()
+Scalar NPTUpdaterGPU::computePressure(unsigned int timestep)
 	{
 	if (m_prof) m_prof->push("Compute Press");
 	

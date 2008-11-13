@@ -137,65 +137,18 @@ void BD_NVTUpdater::removeForceComputes()
 	m_bath = false;
 	Integrator::removeForceComputes();
 	}
-
-	
-/*! BD_NVTUpdater provides
-	- \c nvt_kinetic_energy
-	- \c temperature
-*/
-std::vector< std::string > BD_NVTUpdater::getProvidedLogQuantities()
-	{
-	vector<string> list;
-	list.push_back("nvt_kinetic_energy");
-	list.push_back("temperature");
-	return list;
-	}
 	
 Scalar BD_NVTUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("nvt_kinetic_energy"))
+	if (quantity == "conserved_quantity")
 		{
-		const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-		
-		// always perform the sum in double precision for better accuracy
-		// this is cheating and is really just a temporary hack to get logging up and running
-		// the potential accuracy loss in simulations needs to be evaluated here and a proper
-		// summation algorithm put in place
-		double ke_total = 0.0;
-		for (unsigned int i=0; i < m_pdata->getN(); i++)
-			{
-			ke_total += 0.5 * ((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
-			}
-	
-		m_pdata->release();	
-		return Scalar(ke_total);
+		cout << "***Warning! conserved_quantity cannot be defined for bdnvt" << endl;
+		return Scalar(0.0);
 		}
-		
-	else if (quantity == string("temperature"))
-		{
-		const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-		
-		// always perform the sum in double precision for better accuracy
-		// this is cheating and is really just a temporary hack to get logging up and running
-		// the potential accuracy loss in simulations needs to be evaluated here and a proper
-		// summation algorithm put in place
-		
-		//Also note that KE does not currently take into account mass.  Fix this eventually
-		double ke_total = 0.0;
-		int nparticles = m_pdata->getN();
-		for (unsigned int i=0; i < m_pdata->getN(); i++)
-			{
-			ke_total += 0.5 * ((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
-			}
-	
-		m_pdata->release();	
-		return Scalar(2.0/3.0)*Scalar(ke_total)/nparticles;
-		}
-				
 	else
 		{
-		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for BD_NVTUpdater" << endl;
-		throw runtime_error("Error getting log value");
+		// pass it on up to the base class
+		return Integrator::getLogValue(quantity, timestep);
 		}
 	}	
 

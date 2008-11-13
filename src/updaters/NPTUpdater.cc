@@ -84,50 +84,31 @@ NPTUpdater::NPTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Sca
 	m_Lz = box.zhi - box.zlo;
 
 	m_V = m_Lx*m_Ly*m_Lz;   // volume
-	}
-
-/*! NPTUpdater provides
-	- \c npt_temperature
-	- \c npt_pressure
-	- \c npt_volume
-*/
-std::vector< std::string > NPTUpdater::getProvidedLogQuantities()
-	{
-	vector<string> list;
-	list.push_back("npt_timestep");
-	list.push_back("npt_temperature");
-	list.push_back("npt_pressure");
-	list.push_back("npt_volume");
-	list.push_back("npt_conserved");
-	return list;
+	
+	// compute the current pressure and temperature on construction
+	m_curr_T = computeTemperature(0);
+	m_curr_P = computePressure(0);
 	}
 	
 Scalar NPTUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("npt_timestep"))
+	if (quantity == string("temperature"))
 		{
-		  return timestep;
+		return m_curr_T;
 		}
-	else if (quantity == string("npt_temperature"))
+	else if (quantity == string("pressure"))
 		{
-		  return computeTemperature();
+		return m_curr_P;
 		}
-	else if (quantity == string("npt_pressure"))
-	        {
-	          return computePressure();
-	        }
-	else if (quantity == string("npt_volume"))
-	        {
-		  return m_V;
-		}
-	else if (quantity == string("npt_conserved"))
-	        {
-		  return 0.0; // not implemented yet!
+	else if (quantity == string("conserved_quantity"))
+		{
+		cout << "**Warning! conserved_quantity not implemented in NPT integration yet" << endl;
+		return 0.0; // not implemented yet!		
 		}
 	else
 		{
-		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for NPTUpdater" << endl;
-		throw runtime_error("Error getting log value");
+		// pass it on up to the base class
+		return Integrator::getLogValue(quantity, timestep);
 		}
 	}	
 
@@ -151,8 +132,8 @@ void NPTUpdater::update(unsigned int timestep)
 		{
 		m_accel_set = true;
 		computeAccelerations(timestep, "NPT");
-		m_curr_T = computeTemperature();  // Compute temperature and pressure for the first time step
-		m_curr_P = computePressure();
+		m_curr_T = computeTemperature(timestep);  // Compute temperature and pressure for the first time step
+		m_curr_P = computePressure(timestep);
 		}
 
 	if (m_prof)
@@ -252,9 +233,9 @@ void NPTUpdater::update(unsigned int timestep)
 	// for the next half of the step, we need the accelerations at t+deltaT
 	computeAccelerations(timestep+1, "NPT");
 	// compute temperature for the next hlf time step
-	m_curr_T = computeTemperature();
+	m_curr_T = computeTemperature(timestep+1);
 	// compute pressure for the next half time step
-	m_curr_P = computePressure();
+	m_curr_P = computePressure(timestep+1);
 	
 	
 	if (m_prof)
@@ -306,7 +287,7 @@ void NPTUpdater::update(unsigned int timestep)
 
 // These two are public method so that test code can have direct access to the current pressure and temeprature
 
-Scalar NPTUpdater::computePressure()
+Scalar NPTUpdater::computePressure(unsigned int timestep)
 	{
 	if (m_prof)
 		m_prof->push("Pressure");
@@ -344,7 +325,7 @@ Scalar NPTUpdater::computePressure()
 
 	}
 
-Scalar NPTUpdater::computeTemperature()
+Scalar NPTUpdater::computeTemperature(unsigned int timestep)
         {
         if (m_prof)
 		m_prof->push("Temperature");

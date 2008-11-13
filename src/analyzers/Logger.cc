@@ -173,7 +173,7 @@ void Logger::setDelimiter(const std::string& delimiter)
 void Logger::analyze(unsigned int timestep)
 	{
 	// The timestep is always output
-	m_file << timestep;
+	m_file << setprecision(10) << timestep;
 	
 	// quit now if there is nothing to log
 	if (m_logged_quantities.size() == 0)
@@ -186,7 +186,7 @@ void Logger::analyze(unsigned int timestep)
 	
 	// write all but the last of the quantities separated by the delimiter
 	for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
-		m_file << getValue(m_logged_quantities[i], timestep) << m_delimiter;
+		m_file << setprecision(10) << getValue(m_logged_quantities[i], timestep) << m_delimiter;
 	// write the last one with no delimiter after it
 	m_file << setprecision(10) << getValue(m_logged_quantities[m_logged_quantities.size()-1], timestep) << endl;
 	m_file.flush();

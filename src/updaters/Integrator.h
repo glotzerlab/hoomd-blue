@@ -109,6 +109,24 @@ class Integrator : public Updater
 		
 		//! Change the timestep
 		virtual void setDeltaT(Scalar deltaT);
+
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities();
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+		
+		//! helper function to compute temperature
+		virtual Scalar computeTemperature(unsigned int timestep);
+		
+		//! helper function to compute pressure
+		virtual Scalar computePressure(unsigned int timestep);
+		
+		//! helper function to compute kinetic energy
+		virtual Scalar computeKineticEnergy(unsigned int timestep);
+		
+		//! helper function to compute potential energy
+		virtual Scalar computePotentialEnergy(unsigned int timestep);
 		
 	protected:
 		Scalar m_deltaT;	//!< The time step

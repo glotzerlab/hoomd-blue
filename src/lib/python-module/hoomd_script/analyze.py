@@ -229,20 +229,24 @@ class imd(_analyzer):
 # output file every \a period time steps. The resulting file is suitable for direct import
 # into a spreadsheet, MATLAB, or other software that can handle simple delimited files.
 #
-# Quantities that can be logged currently:
+#
+# Quantities that can be logged at any time:
+# - \b num_particles - Number of particles in the system
+# - \b volume - Volume of the simulation box
+# - \b temperature - Temperature of the system
+# - \b pressure - Pressure of the system
+# - \b kinetic_energy - Total kinetic energy of the system
+# - \b potential_energy - Total potential energy of the system
+# - \b conserved_quantity - Conserved quantity for the current integrator (the actual definition of this value
+# depends on which integrator is being used in the current run()
+#
+# The following quantities are only available of certain forces have been specified (as noted in the 
+# parantheses)
 # - \b lj_energy (pair.lj) - Total Lennard-Jones potential energy
 # - \b fene_energy (bond.fene) - Total fene bond potential energy
 # - \b harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
-# - \b nve_kinetic_energy (integrate.nve) - Kinetic energy calculated by the NVE integrator
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
 #
-# \note The command in parentheses in the list obove indicates the command that must be specified
-# in order for the named log quantity to be valid. For instance, if you try to log \b lj_energy
-# without specifying pair.lj, a warning will be printed and the value 0 will be logged.
-#
-# \note The quantities to be logged are currently under active development in HOOMD. 
-# Expect the current quantities to be renamed in the next release of HOOMD, along with
-# numerous additional quantities to be available for logging.
 class log(_analyzer):
 	## Initialize the log
 	#

@@ -163,6 +163,90 @@ void Integrator::setDeltaT(Scalar deltaT)
 		cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
 	m_deltaT = deltaT;
 	}
+	
+/*! The base class Integrator provides all of the common logged quantities. This is the most convenient and
+	sensible place to put it because most of the common quantities are computed by the various integrators.
+	That, and there must be an integrator in any sensible simulation.
+	
+	\b ALL common quantities that are logged are specified in this getProvidedLogQuantities(). They are computed
+	explicitly when requested by getLogValue(). Derived integrators may compute quantities like temperature or
+	pressure for their own purposes. They are free (and encouraged) to provide an overridden call that returns
+	the already computed value in that case. 
+	
+	Derived integrators may also want to add additional quantities. They can do this in 
+	getProvidedLogQuantities() by calling Integrator::getProvidedLogQuantities() and adding their own custom
+	provided quantities before returning.
+	
+	Integrator provides:
+		- num_particles
+		- volume
+		- temperature
+		- pressure
+		- kinetic_energy
+		- potential_energy
+		- conserved_quantity
+			 
+	See Logger for more information on what this is about.
+*/
+std::vector< std::string > Integrator::getProvidedLogQuantities()
+	{
+	vector<string> result;
+	result.push_back("num_particles");
+	result.push_back("volume");
+	result.push_back("temperature");
+	result.push_back("pressure");
+	result.push_back("kinetic_energy");
+	result.push_back("potential_energy");
+	result.push_back("conserved_quantity");
+	return result;
+	}
+	
+/*! \param quantity Name of the log quantity to get
+	\param timestep Current time step of the simulation
+	
+	The Integrator base class will provide a number of quantities (see getProvidedLogQuantities()). Derived
+	classes that calculate any of these on their own can (and should) return their calculated values. To do so
+	an overridden getLogValue() should have the following logic:
+	\code
+	if (quantitiy == "my_calculated_quantitiy1")
+		return my_calculated_quantity1;
+	else if (quantitiy == "my_calculated_quantitiy2")
+		return my_calculated_quantity2;
+	else return Integrator::getLogValue(quantity, timestep);
+	\endcode
+	In this way the "overriden" quantity is handled by the derived class and any other quantities are passed up
+	to the base class to be handled there.
+
+	See Logger for more information on what this is about.
+*/
+Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timestep)
+	{
+	if (quantity == "num_particles")
+		return Scalar(m_pdata->getN());
+	else if (quantity == "volume")
+		{
+		BoxDim box = m_pdata->getBox();
+		return (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+		}
+	else if (quantity == "temperature")
+		return computeTemperature(timestep);
+	else if (quantity == "pressure")
+		return computePressure(timestep);
+	else if (quantity == "kinetic_energy")
+		return computeKineticEnergy(timestep);
+	else if (quantity == "potential_energy")
+		return computePotentialEnergy(timestep);
+	else if (quantity == "conserved_quantity")
+		{
+		cout << "***Warning! conserved_quantity requested from Integrator, returning 0.0" << endl;
+		return Scalar(0.0);
+		}
+	else
+		{
+		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for Integrator" << endl;
+		throw runtime_error("Error getting log value");
+		}
+	}
 
 /*! \param timestep Current timestep
 	\param profiler_name Name of the profiler element to continue timing under
@@ -216,8 +300,86 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 		m_prof->pop(6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*3*m_pdata->getN()*(1+2*m_forces.size()));
 		m_prof->pop();
 		}
-	}	
+	}
+	
+/*! \param timestep Current time step of the simulation
+	
+	computeTemperature() accesses the particle data on the CPU, loops through it and calculates the temperature
+*/
+Scalar Integrator::computeTemperature(unsigned int timestep)
+	{
+	Scalar g = Scalar(3*m_pdata->getN());
+	return 2.0 * computeKineticEnergy(timestep) / g;
+	}
+		
+/*! \param timestep Current time step of the simulation
 
+	computePressure() accesses the virial data of all attached force computes and calculates the pressure on the CPU
+*/
+Scalar Integrator::computePressure(unsigned int timestep)
+	{
+	// Number of particles
+	unsigned int N = m_pdata->getN();
+	
+	// total up virials
+	Scalar W = 0.0;
+
+	// Aquire forces in order to get virials
+	for (unsigned int i = 0; i < m_forces.size(); i++)
+		{
+		m_forces[i]->compute(timestep);
+		ForceDataArrays force_arrays = m_forces[i]->acquire();
+
+		for (unsigned int j = 0; j < N; j++)
+			W += force_arrays.virial[j];
+		}
+	
+	// volume
+	BoxDim box = m_pdata->getBox();
+	Scalar volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+		
+	// pressure: P = (N * K_B * T + W)/V
+	return (N * computeTemperature(timestep) + W) / volume;	
+	}
+
+/*! \param timestep Current time step of the simulation
+	
+	computeKineticEnergy()  accesses the particle data on the CPU, loops through it and calculates the kinetic energy
+*/
+Scalar Integrator::computeKineticEnergy(unsigned int timestep)
+	{
+	// grab access to the particle data
+	const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+	
+	// sum up the kinetic energy 
+	double ke_total = 0.0;
+	for (unsigned int i=0; i < m_pdata->getN(); i++)
+		{
+		ke_total += 0.5 * ((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
+		}
+	
+	// done!
+	m_pdata->release();	
+	return Scalar(ke_total);
+	}
+		
+/*! \param timestep Current time step of the simulation
+	
+	computePotentialEnergy()  accesses the virial data of all attached force computes and calculates the 
+	total on the CPU
+*/
+Scalar Integrator::computePotentialEnergy(unsigned int timestep)
+	{
+	// total up the potential energy from the various force computes
+	double pe_total = 0.0;
+	for (unsigned int i=0; i < m_forces.size(); i++)
+		{
+		m_forces[i]->compute(timestep);
+		pe_total += m_forces[i]->calcEnergySum();
+		}
+	return pe_total;
+	}
+	
 #ifdef USE_CUDA
 
 /*! \param timestep Current timestep

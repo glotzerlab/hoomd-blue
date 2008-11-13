@@ -86,15 +86,15 @@ class NPTUpdater : public Integrator
 		/*! \param tauP New pressure constant to set
 		*/		
 		virtual void setTauP(Scalar tauP) { m_tauP = tauP; }
-
-		//! Returns a list of log quantities this compute calculates
-		virtual std::vector< std::string > getProvidedLogQuantities(); 
 		
 		//! Calculates the requested log value and returns it
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-		Scalar computePressure(); //!< Computes current pressure
-		Scalar computeTemperature(); //!< Computes current temperature
+		//! Computes current pressure
+		virtual Scalar computePressure(unsigned int timestep);
+		
+		//! Computes current temperature
+		virtual Scalar computeTemperature(unsigned int timestep);
 
 	protected:
 		Scalar m_tau;		//!< tau value for Nose-Hoover
@@ -109,7 +109,8 @@ class NPTUpdater : public Integrator
 		Scalar m_V;             //!< Current volume
 		Scalar m_Lx;            //!< Box length in x direction
 		Scalar m_Ly;            //!< Box length in y direction
-		Scalar m_Lz;            //!< Box length in z direction		
+		Scalar m_Lz;            //!< Box length in z direction
+		
 	};
 	
 //! Exports the NPTUpdater class to python

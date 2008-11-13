@@ -135,8 +135,8 @@ void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_con
 	Scalar avrP = 0.0;
 	for (int i = 10001; i < 50000; i++)
 	       {
-                 avrT += npt->computeTemperature();
-		 avrP += npt->computePressure();
+                 avrT += npt->computeTemperature(i);
+		 avrP += npt->computePressure(i);
 		 npt->update(i);
 	       }
 
@@ -199,10 +199,10 @@ void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_crea
 	Scalar avrP2 = 0.0;
 	for (int i = 10001; i < 50000; i++)
 	       {
-                 avrT1 += npt1->computeTemperature();
-                 avrT2 += npt2->computeTemperature();
-		 avrP1 += npt1->computePressure();
-		 avrP2 += npt2->computePressure();
+                 avrT1 += npt1->computeTemperature(i);
+                 avrT2 += npt2->computeTemperature(i);
+		 avrP1 += npt1->computePressure(i);
+		 avrP2 += npt2->computePressure(i);
 		 npt1->update(i);
 		 npt2->update(i);
 	       }

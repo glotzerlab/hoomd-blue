@@ -69,15 +69,12 @@ class NPTUpdaterGPU : public NPTUpdater
 				
 		//! overides removeForceCompute to remove all virial computes
 		virtual void removeForceComputes();
-
-		//! Returns a list of log quantities this compute calculates
-		virtual std::vector< std::string > getProvidedLogQuantities(); 
+	
+		//! Computes current pressure
+		virtual Scalar computePressure(unsigned int timestep);
 		
-		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-		
-		float computePressure(); //!< Computes current pressure
-		float computeTemperature(); //!< Computes current temperature
+		//! Computes current temperature
+		virtual Scalar computeTemperature(unsigned int timestep);
 
 	private:
 		std::vector<gpu_npt_data> d_npt_data;	//!< Temp data on the device needed to implement NPT
