@@ -39,6 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
+#define _USE_MATH_DEFINES
 #endif
 
 #include <iostream>
@@ -61,6 +62,8 @@ using namespace boost;
 
 
 #ifdef USE_FFTW
+
+
 
 #include "FftwWrapper.h"
 
