@@ -75,7 +75,7 @@ class HarmonicBondForceCompute : public ForceCompute
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
 		
 		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity);
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
 	protected:
 		Scalar *m_K;	//!< K parameter for multiple bond tyes

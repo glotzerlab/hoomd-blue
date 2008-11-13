@@ -91,7 +91,7 @@ class NPTUpdater : public Integrator
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
 		
 		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity);
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
 		Scalar computePressure(); //!< Computes current pressure
 		Scalar computeTemperature(); //!< Computes current temperature
@@ -109,9 +109,7 @@ class NPTUpdater : public Integrator
 		Scalar m_V;             //!< Current volume
 		Scalar m_Lx;            //!< Box length in x direction
 		Scalar m_Ly;            //!< Box length in y direction
-		Scalar m_Lz;            //!< Box length in z direction
-		Scalar m_timestep;      //!< Current timestep needed for logging, will go away in later implementations
-		
+		Scalar m_Lz;            //!< Box length in z direction		
 	};
 	
 //! Exports the NPTUpdater class to python

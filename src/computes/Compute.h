@@ -119,6 +119,7 @@ class Compute : boost::noncopyable
 		
 		//! Calculates the requested log value and returns it
 		/*! \param quantity Name of the log quantity to get
+			\param timestep Current time step of the simulation
 			
 			The base class just returns 0. Derived classes should override this behavior and return
 			the calculated value for the given quantity. Only quantities listed in
@@ -127,7 +128,7 @@ class Compute : boost::noncopyable
 
 			See Logger for more information on what this is about.
 		*/
-		virtual Scalar getLogValue(const std::string& quantity) { return Scalar(0.0); }
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) { return Scalar(0.0); }
 		
 	protected:
 		const boost::shared_ptr<ParticleData> m_pdata;		//!< The particle data this compute is associated with

@@ -127,8 +127,9 @@ std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
 	}
 
 /*! \param quantity Name of the quantity to get the log value of
+	\param timestep Current time step of the simulation
 */
-Scalar HarmonicBondForceCompute::getLogValue(const std::string& quantity)
+Scalar HarmonicBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("harmonic_energy"))
 		{

@@ -93,7 +93,7 @@ std::vector< std::string > NVEUpdater::getProvidedLogQuantities()
 	return list;
 	}
 	
-Scalar NVEUpdater::getLogValue(const std::string& quantity)
+Scalar NVEUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("nve_kinetic_energy"))
 		{

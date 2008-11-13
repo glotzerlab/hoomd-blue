@@ -142,7 +142,7 @@ std::vector< std::string > LJForceCompute::getProvidedLogQuantities()
 	return list;
 	}
 	
-Scalar LJForceCompute::getLogValue(const std::string& quantity)
+Scalar LJForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("lj_energy"))
 		{

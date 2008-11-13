@@ -102,11 +102,11 @@ std::vector< std::string > NPTUpdater::getProvidedLogQuantities()
 	return list;
 	}
 	
-Scalar NPTUpdater::getLogValue(const std::string& quantity)
+Scalar NPTUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("npt_timestep"))
 		{
-		  return m_timestep;
+		  return timestep;
 		}
 	else if (quantity == string("npt_temperature"))
 		{
@@ -137,7 +137,6 @@ Scalar NPTUpdater::getLogValue(const std::string& quantity)
 void NPTUpdater::update(unsigned int timestep)
 	{
 	assert(m_pdata);
-	m_timestep = Scalar(timestep);
 	Scalar N = Scalar(m_pdata->getN());
 	static bool gave_warning = false;
 

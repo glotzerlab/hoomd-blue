@@ -81,7 +81,7 @@ class LJForceCompute : public ForceCompute
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
 		
 		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity);
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 		
 	protected:
 		boost::shared_ptr<NeighborList> m_nlist;	//!< The neighborlist to use for the computation

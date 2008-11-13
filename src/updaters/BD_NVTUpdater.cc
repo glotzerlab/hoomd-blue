@@ -151,7 +151,7 @@ std::vector< std::string > BD_NVTUpdater::getProvidedLogQuantities()
 	return list;
 	}
 	
-Scalar BD_NVTUpdater::getLogValue(const std::string& quantity)
+Scalar BD_NVTUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("nvt_kinetic_energy"))
 		{

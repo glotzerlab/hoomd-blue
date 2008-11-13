@@ -100,7 +100,7 @@ class BD_NVTUpdater : public NVEUpdater
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
 		
 		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity);
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 		
 	protected:
 		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet

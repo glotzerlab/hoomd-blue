@@ -106,11 +106,11 @@ std::vector< std::string > NPTUpdaterGPU::getProvidedLogQuantities()
 	return list;
 	}
 	
-Scalar NPTUpdaterGPU::getLogValue(const std::string& quantity)
+Scalar NPTUpdaterGPU::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("npt_timestep"))
 		{
-		  return m_timestep;
+		  return timestep;
 		}
 	else if (quantity == string("npt_temperature"))
 		{
@@ -261,8 +261,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
 	int N = m_pdata->getN();
-	m_timestep = timestep;
-	
+		
 	// if we haven't been called before, then the accelerations
 	// have not been set and we need to calculate them
 	if (!m_accel_set)

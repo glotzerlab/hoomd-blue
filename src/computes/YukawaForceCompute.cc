@@ -136,7 +136,7 @@ std::vector< std::string > YukawaForceCompute::getProvidedLogQuantities()
 	return list;
 	}
 	
-Scalar YukawaForceCompute::getLogValue(const std::string& quantity)
+Scalar YukawaForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("yukawa_energy"))
 		{

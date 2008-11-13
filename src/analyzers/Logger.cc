@@ -134,13 +134,20 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 	{
 	m_logged_quantities = quantities;
 	
+	// write out the header prefix
+	m_file << m_header_prefix;
+	
+	// timestep is always output
+	m_file << "timestep";
+	
 	if (quantities.size() == 0)
 		{
 		cout << "***Warning! No quantities specified for logging" << endl;
 		return;
 		}
-	// write out the header prefix
-	m_file << m_header_prefix;
+	
+	// only print the delimiter after the timestep if there are more quantities logged
+	m_file << m_delimiter;
 	
 	// write all but the last of the quantities separated by the delimiter
 	for (unsigned int i = 0; i < quantities.size()-1; i++)
@@ -165,11 +172,17 @@ void Logger::setDelimiter(const std::string& delimiter)
 */
 void Logger::analyze(unsigned int timestep)
 	{
+	// The timestep is always output
+	m_file << timestep;
+	
 	// quit now if there is nothing to log
 	if (m_logged_quantities.size() == 0)
 		{
 		return;
 		}
+		
+	// only print the delimiter after the timestep if there are more quantities logged
+	m_file << m_delimiter;
 	
 	// write all but the last of the quantities separated by the delimiter
 	for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
@@ -190,12 +203,12 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 		// update the compute
 		m_compute_quantities[quantity]->compute(timestep);
 		// get the log value
-		return m_compute_quantities[quantity]->getLogValue(quantity);
+		return m_compute_quantities[quantity]->getLogValue(quantity, timestep);
 		}
 	else if (m_updater_quantities.count(quantity))
 		{
 		// get the log value
-		return m_updater_quantities[quantity]->getLogValue(quantity);
+		return m_updater_quantities[quantity]->getLogValue(quantity, timestep);
 		}
 	else
 		{

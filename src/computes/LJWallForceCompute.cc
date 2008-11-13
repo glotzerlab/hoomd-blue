@@ -126,8 +126,8 @@ std::vector< std::string > LJWallForceCompute::getProvidedLogQuantities()
 	list.push_back("wall_lj_energy");
 	return list;
 	}
-	
-Scalar LJWallForceCompute::getLogValue(const std::string& quantity)
+
+Scalar LJWallForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("wall_lj_energy"))
 		{

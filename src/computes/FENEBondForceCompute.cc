@@ -148,13 +148,13 @@ std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 	}
 
 /*! \param quantity Name of the quantity to get the log value of
+	\param timestep Current time step of the simulation
 */	
-Scalar FENEBondForceCompute::getLogValue(const std::string& quantity)
+Scalar FENEBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("fene_energy"))
 		{
-		//cheating until I learn how to deal with how to count number of each type of bond
-		return calcEnergySum(); // + m_lj3[0]*m_bond_data->getNumBonds();
+		return calcEnergySum();
 		}
 	else
 		{

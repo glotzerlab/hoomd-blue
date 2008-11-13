@@ -74,7 +74,7 @@ class NPTUpdaterGPU : public NPTUpdater
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
 		
 		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity);
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 		
 		float computePressure(); //!< Computes current pressure
 		float computeTemperature(); //!< Computes current temperature
