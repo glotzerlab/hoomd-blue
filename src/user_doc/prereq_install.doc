@@ -369,8 +369,9 @@ C++ Express 2005</b> from here: http://www.microsoft.com/express/2005/ . (note, 
 around you will find that there is a newer express verion, 2008, but it is not currently
 supported by NVIDIA CUDA, has problems with the current version of boost and thus should not be used).
 
-After installing Visual C++ Express, you \b must install Service Pack 1 for it. This can be done
-using Windows Update or by accessing Help->Update from within Visual Studio.
+After installing Visual C++ Express, you <b>absolutely, positively, most certainly MUST</b>
+install Service Pack 1 for it. This can be done using Windows Update or by accessing Help->Update 
+from within Visual Studio.
 
 If you install the express edition, you must also follow the link from 
 http://www.microsoft.com/express/2005/ to download the <b>Windows Platform SDK</b>
