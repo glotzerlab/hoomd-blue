@@ -132,14 +132,15 @@ void YukawaForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar 
 std::vector< std::string > YukawaForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("yukawa_energy");
+	list.push_back("pair_yukawa_energy");
 	return list;
 	}
 	
 Scalar YukawaForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("yukawa_energy"))
+	if (quantity == string("pair_yukawa_energy"))
 		{
+		compute(timestep);
 		return calcEnergySum();
 		}
 	else

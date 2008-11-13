@@ -137,20 +137,6 @@ void BD_NVTUpdater::removeForceComputes()
 	m_bath = false;
 	Integrator::removeForceComputes();
 	}
-	
-Scalar BD_NVTUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
-	{
-	if (quantity == "conserved_quantity")
-		{
-		cout << "***Warning! conserved_quantity cannot be defined for bdnvt" << endl;
-		return Scalar(0.0);
-		}
-	else
-		{
-		// pass it on up to the base class
-		return Integrator::getLogValue(quantity, timestep);
-		}
-	}	
 
 /*! Uses velocity verlet
 	\param timestep Current time step of the simulation

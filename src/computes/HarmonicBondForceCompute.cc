@@ -122,7 +122,7 @@ void HarmonicBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0
 std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("harmonic_energy");
+	list.push_back("bond_harmonic_energy");
 	return list;
 	}
 
@@ -131,8 +131,9 @@ std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
 */
 Scalar HarmonicBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("harmonic_energy"))
+	if (quantity == string("bond_harmonic_energy"))
 		{
+		compute(timestep);
 		return calcEnergySum();
 		}
 	else

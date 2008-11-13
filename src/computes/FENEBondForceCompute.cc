@@ -143,7 +143,7 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
 std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("fene_energy");
+	list.push_back("bond_fene_energy");
 	return list;
 	}
 
@@ -152,8 +152,9 @@ std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 */	
 Scalar FENEBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("fene_energy"))
+	if (quantity == string("bond_fene_energy"))
 		{
+		compute(timestep);
 		return calcEnergySum();
 		}
 	else

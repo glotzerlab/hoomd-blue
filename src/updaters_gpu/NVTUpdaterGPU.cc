@@ -182,9 +182,15 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	if (m_prof) m_prof->pop(exec_conf);
 	if (m_prof) m_prof->push(exec_conf, "Half-step 2");
 	
+	// need previous xi to update eta
+	Scalar xi_prev = m_Xi;	
+	
 	// update Xi
-	float T_current = Ksum_total / (3.0f * float(m_pdata->getN()));
-	m_Xi += m_deltaT / (m_tau*m_tau) * (T_current / m_T - 1.0f);
+	m_curr_T = Ksum_total / (3.0f * float(m_pdata->getN()));
+	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T / m_T - 1.0f);
+
+	// update eta
+	m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
 	
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();

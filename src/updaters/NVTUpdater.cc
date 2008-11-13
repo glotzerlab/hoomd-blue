@@ -68,7 +68,62 @@ NVTUpdater::NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Sca
 	if (m_T <= 0.0)
 		cout << "***Warning! T set less than 0.0 in NVTUpdater" << endl;
 	m_Xi = 1.0;
+	m_eta = 1.0;
+	m_curr_T = computeTemperature(0);
 	}
+	
+/*! In addition to what Integrator provides, NVTUpdater adds:
+		- nvt_xi
+		- nvt_eta
+	
+	See Logger for more information on what this is about.
+*/
+std::vector< std::string > NVTUpdater::getProvidedLogQuantities()
+	{
+	vector<string> result = Integrator::getProvidedLogQuantities();
+	result.push_back("nvt_xi");
+	result.push_back("nvt_eta");
+	return result;
+	}
+	
+/*! \param quantity Name of the quantity to log
+	\param timestep Current time step of the simulation
+
+	NVTUpdater calculates the conserved quantity as the sum of the kinetic and potential energies with the additional
+	ficticious energy term. The temperature quantity returns the already computed temperature of the system.
+	
+	Working out the math on paper starting from eq. 11 in "The Nose-Poincare Method for Constant Temperature 
+	Molecular Dynamics" yields the conserved quantity:
+	\f[ E_{\mathrm{ext}} = E + gkT \left( \frac{\xi^2\tau^2}{2} + \eta \right) \f]
+	
+	All other quantity requests are passed up to Integrator::getLogValue().
+*/
+Scalar NVTUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
+	{
+	if (quantity == string("conserved_quantity"))
+		{
+		Scalar g = Scalar(3*m_pdata->getN());
+		return computeKineticEnergy(timestep) + computePotentialEnergy(timestep) + 
+			g * m_curr_T * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
+		}
+	else if (quantity == string("temperature"))
+		{
+		return m_curr_T;
+		}
+	else if (quantity == string("nvt_xi"))
+		{
+		return m_Xi;
+		}
+	else if (quantity == string("nvt_eta"))
+		{
+		return m_eta;
+		}
+	else
+		{
+		// pass it on up to the base class
+		return Integrator::getLogValue(quantity, timestep);
+		}
+	}	
 
 /*! \param timestep Current time step of the simulation
 */
@@ -123,11 +178,17 @@ void NVTUpdater::update(unsigned int timestep)
 		Ksum += arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j];
 		}
 	
+	// need previous xi to update eta
+	Scalar xi_prev = m_Xi;
+	
 	// update Xi
 	Scalar g = Scalar(3*m_pdata->getN());
-	Scalar T_current = Ksum / g;
-	m_Xi += m_deltaT / (m_tau*m_tau) * (T_current/m_T - Scalar(1.0));
-		
+	m_curr_T = Ksum / g;
+	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T - Scalar(1.0));
+	
+	// update eta
+	m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
+	
 	// We aren't done yet! Need to fix the periodic boundary conditions
 	// this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
 	// get a local copy of the simulation box too

@@ -138,14 +138,15 @@ void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1,
 std::vector< std::string > LJForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("lj_energy");
+	list.push_back("pair_lj_energy");
 	return list;
 	}
 	
 Scalar LJForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("lj_energy"))
+	if (quantity == string("pair_lj_energy"))
 		{
+		compute(timestep);
 		return calcEnergySum();
 		}
 	else

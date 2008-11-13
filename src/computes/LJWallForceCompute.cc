@@ -131,6 +131,7 @@ Scalar LJWallForceCompute::getLogValue(const std::string& quantity, unsigned int
 	{
 	if (quantity == string("wall_lj_energy"))
 		{
+		compute(timestep);
 		return calcEnergySum();
 		}
 	else

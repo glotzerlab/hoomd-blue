@@ -78,11 +78,18 @@ class NVTUpdater : public Integrator
 		*/		
 		virtual void setTau(Scalar tau) { m_tau = tau; }
 		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities();
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);		
 	protected:
 		Scalar m_tau;		//!< tau value for Nose-Hoover
 		Scalar m_T;			//!< Temperature set point
 		Scalar m_Xi;		//!< Friction coeff
+		Scalar m_eta;		//!< Added degree of freedom
 		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
+		Scalar m_curr_T;	//!< Current calculated temperature of the system
 	};
 	
 //! Exports the NVTUpdater class to python

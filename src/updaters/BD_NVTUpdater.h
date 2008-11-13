@@ -96,9 +96,6 @@ class BD_NVTUpdater : public NVEUpdater
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
 		
-		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-		
 	protected:
 		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
 		bool m_limit;		//!< True if we should limit the distance a particle moves in one step

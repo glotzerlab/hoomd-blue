@@ -82,7 +82,13 @@ void NVEUpdater::removeLimit()
 	{
 	m_limit = false;
 	}
-	
+
+/*! \param quantity Name of the quantity to log
+	\param timestep Current time step of the simulation
+
+	NVEUpdater calculates the conserved quantity as the sum of the kinetic and potential energies.
+	All other quantity requests are passed up to Integrator::getLogValue().
+*/
 Scalar NVEUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("conserved_quantity"))

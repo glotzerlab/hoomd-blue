@@ -238,7 +238,8 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 		return computePotentialEnergy(timestep);
 	else if (quantity == "conserved_quantity")
 		{
-		cout << "***Warning! conserved_quantity requested from Integrator, returning 0.0" << endl;
+		cout << "***Warning! The integrator you are using doesn't report conserved_quantitiy, logging a value of 0.0"
+			<< endl;
 		return Scalar(0.0);
 		}
 	else

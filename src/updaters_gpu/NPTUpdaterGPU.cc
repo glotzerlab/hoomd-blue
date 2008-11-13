@@ -89,7 +89,7 @@ NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 	allocateNPTData(128);
 	}
 
-NPTUpdaterGPU::~NPTUpdaterGPU()
+NPTUpdaterGPU::~NPTUpdaterGPU()	
 	{
 	freeNPTData();
 	}

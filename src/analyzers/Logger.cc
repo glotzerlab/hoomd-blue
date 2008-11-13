@@ -172,6 +172,8 @@ void Logger::setDelimiter(const std::string& delimiter)
 */
 void Logger::analyze(unsigned int timestep)
 	{
+	if (m_prof) m_prof->push("Log");
+	
 	// The timestep is always output
 	m_file << setprecision(10) << timestep;
 	
@@ -190,6 +192,8 @@ void Logger::analyze(unsigned int timestep)
 	// write the last one with no delimiter after it
 	m_file << setprecision(10) << getValue(m_logged_quantities[m_logged_quantities.size()-1], timestep) << endl;
 	m_file.flush();
+	
+	if (m_prof) m_prof->pop();
 	}
 		
 /*! \param quantity Quantity to get
@@ -197,14 +201,20 @@ void Logger::analyze(unsigned int timestep)
 */
 Scalar Logger::getValue(const std::string &quantity, int timestep)
 	{
+	// first see if it is the built-in time quantity
+	if (quantity == "time")
+		{
+		return Scalar(double(m_clk.getTime())/1e9);
+		}
 	// check to see if the quantity exists in the compute list
-	if (m_compute_quantities.count(quantity))
+	else if (m_compute_quantities.count(quantity))
 		{
 		// update the compute
 		m_compute_quantities[quantity]->compute(timestep);
 		// get the log value
 		return m_compute_quantities[quantity]->getLogValue(quantity, timestep);
 		}
+	// check to see if the quantity exists in the updaters list
 	else if (m_updater_quantities.count(quantity))
 		{
 		// get the log value

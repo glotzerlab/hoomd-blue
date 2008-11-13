@@ -50,6 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 
+#include "ClockSource.h"
 #include "Analyzer.h"
 #include "Compute.h"
 #include "Updater.h"
@@ -112,6 +113,8 @@ class Logger : public Analyzer
 		std::map< std::string, boost::shared_ptr<Updater> > m_updater_quantities;
 		//! List of quantities to log
 		std::vector< std::string > m_logged_quantities;
+		//! Clock for the time log quantity
+		ClockSource m_clk;
 		
 		//! Helper function to get a value for a given quantity
 		Scalar getValue(const std::string &quantity, int timestep);
