@@ -118,14 +118,16 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
 /*! \post All pointers are NULL
 */
 ParticleDataArrays::ParticleDataArrays() : nparticles(0), x(NULL), y(NULL), z(NULL),
-	vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), type(NULL), rtag(NULL)
+	vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), mass(NULL), diameter(NULL), ix(NULL),
+	iy(NULL), iz(NULL), type(NULL), rtag(NULL)
 	{
 	}
 
 /*! \post All pointers are NULL
 */
 ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(NULL), z(NULL),
-	vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), type(NULL), rtag(NULL)
+	vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), mass(NULL), diameter(NULL), ix(NULL),
+	iy(NULL), iz(NULL), type(NULL), rtag(NULL)
 	{
 	}	
 	
@@ -140,6 +142,10 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	\param exec_conf ExecutionConfiguration to use when executing code on the GPU
 	
 	\post \c x,\c y,\c z,\c vx,\c vy,\c vz,\c ax,\c ay, and \c az are allocated and initialized to 0.0
+	\post \c charge is allocated and initialized to a value of 0.0
+	\post \c diameter is allocated and initialized to a value of 1.0
+	\post \c mass is allocated and initialized to a value of 1.0
+	\post \c ix, \c iy, \c iz are allocated and initialized to values of 0.0
 	\post \c rtag is allocated and given the default initialization rtag[i] = i
 	\post \c tag is allocated and given the default initialization tag[i] = i
 	\post \c type is allocated and given the default value of type[i] = 0
@@ -169,6 +175,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	assert(m_arrays.x != NULL && m_arrays.y != NULL && m_arrays.z != NULL);
 	assert(m_arrays.vx != NULL && m_arrays.vy != NULL && m_arrays.vz != NULL);
 	assert(m_arrays.ax != NULL && m_arrays.ay != NULL && m_arrays.az != NULL);
+	assert(m_arrays.ix != NULL && m_arrays.iy != NULL && m_arrays.iz != NULL);
+	assert(m_arrays.mass != NULL && m_arrays.diameter != NULL);
 	assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
 	
 	// set default values
@@ -178,6 +186,10 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 		m_arrays.vx[i] = m_arrays.vy[i] = m_arrays.vz[i] = 0.0;
 		m_arrays.ax[i] = m_arrays.ay[i] = m_arrays.az[i] = 0.0;
 		m_arrays.charge[i] = 0.0;
+		m_arrays.mass[i] = 1.0;
+		m_arrays.diameter[i] = 1.0;
+		m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
+		
 		m_arrays.type[i] = 0;
 		m_arrays.rtag[i] = i;
 		m_arrays.tag[i] = i;
@@ -252,6 +264,8 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	assert(m_arrays.x != NULL && m_arrays.y != NULL && m_arrays.z != NULL);
 	assert(m_arrays.vx != NULL && m_arrays.vy != NULL && m_arrays.vz != NULL);
 	assert(m_arrays.ax != NULL && m_arrays.ay != NULL && m_arrays.az != NULL);
+	assert(m_arrays.ix != NULL && m_arrays.iy != NULL && m_arrays.iz != NULL);
+	assert(m_arrays.mass != NULL && m_arrays.diameter != NULL);
 	assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
 	
 	// set default values
@@ -261,6 +275,10 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		m_arrays.vx[i] = m_arrays.vy[i] = m_arrays.vz[i] = 0.0;
 		m_arrays.ax[i] = m_arrays.ay[i] = m_arrays.az[i] = 0.0;
 		m_arrays.charge[i] = 0.0;
+		m_arrays.mass[i] = 1.0;
+		m_arrays.diameter[i] = 1.0;
+		m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
+				
 		m_arrays.type[i] = 0;
 		m_arrays.rtag[i] = i;
 		m_arrays.tag[i] = i;
@@ -688,28 +706,28 @@ void ParticleData::allocate(unsigned int N)
 		single_xarray_bytes += 256 - (single_xarray_bytes & 255);
 	
 	// total all bytes from scalar arrays
-	m_nbytes += single_xarray_bytes * 10;
+	m_nbytes += single_xarray_bytes * 12;
 	
 	// now add up the number of bytes for the int arrays, rounding up to 16 bytes
 	unsigned int single_iarray_bytes = sizeof(unsigned int) * N;
 	if ((single_iarray_bytes & 255) != 0)
 		single_iarray_bytes += 256 - (single_iarray_bytes & 255);
 	
-	m_nbytes += single_iarray_bytes * 3;
+	m_nbytes += single_iarray_bytes * 6;
 	
 	#else
 	
-	// allocation on the GPU
+	// allocation on the CPU
 	// start by adding up the number of bytes needed for the Scalar arrays
 	unsigned int single_xarray_bytes = sizeof(Scalar) * N;
 	
 	// total all bytes from scalar arrays
-	m_nbytes += single_xarray_bytes * 10;
+	m_nbytes += single_xarray_bytes * 12;
 	
 	// now add up the number of bytes for the int arrays
 	unsigned int single_iarray_bytes = sizeof(unsigned int) * N;
 	
-	m_nbytes += single_iarray_bytes * 3;
+	m_nbytes += single_iarray_bytes * 6;
 	#endif
 	
 	//////////////////////////////////////////////////////
@@ -742,6 +760,11 @@ void ParticleData::allocate(unsigned int N)
 	m_arrays_const.ay = m_arrays.ay = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	m_arrays_const.az = m_arrays.az = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
 	m_arrays_const.charge = m_arrays.charge = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
+	m_arrays_const.mass = m_arrays.mass = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
+	m_arrays_const.diameter = m_arrays.diameter = (Scalar *)cur_byte;  cur_byte += single_xarray_bytes;
+	m_arrays_const.ix = m_arrays.ix = (int *)cur_byte;  cur_byte += single_iarray_bytes;
+	m_arrays_const.iy = m_arrays.iy = (int *)cur_byte;  cur_byte += single_iarray_bytes;
+	m_arrays_const.iz = m_arrays.iz = (int *)cur_byte;  cur_byte += single_iarray_bytes;
 	m_arrays_const.rtag = m_arrays.rtag = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
 	m_arrays_const.tag = m_arrays.tag = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
 	m_arrays_const.nparticles = m_arrays.nparticles = N;
@@ -769,6 +792,9 @@ void ParticleData::allocate(unsigned int N)
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].vel), single_xarray_bytes * 4) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].accel), single_xarray_bytes * 4) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].charge), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].mass), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].diameter), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].image), single_xarray_bytes * 4) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].tag), sizeof(unsigned int)*N) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].rtag), sizeof(unsigned int)*N));
 		
@@ -852,6 +878,9 @@ void ParticleData::deallocate()
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].vel));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].accel));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].charge));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].mass));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].diameter));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].image));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].tag));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].rtag));
 			
@@ -862,6 +891,9 @@ void ParticleData::deallocate()
 			m_gpu_pdata[cur_gpu].vel = NULL;
 			m_gpu_pdata[cur_gpu].accel = NULL;
 			m_gpu_pdata[cur_gpu].charge = NULL;
+			m_gpu_pdata[cur_gpu].mass = NULL;
+			m_gpu_pdata[cur_gpu].diameter = NULL;
+			m_gpu_pdata[cur_gpu].image = NULL;
 			m_gpu_pdata[cur_gpu].tag = NULL;
 			m_gpu_pdata[cur_gpu].rtag = NULL;
 			m_d_staging[cur_gpu] = NULL;
@@ -888,6 +920,11 @@ void ParticleData::deallocate()
 	m_arrays_const.ay = m_arrays.ay = 0;
 	m_arrays_const.az = m_arrays.az = 0;	
 	m_arrays_const.charge = m_arrays.charge = 0;	
+	m_arrays_const.mass = m_arrays.mass = 0;	
+	m_arrays_const.diameter = m_arrays.diameter = 0;	
+	m_arrays_const.ix = m_arrays.ix = 0;	
+	m_arrays_const.iy = m_arrays.iy = 0;
+	m_arrays_const.iz = m_arrays.iz = 0;
 	m_arrays_const.type = m_arrays.type = 0;
 	m_arrays_const.rtag = m_arrays.rtag = 0;
 	m_arrays_const.tag = m_arrays.tag = 0;
@@ -955,19 +992,37 @@ void ParticleData::hostToDeviceCopy()
 		// interleave the data
 		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].pos, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 	
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy velocity data to the staging area
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.vx, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 		//interleave the data
 		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].vel, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 		
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy acceleration data to the staging area
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.ax, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 		//interleave the data
 		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].accel, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 		
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy charge
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].charge, m_arrays.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 	
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy mass
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].mass, m_arrays.mass, m_single_xarray_bytes, cudaMemcpyHostToDevice));
+
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy diameter
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].diameter, m_arrays.diameter, m_single_xarray_bytes, cudaMemcpyHostToDevice));
+		
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy image
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.ix, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
+		//interleave the data
+		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, (float4*)m_gpu_pdata[cur_gpu].image, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
+
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy the tag and rtag data
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice)); 
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
@@ -980,7 +1035,7 @@ void ParticleData::hostToDeviceCopy()
 union floatint
 	{
 	float f;		//!< float to read/write
-	unsigned int i;	//!< int to read/write at the same memory location
+	int i;	//!< int to read/write at the same memory location
 	};
 
 /*! Particle data is copied from the GPU to the CPU
@@ -1015,7 +1070,7 @@ void ParticleData::deviceToHostCopy()
 			m_arrays.z[local_beg + i] = m_h_staging[i].z;
 			floatint fi;
 			fi.f = m_h_staging[i].w;
-			m_arrays.type[local_beg + i] = fi.i;
+			m_arrays.type[local_beg + i] = (unsigned int)fi.i;
 			}
 			
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
@@ -1043,6 +1098,31 @@ void ParticleData::deviceToHostCopy()
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy charge
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.charge + local_beg, m_gpu_pdata[cur_gpu].charge + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
+	
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy mass
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.mass + local_beg, m_gpu_pdata[cur_gpu].mass + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
+		
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy diameter
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.diameter + local_beg, m_gpu_pdata[cur_gpu].diameter + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
+
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		// copy image
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_h_staging, m_gpu_pdata[cur_gpu].image + local_beg, local_num*sizeof(uint4), cudaMemcpyDeviceToHost));
+		// fill out position/type
+		for (int i = 0; i < local_num; i++)
+			{
+			floatint fi;
+			fi.f = m_h_staging[i].x;
+			m_arrays.ix[local_beg + i] = fi.i;
+			
+			fi.f = m_h_staging[i].y;			
+			m_arrays.iy[local_beg + i] = fi.i;
+			
+			fi.f = m_h_staging[i].z;
+			m_arrays.iz[local_beg + i] = fi.i;
+			}
 	
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy the tag and rtag data

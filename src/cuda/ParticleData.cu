@@ -266,22 +266,20 @@ __global__ void pdata_texread_test(gpu_pdata_arrays pdata)
 
 	\returns Error result from the kernel call
 */
-cudaError_t gpu_pdata_texread_test(gpu_pdata_arrays *pdata)
-	{
-	assert(pdata);
-	
+cudaError_t gpu_pdata_texread_test(const gpu_pdata_arrays &pdata)
+	{	
 	// setup the grid to run the kernel
 	int M = 128;
-	dim3 grid(pdata->local_num/M+1, 1, 1);
+	dim3 grid(pdata.local_num/M+1, 1, 1);
 	dim3 threads(M, 1, 1);
 
 	// bind the textures
-	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata->pos, sizeof(float4) * pdata->N);
+	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 	
 	// run the kernel
-	pdata_texread_test<<< grid, threads >>>(*pdata);
+	pdata_texread_test<<< grid, threads >>>(pdata);
 	cudaThreadSynchronize();
 	return cudaGetLastError();
 	}

@@ -170,19 +170,19 @@ texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 	peak bandwidth on the device. It seems more wasteful than a one block per cell
 	method, but actually is ~40% faster.
 */
-extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_bin_array bins, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez)
+extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d_pos, unsigned int local_beg, unsigned int local_num, gpu_boxsize box, gpu_bin_array bins, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez)
 	{
 	// each thread is going to compute the neighbor list for a single particle
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
-	int my_pidx = idx + pdata.local_beg;
+	int my_pidx = idx + local_beg;
 	
 	// quit early if we are past the end of the array
-	if (idx >= pdata.local_num)
+	if (idx >= local_num)
 		return;
 	
 	// first, determine which bin this particle belongs to
 	// MEM TRANSFER: 32 bytes
-	float4 my_pos = pdata.pos[my_pidx];
+	float4 my_pos = d_pos[my_pidx];
 	uint4 exclude = nlist.exclusions[my_pidx];
 	
 	// FLOPS: 9
@@ -317,7 +317,7 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pda
 	float scalez = 1.0f / binz;
 
 	// run the kernel
-	gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+	gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
 	
 	if (!g_gpu_error_checking)
 		{
