@@ -68,6 +68,10 @@ struct gpu_pdata_arrays
 	float4 *vel;	//!< Particle velocity in \c x, \c y, \c z, nothing in \c w
 	float4 *accel;	//!< Particle acceleration in \c x, \c y, \c z, nothing in \c w
 	float *charge;	//!< Particle charge
+	float *mass;	//!< Particle mass
+	float *diameter;	//!< Particle diameter
+	int4 *image;	//!< Particle box image location in \c x, c y, and \c z. Nothing in \c w.
+	
 	unsigned int *tag;	//!< Particle tag
 	unsigned int *rtag;	//!< Particle rtag 
 	
