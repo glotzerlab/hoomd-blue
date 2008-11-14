@@ -161,7 +161,9 @@ void NeighborList::allocateGPUData(int height)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		// allocate and zero device memory
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_nlist[cur_gpu].list), &pitch, N*sizeof(unsigned int), height));
+		// alloate one extra row so that compute kernels can safely prefetch "past" the end
+		// without causing memory errors
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_nlist[cur_gpu].list), &pitch, N*sizeof(unsigned int), height + 1));
 		// want pitch in elements, not bytes
 		m_gpu_nlist[cur_gpu].pitch = (int)pitch / sizeof(int);
 		m_gpu_nlist[cur_gpu].height = height;

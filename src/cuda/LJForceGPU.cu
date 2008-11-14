@@ -111,20 +111,12 @@ extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays fo
 	int next_neigh = nlist.list[idx_global];
 
 	// loop over neighbors
-	#ifdef ARCH_SM13
-	// sm13 offers warp voting which makes this hardware bug workaround less of a performance penalty
-	for (int neigh_idx = 0; __any(neigh_idx < n_neigh); neigh_idx++)
-	#else
-	for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
-	#endif
-		{
-		if (neigh_idx < n_neigh)
+	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
-		// prefetch the next value and set the current one
+		// prefetch the next value and set the current one (prefetching past the end is allowed because the neighbor list allocates one exra row for this purpose
 		cur_neigh = next_neigh;
-		if (neigh_idx+1 < nlist.height)
-			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
 		
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -150,7 +142,8 @@ extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays fo
 			r2inv = 1.0f / rsq;
 
 		// lookup the coefficients between this combination of particle types
-		int typ_pair = __float_as_int(neigh_pos.w) * coeff_width + __float_as_int(pos.w);
+		int typ_pair = __float_as_int(neigh_pos.w) * coeff_width +
+__float_as_int(pos.w);
 		float lj1 = s_coeffs[typ_pair].x;
 		float lj2 = s_coeffs[typ_pair].y;
 	
@@ -169,8 +162,7 @@ extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays fo
 		force.z += dz * forcemag_divr;
 		force.w += pair_eng;
 		}
-		}
-	
+		
 	// potential energy per particle must be halved
 	force.w *= 0.5f;
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
