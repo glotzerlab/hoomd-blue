@@ -61,6 +61,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
 //! The texture for reading the pdata accel array
 texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
+//! The texture for reading in the pdata image array
+texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
 
 //! Takes the first half-step forward in the velocity-verlet NVE integration
 /*! \param pdata Particle data to step forward 1/2 step
@@ -119,10 +121,22 @@ extern "C" __global__ void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		vel.y += (1.0f/2.0f) * accel.y * deltaT;
 		vel.z += (1.0f/2.0f) * accel.z * deltaT;
 		
-		// time to fix the periodic boundary conditions (FLOPS: 12)
-		px -= box.Lx * rintf(px * box.Lxinv);
-		py -= box.Ly * rintf(py * box.Lyinv);
-		pz -= box.Lz * rintf(pz * box.Lzinv);
+		// read in the particle's image
+		// read the particle's velocity and acceleration (MEM TRANSFER: 16 bytes)
+		int4 image = tex1Dfetch(pdata_image_tex, idx_global);
+		
+		// time to fix the periodic boundary conditions (FLOPS: 15)
+		float x_shift = rintf(px * box.Lxinv);
+		px -= box.Lx * x_shift;
+		image.x += (int)x_shift;
+		
+		float y_shift = rintf(py * box.Lyinv);
+		py -= box.Ly * y_shift;
+		image.y += (int)y_shift;
+		
+		float z_shift = rintf(pz * box.Lzinv);
+		pz -= box.Lz * z_shift;
+		image.z += (int)z_shift;
 	
 		float4 pos2;
 		pos2.x = px;
@@ -130,9 +144,10 @@ extern "C" __global__ void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		pos2.z = pz;
 		pos2.w = pw;
 						
-		// write out the results (MEM_TRANSFER: 32 bytes)
+		// write out the results (MEM_TRANSFER: 48 bytes)
 		pdata.pos[idx_global] = pos2;
 		pdata.vel[idx_global] = vel;
+		pdata.image[idx_global] = image;
 		}
 	}
 
@@ -160,6 +175,10 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &b
 		return error;
 
 	error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
+	if (error != cudaSuccess)
+		return error;
+
+	error = cudaBindTexture(0, pdata_image_tex, pdata.image, sizeof(int4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 

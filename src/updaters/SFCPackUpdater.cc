@@ -166,24 +166,54 @@ void SFCPackUpdater::applySortOrder()
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		arrays.charge[i] = scal_tmp[i];
 
+	// sort mass
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		scal_tmp[i] = arrays.mass[m_sort_order[i]];
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		arrays.mass[i] = scal_tmp[i];
+
+	// sort diameter
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		scal_tmp[i] = arrays.diameter[m_sort_order[i]];
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		arrays.diameter[i] = scal_tmp[i];
+
+	// sort ix
+	int *int_tmp = new int[m_pdata->getN()];
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		int_tmp[i] = arrays.ix[m_sort_order[i]];
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		arrays.ix[i] = int_tmp[i];
+		
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		int_tmp[i] = arrays.iy[m_sort_order[i]];
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		arrays.iy[i] = int_tmp[i];
+
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		int_tmp[i] = arrays.iz[m_sort_order[i]];
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		arrays.iz[i] = int_tmp[i];
+
 	// sort type
-	unsigned int *int_tmp = new unsigned int[m_pdata->getN()];
+	unsigned int *uint_tmp = new unsigned int[m_pdata->getN()];
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		int_tmp[i] = arrays.type[m_sort_order[i]];
+		uint_tmp[i] = arrays.type[m_sort_order[i]];
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		arrays.type[i] = int_tmp[i];
+		arrays.type[i] = uint_tmp[i];
 
 	// sort tag
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		int_tmp[i] = arrays.tag[m_sort_order[i]];
+		uint_tmp[i] = arrays.tag[m_sort_order[i]];
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
-		arrays.tag[i] = int_tmp[i];
+		arrays.tag[i] = uint_tmp[i];
 		
 	// rebuild rtag
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		arrays.rtag[arrays.tag[i]] = i;	
 	
 	delete[] scal_tmp;
+	delete[] uint_tmp;
 	delete[] int_tmp;
 	
 	m_pdata->release();

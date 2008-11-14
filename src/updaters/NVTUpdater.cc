@@ -191,7 +191,7 @@ void NVTUpdater::update(unsigned int timestep)
 	
 	// We aren't done yet! Need to fix the periodic boundary conditions
 	// this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
-	// get a local copy of the simulation box too
+	// get a local copy of the simulation box
 	const BoxDim& box = m_pdata->getBox();
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
@@ -205,22 +205,40 @@ void NVTUpdater::update(unsigned int timestep)
 		{
 		// wrap the particle around the box
 		if (arrays.x[j] >= box.xhi)
+			{
 			arrays.x[j] -= Lx;
+			arrays.ix[j]++;
+			}
 		else
 		if (arrays.x[j] < box.xlo)
+			{
 			arrays.x[j] += Lx;
+			arrays.ix[j]--;
+			}
 			
 		if (arrays.y[j] >= box.yhi)
+			{
 			arrays.y[j] -= Ly;
+			arrays.iy[j]++;
+			}
 		else
 		if (arrays.y[j] < box.ylo)
+			{
 			arrays.y[j] += Ly;
+			arrays.iy[j]--;
+			}
 			
 		if (arrays.z[j] >= box.zhi)
+			{
 			arrays.z[j] -= Lz;
+			arrays.iz[j]++;
+			}
 		else
 		if (arrays.z[j] < box.zlo)
+			{
 			arrays.z[j] += Lz;
+			arrays.iz[j]--;
+			}
 		}
 
 	

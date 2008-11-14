@@ -57,6 +57,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
 //! The texture for reading the pdata accel array
 texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
+//! The texture for reading in the pdata image array
+texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
 
 //! Shared memory used in reducing the mv^2 sum
 extern __shared__ float nvt_sdata[];
@@ -81,7 +83,7 @@ extern "C" __global__ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 	float vsq;
 	if (idx_local < pdata.local_num)
 		{
-       		// update positions to the next timestep and update velocities to the next half step
+		// update positions to the next timestep and update velocities to the next half step
 		float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
 		
 		float px = pos.x;
@@ -101,10 +103,21 @@ extern "C" __global__ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		vel.z = (vel.z + (1.0f/2.0f) * accel.z * deltaT) * denominv;
 		pz += vel.z * deltaT;
 		
+		// read in the image flags
+		int4 image = tex1Dfetch(pdata_image_tex, idx_global);
+		
 		// time to fix the periodic boundary conditions	
-		px -= box.Lx * rintf(px * box.Lxinv);
-		py -= box.Ly * rintf(py * box.Lyinv);
-		pz -= box.Lz * rintf(pz * box.Lzinv);
+		float x_shift = rintf(px * box.Lxinv);
+		px -= box.Lx * x_shift;
+		image.x += (int)x_shift;
+		
+		float y_shift = rintf(py * box.Lyinv);
+		py -= box.Ly * y_shift;
+		image.y += (int)y_shift;
+		
+		float z_shift = rintf(pz * box.Lzinv);
+		pz -= box.Lz * z_shift;
+		image.z += (int)z_shift;
 	
 		float4 pos2;
 		pos2.x = px;
@@ -115,6 +128,7 @@ extern "C" __global__ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		// write out the results
 		pdata.pos[idx_global] = pos2;
 		pdata.vel[idx_global] = vel;
+		pdata.image[idx_global] = image;
 	
 		// now we need to do the partial K sums
 	
@@ -170,6 +184,10 @@ cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &b
 		return error;
 
 	error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
+	if (error != cudaSuccess)
+		return error;
+		
+	error = cudaBindTexture(0, pdata_image_tex, pdata.image, sizeof(int4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 	

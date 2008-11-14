@@ -192,23 +192,41 @@ void NPTUpdater::update(unsigned int timestep)
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
 		// wrap the particle around the box
-		  if (arrays.x[j] >= Scalar(m_Lx/2.0))
+		if (arrays.x[j] >= Scalar(m_Lx/2.0))
+			{
 			arrays.x[j] -= m_Lx;
-		else
-		  if (arrays.x[j] < Scalar(-m_Lx/2.0))
+			arrays.ix[j]++;
+			}
+		else 
+		if (arrays.x[j] < Scalar(-m_Lx/2.0))
+			{
 			arrays.x[j] += m_Lx;
+			arrays.ix[j]--;
+			}
 			
 		if (arrays.y[j] >= Scalar(m_Ly/2.0))
+			{
 			arrays.y[j] -= m_Ly;
+			arrays.iy[j]++;
+			}
 		else
 		if (arrays.y[j] < Scalar(-m_Ly/2.0))
+			{
 			arrays.y[j] += m_Ly;
+			arrays.iy[j]--;
+			}
 			
 		if (arrays.z[j] >= Scalar(m_Lz/2.0))
+			{
 			arrays.z[j] -= m_Lz;
+			arrays.iz[j]++;
+			}
 		else
 		if (arrays.z[j] < Scalar(-m_Lz/2.0))
+			{
 			arrays.z[j] += m_Lz;
+			arrays.iz[j]--;
+			}
 		}
 
 	

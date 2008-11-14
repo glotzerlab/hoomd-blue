@@ -186,22 +186,40 @@ void NVEUpdater::update(unsigned int timestep)
 		{
 		// wrap the particle around the box
 		if (arrays.x[j] >= box.xhi)
+			{
 			arrays.x[j] -= Lx;
+			arrays.ix[j]++;
+			}
 		else
 		if (arrays.x[j] < box.xlo)
+			{
 			arrays.x[j] += Lx;
+			arrays.ix[j]--;
+			}
 			
 		if (arrays.y[j] >= box.yhi)
+			{
 			arrays.y[j] -= Ly;
+			arrays.iy[j]++;
+			}
 		else
 		if (arrays.y[j] < box.ylo)
+			{
 			arrays.y[j] += Ly;
+			arrays.iy[j]--;
+			}
 			
 		if (arrays.z[j] >= box.zhi)
+			{
 			arrays.z[j] -= Lz;
+			arrays.iz[j]++;
+			}
 		else
 		if (arrays.z[j] < box.zlo)
+			{
 			arrays.z[j] += Lz;
+			arrays.iz[j]--;
+			}
 		}
 	
 	// release the particle data arrays so that they can be accessed to add up the accelerations

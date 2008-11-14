@@ -106,8 +106,8 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		
 	exec_conf.syncAll();
 	
-	uint64_t mem_transfer = m_pdata->getN() * (16+32+32);
-	uint64_t flops = m_pdata->getN() * (15+3+9+12);
+	uint64_t mem_transfer = m_pdata->getN() * (16+32+16+48);
+	uint64_t flops = m_pdata->getN() * (15+3+9+15);
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	
 	// release the particle data arrays so that they can be accessed to add up the accelerations

@@ -59,6 +59,8 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
 //! Texture for reading the pdata accel array
 texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
+//! The texture for reading in the pdata image array
+texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
 
 //! Shared data used by NPT kernels for sum reductions
 extern __shared__ float npt_sdata[];
@@ -162,16 +164,15 @@ cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata, const gpu_pd
 
 
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
-	\param box Box dimensions that the particles are in
+	\param box Box dimensions that the particles are to be scaled into
 	\param d_npt_data NPT data structure for storing data specific to NPT integration
 	\param exp_v_fac exp_v_fac = \f$\exp(-\frac 1 4 (\eta+\xi)*\delta T)\f$ is the scaling factor for
 velocity update and is a result of coupling to the thermo/barostat
 	\param exp_r_fac exp_r_fac = \f$\exp(\frac 1 2 \eta\delta T)\f$ is the scaling factor for
 position update and is a result of coupling to the thermo/barostat
 	\param deltaT Time to advance (for one full step)
-	\param box_len_scale box size dilatation
 */
-extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, gpu_npt_data d_npt_data, float exp_v_fac, float exp_r_fac, float deltaT, float box_len_scale)
+extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, gpu_npt_data d_npt_data, float exp_v_fac, float exp_r_fac, float deltaT)
 	{
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // particle index on local GPU
 	int idx_global = idx_local + pdata.local_beg; // global particle index across all GPUs
@@ -203,12 +204,21 @@ extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		vel.z = vel.z*exp_v_fac*exp_v_fac + (1.0f/2.0f) * deltaT*exp_v_fac*accel.z;
 		pz = pz*exp_r_fac*exp_r_fac + vel.z*exp_r_fac*deltaT;
 
+		// read in the image flags
+		int4 image = tex1Dfetch(pdata_image_tex, idx_global);
 	
-		// rescale particle position to fit into the new rescaled box 
-		// and fix periodic boundary conditions
-		px -= box_len_scale*box.Lx * rintf(px * box.Lxinv/box_len_scale);
-		py -= box_len_scale*box.Ly * rintf(py * box.Lyinv/box_len_scale);
-		pz -= box_len_scale*box.Lz * rintf(pz * box.Lzinv/box_len_scale);
+		// fix periodic boundary conditions
+		float x_shift = rintf(px * box.Lxinv);
+		px -= box.Lx * x_shift;
+		image.x += (int)x_shift;
+		
+		float y_shift = rintf(py * box.Lyinv);
+		py -= box.Ly * y_shift;
+		image.y += (int)y_shift;
+		
+		float z_shift = rintf(pz * box.Lzinv);
+		pz -= box.Lz * z_shift;
+		image.z += (int)z_shift;
 	
 		float4 pos2;
 		pos2.x = px;
@@ -219,6 +229,7 @@ extern "C" __global__ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		// write out the results
 		pdata.pos[idx_global] = pos2;
 		pdata.vel[idx_global] = vel;
+		pdata.image[idx_global] = image;
 		}
 	
 	}
@@ -251,6 +262,10 @@ cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &b
 	error = cudaBindTexture(0, pdata_accel_tex, pdata.accel, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
+		
+	error = cudaBindTexture(0, pdata_image_tex, pdata.image, sizeof(int4) * pdata.N);
+	if (error != cudaSuccess)
+		return error;
 	
 	// precalculate scaling factors for baro/thermostat
 	float exp_v_fac = exp(-1.0f/4.0f*(Eta+Xi)*deltaT);  // velocity scaling
@@ -258,8 +273,17 @@ cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &b
 
 	float box_len_scale = exp(Eta*deltaT);  // box length dilatation factor
 
+	// scale the box before running the kernel
+	gpu_boxsize scaled_box = box;
+	scaled_box.Lx *= box_len_scale;
+	scaled_box.Ly *= box_len_scale;
+	scaled_box.Lz *= box_len_scale;
+	scaled_box.Lxinv = 1.0f/scaled_box.Lx;
+	scaled_box.Lyinv = 1.0f/scaled_box.Ly;
+	scaled_box.Lzinv = 1.0f/scaled_box.Lz;
+	
 	// run the kernel
-	gpu_npt_pre_step_kernel<<< grid, threads >>>(pdata, box, d_npt_data, exp_v_fac, exp_r_fac, deltaT, box_len_scale);
+	gpu_npt_pre_step_kernel<<< grid, threads >>>(pdata, scaled_box, d_npt_data, exp_v_fac, exp_r_fac, deltaT);
 
 	if (!g_gpu_error_checking)
 		{

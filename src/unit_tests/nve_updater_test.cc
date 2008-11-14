@@ -255,11 +255,17 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
 	// check that they go to the proper final position
 	arrays = pdata_6->acquireReadWrite();
 	MY_BOOST_CHECK_CLOSE(arrays.x[0], 9.9, tol);
+	BOOST_CHECK_EQUAL(arrays.ix[0], -1);
 	MY_BOOST_CHECK_CLOSE(arrays.x[1], -9.8, tol);
+	BOOST_CHECK_EQUAL(arrays.ix[1], 1);
 	MY_BOOST_CHECK_CLOSE(arrays.y[2], 19.9, tol);
+	BOOST_CHECK_EQUAL(arrays.iy[2], -1);
 	MY_BOOST_CHECK_CLOSE(arrays.y[3], -19.8, tol);
+	BOOST_CHECK_EQUAL(arrays.iy[3], 1);
 	MY_BOOST_CHECK_CLOSE(arrays.z[4], 29.9, tol);
+	BOOST_CHECK_EQUAL(arrays.iz[4], -1);
 	MY_BOOST_CHECK_CLOSE(arrays.z[5], -29.8, tol);
+	BOOST_CHECK_EQUAL(arrays.iz[5], 1);
 	
 	pdata_6->release();
 	}
