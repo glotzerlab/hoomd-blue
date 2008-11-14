@@ -178,11 +178,6 @@ struct ParticleDataArrays
 	Scalar * __restrict__ ay;	//!< array of y-component of acceleration
 	Scalar * __restrict__ az;	//!< array of z-component of acceleration
 	Scalar * __restrict__ charge;	//!< array of charges
-	Scalar * __restrict__ mass;	//!< array of particle masses
-	Scalar * __restrict__ diameter;	//!< array of particle diameters
-	int * __restrict__ ix;	//!< array of x-component of images
-	int * __restrict__ iy;	//!< array of x-component of images
-	int * __restrict__ iz;	//!< array of x-component of images
 	
 	unsigned int * __restrict__ type; //!< Type index of each particle
 	unsigned int * __restrict__ rtag; //!< Reverse-lookup tag.
@@ -210,11 +205,6 @@ struct ParticleDataArraysConst
 	Scalar const * __restrict__ ay;	//!< array of y-component of acceleration
 	Scalar const * __restrict__ az;	//!< array of z-component of acceleration
 	Scalar const * __restrict__ charge;	//!< array of charges
-	Scalar const * __restrict__ mass;	//!< array of particle masses
-	Scalar const * __restrict__ diameter;	//!< array of particle diameters
-	int const * __restrict__ ix;	//!< array of x-component of images
-	int const * __restrict__ iy;	//!< array of x-component of images
-	int const * __restrict__ iz;	//!< array of x-component of images
 	
 	unsigned int const * __restrict__ type; //!< Type index of each particle
 	unsigned int const * __restrict__ rtag; //!< Reverse-lookup tag.

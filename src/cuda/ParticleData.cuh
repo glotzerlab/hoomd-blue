@@ -64,20 +64,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 struct gpu_pdata_arrays
 	{
-	unsigned int N;	//!< Number of particles in the arrays
-	unsigned int local_beg;	//!< Index of the first particle local to this GPU
-	unsigned int local_num;	//!< Number of particles local to this GPU	
-	
 	float4 *pos;	//!< Particle position in \c x,\c y,\c z, particle type as an int in \c w
 	float4 *vel;	//!< Particle velocity in \c x, \c y, \c z, nothing in \c w
 	float4 *accel;	//!< Particle acceleration in \c x, \c y, \c z, nothing in \c w
 	float *charge;	//!< Particle charge
-	float *mass;	//!< Particle mass
-	float *diameter;	//!< Particle diameter
-	int4 *image;	//!< Particle box image location in \c x, c y, and \c z. Nothing in \c w.
-	
 	unsigned int *tag;	//!< Particle tag
 	unsigned int *rtag;	//!< Particle rtag 
+	
+	unsigned int N;	//!< Number of particles in the arrays
+	unsigned int local_beg;	//!< Index of the first particle local to this GPU
+	unsigned int local_num;	//!< Number of particles local to this GPU
 	};
 
 //! Store the box size on the GPU
@@ -102,8 +98,8 @@ cudaError_t gpu_uninterleave_float4(float *d_out, float4 *d_in, int N, int pitch
 cudaError_t gpu_interleave_float4(float4 *d_out, float *d_in, int N, int pitch);
 
 //! Generate a test pattern in the data on the GPU (for unit testing)
-cudaError_t gpu_generate_pdata_test(const gpu_pdata_arrays &pdata);
+cudaError_t gpu_generate_pdata_test(gpu_pdata_arrays *pdata);
 //! Read from the pos texture and write into the vel array (for unit testing)
-cudaError_t gpu_pdata_texread_test(const gpu_pdata_arrays &pdata); 
+cudaError_t gpu_pdata_texread_test(gpu_pdata_arrays *pdata); 
 
 #endif	
