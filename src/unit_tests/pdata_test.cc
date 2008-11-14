@@ -70,6 +70,8 @@ using namespace boost;
 //! Perform some basic tests on the boxdim structure
 BOOST_AUTO_TEST_CASE( BoxDim_test )
 	{
+	g_gpu_error_checking = true;
+	
 	Scalar tol = Scalar(1e-6);
 
 	// test default constructor
@@ -127,6 +129,8 @@ BOOST_AUTO_TEST_CASE( BoxDim_test )
 //! Test operation of the particle data class
 BOOST_AUTO_TEST_CASE( ParticleData_test )
 	{
+	g_gpu_error_checking = true;
+	
 	BoxDim box(10.0, 30.0, 50.0);
 	ParticleData a(1, box);
 	
@@ -235,6 +239,8 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 //! Tests the ability of the ParticleData class to copy data between CPU <-> GPU
 BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 	{
+	g_gpu_error_checking = true;
+	
 	Scalar tol = Scalar(1e-6);
 		
 	// This set of tests will actually check that the ParticleData class is working
@@ -296,6 +302,8 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 //! Tests the ability of the ParticleData class to copy data between CPU <-> GPU
 BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	{
+	g_gpu_error_checking = true;
+	
 	Scalar tol = Scalar(1e-6);
 	
 	// setup an execution configuration with 4 GPUs all with id 0 for testing purposes
@@ -370,6 +378,8 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 //! Test operation of the simple cubic initializer class
 BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 	{
+	g_gpu_error_checking = true;
+	
 	Scalar tol = Scalar(1e-6);
 
 	// make a simple one-particle box
@@ -422,6 +432,8 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 //! Tests the RandomParticleInitializer class
 BOOST_AUTO_TEST_CASE( Random_test )
 	{
+	g_gpu_error_checking = true;
+	
 	// create a fairly dense system with a minimum distance of 0.8
 	Scalar min_dist = Scalar(0.8);
 	RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");

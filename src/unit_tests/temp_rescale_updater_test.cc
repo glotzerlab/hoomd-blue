@@ -81,6 +81,8 @@ const Scalar tol = 1e-6;
 //! boost test case to verify proper operation of TempCompute
 BOOST_AUTO_TEST_CASE( TempCompute_basic )
 	{
+	g_gpu_error_checking = true;
+	
 	// verify that we can constructe a TempCompute properly
 	// create a simple particle data to test with
 	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4));
@@ -102,6 +104,8 @@ BOOST_AUTO_TEST_CASE( TempCompute_basic )
 //! boost test case to verify proper operation of TempRescaleUpdater
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
 	{
+	g_gpu_error_checking = true;
+	
 	// create a simple particle data to test with
 	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();

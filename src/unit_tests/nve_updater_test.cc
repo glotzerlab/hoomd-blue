@@ -93,6 +93,8 @@ typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<ParticleData> pdata, 
 //! Integrate 1 particle through time and compare to an analytical solution
 void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	// check that the nve updater can actually integrate particle positions and velocities correctly
 	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
@@ -158,6 +160,8 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 //! Check that the particle movement limit works
 void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	// create a simple 1 particle system
 	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 1, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
@@ -216,6 +220,8 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
 //! Make a few particles jump across the boundary and verify that the updater works
 void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
 	// there are way too many permutations to test here, so I will simply
@@ -261,6 +267,8 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
 //! Compares the output from one NVEUpdater to another
 void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_creator2, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	const unsigned int N = 1000;
 	
 	// create two identical random particle systems to simulate

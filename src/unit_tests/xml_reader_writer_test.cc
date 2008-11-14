@@ -84,6 +84,8 @@ const Scalar tol = 1e-3;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	{
+	g_gpu_error_checking = true;
+	
 	// start by creating a single particle system: see it the correct file is written
 	BoxDim box(Scalar(2.5), Scalar(4.5), Scalar(12.1));
 	int n_types = 5;
@@ -382,6 +384,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 	{
+	g_gpu_error_checking = true;
+	
 	// start by creating a single particle system: see it the correct file is written
 	BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
 	int n_types = 10;
@@ -562,6 +566,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 //! Test basic functionality of HOOMDInitializer
 BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 	{
+	g_gpu_error_checking = true;
+	
 	// create a test input file
 	ofstream f("test_input.xml");
 f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\

@@ -93,6 +93,8 @@ typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<ParticleData> pdat
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	// check that a Brownian Dynamics integrator results in a correct diffusion coefficient
 	// and correct average temperature.  Change the temperature and gamma and show this produces 
 	// a correct temperature and diffuction coefficent  
@@ -255,6 +257,8 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	// check that a Brownian Dynamics integrator results in a correct diffusion coefficients
 	// and correct average temperature when applied to a population of two different particle types 
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
@@ -333,6 +337,8 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
 //! Apply the Stochastic BD Bath to 1000 LJ Particles
 void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	// check that a stochastic force applied on top of NVE integrator for a 1000 LJ particles stilll produces the correct average temperature
 	// Build a 1000 particle system with particles scattered on the x, y, and z axes.
 	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4, 0, exec_conf));

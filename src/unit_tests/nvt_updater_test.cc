@@ -1113,6 +1113,8 @@ shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<ParticleData> pdata, Scalar de
 //! Integrate 1 particle through time and compare to a mathematical solution
 void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	// check that the nvt updater can actually integrate particle positions and velocities correctly
 	// start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
@@ -1154,6 +1156,8 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 //! Compares the output from one NVEUpdater to another
 void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_creator2, ExecutionConfiguration exec_conf)
 	{
+	g_gpu_error_checking = true;
+	
 	const unsigned int N = 1000;
 	
 	// create two identical random particle systems to simulate
