@@ -792,9 +792,9 @@ void ParticleData::allocate(unsigned int N)
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].vel), single_xarray_bytes * 4) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].accel), single_xarray_bytes * 4) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].charge), single_xarray_bytes) );
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].mass), single_xarray_bytes) );
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].diameter), single_xarray_bytes) );
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].image), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].mass), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].diameter), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].image), single_xarray_bytes * 4) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].tag), sizeof(unsigned int)*N) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].rtag), sizeof(unsigned int)*N));
 		
@@ -878,9 +878,9 @@ void ParticleData::deallocate()
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].vel));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].accel));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].charge));
-			//m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].mass));
-			//m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].diameter));
-			//m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].image));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].mass));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].diameter));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].image));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].tag));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].rtag));
 			
@@ -1010,17 +1010,17 @@ void ParticleData::hostToDeviceCopy()
 	
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy mass
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].mass, m_arrays.mass, m_single_xarray_bytes, cudaMemcpyHostToDevice));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].mass, m_arrays.mass, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy diameter
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].diameter, m_arrays.diameter, m_single_xarray_bytes, cudaMemcpyHostToDevice));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].diameter, m_arrays.diameter, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 		
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy image
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.ix, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.ix, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 		//interleave the data
-		//m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, (float4*)m_gpu_pdata[cur_gpu].image, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
+		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, (float4*)m_gpu_pdata[cur_gpu].image, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy the tag and rtag data
@@ -1101,15 +1101,15 @@ void ParticleData::deviceToHostCopy()
 	
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy mass
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.mass + local_beg, m_gpu_pdata[cur_gpu].mass + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.mass + local_beg, m_gpu_pdata[cur_gpu].mass + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
 		
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy diameter
-		//m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.diameter + local_beg, m_gpu_pdata[cur_gpu].diameter + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.diameter + local_beg, m_gpu_pdata[cur_gpu].diameter + local_beg, local_num*sizeof(float), cudaMemcpyDeviceToHost));
 
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy image
-		/*m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_h_staging, m_gpu_pdata[cur_gpu].image + local_beg, local_num*sizeof(uint4), cudaMemcpyDeviceToHost));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_h_staging, m_gpu_pdata[cur_gpu].image + local_beg, local_num*sizeof(uint4), cudaMemcpyDeviceToHost));
 		// fill out position/type
 		for (int i = 0; i < local_num; i++)
 			{
@@ -1122,7 +1122,7 @@ void ParticleData::deviceToHostCopy()
 			
 			fi.f = m_h_staging[i].z;
 			m_arrays.iz[local_beg + i] = fi.i;
-			}*/
+			}
 	
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy the tag and rtag data

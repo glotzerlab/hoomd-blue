@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 	const ExecutionConfiguration& exec_conf = pdata.getExecConf();
 	BOOST_REQUIRE_EQUAL(exec_conf.gpu.size(), (unsigned int)1);
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-	exec_conf.gpu[0]->call(bind(gpu_pdata_texread_test, &d_pdata));
+	exec_conf.gpu[0]->call(bind(gpu_pdata_texread_test, d_pdata));
 	pdata.release();
 
 	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	// try accessing the data on the GPU
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->call(bind(gpu_pdata_texread_test, &d_pdata_list[cur_gpu]));
+		exec_conf.gpu[cur_gpu]->call(bind(gpu_pdata_texread_test, d_pdata_list[cur_gpu]));
 		}
 	pdata.release();
 
