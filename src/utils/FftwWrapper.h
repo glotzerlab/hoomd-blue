@@ -48,6 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FFTClass.h"
 #include "fftw3.h"
+#include "IndexTransform.h"
 
 #ifdef WIN32
  #define _USE_MATH_DEFINES
@@ -72,25 +73,26 @@ class FftwWrapper:public FFTClass
 			void fftw_define(unsigned int N_x,unsigned int N_y,unsigned int N_z); 
 			
 			//! fft transform complex to complex
-			void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***Dat_in,CScalar ***Dat_out,int sig);
+			void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *Dat_in,CScalar *Dat_out,int sig);
 			
 			//! fft transform real to complex
-			void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar ***Dat_in,CScalar ***Dat_out);
+			void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar *Dat_in,CScalar *Dat_out);
 			
 			//! fft transform complex to real
-			void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***Dat_in,Scalar ***Dat_out);
+			void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *Dat_in,Scalar *Dat_out);
 
 	private:
-			unsigned int N_x;	//!< I have no idea: the writer of this code needs to write better documentation
-			unsigned int N_y;	//!< I have no idea: the writer of this code needs to write better documentation
-			unsigned int N_z;	//!< I have no idea: the writer of this code needs to write better documentation
-			fftw_complex *in_f;		//!< I have no idea: the writer of this code needs to write better documentation
-			fftw_complex *out_f;	//!< I have no idea: the writer of this code needs to write better documentation
-			fftw_complex *in_b;		//!< I have no idea: the writer of this code needs to write better documentation
-			fftw_complex *out_b;	//!< I have no idea: the writer of this code needs to write better documentation
-			fftw_plan p_forward;	//!< I have no idea: the writer of this code needs to write better documentation
-			fftw_plan p_backward;	//!< I have no idea: the writer of this code needs to write better documentation
-			bool plan_is_defined;	//!< I have no idea: the writer of this code needs to write better documentation
+			unsigned int N_x;	//!< Number of grid points along the x axis
+			unsigned int N_y;	//!< Number of grid points along the y axis
+			unsigned int N_z;	//!< Number of grid points along the z axis
+			IndexTransform T;   //!< defines how 3d coordinates are mapped into 1D
+			fftw_complex *in_f;		//!< data structure required as input for fftw to perform forward fft
+			fftw_complex *out_f;	//!< data structure required as output for fftw to perform forward fft
+			fftw_complex *in_b;		//!< data structure required as input for fftw to perfrom backward fft
+			fftw_complex *out_b;	//!< data structure required as output for fftw to perfrom backaward fft
+			fftw_plan p_forward;	//!< Defines the structure by which fftw will do the fftw forward (see fftw documentation)
+			fftw_plan p_backward;	//!< Defines the structure by which fftw will do the fftw backward (see fftw documentation)
+			bool plan_is_defined;	//!< logical variable to prevent redefining a plan
 			double Initial_Conf_real(double x,double y); //!< Defines the real part of an initial configuration
 			double Initial_Conf_Imag(double x,double y); //!< Defines the imag part of an initial configuration
 			

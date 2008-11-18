@@ -67,12 +67,13 @@ FftwWrapper::FftwWrapper(unsigned int Nx,unsigned int Ny,unsigned int Nz):N_x(Nx
 		out_f=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 		in_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 		out_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
+        
+		T.SetD3to1D(N_x,N_y,N_z);
 
-
-		for(unsigned int i=0;i<Nx;i++){
+		for(unsigned int k=0;k<Nz;k++){
 			 for(unsigned int j=0;j<Ny;j++){
-				 for(unsigned int k=0;k<Nz;k++){
-				 uni_ind=i+Nx*j+Nx*Ny*k;
+				 for(unsigned int i=0;i<Nx;i++){
+				    uni_ind=T.D3To1D(i,j,k);
 					in_f[uni_ind][0]=exp(-static_cast<double>(i+j+k));
         			in_f[uni_ind][1]=0.0;
 					in_b[i][0]=Initial_Conf_real(static_cast<double>(Nx),static_cast<double>(i))*Initial_Conf_real(static_cast<double>(Ny),static_cast<double>(j))*Initial_Conf_real(static_cast<double>(Nz),static_cast<double>(k));	
@@ -108,15 +109,17 @@ void FftwWrapper::fftw_define(unsigned int Nx,unsigned int Ny,unsigned int Nz)
 		N_y=Ny;
 		N_z=Nz;
 
+		T.SetD3to1D(N_x,N_y,N_z);
+
 		in_f=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 		out_f=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 		in_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 		out_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 
-		for(unsigned int i=0;i<Nx;i++){
+		for(unsigned int k=0;k<Nz;k++){
 			 for(unsigned int j=0;j<Ny;j++){
-				 for(unsigned int k=0;k<Nz;k++){
-				 uni_ind=i+Nx*j+Nx*Ny*k;
+				 for(unsigned int i=0;i<Nx;i++){
+					uni_ind=T.D3To1D(i,j,k);
 					in_f[uni_ind][0]=exp(-static_cast<double>(i+j+k));
         			in_f[uni_ind][1]=0.0;
 					in_b[uni_ind][0]=Initial_Conf_real(static_cast<double>(Nx),static_cast<double>(i))*Initial_Conf_real(static_cast<double>(Ny),static_cast<double>(j))*Initial_Conf_real(static_cast<double>(Nz),static_cast<double>(k));	
@@ -132,68 +135,69 @@ void FftwWrapper::fftw_define(unsigned int Nx,unsigned int Ny,unsigned int Nz)
 	}
 }
 
-void FftwWrapper::cmplx_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,CScalar ***Dat_in,CScalar ***Dat_out,int sig)
+void FftwWrapper::cmplx_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,CScalar *Dat_in,CScalar *Dat_out,int sig)
 {
 
 	//First make sure that the system size corresponds to the plan that is currently defined
 
 	if((Nx!=N_x)||(Ny!=N_y)||(Nz!=N_z))
 	{
-		cerr << endl << "***Error! Incorrect attempt to perform fft; sizes do not match" << endl << endl;
+		cerr << endl << "***Error! Incorrect attempt to perform fft; system sizes do not match the ones defined during construction" << endl << endl;
 		throw runtime_error("Error in cmplx_fft member function of fftw_wrapper");
 	}
 
 	int uni_ind=0;
+
 	if(sig>0){
-     for(unsigned int i=0;i<Nx;i++){
+     for(unsigned int k=0;k<Nz;k++){
 		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int k=0;k<Nz;k++){
-				 uni_ind=i+Nx*j+Nx*Ny*k;
-			 in_f[uni_ind][0]=static_cast<double>((Dat_in[i][j][k]).r);
-        	 in_f[uni_ind][1]=static_cast<double>((Dat_in[i][j][k]).i);
+			 for(unsigned int i=0;i<Nx;i++){
+				 uni_ind=T.D3To1D(i,j,k);
+			 in_f[uni_ind][0]=static_cast<double>((Dat_in[uni_ind]).r);
+        	 in_f[uni_ind][1]=static_cast<double>((Dat_in[uni_ind]).i);
        			} 
 		 }
 	 }
 		fftw_execute(p_forward);
-	  for(unsigned int i=0;i<Nx;i++){
+	  for(unsigned int k=0;k<Nz;k++){
 		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int k=0;k<Nz;k++){
-				 uni_ind=i+Nx*j+Nx*Ny*k;
-			(Dat_out[i][j][k]).r=static_cast<Scalar>(out_f[uni_ind][0]);
-        	(Dat_out[i][j][k]).i=static_cast<Scalar>(out_f[uni_ind][1]);
+			 for(unsigned int i=0;i<Nz;i++){
+				 uni_ind=T.D3To1D(i,j,k);
+			(Dat_out[uni_ind]).r=static_cast<Scalar>(out_f[uni_ind][0]);
+        	(Dat_out[uni_ind]).i=static_cast<Scalar>(out_f[uni_ind][1]);
        								} 
 								}
 							}
 		 }
 	else{
-		 for(unsigned int i=0;i<Nx;i++){
+		 for(unsigned int k=0;k<Nz;k++){
 		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int k=0;k<Nz;k++){
-				 uni_ind=i+Nx*j+Nx*Ny*k;
-			 in_b[uni_ind][0]=static_cast<double>((Dat_in[i][j][k]).r);
-        	 in_b[uni_ind][1]=static_cast<double>((Dat_in[i][j][k]).i);
+			 for(unsigned int i=0;i<Nx;i++){
+				 uni_ind=T.D3To1D(i,j,k);
+			 in_b[uni_ind][0]=static_cast<double>((Dat_in[uni_ind]).r);
+        	 in_b[uni_ind][1]=static_cast<double>((Dat_in[uni_ind]).i);
        			} 
 		 }
 		 }
 		fftw_execute(p_backward);
-	  for(unsigned int i=0;i<Nx;i++){
+	  for(unsigned int k=0;k<Nz;k++){
 		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int k=0;k<Nz;k++){
-				 uni_ind=i+Nx*j+Nx*Ny*k;
-			(Dat_out[i][j][k]).r=static_cast<Scalar>(out_b[uni_ind][0]);
-        	(Dat_out[i][j][k]).i=static_cast<Scalar>(out_b[uni_ind][1]);
+			 for(unsigned int i=0;i<Nx;i++){
+				 uni_ind=T.D3To1D(i,j,k);
+			(Dat_out[uni_ind]).r=static_cast<Scalar>(out_b[uni_ind][0]);
+        	(Dat_out[uni_ind]).i=static_cast<Scalar>(out_b[uni_ind][1]);
        								} 
 								}
 							}
 
 			}
 }
-void FftwWrapper::real_to_compl_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,Scalar ***Data_in,CScalar ***Data_out)
+void FftwWrapper::real_to_compl_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,Scalar *Data_in,CScalar *Data_out)
 {
 //TO DO
 }
 
-void FftwWrapper::compl_to_real_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,CScalar ***Data_in,Scalar ***Data_out)
+void FftwWrapper::compl_to_real_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,CScalar *Data_in,Scalar *Data_out)
 {
 //TO DO
 }

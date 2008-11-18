@@ -58,52 +58,44 @@ class FFTClass
 	public:
 
 	//! Complex FFT
-	/*! \param N_x the author has not documented this code yet
-		\param N_y the author has not documented this code yet
-		\param N_z the author has not documented this code yet
-		\param in the author has not documented this code yet
-		\param out the author has not documented this code yet
-		\param sig the author has not documented this code yet
+	/*! \param N_x number of grid points in the x axis
+		\param N_y number of grid points in the y axis
+		\param N_z number of grid points in the z axis
+		\param in 3D complex matrix labelled as a 1D dimensional matrix
+		\param out 3D complex matrix labelled as a 1D dimensional matrix
+		\param sig specify if the FFT is forwards or backward
 	
 		3D FFT of complex matrix in, result stored in matrix out, sign=-1 (forward)
 		or +1 (backward)
 
-		\note Eeeeeewwwwww! I thought pointers to pointers were the absolute root of all
-		evil. What does that make a pointer to a pointer to a pointer!?!?! 
 		\todo document me
 	*/
-	virtual void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***in,CScalar ***out,int sig)=0;
+	virtual void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *in,CScalar *out,int sig)=0;
 	
 	//! Real to complex FFT
-	/*! \param N_x the author has not documented this code yet
-		\param N_y the author has not documented this code yet
-		\param N_z the author has not documented this code yet
-		\param in the author has not documented this code yet
-		\param out the author has not documented this code yet
+	/*! \param N_x number of grid points in the x axis
+		\param N_y number of grid points in the y axis
+		\param N_z number of grid points in the z axis
+		\param in 3D scalar matrix labelled as a 1D dimensional matrix
+		\param out 3D complex matrix labelled as a 1D dimensional matrix
 	
 		3D FFT of real matrix in, result stored in matrix out, forward is implictly assumed
-
-		\note Eeeeeewwwwww! I thought pointers to pointers were the absolute root of all
-		evil. What does that make a pointer to a pointer to a pointer!?!?! 
-		\todo document me
 	*/
-	virtual void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar ***in,CScalar ***out)=0;
+	virtual void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar *in,CScalar *out)=0;
 	
 	//! Complex to real FFT
-	/*! \param N_x the author has not documented this code yet
-		\param N_y the author has not documented this code yet
-		\param N_z the author has not documented this code yet
-		\param in the author has not documented this code yet
-		\param out the author has not documented this code yet
+	/*! \param N_x number of grid points in the x axis
+		\param N_y number of grid points in the y axis
+		\param N_z number of grid points in the z axis
+		\param in 3D complex scalar matrix labelled as a 1D dimensional matrix
+		\param out 3D scalar matrix labelled as a 1D dimensional matrix
 	
 		3D FFT of complex matrix in, result is real and stored in matrix 
 		out, backward is implictly assumed
 
-		\note Eeeeeewwwwww! I thought pointers to pointers were the absolute root of all
-		evil. What does that make a pointer to a pointer to a pointer!?!?! 
 		\todo document me
 	*/
-	virtual void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar ***in,Scalar ***out)=0;
+	virtual void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *in,Scalar *out)=0;
 	};
 
 #endif
