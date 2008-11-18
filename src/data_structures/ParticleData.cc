@@ -70,6 +70,11 @@ using namespace boost::python;
 using namespace boost::signals;
 using namespace boost;
 
+// if USE_CUDA is not enabled, we still need the gpu error checking flag as some code assumes it exists
+#ifndef USE_CUDA
+bool g_gpu_error_checking = false;
+#endif
+
 ///////////////////////////////////////////////////////////////////////////
 // BoxDim constructors
 

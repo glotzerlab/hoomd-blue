@@ -117,10 +117,8 @@ using namespace std;
 // include gpu_settings.h for g_gpu_error_checking
 #ifdef USE_CUDA
 #include "gpu_settings.h"
-#else
-// otherwise, create a dummy variable that will do nothing
-bool g_gpu_error_checking = false;
 #endif
+// if USE_CUDA is off, g_gpu_error_checking is defined in ParticleData.h
 
 
 /*! \file hoomd_module.cc
