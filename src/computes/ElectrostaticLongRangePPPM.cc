@@ -65,13 +65,13 @@ using namespace std;
 using namespace std;
 
 /*! \param pdata Particle Data to compute forces on
-	\param Mmesh_x I have no idea: whoever wrote this needs to write better documentation
-	\param Mmesh_y I have no idea: whoever wrote this needs to write better documentation
-	\param Mmesh_z I have no idea: whoever wrote this needs to write better documentation
-	\param P_order_a I have no idea: whoever wrote this needs to write better documentation
-	\param alpha I have no idea: whoever wrote this needs to write better documentation
-	\param FFTP I have no idea: whoever wrote this needs to write better documentation
-	\param third_law_m I have no idea: whoever wrote this needs to write better documentation
+	\param Mmesh_x Number of mesh points along the x axis
+	\param Mmesh_y Number of mesh points along the y axis
+	\param Mmesh_z Number of mesh points along the z axis
+	\param P_order_a Order of mesh interpolation
+	\param alpha  split parameter between long and short range electrostatics
+	\param FFTP Fourier transform used (passed as an abstract class)
+	\param third_law_m Use third law 
 	
 	\todo document me!
 */
@@ -85,6 +85,8 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 		cerr << endl << "***Error! Negative alpha in ElectrostaticLongRangePPPM makes no sense" << endl << endl;
 		throw runtime_error("Error initializing ElectrostaticLongRange");
 		}
+
+	T.SetD3to1D(N_mesh_x,N_mesh_y,N_mesh_z);
 
 	//Cast mesh sizes as a scalar
 	S_mesh_x=static_cast<Scalar>(N_mesh_x);
@@ -107,54 +109,19 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	h_z= S_mesh_z/Lz;
 
 	//allocate space for the density and the influence function
-	rho_real=new CScalar**[N_mesh_z];
-	rho_kspace=new CScalar**[N_mesh_z];
-	G_Inf=new Scalar**[N_mesh_z];
-	fx_kspace=new CScalar**[N_mesh_z];
-    fy_kspace=new CScalar**[N_mesh_z];
-    fz_kspace=new CScalar**[N_mesh_z];
-    e_kspace=new CScalar**[N_mesh_z];
-    v_kspace=new CScalar**[N_mesh_z];
-    fx_real=new CScalar**[N_mesh_z];           
-    fy_real=new CScalar**[N_mesh_z];          
-    fz_real=new CScalar**[N_mesh_z];           
-    e_real=new CScalar**[N_mesh_z];            
-    v_real=new CScalar**[N_mesh_z];            
-
-
-	for(unsigned int i=0;i<N_mesh_z;i++){
-		rho_real[i]=new CScalar*[N_mesh_y];
-		rho_kspace[i]=new CScalar*[N_mesh_y];
-		G_Inf[i]=new Scalar*[N_mesh_y];
-		fx_kspace[i]=new CScalar*[N_mesh_y];
-		fy_kspace[i]=new CScalar*[N_mesh_y];
-		fz_kspace[i]=new CScalar*[N_mesh_y];
-		e_kspace[i]=new CScalar*[N_mesh_y];
-		v_kspace[i]=new CScalar*[N_mesh_y];
-		fx_real[i]=new CScalar*[N_mesh_y];
-		fy_real[i]=new CScalar*[N_mesh_y];
-		fz_real[i]=new CScalar*[N_mesh_y];
-		e_real[i]=new CScalar*[N_mesh_y];
-		v_real[i]=new CScalar*[N_mesh_y];
-	}
-
-	for(unsigned int j=0;j<N_mesh_z;j++){
-	for(unsigned int i=0;i<N_mesh_y;i++){
-		rho_real[i][j]=new CScalar[N_mesh_x];
-		rho_kspace[i][j]=new CScalar[N_mesh_x];
-		G_Inf[i][j]=new Scalar[N_mesh_x];
-		fx_kspace[i][j]=new CScalar[N_mesh_x];
-		fy_kspace[i][j]=new CScalar[N_mesh_x];
-		fz_kspace[i][j]=new CScalar[N_mesh_x];
-		e_kspace[i][j]=new CScalar[N_mesh_x];
-		v_kspace[i][j]=new CScalar[N_mesh_x];
-		fx_real[i][j]=new CScalar[N_mesh_x];
-		fy_real[i][j]=new CScalar[N_mesh_x];
-		fz_real[i][j]=new CScalar[N_mesh_x];
-		e_real[i][j]=new CScalar[N_mesh_x];
-		v_real[i][j]=new CScalar[N_mesh_x];
-	}
-	}
+	rho_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+	rho_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+	G_Inf=new Scalar[N_mesh_x*N_mesh_y*N_mesh_z];
+	fx_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+    fy_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+    fz_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+    e_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+    v_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+    fx_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];        
+    fy_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];       
+    fz_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];        
+    e_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];            
+    v_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];           
     
     // allocate space for polynomial needed to compute the influence function
 
@@ -193,40 +160,6 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	{
 	
 	//deallocate influence function and rho in real and k-space
-
-	for(unsigned int j=0;j<N_mesh_z;j++){
-	for(unsigned int i=0;i<N_mesh_y;i++){
-		delete[] rho_real[i][j];
-		delete[] rho_kspace[i][j];
-		delete[] G_Inf[i][j];
-		delete[] fx_kspace[i][j];
-		delete[] fy_kspace[i][j];
-		delete[] fz_kspace[i][j];
-		delete[] e_kspace[i][j];
-		delete[] v_kspace[i][j];
-		delete[] fx_real[i][j];
-		delete[] fy_real[i][j];
-		delete[] fz_real[i][j];
-		delete[] e_real[i][j];
-		delete[] v_real[i][j];
-	}
-	}
-
-	for(unsigned int i=0;i<N_mesh_z;i++){
-		delete[] rho_real[i];
-		delete[] rho_kspace[i];
-		delete[] G_Inf[i];
-		delete[] fx_kspace[i];
-		delete[] fy_kspace[i];
-		delete[] fz_kspace[i];
-		delete[] e_kspace[i];
-		delete[] v_kspace[i];
-		delete[] fx_real[i];
-		delete[] fy_real[i];
-		delete[] fz_real[i];
-		delete[] e_real[i];
-		delete[] v_real[i];
-	}
 		
 	delete[] rho_real;
 	delete[] rho_kspace;
@@ -255,7 +188,7 @@ void ElectrostaticLongRangePPPM::make_rho(void)
 	(this->*make_rho_helper)();
 }
 
-void ElectrostaticLongRangePPPM::back_interpolate(CScalar ***Grid,Scalar *Continuum)
+void ElectrostaticLongRangePPPM::back_interpolate(CScalar *Grid,Scalar *Continuum)
 {
 	(this->*back_interpolate_helper)(Grid,Continuum);
 }
@@ -263,13 +196,15 @@ void ElectrostaticLongRangePPPM::back_interpolate(CScalar ***Grid,Scalar *Contin
 void ElectrostaticLongRangePPPM::make_rho_even(void)
 {
 	int P_half=static_cast<int>(P_order/2);
+	unsigned int ind;
 
 	//initialize rho to zero
-    for(unsigned int i=0;i<N_mesh_x;i++){
+    for(unsigned int k=0;k<N_mesh_z;k++){
 	for(unsigned int j=0;j<N_mesh_y;j++){
-	for(unsigned int k=0;k<N_mesh_z;k++){
-		(rho_real[i][j][k]).r=0.0;
-		(rho_real[i][j][k]).i=0.0;
+	for(unsigned int i=0;i<N_mesh_x;i++){
+		ind=T.D3To1D(i,j,k);
+		(rho_real[ind]).r=0.0;
+		(rho_real[ind]).i=0.0;
 	}
 	}
 	}
@@ -309,22 +244,24 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		Scalar dz=zi-z_floor-0.5;
         
 		//take into account boundary conditions
+		for(int lz=-P_half+1;lz<=P_half;lz++){
+				ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;
+        for(int ly=-P_half+1;ly<=P_half;ly++){
+				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half+1;lx<=P_half;lx++){
 				ind_x=ix_floor+lx+((N_mesh_x-ix_floor-lx)/N_mesh_x)*N_mesh_x-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-        for(int ly=-P_half+1;ly<=P_half;ly++){
-				ind_y=iy_floor+lx+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
-		for(int lz=-P_half+1;lz<=P_half;lz++){
-			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lx)/N_mesh_z)*N_mesh_z-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-				(rho_real[ind_x][ind_y][ind_z]).r+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
+				ind=T.D3To1D(ind_x,ind_y,ind_z);
+				(rho_real[ind]).r+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
 	    }
 		}
 		}
 	}
 	 //The charge is now defined on the grid for P even
 }
-void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar ***Grid,Scalar *Continuum)
+void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Continuum)
 {
 	int P_half=static_cast<int>(P_order/2);
+	unsigned int ind;
 
 	// access the particle data
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
@@ -361,13 +298,14 @@ void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar ***Grid,Scalar *C
 		Scalar dz=zi-z_floor-0.5;
         
 		//take into account boundary conditions
+		for(int lz=-P_half+1;lz<=P_half;lz++){
+			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;
+        for(int ly=-P_half+1;ly<=P_half;ly++){
+				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half+1;lx<=P_half;lx++){
 				ind_x=ix_floor+lx+((N_mesh_x-ix_floor-lx)/N_mesh_x)*N_mesh_x-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-        for(int ly=-P_half+1;ly<=P_half;ly++){
-				ind_y=iy_floor+lx+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
-		for(int lz=-P_half+1;lz<=P_half;lz++){
-			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lx)/N_mesh_z)*N_mesh_z-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-				Continuum[i]+=((Grid[ind_x][ind_y][ind_z]).r)*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
+				ind=T.D3To1D(ind_x,ind_y,ind_z);
+				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
 	    }
 		}
 		}
@@ -377,13 +315,16 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 {
 	
     int P_half=static_cast<int>(P_order/2);
+	unsigned int ind;
 
 	//initialize rho to zero
-    for(unsigned int i=0;i<N_mesh_x;i++){
+
+    for(unsigned int k=0;k<N_mesh_z;k++){
 	for(unsigned int j=0;j<N_mesh_y;j++){
-	for(unsigned int k=0;k<N_mesh_z;k++){
-		(rho_real[i][j][k]).r=0.0;
-		(rho_real[i][j][k]).i=0.0;
+	for(unsigned int i=0;i<N_mesh_x;i++){
+		ind=T.D3To1D(i,j,k);
+		(rho_real[ind]).r=0.0;
+		(rho_real[ind]).i=0.0;
 	}
 	}
 	}
@@ -437,13 +378,14 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 		Scalar dz=zi-z_floor;
         
 		//take into account boundary conditions
+		for(int lz=-P_half;lz<=P_half;lz++){
+			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lz)/N_mesh_z)*N_mesh_z-((iz_lat+lz)/N_mesh_z)*N_mesh_z;
+        for(int ly=-P_half;ly<=P_half;ly++){
+				ind_y=iy_lat+ly+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half;lx<=P_half;lx++){
 				ind_x=ix_lat+lx+((N_mesh_x-ix_lat-lx)/N_mesh_x)*N_mesh_x-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
-        for(int ly=-P_half;ly<=P_half;ly++){
-				ind_y=iy_lat+lx+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
-		for(int lz=-P_half;lz<=P_half;lz++){
-			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lx)/N_mesh_z)*N_mesh_z-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
-				(rho_real[ind_x][ind_y][ind_z]).r+=q_i*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
+				ind=T.D3To1D(ind_x,ind_y,ind_z);
+				(rho_real[ind]).r+=q_i*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
 	    }
 		}
 		}
@@ -451,10 +393,11 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 
 }
 
-void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar ***Grid,Scalar *Continuum)
+void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar *Grid,Scalar *Continuum)
 { 
 	
 	int P_half=static_cast<int>(P_order/2);
+	unsigned int ind;
 
 	// access the particle data
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
@@ -503,13 +446,14 @@ void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar ***Grid,Scalar *Co
 		Scalar dz=zi-z_floor;
         
 		//take into account boundary conditions
+		for(int lz=-P_half;lz<=P_half;lz++){
+			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lz)/N_mesh_z)*N_mesh_z-((iz_lat+lz)/N_mesh_z)*N_mesh_z;
+        for(int ly=-P_half;ly<=P_half;ly++){
+				ind_y=iy_lat+ly+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half;lx<=P_half;lx++){
 				ind_x=ix_lat+lx+((N_mesh_x-ix_lat-lx)/N_mesh_x)*N_mesh_x-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
-        for(int ly=-P_half;ly<=P_half;ly++){
-				ind_y=iy_lat+lx+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
-		for(int lz=-P_half;lz<=P_half;lz++){
-			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lx)/N_mesh_z)*N_mesh_z-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
-				Continuum[i]+=((Grid[ind_x][ind_y][ind_z]).r)*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
+				ind=T.D3To1D(ind_x,ind_y,ind_z);
+				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
 	    }
 		}
 		}
@@ -597,11 +541,13 @@ void ElectrostaticLongRangePPPM::Compute_G(void)
 	Scalar xsi,ysi,zsi;
 	Scalar k_x,k_y,k_z;
 	Scalar k_per_x,k_per_y,k_per_z,k_per_norm;
+	unsigned int ind;
 
-	for(unsigned int i=0;i<N_mesh_x;i++){
-	for(unsigned int j=0;j<N_mesh_y;j++){
 	for(unsigned int k=0;k<N_mesh_z;k++){
-		G_Inf[i][j][k]=0.0;
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int i=0;i<N_mesh_x;i++){
+		ind=T.D3To1D(i,j,k);
+		G_Inf[ind]=0.0;
 	}
 	}
 	}
@@ -622,7 +568,9 @@ void ElectrostaticLongRangePPPM::Compute_G(void)
 		k_per_norm=k_per_x*k_per_x+k_per_y*k_per_y+k_per_z*k_per_z; // modulus of the derivative
 		v_num=Numerator_G(k_x,k_y,k_z);	
 
-		G_Inf[i][j][k]=(k_per_x*v_num[0]+k_per_y*v_num[1]+k_per_z*v_num[2])/(k_per_norm*Denominator_G(xsi,ysi,zsi));
+		ind=T.D3To1D(i,j,k);
+
+		G_Inf[ind]=(k_per_x*v_num[0]+k_per_y*v_num[1]+k_per_z*v_num[2])/(k_per_norm*Denominator_G(xsi,ysi,zsi));
 	}
 	}
 	}
@@ -746,8 +694,10 @@ void ElectrostaticLongRangePPPM::Denominator_Poly_G(void)
 
 const Scalar & ElectrostaticLongRangePPPM::Influence_function(unsigned int ix,unsigned int iy,unsigned int iz) const
 {
+	unsigned int ind;
 	if((ix<N_mesh_x)&&(iy<N_mesh_y)&&(iz<N_mesh_z)){
-		return G_Inf[ix][iy][iz];
+		ind=T.D3To1D(ix,iy,iz);
+		return G_Inf[ind];
 	}
 	else
 	{
@@ -759,7 +709,8 @@ const Scalar & ElectrostaticLongRangePPPM::Influence_function(unsigned int ix,un
 const CScalar & ElectrostaticLongRangePPPM::Show_rho_real(unsigned int ix,unsigned int iy,unsigned int iz) const
 {
 	if((ix<N_mesh_x)&&(iy<N_mesh_y)&&(iz<N_mesh_z)){
-		return rho_real[ix][iy][iz];
+		unsigned int ind=T.D3To1D(ix,iy,iz);
+		return rho_real[ind];
 	}
 	else
 	{
@@ -797,6 +748,7 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	{
 	// start the profile
 	if (m_prof) m_prof->push("ElecLongRange");
+	unsigned int ind;
 	
 	// tally up the number of forces calculated
 	int64_t n_calc = 0;
@@ -822,11 +774,12 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 
 	//compute energy in k-space
 
-	for(unsigned int i=0;i<N_mesh_x;i++){
-	for(unsigned int j=0;j<N_mesh_y;j++){
 	for(unsigned int k=0;k<N_mesh_z;k++){
-		(e_kspace[i][j][k]).r=G_Inf[i][j][k]*((rho_kspace[i][j][k]).r);
-		(e_kspace[i][j][k]).i=G_Inf[i][j][k]*((rho_kspace[i][j][k]).i);
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int i=0;i<N_mesh_x;i++){
+		ind=T.D3To1D(i,j,k);
+		(e_kspace[ind]).r=G_Inf[ind]*((rho_kspace[ind]).r);
+		(e_kspace[ind]).i=G_Inf[ind]*((rho_kspace[ind]).i);
 	}
 	}
 	}
@@ -835,18 +788,19 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 
 	Scalar k_per_x,k_per_y,k_per_z;
 
-	for(unsigned int i=0;i<N_mesh_x;i++){
-	k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x;
-	for(unsigned int j=0;j<N_mesh_y;j++){
-	k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
 	for(unsigned int k=0;k<N_mesh_z;k++){
 	k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/h_z;
-		(fx_kspace[i][j][k]).r=k_per_x*((e_kspace[i][j][k]).r);
-		(fx_kspace[i][j][k]).i=k_per_x*((e_kspace[i][j][k]).i);
-		(fy_kspace[i][j][k]).r=k_per_y*((e_kspace[i][j][k]).r);
-		(fy_kspace[i][j][k]).i=k_per_y*((e_kspace[i][j][k]).i);
-		(fz_kspace[i][j][k]).r=k_per_z*((e_kspace[i][j][k]).r);
-		(fz_kspace[i][j][k]).i=k_per_z*((e_kspace[i][j][k]).i);
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
+	for(unsigned int i=0;i<N_mesh_x;i++){
+	k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x;
+		ind=T.D3To1D(i,j,k);
+		(fx_kspace[ind]).r=k_per_x*((e_kspace[ind]).r);
+		(fx_kspace[ind]).i=k_per_x*((e_kspace[ind]).i);
+		(fy_kspace[ind]).r=k_per_y*((e_kspace[ind]).r);
+		(fy_kspace[ind]).i=k_per_y*((e_kspace[ind]).i);
+		(fz_kspace[ind]).r=k_per_z*((e_kspace[ind]).r);
+		(fz_kspace[ind]).i=k_per_z*((e_kspace[ind]).i);
 	}
 	}
 	}
