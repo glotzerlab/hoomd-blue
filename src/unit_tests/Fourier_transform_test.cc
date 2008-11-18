@@ -63,9 +63,8 @@ using namespace boost;
 
 #ifdef USE_FFTW
 
-
-
 #include "FftwWrapper.h"
+#include "IndexTransform.h"
 
 /*! \file Fourier_transform_test.cc
 	\brief Implements two simple unit tests for fft
@@ -92,36 +91,24 @@ void fftw_accuracy_test(fftw_creator fftw_test)
     double Exact_Conf_real(double x,double y);
 	double Exact_Conf_Imag(double x,double y);
 
-	unsigned int N_x=1024;
-	unsigned int N_y=2048;
-	unsigned int N_z=512;
+	unsigned int N_x=32;
+	unsigned int N_y=1;
+	unsigned int N_z=1;
 
-	CScalar ***rho_real;
-	CScalar ***rho_kspace;
-	CScalar ***Exact_kspace;
-	CScalar ***rho_real_init;
+	IndexTransform T;
+	T.SetD3to1D(N_x,N_y,N_z);
+	unsigned int ind;
+
+	CScalar *rho_real;
+	CScalar *rho_kspace;
+	CScalar *Exact_kspace;
+	CScalar *rho_real_init;
 	
-	rho_real=new CScalar**[N_z];
-	rho_kspace=new CScalar**[N_z];
-	Exact_kspace=new CScalar**[N_z];
-	rho_real_init=new CScalar**[N_z];
+	rho_real=new CScalar[N_x*N_y*N_z];
+	rho_kspace=new CScalar[N_x*N_y*N_z];
+	Exact_kspace=new CScalar[N_x*N_y*N_z];
+	rho_real_init=new CScalar[N_x*N_y*N_z];
 
-	for(unsigned int i=0;i<N_z;i++){
-		rho_real[i]=new CScalar*[N_y];
-		rho_kspace[i]=new CScalar*[N_y];
-		Exact_kspace[i]=new CScalar*[N_y];
-		rho_real_init[i]=new CScalar*[N_y];
-	}
-
-	for(unsigned int j=0;j<N_z;j++){
-	for(unsigned int i=0;i<N_y;i++){
-		rho_real[i][j]=new CScalar[N_x];
-		rho_kspace[i][j]=new CScalar[N_x];
-		Exact_kspace[i][j]=new CScalar[N_x];
-		rho_real_init[i][j]=new CScalar[N_x];
-	}
-	}
-    
 	// Create a fftw object with N_x,N_y,N_z points 
 	shared_ptr<FftwWrapper> fftw_1=fftw_test(N_x,N_y,N_z);
 
@@ -129,11 +116,12 @@ void fftw_accuracy_test(fftw_creator fftw_test)
 
 	for(unsigned int k=0;k<N_z;k++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_z;i++){
-					(rho_real[i][j][k]).r=exp(-static_cast<Scalar>(i+j+k));
-					(rho_real[i][j][k]).i=0.0;
-					(rho_real_init[i][j][k]).r=(rho_real[i][j][k]).r;
-					(rho_real_init[i][j][k]).i=(rho_real[i][j][k]).i;
+				for(unsigned int i=0;i<N_x;i++){
+					ind=T.D3To1D(i,j,k);
+					(rho_real[ind]).r=exp(-static_cast<Scalar>(i+j+k));
+					(rho_real[ind]).i=0.0;
+					(rho_real_init[ind]).r=(rho_real[ind]).r;
+					(rho_real_init[ind]).i=(rho_real[ind]).i;
 					}
 				}
 			}
@@ -145,9 +133,10 @@ void fftw_accuracy_test(fftw_creator fftw_test)
 
 	for(unsigned int k=0;k<N_z;k++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_z;i++){
-					(Exact_kspace[i][j][k]).r=static_cast<Scalar>(Exact_Conf_real(k,N_z)*Exact_Conf_real(j,N_y)*Exact_Conf_real(i,N_x));
-					(Exact_kspace[i][j][k]).i=static_cast<Scalar>(Exact_Conf_Imag(k,N_z)*Exact_Conf_Imag(j,N_y)*Exact_Conf_Imag(i,N_x));
+				for(unsigned int i=0;i<N_x;i++){
+					ind=T.D3To1D(i,j,k);
+					(Exact_kspace[ind]).r=static_cast<Scalar>(Exact_Conf_real(N_z,k)*Exact_Conf_real(N_y,j)*Exact_Conf_real(N_x,i));
+					(Exact_kspace[ind]).i=static_cast<Scalar>(Exact_Conf_Imag(N_z,k)*Exact_Conf_Imag(N_y,j)*Exact_Conf_Imag(N_x,i));
 					}
 				}
 			}
@@ -156,16 +145,18 @@ void fftw_accuracy_test(fftw_creator fftw_test)
 
 	for(unsigned int k=0;k<N_z;k++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_z;i++){
-					MY_BOOST_CHECK_CLOSE((Exact_kspace[i][j][k]).r,(rho_kspace[i][j][k]).r,tol);
-					MY_BOOST_CHECK_CLOSE((Exact_kspace[i][j][k]).i,(rho_kspace[i][j][k]).i,tol);
+				for(unsigned int i=0;i<N_x;i++){
+					ind=T.D3To1D(i,j,k);
+					cout << " exact = " << (Exact_kspace[ind]).i << " calc = " << (rho_kspace[ind]).i << endl;
+					MY_BOOST_CHECK_CLOSE((Exact_kspace[ind]).r,(rho_kspace[ind]).r,tol);
+					MY_BOOST_CHECK_CLOSE((Exact_kspace[ind]).i,(rho_kspace[ind]).i,tol);
 					}
 				}
 			}
 
 		//Next test, do the inverse fft ...
 	
-		fftw_1->cmplx_fft(N_x,N_y,N_z,rho_real,rho_kspace,1);
+		fftw_1->cmplx_fft(N_x,N_y,N_z,rho_kspace,rho_real,1);
 
 		Scalar vol=static_cast<Scalar>(N_x*N_y*N_z);
 
@@ -173,14 +164,20 @@ void fftw_accuracy_test(fftw_creator fftw_test)
 		
 		for(unsigned int k=0;k<N_z;k++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_z;i++){
-					MY_BOOST_CHECK_CLOSE(vol*((rho_real[i][j][k]).r),(rho_real_init[i][j][k]).r,tol);
-					MY_BOOST_CHECK_CLOSE(vol*((rho_real[i][j][k]).i),(rho_real_init[i][j][k]).i,tol);
+				for(unsigned int i=0;i<N_x;i++){
+					ind=T.D3To1D(i,j,k);
+					MY_BOOST_CHECK_CLOSE(vol*((rho_real[ind]).r),(rho_real_init[ind]).r,tol);
+					MY_BOOST_CHECK_CLOSE(vol*((rho_real[ind]).i),(rho_real_init[ind]).i,tol);
 					}
 				}
 			}
 		
-		// and this is it
+		// and this is it, now prevent memory leaks
+
+	delete[] rho_real;
+	delete[] rho_kspace;
+	delete[] Exact_kspace;
+	delete[] rho_real_init;
 
 	}
 
