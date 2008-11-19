@@ -199,9 +199,10 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 	unsigned int ind;
 
 	//initialize rho to zero
-    for(unsigned int k=0;k<N_mesh_z;k++){
+
+    for(unsigned int i=0;i<N_mesh_x;i++){
 	for(unsigned int j=0;j<N_mesh_y;j++){
-	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
 		ind=T.D3To1D(i,j,k);
 		(rho_real[ind]).r=0.0;
 		(rho_real[ind]).i=0.0;
@@ -244,12 +245,12 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		Scalar dz=zi-z_floor-0.5;
         
 		//take into account boundary conditions
-		for(int lz=-P_half+1;lz<=P_half;lz++){
-				ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;
-        for(int ly=-P_half+1;ly<=P_half;ly++){
-				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half+1;lx<=P_half;lx++){
 				ind_x=ix_floor+lx+((N_mesh_x-ix_floor-lx)/N_mesh_x)*N_mesh_x-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
+        for(int ly=-P_half+1;ly<=P_half;ly++){
+				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
+		for(int lz=-P_half+1;lz<=P_half;lz++){
+				ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;
 				ind=T.D3To1D(ind_x,ind_y,ind_z);
 				(rho_real[ind]).r+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
 	    }
@@ -298,12 +299,12 @@ void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Con
 		Scalar dz=zi-z_floor-0.5;
         
 		//take into account boundary conditions
-		for(int lz=-P_half+1;lz<=P_half;lz++){
-			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;
-        for(int ly=-P_half+1;ly<=P_half;ly++){
-				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half+1;lx<=P_half;lx++){
 				ind_x=ix_floor+lx+((N_mesh_x-ix_floor-lx)/N_mesh_x)*N_mesh_x-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
+        for(int ly=-P_half+1;ly<=P_half;ly++){
+				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
+		for(int lz=-P_half+1;lz<=P_half;lz++){
+			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;	
 				ind=T.D3To1D(ind_x,ind_y,ind_z);
 				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
 	    }
@@ -319,9 +320,9 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 
 	//initialize rho to zero
 
-    for(unsigned int k=0;k<N_mesh_z;k++){
+    for(unsigned int i=0;i<N_mesh_x;i++){
 	for(unsigned int j=0;j<N_mesh_y;j++){
-	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
 		ind=T.D3To1D(i,j,k);
 		(rho_real[ind]).r=0.0;
 		(rho_real[ind]).i=0.0;
@@ -378,12 +379,12 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 		Scalar dz=zi-z_floor;
         
 		//take into account boundary conditions
-		for(int lz=-P_half;lz<=P_half;lz++){
-			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lz)/N_mesh_z)*N_mesh_z-((iz_lat+lz)/N_mesh_z)*N_mesh_z;
-        for(int ly=-P_half;ly<=P_half;ly++){
-				ind_y=iy_lat+ly+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half;lx<=P_half;lx++){
 				ind_x=ix_lat+lx+((N_mesh_x-ix_lat-lx)/N_mesh_x)*N_mesh_x-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
+        for(int ly=-P_half;ly<=P_half;ly++){
+				ind_y=iy_lat+ly+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
+		for(int lz=-P_half;lz<=P_half;lz++){
+			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lz)/N_mesh_z)*N_mesh_z-((iz_lat+lz)/N_mesh_z)*N_mesh_z;		
 				ind=T.D3To1D(ind_x,ind_y,ind_z);
 				(rho_real[ind]).r+=q_i*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
 	    }
@@ -446,12 +447,12 @@ void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar *Grid,Scalar *Cont
 		Scalar dz=zi-z_floor;
         
 		//take into account boundary conditions
-		for(int lz=-P_half;lz<=P_half;lz++){
-			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lz)/N_mesh_z)*N_mesh_z-((iz_lat+lz)/N_mesh_z)*N_mesh_z;
-        for(int ly=-P_half;ly<=P_half;ly++){
-				ind_y=iy_lat+ly+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
 		for(int lx=-P_half;lx<=P_half;lx++){
 				ind_x=ix_lat+lx+((N_mesh_x-ix_lat-lx)/N_mesh_x)*N_mesh_x-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
+        for(int ly=-P_half;ly<=P_half;ly++){
+				ind_y=iy_lat+ly+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
+		for(int lz=-P_half;lz<=P_half;lz++){
+			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lz)/N_mesh_z)*N_mesh_z-((iz_lat+lz)/N_mesh_z)*N_mesh_z;
 				ind=T.D3To1D(ind_x,ind_y,ind_z);
 				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
 	    }
@@ -543,15 +544,15 @@ void ElectrostaticLongRangePPPM::Compute_G(void)
 	Scalar k_per_x,k_per_y,k_per_z,k_per_norm;
 	unsigned int ind;
 
-	for(unsigned int k=0;k<N_mesh_z;k++){
-	for(unsigned int j=0;j<N_mesh_y;j++){
 	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
 		ind=T.D3To1D(i,j,k);
 		G_Inf[ind]=0.0;
 	}
 	}
 	}
-    
+
 	for(unsigned int i=0;i<N_mesh_x;i++){
 		k_x=2*i*M_PI/h_x;
 		k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x; 
@@ -774,9 +775,9 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 
 	//compute energy in k-space
 
-	for(unsigned int k=0;k<N_mesh_z;k++){
-	for(unsigned int j=0;j<N_mesh_y;j++){
 	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	for(unsigned int k=0;k<N_mesh_z;k++){
 		ind=T.D3To1D(i,j,k);
 		(e_kspace[ind]).r=G_Inf[ind]*((rho_kspace[ind]).r);
 		(e_kspace[ind]).i=G_Inf[ind]*((rho_kspace[ind]).i);
@@ -788,12 +789,12 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 
 	Scalar k_per_x,k_per_y,k_per_z;
 
-	for(unsigned int k=0;k<N_mesh_z;k++){
-	k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/h_z;
-	for(unsigned int j=0;j<N_mesh_y;j++){
-	k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
 	for(unsigned int i=0;i<N_mesh_x;i++){
 	k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x;
+	for(unsigned int j=0;j<N_mesh_y;j++){
+	k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
+	for(unsigned int k=0;k<N_mesh_z;k++){
+	k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/h_z;
 		ind=T.D3To1D(i,j,k);
 		(fx_kspace[ind]).r=k_per_x*((e_kspace[ind]).r);
 		(fx_kspace[ind]).i=k_per_x*((e_kspace[ind]).i);
