@@ -68,16 +68,23 @@ FftwWrapper::FftwWrapper(unsigned int Nx,unsigned int Ny,unsigned int Nz):N_x(Nx
 		in_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 		out_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
         
-		T.SetD3to1D(N_x,N_y,N_z);
+		Scalar a_x,a_y,a_z,b_x,b_y,b_z;
 
-		for(unsigned int k=0;k<Nz;k++){
-			 for(unsigned int j=0;j<Ny;j++){
-				 for(unsigned int i=0;i<Nx;i++){
+		T.SetD3to1D(N_x,N_y,N_z);
+		for(unsigned int i=0;i<N_x;i++){
+			 for(unsigned int j=0;j<N_y;j++){
+				 for(unsigned int k=0;k<N_z;k++){
 				    uni_ind=T.D3To1D(i,j,k);
 					in_f[uni_ind][0]=exp(-static_cast<double>(i+j+k));
         			in_f[uni_ind][1]=0.0;
-					in_b[i][0]=Initial_Conf_real(static_cast<double>(Nx),static_cast<double>(i))*Initial_Conf_real(static_cast<double>(Ny),static_cast<double>(j))*Initial_Conf_real(static_cast<double>(Nz),static_cast<double>(k));	
-					in_b[i][1]=Initial_Conf_Imag(static_cast<double>(Nx),static_cast<double>(i))*Initial_Conf_Imag(static_cast<double>(Ny),static_cast<double>(j))*Initial_Conf_Imag(static_cast<double>(Nz),static_cast<double>(k));	
+					a_x=static_cast<Scalar>(Initial_Conf_real(N_x,i));
+					a_y=static_cast<Scalar>(Initial_Conf_real(N_y,j));
+					a_z=static_cast<Scalar>(Initial_Conf_real(N_z,k));
+					b_x=static_cast<Scalar>(Initial_Conf_Imag(N_x,i));
+					b_y=static_cast<Scalar>(Initial_Conf_Imag(N_y,j));
+					b_z=static_cast<Scalar>(Initial_Conf_Imag(N_z,k));
+					in_b[i][0]=	a_x*a_y*a_z-b_x*b_y*a_z-a_x*b_y*b_z-b_x*a_y*b_z;
+					in_b[i][1]=	a_x*a_y*b_z+a_x*b_y*a_z+b_x*a_y*a_z-b_x*b_y*b_z;
        										   } 
 											}
 										}
@@ -108,6 +115,7 @@ void FftwWrapper::fftw_define(unsigned int Nx,unsigned int Ny,unsigned int Nz)
 		N_x=Nx;
 		N_y=Ny;
 		N_z=Nz;
+		Scalar a_x,a_y,a_z,b_x,b_y,b_z;
 
 		T.SetD3to1D(N_x,N_y,N_z);
 
@@ -116,14 +124,20 @@ void FftwWrapper::fftw_define(unsigned int Nx,unsigned int Ny,unsigned int Nz)
 		in_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 		out_b=(fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N_x*N_y*N_z);
 
-		for(unsigned int k=0;k<Nz;k++){
-			 for(unsigned int j=0;j<Ny;j++){
-				 for(unsigned int i=0;i<Nx;i++){
+		for(unsigned int i=0;i<N_x;i++){
+			 for(unsigned int j=0;j<N_y;j++){
+				 for(unsigned int k=0;k<N_z;k++){
 					uni_ind=T.D3To1D(i,j,k);
 					in_f[uni_ind][0]=exp(-static_cast<double>(i+j+k));
         			in_f[uni_ind][1]=0.0;
-					in_b[uni_ind][0]=Initial_Conf_real(static_cast<double>(Nx),static_cast<double>(i))*Initial_Conf_real(static_cast<double>(Ny),static_cast<double>(j))*Initial_Conf_real(static_cast<double>(Nz),static_cast<double>(k));	
-					in_b[uni_ind][1]=Initial_Conf_Imag(static_cast<double>(Nx),static_cast<double>(i))*Initial_Conf_Imag(static_cast<double>(Ny),static_cast<double>(j))*Initial_Conf_Imag(static_cast<double>(Nz),static_cast<double>(k));	
+					a_x=static_cast<Scalar>(Initial_Conf_real(N_x,i));
+					a_y=static_cast<Scalar>(Initial_Conf_real(N_y,j));
+					a_z=static_cast<Scalar>(Initial_Conf_real(N_z,k));
+					b_x=static_cast<Scalar>(Initial_Conf_Imag(N_x,i));
+					b_y=static_cast<Scalar>(Initial_Conf_Imag(N_y,j));
+					b_z=static_cast<Scalar>(Initial_Conf_Imag(N_z,k));
+					in_b[uni_ind][0]=	a_x*a_y*a_z-b_x*b_y*a_z-a_x*b_y*b_z-b_x*a_y*b_z;
+					in_b[uni_ind][1]=	a_x*a_y*b_z+a_x*b_y*a_z+b_x*a_y*a_z-b_x*b_y*b_z;
        										   } 
 											}
 										}
@@ -149,19 +163,19 @@ void FftwWrapper::cmplx_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,CSca
 	int uni_ind=0;
 
 	if(sig>0){
-     for(unsigned int k=0;k<Nz;k++){
-		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int i=0;i<Nx;i++){
+     for(unsigned int i=0;i<N_x;i++){
+		 for(unsigned int j=0;j<N_y;j++){
+			 for(unsigned int k=0;k<N_z;k++){
 				 uni_ind=T.D3To1D(i,j,k);
-			 in_f[uni_ind][0]=static_cast<double>((Dat_in[uni_ind]).r);
-        	 in_f[uni_ind][1]=static_cast<double>((Dat_in[uni_ind]).i);
+				 in_f[uni_ind][0]=static_cast<double>((Dat_in[uni_ind]).r);
+        		 in_f[uni_ind][1]=static_cast<double>((Dat_in[uni_ind]).i);
        			} 
 		 }
 	 }
 		fftw_execute(p_forward);
-	  for(unsigned int k=0;k<Nz;k++){
-		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int i=0;i<Nz;i++){
+	  for(unsigned int i=0;i<N_x;i++){
+		 for(unsigned int j=0;j<N_y;j++){
+			 for(unsigned int k=0;k<N_z;k++){
 				 uni_ind=T.D3To1D(i,j,k);
 			(Dat_out[uni_ind]).r=static_cast<Scalar>(out_f[uni_ind][0]);
         	(Dat_out[uni_ind]).i=static_cast<Scalar>(out_f[uni_ind][1]);
@@ -170,19 +184,20 @@ void FftwWrapper::cmplx_fft(unsigned int Nx,unsigned int Ny,unsigned int Nz,CSca
 							}
 		 }
 	else{
-		 for(unsigned int k=0;k<Nz;k++){
-		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int i=0;i<Nx;i++){
+	 for(unsigned int i=0;i<N_x;i++){
+		 for(unsigned int j=0;j<N_y;j++){
+			for(unsigned int k=0;k<N_z;k++){
 				 uni_ind=T.D3To1D(i,j,k);
 			 in_b[uni_ind][0]=static_cast<double>((Dat_in[uni_ind]).r);
         	 in_b[uni_ind][1]=static_cast<double>((Dat_in[uni_ind]).i);
-       			} 
-		 }
-		 }
-		fftw_execute(p_backward);
-	  for(unsigned int k=0;k<Nz;k++){
-		 for(unsigned int j=0;j<Ny;j++){
-			 for(unsigned int i=0;i<Nx;i++){
+       									} 
+									 }
+								 }
+
+	  fftw_execute(p_backward);
+	  for(unsigned int i=0;i<N_x;i++){
+		 for(unsigned int j=0;j<N_y;j++){
+			 for(unsigned int k=0;k<N_z;k++){
 				 uni_ind=T.D3To1D(i,j,k);
 			(Dat_out[uni_ind]).r=static_cast<Scalar>(out_b[uni_ind][0]);
         	(Dat_out[uni_ind]).i=static_cast<Scalar>(out_b[uni_ind][1]);

@@ -50,6 +50,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
     A typical example is a 3D matrix that needs to be stored as 1D one, and thus
 	(i,j,k) indices need to be transformed to a 1D ind. 
 	Other transformations may be required
+	\note There is some freedom in how to map 3D indices to 1D indices, here we follow the 
+	formula that elements are stored in row major order, that is (i,j,k) maps into
+	   k+N_3*j+N_3*N_2*i
+    where (N_1,N_2,N_3) are the number of grid points along 1,2,3. Caution must be taken as 
+	a convention using minor order is also common practice.
 */
 
 class IndexTransform
@@ -57,13 +62,13 @@ class IndexTransform
 	public:
 			IndexTransform(void);   //!< void constructor
 			~IndexTransform(void); //!< destructor
-			void SetD3to1D(unsigned int N_x,unsigned int N_y,unsigned int N_z); //Set the grid
+			void SetD3to1D(unsigned int N_1,unsigned int N_2,unsigned int N_3); //Set the grid
 			unsigned int D3To1D(unsigned int i,unsigned int j,unsigned int k) const; //!< converts three dimensional index i,j,k to a single integer index
     // Only 3d to 1D is defined so far
 
 	private:
-			unsigned int N_x;	//!< Number of grid points along the x axis
-			unsigned int N_y;	//!< Number of grid points along the y axis
-			unsigned int N_z;	//!< Number of grid points along the z axis
+			unsigned int N_1;	//!< Number of grid points along the 1 axis
+			unsigned int N_2;	//!< Number of grid points along the 2 axis
+			unsigned int N_3;	//!< Number of grid points along the 3 axis
 };
 #endif

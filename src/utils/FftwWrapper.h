@@ -92,7 +92,7 @@ class FftwWrapper:public FFTClass
 			fftw_complex *out_b;	//!< data structure required as output for fftw to perfrom backaward fft
 			fftw_plan p_forward;	//!< Defines the structure by which fftw will do the fftw forward (see fftw documentation)
 			fftw_plan p_backward;	//!< Defines the structure by which fftw will do the fftw backward (see fftw documentation)
-			bool plan_is_defined;	//!< logical variable to prevent redefining a plan
+			bool plan_is_defined;	//!< logical variable to prevent redefining a plan once one is already defined
 			double Initial_Conf_real(double x,double y); //!< Defines the real part of an initial configuration
 			double Initial_Conf_Imag(double x,double y); //!< Defines the imag part of an initial configuration
 			

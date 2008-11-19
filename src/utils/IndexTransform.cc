@@ -46,27 +46,27 @@ THE POSSIBILITY OF SUCH DAMAGE.
 IndexTransform::IndexTransform(void)
 {
 //constructor initializes to zero
-	N_x=0;
-	N_y=0;
-	N_z=0;
+	N_1=0;
+	N_2=0;
+	N_3=0;
 }
 
 IndexTransform::~IndexTransform()
 {
 // destructor does nothing
 }
-/*!				\param Nx number of grid points in the x axis
-			    \param Ny number of grid points in the y axis
-			    \param Nz number of grid points in the z axis
+/*!				\param N_1 number of grid points in the 1 axis
+			    \param N_2 number of grid points in the 2 axis
+			    \param N_3 number of grid points in the 3 axis
 */
-void IndexTransform::SetD3to1D(unsigned int Nx,unsigned int Ny,unsigned int Nz)
+void IndexTransform::SetD3to1D(unsigned int N1,unsigned int N2,unsigned int N3)
 {
-	N_x=Nx;
-	N_y=Ny;
-	N_z=Nz;
+	N_1=N1;
+	N_2=N2;
+	N_3=N3;
 }
 
 unsigned int IndexTransform::D3To1D(unsigned int i,unsigned int j,unsigned int k) const
 {
-	return i+N_x*j+N_x*N_y*k;
+	return k+N_3*j+N_2*N_3*i;
 }
