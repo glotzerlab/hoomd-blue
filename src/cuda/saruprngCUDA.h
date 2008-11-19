@@ -4,11 +4,21 @@
 /*
  * Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
  *
-BSD license will go here when it's released..
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 /*
-  C++ Saru PRNG by Steve Worley.   This is version 0.9, August 21 2008.
+  C++ Saru PRNG by Steve Worley.   This is version 0.91, November 7 2008.
 
   Saru is a 32 bit PRNG with period of 3666320093*2^32. It passes even
   the most stringent randomness test batteries, including DIEHARD and
@@ -98,12 +108,11 @@ class Saru {
   __device__ inline double d();
   __device__ inline float f(float low, float high);
   __device__ inline double d(double low, double high);
-
-#ifdef _DEVICEEMU
-   uint2 state;
-#endif   
-
+   
+  /* nvcc doesn't like private members in emulation mode */
+#ifndef __DEVICE_EMULATION__
  private:
+#endif
    
    /* compile-time metaprograms to compute LCG and Weyl advancement */
    
@@ -169,12 +178,8 @@ class Saru {
    template <unsigned int steps> __device__ inline  void rewindWeyl()
      { state.y=advanceAnyWeyl<oWeylOffset, oWeylPeriod-oWeylDelta, 
 	 oWeylPeriod, steps>(state.y); }
-	 
-#ifndef _DEVICEEMU
-     uint2 state;
-#endif 
-	
       
+  uint2 state;
 };
 
 // partial specialization to make a special case for step of 1
@@ -187,45 +192,29 @@ template <> __device__ inline void  Saru::advanceWeyl<1>() /* especially efficie
    shifts) pass the TestU01 Crush tests. */
 Saru::Saru(unsigned int seed) 
 {
-
-  /* Good seeding, but still placeholder beta as more hashes cook. */
-  unsigned int A, B, x;
-  x=seed;
-
-  unsigned int C1=0x8c9db1b9;
-  unsigned int C4=0x56dde7b5;
-  unsigned int S0=11;
-  unsigned int S1=10;
-  unsigned int S2=2;
-  unsigned int S3=9;
-  unsigned int S4=19;
-  
-  A = C1*((x)^(x>>S4)); 
-  B = (x) ^ (A>>S1); 
-  A = (A^B)  + (B<<S2); 
-  B = (B)  + (((signed long)A)>>S3); 
-  A = A^(B<<S0); 
-  B = 0x80100000+(C4>>2)+(B>>1);
-
-  state.x=A;
-  state.y=B;
-
+  state.x  = 0x79dedea3*(seed^(((signed int)seed)>>14));
+  state.y = seed ^ (((signed int)state.x)>>8);
+  state.x  = state.x + (state.y*(state.y^0xdddf97f5));
+  state.y = 0xABCB96F7 + (state.y>>1);
 }
 
 /* seeding from 2 samples. We lose one bit of entropy since our input
    seeds have 64 bits but at the end, after mixing, we have just 63. */
 Saru::Saru(unsigned int seed1, unsigned int seed2)
 {
-  /* Good seeding, but still placeholder beta as more hashes cook. */
-  state.x = seed1+(seed2<<21);
-  state.y = seed2+(((signed int)state.x)>>16);
-  state.x = state.x ^ (state.y>>10);
-  state.x = 0x1fc4ce47*(state.x^(state.x>>13)); 
-  state.y = (state.y+0xcc00729f) ^ (state.x>>18); 
-  state.x = (state.x^state.y) + (state.y<<15); 
-  state.y = (state.x+state.y) + (((signed int)state.x)>>27); 
-  state.x = state.x^(state.y<<3); 
-  state.y = 0x856C4555+(state.y>>1);
+  seed2+=seed1<<16;
+  seed1+=seed2<<11;
+  seed2+=((signed int)seed1)>>7;
+  seed1^=((signed int)seed2)>>3;
+  seed2*=0xA5366B4D;
+  seed2^=seed2>>10;
+  seed2^=((signed int)seed2)>>19;
+  seed1+=seed2^0x6d2d4e11;
+  
+  state.x  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
+  state.y = (state.x+seed2) ^ (((signed int)state.x)>>8);
+  state.x  = state.x + (state.y*(state.y^0xdddf97f5));
+  state.y = 0xABCB96F7 + (state.y>>1);
 }
 
 
@@ -233,25 +222,20 @@ Saru::Saru(unsigned int seed1, unsigned int seed2)
    TODO: this may be better optimized in a future version */
 Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3) 
 {
-  /* Good seeding, but still placeholder beta as more hashes cook. */
-  seed1  = seed1+(seed2<<20);
-  seed2  = seed2+(seed1<<9);
-  seed3  = seed3+(seed2>>13);
-  seed1  = seed1^(seed3<<3);
-  seed2  = seed2+(seed1>>18);
-  seed3  = seed3^(seed2<<10);
-  /* Drop our entropy from 96 mixed bits to 64 */
-  seed1  += 0xDEADBEEF&seed3;
-  seed2  += (~0xDEADBEEF)&seed3;
-  state.x = seed1+(seed2<<21);
-  state.y = seed2+(((signed int)state.x)>>16);
-  state.x = state.x ^ (state.y>>10);
-  state.x = 0x1fc4ce47*(state.x^(state.x>>13)); 
-  state.y = (state.y+0xcc00729f) ^ (state.x>>18); 
-  state.x = (state.x^state.y) + (state.y<<15); 
-  state.y = (state.x+state.y) + (((signed int)state.x)>>27); 
-  state.x = state.x^(state.y<<3); 
-  state.y = 0x856C4555+(state.y>>1);
+  seed3^=(seed1<<7)^(seed2>>6);
+  seed2+=(seed1>>4)^(seed3>>15);
+  seed1^=(seed2<<9)+(seed3<<8);
+  seed3^=0xA5366B4D*((seed2>>11) ^ (seed1<<1));
+  seed2+=0x72BE1579*((seed1<<4)  ^ (seed3>>16));
+  seed1^=0X3F38A6ED*((seed3>>5)  ^ (((signed int)seed2)>>22));
+  seed2+=seed1*seed3;
+  seed1+=seed3 ^ (seed2>>2);
+  seed2^=((signed int)seed2)>>17;
+  
+  state.x  = 0x79dedea3*(seed1^(((signed int)seed1)>>14));
+  state.y = (state.x+seed2) ^ (((signed int)state.x)>>8);
+  state.x  = state.x + (state.y*(state.y^0xdddf97f5));
+  state.y = 0xABCB96F7 + (state.y>>1);
 }
 
 template <unsigned int offset, unsigned int delta, 
@@ -324,7 +308,7 @@ __device__ inline unsigned int Saru::u32()
   return (v^(v>>20))*0x6957f5a7;
 }
 
-__device__ inline unsigned int Saru::u32()
+inline unsigned int Saru::u32()
 {
   return u32<1>();
 }
@@ -332,7 +316,8 @@ __device__ inline unsigned int Saru::u32()
 
 /* Floats have 23 bits of mantissa. We take 31 p-rand bits, cast to
    signed int and simply multiply to get the (0,1] range. We shift and cast
-   to long to boost x86 conversion speed, see worley.com/mathgeek/floatconvert.html. */
+   to signedint to boost x86 conversion speed,
+   see worley.com/mathgeek/floatconvert.html. */
 
 template <unsigned int steps>
 __device__ inline float Saru::f()
@@ -341,7 +326,7 @@ __device__ inline float Saru::f()
 }
 
 /* for a range that doesn't start at 0, we use the full 32 bits since
-   we need to add an offset anyway. We still use the long cast method. */
+   we need to add an offset anyway. We still use the int cast method. */
 template <unsigned int steps>
 __device__ inline float Saru::f(float low, float high)
 {
@@ -361,7 +346,7 @@ __device__ inline float Saru::f(float low, float high)
 }
 
 
-/* Doubles have 52 bits of mantissa. Casting to a long allows faster
+/* Doubles have 52 bits of mantissa. Casting to an int allows faster
    conversion, even with the extra needed fp addition. We use less-random
    "state" bits for the lowest order bits simply for speed. Output is
    in the (0,1] range. See worley.com/mathgeek/floatconvert.html. */
@@ -372,7 +357,7 @@ __device__ inline double Saru::d()
   const double TWO_N32 = 0.232830643653869628906250e-9; /* 2^-32 */
   signed int v=(signed int)u32<steps>(); // deliberate cast to signed int for conversion speed
 
-  return (v*TWO_N32+(0.5+0.5*TWO_N32))+((long)state.x)*(TWO_N32*TWO_N32);
+  return (v*TWO_N32+(0.5+0.5*TWO_N32))+((signed int)state.x)*(TWO_N32*TWO_N32);
 }
 
 template <unsigned int steps>
@@ -381,7 +366,7 @@ __device__ inline double Saru::d(double low, double high)
   const double TWO_N32 = 0.232830643653869628906250e-9; /* 2^-32 */
   signed int v=(signed int)u32<steps>(); // deliberate cast to signed int for conversion speed
   return (v*TWO_N32*(high-low)+(high+low)*(0.5+0.5*TWO_N32))+
-    ((long)state.x)*(TWO_N32*TWO_N32*(high-low));
+    ((signed int)state.x)*(TWO_N32*TWO_N32*(high-low));
 }
 
 
@@ -394,7 +379,6 @@ __device__ inline double Saru::d(double low, double high)
 {
   return d<1>(low, high);
 }
-
 
 
 #endif /* SARUPRNG_H */
