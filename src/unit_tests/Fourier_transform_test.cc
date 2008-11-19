@@ -67,9 +67,12 @@ using namespace boost;
 #include "IndexTransform.h"
 
 /*! \file Fourier_transform_test.cc
-	\brief Implements two simple unit tests for fft
+	\brief Implements a simple unit test for fft using fftw
 	\ingroup unit_tests
 */
+
+//! Define the minimum value to be considered
+#define TOL 1e-5
 
 //! Helper macro for testing if two numbers are close
 #define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
@@ -88,12 +91,18 @@ void fftw_accuracy_test(fftw_creator fftw_test)
 	{
 	cout << "Testing the fftw implementation on HOOMD" << endl;
 
-    double Exact_Conf_real(double x,double y);
-	double Exact_Conf_Imag(double x,double y);
+    double Exact_Conf_real(double x,double y,double l);
+	double Exact_Conf_Imag(double x,double y,double l);
 
-	unsigned int N_x=32;
-	unsigned int N_y=1;
-	unsigned int N_z=1;
+	unsigned int N_x=35;
+	unsigned int N_y=27;
+	unsigned int N_z=64;
+
+	Scalar l_x,l_y,l_z;
+	
+	l_x=Scalar(0.02);
+	l_y=Scalar(0.05);
+	l_z=Scalar(1);
 
 	IndexTransform T;
 	T.SetD3to1D(N_x,N_y,N_z);
@@ -114,11 +123,11 @@ void fftw_accuracy_test(fftw_creator fftw_test)
 
 	//we will do the fourier transform of an exponential
 
-	for(unsigned int k=0;k<N_z;k++){
+	for(unsigned int i=0;i<N_x;i++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_x;i++){
+				for(unsigned int k=0;k<N_z;k++){
 					ind=T.D3To1D(i,j,k);
-					(rho_real[ind]).r=exp(-static_cast<Scalar>(i+j+k));
+					(rho_real[ind]).r=exp(-l_x*i-l_y*j-l_z*k);
 					(rho_real[ind]).i=0.0;
 					(rho_real_init[ind]).r=(rho_real[ind]).r;
 					(rho_real_init[ind]).i=(rho_real[ind]).i;
@@ -126,48 +135,74 @@ void fftw_accuracy_test(fftw_creator fftw_test)
 				}
 			}
 
-	//Compute the FT
-	fftw_1->cmplx_fft(N_x,N_y,N_z,rho_real,rho_kspace,-1);
+	//Compute the FFT
+	fftw_1->cmplx_fft(N_x,N_y,N_z,rho_real,rho_kspace,1);
 
 	//Calculate the exact analytical result
 
-	for(unsigned int k=0;k<N_z;k++){
+	Scalar a_x,a_y,a_z;
+	Scalar b_x,b_y,b_z;
+
+	for(unsigned int i=0;i<N_x;i++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_x;i++){
+				for(unsigned int k=0;k<N_z;k++){
 					ind=T.D3To1D(i,j,k);
-					(Exact_kspace[ind]).r=static_cast<Scalar>(Exact_Conf_real(N_z,k)*Exact_Conf_real(N_y,j)*Exact_Conf_real(N_x,i));
-					(Exact_kspace[ind]).i=static_cast<Scalar>(Exact_Conf_Imag(N_z,k)*Exact_Conf_Imag(N_y,j)*Exact_Conf_Imag(N_x,i));
+					a_x=static_cast<Scalar>(Exact_Conf_real(N_x,i,l_x));
+					a_y=static_cast<Scalar>(Exact_Conf_real(N_y,j,l_y));
+					a_z=static_cast<Scalar>(Exact_Conf_real(N_z,k,l_z));
+					b_x=static_cast<Scalar>(Exact_Conf_Imag(N_x,i,l_x));
+					b_y=static_cast<Scalar>(Exact_Conf_Imag(N_y,j,l_y));
+					b_z=static_cast<Scalar>(Exact_Conf_Imag(N_z,k,l_z));
+					(Exact_kspace[ind]).r=a_x*a_y*a_z-b_x*b_y*a_z-a_x*b_y*b_z-b_x*a_y*b_z;
+					(Exact_kspace[ind]).i=a_x*a_y*b_z+a_x*b_y*a_z+b_x*a_y*a_z-b_x*b_y*b_z;
 					}
 				}
 			}
 	
 	//compare the exact result with the calculated result
 
-	for(unsigned int k=0;k<N_z;k++){
+	for(unsigned int i=0;i<N_x;i++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_x;i++){
+				for(unsigned int k=0;k<N_z;k++){
 					ind=T.D3To1D(i,j,k);
-					cout << " exact = " << (Exact_kspace[ind]).i << " calc = " << (rho_kspace[ind]).i << endl;
-					MY_BOOST_CHECK_CLOSE((Exact_kspace[ind]).r,(rho_kspace[ind]).r,tol);
-					MY_BOOST_CHECK_CLOSE((Exact_kspace[ind]).i,(rho_kspace[ind]).i,tol);
+					a_x=(Exact_kspace[ind]).r;
+					b_x=(rho_kspace[ind]).r;
+					a_y=(Exact_kspace[ind]).i;
+					b_y=(rho_kspace[ind]).i;
+					if(!((fabs(a_x)<TOL)&&(fabs(b_x)<TOL)))
+						if(fabs(a_x)<0.001)
+							MY_BOOST_CHECK_CLOSE(a_x,b_x,10*tol);
+						else MY_BOOST_CHECK_CLOSE(a_x,b_x,tol);
+					if(!((fabs(a_y)<TOL)&&(fabs(b_y)<TOL)))
+						if(fabs(a_y)<0.001)
+							MY_BOOST_CHECK_CLOSE(a_y,b_y,10*tol);
+						else MY_BOOST_CHECK_CLOSE(a_y,b_y,tol);
+						//The reason for this somewhat convoluted expression is that
+						//occasionally fftw is not accurate to the 5th decimal place
 					}
 				}
 			}
 
 		//Next test, do the inverse fft ...
 	
-		fftw_1->cmplx_fft(N_x,N_y,N_z,rho_kspace,rho_real,1);
+		fftw_1->cmplx_fft(N_x,N_y,N_z,rho_kspace,rho_real,-1);
 
 		Scalar vol=static_cast<Scalar>(N_x*N_y*N_z);
 
 		//and make sure that it is what should be
 		
-		for(unsigned int k=0;k<N_z;k++){
+		for(unsigned int i=0;i<N_x;i++){
 			for(unsigned int j=0;j<N_y;j++){
-				for(unsigned int i=0;i<N_x;i++){
+				for(unsigned int k=0;k<N_z;k++){
 					ind=T.D3To1D(i,j,k);
-					MY_BOOST_CHECK_CLOSE(vol*((rho_real[ind]).r),(rho_real_init[ind]).r,tol);
-					MY_BOOST_CHECK_CLOSE(vol*((rho_real[ind]).i),(rho_real_init[ind]).i,tol);
+				    a_x=((rho_real[ind]).r)/vol;
+					b_x=(rho_real_init[ind]).r;
+					a_y=((rho_real[ind]).i)/vol;
+					b_y=(rho_real_init[ind]).i;
+					if(fabs(a_x)>TOL)
+					MY_BOOST_CHECK_CLOSE(a_x,b_x,tol);
+					if(fabs(a_y)>TOL)
+					MY_BOOST_CHECK_CLOSE(a_y,b_y,tol);
 					}
 				}
 			}
@@ -196,14 +231,14 @@ BOOST_AUTO_TEST_CASE(fftw_test_accuracy)
 
 
 //! these functions are the exact analytical solution of real and imaginary part
-double Exact_Conf_real(double x,double y)
+double Exact_Conf_real(double x,double y,double l)
 {
-  return (1-exp(-x))*(1-exp(-1.0)*cos(2*M_PI*y/x))/(1+exp(-2.0)-2*exp(-1.0)*cos(2*M_PI*y/x));	
+  return (1-exp(-l*x))*(1-exp(-l)*cos(2*M_PI*y/x))/(1+exp(-2*l)-2*exp(-l)*cos(2*M_PI*y/x));	
 }
 //! these functions are the exact analytical solution of real and imaginary part
-double Exact_Conf_Imag(double x,double y)
+double Exact_Conf_Imag(double x,double y,double l)
 {
-  return -(1-exp(-x))*exp(-1.0)*sin(2*M_PI*y/x)/(1+exp(-2.0)-2*exp(-1.0)*cos(2*M_PI*y/x));	
+  return -(1-exp(-l*x))*exp(-l)*sin(2*M_PI*y/x)/(1+exp(-2*l)-2*exp(-l)*cos(2*M_PI*y/x));	
 }
 
 #else
