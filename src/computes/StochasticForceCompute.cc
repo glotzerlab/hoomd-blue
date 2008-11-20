@@ -54,9 +54,8 @@ using namespace boost::python;
 #include "StochasticForceCompute.h"
 #include <stdexcept>
 #include <math.h>
-
-// May want to change this to the Boost Library random number generator... but lets start with something simple
 #include <cstdlib>
+
 
 using namespace std;
 
@@ -89,7 +88,8 @@ ForceCompute(pdata), m_T(Temp), m_dt(deltaT), m_seed(seed)
 	for (unsigned int i = 0; i < m_ntypes; i++) m_gamma[i] = Scalar(1.0);
 
     // seed the RNG
-	srand(seed);
+	//srand(seed);
+    m_saru = boost::shared_ptr<Saru>(new Saru(seed));
 	}
 
 /*! Frees used memory
@@ -157,9 +157,9 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 		unsigned int type = particles.type[i];
 
 		// Here need to acquire three random numbers
-		Scalar rx = Scalar(2.0)*Scalar(rand())/Scalar(RAND_MAX) - Scalar(1.0);
-		Scalar ry = Scalar(2.0)*Scalar(rand())/Scalar(RAND_MAX) - Scalar(1.0);
-		Scalar rz = Scalar(2.0)*Scalar(rand())/Scalar(RAND_MAX) - Scalar(1.0);
+		Scalar rx = m_saru->d(-1,1);
+		Scalar ry = m_saru->d(-1,1);
+		Scalar rz =  m_saru->d(-1,1);
 			
 	    // Calculate the coefficient  (How do I get dt?? - The World's most klugey method, the integrator must pass this along)
 		// Note, this formulation assumes a unit value for the boltzmann constant, kb

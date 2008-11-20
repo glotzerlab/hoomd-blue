@@ -44,11 +44,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <boost/shared_ptr.hpp>
-
 #include "ForceCompute.h"
+#include "saruprng.h"
 
 #ifndef __StochasticForceCompute__
 #define __StochasticForceCompute__
+
 
 //! Adds a stochastic force to each particle and a drag force based on its velocity
 /*! 
@@ -84,6 +85,7 @@ class StochasticForceCompute :	public ForceCompute
 		unsigned int m_seed; //!< initializing seed for RNG
 		unsigned int m_ntypes; //!< Store the number of particle types
 		Scalar * __restrict__ m_gamma;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		boost::shared_ptr<Saru> m_saru; //!< Store the instantiation of the Saru Random Number Geneator Class
 	};
 
 
