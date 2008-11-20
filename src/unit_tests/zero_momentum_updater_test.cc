@@ -80,7 +80,9 @@ const Scalar tol = 1e-6;
 //! boost test case to verify proper operation of ZeroMomentumUpdater
 BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	// create a simple particle data to test with
 	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4));

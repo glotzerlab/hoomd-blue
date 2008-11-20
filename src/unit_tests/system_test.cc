@@ -142,7 +142,9 @@ class DummyCompute : public Compute
 //! Tests the add, get, and set routines in System
 BOOST_AUTO_TEST_CASE( getter_setter_tests )
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	boost::shared_ptr< ParticleData > pdata(new ParticleData(10, BoxDim(10)));
 	
@@ -301,7 +303,9 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 */
 BOOST_AUTO_TEST_CASE( run_tests )
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	// setup the system to run
 	boost::shared_ptr< ParticleData > pdata(new ParticleData(10, BoxDim(10)));

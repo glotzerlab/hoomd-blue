@@ -92,7 +92,9 @@ typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, 
 //! Basic functionality test of a generic NPTUpdater
 void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	const unsigned int N = 1000;
 	Scalar T = 2.0;
@@ -153,7 +155,9 @@ void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_con
 //! Compares the output from one NVEUpdater to another
 void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_creator2, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	const unsigned int N = 1000;
 	Scalar T = 2.0;

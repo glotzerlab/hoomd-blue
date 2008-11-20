@@ -91,7 +91,9 @@ typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<ParticleData> pda
 //! Test the ability of the lj force compute to actually calucate forces
 void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	// this 3-particle test subtly checks several conditions
 	// the particles are arranged on the x axis,  1   2   3
@@ -193,7 +195,9 @@ void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration e
 //! Tests the ability of a LJForceCompute to handle periodic boundary conditions
 void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
@@ -280,7 +284,9 @@ void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration e
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
 void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	const unsigned int N = 5000;
 	

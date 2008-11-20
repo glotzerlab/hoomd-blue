@@ -78,7 +78,9 @@ typedef boost::function<shared_ptr<NeighborList> (shared_ptr<ParticleData> pdata
 //! Performs basic functionality tests on a neighbor list
 void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box
@@ -190,7 +192,9 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 //! Tests the ability of the neighbor list to exclude particle pairs
 void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
 	// lets make this test simple: put all 6 particles on top of each other and 
@@ -251,7 +255,9 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConf
 //! Test two implementations of NeighborList and verify that the output is identical
 void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creator_typ nlist_creator2, ExecutionConfiguration exec_conf)
 	{
+	#ifdef CUDA
 	g_gpu_error_checking = true;
+	#endif;
 	
 	// construct the particle system
 	RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
