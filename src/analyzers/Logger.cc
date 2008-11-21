@@ -193,6 +193,12 @@ void Logger::analyze(unsigned int timestep)
 	m_file << setprecision(10) << getValue(m_logged_quantities[m_logged_quantities.size()-1], timestep) << endl;
 	m_file.flush();
 	
+	if (!m_file.good())
+		{
+		cerr << endl << "***Error! Unexpected error writing log file" << endl << endl;
+		throw runtime_error("Error writting log file");
+		}
+	
 	if (m_prof) m_prof->pop();
 	}
 		

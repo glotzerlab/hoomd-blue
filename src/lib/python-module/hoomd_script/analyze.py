@@ -355,8 +355,11 @@ class msd(_analyzer):
 	# \code
 	# msd = analyze.msd(filename='msd.log', groups=[group1, group2], period=100)
 	# analyze.log(groups=[group1, group2, group3], period=1000, filename='msd.log', header_prefix='#')
-	# analyze.log(filename='msd.log', groups=['group1'], period=10, header_prefix='Log of group1 msd, run 5\n')
+	# analyze.log(filename='msd.log', groups=[group1], period=10, header_prefix='Log of group1 msd, run 5\n')
 	# \endcode
+	#
+	# A group variable (\c groupN above) can be created by any number of group creation functions.
+	# see group for a list.
 	#
 	# By default, columns in the file are separated by tabs, suitable for importing as a 
 	# tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()

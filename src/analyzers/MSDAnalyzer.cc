@@ -51,28 +51,6 @@ using namespace boost::python;
 #include <iomanip>
 using namespace std;
 
-/*! \param pdata Particle data to build the group from
-	\param typ Particles with type index \a typ will be added to the group
-*/
-ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, unsigned int typ)
-	{
-	const ParticleDataArraysConst& arrays = pdata->acquireReadOnly();
-	
-	// for each particle in the data
-	for (unsigned int tag = 0; tag < arrays.nparticles; tag++)
-		{
-		// identify the index of the current particle tag
-		unsigned int idx = arrays.rtag[tag];
-		
-		// add the tag to the list if it matches the criteria
-		if (arrays.type[idx] == typ)
-			m_members.push_back(tag);
-		}
-	
-	pdata->release();
-	}
-
-
 /*! \param pdata Particle data to analyze
 	\param fname File name to write output to
 	\param header_prefix String to print before the file header
@@ -188,7 +166,7 @@ void MSDAnalyzer::writeHeader()
 	Loop through all particles in the given group and calculate the MSD over them.
 	\returns The calculated MSD
 */
-Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup> group)
+Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
 	{
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
 	BoxDim box = m_pdata->getBox();
@@ -250,17 +228,13 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
 	m_file << setprecision(10) << calcMSD(m_columns[m_columns.size()-1].m_group) << endl;
 	m_file.flush();
 	
+	if (!m_file.good())
+		{
+		cerr << endl << "***Error! Unexpected error writing msd file" << endl << endl;
+		throw runtime_error("Error writting msd file");
+		}
+	
 	if (m_prof) m_prof->pop();
-	}
-	
-	
-void export_ParticleGroup()
-	{
-	class_<ParticleGroup, boost::shared_ptr<ParticleGroup>, boost::noncopyable>
-		("ParticleGroup", init< boost::shared_ptr<ParticleData>, unsigned int >())
-		.def("getNumMembers", &ParticleGroup::getNumMembers)
-		.def("getMemberTag", &ParticleGroup::getMemberTag)
-		;
 	}
 	
 void export_MSDAnalyzer()

@@ -48,62 +48,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "Analyzer.h"
+#include "ParticleGroup.h"
 
 #ifndef __MSD_ANALYZER_H__
 #define __MSD_ANALYZER_H__
-
-//! Describes a group of particles
-/*! Some computations in HOOMD may need to only be performed on certain groups of particles. ParticleGroup facilitates 
-	that by providing a flexible interface for choosing these groups that can be used by any other class in HOOMD.
-	The most common use case is to iterate through all particles in the group, so the class will be optimized for
-	that.
-	
-	The initial implementation only allows selecting particles by type. Future versions will be expanded to allow 
-	for more selection criteria.
-	
-	There are potential issues with the particle type changing over the course of a simulation. Those issues are
-	deferred for now. Groups will be evaluated on construction of the group and remain static for its lifetime.
-	
-	Another issue is how to handle ParticleData? Groups may very well be used inside of a loop where the particle data
-	has already been aquired, so ParticleGroup cannot hold onto a shared pointer and aquire again. It can only
-	realistically aquire the data on contstruction.
-	
-	Pulling all these issue together, the best data structure to represent the group is to determine group membership
-	on construction and generate a list of particle tags that belong to the group. In this way, iteration through the
-	group is efficient and there is no dependance on accessing the ParticleData within the iteration.
-
-	\ingroup data_structs
-*/
-class ParticleGroup
-	{
-	public:
-		//! Constructs an empty particle group
-		ParticleGroup() {};
-		
-		//! Constructs a particle group of all particles with the given type
-		ParticleGroup(boost::shared_ptr<ParticleData> pdata, unsigned int typ);
-		
-		//! Get the number of members in the group
-		/*! \returns The number of particles that belong to this group
-		*/
-		const unsigned int getNumMembers() const
-			{
-			return m_members.size();
-			}
-			
-		//! Get a member from the group
-		/*! \param i Index from 0 to getNumMembers()-1 of the group member to get
-			\returns Tag of the member at index \a i
-		*/
-		const unsigned int getMemberTag(unsigned int i) const
-			{
-			assert(i < getNumMembers());
-			return m_members[i];
-			}
-		
-	private:
-		std::vector<unsigned int> m_members;	//!< Lists the tags of the paritcle members
-	};
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
 /*! On construction, MSDAnalyzer opens the given file name (overwriting it if it exists) for writing. It also records
@@ -153,10 +101,10 @@ class MSDAnalyzer : public Analyzer
 			//! default constructor
 			column() {}
 			//! constructs a column
-			column(boost::shared_ptr<ParticleGroup> group, const std::string& name) :
+			column(boost::shared_ptr<ParticleGroup const> group, const std::string& name) :
 				m_group(group), m_name(name) {}
 			
-			boost::shared_ptr<ParticleGroup> m_group;	//!< A shared pointer to the group definition
+			boost::shared_ptr<ParticleGroup const> m_group;	//!< A shared pointer to the group definition
 			std::string m_name;						//!< The name to print across the file header
 			};
 		
@@ -165,14 +113,12 @@ class MSDAnalyzer : public Analyzer
 		//! Helper function to write out the header
 		void writeHeader();
 		//! Helper function to calculate the MSD of a single group
-		Scalar calcMSD(boost::shared_ptr<ParticleGroup> group);
+		Scalar calcMSD(boost::shared_ptr<ParticleGroup const> group);
 		//! Helper function to write one row of output
 		void writeRow(unsigned int timestep);
 	};	
 	
 //! Exports the MSDAnalyzer class to python
 void export_MSDAnalyzer();
-//! Exports the ParticleGroup class to python
-void export_ParticleGroup();
 
 #endif

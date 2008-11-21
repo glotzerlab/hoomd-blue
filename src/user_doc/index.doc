@@ -62,6 +62,10 @@ File output for offline analysis (\link hoomd_script.dump dump\endlink):
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>\copybrief hoomd_script::dump::xml </i>
  - \link hoomd_script.dump.mol2 dump.mol2\endlink - <i>\copybrief hoomd_script::dump::mol2 </i>
  - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>\copybrief hoomd_script::dump::dcd </i>
- 
+
+Define groups of particles:
+ - \link hoomd_script.group_all() group_all\endlink - <i>\copybrief hoomd_script::group_all </i>
+ - \link hoomd_script.group_tags() group_tags\endlink - <i>\copybrief hoomd_script::group_tags </i>
+ - \link hoomd_script.group_type() group_type\endlink - <i>\copybrief hoomd_script::group_type </i>
 
 */
