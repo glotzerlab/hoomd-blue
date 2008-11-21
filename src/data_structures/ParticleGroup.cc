@@ -44,6 +44,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#include <algorithm>
+using namespace std;
+
 /*! \file ParticleGroup.cc
 	\brief Defines the ParticleGroup class
 */
@@ -87,7 +90,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOpti
 		// perform an input check on the data
 		if (max >= pdata->getN())
 			{
-			cerr << endl << "***Error! Cannot create a group with tags larger than the number of particles " << endl;
+			cerr << endl << "***Error! Cannot create a group with tags larger than the number of particles " << endl << endl;
 			throw runtime_error("Error creating ParticleGroup");
 			}
 		
@@ -100,12 +103,50 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOpti
 		}
 	else
 		{
-		cerr << endl << "***Error! Invalid critera specified when creating a ParticleGroup" << endl;
+		cerr << endl << "***Error! Invalid critera specified when creating a ParticleGroup" << endl << endl;
 		throw runtime_error("Error creating ParticleGroup");	
 		}
 	
 	pdata->release();
 	}
+	
+/*! \param a First particle group
+	\param b Second particle group
+	
+	\returns A shared pointer to a newly created particle group that contains all the elements present in \a a and
+	\a b
+*/
+boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b)
+	{
+	// create the new particle group
+	boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup());
+	
+	// make the union
+	insert_iterator< vector<unsigned int> > ii(new_group->m_members, new_group->m_members.begin());
+	set_union(a->m_members.begin(), a->m_members.end(), b->m_members.begin(), b->m_members.end(), ii);
+	
+	// return the newly created group
+	return new_group;
+	}
+
+/*! \param a First particle group
+	\param b Second particle group
+	
+	\returns A shared pointer to a newly created particle group that contains only the elements present in both \a a and
+	\a b
+*/
+boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b)
+	{
+	// create the new particle group
+	boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup());
+	
+	// make the union
+	insert_iterator< vector<unsigned int> > ii(new_group->m_members, new_group->m_members.begin());
+	set_intersection(a->m_members.begin(), a->m_members.end(), b->m_members.begin(), b->m_members.end(), ii);
+	
+	// return the newly created group
+	return new_group;
+	}	
 	
 void export_ParticleGroup()
 	{
@@ -113,6 +154,8 @@ void export_ParticleGroup()
 		("ParticleGroup", init< boost::shared_ptr<ParticleData>, ParticleGroup::criteriaOption, unsigned int, unsigned int >())
 		.def("getNumMembers", &ParticleGroup::getNumMembers)
 		.def("getMemberTag", &ParticleGroup::getMemberTag)
+		.def("groupUnion", &ParticleGroup::groupUnion)
+		.def("groupIntersection", &ParticleGroup::groupIntersection)
 		;
 		
 	enum_<ParticleGroup::criteriaOption>("criteriaOption")

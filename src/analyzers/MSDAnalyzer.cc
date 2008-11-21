@@ -177,6 +177,13 @@ Scalar MSDAnalyzer::calcMSD(boost::shared_ptr<ParticleGroup const> group)
 	// initial sum for the average
 	Scalar msd = Scalar(0.0);
 	
+	// handle the case where there are 0 members gracefully
+	if (group->getNumMembers() == 0)
+		{
+		cout << "***Warning! Group has 0 members, reporting a calculated msd of 0.0" << endl;
+		return Scalar(0.0);
+		}
+	
 	// for each particle in the group
 	for (unsigned int group_idx = 0; group_idx < group->getNumMembers(); group_idx++)
 		{

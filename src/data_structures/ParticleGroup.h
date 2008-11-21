@@ -106,6 +106,12 @@ class ParticleGroup
 			assert(i < getNumMembers());
 			return m_members[i];
 			}
+			
+		//! Make a new particle group from a union of two
+		static boost::shared_ptr<ParticleGroup> groupUnion(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b);
+		//! Make a new particle group from an intersection 
+		static boost::shared_ptr<ParticleGroup> groupIntersection(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b);
+		
 		
 	private:
 		std::vector<unsigned int> m_members;	//!< Lists the tags of the paritcle members

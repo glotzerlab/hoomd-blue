@@ -136,7 +136,7 @@ def run(tsteps, profile=False):
 # group_combined = groupA & group100_199;
 # \endcode
 class group:
-	# \internal
+	## \internal
 	# \brief Creates a group
 	# 
 	# \param name Name of the group
@@ -145,6 +145,24 @@ class group:
 		# initialize the group
 		self.name = name;
 		self.cpp_group = cpp_group;
+	
+	## \internal
+	# \brief Creates a new group as the intersection of two given groups
+	# 
+	# \param a group to perform the interesection with
+	def __and__(self, a):
+		new_name = '(' + self.name + ' & ' + a.name + ')';
+		new_cpp_group = hoomd.ParticleGroup.groupIntersection(self.cpp_group, a.cpp_group);
+		return group(new_name, new_cpp_group);
+	
+	## \internal
+	# \brief Creates a new group as the union of two given groups
+	# 
+	# \param a group to perform the interesection with
+	def __or__(self, a):
+		new_name = '(' + self.name + ' | ' + a.name + ')';
+		new_cpp_group = hoomd.ParticleGroup.groupUnion(self.cpp_group, a.cpp_group);
+		return group(new_name, new_cpp_group);
 		
 ## Groups particles by type
 #
