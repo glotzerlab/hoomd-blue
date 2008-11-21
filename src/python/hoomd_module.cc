@@ -74,6 +74,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "MOL2DumpWriter.h"
 #include "DCDDumpWriter.h"
 #include "Logger.h"
+#include "MSDAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
 #include "TempRescaleUpdater.h"
@@ -308,6 +309,8 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_DCDDumpWriter();
 	export_MOL2DumpWriter();
 	export_Logger();
+	export_MSDAnalyzer();
+	export_ParticleGroup();
 	
 	// updaters
 	export_Updater();

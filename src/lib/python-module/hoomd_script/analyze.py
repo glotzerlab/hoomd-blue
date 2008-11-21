@@ -331,4 +331,72 @@ class log(_analyzer):
 		
 		# re-register all computes and updatesr
 		globals.system.registerLogger(self.cpp_analyzer);
+
+
+## Calculates the mean-squared displacement of groups of particles and logs the values to a file
+#
+# analyze.msd can be given any number of groups of particles. Every \a period time steps, it calculates the mean squared 
+# displacement of each group (referenced to the particle positions at the time step the command is issued at) and prints
+# the calculated values out to a file.
+# 
+# The mean squared displacement (MSD) for each group is calculated as:
+# \f[ \langle |\vec{r} - \vec{r}_0|^2 \rangle \f]
+#
+# The file format is the same convient delimited format used by analyze.log 
+class msd(_analyzer):
+	## Initialize the msd calculator
+	#
+	# \param filename File to write the data to
+	# \param groups List of groups to calculate the MSDs of
+	# \param period Quantities are logged every \a period time steps
+	# \param header_prefix (optional) Specify a string to print before the header
+	#
+	# \b Examples:
+	# \code
+	# msd = analyze.msd(filename='msd.log', groups=[group1, group2], period=100)
+	# analyze.log(groups=[group1, group2, group3], period=1000, filename='msd.log', header_prefix='#')
+	# analyze.log(filename='msd.log', groups=['group1'], period=10, header_prefix='Log of group1 msd, run 5\n')
+	# \endcode
+	#
+	# By default, columns in the file are separated by tabs, suitable for importing as a 
+	# tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
+	# 
+	# The \a header_prefix can be used in a number of ways. It specifies a simple string that
+	# will be printed before the header line of the output file. One handy way to use this
+	# is to specify header_prefix='#' so that \c gnuplot will ignore the header line
+	# automatically. Another use-case would be to specify a descriptive line containing
+	# details of the current run. Examples of each of these cases are given above.
+	def __init__(self, filename, groups, period, header_prefix=''):
+		util.print_status_line();
+		
+		# initialize base class
+		_analyzer.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_analyzer = hoomd.MSDAnalyzer(globals.particle_data, filename, header_prefix);
+		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+		
+		# set the group columns
+		for cur_group in groups:
+			self.cpp_analyzer.addColumn(cur_group.cpp_group, cur_group.name);
+		
+	## Change the parameters of the msd analysis
+	#
+	# \param delimiter New delimiter between columns in the output file (if specified)
+	#
+	# Using set_params() requires that the specified msd was saved in a variable when created.
+	# i.e. 
+	# \code
+	# msd = analyze.msd(filename='msd.log', groups=[group1, group2], period=100)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# msd.set_params(delimiter=',');
+	# \endcode
+	def set_params(self, delimiter=None):
+		util.print_status_line();
+		
+		if delimiter:
+			self.cpp_analyzer.setDelimiter(delimiter);
 		

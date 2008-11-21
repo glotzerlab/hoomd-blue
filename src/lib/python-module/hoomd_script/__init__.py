@@ -53,7 +53,7 @@ import util;
 ## \internal
 # \brief Internal python variable 
 __all__ = ["analyze", "bond", "dump", "force", "globals", "init", 
-			"integrate", "pair", "update", "wall", "run", "hoomd"];
+			"integrate", "pair", "update", "wall", "run", "group", "hoomd"];
 
 ## \brief Runs the simulation for a given number of time steps
 #
@@ -104,4 +104,13 @@ def run(tsteps, profile=False):
 	print "** starting run **"
 	globals.system.run(int(tsteps));
 	print "** run complete **"
-	
+
+
+## group definition
+#
+# This is temporary code for creating a group definition by type. I will expand on it later
+class group:
+	def __init__(self, type):
+		self.name = type;
+		self.cpp_group = hoomd.ParticleGroup(globals.particle_data, globals.particle_data.getTypeByName(type));
+

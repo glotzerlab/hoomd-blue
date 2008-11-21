@@ -56,6 +56,7 @@ Change particle or system properties during each time step (\link hoomd_script.u
 Real time analysis of data (\link hoomd_script.analyze analyze\endlink):
  - \link hoomd_script.analyze.imd analyze.imd\endlink - <i>\copybrief hoomd_script::analyze::imd </i>
  - \link hoomd_script.analyze.log analyze.log\endlink - <i>\copybrief hoomd_script::analyze::log </i>
+ - \link hoomd_script.analyze.msd analyze.msd\endlink - <i>\copybrief hoomd_script::analyze::msd </i>
 
 File output for offline analysis (\link hoomd_script.dump dump\endlink):
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>\copybrief hoomd_script::dump::xml </i>
