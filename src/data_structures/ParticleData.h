@@ -56,11 +56,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
 
-// if USE_CUDA is not enabled, we still need the gpu error checking flag as some code assumes it exists
-#ifndef USE_CUDA
-extern bool g_gpu_error_checking;
-#endif
-
 // The requirements state that we need to handle both single and double precision through
 // a define
 #ifdef SINGLE_PRECISION
