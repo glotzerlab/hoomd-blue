@@ -45,6 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include <algorithm>
+#include <iostream>
 using namespace std;
 
 /*! \file ParticleGroup.cc
