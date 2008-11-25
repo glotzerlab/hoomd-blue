@@ -53,6 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "ParticleData.h"
+#include "IndexTransform.h"
 
 #include <math.h>
 
@@ -109,15 +110,15 @@ void LongRangePPPM_PositionGrid(LongRangePPPM_creator LongRangePPPM_object_n1)
 	pdata_6->release();
 
     // Define mesh parameters as well as order of the distribution, etc.. 
-	unsigned int Nmesh_x=40;
-	unsigned int Nmesh_y=80;
-	unsigned int Nmesh_z=120; 
+	unsigned int Nmesh_x=20;
+	unsigned int Nmesh_y=8;
+	unsigned int Nmesh_z=20; 
 	unsigned int P_order=6; 
 	Scalar alpha=4.0;
 	shared_ptr<FftwWrapper> FFTW(new  FftwWrapper(Nmesh_x,Nmesh_y,Nmesh_z));
 	bool third_law=false;
 
-	//shared_ptr<ElectrostaticLongRangePPPM> PPPM_6=LongRangePPPM_object_n1(pdata_6,Nmesh_x,Nmesh_y,Nmesh_z,P_order,alpha,FFTW,third_law);
+	shared_ptr<ElectrostaticLongRangePPPM> PPPM_6=LongRangePPPM_object_n1(pdata_6,Nmesh_x,Nmesh_y,Nmesh_z,P_order,alpha,FFTW,third_law);
 	// An ElectrostaticLongRangePPPM object with specified value of grid parameters, alpha, and fft routine instantiated
 	
 	// now let us check that the charges are correctly distributed
@@ -126,14 +127,14 @@ void LongRangePPPM_PositionGrid(LongRangePPPM_creator LongRangePPPM_object_n1)
 	//This may eliminate unpleasant bugs
 
 	//The values of the coefficents are taken from Appendix E in the Deserno and Holm paper
-	
+		
 	Scalar **Exact=new Scalar*[P_order];
 	for(unsigned int i=0;i<P_order;i++) Exact[i]=new Scalar[P_order];
 
 	Exact[0][0]=1.0;Exact[0][1]=-10.0;Exact[0][2]=40.0;Exact[0][3]=-80.0;Exact[0][4]=80.0;Exact[0][5]=-32.0;
 	Exact[1][0]=237.0;Exact[1][1]=-750.0;Exact[1][2]=840.0;Exact[1][3]=-240.0;Exact[1][4]=-240.0;Exact[1][5]=160.0;
 	Exact[2][0]=1682.0;Exact[2][1]=-1540.0;Exact[2][2]=-880.0;Exact[2][3]=1120.0;Exact[2][4]=160.0;Exact[2][5]=-320.0;
-	Exact[3][0]=1682.0;Exact[3][1]=1540.0;Exact[3][2]=880.0;Exact[3][3]=-1120.0;Exact[3][4]=-160.0;Exact[3][5]=320.0;
+	Exact[3][0]=1682.0;Exact[3][1]=1540.0;Exact[3][2]=-880.0;Exact[3][3]=-1120.0;Exact[3][4]=160.0;Exact[3][5]=320.0;
 	Exact[4][0]=237.0;Exact[4][1]=750.0;Exact[4][2]=840.0;Exact[4][3]=240.0;Exact[4][4]=-240.0;Exact[4][5]=-160.0;
 	Exact[5][0]=1.0;Exact[5][1]=10.0;Exact[5][2]=40.0;Exact[5][3]=80.0;Exact[5][4]=80.0;Exact[5][5]=32.0;
 	
@@ -145,13 +146,55 @@ void LongRangePPPM_PositionGrid(LongRangePPPM_creator LongRangePPPM_object_n1)
 
 	for(unsigned int i=0;i<P_order;i++){
 		for(unsigned int j=0;j<P_order;j++){
-				//MY_BOOST_CHECK_CLOSE(Exact[i][j],PPPM_6->Poly_coeff_Grid(i,j),tol);
+			    //high accuracy test 0.001%
+				MY_BOOST_CHECK_CLOSE(Exact[i][j],PPPM_6->Poly_coeff_Grid(i,j),0.001*tol);
 		}
 	}
 	
-	//Check passed, now let us compute the charges on the grid
-	for(unsigned int i=0;i<P_order;i++) delete[] Exact[i];
-	delete [] Exact;
+    //Check passed, Polynomial coeffs are good, now let us compute the charges on the grid
+
+	// First define a matrix of real numbers
+	Scalar *rho_by_hand=new Scalar[Nmesh_x*Nmesh_y*Nmesh_z];
+	//Define a class to transform indices
+	IndexTransform T;   
+	T.SetD3to1D(Nmesh_x,Nmesh_y,Nmesh_z);
+	unsigned int ind;
+
+	// Initialize to zero
+	for(unsigned int i=0;i<Nmesh_x;i++){
+	for(unsigned int j=0;j<Nmesh_y;j++){
+	for(unsigned int k=0;k<Nmesh_z;k++){
+		ind=T.D3To1D(i,j,k);
+		rho_by_hand[ind]=0.0;
+	}
+	}
+	}
+
+	//Distribute the first point on the grid
+	{
+	unsigned int i,j,k;
+	int i_h;
+	Scalar xs=0.0;
+	for(unsigned int l=0;l<P_order;l++){
+		i_h=-static_cast<int>(P_order/2)+1+l;
+		i=static_cast<unsigned int>(i_h+((Nmesh_x-i_h-1)/Nmesh_x)*Nmesh_x);
+		xs=0.0;
+		for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][i]+0.4*xs;
+		for(unsigned int m=0;m<P_order;m++){
+			j=Nmesh_y/2-P_order/2+1+m;
+			for(unsigned int n=0;n<P_order;n++){
+				k=Nmesh_z/2-P_order/2+1+n;
+			ind=T.D3To1D(i,j,k);
+			rho_by_hand[ind]=xs*Exact[m][0]*Exact[n][0];;
+						}
+				}
+		}
+	}
+
+	delete[] rho_by_hand;
+
+	for(unsigned int i=P_order;i>0;--i) delete[] Exact[i-1];
+	delete[] Exact;
 }
 
 //! ElectrostaticShortRange creator for unit tests
