@@ -145,7 +145,9 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		CScalar *fz_real;           //!< force on mesh points, z component
 		CScalar *e_real;            //!< Energy on mesh points 
 		CScalar *v_real;            //!< virial on mesh points 
-		Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
+		Scalar **P_coeff;           //!< Coefficients of Polynomial to distribute charge
+		double **a_P;				//!< Pointer necessary to determine P_coeff
+		double **b_P;               //!< Pointer necessary to determine P_coeff
 		void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
 		void (ElectrostaticLongRangePPPM::*back_interpolate_helper)(CScalar *,Scalar *); //!<function to pointer to ide implementation details
 		Scalar *Denom_Coeff;         //!< Coefficients of the polynomial to compute the denominator of the influence function

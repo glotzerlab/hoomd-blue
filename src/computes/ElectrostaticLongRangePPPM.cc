@@ -79,7 +79,7 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	:ForceCompute(pdata),FFT(FFTP),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),third_law(third_law_m)
 	{
 	assert(m_pdata);
-	
+
 	if (alpha < 0.0)
 		{
 		cerr << endl << "***Error! Negative alpha in ElectrostaticLongRangePPPM makes no sense" << endl << endl;
@@ -122,24 +122,30 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
     fz_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];        
     e_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];            
     v_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];           
-    
+
     // allocate space for polynomial needed to compute the influence function
 
 	Denom_Coeff=new Scalar[P_order];
-	
+
 	// construct the polynomials needed to compute the denominator coefficients of the influence function 
 	Denominator_Poly_G();
+	
 
 	// allocate space for polynomial need to compute the charge distribution on the grid
 	P_coeff=new Scalar*[P_order];
 	for(unsigned int i=0;i<P_order;i++)P_coeff[i]=new Scalar[P_order]; 
 
+	a_P=new double*[P_order];
+    b_P=new double*[P_order];
+
+	for(unsigned int i=0;i<P_order;i++) a_P[i]= new double[2*P_order+1]; 
+    for(unsigned int i=0;i<P_order;i++) b_P[i]= new double[P_order];
+
 	// Compute the polynomial coefficients needed for the charge distribution
 	ComputePolyCoeff();
-		
 	// the charge distribution on the grid is quite different if the number is odd or even so
 	// we decide at run time whether to use the rho even or rho odd function
-
+	
 	if(P_order%2) {
 		make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_odd;
 		back_interpolate_helper=&ElectrostaticLongRangePPPM::back_interpolate_odd;
@@ -150,7 +156,7 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	}
 
 	//compute the influence function
-
+    
 	Compute_G();
 
 	//this finalizes the construction of the class
@@ -174,13 +180,17 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	delete[] fz_real;
 	delete[] e_real;
 	delete[] v_real;
-
-	//deallocate polynomial coefficients
-	
-	for(unsigned int i=0;i<P_order;i++) delete[] P_coeff[i]; 
-
-	delete[] P_coeff;	
+    
+	//deallocate polynomial coefficients, order of deallocation is very important
 	delete[] Denom_Coeff;
+
+	for(unsigned int i=P_order;i>0;--i) delete[] P_coeff[i-1]; 
+	delete[] P_coeff;	
+    for(unsigned int i=P_order;i>0;--i) delete[] b_P[i-1];
+	delete[] b_P;
+   
+	for(unsigned int i=P_order;i>0;--i) delete[] a_P[i-1];
+	delete[] a_P;
 }
 
 void ElectrostaticLongRangePPPM::make_rho(void)
@@ -476,34 +486,26 @@ void ElectrostaticLongRangePPPM::ComputePolyCoeff(void)
 {
 	//This piece of code is not pretty, but gets the job done
 	//It is inspired on a similar routine that exists in LAMMPS
+	//Compared with the convention in the Holm-Deserno Paper it is as follows, the Polynomial coefficients are
+	//W^(P)_(j) = c_1+c_2*x+c_3*x^2+..c_P*x^(P-1)  where j=-(P-1)/2..(P-1)/2
+	//It is P_coeff[i][l] i=0,1,.. corresponds to j=-(P-1)/2,-(P-1)/2+1,.. and l=0,1, the coeff. of order 0,1,etc..
 
   Scalar s;
 
-  double **a;
-  double **b;
-
-  a=new double*[2*P_order];
-  b=new double*[P_order];
-
-  for(unsigned int i=0;i<2*P_order;i++) a[i]= new double[P_order];
-  
-  for(unsigned int i=0;i<P_order;i++) b[i]= new double[P_order];
-  
-
   for (int k = -static_cast<int>(P_order); k <= static_cast<int>(P_order); k++) 
     for (int l = 0; l < static_cast<int>(P_order); l++)
-      a[l][k+P_order] = 0.0;
+      a_P[l][k+P_order] = 0.0;
         
-  a[0][P_order] = 1.0;
+  a_P[0][P_order] = 1.0;
   for (int j = 1; j < static_cast<int>(P_order); j++) {
     for (int k = -j; k <= j; k += 2) {
       s = 0.0;
       for (int l = 0; l < j; l++) {
-	a[l+1][k+P_order] = (a[l][k+1+P_order]-a[l][k-1+P_order]) / (l+1);
+	a_P[l+1][k+P_order] = (a_P[l][k+1+P_order]-a_P[l][k-1+P_order]) / (l+1);
 	s += pow(0.5,(double) l+1) * 
-	  (a[l][k-1+P_order] + pow(-1.0,(double) l) * a[l][k+1+P_order]) / (l+1);
+	  (a_P[l][k-1+P_order] + pow(-1.0,(double) l) * a_P[l][k+1+P_order]) / (l+1);
       }
-      a[0][k+P_order] = s;
+      a_P[0][k+P_order] = s;
     }
   }
 
@@ -513,27 +515,17 @@ void ElectrostaticLongRangePPPM::ComputePolyCoeff(void)
   if(!(P_order%2)) i_add=1;
   for (int k = -(static_cast<int>(P_order)-1); k < static_cast<int>(P_order); k+=2) {
 	  for (int l = 0; l < static_cast<int>(P_order); l++){
-	  b[(k+i_add)/2+P_order/2-i_add][l]=a[l][k+P_order];
+	  b_P[(k+i_add)/2+P_order/2-i_add][l]=a_P[l][k+P_order];
 	  }
     m++;
   }
-   //The b coefficients are not in the right order, this is why we need to reverse them
+   //The b coefficients are not in the right order, this is why we need to reverse 
 
 	for(unsigned int j1=0;j1<P_order;j1++){
 	  for(unsigned int j2=0;j2<P_order;j2++){
-		  P_coeff[P_order-j1-1][j2]=b[j1][j2];
+		  P_coeff[P_order-j1-1][j2]=b_P[j1][j2];
 		  }
 		}
-
-  //clean up the mess, and it is a mess
-  
-  for(unsigned int i=0;i<2*P_order;i++) delete[] a[i];
-  
-  for(unsigned int i=0;i<P_order;i++) delete[] b[i];
-
-  delete[] a;
-  delete[] b;
-  
 }
 
 void ElectrostaticLongRangePPPM::Compute_G(void)
@@ -554,28 +546,26 @@ void ElectrostaticLongRangePPPM::Compute_G(void)
 	}
 
 	for(unsigned int i=0;i<N_mesh_x;i++){
-		k_x=2*i*M_PI/h_x;
-		k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x; 
+		k_x=2*i*M_PI/(S_mesh_x*h_x);
+		k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/(S_mesh_x*h_x); 
         xsi=sin(k_x);
 	for(unsigned int j=0;j<N_mesh_y;j++){
-		k_y=2*j*M_PI/h_y;
-		k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
+		k_y=2*j*M_PI/(S_mesh_y*h_y);
+		k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/(S_mesh_y*h_y);
         ysi=sin(k_y);
 	for(unsigned int k=0;k<N_mesh_z;k++){
-		k_z=2*k*M_PI/h_z;
-		k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/h_z;
+		k_z=2*k*M_PI/(S_mesh_z*h_z);
+		k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/(S_mesh_z*h_z);
         zsi=sin(k_z);
 
 		k_per_norm=k_per_x*k_per_x+k_per_y*k_per_y+k_per_z*k_per_z; // modulus of the derivative
 		v_num=Numerator_G(k_x,k_y,k_z);	
 
 		ind=T.D3To1D(i,j,k);
-
 		G_Inf[ind]=(k_per_x*v_num[0]+k_per_y*v_num[1]+k_per_z*v_num[2])/(k_per_norm*Denominator_G(xsi,ysi,zsi));
 	}
 	}
 	}
-
 
 	// Influence function has been computed
 
@@ -594,12 +584,11 @@ Scalar ElectrostaticLongRangePPPM::Denominator_G(Scalar xsi,Scalar ysi,Scalar zs
 	Scalar s_y=0;
 	Scalar s_z=0;
 
-	for(unsigned int j=P_order-1;j>=0;j--){
+	for(int j=static_cast<int>(P_order-1);j>=0;j--){
 		s_x=Denom_Coeff[j]+s_x*xsi;
 		s_y=Denom_Coeff[j]+s_y*ysi;
 		s_z=Denom_Coeff[j]+s_z*ysi;
 	}
-
 	return s_x*s_x*s_y*s_y*s_z*s_z;
 }
 
@@ -676,13 +665,18 @@ void ElectrostaticLongRangePPPM::Denominator_Poly_G(void)
 	//The coefficients Denom_Coeff are computed from the recurrence relation 
 	//
 	//
+	
 	for(int l=0;l<static_cast<int>(P_order);l++) Denom_Coeff[l]=0.0;
 	Denom_Coeff[0]=1;
-
+	
 	for(int j=1;j<static_cast<int>(P_order);j++){
-		for(int l=j;l>0;l++) Denom_Coeff[l]=4.0*(Denom_Coeff[l]*(l-j)*(l-j-0.5)-Denom_Coeff[l-1]*(l-j-1)*(l-j-1));//CHECK THIS
+		for(int l=j;l>0;l--){
+		Denom_Coeff[l]=4.0* Denom_Coeff[l]*(l-j)*(l-j-0.5)-Denom_Coeff[l-1]*(l-j-1)*(l-j-1); //CHECK THIS
+		}
 		Denom_Coeff[0]=4.0*j*(j+0.5)*Denom_Coeff[0];//CHECK THIS
 	}
+
+	
 
 	//There is a 1/(2P_order-1)! coefficient to be added
 
@@ -748,7 +742,7 @@ unsigned int ElectrostaticLongRangePPPM::N_mesh_z_axis(void) const
 void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	if (m_prof) m_prof->push("ElecLongRange");
+	if (m_prof) m_prof->push("PPPM_LongRange");
 	unsigned int ind;
 	
 	// tally up the number of forces calculated
