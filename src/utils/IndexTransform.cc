@@ -42,7 +42,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Implements the code for the  CoordinateTransform class
 */
 
-
+//! basically defines the following parameters
+	/*! \param N_1 number of grid points in the 1 axis
+		\param N_2 number of grid points in the 2 axis
+		\param N_3 number of grid points in the 3 axis
+    */
 IndexTransform::IndexTransform(void)
 {
 //constructor initializes to zero
@@ -55,9 +59,9 @@ IndexTransform::~IndexTransform()
 {
 // destructor does nothing
 }
-/*!				\param N_1 number of grid points in the 1 axis
-			    \param N_2 number of grid points in the 2 axis
-			    \param N_3 number of grid points in the 3 axis
+/*!				\param N1 number of grid points in the 1 axis
+			    \param N2 number of grid points in the 2 axis
+			    \param N3 number of grid points in the 3 axis
 */
 void IndexTransform::SetD3to1D(unsigned int N1,unsigned int N2,unsigned int N3)
 {
