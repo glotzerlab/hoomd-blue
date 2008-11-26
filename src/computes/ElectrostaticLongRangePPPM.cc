@@ -88,10 +88,14 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 
 	T.SetD3to1D(N_mesh_x,N_mesh_y,N_mesh_z);
 
-	//Cast mesh sizes as a scalar
+	//Cast mesh sizes as a scalar and as integers
 	S_mesh_x=static_cast<Scalar>(N_mesh_x);
 	S_mesh_y=static_cast<Scalar>(N_mesh_y);
 	S_mesh_z=static_cast<Scalar>(N_mesh_z);
+
+	Nu_mesh_x=static_cast<int>(N_mesh_x);
+	Nu_mesh_y=static_cast<int>(N_mesh_y);
+	Nu_mesh_z=static_cast<int>(N_mesh_z);
 
         // get a copy of the simulation box too
 	box = m_pdata->getBox();
@@ -104,9 +108,9 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	Lz = box.zhi - box.zlo;
 	
 	//Compute lattice spacings along the different directions
-	h_x= S_mesh_x/Lx;
-	h_y= S_mesh_y/Ly;
-	h_z= S_mesh_z/Lz;
+	h_x= Lx/S_mesh_x;
+	h_y= Ly/S_mesh_y;
+	h_z= Lz/S_mesh_z;
 
 	//allocate space for the density and the influence function
 	rho_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
@@ -130,7 +134,6 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	// construct the polynomials needed to compute the denominator coefficients of the influence function 
 	Denominator_Poly_G();
 	
-
 	// allocate space for polynomial need to compute the charge distribution on the grid
 	P_coeff=new Scalar*[P_order];
 	for(unsigned int i=0;i<P_order;i++)P_coeff[i]=new Scalar[P_order]; 
@@ -237,36 +240,40 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 
 		//compute the two nearest points on the grid
 	    
-		Scalar x_floor= floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE   
-		unsigned int ix_floor=static_cast<unsigned int>(x_floor);
+		Scalar dx=(xi-box.xlo)/h_x;
+		Scalar x_floor= floor(dx);  
+		int ix_floor=static_cast<int>(x_floor);
 		
-		Scalar y_floor= floor((yi-box.yhi)/h_y);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
-		unsigned int iy_floor=static_cast<unsigned int>(y_floor);
+		Scalar dy=(yi-box.ylo)/h_y;
+		Scalar y_floor= floor(dy);
+		int iy_floor=static_cast<int>(y_floor);
 		
-		Scalar z_floor= floor((zi-box.zhi)/h_z);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
-		unsigned int iz_floor=static_cast<unsigned int>(z_floor);
+		Scalar dz=(zi-box.zlo)/h_z;
+		Scalar z_floor= floor(dz);
+		int iz_floor=static_cast<int>(z_floor);
 
-		unsigned int ind_x=0;
-		unsigned int ind_y=0;
-		unsigned int ind_z=0;
+		int ind_x=0;
+		int ind_y=0;
+		int ind_z=0;
 
-		Scalar dx=xi-x_floor-0.5;
-		Scalar dy=yi-y_floor-0.5;
-		Scalar dz=zi-z_floor-0.5;
-        
+	    dx=dx-x_floor-0.5;
+		dy=dy-y_floor-0.5;
+		dz=dz-z_floor-0.5;
+      
 		//take into account boundary conditions
 		for(int lx=-P_half+1;lx<=P_half;lx++){
-				ind_x=ix_floor+lx+((N_mesh_x-ix_floor-lx)/N_mesh_x)*N_mesh_x-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-        for(int ly=-P_half+1;ly<=P_half;ly++){
-				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
+				ind_x=ix_floor+lx+((Nu_mesh_x-ix_floor-lx-1)/Nu_mesh_x)*Nu_mesh_x-((ix_floor+lx)/Nu_mesh_x)*Nu_mesh_x;
+		for(int ly=-P_half+1;ly<=P_half;ly++){
+				ind_y=iy_floor+ly+((Nu_mesh_y-iy_floor-ly-1)/Nu_mesh_y)*Nu_mesh_y-((iy_floor+ly)/Nu_mesh_y)*Nu_mesh_y;
 		for(int lz=-P_half+1;lz<=P_half;lz++){
-				ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;
+				ind_z=iz_floor+lz+((Nu_mesh_z-iz_floor-lz-1)/Nu_mesh_z)*Nu_mesh_z-((iz_floor+lz)/Nu_mesh_z)*Nu_mesh_z;
 				ind=T.D3To1D(ind_x,ind_y,ind_z);
-				(rho_real[ind]).r+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
+				(rho_real[ind]).r+=q_i*Poly(lx+P_half-1,dx)*Poly(ly+P_half-1,dy)*Poly(lz+P_half-1,dz);
 	    }
 		}
 		}
 	}
+
 	 //The charge is now defined on the grid for P even
 }
 void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Continuum)
@@ -292,13 +299,13 @@ void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Con
 		//compute the two nearest points on the grid
 	    
 		Scalar x_floor= floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE   
-		unsigned int ix_floor=static_cast<unsigned int>(x_floor);
+		int ix_floor=static_cast<int>(x_floor);
 		
 		Scalar y_floor= floor((yi-box.yhi)/h_y);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
-		unsigned int iy_floor=static_cast<unsigned int>(y_floor);
+		int iy_floor=static_cast<int>(y_floor);
 		
 		Scalar z_floor= floor((zi-box.zhi)/h_z);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
-		unsigned int iz_floor=static_cast<unsigned int>(z_floor);
+		int iz_floor=static_cast<int>(z_floor);
 
 		unsigned int ind_x=0;
 		unsigned int ind_y=0;

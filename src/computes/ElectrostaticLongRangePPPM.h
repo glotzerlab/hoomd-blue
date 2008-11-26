@@ -118,6 +118,9 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		unsigned int N_mesh_x;       //!< number of points in the mesh along the x axis
 		unsigned int N_mesh_y;       //!< number of points in the mesh along the y axis
 		unsigned int N_mesh_z;       //!< number of points in the mesh along the z axis
+		int Nu_mesh_x;				 //!< number of points in the mesh along the x axis
+		int Nu_mesh_y;				 //!< number of points in the mesh along the y axis
+		int Nu_mesh_z;				 //!< number of points in the mesh along the z axis
 		IndexTransform T;            //!< convert 3d coordinates to 1D
 		unsigned int P_order;        //!< The charge assignment on the mesh is of order P
 		BoxDim box;                  //!< Copy of the simulation box
