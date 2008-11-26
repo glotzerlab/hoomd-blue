@@ -80,6 +80,8 @@ using namespace boost;
 
 //! Tolerance in percent to use for comparing various ElectrostaticLongRangePPPM to each other
 const Scalar tol = Scalar(1);
+//! minimum charge grid point worth computing
+#define TOL 1e-8
 //! minimum force worth computing
 const Scalar MIN_force=Scalar(1.0e-9); 
 
@@ -95,16 +97,18 @@ void LongRangePPPM_PositionGrid(LongRangePPPM_creator LongRangePPPM_object_n1)
 	{
 	cout << "Testing charge distribution on the grid in class ElectrostaticLongRangePPPM" << endl;
 	// Simple test to check that the charge is defined correctly on the grid
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0,40.0,60.0), 1));
+	//shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0,40.0,60.0), 1));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(3, BoxDim(20.0,40.0,60.0), 1));
+
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
 
 	// six charges are located near the edge of the box
 	arrays.x[0]=Scalar(-9.6);arrays.y[0]=Scalar(0.0);arrays.z[0]=Scalar(0.0);arrays.charge[0]=1.0;
-    arrays.x[1]=Scalar(9.6);arrays.y[1]=Scalar(0.0);arrays.z[1]=Scalar(0.0);arrays.charge[1]=-2.0;
-	arrays.x[2]=Scalar(0.0);arrays.y[2]=Scalar(-19.5);arrays.z[2]=Scalar(0.0);arrays.charge[2]=1.0;
-    arrays.x[3]=Scalar(0.0);arrays.y[3]=Scalar(19.5);arrays.z[3]=Scalar(0.0);arrays.charge[3]=3.0;
+    arrays.x[1]=Scalar(9.7);arrays.y[1]=Scalar(0.0);arrays.z[1]=Scalar(0.0);arrays.charge[1]=-2.0;
+	arrays.x[2]=Scalar(0.0);arrays.y[2]=Scalar(-19.6);arrays.z[2]=Scalar(0.0);arrays.charge[2]=1.0;
+    /* arrays.x[3]=Scalar(0.0);arrays.y[3]=Scalar(19.1);arrays.z[3]=Scalar(0.0);arrays.charge[3]=3.0;
     arrays.x[4]=Scalar(0.0);arrays.y[4]=Scalar(0.0);arrays.z[4]=Scalar(-29.4);arrays.charge[4]=-1.0;
-    arrays.x[5]=Scalar(0.0);arrays.y[5]=Scalar(0.0);arrays.z[5]=Scalar(29.4);arrays.charge[5]=-2.0;
+    arrays.x[5]=Scalar(0.0);arrays.y[5]=Scalar(0.0);arrays.z[5]=Scalar(29.9);arrays.charge[5]=-2.0;*/
 
 	// allow for acquiring data in the future
 	pdata_6->release();
@@ -112,7 +116,7 @@ void LongRangePPPM_PositionGrid(LongRangePPPM_creator LongRangePPPM_object_n1)
     // Define mesh parameters as well as order of the distribution, etc.. 
 	unsigned int Nmesh_x=20;
 	unsigned int Nmesh_y=8;
-	unsigned int Nmesh_z=20; 
+	unsigned int Nmesh_z=12; 
 	unsigned int P_order=6; 
 	Scalar alpha=4.0;
 	shared_ptr<FftwWrapper> FFTW(new  FftwWrapper(Nmesh_x,Nmesh_y,Nmesh_z));
@@ -170,26 +174,179 @@ void LongRangePPPM_PositionGrid(LongRangePPPM_creator LongRangePPPM_object_n1)
 	}
 	}
 
-	//Distribute the first point on the grid
+	//Distribute the first point (-9.6,0,0) on the grid defined above with (20,8,12) points
+	{
+	unsigned int i,j,k;
+	int i_h;
+	Scalar xs=0.0;
+	Scalar ys=0.0;
+	Scalar zs=0.0;
+  
+	for(unsigned int l=0;l<P_order;l++){
+		i_h=-static_cast<int>(P_order/2)+1+static_cast<int>(l);
+		i=static_cast<unsigned int>(i_h+((Nmesh_x-i_h-1)/Nmesh_x)*Nmesh_x);
+		xs=0.0;
+		for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][ii]-0.1*xs;
+		for(unsigned int m=0;m<P_order;m++){
+			j=Nmesh_y/2-P_order/2+1+m;
+			ys=0.0;
+			for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) ys+=Exact[m][ii]-0.5*ys;
+				for(unsigned int n=0;n<P_order;n++){
+				k=Nmesh_z/2-P_order/2+1+n;
+				zs=0.0;
+				for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) zs+=Exact[n][ii]-0.5*zs;
+				ind=T.D3To1D(i,j,k);
+				rho_by_hand[ind]+=xs*ys*zs;
+						}
+				}
+		}
+	}
+    
+    //Distribute the second point (9.7,0,0) on the grid defined above with (20,8,12) points
+	{
+	unsigned int i,j,k;
+	int i_h;
+	Scalar xs=0.0;
+	Scalar ys=0.0;
+	Scalar zs=0.0;
+	for(unsigned int l=0;l<P_order;l++){
+		i_h=Nmesh_x-static_cast<int>(P_order/2)+static_cast<int>(l);
+		i=static_cast<unsigned int>(i_h-(i_h/Nmesh_x)*Nmesh_x);
+		xs=0.0;
+		for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][ii]+0.2*xs;
+		for(unsigned int m=0;m<P_order;m++){
+			j=Nmesh_y/2-P_order/2+1+m;
+			ys=0.0;
+			for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) ys+=Exact[m][ii]-0.5*ys;
+			for(unsigned int n=0;n<P_order;n++){
+				k=Nmesh_z/2-P_order/2+1+n;
+				zs=0.0;
+				for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) zs+=Exact[n][ii]-0.5*zs;
+				ind=T.D3To1D(i,j,k);
+				rho_by_hand[ind]+=-2*xs*ys*zs;
+				// second point has charge -2
+						}
+				}
+		}
+	}
+
+	
+	//Distribute the third point (0,-19.6,0) on the grid defined above with (20,8,12) points
+	{
+	unsigned int i,j,k;
+	int i_h;
+	Scalar xs=0.0;
+	Scalar ys=0.0;
+	Scalar zs=0.0;
+	for(unsigned int l=0;l<P_order;l++){
+		i=Nmesh_x/2-P_order/2+1+l;
+		xs=0.0;
+		for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][ii]-0.5*xs;
+		for(unsigned int m=0;m<P_order;m++){
+			i_h=-static_cast<int>(P_order/2)+1+static_cast<int>(m);
+			j=static_cast<unsigned int>(i_h+((Nmesh_y-i_h-1)/Nmesh_y)*Nmesh_y);
+			ys=0.0;
+				for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) ys+=Exact[m][ii]-0.42*ys;
+			for(unsigned int n=0;n<P_order;n++){
+				k=Nmesh_z/2-P_order/2+1+n;
+				zs=0.0;
+				for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) zs+=Exact[n][ii]-0.5*zs;
+			ind=T.D3To1D(i,j,k);
+			rho_by_hand[ind]+=xs*ys*zs;
+						}
+				}
+		}
+	}
+
+	/*
+	//Distribute the fourth point (0,19.1,0) on the grid defined above with (20,8,12) points
 	{
 	unsigned int i,j,k;
 	int i_h;
 	Scalar xs=0.0;
 	for(unsigned int l=0;l<P_order;l++){
-		i_h=-static_cast<int>(P_order/2)+1+l;
-		i=static_cast<unsigned int>(i_h+((Nmesh_x-i_h-1)/Nmesh_x)*Nmesh_x);
-		xs=0.0;
-		for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][i]+0.4*xs;
+		i=Nmesh_x/2-P_order/2+1+l;
 		for(unsigned int m=0;m<P_order;m++){
-			j=Nmesh_y/2-P_order/2+1+m;
+			i_h=-static_cast<int>(P_order/2)-1+static_cast<int>(m);
+			j=static_cast<unsigned int>(i_h+((Nmesh_y-i_h-1)/Nmesh_y)*Nmesh_y);
+			xs=0.0;
+				for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][i]+0.1*xs;
 			for(unsigned int n=0;n<P_order;n++){
 				k=Nmesh_z/2-P_order/2+1+n;
 			ind=T.D3To1D(i,j,k);
-			rho_by_hand[ind]=xs*Exact[m][0]*Exact[n][0];;
+			rho_by_hand[ind]+=3.0*Exact[l][0]*xs*Exact[n][0];
+			//This point has charge +3
 						}
 				}
 		}
 	}
+
+    //Distribute the fifth point (0,0,-29.4) on the grid defined above with (20,8,12) points
+	{
+	unsigned int i,j,k;
+	int i_h;
+	Scalar xs=0.0;
+	for(unsigned int l=0;l<P_order;l++){
+		i=Nmesh_x/2-P_order/2+1+l;
+		for(unsigned int m=0;m<P_order;m++){
+			j=Nmesh_y/2-P_order/2+1+m;
+			for(unsigned int n=0;n<P_order;n++){
+				i_h=-static_cast<int>(P_order/2)+2+static_cast<int>(n);
+			    k=static_cast<unsigned int>(i_h+((Nmesh_z-i_h-1)/Nmesh_z)*Nmesh_z);
+			    xs=0.0;
+				  for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][i]+0.4*xs;
+				ind=T.D3To1D(i,j,k);
+				rho_by_hand[ind]+=-Exact[l][0]*Exact[m][0]*xs;
+				//This point has charge -1
+						}
+				}
+		}
+	}
+
+	//Distribute the sixth point (0,0,29.9) on the grid defined above with (20,8,12) points
+	{
+	unsigned int i,j,k;
+	int i_h;
+	Scalar xs=0.0;
+	for(unsigned int l=0;l<P_order;l++){
+		i=Nmesh_x/2-P_order/2+1+l;
+		for(unsigned int m=0;m<P_order;m++){
+			j=Nmesh_y/2-P_order/2+1+m;
+			for(unsigned int n=0;n<P_order;n++){
+			i_h=-static_cast<int>(P_order/2)+1+static_cast<int>(n);
+			k=static_cast<unsigned int>(i_h+((Nmesh_z-i_h-1)/Nmesh_z)*Nmesh_z);
+			xs=0.0;
+				for(int ii=static_cast<int>(P_order)-1;ii>=0;ii--) xs+=Exact[l][i]+0.1*xs;
+			ind=T.D3To1D(i,j,k);
+			rho_by_hand[ind]+=-2*Exact[l][0]*Exact[m][0]*xs;
+			//This point has charge -2
+						}
+				}
+		}
+	}
+    */
+	//Now let us compare with rho as computed by PPPM class
+
+	PPPM_6->make_rho();
+	Scalar val;
+	Scalar add=0.0;
+	Scalar add2=0.0;
+
+	for(unsigned int i=0;i<Nmesh_x;i++){
+	for(unsigned int j=0;j<Nmesh_y;j++){
+	for(unsigned int k=0;k<Nmesh_z;k++){
+		ind=T.D3To1D(i,j,k);
+		val=(PPPM_6->Show_rho_real(i,j,k)).r;
+		add+=val;
+		add2+=rho_by_hand[ind];
+		cout << " " << i << " " << j << " " << k << " " << rho_by_hand[ind] << " " << val  << endl;
+		if(fabs(val)>TOL)
+			MY_BOOST_CHECK_CLOSE(val,rho_by_hand[ind],0.01*tol);
+	}
+	}
+	}
+
+	cout << "Total charge " << add << " " << add2 << endl;
 
 	delete[] rho_by_hand;
 
