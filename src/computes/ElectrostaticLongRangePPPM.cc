@@ -117,37 +117,37 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	rho_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
 	G_Inf=new Scalar[N_mesh_x*N_mesh_y*N_mesh_z];
 	fx_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
-    fy_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
-    fz_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
-    e_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
-    v_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
-    fx_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];        
-    fy_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];       
-    fz_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];        
-    e_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];            
-    v_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];           
+	fy_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+	fz_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+	e_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+	v_kspace=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];
+	fx_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];        
+	fy_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];       
+	fz_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];        
+	e_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];            
+	v_real=new CScalar[N_mesh_x*N_mesh_y*N_mesh_z];           
 
     // allocate space for polynomial needed to compute the influence function
 
 	Denom_Coeff=new Scalar[P_order];
 
-	// construct the polynomials needed to compute the denominator coefficients of the influence function 
+	// construct the coefficient polynomials used in the denominator of the influence function 
 	Denominator_Poly_G();
 	
-	// allocate space for polynomial need to compute the charge distribution on the grid
+	// allocate space for the polynomial coefficients needed on the grid
 	P_coeff=new Scalar*[P_order];
 	for(unsigned int i=0;i<P_order;i++)P_coeff[i]=new Scalar[P_order]; 
 
 	a_P=new double*[P_order];
-    b_P=new double*[P_order];
+	b_P=new double*[P_order];
 
 	for(unsigned int i=0;i<P_order;i++) a_P[i]= new double[2*P_order+1]; 
-    for(unsigned int i=0;i<P_order;i++) b_P[i]= new double[P_order];
+	for(unsigned int i=0;i<P_order;i++) b_P[i]= new double[P_order];
 
 	// Compute the polynomial coefficients needed for the charge distribution
 	ComputePolyCoeff();
 	// the charge distribution on the grid is quite different if the number is odd or even so
-	// we decide at run time whether to use the rho even or rho odd function
+	// we decide at run time whether to use the rhoeven or rhoodd function
 	
 	if(P_order%2) {
 		make_rho_helper=&ElectrostaticLongRangePPPM::make_rho_odd;
@@ -184,12 +184,12 @@ ElectrostaticLongRangePPPM::~ElectrostaticLongRangePPPM()
 	delete[] e_real;
 	delete[] v_real;
     
-	//deallocate polynomial coefficients, order of deallocation is very important
+	//deallocate polynomial coefficients
 	delete[] Denom_Coeff;
 
 	for(unsigned int i=P_order;i>0;--i) delete[] P_coeff[i-1]; 
 	delete[] P_coeff;	
-    for(unsigned int i=P_order;i>0;--i) delete[] b_P[i-1];
+	for(unsigned int i=P_order;i>0;--i) delete[] b_P[i-1];
 	delete[] b_P;
    
 	for(unsigned int i=P_order;i>0;--i) delete[] a_P[i-1];
@@ -238,7 +238,7 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 
 		Scalar q_i= arrays.charge[i];
 
-		//compute the two nearest points on the grid
+		//find the center point on the grid where to distribute the charge
 	    
 		Scalar dx=(xi-box.xlo)/h_x;
 		Scalar x_floor= floor(dx);  
@@ -256,7 +256,7 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		int ind_y=0;
 		int ind_z=0;
 
-	    dx=dx-x_floor-0.5;
+		dx=dx-x_floor-0.5;
 		dy=dy-y_floor-0.5;
 		dz=dz-z_floor-0.5;
       
@@ -274,7 +274,7 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		}
 	}
 
-	 //The charge is now defined on the grid for P even
+	 //The charge is now distributed on the grid (P even)
 }
 void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Continuum)
 {
@@ -362,7 +362,8 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 
 		Scalar q_i= arrays.charge[i];
 
-		//compute the nearest point on the grid
+		//compute the center point on the grid
+
 		Scalar dx = (xi-box.xlo)/h_x; 
 		Scalar x_floor = floor(dx);
 		int ix_floor=static_cast<int>(x_floor);
@@ -544,27 +545,27 @@ void ElectrostaticLongRangePPPM::Compute_G(void)
 	Scalar k_per_x,k_per_y,k_per_z,k_per_norm;
 	unsigned int ind;
 
-	for(unsigned int i=0;i<N_mesh_x;i++){
-	for(unsigned int j=0;j<N_mesh_y;j++){
-	for(unsigned int k=0;k<N_mesh_z;k++){
+	for(int i=0;i<Nu_mesh_x;i++){
+	for(int j=0;j<Nu_mesh_y;j++){
+	for(int k=0;k<Nu_mesh_z;k++){
 		ind=T.D3To1D(i,j,k);
 		G_Inf[ind]=0.0;
 	}
 	}
 	}
 
-	for(unsigned int i=0;i<N_mesh_x;i++){
+	for(int i=0;i<Nu_mesh_x;i++){
 		k_x=2*i*M_PI/(S_mesh_x*h_x);
-		k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/(S_mesh_x*h_x); 
-        xsi=sin(k_x);
-	for(unsigned int j=0;j<N_mesh_y;j++){
+		k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/Nu_mesh_x)*Nu_mesh_x)/(S_mesh_x*h_x); 
+        xsi=sin(0.5*k_x*h_x);
+	for(int j=0;j<Nu_mesh_y;j++){
 		k_y=2*j*M_PI/(S_mesh_y*h_y);
-		k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/(S_mesh_y*h_y);
-        ysi=sin(k_y);
-	for(unsigned int k=0;k<N_mesh_z;k++){
+		k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/Nu_mesh_y)*Nu_mesh_y)/(S_mesh_y*h_y);
+        ysi=sin(0.5*k_y*h_y);
+	for(int k=0;k<Nu_mesh_z;k++){
 		k_z=2*k*M_PI/(S_mesh_z*h_z);
-		k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/(S_mesh_z*h_z);
-        zsi=sin(k_z);
+		k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/Nu_mesh_z)*Nu_mesh_z)/(S_mesh_z*h_z);
+        zsi=sin(0.5*k_z*h_z);
 
 		k_per_norm=k_per_x*k_per_x+k_per_y*k_per_y+k_per_z*k_per_z; // modulus of the derivative
 		v_num=Numerator_G(k_x,k_y,k_z);	
@@ -606,7 +607,7 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 	//Numerator of the influence function
 	 
 	vector<Scalar> DG(3);
-	//define the return type
+	//define the return type and initialize to zero
 
 	for(int j=0;j<3;j++) DG[j]=0.0;
 
@@ -633,7 +634,6 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 	double D_cum_y=0.0;
 	double D_cum_z=0.0;
 
-	
 	for(int j_x=-n_x;j_x<=n_x;j_x++){
 		kx_n=kx+2*j_x*M_PI/h_x;
 		skx=pow(boost::math::sinc_pi(kx_n*h_x/2.0),static_cast<int>(2*P_order));
@@ -645,16 +645,16 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 						skz=pow(boost::math::sinc_pi(kz_n*h_z/2.0),static_cast<int>(2*P_order));
 	
 						//the zero mode (k_x^2+k_y^2+k_z^2=0) requires special treatment
-						if((is_mode_k_zero)&&(!(j_z==0))&&(!(j_y==0))&&(!(j_x==0))){
+						if(!((is_mode_k_zero)&&(j_z==0)&&(j_y==0)&&(j_x==0))){
 
 						sk_all=skx*sky*skz;
 						k_mod=kx_n*kx_n+ky_n*ky_n+kz_n*kz_n;
 						
 						D_exp=4*M_PI*exp(-k_mod/(4*m_alpha*m_alpha));
 
-						D_cum_x+=D_exp*sk_all/k_mod;
-						D_cum_y+=D_exp*sk_all/k_mod;
-						D_cum_z+=D_exp*sk_all/k_mod;
+						D_cum_x+=kx_n*D_exp*sk_all/k_mod;
+						D_cum_y+=ky_n*D_exp*sk_all/k_mod;
+						D_cum_z+=kz_n*D_exp*sk_all/k_mod;
 						}
 
 										}
@@ -683,8 +683,6 @@ void ElectrostaticLongRangePPPM::Denominator_Poly_G(void)
 		}
 		Denom_Coeff[0]=4.0*j*(j+0.5)*Denom_Coeff[0];//CHECK THIS
 	}
-
-	
 
 	//There is a 1/(2P_order-1)! coefficient to be added
 
