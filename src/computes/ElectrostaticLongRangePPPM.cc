@@ -679,9 +679,9 @@ void ElectrostaticLongRangePPPM::Denominator_Poly_G(void)
 	
 	for(int j=1;j<static_cast<int>(P_order);j++){
 		for(int l=j;l>0;l--){
-		Denom_Coeff[l]=4.0* Denom_Coeff[l]*(l-j)*(l-j-0.5)-Denom_Coeff[l-1]*(l-j-1)*(l-j-1); //CHECK THIS
+		Denom_Coeff[l]=4.0*(Denom_Coeff[l]*(j-l)*(j-l+0.5)-Denom_Coeff[l-1]*(j-l+1)*(j-l+1)); 
 		}
-		Denom_Coeff[0]=4.0*j*(j+0.5)*Denom_Coeff[0];//CHECK THIS
+		Denom_Coeff[0]=4.0*j*(j+0.5)*Denom_Coeff[0];
 	}
 
 	//There is a 1/(2P_order-1)! coefficient to be added
@@ -720,6 +720,15 @@ const CScalar & ElectrostaticLongRangePPPM::Show_rho_real(unsigned int ix,unsign
 	}
 }
 
+const Scalar & ElectrostaticLongRangePPPM::Poly_coeff_Denom_Influence_Function(unsigned int i) const
+{
+	if(i<P_order) return Denom_Coeff[i];
+	else
+	{
+		cerr << endl << "***Error! attempting to access a non existing value in denominator Polynomial coefficent" << endl << endl;
+		throw runtime_error("Error in Poly_coeff_Denom_Influence_Function member function of ElectrostaticLongRangePPPM class ");
+	}
+}
 const Scalar & ElectrostaticLongRangePPPM::Poly_coeff_Grid(unsigned int i,unsigned int j) const
 {
 	if((i<P_order)&&(j<P_order)) return P_coeff[i][j];
