@@ -37,6 +37,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef WIN32
+#define _USE_MATH_DEFINES
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
 #endif
@@ -659,7 +660,62 @@ void LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator LongRangePPPM_object_n
 	for(unsigned int i=P_order;i>0;--i) delete[] Exact[i-1];
 	delete[] Exact;
 }
+void LongRangePPPM_InfluenceFunction(LongRangePPPM_creator LongRangePPPM_object_IF)
+	{
+	// Unit test for the influence function
+	shared_ptr<ParticleData> pdata_1(new ParticleData(1, BoxDim(20.0,20.0,20.0), 1));
 
+	ParticleDataArrays arrays = pdata_1->acquireReadWrite();
+
+	// six charges are located near the edge of the box
+	arrays.x[0]=Scalar(-3.6);arrays.y[0]=Scalar(0.1);arrays.z[0]=Scalar(2.0);arrays.charge[0]=1.0;
+
+	// allow for acquiring data in the future
+	pdata_1->release();
+
+    // Define mesh parameters as well as order of the distribution, etc.. 
+	unsigned int Nmesh_x=20;
+	unsigned int Nmesh_y=20;
+	unsigned int Nmesh_z=20; 
+	unsigned int P_order=6; 
+	Scalar alpha=1.0;
+	shared_ptr<FftwWrapper> FFTW(new  FftwWrapper(Nmesh_x,Nmesh_y,Nmesh_z));
+	bool third_law=false;
+
+	shared_ptr<ElectrostaticLongRangePPPM> PPPM_1=LongRangePPPM_object_IF(pdata_1,Nmesh_x,Nmesh_y,Nmesh_z,P_order,alpha,FFTW,third_law);
+
+	//First we make sure that the analytical expression used to compute the denominator
+	//of the influence function is what it should be
+
+	Scalar Denom_by_hand;
+	Scalar k_val;
+	Scalar sin_k_val;
+	Scalar sin_pow;
+	Scalar k_val_pow;
+	Scalar Denom_Exact;
+
+	for(unsigned int n=1;n<Nmesh_x/2;n++){
+		k_val=n*M_PI/static_cast<Scalar>(Nmesh_x);
+		sin_k_val=sin(k_val);
+		Denom_by_hand=0.0;
+		Denom_Exact=0.0;
+		sin_pow=1;
+		for(int ii=0;ii<static_cast<int>(2*P_order);ii++) sin_pow*=sin_k_val;
+		for(int jj=static_cast<int>(P_order-1);jj>=0;jj--) Denom_Exact=PPPM_1->Poly_coeff_Denom_Influence_Function(jj)+Denom_Exact*sin_k_val*sin_k_val;
+		
+		for(int m=-500;m<600;m++)//This value putts an extremely conservative cutoff to the sum
+		{
+			k_val_pow=1;
+			for(int ii=0;ii<static_cast<int>(2*P_order);ii++) k_val_pow*=(k_val+M_PI*m);
+			Denom_by_hand+=1/k_val_pow;
+		}
+			Denom_by_hand*=sin_pow;
+			MY_BOOST_CHECK_CLOSE(Denom_by_hand,Denom_Exact,0.01*tol);
+			//compare the denominator of the influence function with the approximate result
+	    }
+	
+		//Now let us compare the rest of the influence function
+}
 //! ElectrostaticShortRange creator for unit tests
 shared_ptr<ElectrostaticLongRangePPPM> base_class_PPPM_creator(shared_ptr<ParticleData> pdata,unsigned int Nmesh_x,unsigned int Nmesh_y,unsigned int Nmesh_z, unsigned int P_order, Scalar alpha,shared_ptr<FFTClass> FFTW,bool third_law_m)
 	{
@@ -667,7 +723,7 @@ shared_ptr<ElectrostaticLongRangePPPM> base_class_PPPM_creator(shared_ptr<Partic
 	}
 	
 //! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Even_test)
+/* BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Even_test)
 {
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
 	LongRangePPPM_PositionGrid_even(LongRangePPPM_creator_base);
@@ -677,6 +733,15 @@ BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Odd_test)
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
 	LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator_base);
 }
+*/
+
+BOOST_AUTO_TEST_CASE(LongRangePPPM_InfluenceFunction_Test)
+{
+	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
+	LongRangePPPM_InfluenceFunction(LongRangePPPM_creator_base);
+}
+
+
 
 #else
 
