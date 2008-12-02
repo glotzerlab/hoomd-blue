@@ -332,7 +332,7 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
 	cout << "Average Temperature " << AvgT << endl;
 
 	//Dividing a very large number by a very large number... not great accuracy!
-    MY_BOOST_CHECK_CLOSE(D1, 1.0, 5);
+    MY_BOOST_CHECK_CLOSE(D1, 1.0, 8);
     MY_BOOST_CHECK_CLOSE(D2, 0.5, 5);
 	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
 	pdata->release();					
