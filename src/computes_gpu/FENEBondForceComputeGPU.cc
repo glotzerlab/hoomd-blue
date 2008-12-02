@@ -83,6 +83,14 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<ParticleData>
 	// allocate host memory for GPU parameters
 	m_host_params = new float4[m_bond_data->getNBondTypes()];
 	memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
+	
+	// allocate device memory for the radius error check parameters
+	m_checkr.resize(exec_conf.gpu.size());
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_checkr[cur_gpu]), sizeof(int)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_checkr[cur_gpu], 0, sizeof(int)));
+		}
 	}
 	
 FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
@@ -93,6 +101,9 @@ FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
 		{
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
 		m_gpu_params[cur_gpu] = NULL;
+		
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_checkr[cur_gpu]));
+		m_checkr[cur_gpu] = NULL;
 		}
 		
 	// free memory on the CPU
@@ -153,7 +164,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exceedsR0[cur_gpu] = 0;
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_fene_bond_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_bond_data->getNBondTypes(), m_block_size, exceedsR0[cur_gpu]));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_fene_bond_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_checkr[cur_gpu], m_bond_data->getNBondTypes(), m_block_size, exceedsR0[cur_gpu]));
 		}
 	exec_conf.syncAll();
 	

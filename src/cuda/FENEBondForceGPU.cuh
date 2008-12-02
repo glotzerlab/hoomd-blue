@@ -51,6 +51,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __FENEBONDFORCEGPU_CUH__
 
 //! Kernel driver that computes FENE bond forces for FENEBondForceComputeGPU
-cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float4 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0);
+cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float4 *d_params, int *d_checkr, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0);
 
 #endif

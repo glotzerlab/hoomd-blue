@@ -64,8 +64,9 @@ texture<float4, 1, cudaReadModeElementType> bond_params_tex;
 	\param pdata Particle data arrays to calculate forces on
 	\param box Box dimensions for periodic boundary condition handling
 	\param blist Bond data to use in calculating the forces
+	\param d_checkr Flag allocated on the device for use in checking for bonds that are too long
 */
-extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_bondtable_array blist)
+extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_bondtable_array blist, int *d_checkr)
 	{
 	// start by identifying which particle we are to handle
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -157,7 +158,7 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 		force.w += bond_eng + pair_eng;
 		
 		// Checking to see if bond length restriction is violated.
-		if (rsq >= r_0*r_0) *blist.checkr = 1;
+		if (rsq >= r_0*r_0) *d_checkr = 1;
 		
 		}
 		
@@ -175,6 +176,7 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param btable List of bonds stored on the GPU
 	\param d_params K, r_0, lj1, and lj2 params packed as float4 variables
+	\param d_checkr Flag allocated on the device for use in checking for bonds that are too long
 	\param n_bond_types Number of bond types in d_params
 	\param block_size Block size to use when performing calculations
 	\param exceedsR0 output parameter set to true if any bond exceeds the length of r_0
@@ -185,7 +187,7 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 	\a d_params should include one float4 element per bond type. The x component contains K the spring constant
 	and the y component contains r_0 the equilibrium length, z and w contain lj1 and lj2.
 */
-cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float4 *d_params, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0)
+cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float4 *d_params, int *d_checkr, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0)
 	{
 	assert(d_params);
 	// check that block_size is valid
@@ -205,16 +207,15 @@ cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data
 		return error;
 		
 	// start by zeroing check value on the device
-	error = cudaMemcpy(btable.checkr, &exceedsR0,
-			sizeof(int), cudaMemcpyHostToDevice);
+	exceedsR0 = 0;
+	error = cudaMemcpy(d_checkr, &exceedsR0, sizeof(int), cudaMemcpyHostToDevice);
 	if (error != cudaSuccess)
 		return error;
 
 	// run the kernel
-	gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(force_data, pdata, box, btable);	
+	gpu_compute_fene_bond_forces_kernel<<< grid, threads>>>(force_data, pdata, box, btable, d_checkr);
 
-	error = cudaMemcpy(&exceedsR0, btable.checkr,
-			sizeof(int), cudaMemcpyDeviceToHost);	
+	error = cudaMemcpy(&exceedsR0, d_checkr, sizeof(int), cudaMemcpyDeviceToHost);	
 	if (error != cudaSuccess)
 		return error;
 
