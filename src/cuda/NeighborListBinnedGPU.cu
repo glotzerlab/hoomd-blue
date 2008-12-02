@@ -238,7 +238,7 @@ extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist
 				float dr = dx*dx + dy*dy + dz*dz;
 				int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
 				
-				// FLOPS: 1 / MEM TRANSFER not easily estimated
+				// FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
 				if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
 					{
 					// check for overflow

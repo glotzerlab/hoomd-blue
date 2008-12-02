@@ -215,7 +215,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 
 	Scalar avg_neigh = m_nlist->estimateNNeigh();
 	int64_t n_calc = int64_t(avg_neigh * m_pdata->getN());
-	int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 16) + n_calc * (4 + 20);
+	int64_t mem_transfer = m_pdata->getN() * (4 + 16 + 20) + n_calc * (4 + 16);
 	int64_t flops = n_calc * (3+12+5+2+2+6+3+2+7);
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}

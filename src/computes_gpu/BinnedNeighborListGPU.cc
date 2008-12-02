@@ -631,8 +631,8 @@ void BinnedNeighborListGPU::updateListFromBins()
 	
 	m_pdata->release();
 
-	int64_t flops = m_pdata->getN() * (9 + 27 * m_curNmax * (15 + 5 + 1));
-	int64_t mem_transfer = m_pdata->getN() * (32 + 4 + 8 + 27 * (4 + m_curNmax * 16));
+	int64_t flops = int64_t(m_pdata->getN() * (9 + 27 * m_avgNmax * (15 + 5 + 1)));
+	int64_t mem_transfer = int64_t(m_pdata->getN() * (32 + 4 + 8 + 27 * (4 + m_avgNmax * 16) + estimateNNeigh() * 4));
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 
