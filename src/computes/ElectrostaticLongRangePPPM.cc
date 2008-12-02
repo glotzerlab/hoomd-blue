@@ -569,9 +569,8 @@ void ElectrostaticLongRangePPPM::Compute_G(void)
 
 		k_per_norm=k_per_x*k_per_x+k_per_y*k_per_y+k_per_z*k_per_z; // modulus of the derivative
 		v_num=Numerator_G(k_x,k_y,k_z);	
-
 		ind=T.D3To1D(i,j,k);
-		G_Inf[ind]=(k_per_x*v_num[0]+k_per_y*v_num[1]+k_per_z*v_num[2])/(k_per_norm*Denominator_G(xsi,ysi,zsi));
+		G_Inf[ind]=(k_per_x*v_num[0]+k_per_y*v_num[1]+k_per_z*v_num[2])/(k_per_norm*Denominator_G(xsi,zsi,ysi));
 	}
 	}
 	}
@@ -594,11 +593,11 @@ Scalar ElectrostaticLongRangePPPM::Denominator_G(Scalar xsi,Scalar ysi,Scalar zs
 	Scalar s_z=0;
 
 	for(int j=static_cast<int>(P_order-1);j>=0;j--){
-		s_x=Denom_Coeff[j]+s_x*xsi;
-		s_y=Denom_Coeff[j]+s_y*ysi;
-		s_z=Denom_Coeff[j]+s_z*ysi;
+		s_x=Denom_Coeff[j]+s_x*xsi*xsi;
+		s_y=Denom_Coeff[j]+s_y*ysi*ysi;
+		s_z=Denom_Coeff[j]+s_z*zsi*zsi;
 	}
-	return s_x*s_x*s_y*s_y*s_z*s_z;
+	return (s_x*s_x*s_y*s_y*s_z*s_z);
 }
 
 vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scalar kz)
@@ -612,8 +611,8 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 	for(int j=0;j<3;j++) DG[j]=0.0;
 
 	//The number of terms to be added are calculated with more precision than e-10
-	//This is way more than needed, but given that this function is precomputed it does
-	//not cause any overhead in the calculation.
+	//This is ultra-conservative, but given that this function is precomputed it does
+	//not cause any overhead in the actual MD.
 
 	int n_x=static_cast<int>(m_alpha*h_x*sqrt(10*log(10.0))/3.16)+1;
 	int n_y=static_cast<int>(m_alpha*h_y*sqrt(10*log(10.0))/3.16)+1;
@@ -623,7 +622,7 @@ vector<Scalar> ElectrostaticLongRangePPPM::Numerator_G(Scalar kx,Scalar ky,Scala
 
 	bool is_mode_k_zero=false;
 
-	if( (fabs(kx)<1/Lx)&&(fabs(ky)<1/Ly)&&(fabs(kz)<1/Lz)) is_mode_k_zero=true;
+	if( (fabs(kx)<0.5/Lx)&&(fabs(ky)<0.5/Ly)&&(fabs(kz)<0.5/Lz)) is_mode_k_zero=true;
     
 	//we will use double precision and then cast it to Scalar
 
