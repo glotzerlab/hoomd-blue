@@ -234,7 +234,7 @@ void BondData::updateBondTable()
 	
 	// count the number of bonds per particle
 	// start by initializing the host n_bonds values to 0
-	memset(m_host_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
+	memset(m_host_n_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
 	
 	// loop through the particles and count the number of bonds based on each particle index
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
@@ -268,7 +268,7 @@ void BondData::updateBondTable()
 	memset(m_host_n_bonds, 0, sizeof(unsigned int) * m_pdata->getN());
 	
 	// loop through all bonds and add them to each column in the list
-	int pitch = m_gpu_bonddata[0].pitch;
+	int pitch = m_pdata->getN();
 	for (unsigned int cur_bond = 0; cur_bond < m_bonds.size(); cur_bond++)
 		{
 		unsigned int tag1 = m_bonds[cur_bond].a;
@@ -317,36 +317,22 @@ void BondData::allocateBondTable(int height)
 	assert(m_host_n_bonds == NULL);
 	
 	unsigned int N = m_pdata->getN();
-	size_t pitch = 0;
 	
 	// get the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
-	// allocate and zero device memory
+	// allocate device memory
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		assert(m_gpu_bonddata[cur_gpu].bonds == NULL);
-		assert(m_gpu_bonddata[cur_gpu].n_bonds == NULL);
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata[cur_gpu].n_bonds), N*sizeof(unsigned int)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_bonddata[cur_gpu].n_bonds, 0, N*sizeof(unsigned int)));
-		
-		// cudaMallocPitch fails to work for coalesced reads here (dunno why), need to calculate pitch ourselves
-		// round up to the nearest multiple of 32
-		pitch = (N + (32 - N & 31)) * sizeof(uint2);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bonddata[cur_gpu].bonds), pitch*height));
-		// want pitch in elements, not bytes
-		m_gpu_bonddata[cur_gpu].pitch = (int)pitch / sizeof(uint2);
-		m_gpu_bonddata[cur_gpu].height = height;
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_bonddata[cur_gpu].bonds, 0, pitch * height));
-		}
+		exec_conf.gpu[cur_gpu]->call(bind(&gpu_bondtable_array::allocate, &m_gpu_bonddata[cur_gpu], m_pdata->getLocalNum(cur_gpu), height));
+	
 	
 	// allocate and zero host memory
 	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_n_bonds), N*sizeof(int)));
 	memset((void*)m_host_n_bonds, 0, N*sizeof(int));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_bonds), pitch * height));
-	memset((void*)m_host_bonds, 0, pitch*height);
+	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_bonds), N * height * sizeof(uint2)));
+	memset((void*)m_host_bonds, 0, N*height*sizeof(uint2));
 	}
 
 void BondData::freeBondTable()
@@ -355,15 +341,9 @@ void BondData::freeBondTable()
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
 	
 	// free device memory
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bonddata[cur_gpu].bonds));
-		m_gpu_bonddata[cur_gpu].bonds = NULL;
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bonddata[cur_gpu].n_bonds));
-		m_gpu_bonddata[cur_gpu].n_bonds = NULL;
-		}
-	
+		exec_conf.gpu[cur_gpu]->call(bind(&gpu_bondtable_array::deallocate, &m_gpu_bonddata[cur_gpu]));
 	
 	// free host memory
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_bonds));
@@ -378,15 +358,22 @@ void BondData::copyBondTable()
 	// get the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();	
 	
+	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_bonddata[cur_gpu].bonds, m_host_bonds,
-				sizeof(uint2) * m_gpu_bonddata[0].height * m_gpu_bonddata[0].pitch,
+		// we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
+		for (unsigned int row = 0; row < m_gpu_bonddata[0].height; row++)
+			{
+			// copy only the portion of the data to each GPU with particles local to that GPU
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_bonddata[cur_gpu].bonds + m_gpu_bonddata[cur_gpu].pitch*row, 
+				m_host_bonds + row * m_pdata->getN() + m_pdata->getLocalBeg(cur_gpu),
+				sizeof(uint2) * m_pdata->getLocalNum(cur_gpu),
 				cudaMemcpyHostToDevice));
+			}
 				
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_bonddata[cur_gpu].n_bonds, m_host_n_bonds,
-				sizeof(unsigned int) * m_pdata->getN(),
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_bonddata[cur_gpu].n_bonds, 
+				m_host_n_bonds + m_pdata->getLocalBeg(cur_gpu),
+				sizeof(unsigned int) * m_pdata->getLocalNum(cur_gpu),
 				cudaMemcpyHostToDevice));
 		}
 	}

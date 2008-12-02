@@ -76,7 +76,7 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 		return;
 	
 	// load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-	int n_bonds = blist.n_bonds[idx_global];
+	int n_bonds = blist.n_bonds[idx_local];
 
 	// read in the position of our particle. (MEM TRANSFER: 16 bytes)
 	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
@@ -92,10 +92,10 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 		// MEM TRANSFER: 8 bytes
 		// the volatile fails to compile in device emulation mode
 		#ifdef _DEVICEEMU
-		uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_global];
+		uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_local];
 		#else
 		// the volatile is needed to force the compiler to load the uint2 coalesced
-		volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_global];
+		volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_local];
 		#endif
 		
 		int cur_bond_idx = cur_bond.x;
