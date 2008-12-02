@@ -85,6 +85,8 @@ class HOOMDDumpWriter : public Analyzer
 		void analyze(unsigned int timestep);
 		//! Enables/disables the writing of particle positions
 		void setOutputPosition(bool enable);
+		//! Enables/disables the writing of particle images
+		void setOutputImage(bool enable);
 		//! Enables/disables the writing of particle velocities
 		void setOutputVelocity(bool enable);
 		//! Enables/disables the writing of particle types
@@ -97,6 +99,7 @@ class HOOMDDumpWriter : public Analyzer
 	private:
 		std::string m_base_fname;	//!< String used to store the file name of the XML file
 		bool m_output_position;		//!< true if the particle positions should be written
+		bool m_output_image;		//!< true if the particle positions should be written
 		bool m_output_velocity;		//!< true if the particle velocities should be written
 		bool m_output_type;			//!< true if the particle types should be written
 		bool m_output_bond;			//!< true if the bond should be written

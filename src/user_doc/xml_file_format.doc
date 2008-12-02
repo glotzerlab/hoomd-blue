@@ -47,6 +47,7 @@ will be set to the value of the time step when the system snapshot was taken.
 A number of data nodes can be included as part of the configuration and in any order.
  - \b box (\ref sec_xml_box)
  - \b position (\ref sec_xml_position)
+ - \b image (\ref sec_xml_image)
  - \b velocity (\ref sec_xml_velocity)
  - \b type (\ref sec_xml_type)
  - \b bond (\ref sec_xml_bond)
@@ -99,6 +100,33 @@ etc...), the example above uses spaces between \em x, \em y, and \em z and newli
 particles merely to make it more easily human-readable.
 
 All particles must be in the box: \a x \> -Lx/2.0 and \a x \< Lx/2.0 and similarly for \a y and \a z.
+
+<hr>
+
+\section sec_xml_image Particle images
+The \<image\> node sets the box image for each particle in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node.<br>
+When used in an input file, the images specified are used as the initial condition for the simulation.
+
+\b Example:
+\code
+<image>
+-1 -5 12
+18 2 -10
+13 -5 0
+</velocity>
+\endcode
+
+The format of the node data is the same as for \<position\> (see \ref sec_xml_position), except that the 
+values must be integers. If specifying both position and image in an input file, be certain to include the 
+same number of particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an 
+error.
+
+Image flags are used to track the movement of particles across the periodic boundary conditions. To unwrap
+the position of a single particle and see its trajectory as if it did not wrap around the boundary, 
+compute \code x + ix * Lx\endcode where \c x is the particle coordinate, \c ix is the image and \c Lx is the
+box dimension.
 
 <hr>
 

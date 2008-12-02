@@ -74,6 +74,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 	// initialize the parser map
 	m_parser_map["box"] = bind(&HOOMDInitializer::parseBoxNode, this, _1);
 	m_parser_map["position"] = bind(&HOOMDInitializer::parsePositionNode, this, _1);
+	m_parser_map["image"] = bind(&HOOMDInitializer::parseImageNode, this, _1);
 	m_parser_map["velocity"] = bind(&HOOMDInitializer::parseVelocityNode, this, _1);
 	m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
 	m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
@@ -134,7 +135,19 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
 		pdata.tag[i] = i;
 		pdata.rtag[i] = i;
 		}
+		
+	if (m_image_array.size() != 0)
+		{
+		assert(m_image_array.size() == m_pos_array.size());
 
+		for (unsigned int i = 0; i < m_pos_array.size(); i++)
+			{
+			pdata.ix[i] = m_image_array[i].x;
+			pdata.iy[i] = m_image_array[i].y;
+			pdata.iz[i] = m_image_array[i].z;
+			}
+		}
+	
 	if (m_vel_array.size() != 0)
 		{
 		assert(m_vel_array.size() == m_pos_array.size());
@@ -260,6 +273,11 @@ void HOOMDInitializer::readFile(const string &fname)
 		cerr << endl << "***Error! " << m_vel_array.size() << " velocities != " << m_pos_array.size() << " positions" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
+	if (m_image_array.size() != 0 && m_image_array.size() != m_pos_array.size())
+		{
+		cerr << endl << "***Error! " << m_image_array.size() << " images != " << m_pos_array.size() << " positions" << endl << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
 	if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
 		{
 		cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_pos_array.size() << " positions" << endl << endl;
@@ -274,6 +292,8 @@ void HOOMDInitializer::readFile(const string &fname)
 	// notify the user of what we have accomplished
 	cout << "--- hoomd_xml file read summary" << endl;
 	cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
+	if (m_image_array.size() > 0)
+		cout << m_image_array.size() << " images" << endl;	
 	if (m_vel_array.size() > 0)
 		cout << m_vel_array.size() << " velocities" << endl;
 	cout << getNumParticleTypes() <<  " particle types" << endl;
@@ -353,6 +373,33 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 			Scalar x,y,z;
 			parser >> x >> y >> z;
 			m_pos_array.push_back(vec(x,y,z));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found position node with no text. Possible typo." << endl;
+		}
+	}
+
+/*! \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b image node and fills out m_pos_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseImageNode(const XMLNode& node)
+	{
+	// check that this is actually a position node
+	assert(string(node.getName()) == string("image"));
+
+	// extract the data from the node
+	istringstream parser;
+	if (node.getText())
+		{
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			int x,y,z;
+			parser >> x >> y >> z;
+			m_image_array.push_back(vec_int(x,y,z));
 			}
 		}
 	else

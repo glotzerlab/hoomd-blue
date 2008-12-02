@@ -114,6 +114,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		void parseBoxNode(const XMLNode& node);
 		//! Helper function to parse the position node
 		void parsePositionNode(const XMLNode& node);
+		//! Helper function to parse the image node
+		void parseImageNode(const XMLNode& node);
 		//! Helper function to parse the velocity node
 		void parseVelocityNode(const XMLNode& node);
 		//! Helper function to parse the type node
@@ -155,11 +157,32 @@ class HOOMDInitializer : public ParticleDataInitializer
 			Scalar z;	//!< z-component
 			};
 			
+		//! simple integer vec for storing particle data
+		struct vec_int
+			{
+			//! Default construtor
+			vec_int() : x(0), y(0), z(0)
+				{
+				}
+			//! Constructs a vec with given components
+			/*! \param xp x-component
+				\param yp y-component
+				\param zp z-component
+			*/
+			vec_int(int xp, int yp, int zp) : x(xp), y(yp), z(zp)
+				{
+				}
+			int x;	//!< x-component
+			int y;	//!< y-component
+			int z;	//!< z-component
+			};
+			
 		std::vector< vec > m_pos_array;				//!< positions of all particles loaded
+		std::vector< vec_int > m_image_array;		//!< images of all particles loaded
 		std::vector< vec > m_vel_array;				//!< velocities of all particles loaded
 		std::vector< unsigned int > m_type_array;	//!< type values for all particles loaded
 		std::vector< Scalar > m_charge_array;		//!< charge of the particles loaded
-		std::vector< Wall > m_walls;				//!< walls loaded from the file			
+		std::vector< Wall > m_walls;				//!< walls loaded from the file
 		
 		std::vector< Bond > m_bonds;	//!< Bonds read in from the file
 	

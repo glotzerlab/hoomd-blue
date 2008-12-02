@@ -70,7 +70,7 @@ using namespace boost;
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname)
-	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_velocity(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
+	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
 	{
 	}
 
@@ -80,9 +80,15 @@ void HOOMDDumpWriter::setOutputPosition(bool enable)
 	{
 	m_output_position = enable;
 	}
+	
+/*! \param enable Set to true to enable the writing of particle images to the files in analyze()
+*/
+void HOOMDDumpWriter::setOutputImage(bool enable)
+	{
+	m_output_image = enable;
+	}
 
-/*!  
-	\param enable Set to true to output particle velocities to the XML file on the next call to analyze()
+/*!\param enable Set to true to output particle velocities to the XML file on the next call to analyze()
 
 */
 void HOOMDDumpWriter::setOutputVelocity(bool enable)
@@ -166,7 +172,32 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 			}
 		f <<"</position>"<<endl;
 		}
+		
+	// If the image flag is true, output the image of each particle to the file
+	if (m_output_image)
+		{
+		f << "<image>" << endl;
+		for (unsigned int j = 0; j < arrays.nparticles; j++)
+			{
+			// use the rtag data to output the particles in the order they were read in
+			int i;
+			i= arrays.rtag[j];
+				
+			int x = (arrays.ix[i]);
+			int y = (arrays.iy[i]);
+			int z = (arrays.iz[i]);
+			
+			f << x << " " << y << " "<< z << endl;
 
+			if (!f.good())
+				{
+				cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+				throw runtime_error("Error writting HOOMD dump file");
+				}
+			}
+		f <<"</image>"<<endl;
+		}
+		
 	// If the velocity flag is true output the velocity of all particles to the file
 	if (m_output_velocity)
 		{
@@ -255,6 +286,7 @@ void export_HOOMDDumpWriter()
 	class_<HOOMDDumpWriter, boost::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
 		("HOOMDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string >())
 		.def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
+		.def("setOutputImage", &HOOMDDumpWriter::setOutputImage)
 		.def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)
 		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
 		.def("setOutputBond", &HOOMDDumpWriter::setOutputBond)

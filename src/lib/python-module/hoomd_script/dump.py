@@ -88,6 +88,7 @@ class xml(analyze._analyzer):
 	## Change xml write parameters
 	#
 	# \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
+	# \param image (if set) Set to True/False to enable/disable the output of particle images in the xml file
 	# \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
 	# \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
 	# \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
@@ -106,7 +107,7 @@ class xml(analyze._analyzer):
 	# xml.set_params(position=True, wall=True)
 	# xml.set_params(bond=True)
 	# \endcode
-	def set_params(self, position=None, velocity=None, type=None, wall=None, bond=None):
+	def set_params(self, position=None, image=None, velocity=None, type=None, wall=None, bond=None):
 		util.print_status_line();
 	
 		# check that proper initialization has occured
@@ -116,6 +117,9 @@ class xml(analyze._analyzer):
 			
 		if position != None:
 			self.cpp_analyzer.setOutputPosition(position);
+
+		if image != None:
+			self.cpp_analyzer.setOutputImage(image);
 
 		if velocity != None:
 			self.cpp_analyzer.setOutputVelocity(velocity);

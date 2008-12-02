@@ -99,6 +99,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	array.y[0] = Scalar(2.1234567890123456);
 	array.z[0] = Scalar(-5.76);
 	
+	array.ix[0] = -1;
+	array.iy[0] = -5;
+	array.iz[0] = 6;
+	
 	array.vx[0] = Scalar(-1.4567);
 	array.vy[0] = Scalar(-10.0987654321098765);
 	array.vz[0] = Scalar(56.78);
@@ -108,6 +112,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	array.x[1] = Scalar(1.2);
 	array.y[1] = Scalar(2.1);
 	array.z[1] = Scalar(-3.4);
+	
+	array.ix[1] = 10;
+	array.iy[1] = 500;
+	array.iz[1] = 900;
 	
 	array.vx[1] = Scalar(-1.5);
 	array.vy[1] = Scalar(-10.6);
@@ -130,6 +138,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	
 	// first file written will have all outputs disabled
 	writer->setOutputPosition(false);
+	writer->setOutputImage(false);
 	writer->setOutputVelocity(false);
 	writer->setOutputType(false);
 
@@ -373,6 +382,47 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_CHECK_EQUAL(line, "</bond>");
 		f.close();
 		}
+		
+	// seventh test: test image
+		{
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(false);
+		writer->setOutputType(false);
+		writer->setOutputWall(false);
+		writer->setOutputBond(false);
+		writer->setOutputImage(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000070.xml");
+		BOOST_REQUIRE(!exists("test.0000000070.xml"));	
+		
+		// write the file
+		writer->analyze(70);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000070.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<image>");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-1 -5 6");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "10 500 900");
+		BOOST_REQUIRE(!f.bad());
+	
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</image>");
+		f.close();
+		}
 
 
 	remove_all("test.0000000000.xml");
@@ -381,6 +431,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	remove_all("test.0000000030.xml");
 	remove_all("test.0000000040.xml");
 	remove_all("test.0000000050.xml");
+	remove_all("test.0000000060.xml");
+	remove_all("test.0000000070.xml");
 	}
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
@@ -409,6 +461,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		array.x[i] = Scalar(tag)+Scalar(0.1);
 		array.y[i] = Scalar(tag)+Scalar(1.1);
 		array.z[i] = Scalar(tag)+Scalar(2.1);
+		
+		array.ix[i] = tag - 10;
+		array.iy[i] = tag - 11;
+		array.iz[i] = tag + 50;
 
 		array.vx[i] = Scalar(tag)*Scalar(10.0);
 		array.vy[i] = Scalar(tag)*Scalar(11.0);
@@ -426,6 +482,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 	writer->setOutputPosition(true);
 	writer->setOutputVelocity(true);
 	writer->setOutputType(true);
+	writer->setOutputImage(true);
 	
 	// now the big mess: check the file line by line		
 		{
@@ -489,6 +546,39 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line,  "</position>");
+		BOOST_REQUIRE(!f.bad());
+		
+		// check all the images
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<image>");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-10 -11 50");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-9 -10 51");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-8 -9 52");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-7 -8 53");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);			
+		BOOST_CHECK_EQUAL(line, "-6 -7 54");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-5 -6 55");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line,  "</image>");
 		BOOST_REQUIRE(!f.bad());
 		
 		// check all velocities
@@ -588,6 +678,14 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 5.4 6.567890 7.45\n\
 6.4 7.567890 8.45\n\
 </position>\n\
+<image>\n\
+10 20 30\n\
+11 21 31\n\
+12 22 32\n\
+13 23 33\n\
+14 24 34\n\
+15 25 35\n\
+</image>\n\
 <velocity units =\"sigma/tau\">\n\
 10.12 12.1567 1.056\n\
 20.12 22.1567 2.056\n\
@@ -644,6 +742,10 @@ bond_c 3 4\n\
 		MY_BOOST_CHECK_CLOSE(arrays.x[i], Scalar(i) + Scalar(1.4), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.y[i], Scalar(i) + Scalar(2.567890), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.z[i], Scalar(i) + Scalar(3.45), tol);
+		
+		BOOST_CHECK_EQUAL(arrays.ix[i], 10 + i);
+		BOOST_CHECK_EQUAL(arrays.iy[i], 20 + i);
+		BOOST_CHECK_EQUAL(arrays.iz[i], 30 + i);
 		
 		MY_BOOST_CHECK_CLOSE(arrays.vx[i], Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.vy[i], Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
