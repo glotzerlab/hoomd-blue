@@ -88,7 +88,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// this 3 particle test will check proper wall force computation among all 3 axes
 	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 0, exec_conf));

@@ -86,34 +86,34 @@ using namespace std;
 class ElectrostaticLongRangePPPM : public ForceCompute
 	{
 	public:
-		//!< Constructs the compute
+		//! Constructs the compute
 		ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata,unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z, unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m);
 		
-		//!< Destructor
+		//! Destructor
 		virtual ~ElectrostaticLongRangePPPM();
 
-		//!< function making the charge assignment
+		//! function making the charge assignment
 		virtual void make_rho(void);   
 
-		//!< Delivers the charge density on the grid, convenient for unit testing
+		//! Delivers the charge density on the grid, convenient for unit testing
 		const CScalar & Show_rho_real(unsigned int ix,unsigned int iy,unsigned int iz) const;
 
-		//!< Show the value of the polynomial coefficients for charge distribution, convenient for unit testing
+		//! Show the value of the polynomial coefficients for charge distribution, convenient for unit testing
 		const Scalar & Poly_coeff_Grid(unsigned int i,unsigned int j) const;
 
-		//!< Show the value of the polynomial coefficients in the denominator of the Influence function, convenient for unit testing
+		//! Show the value of the polynomial coefficients in the denominator of the Influence function, convenient for unit testing
 		const Scalar & Poly_coeff_Denom_Influence_Function(unsigned int i) const;
 
-		//!< Delivers the Influence function, convenient for unit testing
+		//! Delivers the Influence function, convenient for unit testing
 		const Scalar & Influence_function(unsigned int ix,unsigned int iy,unsigned int iz) const;
 		
-		//!< Delivers number of mesh points in the x axis, convenient for unit testing
+		//! Delivers number of mesh points in the x axis, convenient for unit testing
 		unsigned int N_mesh_x_axis(void) const;
 
-		//!< Delivers number of mesh points in the y axis, convenient for unit testing
+		//! Delivers number of mesh points in the y axis, convenient for unit testing
 		unsigned int N_mesh_y_axis(void) const;
 
-		//!< Delivers number of mesh points in the z axis, convenient for unit testing
+		//! Delivers number of mesh points in the z axis, convenient for unit testing
 		unsigned int N_mesh_z_axis(void) const;
 
 	protected:

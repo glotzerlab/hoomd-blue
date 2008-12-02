@@ -95,7 +95,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// check that the nve updater can actually integrate particle positions and velocities correctly
 	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
@@ -164,7 +164,7 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// create a simple 1 particle system
 	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 1, 0, exec_conf));
@@ -226,7 +226,7 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
@@ -281,7 +281,7 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int N = 1000;
 	

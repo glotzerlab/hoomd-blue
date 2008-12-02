@@ -379,6 +379,7 @@ void LongRangePPPM_PositionGrid_even(LongRangePPPM_creator LongRangePPPM_object_
 // If the order of assignment is even or odd the class uses two different algorithms
 // which are decided at runtime, the case of P odd needs to be tested as well
 
+//! test odd
 void LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator LongRangePPPM_object_n2)
 	{
 	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0,40.0,60.0), 1));
@@ -660,6 +661,8 @@ void LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator LongRangePPPM_object_n
 	for(unsigned int i=P_order;i>0;--i) delete[] Exact[i-1];
 	delete[] Exact;
 }
+
+//! the author has decided to not document this function for inexplicable reasons
 void LongRangePPPM_InfluenceFunction(LongRangePPPM_creator LongRangePPPM_object_IF)
 	{
 	// Unit test for the influence function

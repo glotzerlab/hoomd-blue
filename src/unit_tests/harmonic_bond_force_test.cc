@@ -90,7 +90,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box with only one bond type
@@ -282,7 +282,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int N = 1000;
 	
@@ -327,7 +327,7 @@ void const_force_test(ExecutionConfiguration exec_conf)
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// Generate a simple test particle data
 	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, exec_conf));

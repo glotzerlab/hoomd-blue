@@ -94,7 +94,7 @@ void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_con
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int N = 1000;
 	Scalar T = 2.0;
@@ -157,7 +157,7 @@ void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_crea
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int N = 1000;
 	Scalar T = 2.0;

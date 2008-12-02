@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// start by creating a single particle system: see it the correct file is written
 	BoxDim box(Scalar(2.5), Scalar(4.5), Scalar(12.1));
@@ -386,9 +386,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 	{
-		#ifdef CUDA
+	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// start by creating a single particle system: see it the correct file is written
 	BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
@@ -570,9 +570,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 //! Test basic functionality of HOOMDInitializer
 BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 	{
-		#ifdef CUDA
+	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// create a test input file
 	ofstream f("test_input.xml");

@@ -43,10 +43,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! basically defines the following parameters
-	/*! \param N_1 number of grid points in the 1 axis
-		\param N_2 number of grid points in the 2 axis
-		\param N_3 number of grid points in the 3 axis
-    */
 IndexTransform::IndexTransform(void)
 {
 //constructor initializes to zero
@@ -74,3 +70,4 @@ unsigned int IndexTransform::D3To1D(unsigned int i,unsigned int j,unsigned int k
 {
 	return k+N_3*j+N_2*N_3*i;
 }
+

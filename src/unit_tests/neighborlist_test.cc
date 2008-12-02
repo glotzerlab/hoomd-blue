@@ -80,7 +80,7 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box
@@ -194,7 +194,7 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConf
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
 	// lets make this test simple: put all 6 particles on top of each other and 
@@ -257,7 +257,7 @@ void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creato
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// construct the particle system
 	RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");

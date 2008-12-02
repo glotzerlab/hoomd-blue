@@ -1115,7 +1115,7 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// check that the nvt updater can actually integrate particle positions and velocities correctly
 	// start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
@@ -1160,7 +1160,7 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int N = 1000;
 	

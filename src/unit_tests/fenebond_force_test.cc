@@ -90,7 +90,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box with only one bond type
@@ -282,7 +282,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int M = 10;
 	const unsigned int N = M*M*M;

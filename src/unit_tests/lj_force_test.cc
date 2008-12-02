@@ -93,7 +93,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// this 3-particle test subtly checks several conditions
 	// the particles are arranged on the x axis,  1   2   3
@@ -197,7 +197,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
@@ -286,7 +286,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int N = 5000;
 	

@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE( BoxDim_test )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	Scalar tol = Scalar(1e-6);
 
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	BoxDim box(10.0, 30.0, 50.0);
 	ParticleData a(1, box);
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	Scalar tol = Scalar(1e-6);
 		
@@ -346,7 +346,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	Scalar tol = Scalar(1e-6);
 	
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	Scalar tol = Scalar(1e-6);
 
@@ -494,7 +494,7 @@ BOOST_AUTO_TEST_CASE( Random_test )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// create a fairly dense system with a minimum distance of 0.8
 	Scalar min_dist = Scalar(0.8);

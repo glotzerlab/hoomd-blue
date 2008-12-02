@@ -94,7 +94,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	// this 3-particle test subtly checks several conditions
 	// the particles are arranged on the x axis,  1   2   3
@@ -199,7 +199,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, Exe
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
@@ -288,7 +288,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1, 
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
-	#endif;
+	#endif
 	
 	const unsigned int N = 5000;
 	
