@@ -849,16 +849,19 @@ on multiple GPUs. CUDA is designed for a peer to peer multi-GPU program, but tha
 work well with HOOMD's design. So, GPUWorker was created to allow for calling GPU kernels 
 on mutiple GPUs from a single master thread. The most common data-parallel breakdown of any 
 portion of MD is to assign one thread per particle. Thus, HOOMD's multi-GPU implementation
-assings N/N_gpus particles to each GPU.
+assigns N/N_gpus particles to each GPU.
 
 Some data is stored on all GPUs (like particle positions) and others only store what is needed
 on that GPU (like forces and the Neighborlist). Carefully read the documentation for these data
-structures to find out which is whicn. Typically, a kernel will define two idices: \a local_pidx is the
-\b local index or the index of which particle is being handled that is local to this GPU. 
-\a global_pidx is the global index of the particle and indexes into those data structures that
+structures to find out which is which. Typically, a kernel will define two idices: \a idx_local is the
+\b local index or the index of which particle is being handled that is local to this GPU.
+\a idx_global is the global index of the particle and indexes into those data structures that
 have all particles on all GPUs.
 
-TODO: more documentation on the multi-GPU breakdown: particles forces, neighbor list, ....
+In general, all per-particle data (position, velocity, type, mass, diameter, acceleration, image, ...) will 
+be stored on all GPUs as these fields are often read from neighboring particles. Data structures that are computed
+and used only with a single particle, like Neighbor lists, bond lists, calculated forces, and exclusion lists (to name a few),
+only store the data needed on each GPU there.
 
 Several different designs for the communication between multiple GPUs are being tested. This will be
 updated with the details when a working method is found, tested, and debugged.
@@ -885,8 +888,6 @@ struct SomeDataGPU
 	}
 \endcode
 
-HOOMD currently doesn't use many of these classes to clean up all the messy code, but that will change soon.
-
 <b>Naming conventions</b>
 
 Naming conventions through most of HOOMD are:
@@ -895,8 +896,9 @@ Naming conventions through most of HOOMD are:
 	- Member variables are all lowercase with underscores separating words: \b m_this_is_a_member_variable
 
 To facilitate identifying variables that are on the host/device, code that has a member variable allocated on the GPU
-will name it like this: \b d_this_is_a_device_member_variable. Similarly, \b h_ will be used for host variables where
-there is any doubt that the particlar variable might or might not be on the device.
+will name it like this: \b d_this_is_a_device_member_variable (\b m_gpu_ is also an acceptable prefix). Similarly, 
+\b h_ will be used for host variables where there is any doubt that the particlar variable might or might not be on the 
+device.
 
 In NVCC code, the style is C and not C++. 
 	- So functions are named with a \b gpu_ prefix gpu_this_is_a_gpu_function
