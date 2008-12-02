@@ -66,6 +66,7 @@ enable_testing()
 ## Setup all of the test executables in a for loop
 set(TEST_LIST 
 	pdata_test
+	particle_group_test
 	utils_test
 	harmonic_bond_force_test
 	fenebond_force_test
@@ -86,14 +87,15 @@ if (USE_FFT)
 	Fourier_transform_test)
 endif (USE_FFT)
 
+if(USE_CUDA)
+	set(TEST_LIST ${TEST_LIST} 
+	gpu_worker_test)
+endif(USE_CUDA)
+
 	# put the longest tests last
 	set(TEST_LIST ${TEST_LIST}
 	bdnvt_updater_test
 	npt_updater_test)
-
-if(USE_CUDA)
-	set(TEST_LIST ${TEST_LIST} gpu_worker_test)
-endif(USE_CUDA)
 
 foreach (CUR_TEST ${TEST_LIST})
 	# add and link the unit test executable
