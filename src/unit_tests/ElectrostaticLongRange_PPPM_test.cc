@@ -119,7 +119,7 @@ void LongRangePPPM_PositionGrid_even(LongRangePPPM_creator LongRangePPPM_object_
 	unsigned int Nmesh_y=8;
 	unsigned int Nmesh_z=12; 
 	unsigned int P_order=6; 
-	Scalar alpha=4.0;
+	Scalar alpha=0.5;
 	shared_ptr<FftwWrapper> FFTW(new  FftwWrapper(Nmesh_x,Nmesh_y,Nmesh_z));
 	bool third_law=false;
 
@@ -403,7 +403,7 @@ void LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator LongRangePPPM_object_n
 	unsigned int Nmesh_y=8;
 	unsigned int Nmesh_z=12; 
 	unsigned int P_order=3; 
-	Scalar alpha=4.0;
+	Scalar alpha=1.0;
 	shared_ptr<FftwWrapper> FFTW(new  FftwWrapper(Nmesh_x,Nmesh_y,Nmesh_z));
 	bool third_law=false;
 
@@ -781,7 +781,7 @@ shared_ptr<ElectrostaticLongRangePPPM> base_class_PPPM_creator(shared_ptr<Partic
 	}
 	
 //! boost test case for particle test on CPU
-/* BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Even_test)
+BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Even_test)
 {
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
 	LongRangePPPM_PositionGrid_even(LongRangePPPM_creator_base);
@@ -791,8 +791,6 @@ BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Odd_test)
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
 	LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator_base);
 }
-*/
-
 BOOST_AUTO_TEST_CASE(LongRangePPPM_InfluenceFunction_Test)
 {
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
