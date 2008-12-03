@@ -52,6 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/math/special_functions/sinc.hpp>
 
 #include "ParticleData.h"
 #include "IndexTransform.h"
@@ -666,7 +667,9 @@ void LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator LongRangePPPM_object_n
 void LongRangePPPM_InfluenceFunction(LongRangePPPM_creator LongRangePPPM_object_IF)
 	{
 	// Unit test for the influence function
-	shared_ptr<ParticleData> pdata_1(new ParticleData(1, BoxDim(20.0,20.0,20.0), 1));
+
+	Scalar Lsize=20.0;
+	shared_ptr<ParticleData> pdata_1(new ParticleData(1, BoxDim(Lsize,Lsize,Lsize), 1));
 
 	ParticleDataArrays arrays = pdata_1->acquireReadWrite();
 
@@ -676,12 +679,14 @@ void LongRangePPPM_InfluenceFunction(LongRangePPPM_creator LongRangePPPM_object_
 	// allow for acquiring data in the future
 	pdata_1->release();
 
+	Scalar Mesh_size=20;
+	Scalar hh=Lsize/Mesh_size;
     // Define mesh parameters as well as order of the distribution, etc.. 
-	unsigned int Nmesh_x=20;
-	unsigned int Nmesh_y=20;
-	unsigned int Nmesh_z=20; 
+	unsigned int Nmesh_x=Mesh_size;
+	unsigned int Nmesh_y=Mesh_size;
+	unsigned int Nmesh_z=Mesh_size; 
 	unsigned int P_order=6; 
-	Scalar alpha=1.0;
+	Scalar alpha=0.25;
 	shared_ptr<FftwWrapper> FFTW(new  FftwWrapper(Nmesh_x,Nmesh_y,Nmesh_z));
 	bool third_law=false;
 
@@ -706,7 +711,7 @@ void LongRangePPPM_InfluenceFunction(LongRangePPPM_creator LongRangePPPM_object_
 		for(int ii=0;ii<static_cast<int>(2*P_order);ii++) sin_pow*=sin_k_val;
 		for(int jj=static_cast<int>(P_order-1);jj>=0;jj--) Denom_Exact=PPPM_1->Poly_coeff_Denom_Influence_Function(jj)+Denom_Exact*sin_k_val*sin_k_val;
 		
-		for(int m=-500;m<600;m++)//This value putts an extremely conservative cutoff to the sum
+		for(int m=-500;m<600;m++)//This value places an ultra-conservative cutoff to the sum
 		{
 			k_val_pow=1;
 			for(int ii=0;ii<static_cast<int>(2*P_order);ii++) k_val_pow*=(k_val+M_PI*m);
@@ -714,10 +719,60 @@ void LongRangePPPM_InfluenceFunction(LongRangePPPM_creator LongRangePPPM_object_
 		}
 			Denom_by_hand*=sin_pow;
 			MY_BOOST_CHECK_CLOSE(Denom_by_hand,Denom_Exact,0.01*tol);
-			//compare the denominator of the influence function with the approximate result
+			//compare the key piece in the denominator of the influence function with the result calculated approximately
 	    }
 	
-		//Now let us compare the rest of the influence function
+		/* Now let us compare the rest of the influence function, because alpha is so small
+	       only the first term needs to be taking into account, in that case, the expression for
+		   the incluence simpiflies and we will check this simplified form
+		*/
+
+		// First compute the denominator
+		
+		Scalar *Denom_fun=new Scalar[Nmesh_x/2];
+
+		for(unsigned int n=0;n<Nmesh_x/2;n++){
+		k_val=n*M_PI/static_cast<Scalar>(Nmesh_x);
+		sin_k_val=sin(k_val);
+		Denom_Exact=0.0;
+		for(int jj=static_cast<int>(P_order-1);jj>=0;jj--) Denom_Exact=PPPM_1->Poly_coeff_Denom_Influence_Function(jj)+Denom_Exact*sin_k_val*sin_k_val;
+		Denom_fun[n]=Denom_Exact;
+		}
+
+		Scalar k_x,xsi;
+		Scalar k_y,ysi;
+		Scalar k_z,zsi;
+		Scalar kmod;
+		Scalar G_approx;
+		Scalar D_coul;
+		Scalar D_exp;
+
+		for(int i=0;i<static_cast<int>(Nmesh_x/2);i++){
+		k_x=2*i*M_PI/Lsize;
+        xsi=pow(boost::math::sinc_pi(k_x*hh/2.0),static_cast<int>(2*P_order));
+			for(int j=0;j<static_cast<int>(Nmesh_y/2);j++){
+			k_y=2*j*M_PI/Lsize;
+			ysi=pow(boost::math::sinc_pi(k_y*hh/2.0),static_cast<int>(2*P_order));
+				for(int k=0;k<static_cast<int>(Nmesh_z/2);k++){
+				k_z=2*k*M_PI/Lsize;
+				zsi=pow(boost::math::sinc_pi(k_z*hh/2.0),static_cast<int>(2*P_order));
+
+				kmod=k_x*k_x+k_y*k_y+k_z*k_z;
+
+				if(kmod>(1.0/(Lsize*Lsize)))
+				{
+				D_exp=4*M_PI*exp(-kmod/(4.0*alpha*alpha))/kmod;
+				D_coul=xsi*ysi*zsi*D_exp;
+				G_approx=D_coul/(Denom_fun[i]*Denom_fun[i]*Denom_fun[j]*Denom_fun[j]*Denom_fun[k]*Denom_fun[k]);//note that derivative cancels.
+				if(fabs(G_approx)>TOL)
+					MY_BOOST_CHECK_CLOSE(G_approx,PPPM_1->Influence_function(i,j,k),0.001*tol);
+				}
+	}
+	}
+	}
+
+		delete[] Denom_fun;
+
 }
 //! ElectrostaticShortRange creator for unit tests
 shared_ptr<ElectrostaticLongRangePPPM> base_class_PPPM_creator(shared_ptr<ParticleData> pdata,unsigned int Nmesh_x,unsigned int Nmesh_y,unsigned int Nmesh_z, unsigned int P_order, Scalar alpha,shared_ptr<FFTClass> FFTW,bool third_law_m)
@@ -745,9 +800,7 @@ BOOST_AUTO_TEST_CASE(LongRangePPPM_InfluenceFunction_Test)
 }
 
 
-
 #else
-
 // We can't have the unit test passing if the code wasn't even compiled!
 BOOST_AUTO_TEST_CASE(dummy_test)
 	{
