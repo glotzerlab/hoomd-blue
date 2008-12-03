@@ -260,10 +260,14 @@ class log(_analyzer):
 	#
 	# \b Examples:
 	# \code
-	# logger = analyze.log(filename='mylog.log', quantities=['lj_energy'], period=100)
-	# analyze.log(quantities=['lj_energy', 'harmonic_energy', 'nve_kinetic_energy'], period=1000, filename='full.log')
-	# analyze.log(filename='mylog.log', quantities=['lj_energy'], period=100, header_prefix='#')
-	# analyze.log(filename='mylog.log', quantities=['harmonic_energy'], period=10, header_prefix='Log of harmonic energy, run 5\n')
+	# logger = analyze.log(filename='mylog.log', period=100,
+	#                      quantities=['pair_lj_energy'])
+	# analyze.log(quantities=['pair_lj_energy', 'bond_harmonic_energy', 
+	#             'kinetic_energy'], period=1000, filename='full.log')
+	# analyze.log(filename='mylog.log', quantities=['pair_lj_energy'], 
+	#             period=100, header_prefix='#')
+	# analyze.log(filename='mylog.log', quantities=['bond_harmonic_energy'], 
+	#             period=10, header_prefix='Log of harmonic energy, run 5\n')
 	# \endcode
 	#
 	# By default, columns in the log file are separated by tabs, suitable for importing as a 
