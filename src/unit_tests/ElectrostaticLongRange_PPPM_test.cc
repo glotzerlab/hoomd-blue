@@ -786,11 +786,15 @@ BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Even_test)
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
 	LongRangePPPM_PositionGrid_even(LongRangePPPM_creator_base);
 }
+
+//! For some inexplicable reason, the auther has decided not to document me
 BOOST_AUTO_TEST_CASE(LongRangePPPM_PositionGrid_Odd_test)
 {
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
 	LongRangePPPM_PositionGrid_odd(LongRangePPPM_creator_base);
 }
+
+//! For some inexplicable reason, the auther has decided not to document me
 BOOST_AUTO_TEST_CASE(LongRangePPPM_InfluenceFunction_Test)
 {
 	LongRangePPPM_creator LongRangePPPM_creator_base = bind(base_class_PPPM_creator, _1, _2, _3, _4, _5,_6,_7,_8);
