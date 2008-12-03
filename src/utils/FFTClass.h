@@ -96,7 +96,11 @@ class FFTClass
 		\todo document me
 	*/
 	virtual void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *in,Scalar *out)=0;
-	};
+	
+	//! Virtual destructor
+	virtual ~FFTClass() {}
+
+};
 
 #endif
 #endif
