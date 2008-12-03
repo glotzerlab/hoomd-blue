@@ -190,7 +190,7 @@ class nvt(_integrator):
 		if tau != None:
 			self.cpp_integrator.setTau(tau);
 
-## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderso barostat
+## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat
 #
 # integrate.npt performs constant pressure, constant temperature simulations using the standard
 # Nos&eacute;-Hoover thermosta/Anderson barostat. 

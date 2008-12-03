@@ -458,7 +458,9 @@ and \b bzip2 are all extracted to <i>c:\\libraries</i> and \b bjam.exe is extrac
 	If you extracted anything to different locations, you will need to change
 	the values in the command line. 
 \code
-C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" -sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 stage
+C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= 
+   -sNO_BZIP2= -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" 
+   -sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 stage
 \endcode
 	\b Note: bjam will \b NOT give any errors if any paths are specified incorrectly. 
 	Adding --debug-configuration to the end of the command line will provide some information,
@@ -472,7 +474,10 @@ C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= -sNO_ZLIB= 
 Then, run the next command (below). It will install boost header files and libraries into c:\\opt (you can change
 the location by changing the value after --prefix). 
 \code
-C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" -sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 --prefix=c:\opt install
+C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= 
+    -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" 
+	-sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 
+	--prefix=c:\opt install
 \endcode
 For CMake to find your newly compiled boost libraries, you must set the environment 
 variable \b BOOST_ROOT to c:\\opt (or wherever you installed boost).

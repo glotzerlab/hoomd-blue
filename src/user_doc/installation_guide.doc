@@ -83,7 +83,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
  -# Install the corresponding drivers for your GPU. Go to http://www.nvidia.com and select \b download \b drivers.
  	- Note: The drivers must match with the CUDA toolkit you installed. The HOOMD download page lists
  		compatible driver version(s).
- 	- Laptop users, see http://forums.nvidia.com/index.php?showtopic=58191
+ 	- Laptop users, see<br>
+	http://forums.nvidia.com/index.php?showtopic=58191
  -# Uninstall any previous version of HOOMD before continuing
  -# Double click on the HOOMD installer and follow the on screen steps
  

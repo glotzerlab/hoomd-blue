@@ -18,6 +18,8 @@ Joshua Anderson, ISU and Ames Lab - <b>primary developer</b>
  - Random polymer generator
  - IMD interface for VMD
  - Documentation
+ - analyze.log design and implementation
+ - analyze.msd implementation
 
 Alex Travesset, ISU and Ames Lab - <b>his advisor</b>
  - Electrostatic forces
@@ -27,29 +29,11 @@ Rastko Sknepnek, ISU and Ames Lab - additional development
 
 Carolyn Phillips, University of Michigan - additional development
  - FENE bond forces
+ - Shifted LJ forces
  - Testing and debugging HOOMD on Mac OS X systems
 
 <hr>
 <h1>Source code</h1>
-<hr>
-\b FindBoost.cmake is adapted from the one in the CMake-Modules Project at http://code.google.com/p/cmake-modules/source - Used under the New BSD License<br>
-Copyright (c) 2007, CMake-Modules Project<br>
-All rights reserved.<br>
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- - Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- - Neither the name of the CMake-Modules Project nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission
- 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <hr>
 <b>Sockets code</b> from VMD is used for the IMDInterface to VMD (http://www.ks.uiuc.edu/Research/vmd/) - Used under the VMD License <br>
 This software includes code developed by the Theoretical and Computational
@@ -97,31 +81,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   The above copyright notice and this permission notice shall be included
   in all copies or substantial portions of the Software.
 <hr>
-A beta version of <b>Saru</b> (need link) was obtained from the author for evaluation - Used under the BSD License<br>
-Copyright (c) 2008, Steve Worley<br>
-All rights reserved.<br>
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+<b>Saru</b> is used for random number generation - Used under the following license<br>
+Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
 
- - Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
- - Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
- - Neither the name of the Steve Worley nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
 
-THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
-DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 <hr>
 <h1>Libraries</h1>
 <hr>

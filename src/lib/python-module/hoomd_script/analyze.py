@@ -262,10 +262,13 @@ class log(_analyzer):
 	# \code
 	# logger = analyze.log(filename='mylog.log', period=100,
 	#                      quantities=['pair_lj_energy'])
+	#
 	# analyze.log(quantities=['pair_lj_energy', 'bond_harmonic_energy', 
 	#             'kinetic_energy'], period=1000, filename='full.log')
+	#
 	# analyze.log(filename='mylog.log', quantities=['pair_lj_energy'], 
 	#             period=100, header_prefix='#')
+	#
 	# analyze.log(filename='mylog.log', quantities=['bond_harmonic_energy'], 
 	#             period=10, header_prefix='Log of harmonic energy, run 5\n')
 	# \endcode
@@ -305,14 +308,16 @@ class log(_analyzer):
 	# Using set_params() requires that the specified logger was saved in a variable when created.
 	# i.e. 
 	# \code
-	# logger = analyze.log(quantities=['lj_energy', 'harmonic_energy', 'nve_kinetic_energy'], period=1000, filename="'full.log')
+	# logger = analyze.log(quantities=['pair_lj_energy', 
+	#                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
+	#                      period=1000, filename="'full.log')
 	# \endcode
 	#
 	# \b Examples:
 	# \code
-	# logger.set_params(quantities=['harmonic_energy'])
+	# logger.set_params(quantities=['bond_harmonic_energy'])
 	# logger.set_params(delimiter=',');
-	# logger.set_params(quantities=['harmonic_energy'], delimiter=',');
+	# logger.set_params(quantities=['bond_harmonic_energy'], delimiter=',');
 	# \endcode
 	def set_params(self, quantities=None, delimiter=None):
 		util.print_status_line();
@@ -357,9 +362,14 @@ class msd(_analyzer):
 	#
 	# \b Examples:
 	# \code
-	# msd = analyze.msd(filename='msd.log', groups=[group1, group2], period=100)
-	# analyze.log(groups=[group1, group2, group3], period=1000, filename='msd.log', header_prefix='#')
-	# analyze.log(filename='msd.log', groups=[group1], period=10, header_prefix='Log of group1 msd, run 5\n')
+	# msd = analyze.msd(filename='msd.log', groups=[group1, group2], 
+	#                   period=100)
+	#
+	# analyze.log(groups=[group1, group2, group3], period=1000, 
+	#             filename='msd.log', header_prefix='#')
+	# 
+	# analyze.log(filename='msd.log', groups=[group1], period=10, 
+	#             header_prefix='Log of group1 msd, run 5\n')
 	# \endcode
 	#
 	# A group variable (\c groupN above) can be created by any number of group creation functions.

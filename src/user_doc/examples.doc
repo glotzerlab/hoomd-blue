@@ -131,14 +131,16 @@ import math
 phi_P = 0.25
 n_poly = 600
 T = 1.2
-polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=n_poly)
+polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, 
+                bond="linear", count=n_poly)
 
 # perform some simple math to find the length of the box
 N = len(polymer1['type']) * polymer1['count'];
 L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
 
 # generate the polymer system
-init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], separation=dict(A=0.35, B=0.35), seed=12);
+init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], 
+                            separation=dict(A=0.35, B=0.35), seed=12);
 
 # force field setup
 harmonic = bond.harmonic()
@@ -156,8 +158,9 @@ dump.dcd(filename="example3.dcd", period=100000);
 integrate.nvt(dt=0.005, T=T, tau=0.5)
 run(2000)
 
-# uncomment the next run() command if you have a few hours to spare running this on a GPU
-# the resulting dump files should show the polymers self-assembling into the hex phase
+# uncomment the next run() command if you have a few hours to spare 
+# running this on a GPU the resulting dump files should show the
+# polymers self-assembling into the hex phase
 # run(10e9)
 \endcode
 

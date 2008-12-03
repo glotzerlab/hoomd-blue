@@ -115,7 +115,7 @@ used in HOOMD.
 
 The simulation output starts at: 
 \code test.hoomd:004  |  init.create_random(N=100, phi_p=0.01, name='A') \endcode
-Each hoomd_script command prints the file:line where it was run along with the entire text of the command.
+Each hoomd_script command prints the file and line where it was run along with the entire text of the command.
 This can be potentially very useful in debugging problems as it will allow you to hone in on the command in the 
 script that is producing the error message.
 

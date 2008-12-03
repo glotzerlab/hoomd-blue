@@ -177,12 +177,14 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # The syntax is best shown by example. The below line specifies that 600 block copolymers
 # A6B7A6 with a %bond length of 1.2 be generated.
 # \code
-# polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=600)
+# polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, 
+#                 bond="linear", count=600)
 # \endcode
 # Here is an example for a second polymer, specifying just 100 polymers made of 4 B beads
 # bonded in a branched pattern
 # \code
-# polymer2 = dict(bond_len=1.2, type=['B']*4, bond=[(0, 1), (1,2), (1,3), (3,4)] , count=100)
+# polymer2 = dict(bond_len=1.2, type=['B']*4, 
+#                 bond=[(0, 1), (1,2), (1,3), (3,4)] , count=100)
 # \endcode
 # The \a polymers argument can be given a list of any number of polymer types specified
 # as above. \a count randomly generated polymers of each type in the list will be
@@ -208,9 +210,17 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 #
 # \b Examples:
 # \code
-# init.create_random_polymers(box=hoomd.BoxDim(35), polymers=[polymer1, polymer2], separation=dict(A=0.35, B=0.35));
-# init.create_random_polymers(box=hoomd.BoxDim(31), polymers=[polymer1], separation=dict(A=0.35, B=0.35), seed=52);
-# init.create_random_polymers(box=hoomd.BoxDim(18,10,25), polymers=[polymer2], separation=dict(A=0.35, B=0.35), seed=12345);
+# init.create_random_polymers(box=hoomd.BoxDim(35), 
+#                             polymers=[polymer1, polymer2], 
+#                             separation=dict(A=0.35, B=0.35));
+# 
+# init.create_random_polymers(box=hoomd.BoxDim(31), 
+#                             polymers=[polymer1], 
+#                             separation=dict(A=0.35, B=0.35), seed=52);
+# 
+# init.create_random_polymers(box=hoomd.BoxDim(18,10,25), 
+#                             polymers=[polymer2], 
+#                             separation=dict(A=0.35, B=0.35), seed=12345);
 # \endcode
 #
 # With all other parameters the same, create_random_polymers will always create the

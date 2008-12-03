@@ -125,12 +125,14 @@ def run(tsteps, profile=False):
 #
 # \b Examles:
 # \code
-# # create a group containing all particles in group A and those with tags 100-199
+# # create a group containing all particles in group A and those with 
+# # tags 100-199
 # groupA = group_type('A')
 # group100_199 = group_tags(100, 199);
 # group_combined = groupA | group100_199;
 #
-# # create a group containing all particles in group A that also have tags 100-199
+# # create a group containing all particles in group A that also have 
+# # tags 100-199
 # groupA = group_type('A')
 # group100_199 = group_tags(100, 199);
 # group_combined = groupA & group100_199;
