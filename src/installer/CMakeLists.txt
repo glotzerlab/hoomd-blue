@@ -109,6 +109,22 @@ include(CPack)
 # need to install vs dlls on windows
 if(WIN32)
 include(InstallRequiredSystemLibraries)
+
+# we don't get any feedback if they were installed: check if the redist dir was found
+if (MSVC80)
+if (NOT MSVC80_REDIST_DIR)
+message("MSVC80 redist dir not found, dlls needed to run HOOMD will not be 
+included in the installer. You can safely ignore this message if you do not intend to
+build windows installers for HOOMD on this machine.")
+endif (NOT MSVC80_REDIST_DIR)
+elseif (MSVC90)
+if (NOT MSVC90_REDIST_DIR)
+message("MSVC90 redist dir not found, dlls needed to run HOOMD will not be 
+included in the installer. You can safely ignore this message if you do not intend to
+build windows installers for HOOMD on this machine.")
+endif (NOT MSVC90_REDIST_DIR)
+endif(MSVC80)
+
 endif(WIN32)
 
 endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
