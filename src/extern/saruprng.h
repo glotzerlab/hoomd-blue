@@ -1,6 +1,11 @@
 #ifndef SARUPRNGCPU_H
 #define SARUPRNGCPU_H
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4307 )
+#endif
+
 /*
  * Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
  
@@ -73,9 +78,9 @@ class Saru {
  public:
 
   Saru() : state(0x12345678), wstate(12345678) {};
-  Saru(unsigned int seed);
-  Saru(unsigned int seed1, unsigned int seed2);
-  Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3);
+  inline Saru(unsigned int seed);
+  inline Saru(unsigned int seed1, unsigned int seed2);
+  inline Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3);
 
   
   /* Efficient compile-time computed advancements */
@@ -88,12 +93,12 @@ class Saru {
     { rewindWeyl<steps>(); advanceLCG<-steps>(); }
 
   /* Slower (but still reasonable) run-time computed advancement */
-  void advance(unsigned int steps);
+  inline void advance(unsigned int steps);
 
   void setstate(unsigned int istate, unsigned int iwstate)
     { state=istate; wstate=iwstate; }
 
-  template <unsigned int seed> Saru fork() const; 
+  template <unsigned int seed> inline Saru fork() const;
 
   template <unsigned int steps> inline unsigned int u32();
   template <unsigned int steps> inline float f();
@@ -381,6 +386,8 @@ inline double Saru::d(double low, double high)
   return d<1>(low, high);
 }
 
-
+#ifdef WIN32
+#pragma warning( pop )
+#endif
 
 #endif /* SARUPRNGCPU_H */

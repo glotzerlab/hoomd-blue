@@ -76,13 +76,13 @@ Saru n=s.fork<123>();
 ---------------------
 
 */
-class Saru {
+class SaruGPU {
  public:
 
-   Saru() {state.x=0x12345678; state.y=12345678;}
-   Saru(unsigned int seed);
-   Saru(unsigned int seed1, unsigned int seed2);
-   Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3);
+   SaruGPU() {state.x=0x12345678; state.y=12345678;}
+   SaruGPU(unsigned int seed);
+   SaruGPU(unsigned int seed1, unsigned int seed2);
+   SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3);
 
   /* Efficient compile-time computed advancements */
    template <unsigned int steps> __device__ inline  void advance() 
@@ -96,7 +96,7 @@ class Saru {
    /* Slower (but still reasonable) run-time computed advancements */
    __device__ inline void advance(unsigned int steps);
 
-   template <unsigned int seed> __device__ Saru fork() const; 
+   template <unsigned int seed> __device__ SaruGPU fork() const; 
    
   template <unsigned int steps> __device__ inline unsigned int u32();
   template <unsigned int steps> __device__ inline float f();
@@ -183,14 +183,14 @@ class Saru {
 };
 
 // partial specialization to make a special case for step of 1
-template <> __device__ inline void  Saru::advanceWeyl<1>() /* especially efficient single step  */
+template <> __device__ inline void  SaruGPU::advanceWeyl<1>() /* especially efficient single step  */
     { state.y=state.y+oWeylOffset+((((signed int)state.y)>>31)&oWeylPeriod); }
 
 
 /* This seeding was carefully tested for good churning with 1, 2, and
    3 bit flips.  All 32 incrementing counters (each of the circular
    shifts) pass the TestU01 Crush tests. */
-Saru::Saru(unsigned int seed) 
+SaruGPU::SaruGPU(unsigned int seed) 
 {
   state.x  = 0x79dedea3*(seed^(((signed int)seed)>>14));
   state.y = seed ^ (((signed int)state.x)>>8);
@@ -200,7 +200,7 @@ Saru::Saru(unsigned int seed)
 
 /* seeding from 2 samples. We lose one bit of entropy since our input
    seeds have 64 bits but at the end, after mixing, we have just 63. */
-Saru::Saru(unsigned int seed1, unsigned int seed2)
+SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2)
 {
   seed2+=seed1<<16;
   seed1+=seed2<<11;
@@ -220,7 +220,7 @@ Saru::Saru(unsigned int seed1, unsigned int seed2)
 
 /* 3 seeds. We have to premix the seeds before dropping to 64 bits.
    TODO: this may be better optimized in a future version */
-Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3) 
+SaruGPU::SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3) 
 {
   seed3^=(seed1<<7)^(seed2>>6);
   seed2+=(seed1>>4)^(seed3>>15);
@@ -240,14 +240,14 @@ Saru::Saru(unsigned int seed1, unsigned int seed2, unsigned int seed3)
 
 template <unsigned int offset, unsigned int delta, 
 	  unsigned int modulus, unsigned int steps> 
-  inline unsigned int Saru::advanceAnyWeyl(unsigned int x) 
+  inline unsigned int SaruGPU::advanceAnyWeyl(unsigned int x) 
 {
   const unsigned int fullDelta=CTmultmod<delta, steps%modulus, modulus>::value;
   /* the runtime code boils down to this single constant-filled line. */
   return x+((x-offset>modulus-fullDelta) ? fullDelta-modulus : fullDelta);
 }
 
-__device__ inline void Saru::advance(unsigned int steps)
+__device__ inline void SaruGPU::advance(unsigned int steps)
 {
   // Computes the LCG advancement AND the Weyl D*E mod m simultaneously
 
@@ -282,14 +282,14 @@ __device__ inline void Saru::advance(unsigned int steps)
 
 
 template <unsigned int seed> 
-__device__ Saru Saru::fork() const
+__device__ SaruGPU SaruGPU::fork() const
 {
   const unsigned int churned1=0xDEADBEEF ^ (0x1fc4ce47*(seed^(seed>>13)));
   const unsigned int churned2=0x1234567+(0x82948463*(churned1^(churned1>>20)));
   const unsigned int churned3=0x87654321^(0x87655677*(churned2^(churned2>>16)));
   /* The above lines are FREE since they'll be precomputed at compile time. They
      take user values like 1 2 3 and hash them to become roughly uncorrelated. */
-  Saru z;
+  SaruGPU z;
 
   z.state.x=churned2+state.x+(churned3^state.y);
   unsigned int add=(z.state.y+churned1)>>1;
@@ -300,7 +300,7 @@ __device__ Saru Saru::fork() const
 
 /* Core PRNG evaluation. Very simple! */
 template <unsigned int steps>
-__device__ inline unsigned int Saru::u32()
+__device__ inline unsigned int SaruGPU::u32()
 {
   advanceLCG<steps>();
   advanceWeyl<steps>();
@@ -308,7 +308,7 @@ __device__ inline unsigned int Saru::u32()
   return (v^(v>>20))*0x6957f5a7;
 }
 
-inline unsigned int Saru::u32()
+inline unsigned int SaruGPU::u32()
 {
   return u32<1>();
 }
@@ -320,7 +320,7 @@ inline unsigned int Saru::u32()
    see worley.com/mathgeek/floatconvert.html. */
 
 template <unsigned int steps>
-__device__ inline float Saru::f()
+__device__ inline float SaruGPU::f()
 {
   return ((signed int)(u32<steps>()>>1))*(1.0f/0x80000000); 
 }
@@ -328,19 +328,19 @@ __device__ inline float Saru::f()
 /* for a range that doesn't start at 0, we use the full 32 bits since
    we need to add an offset anyway. We still use the int cast method. */
 template <unsigned int steps>
-__device__ inline float Saru::f(float low, float high)
+__device__ inline float SaruGPU::f(float low, float high)
 {
   const float TWO_N32 = 0.232830643653869628906250e-9f; /* 2^-32 */
   return ((signed int)(u32<steps>()))*(TWO_N32*(high-low))+0.5f*(high+low);
 }
 
 
-__device__ inline float Saru::f()
+__device__ inline float SaruGPU::f()
 {
   return f<1>();
 }
 
-__device__ inline float Saru::f(float low, float high)
+__device__ inline float SaruGPU::f(float low, float high)
 {
   return f<1>(low, high);
 }
@@ -352,7 +352,7 @@ __device__ inline float Saru::f(float low, float high)
    in the (0,1] range. See worley.com/mathgeek/floatconvert.html. */
 
 template <unsigned int steps>
-__device__ inline double Saru::d()
+__device__ inline double SaruGPU::d()
 {
   const double TWO_N32 = 0.232830643653869628906250e-9; /* 2^-32 */
   signed int v=(signed int)u32<steps>(); // deliberate cast to signed int for conversion speed
@@ -361,7 +361,7 @@ __device__ inline double Saru::d()
 }
 
 template <unsigned int steps>
-__device__ inline double Saru::d(double low, double high)
+__device__ inline double SaruGPU::d(double low, double high)
 {
   const double TWO_N32 = 0.232830643653869628906250e-9; /* 2^-32 */
   signed int v=(signed int)u32<steps>(); // deliberate cast to signed int for conversion speed
@@ -370,12 +370,12 @@ __device__ inline double Saru::d(double low, double high)
 }
 
 
-__device__ inline double Saru::d()
+__device__ inline double SaruGPU::d()
 {
   return d<1>();
 }
 
-__device__ inline double Saru::d(double low, double high)
+__device__ inline double SaruGPU::d(double low, double high)
 {
   return d<1>(low, high);
 }

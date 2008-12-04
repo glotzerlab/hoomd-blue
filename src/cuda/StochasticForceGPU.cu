@@ -126,7 +126,7 @@ extern "C" __global__ void gpu_compute_stochastic_forces_kernel(gpu_force_data_a
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	
 	//Initialize the Random Number Generator
-	Saru s(ptag, iteration, seed); // 3 dimensional seeding
+	SaruGPU s(ptag, iteration, seed); // 3 dimensional seeding
 
 	float randomx=s.f(-1.0, 1.0);
 	float randomy=s.f(-1.0, 1.0);
