@@ -78,11 +78,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
  -# Download the HOOMD installer from http://www.ameslab.gov/hoomd
  -# Install Python 2.5 using the installer at http://www.python.org/download/
- -# Install the NVIDIA CUDA Toolkit using the installer from http://www.nvidia.com/object/cuda_get.html
- 	- Note: Make sure you install the toolkit version listed on the HOOMD download page.
  -# Install the corresponding drivers for your GPU. Go to http://www.nvidia.com and select \b download \b drivers.
- 	- Note: The drivers must match with the CUDA toolkit you installed. The HOOMD download page lists
- 		compatible driver version(s).
+ 	- Note: The HOOMD download page lists compatible driver version(s).
  	- Laptop users, see<br>
 	http://forums.nvidia.com/index.php?showtopic=58191
  -# Uninstall any previous version of HOOMD before continuing

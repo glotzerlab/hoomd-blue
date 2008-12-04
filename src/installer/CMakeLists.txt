@@ -125,6 +125,15 @@ build windows installers for HOOMD on this machine.")
 endif (NOT MSVC90_REDIST_DIR)
 endif(MSVC80)
 
+# install cudart.dll if CUDA is enabled
+if (USE_CUDA)
+find_file(CUDA_CUDART_DLL cudart.dll
+		HINTS ${CUDA_INSTALL_PREFIX})
+mark_as_advanced(CUDA_CUDART_DLL)
+
+install(PROGRAMS ${CUDA_CUDART_DLL} DESTINATION bin)
+endif (USE_CUDA)
+
 endif(WIN32)
 
 endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
