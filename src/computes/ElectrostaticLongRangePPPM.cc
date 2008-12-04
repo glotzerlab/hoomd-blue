@@ -76,7 +76,7 @@ using namespace std;
 	\todo document me!
 */
 ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata, unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z,unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m)
-	:ForceCompute(pdata),FFT(FFTP),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),third_law(third_law_m)
+	:ForceCompute(pdata),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),FFT(FFTP),third_law(third_law_m)
 	{
 	assert(m_pdata);
 
@@ -102,10 +102,12 @@ ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<Particl
 	// sanity check
 	assert(box.xhi > box.xlo &&  box.yhi > box.ylo && box.zhi > box.zlo);	
 	
-	// precalculate box lenghts for use in the periodic imaging
+	// precalculate box lenghts and volume for use in the periodic imaging
 	Lx = box.xhi - box.xlo;
 	Ly = box.yhi - box.ylo;
 	Lz = box.zhi - box.zlo;
+
+	Vol=Lx*Ly*Lz;
 	
 	//Compute lattice spacings along the different directions
 	h_x= Lx/S_mesh_x;
@@ -273,7 +275,7 @@ void ElectrostaticLongRangePPPM::make_rho_even(void)
 		}
 		}
 	}
-
+		m_pdata->release();
 	 //The charge is now distributed on the grid (P even)
 }
 void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Continuum)
@@ -286,7 +288,7 @@ void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Con
 	// sanity check
 	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
 
-	//place the continuum charge on the grid
+	//first find the points where backinterpolation will be done
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		// access the particle's position and charge (MEM TRANSFER: 4 Scalars)
@@ -294,40 +296,43 @@ void ElectrostaticLongRangePPPM::back_interpolate_even(CScalar *Grid,Scalar *Con
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
 
-		Scalar q_i= arrays.charge[i];
-
-		//compute the two nearest points on the grid
+		//find the center point on the grid where to distribute the charge
 	    
-		Scalar x_floor= floor((xi-box.xhi)/h_x);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE   
+		Scalar dx=(xi-box.xlo)/h_x;
+		Scalar x_floor= floor(dx);  
 		int ix_floor=static_cast<int>(x_floor);
 		
-		Scalar y_floor= floor((yi-box.yhi)/h_y);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar dy=(yi-box.ylo)/h_y;
+		Scalar y_floor= floor(dy);
 		int iy_floor=static_cast<int>(y_floor);
 		
-		Scalar z_floor= floor((zi-box.zhi)/h_z);//MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+		Scalar dz=(zi-box.zlo)/h_z;
+		Scalar z_floor= floor(dz);
 		int iz_floor=static_cast<int>(z_floor);
 
-		unsigned int ind_x=0;
-		unsigned int ind_y=0;
-		unsigned int ind_z=0;
+		int ind_x=0;
+		int ind_y=0;
+		int ind_z=0;
 
-		Scalar dx=xi-x_floor-0.5;
-		Scalar dy=yi-y_floor-0.5;
-		Scalar dz=zi-z_floor-0.5;
-        
+		dx=dx-x_floor-0.5;
+		dy=dy-y_floor-0.5;
+		dz=dz-z_floor-0.5;
+      
 		//take into account boundary conditions
 		for(int lx=-P_half+1;lx<=P_half;lx++){
-				ind_x=ix_floor+lx+((N_mesh_x-ix_floor-lx)/N_mesh_x)*N_mesh_x-((ix_floor+lx)/N_mesh_x)*N_mesh_x;
-        for(int ly=-P_half+1;ly<=P_half;ly++){
-				ind_y=iy_floor+ly+((N_mesh_y-iy_floor-ly)/N_mesh_y)*N_mesh_y-((iy_floor+ly)/N_mesh_y)*N_mesh_y;
+				ind_x=ix_floor+lx+((Nu_mesh_x-ix_floor-lx-1)/Nu_mesh_x)*Nu_mesh_x-((ix_floor+lx)/Nu_mesh_x)*Nu_mesh_x;
+		for(int ly=-P_half+1;ly<=P_half;ly++){
+				ind_y=iy_floor+ly+((Nu_mesh_y-iy_floor-ly-1)/Nu_mesh_y)*Nu_mesh_y-((iy_floor+ly)/Nu_mesh_y)*Nu_mesh_y;
 		for(int lz=-P_half+1;lz<=P_half;lz++){
-			    ind_z=iz_floor+lz+((N_mesh_z-iz_floor-lz)/N_mesh_z)*N_mesh_z-((iz_floor+lz)/N_mesh_z)*N_mesh_z;	
+				ind_z=iz_floor+lz+((Nu_mesh_z-iz_floor-lz-1)/Nu_mesh_z)*Nu_mesh_z-((iz_floor+lz)/Nu_mesh_z)*Nu_mesh_z;
 				ind=T.D3To1D(ind_x,ind_y,ind_z);
-				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half-1,dx)*Poly(ly+P_half+1,dy)*Poly(lz+P_half+1,dz);
+				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half-1,-dx)*Poly(ly+P_half-1,-dy)*Poly(lz+P_half-1,-dz);
 	    }
 		}
 		}
 	}
+		m_pdata->release();
+	
 }
 void ElectrostaticLongRangePPPM::make_rho_odd(void)
 {
@@ -359,7 +364,6 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 		Scalar xi = arrays.x[i];
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
-
 		Scalar q_i= arrays.charge[i];
 
 		//compute the center point on the grid
@@ -380,7 +384,7 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 			y_floor+=1.0; //note that y_floor has now become y_ceil
 		}
 		
-        Scalar dz=(zi-box.zlo)/h_z;  //MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
+        Scalar dz=(zi-box.zlo)/h_z;  
 		Scalar z_floor= floor(dz);
 		int iz_floor=static_cast<int>(z_floor);
 		if((dz-z_floor)>0.5){            //boundary conditions are tricky here
@@ -410,13 +414,13 @@ void ElectrostaticLongRangePPPM::make_rho_odd(void)
 		}
 
 	}
-
+		m_pdata->release();
 }
 
 void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar *Grid,Scalar *Continuum)
 { 
 	
-	int P_half=static_cast<int>(P_order/2);
+    int P_half=static_cast<int>(P_order/2);
 	unsigned int ind;
 
 	// access the particle data
@@ -424,7 +428,7 @@ void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar *Grid,Scalar *Cont
 	// sanity check
 	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
 
-	//place quantity Grid back into continuum
+	//find the continuum points for backinterpolation
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		// access the particle's position and charge (MEM TRANSFER: 4 Scalars)
@@ -432,28 +436,29 @@ void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar *Grid,Scalar *Cont
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
 
-		//compute the nearest point on the grid
-		Scalar x_lat = (xi-box.xhi)/h_x; //MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
-		Scalar x_floor = floor(x_lat);
-		unsigned int ix_lat=static_cast<unsigned int>(x_floor);
-		if((x_lat-x_floor)>0.5) {      //boundary conditions are tricky here
-			ix_lat+=1-((ix_lat+1)/N_mesh_x)*N_mesh_x;
+		//compute the center point on the grid
+
+		Scalar dx = (xi-box.xlo)/h_x; 
+		Scalar x_floor = floor(dx);
+		int ix_floor=static_cast<int>(x_floor);
+		if((dx-x_floor)>0.5) {      //boundary conditions are tricky here
+			ix_floor+=1-((ix_floor+1)/N_mesh_x)*N_mesh_x;
 			x_floor+=1.0;  //note that x_floor has now become x_ceil
 		}
 			
-		Scalar y_lat=(yi-box.yhi)/h_y;  //MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
-		Scalar y_floor= floor(y_lat);
-		unsigned int iy_lat=static_cast<unsigned int>(y_floor);
-		if((y_lat-y_floor)>0.5){          //boundary conditions are tricky here
-			iy_lat+=1-((iy_lat+1)/N_mesh_y)*N_mesh_y;
+		Scalar dy=(yi-box.ylo)/h_y; 
+		Scalar y_floor= floor(dy);
+		int iy_floor=static_cast<int>(y_floor);
+		if((dy-y_floor)>0.5){          //boundary conditions are tricky here
+			iy_floor+=1-((iy_floor+1)/N_mesh_y)*N_mesh_y;
 			y_floor+=1.0; //note that y_floor has now become y_ceil
 		}
 		
-        Scalar z_lat=(zi-box.zhi)/h_z;  //MAKE SURE THIS NUMBER IS ALWAYS POSITIVE
-		Scalar z_floor= floor(z_lat);
-		unsigned int iz_lat=static_cast<unsigned int>(z_floor);
-		if((z_lat-z_floor)>0.5){            //boundary conditions are tricky here
-			iz_lat+=1-((iz_lat+1)/N_mesh_z)*N_mesh_z;
+        Scalar dz=(zi-box.zlo)/h_z;  
+		Scalar z_floor= floor(dz);
+		int iz_floor=static_cast<int>(z_floor);
+		if((dz-z_floor)>0.5){            //boundary conditions are tricky here
+			iz_floor+=1-((iz_floor+1)/N_mesh_z)*N_mesh_z;
 			z_floor+=1.0; //note that z_floor has now become z_ceil
 		}
 
@@ -461,23 +466,25 @@ void ElectrostaticLongRangePPPM::back_interpolate_odd(CScalar *Grid,Scalar *Cont
 		unsigned int ind_y=0;
 		unsigned int ind_z=0;
 
-		Scalar dx=xi-x_floor;
-		Scalar dy=yi-y_floor;
-		Scalar dz=zi-z_floor;
-        
+		dx=dx-x_floor;
+		dy=dy-y_floor;
+		dz=dz-z_floor;
+
 		//take into account boundary conditions
 		for(int lx=-P_half;lx<=P_half;lx++){
-				ind_x=ix_lat+lx+((N_mesh_x-ix_lat-lx)/N_mesh_x)*N_mesh_x-((ix_lat+lx)/N_mesh_x)*N_mesh_x;
-        for(int ly=-P_half;ly<=P_half;ly++){
-				ind_y=iy_lat+ly+((N_mesh_y-iy_lat-ly)/N_mesh_y)*N_mesh_y-((iy_lat+ly)/N_mesh_y)*N_mesh_y;
+				ind_x=ix_floor+lx+((Nu_mesh_x-ix_floor-lx-1)/Nu_mesh_x)*Nu_mesh_x-((ix_floor+lx)/Nu_mesh_x)*Nu_mesh_x;
+		for(int ly=-P_half;ly<=P_half;ly++){
+				ind_y=iy_floor+ly+((Nu_mesh_y-iy_floor-ly-1)/Nu_mesh_y)*Nu_mesh_y-((iy_floor+ly)/Nu_mesh_y)*Nu_mesh_y;
 		for(int lz=-P_half;lz<=P_half;lz++){
-			    ind_z=iz_lat+lz+((N_mesh_z-iz_lat-lz)/N_mesh_z)*N_mesh_z-((iz_lat+lz)/N_mesh_z)*N_mesh_z;
+				ind_z=iz_floor+lz+((Nu_mesh_z-iz_floor-lz-1)/Nu_mesh_z)*Nu_mesh_z-((iz_floor+lz)/Nu_mesh_z)*Nu_mesh_z;
 				ind=T.D3To1D(ind_x,ind_y,ind_z);
-				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half,dx)*Poly(ly+P_half,dy)*Poly(lz+P_half,dz);
+				Continuum[i]+=((Grid[ind]).r)*Poly(lx+P_half,-dx)*Poly(ly+P_half,-dy)*Poly(lz+P_half,-dz);
 	    }
 		}
 		}
+
 	}
+			m_pdata->release();
 }
 
 Scalar ElectrostaticLongRangePPPM::Poly(int l,Scalar x)
@@ -766,20 +773,23 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
 	// sanity check
 	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-	
+
 	// need to start from a zero force, energy and virial
 	// (MEM TRANSFER: 5*N scalars)
+
 	memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
 	memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
+
+	m_pdata->release();
 	
 	//assign the charge to the grid
 	make_rho();
 
 	//compute rho in k space
-	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,rho_real,rho_kspace,-1);
+	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,rho_real,rho_kspace,1);
 
 	//compute energy in k-space
 
@@ -797,29 +807,29 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 
 	Scalar k_per_x,k_per_y,k_per_z;
 
-	for(unsigned int i=0;i<N_mesh_x;i++){
-	k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/N_mesh_x)*N_mesh_x)/h_x;
-	for(unsigned int j=0;j<N_mesh_y;j++){
-	k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/N_mesh_y)*N_mesh_y)/h_y;
-	for(unsigned int k=0;k<N_mesh_z;k++){
-	k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/N_mesh_z)*N_mesh_z)/h_z;
+	for(int i=0;i<Nu_mesh_x;i++){
+	k_per_x=2*M_PI*static_cast<Scalar>(i-((2*i)/Nu_mesh_x)*Nu_mesh_x)/Lx;
+	for(int j=0;j<Nu_mesh_y;j++){
+	k_per_y=2*M_PI*static_cast<Scalar>(j-((2*j)/Nu_mesh_y)*Nu_mesh_y)/Ly;
+	for(int k=0;k<Nu_mesh_z;k++){
+	k_per_z=2*M_PI*static_cast<Scalar>(k-((2*k)/Nu_mesh_z)*Nu_mesh_z)/Lz;
 		ind=T.D3To1D(i,j,k);
-		(fx_kspace[ind]).r=k_per_x*((e_kspace[ind]).r);
-		(fx_kspace[ind]).i=k_per_x*((e_kspace[ind]).i);
-		(fy_kspace[ind]).r=k_per_y*((e_kspace[ind]).r);
-		(fy_kspace[ind]).i=k_per_y*((e_kspace[ind]).i);
-		(fz_kspace[ind]).r=k_per_z*((e_kspace[ind]).r);
-		(fz_kspace[ind]).i=k_per_z*((e_kspace[ind]).i);
+		(fx_kspace[ind]).r=k_per_x*((e_kspace[ind]).i);
+		(fx_kspace[ind]).i=-k_per_x*((e_kspace[ind]).r);
+		(fy_kspace[ind]).r=k_per_y*((e_kspace[ind]).i);
+		(fy_kspace[ind]).i=-k_per_y*((e_kspace[ind]).r);
+		(fz_kspace[ind]).r=k_per_z*((e_kspace[ind]).i);
+		(fz_kspace[ind]).i=-k_per_z*((e_kspace[ind]).r);
 	}
 	}
 	}
 	
 	//compute the energies and forces on the grid
 	
-	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,e_kspace,e_real,+1);
-	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,fx_kspace,fx_real,+1);
-	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,fy_kspace,fy_real,+1);
-	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,fz_kspace,fz_real,+1);
+	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,e_kspace,e_real,-1);
+	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,fx_kspace,fx_real,-1);
+	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,fy_kspace,fy_real,-1);
+	FFT->cmplx_fft(N_mesh_x,N_mesh_y,N_mesh_z,fz_kspace,fz_real,-1);
 
 	//Back interpolate to obtain the forces
 
@@ -829,14 +839,15 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 	back_interpolate(fz_real,m_fz);
 
 	//the previous formula computes the electric field, need to multiply by the charge
+	//and normalize with the volume
 
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 			Scalar q_i= arrays.charge[i];
-			m_fx[i]*=q_i;
-			m_fy[i]*=q_i;
-			m_fz[i]*=q_i;
-			m_pe[i]*=q_i;
+			m_fx[i]*=q_i/Vol;
+			m_fy[i]*=q_i/Vol;
+			m_fz[i]*=q_i/Vol;
+			m_pe[i]*=q_i/Vol;
 		}
 
 	// and this is it, forces, energies and virial(TO DO) are calculated

@@ -93,7 +93,10 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		virtual ~ElectrostaticLongRangePPPM();
 
 		//! function making the charge assignment
-		virtual void make_rho(void);   
+		virtual void make_rho(void); 
+
+		//!< Backinterpolate mesh grid points into continuum
+		virtual void back_interpolate(CScalar *Grid,Scalar *Continuum); 
 
 		//! Delivers the charge density on the grid, convenient for unit testing
 		const CScalar & Show_rho_real(unsigned int ix,unsigned int iy,unsigned int iz) const;
@@ -135,6 +138,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		Scalar Lx;                   //!< Length size of the system along the x direction
 		Scalar Ly;                   //!< Length size of the system along the y direction
 		Scalar Lz;                   //!< Length size of the system along the z direction
+		Scalar Vol;                  //!< System volume Lx*Ly*LZ
 		Scalar h_x;                  //!< Spacing along the x axis
 		Scalar h_y;                  //!< Spacing along the y axis
 		Scalar h_z;                  //!< Spacing along the z axis
@@ -160,7 +164,6 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 		
 		
 		virtual Scalar Poly(int n,Scalar x); //!< Polynomial that computes the fraction of charge at point x
-		virtual void back_interpolate(CScalar *Grid,Scalar *Continuum); //!< Backinterpolate mesh grid points into continuum for P even
 		
 		virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
 		virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
