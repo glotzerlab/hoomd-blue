@@ -481,11 +481,11 @@ class lj(force._force):
 # yukawa.pair_coeff.set('A', 'A', epsilon=1.0 )
 # \endcode
 #
-# The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.yukawa is specified (see __init__())
+# The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.yukawa is specified (see __init__())
 # class yukawa(force._force):
 # 	## Specify the Yukawa %pair %force
 # 	#
-# 	# \param r_cut Cuttoff radius (see documentation above)
+# 	# \param r_cut Cutoff radius (see documentation above)
 # 	# \param kappa Screening Length
 # 	#
 # 	# \b Example:

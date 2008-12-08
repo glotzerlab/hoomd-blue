@@ -59,7 +59,7 @@ HOOMD requires a number of prerequisite software packages and libraries to be co
 - CMake >= 2.6.0
 	- >= 2.6.1 is recommended on Windows due to an annoying bug in 2.6.0
 - Compiler to build source
-	- gcc 4.1 on Linux
+	- gcc on Linux
 	- Visual Studio Express 2005 on Windows XP
 	- all code is standard c++ and should work on nearly any other (recent) compiler
 	- \b note: Visual Studio 9 (aka 2008) does not currently work because of incompatibilities with boost and CUDA
@@ -167,7 +167,7 @@ You will then see a screen that looks like this:
 
 Click configure. You should now see a screen like this:
 \image html cmake_linux_setup.png
-Choose your preferred build environemnt and click OK. This guide assumes that "Unix Makefiles" was chosen.
+Choose your preferred build environment and click OK. This guide assumes that "Unix Makefiles" was chosen.
 
 Now you should see a screen like this:
 \image html cmake_linux_firstpress.png
@@ -177,7 +177,7 @@ If you are building with GPU support enabled, check the USE_CUDA box.
 To generate the makefiles now, click \b configure several times until all the red settings turn white,
 then click \b generate.
 
-You can also scroll down the list of options. Setting the chekcbox options will
+You can also scroll down the list of options. Setting the checkbox options will
 control whether certain features are compiled in. You must click configure after 
 any change. Note that in some cases, changing an option to ON will cause other
 options to appear. Some options controlled by changing text strings.
@@ -236,7 +236,7 @@ If you are building with GPU support enabled, check the USE_CUDA box.
 
 To generate the makefiles (or XCode project) now, click \b configure several times until all the red settings turn white, then click \b generate.
 
-You can also scroll down the list of options. Setting the chekcbox options will
+You can also scroll down the list of options. Setting the checkbox options will
 control whether certain features are compiled in. You must click configure after 
 any change. Note that in some cases, changing an option to ON will cause other
 options to appear. Some options controlled by changing text strings.
@@ -295,11 +295,11 @@ Here is a list of all the build options that can be changed by CMake.
  		\endcode
  - \b USE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
  
-There are a few options for controling the CUDA compilation.
+There are a few options for controlling the CUDA compilation.
  - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
  - \b CUDA_BUILD_TYPE - Controls device/emulation builds
  	- \b Device - will compile all GPU kernels to run on the GPU hardware
- 	- \b Emulation - will comiple all GPU kernels in a CPU emulation mode. 
+ 	- \b Emulation - will compile all GPU kernels in a CPU emulation mode. 
  		This emulation mode is very slow, but does allow developers without 
  		G80 cards to compile and test changes to GPU-related code. Actual
  		kernel development is not recommended without a hardware device to 

@@ -47,12 +47,12 @@ hello
 " $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
 output obtained above on the next line: "hello"
 
-The process for installing software/libraries differes from linux distribution to distribution. 
+The process for installing software/libraries differs from linux distribution to distribution. 
 In Gentoo (http://www.gentoo.org/) 
 \code
  $ emerge python
 \endcode
-would install python. Look at your linux distrubition's documentation to find how to install
+would install python. Look at your linux distribution's documentation to find how to install
 packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" to
 become root before installing.
 
@@ -70,7 +70,7 @@ bash: python: command not found
 or have a version older than 2.3, you will need to upgrade/install python. 
 Note that you will also 
 need the python development libraries which some distributions might separate into into
-python-devel or some such. The existance of the python development package can be tested
+python-devel or some such. The existence of the python development package can be tested
 by checking the output of 
 \code 
  $ ls /usr/include/python2.X/Python.h
@@ -231,7 +231,7 @@ If you get
 \code
 -bash: svn: command not found
 \endcode
-then you will need to install it with your distrubition's package manager.
+then you will need to install it with your distribution's package manager.
 
 */
 
@@ -282,7 +282,7 @@ Generating Makefile...
 \endcode
 
 Users who downloaded and installed python from www.python.org may need to run the configure command
-with the following arugment in order for python to properly be detected.
+with the following argument in order for python to properly be detected.
 \code
  $ ./configure --with-python=/Library/Frameworks/Python.framework/Versions/Current/bin/python
 \endcode
@@ -379,7 +379,7 @@ http://www.microsoft.com/express/2005/ to download the <b>Windows Platform SDK</
 get an option, the preferred installation path is <i>C:\\Program Files\\Microsoft Platform SDK</i>.
 
 Only a few options need to be activated for the install, namely the Windows Core SDK, and
-only those componets you really need for your architecture as shown in this
+only those components you really need for your architecture as shown in this
 screenshot (shown for the x86 32-bit arch).
 \image html windows_platform_sdk_options.png
 
@@ -466,7 +466,7 @@ C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION=
 	Adding --debug-configuration to the end of the command line will provide some information,
 	but not enough to really tell what is going on. The only way to be certain that bzip and zlib 
 	are being compiled in is to check at
-	the end for compiled libraries containint \b zlib and \b bzip2 in their file names (it is
+	the end for compiled libraries containing \b zlib and \b bzip2 in their file names (it is
 	easiest to check after the install step below). Fortunately, if a path is entered incorrectly,
 	you can just rerun this command with the modified path and it will only recompile what is needed
 	so it won't take very long.
@@ -483,7 +483,7 @@ For CMake to find your newly compiled boost libraries, you must set the environm
 variable \b BOOST_ROOT to c:\\opt (or wherever you installed boost).
 
 \section software_req_install_windows_cuda CUDA
-Download and install the latest toolkiet from http://www.nvidia.com/object/cuda_get.html#windows. There
+Download and install the latest toolkit from http://www.nvidia.com/object/cuda_get.html#windows. There
 is no need to install the SDK. If you have a CUDA capable graphics card, you will also need
 the driver listed on that page in order to execute HOOMD on the GPU. If you do not have
 a CUDA capable graphics card, you can still install the toolkit and compile HOOMD in

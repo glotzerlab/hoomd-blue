@@ -183,12 +183,12 @@ lj = pair.lj(r_cut=3.0)
  Documentation for \link hoomd_script.pair.lj pair.lj\endlink<br><br>
  -# The parameters of the force must also be specified before the simulation is \link hoomd_script.run() run()\endlink (you will get 
  	an error if you forget). The next line sets the parameters \a epsilon, \a sigma, and \a alpha for the Lennard-Jones force
- 	betwen particles of types A and A.
+ 	between particles of types A and A.
 \code
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 \endcode
 	The example script only has a single particle type in the simulation, so one line is sufficient. In more complicated 
-	simulations with more than one particle type every unqiue pair must be specified (i.e. 'A'-'A', 'A'-'B', and 'B'-B').
+	simulations with more than one particle type every unique pair must be specified (i.e. 'A'-'A', 'A'-'B', and 'B'-B').
 	Use one line like that above for each pair.<br><br>
  -# After that, we choose the integrator to move particles forward in time. Unlike with the forces, there is only one integrator
  	(specifying another will overwrite the first). Also, there \b must be one integrator. If you try running the simulation without
