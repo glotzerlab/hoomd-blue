@@ -122,7 +122,7 @@ class analyze_log_tests (unittest.TestCase):
 
 	# tests basic creation of the analyzer
 	def test(self):
-		analyze.log(quantities = ['test1', 'test2', 'test3'], period = 100, filename="test.log");
+		analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename="test.log");
 		run(100);
 	
 	# test set_params
@@ -135,6 +135,31 @@ class analyze_log_tests (unittest.TestCase):
 		ana.set_params(quantities = ['test2', 'test3'], delimiter=',')
 		run(100);
 		
+	
+	def tearDown(self):
+		globals._clear();
+		os.remove("test.log");
+		
+# unit tests for analyze.msd
+class analyze_msd_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=100, phi_p=0.05);
+
+	# tests basic creation of the analyzer
+	def test(self):
+		analyze.msd(period = 10, filename="test.log", groups=[group_all()]);
+		run(100);
+	
+	# test error if no groups defined
+	def test_no_gropus(self):
+		self.assertRaises(RuntimeError, analyze.msd, period=10, filename="test.log", groups=[]);
+	
+	# test set_params
+	def test_set_params(self):
+		ana = analyze.msd(period = 10, filename="test.log", groups=[group_all()]);
+		ana.set_params(delimiter = ' ');
+		run(100);
 	
 	def tearDown(self):
 		globals._clear();
@@ -156,6 +181,9 @@ class dmp_xml_tests (unittest.TestCase):
 		xml.set_params(position=True);
 		xml.set_params(velocity=True);
 		xml.set_params(type=True);
+		xml.set_params(wall=True);
+		xml.set_params(bond=True);
+		xml.set_params(image=True);
 	
 	def tearDown(self):
 		globals._clear();
@@ -215,6 +243,30 @@ class integrate_nvt_tests (unittest.TestCase):
 		nvt.set_params(dt=0.001);
 		nvt.set_params(T=1.3);
 		nvt.set_params(tau=0.6);
+	
+	def tearDown(self):
+		globals._clear();
+		
+# unit tests for integrate.npt
+class integrate_npt_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=100, phi_p=0.05);
+		force.constant(fx=0.1, fy=0.1, fz=0.1)
+		
+	# tests basic creation of the dump
+	def test(self):
+		integrate.npt(dt=0.005, T=1.2, tau=0.5, P=1.0, tauP=0.5);
+		run(100);
+	
+	# test set_params
+	def test_set_params(self):
+		npt = integrate.npt(dt=0.005, T=1.2, tau=0.5, P=1.0, tauP=0.5);
+		npt.set_params(dt=0.001);
+		npt.set_params(T=1.3);
+		npt.set_params(tau=0.6);
+		npt.set_params(P=0.5);
+		npt.set_params(tauP=0.6);
 	
 	def tearDown(self):
 		globals._clear();
@@ -357,6 +409,37 @@ class bond_harmonic_tests (unittest.TestCase):
 	
 	def tearDown(self):
 		globals._clear();
+		
+# tests bond.fene
+class bond_fene_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
+		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
+		self.polymers = [self.polymer1, self.polymer2]
+		self.box = hoomd.BoxDim(35);
+		self.separation=dict(A=0.35, B=0.35)
+		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+	
+	# test to see that se can create a force.constant
+	def test_create(self):
+		bond.fene();
+		
+	# test setting coefficients
+	def test_set_coeff(self):
+		fene = bond.fene();
+		fene.set_coeff('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon=2.0)
+		integrate.nve(dt=0.005);
+		run(100);
+		
+	# test coefficient not set checking
+	def test_set_coeff_fail(self):
+		fene = bond.fene();
+		integrate.nve(dt=0.005);
+		self.assertRaises(RuntimeError, run, 100);
+	
+	def tearDown(self):
+		globals._clear();
 
 # tests for update.rescale_temp
 class update_rescale_temp_tests (unittest.TestCase):
@@ -410,6 +493,42 @@ class update_sorter_tests (unittest.TestCase):
 		import __main__;
 		__main__.sorter.set_params(bin_width=2.0);
 	
+	def tearDown(self):
+		globals._clear();
+		
+# tests for update.zero_momentum
+class update_zero_momentum_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=100, phi_p=0.05);
+
+	# tests basic creation of the updater
+	def test(self):
+		update.zero_momentum()
+		run(100);
+	
+	# test enable/disable
+	def test_enable_disable(self):
+		upd = update.rescale_temp(T=1.0)
+		upd.disable();
+		self.assert_(not upd.enabled);
+		upd.disable();
+		self.assert_(not upd.enabled);
+		upd.enable();
+		self.assert_(upd.enabled);
+		upd.enable();
+		self.assert_(upd.enabled);
+		
+	# test set_period
+	def test_set_period(self):
+		upd = update.rescale_temp(T=1.0)
+		upd.set_period(10);
+		upd.disable();
+		self.assertEqual(10, upd.prev_period);
+		upd.set_period(50);
+		self.assertEqual(50, upd.prev_period);
+		upd.enable();
+		
 	def tearDown(self):
 		globals._clear();
 

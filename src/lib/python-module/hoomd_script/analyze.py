@@ -118,7 +118,7 @@ class _analyzer:
 		
 		# check that we have been initialized properly
 		if self.cpp_analyzer == None:
-			print >> sys.stderror, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
 			raise RuntimeError('Error disabling analyzer');
 			
 		# check if we are already disabled
@@ -143,7 +143,7 @@ class _analyzer:
 		
 		# check that we have been initialized properly
 		if self.cpp_analyzer == None:
-			print >> sys.stderror, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
 			raise RuntimeError('Error disabling analyzer');
 			
 		# check if we are already disabled
@@ -392,7 +392,12 @@ class msd(_analyzer):
 		# create the c++ mirror class
 		self.cpp_analyzer = hoomd.MSDAnalyzer(globals.particle_data, filename, header_prefix);
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
-		
+	
+		# it is an error to specify no groups
+		if len(groups) == 0:
+			print >> sys.stderr, "\nAt least one group must be specified to analyze.msd\n";
+			raise RuntimeError('Error creating analyzer');
+
 		# set the group columns
 		for cur_group in groups:
 			self.cpp_analyzer.addColumn(cur_group.cpp_group, cur_group.name);
