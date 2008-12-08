@@ -20,6 +20,12 @@ Note that specifying \c --gpu implies \c --mode=gpu. To find out which id
 is assigned to each GPU in your system, download the CUDA SDK for your system
 from http://www.nvidia.com/object/cuda_get.html and run the \c deviceQuery sample.
 
+Multiple GPUs can be selected to run on by specifying a comma separated list:
+\code
+hoomd some_script.hoomd --gpu=0,1
+\endcode
+Any number of GPUs can be specified in the list.
+
 If you run a script without any options
 \code
 hoomd some_script.hoomd
