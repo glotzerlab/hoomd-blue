@@ -10,7 +10,7 @@ except:
 	print "matplotlib not found, disabling GUI plotting"
 
 # base arguments for all runs
-args_base = "-f LJ.GPU --half_nlist=0 -q --sort=1 -N 128000 --nsec=1";
+args_base = "-f LJ.GPU --half_nlist=0 -q --sort=1 -N 128000 --nsec=10";
 
 bmark_time = [];
 block_size_list = range(32,513,32);

@@ -265,6 +265,9 @@ void benchmark(shared_ptr<ForceCompute> fc)
 		}
 	#endif
 
+	#ifdef USE_CUDA
+	cudaThreadSynchronize();
+	#endif
 	int64_t tstart = clk.getTime();
 	int64_t tend;
 	// do at least one test, then repeat until we get at least 5s of data at this point
