@@ -73,20 +73,13 @@ set(TEST_LIST
 	lj_wall_compute_test
 	neighborlist_test
 	lj_force_test
-        shiftedlj_force_test
+	#shiftedlj_force_test
 	nve_updater_test
 	nvt_updater_test
 	zero_momentum_updater_test
 	temp_rescale_updater_test
-	xml_reader_writer_test system_test
-	ElectrostaticShortRange_force_test)
+	xml_reader_writer_test system_test)
 	
-if (USE_FFT)
-	set(TEST_LIST ${TEST_LIST} 
-	ElectrostaticLongRange_PPPM_test
-	Fourier_transform_test)
-endif (USE_FFT)
-
 if(USE_CUDA)
 	set(TEST_LIST ${TEST_LIST} 
 	gpu_worker_test)

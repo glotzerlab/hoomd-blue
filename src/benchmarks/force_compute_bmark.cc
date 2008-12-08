@@ -65,7 +65,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicBondForceCompute.h"
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
-#include "YukawaForceCompute.h"
+//#include "YukawaForceCompute.h"
 #include "StochasticForceCompute.h"
 
 #include "BinnedNeighborList.h"
@@ -74,7 +74,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef USE_CUDA
 #include "LJForceComputeGPU.h"
-#include "YukawaForceComputeGPU.h"
+//#include "YukawaForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #include "StochasticForceComputeGPU.h"
@@ -197,7 +197,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	#endif	
 	
 	// handle creation of the yukawa force compute
-	if (fc_name == "Yukawa")
+	/*if (fc_name == "Yukawa")
 		result = shared_ptr<ForceCompute>(new YukawaForceCompute(pdata, nlist, r_cut, kappa));
 	#ifdef USE_CUDA
 	if (fc_name == "Yukawa.GPU")
@@ -206,7 +206,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
-	#endif
+	#endif*/
 	
 	return result;
 	}

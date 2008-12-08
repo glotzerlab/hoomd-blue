@@ -66,8 +66,6 @@ include (CMakeCUDASetup.txt)
 include (CMakeCFlagsSetup.txt)
 # Configure some source files, include directories, and create variables listing all source files
 include (CMakeSRCSetup.txt)
-# Configure the FFT libraries
-include (CMakeFFTSetup.txt)
 
 ################################
 ## Define common libraries used by every target in HOOMD

@@ -37,8 +37,6 @@
 # $Id$
 # $URL$
 
-if (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
-
 set(CPACK_DESCRIPTION_SUMMARY "Highly Optimized Object Oriented Molecular Dynamics")
 set(CPACK_PACKAGE_VENDOR "Ames Laboratory Iowa State University")
 set(CPACK_PACKAGE_VERSION_MAJOR ${HOOMD_VERSION_MAJOR})
@@ -136,4 +134,3 @@ endif (USE_CUDA)
 
 endif(WIN32)
 
-endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)

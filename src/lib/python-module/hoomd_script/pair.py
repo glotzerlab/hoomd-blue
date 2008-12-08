@@ -482,61 +482,61 @@ class lj(force._force):
 # \endcode
 #
 # The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.yukawa is specified (see __init__())
-class yukawa(force._force):
-	## Specify the Yukawa %pair %force
-	#
-	# \param r_cut Cuttoff radius (see documentation above)
-	# \param kappa Screening Length
-	#
-	# \b Example:
-	# \code
-	# myforce = pair.yukawa(r_cut=3.0, kappa = 5.0)
-	# myforce.pair_coeff.set('A', 'A', epsilon=1.0)
-	# \endcode
-	#
-	# \note Pair coefficients for all type pairs in the simulation must be
-	# set before it can be started with run()
-	def __init__(self, r_cut, kappa):
-		util.print_status_line();
-		
-		# initialize the base class
-		force._force.__init__(self);
-		
-		# update the neighbor list
-		neighbor_list = _update_global_nlist(r_cut);
-		
-		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.YukawaForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, kappa);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.YukawaForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, kappa);
-		else:
-			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-			raise RuntimeError("Error creating yukawa pair force");
-			
-			
-		globals.system.addCompute(self.cpp_force, self.force_name);
-		
-		# setup the coefficent matrix
-		self.pair_coeff = coeff();
-		
-	def update_coeffs(self):
-		# check that the pair coefficents are valid
-		if not self.pair_coeff.verify("epsilon"):
-			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.yukawa\n";
-			raise RuntimeError("Error updating pair coefficients");
-		
-		# set all the params
-		ntypes = globals.particle_data.getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
-		
-		for i in xrange(0,ntypes):
-			for j in xrange(i,ntypes):
-				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
-				
-				self.cpp_force.setParams(i, j, epsilon);
+# class yukawa(force._force):
+# 	## Specify the Yukawa %pair %force
+# 	#
+# 	# \param r_cut Cuttoff radius (see documentation above)
+# 	# \param kappa Screening Length
+# 	#
+# 	# \b Example:
+# 	# \code
+# 	# myforce = pair.yukawa(r_cut=3.0, kappa = 5.0)
+# 	# myforce.pair_coeff.set('A', 'A', epsilon=1.0)
+# 	# \endcode
+# 	#
+# 	# \note Pair coefficients for all type pairs in the simulation must be
+# 	# set before it can be started with run()
+# 	def __init__(self, r_cut, kappa):
+# 		util.print_status_line();
+# 		
+# 		# initialize the base class
+# 		force._force.__init__(self);
+# 		
+# 		# update the neighbor list
+# 		neighbor_list = _update_global_nlist(r_cut);
+# 		
+# 		# create the c++ mirror class
+# 		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+# 			self.cpp_force = hoomd.YukawaForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, kappa);
+# 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+# 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+# 			self.cpp_force = hoomd.YukawaForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, kappa);
+# 		else:
+# 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+# 			raise RuntimeError("Error creating yukawa pair force");
+# 			
+# 			
+# 		globals.system.addCompute(self.cpp_force, self.force_name);
+# 		
+# 		# setup the coefficent matrix
+# 		self.pair_coeff = coeff();
+# 		
+# 	def update_coeffs(self):
+# 		# check that the pair coefficents are valid
+# 		if not self.pair_coeff.verify("epsilon"):
+# 			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.yukawa\n";
+# 			raise RuntimeError("Error updating pair coefficients");
+# 		
+# 		# set all the params
+# 		ntypes = globals.particle_data.getNTypes();
+# 		type_list = [];
+# 		for i in xrange(0,ntypes):
+# 			type_list.append(globals.particle_data.getNameByType(i));
+# 		
+# 		for i in xrange(0,ntypes):
+# 			for j in xrange(i,ntypes):
+# 				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
+# 				
+# 				self.cpp_force.setParams(i, j, epsilon);
 
 
