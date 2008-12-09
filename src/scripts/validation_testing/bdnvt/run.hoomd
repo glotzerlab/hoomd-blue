@@ -48,7 +48,7 @@ lj.pair_coeff.set('C', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.nvt(dt=0.005, tau=0.5, T=1.0)
+integrate.bdnvt(dt=0.005, T=1.0)
 
 # equilibrate
 run(50000)
@@ -68,7 +68,6 @@ groupD = group_type('D')
 analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=10000)
 
 # run for a a couple hours
-integrate.bdnvt(dt=0.005, T=1.0)
 run(2e6)
 
 if endurance:

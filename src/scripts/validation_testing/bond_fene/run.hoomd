@@ -49,7 +49,7 @@ lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # specify harmonic bond interactions
 fene = bond.fene();
-fene.set_coeff('polymer', k=30.0, r0=1.5)
+fene.set_coeff('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon=1.0)
 
 # integrate at constant temperature
 integrate.nvt(dt=0.005, tau=0.5, T=1.0)
