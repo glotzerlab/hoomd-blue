@@ -102,7 +102,7 @@ void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string
 		}
 	
 	// if we get here, we can add it
-	m_analyzers.push_back(analyzer_item(analyzer, name, period));
+	m_analyzers.push_back(analyzer_item(analyzer, name, period, m_cur_tstep));
 	}
 	
 /*! \param name Name of the Analyzer to find in m_analyzers
@@ -217,7 +217,7 @@ void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& n
 		}
 	
 	// if we get here, we can add it
-	m_updaters.push_back(updater_item(updater, name, period));
+	m_updaters.push_back(updater_item(updater, name, period, m_cur_tstep));
 	}
 		
 /*! \param name Name of the Updater to be removed
