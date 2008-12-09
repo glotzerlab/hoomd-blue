@@ -2,11 +2,13 @@
 
 # This script is a SGE job script for running on teslahoomd.physics.iastate.edu
 
-#$ -N lj_nve
+#$ -N bnd_hrmnc
 #$ -l gpu=1
 #$ -j y
 #$ -cwd
 #$ -S /bin/bash
+
+source ~/.bashrc
 
 # determine which GPU to run on
 GPU=`/home/joaander/gputop/gputop.py --reserve`
@@ -18,5 +20,4 @@ if [ "$?" = 1 ]; then
 fi
 
 echo "Running hoomd on gpu $GPU"
-export PATH=$PATH:/home/joaander/hoomd/bin_rel/python
-hoomd nve.hoomd --mode=gpu --gpu=$GPU
+hoomd run.hoomd endurance --mode=gpu --gpu=$GPU

@@ -233,7 +233,7 @@ class npt(_integrator):
 	# \param T New temperature (if set)
 	# \param tau New coupling constant (if set)
 	# \param P New pressure (if set)
-	# \param tauP New barostat coupling constant
+	# \param tauP New barostat coupling constant (if set)
 	#
 	# To change the parameters of an existing integrator, you must save it in a variable when it is
 	# specified, like so:

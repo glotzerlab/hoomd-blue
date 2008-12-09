@@ -1,0 +1,76 @@
+from hoomd_script import *
+import sys;
+import math;
+
+#########################
+# test the lj pair force by running a large lj liquid sim for a long time
+# there are four types of particles that should phase separate over time
+
+# by default, the test will run for roughly 2 hours on a Tesla C870
+# if "endurance" is passed as the first argument on the command line, it will
+# run for about 24 hours instead
+#########################
+
+# handle the endurance setting
+endurance = False
+if len(sys.argv) > 1 and sys.argv[1] == 'endurance':
+	endurance = True
+	del sys.argv[1]
+
+# create 8000 particles of type A,B,C,D using the polymer generator
+typeA = dict(bond_len=1.2, type=['A'], bond="linear", count=8000)
+typeB = dict(bond_len=1.2, type=['B'], bond="linear", count=8000)
+typeC = dict(bond_len=1.2, type=['C'], bond="linear", count=8000)
+typeD = dict(bond_len=1.2, type=['D'], bond="linear", count=8000)
+
+# perform some simple math to find the length of the box
+N = len(typeA['type'])*typeA['count']*4;
+phi_P = 0.25;
+L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
+
+# create the initial conditions
+init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[typeA, typeB, typeC, typeD], separation=dict(A=0.35, B=0.35, C=0.35, D=0.35))
+
+# specify Lennard-Jones interactions between particle pairs
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('A', 'C', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('A', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
+
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('B', 'C', epsilon=1.0, sigma=1.0, alpha=0.0)
+lj.pair_coeff.set('B', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
+
+lj.pair_coeff.set('C', 'C', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('C', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
+
+lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+# integrate at constant temperature
+integrate.nvt(dt=0.005, tau=0.5, T=1.0)
+
+# equilibrate
+run(50000)
+
+# dump every 10k steps
+dump.mol2(filename="dump.mol2");
+dump.dcd(filename="dump.dcd", period=10000);
+
+# log lj energy
+analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'conserved_quantity', 'pair_lj_energy'], period=1000)
+
+# calculate and log msd
+groupA = group_type('A')
+groupB = group_type('B')
+groupC = group_type('C')
+groupD = group_type('D')
+analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=10000)
+
+# run for a a couple hours
+integrate.nve(dt=0.005)
+run(2e6)
+
+if endurance:
+	# run for a few more hours
+	run(22e6)

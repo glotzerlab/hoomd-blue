@@ -258,7 +258,7 @@ class rescale_temp(_updater):
 	# 
 	# \b Examples:
 	# \code
-	# update.rescale_temp(T=1.2)<br>
+	# update.rescale_temp(T=1.2)
 	# rescaler = update.rescale_temp(T=0.5)
 	# update.rescale_temp(period=100, T=1.03)
 	# \endcode
@@ -311,7 +311,7 @@ class zero_momentum(_updater):
 	# 
 	# \b Examples:
 	# \code
-	# update.zero_momentum()<br>
+	# update.zero_momentum()
 	# zeroer= update.zero_momentum(period=10)
 	# \endcode
 	def __init__(self, period=1):
