@@ -69,7 +69,7 @@ analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=
 
 # run for a a couple hours
 integrate.nve(dt=0.005)
-update.temp_rescale(T=1.0, period=10)
+update.rescale_temp(T=1.0, period=10)
 update.zero_momentum(period=10)
 
 run(2e6)
