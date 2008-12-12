@@ -3,8 +3,11 @@ import sys;
 import math;
 
 #########################
-# test the lj pair force by running a large lj liquid sim for a long time
+# test the lj wall forces by running a large lj liquid sim for a long time
 # there are four types of particles that should phase separate over time
+# additionally, this tests the constant force by applying gravity.
+# Not only will the particles separate, but they will fall to the bottom of 
+# the box
 
 # by default, the test will run for roughly 2 hours on a Tesla C870
 # if "endurance" is passed as the first argument on the command line, it will
@@ -57,7 +60,7 @@ dump.mol2(filename="dump.mol2");
 dump.dcd(filename="dump.dcd", period=100);
 
 # log lj energy
-analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'conserved_quantity', 'pair_lj_energy'], period=1000)
+analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'pair_lj_energy'], period=1000)
 
 # calculate and log msd
 groupA = group_type('A')
@@ -67,8 +70,8 @@ groupD = group_type('D')
 analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=10000)
 
 # run for a a couple hours
-run(2e6)
+run(300000)
 
 if endurance:
 	# run for a few more hours
-	run(22e6)
+	run(3300000)

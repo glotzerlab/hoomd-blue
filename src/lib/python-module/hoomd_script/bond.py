@@ -148,11 +148,15 @@ class harmonic(force._force):
 #
 # The command bond.fene specifies a %fene potential energy between every bonded %pair of particles
 # in the simulation. 
-# \f[ V(r) = - k r_0^2 \ln \left( 1 - \left( \frac{r}{r_0} \right)^2 \right) \f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
+# \f[ V(r) = - k r_0^2 \ln \left( 1 - \left( \frac{r}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)\f]
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair and
+# \f{eqnarray*}
+#   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right] & r < 2^{\frac{1}{6}}\sigma \\
+#            = & 0          & r \ge 2^{\frac{1}{6}}\sigma    \\
+#   \f}
 #
-# Coefficients \f$ k \f$ and \f$ r_0 \f$ must be set for each type of %bond in the simulation using
-# set_coeff().
+# Coefficients \f$ k \f$, \f$ r_0 \f$, \f$ \varepsilon \f$ and \f$ \sigma \f$  must be set for 
+# each type of %bond in the simulation using set_coeff().
 #
 # \note Specifying the bond.fene command when no bonds are defined in the simulation results in an error.
 class fene(force._force):
@@ -194,8 +198,8 @@ class fene(force._force):
 	# \param bond_type Bond type to set coefficients for
 	# \param k Coefficient \f$ k \f$ in the %force
 	# \param r0 Coefficient \f$ r_0 \f$ in the %force
-	# \param sigma Coefficient \f$ sigma \f$ in the %force
-	# \param epsilon Coefficient \f$ epsilon \f$ in the %force
+	# \param sigma Coefficient \f$ \sigma \f$ in the %force
+	# \param epsilon Coefficient \f$ \epsilon \f$ in the %force
 	#
 	# Using set_coeff() requires that the specified %bond %force has been saved in a variable. i.e.
 	# \code

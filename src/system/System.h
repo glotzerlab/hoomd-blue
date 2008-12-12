@@ -167,9 +167,11 @@ class System
 			/*! \param analyzer the Analyzer shared pointer to store
 				\param name user defined name of the analyzer
 				\param period number of time steps between calls to Analyzer::analyze() for this analyzer
+				\param created_tstep time step the analyzer was created on
 			*/
-			analyzer_item(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period)
-				: m_analyzer(analyzer), m_name(name), m_period(period)
+			analyzer_item(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period,
+							unsigned int created_tstep)
+				: m_analyzer(analyzer), m_name(name), m_period(period), m_created_tstep(created_tstep)
 				{
 				}
 			
@@ -179,7 +181,7 @@ class System
 			*/
 			bool shouldExecute(unsigned int tstep)
 				{
-				if ((tstep % m_period) == 0)
+				if (((tstep-m_created_tstep) % m_period) == 0)
 					return true;
 				else
 					return false;
@@ -188,6 +190,7 @@ class System
 			boost::shared_ptr<Analyzer> m_analyzer;	//!< The analyzer
 			std::string m_name;						//!< Its name
 			unsigned int m_period;					//!< The period between analyze() calls
+			unsigned int m_created_tstep;			//!< The timestep when the analyzer was added
 			};
 			
 		std::vector<analyzer_item> m_analyzers;	//!< List of analyzers belonging to this System
@@ -199,9 +202,11 @@ class System
 			/*! \param updater the Updater shared pointer to store
 				\param name user defined name of the updater
 				\param period number of time steps between calls to Updater::update() for this updater
+				\param created_tstep time step the analyzer was created on
 			*/
-			updater_item(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period)
-				: m_updater(updater), m_name(name), m_period(period)
+			updater_item(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period,
+							unsigned int created_tstep)
+				: m_updater(updater), m_name(name), m_period(period), m_created_tstep(created_tstep)
 				{
 				}
 				
@@ -211,7 +216,7 @@ class System
 			*/
 			bool shouldExecute(unsigned int tstep)
 				{
-				if ((tstep % m_period) == 0)
+				if (((tstep-m_created_tstep) % m_period) == 0)
 					return true;
 				else
 					return false;
@@ -220,6 +225,7 @@ class System
 			boost::shared_ptr<Updater> m_updater;	//!< The analyzer
 			std::string m_name;						//!< Its name
 			unsigned int m_period;					//!< The period between update() calls
+			unsigned int m_created_tstep;			//!< The timestep when the analyzer was added
 			};
 			
 		std::vector<updater_item> m_updaters;	//!< List of updaters belonging to this System

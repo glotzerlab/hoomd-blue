@@ -3,7 +3,7 @@ import sys;
 import math;
 
 #########################
-# test the lj pair force by running a large lj liquid sim for a long time
+# test the temp rescaling updater by running a large lj liquid sim for a long time
 # there are four types of particles that should phase separate over time
 
 # by default, the test will run for roughly 2 hours on a Tesla C870
@@ -48,7 +48,9 @@ lj.pair_coeff.set('C', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.nvt(dt=0.005, tau=0.5, T=1.0)
+integrate.nve(dt=0.005)
+update.rescale_temp(T=1.0, period=10)
+update.zero_momentum(period=10)
 
 # equilibrate
 run(50000)
@@ -58,7 +60,7 @@ dump.mol2(filename="dump.mol2");
 dump.dcd(filename="dump.dcd", period=10000);
 
 # log lj energy
-analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'conserved_quantity', 'pair_lj_energy'], period=1000)
+analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'pair_lj_energy'], period=1000)
 
 # calculate and log msd
 groupA = group_type('A')
@@ -68,10 +70,6 @@ groupD = group_type('D')
 analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=10000)
 
 # run for a a couple hours
-integrate.nve(dt=0.005)
-update.temp_rescale(T=1.0, period=10)
-update.zero_momentum(period=10)
-
 run(2e6)
 
 if endurance:
