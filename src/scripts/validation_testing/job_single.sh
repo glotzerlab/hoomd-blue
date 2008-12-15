@@ -2,7 +2,7 @@
 
 # This script is a SGE job script for running on teslahoomd.physics.iastate.edu
 
-#$ -N bnd_hrmnc
+#$ -N validation
 #$ -l gpu=1
 #$ -j y
 #$ -cwd
@@ -20,4 +20,4 @@ if [ "$?" = 1 ]; then
 fi
 
 echo "Running hoomd on gpu $GPU"
-hoomd run.hoomd --mode=gpu --gpu=$GPU
+./run_all.sh --mode=gpu --gpu=$GPU

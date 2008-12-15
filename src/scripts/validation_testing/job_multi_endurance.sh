@@ -2,7 +2,7 @@
 
 # This script is a SGE job script for running on teslahoomd.physics.iastate.edu
 
-#$ -N pair_lj_multi
+#$ -N validation_multi_endurance
 #$ -l gpu=2
 #$ -j y
 #$ -cwd
@@ -27,4 +27,4 @@ if [ "$?" = 1 ]; then
 fi
 
 echo "Running hoomd on gpu $GPU1,$GPU2"
-hoomd run.hoomd --mode=gpu --gpu=$GPU1,$GPU2
+./run_all.sh endurance --mode=gpu --gpu=$GPU1,$GPU2
