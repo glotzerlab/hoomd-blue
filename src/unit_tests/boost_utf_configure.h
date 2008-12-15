@@ -55,15 +55,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // these days)
 
 // setup is tested and works on:
+// boost 1.36.0 (Mac OS X)
+// boost 1.35.1 (gentoo)
 // boost 1.34.1 (gentoo)
 // boost 1.33.1 (fedora 7)
 // boost 1.32.0 (RHEL4)
 // it may work on other versions or it may need tweaking
-
-#if !defined(USE_STATIC)
-//! Macro needed to correctly define things when boost_utf is linked dynamically
-#define BOOST_TEST_DYN_LINK
-#endif
 
 #include <boost/version.hpp>
 #if (BOOST_VERSION >= 103400)
