@@ -7,6 +7,8 @@
 #$ -j y
 #$ -cwd
 #$ -S /bin/bash
+#$ -t 1-8
+#$ -v HOOMD_ARGS
 
 source ~/.bashrc
 
@@ -19,5 +21,7 @@ if [ "$?" = 1 ]; then
 	exit 100
 fi
 
-echo "Running hoomd on gpu $GPU"
-./run_all.sh --mode=gpu --gpu=$GPU
+echo "Running hoomd on gpu ${GPU} with args ${HOOMD_ARGS}"
+directory_list=( pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj )
+cd ${directory_list[${SGE_TASK_ID}]}
+hoomd run.hoomd ${HOOMD_ARGS} --mode=gpu --gpu=$GPU
