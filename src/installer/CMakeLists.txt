@@ -95,7 +95,7 @@ endif (WIN32)
 
 # use our overrided NSIS template files
 # different directories are needed for 64 bit builds vs 32 bit ones
-
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" ${CMAKE_MODULE_PATH})
 if (CMAKE_CL_64)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/x86_64" ${CMAKE_MODULE_PATH})
 else (CMAKE_CL_64)
