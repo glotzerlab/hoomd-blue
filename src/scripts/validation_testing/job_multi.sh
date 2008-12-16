@@ -18,7 +18,7 @@ GPU1=`/home/joaander/gputop/gputop.py --reserve`
 if [ "$?" = 1 ]; then
 	echo "Error finding free GPU"
 	echo $GPU
-	exit 100
+	exit 1
 fi
 GPU2=`/home/joaander/gputop/gputop.py --reserve`
 # check if no free GPU was found

@@ -18,7 +18,7 @@ GPU=`/home/joaander/gputop/gputop.py --reserve`
 if [ "$?" = 1 ]; then
 	echo "Error finding free GPU"
 	echo $GPU
-	exit 100
+	exit 1
 fi
 
 echo "Running hoomd on gpu ${GPU} with args ${HOOMD_ARGS}"
