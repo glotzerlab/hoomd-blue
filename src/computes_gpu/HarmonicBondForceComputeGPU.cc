@@ -71,7 +71,22 @@ HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<Parti
 		}
 		
 	// default block size is the highest performance in testing on different hardware
-	m_block_size = 192;
+	// choose based on compute capability of the device
+	cudaDeviceProp deviceProp;
+	int dev;
+	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
+	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
+	if (deviceProp.major == 1 && deviceProp.minor == 0)
+		m_block_size = 64;
+	else if (deviceProp.major == 1 && deviceProp.minor == 1)
+		m_block_size = 64;
+	else if (deviceProp.major == 1 && deviceProp.minor < 4)
+		m_block_size = 288;
+	else
+		{
+		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for HarmonicBondForceComputeGPU" << endl;
+		m_block_size = 64;
+		}
 	
 	// allocate and zero device memory
 	m_gpu_params.resize(exec_conf.gpu.size());

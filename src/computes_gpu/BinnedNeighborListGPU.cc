@@ -104,14 +104,16 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	int dev;
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor < 2)
+	if (deviceProp.major == 1 && deviceProp.minor == 0)
+		m_block_size = 64;
+	else if (deviceProp.major == 1 && deviceProp.minor == 1)
 		m_block_size = 192;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 416;
+		m_block_size = 384;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
-		m_block_size = 416;
+		m_block_size = 64;
 		}
 	
 	// bogus values for last value
