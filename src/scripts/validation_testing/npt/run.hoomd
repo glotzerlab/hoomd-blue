@@ -17,6 +17,9 @@ if len(sys.argv) > 1 and sys.argv[1] == 'endurance':
 	endurance = True
 	del sys.argv[1]
 
+# force error checking on
+hoomd.set_gpu_error_checking(True);
+
 # create 8000 particles of type A,B,C,D using the polymer generator
 typeA = dict(bond_len=1.2, type=['A'], bond="linear", count=8000)
 typeB = dict(bond_len=1.2, type=['B'], bond="linear", count=8000)
@@ -55,7 +58,7 @@ run(50000)
 
 # dump every 10k steps
 dump.mol2(filename="dump.mol2");
-dump.dcd(filename="dump.dcd", period=10000);
+dump.dcd(filename="dump.dcd", period=200000);
 
 # log lj energy
 analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'pair_lj_energy'], period=1000)

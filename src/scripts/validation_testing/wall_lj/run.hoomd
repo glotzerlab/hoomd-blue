@@ -20,6 +20,9 @@ if len(sys.argv) > 1 and sys.argv[1] == 'endurance':
 	endurance = True
 	del sys.argv[1]
 
+# force error checking on
+hoomd.set_gpu_error_checking(True);
+
 # read in the created initial conditions
 init.read_xml(filename="input.xml")
 
@@ -57,7 +60,7 @@ run(50000)
 
 # dump every 10k steps
 dump.mol2(filename="dump.mol2");
-dump.dcd(filename="dump.dcd", period=100);
+dump.dcd(filename="dump.dcd", period=200000);
 
 # log lj energy
 analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'pair_lj_energy'], period=1000)
@@ -70,8 +73,8 @@ groupD = group_type('D')
 analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=10000)
 
 # run for a a couple hours
-run(300000)
+run(700000)
 
 if endurance:
 	# run for a few more hours
-	run(3300000)
+	run(7200000)

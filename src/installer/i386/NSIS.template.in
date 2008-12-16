@@ -519,7 +519,8 @@ Section "Installer Section" InstSection
   ; demo start menu links
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER\demos"
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Micelle Demo.lnk" "$INSTDIR\demos\micelle\micelle_demo.hoomd"
-  
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Oil water Demo.lnk" "$INSTDIR\demos\oil_water\oil_water_demo.hoomd"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Self assembly Demo.lnk" "$INSTDIR\demos\self_assembly\self_assembly_demo.hoomd"
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
@@ -636,6 +637,8 @@ Section "Uninstall"
 
   ; remove the demos from the start menu
   Delete "$SMPROGRAMS\$MUI_TEMP\demos\Micelle Demo.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Oil water Demo.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Self assembly Demo.lnk"
   RMDir "$SMPROGRAMS\$MUI_TEMP\demos"
   
   ;Delete empty start menu parent diretories
