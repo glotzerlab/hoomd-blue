@@ -28,7 +28,7 @@ if [ "$?" = 1 ]; then
 	exit 100
 fi
 
-echo "Running hoomd on gpu $GPU1,$GPU2 with args ${HOOMD_ARGS}"
+echo "Running hoomd validation test ${directory_list[${SGE_TASK_ID}]} on gpu $GPU1,$GPU2 with args ${HOOMD_ARGS}"
 directory_list=( pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj )
 cd ${directory_list[${SGE_TASK_ID}]}
 hoomd run.hoomd ${HOOMD_ARGS} --mode=gpu --gpu=$GPU1,$GPU2
