@@ -286,8 +286,10 @@ ELSE (_boost_IN_CACHE)
 
   # Try to find Boost by stepping backwards through the Boost versions
   # we know about.
-  FOREACH(_boost_VER ${_boost_TEST_VERSIONS})
-    IF( NOT Boost_INCLUDE_DIR )
+  IF( NOT Boost_INCLUDE_DIR )
+    # Build a list of path suffixes for each version.
+    SET(_boost_PATH_SUFFIXES)
+    FOREACH(_boost_VER ${_boost_TEST_VERSIONS})
       # Add in a path suffix, based on the required version, ideally
       # we could read this from version.hpp, but for that to work we'd
       # need to know the include dir already
@@ -300,27 +302,29 @@ ELSE (_boost_IN_CACHE)
           STRING(REGEX REPLACE "([0-9]+)\\.([0-9]+)" "\\1_\\2" 
             _boost_PATH_SUFFIX ${_boost_PATH_SUFFIX})
       ENDIF(_boost_PATH_SUFFIX MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
+      LIST(APPEND _boost_PATH_SUFFIXES "boost-${_boost_PATH_SUFFIX}")
+      LIST(APPEND _boost_PATH_SUFFIXES "boost_${_boost_PATH_SUFFIX}")
+    ENDFOREACH(_boost_VER)
 
-	  if (BOOST_ROOT)
-      FIND_PATH(Boost_INCLUDE_DIR
-          NAMES         boost/config.hpp
-          HINTS         ${_boost_INCLUDE_SEARCH_DIRS}
-          PATH_SUFFIXES boost-${_boost_PATH_SUFFIX} boost_${_boost_PATH_SUFFIX}
-		  NO_CMAKE_PATH
-		  NO_CMAKE_ENVIRONMENT_PATH
-		  NO_SYSTEM_ENVIRONMENT_PATH
-		  NO_CMAKE_SYSTEM_PATH
+    # Look for a standard boost header file.
+	if (BOOST_ROOT)
+    FIND_PATH(Boost_INCLUDE_DIR
+      NAMES         boost/config.hpp
+      HINTS         ${_boost_INCLUDE_SEARCH_DIRS}
+      PATH_SUFFIXES ${_boost_PATH_SUFFIXES}
+      NO_CMAKE_PATH
+      NO_CMAKE_ENVIRONMENT_PATH
+      NO_SYSTEM_ENVIRONMENT_PATH
+      NO_CMAKE_SYSTEM_PATH
+	  )
+    else (BOOST_ROOT)
+	FIND_PATH(Boost_INCLUDE_DIR
+      NAMES         boost/config.hpp
+      HINTS         ${_boost_INCLUDE_SEARCH_DIRS}
+      PATH_SUFFIXES ${_boost_PATH_SUFFIXES}
       )
-	  else (BOOST_ROOT)
-      FIND_PATH(Boost_INCLUDE_DIR
-          NAMES         boost/config.hpp
-          HINTS         ${_boost_INCLUDE_SEARCH_DIRS}
-          PATH_SUFFIXES boost-${_boost_PATH_SUFFIX} boost_${_boost_PATH_SUFFIX}
-      )
-	  endif(BOOST_ROOT)
-
-    ENDIF( NOT Boost_INCLUDE_DIR )
-  ENDFOREACH(_boost_VER)
+	endif(BOOST_ROOT)
+  ENDIF( NOT Boost_INCLUDE_DIR )
 
   IF(Boost_INCLUDE_DIR)
     # Extract Boost_VERSION and Boost_LIB_VERSION from version.hpp
