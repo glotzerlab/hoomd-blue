@@ -263,6 +263,7 @@ void benchmark(shared_ptr<ForceCompute> fc)
 		cout << "n/a s/step" << endl;
 		return;
 		}
+	g_gpu_error_checking = false;
 	#endif
 
 	#ifdef USE_CUDA

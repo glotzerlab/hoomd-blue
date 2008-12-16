@@ -188,9 +188,12 @@ void benchmark(shared_ptr<NeighborList> nl) {
 		cout << "n/a s/step" << endl;
 		return;
 		}
+	g_gpu_error_checking = false;
 	#endif
 	
-
+	#ifdef USE_CUDA
+	cudaThreadSynchronize();
+	#endif
 	int64_t tstart = clk.getTime();
 	int64_t tend;
 	
