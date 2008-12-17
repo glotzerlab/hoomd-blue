@@ -85,7 +85,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	else if (deviceProp.major == 1 && deviceProp.minor == 1)
 		m_block_size = 64;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 384; // note: I don't know what the proper setting is, JA
+		m_block_size = 128;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for StohasticForceComputeGPU" << endl;
