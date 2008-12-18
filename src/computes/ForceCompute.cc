@@ -65,7 +65,7 @@ ForceDataArrays::ForceDataArrays() : fx(NULL), fy(NULL), fz(NULL), pe(NULL), vir
 	{
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 /*! \post \a d_data.force, \a d_data.virial and \a h_staging are all set to NULL
 	\post \a m_num_local and \a m_local_start are set to 0
 */
@@ -245,7 +245,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdat
 	for (unsigned int i = 0; i < num_particles; i++)
 		m_fx[i] = m_fy[i] = m_fz[i] = m_pe[i] = m_virial[i] = Scalar(0.0);
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// setup ForceDataArrays on each GPU
 	m_gpu_forces.resize(exec_conf.gpu.size());
 		
@@ -283,7 +283,7 @@ ForceCompute::~ForceCompute()
 	delete[] m_virial;
 	m_arrays.virial = m_virial = NULL;
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(&ForceDataArraysGPU::deallocate, &m_gpu_forces[cur_gpu]));
 	#endif
@@ -317,7 +317,7 @@ Scalar ForceCompute::calcEnergySum()
  */
 const ForceDataArrays& ForceCompute::acquire()
 	{
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
@@ -359,7 +359,7 @@ const ForceDataArrays& ForceCompute::acquire()
 	#endif
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 /*! Access computed forces on the GPU. This may require copying data from the CPU if the forces
 	were computed there.
 	\returns Data pointer to the forces on the GPU

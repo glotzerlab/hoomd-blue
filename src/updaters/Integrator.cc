@@ -56,7 +56,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "Integrator.cuh"
 #endif
 
@@ -70,7 +70,7 @@ Integrator::Integrator(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : U
 	if (m_deltaT <= 0.0)
 		cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
 
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	m_d_force_data_ptrs.resize(exec_conf.gpu.size());
 
 	// allocate and initialize force data pointers (if running on a GPU)
@@ -88,7 +88,7 @@ Integrator::Integrator(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : U
 
 Integrator::~Integrator()
 	{
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// free the force data pointers on the GPU
 	if (!exec_conf.gpu.empty())
 		{
@@ -106,7 +106,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 	assert(fc);
 	m_forces.push_back(fc);
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// add the force data pointer to the list of pointers on the GPU
 	if (!exec_conf.gpu.empty())
 		{
@@ -138,7 +138,7 @@ void Integrator::removeForceComputes()
 	{
 	m_forces.clear();
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (!exec_conf.gpu.empty())
 		{
 		exec_conf.tagAll(__FILE__, __LINE__);		
@@ -381,7 +381,7 @@ Scalar Integrator::computePotentialEnergy(unsigned int timestep)
 	return pe_total;
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 
 /*! \param timestep Current timestep
 	\param profiler_name Name of the profiler element to continue timing under

@@ -49,7 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Compute.h"
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
 #include "ForceCompute.cuh"
 #endif
@@ -84,7 +84,7 @@ struct ForceDataArrays
 	Scalar const * __restrict__ virial; //!< per-particle virial
 	};
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! Structure for managing force data on the GPU
 /*! ForceDataArraysGPU is very closely tied in with ForceCompute and neither can exist without
 	the other (at least when compiling for the GPU). ForceCompute uses ForceDataArraysGPU
@@ -144,7 +144,7 @@ class ForceCompute : public Compute
 		//! Access the computed force data
 		const ForceDataArrays& acquire();
 
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		//! Access the computed force data on the GPU
 		vector<ForceDataArraysGPU>& acquireGPU();
 		#endif
@@ -177,7 +177,7 @@ class ForceCompute : public Compute
 
 		ForceDataArrays m_arrays;	//!< Structure-of-arrays for quick returning via acquire
 
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		//! Simple type for identifying where the most up to date particle data is
 		enum DataLocation
 			{

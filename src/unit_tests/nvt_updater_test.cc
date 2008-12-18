@@ -56,7 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ConstForceCompute.h"
 #include "NVTUpdater.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "NVTUpdaterGPU.h"
 #endif
 
@@ -1102,7 +1102,7 @@ shared_ptr<NVTUpdater> base_class_nvt_creator(shared_ptr<ParticleData> pdata, Sc
 	return shared_ptr<NVTUpdater>(new NVTUpdater(pdata, deltaT, Q, T));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! NVTUpdaterGPU factory for the unit tests
 shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T)
 	{
@@ -1236,7 +1236,7 @@ BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 	}
 
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! Compares the output of NVTUpdaterGPU to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_mathematica_compare )
 	{

@@ -57,7 +57,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ShiftedLJForceCompute.h"
 /*
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "LJForceComputeGPU.h"
 #endif
 */
@@ -336,7 +336,7 @@ shared_ptr<ShiftedLJForceCompute> base_class_shiftedlj_creator(shared_ptr<Partic
 	}
 	
 /*	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! ShiftedLJForceComputeGPU creator for unit tests
 shared_ptr<ShiftedLJForceCompute> gpu_shiftedlj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
@@ -363,7 +363,7 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForce_periodic )
 	}
 
 /*	
-# ifdef USE_CUDA
+# ifdef ENABLE_CUDA
 //! boost test case for particle test on CPU - threaded
 BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_particle )
 	{

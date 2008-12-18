@@ -39,20 +39,20 @@
 
 #################################
 ## Optional static build
-## USE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
-OPTION(USE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" ON)
-mark_as_advanced(USE_STATIC)
-if (USE_STATIC)
-	add_definitions(-DUSE_STATIC)
-endif(USE_STATIC)
+## ENABLE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
+OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" ON)
+mark_as_advanced(ENABLE_STATIC)
+if (ENABLE_STATIC)
+	add_definitions(-DENABLE_STATIC)
+endif(ENABLE_STATIC)
 
 #################################
 ## Optionally enable unit tests
-OPTION(USE_TEST "Enables unit tests" ON)
+OPTION(ENABLE_TEST "Enables unit tests" ON)
 
 #################################
 ## Optionally enable documentation build
-OPTION(USE_DOXYGEN "Enables building of documentation with doxygen" ON)
+OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" ON)
 
 ################################
 ## thread safe compiling

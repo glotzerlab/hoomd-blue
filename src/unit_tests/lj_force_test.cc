@@ -56,7 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "LJForceCompute.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "LJForceComputeGPU.h"
 #endif
 
@@ -333,7 +333,7 @@ shared_ptr<LJForceCompute> base_class_lj_creator(shared_ptr<ParticleData> pdata,
 	return shared_ptr<LJForceCompute>(new LJForceCompute(pdata, nlist, r_cut));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
 shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE( LJForce_periodic )
 	lj_force_periodic_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
-# ifdef USE_CUDA
+# ifdef ENABLE_CUDA
 //! boost test case for particle test on CPU - threaded
 BOOST_AUTO_TEST_CASE( LJForceGPU_particle )
 	{

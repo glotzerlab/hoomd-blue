@@ -53,7 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //#incldue <string.h>
 using std::string;
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "NeighborList.cuh"
 #endif
 
@@ -154,7 +154,7 @@ class NeighborList : public Compute
 		//! Access the calculated neighbor list on the CPU
 		virtual const std::vector< std::vector<unsigned int> >& getList();
 		
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		//! Acquire the list on the GPU
 		vector<gpu_nlist_array>& getListGPU();
 		#endif
@@ -188,7 +188,7 @@ class NeighborList : public Compute
 		
 		std::vector< ExcludeList > m_exclusions; //!< Stores particle exclusion lists BY TAG
 
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		//! Simple type for identifying where the most up to date particle data is
 		enum DataLocation
 			{

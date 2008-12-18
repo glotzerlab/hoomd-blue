@@ -84,7 +84,7 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
 		m_pe[i] = 0;
 		}
 
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// data now only exists on the CPU
 	m_data_location = cpu;
 	#endif

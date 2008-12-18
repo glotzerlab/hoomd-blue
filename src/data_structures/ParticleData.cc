@@ -163,7 +163,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 		throw std::runtime_error("Error initializing ParticleData");
 		}
 		
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	m_gpu_pdata.resize(m_exec_conf.gpu.size());
 	m_exec_conf.tagAll(__FILE__, __LINE__);
 	#endif
@@ -214,7 +214,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	m_bondData = shared_ptr<BondData>(new BondData(this, n_bond_types));
 		
 	// if this is a GPU build, initialize the graphics card mirror data structures
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (!m_exec_conf.gpu.empty())
 		{
 		hostToDeviceCopy();
@@ -252,7 +252,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		throw std::runtime_error("Error initializing ParticleData");
 		}
 		
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	m_gpu_pdata.resize(m_exec_conf.gpu.size());
 	m_exec_conf.tagAll(__FILE__, __LINE__);
 	#endif
@@ -285,7 +285,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		}
 	
 	// need to set m_data_location before any call to setBox
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	m_data_location = cpu;
 	#endif
 	
@@ -314,7 +314,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	init.initBondData(m_bondData);
 
 	// if this is a GPU build, initialize the graphics card mirror data structure
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (!m_exec_conf.gpu.empty())
 		{
 		hostToDeviceCopy();
@@ -352,7 +352,7 @@ void ParticleData::setBox(const BoxDim &box)
 	m_box = box;
 	assert(inBox(true));
 		
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// setup the box
 	m_gpu_box.Lx = m_box.xhi - m_box.xlo;
 	m_gpu_box.Ly = m_box.yhi - m_box.ylo;
@@ -393,7 +393,7 @@ const ParticleDataArraysConst & ParticleData::acquireReadOnly()
 	assert(inBox(true));
 	m_acquired = true;
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
@@ -443,7 +443,7 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
 	assert(inBox(true));
 	m_acquired = true;
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
@@ -481,7 +481,7 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
 	#endif
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 
 /*! Acquire access to the particle data, for read only access on the gpu.
 	
@@ -697,7 +697,7 @@ void ParticleData::allocate(unsigned int N)
 	
 	/////////////////////////////////////////////////////
 	// Count bytes needed by the main data structures
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// 256 byte aligned version for GPU
 	
 	// start by adding up the number of bytes needed for the Scalar arrays, rounding up by 16
@@ -732,7 +732,7 @@ void ParticleData::allocate(unsigned int N)
 	
 	//////////////////////////////////////////////////////
 	// allocate the memory on the CPU, use pinned memory if compiling for the GPU
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	m_exec_conf.tagAll(__FILE__, __LINE__);
 	if (!m_exec_conf.gpu.empty())
 		{
@@ -772,7 +772,7 @@ void ParticleData::allocate(unsigned int N)
 	// sanity check
 	assert(cur_byte == ((char*)m_data) + m_nbytes);
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	//////////////////////////////////////////////////////////
 	// allocate memory on each GPU
 	
@@ -865,7 +865,7 @@ void ParticleData::deallocate()
 	assert(m_data);
 		
 	// free the data
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (!m_exec_conf.gpu.empty())
 		{	
 		m_exec_conf.gpu[0]->call(bind(cudaFreeHost, m_data));
@@ -936,7 +936,7 @@ void ParticleData::deallocate()
 */
 bool ParticleData::inBox(bool need_aquire)
 	{
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (need_aquire && m_data_location == gpu)
 		deviceToHostCopy();
 	#endif
@@ -967,7 +967,7 @@ bool ParticleData::inBox(bool need_aquire)
 	return true;
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 /*! \post Particle data is copied from the GPU to the CPU
 */
 void ParticleData::hostToDeviceCopy()

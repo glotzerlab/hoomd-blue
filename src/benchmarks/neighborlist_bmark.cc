@@ -64,7 +64,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "NeighborListNsqGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "gpu_settings.h"
@@ -119,7 +119,7 @@ shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, share
 		result = shared_ptr<NeighborList>(new BinnedNeighborList(pdata, r_cut, r_buff));
 	if (nl_name == "NL_NSQ")
 		result = shared_ptr<NeighborList>(new NeighborList(pdata, r_cut, r_buff));
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (nl_name == "BinnedNL.GPU")
 		{
 		shared_ptr<BinnedNeighborListGPU> tmp = shared_ptr<BinnedNeighborListGPU>(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
@@ -175,13 +175,13 @@ void benchmark(shared_ptr<NeighborList> nl) {
 	int count = 2;
 
 	// do a warmup run so memory allocations don't change the benchmark numbers
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// also check for errors during the warm up run
 	g_gpu_error_checking = true;
 	try {
 	#endif
 	nl->compute(count++);
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	} 
 	catch (runtime_error e)
 		{
@@ -191,7 +191,7 @@ void benchmark(shared_ptr<NeighborList> nl) {
 	g_gpu_error_checking = false;
 	#endif
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	cudaThreadSynchronize();
 	#endif
 	int64_t tstart = clk.getTime();
@@ -209,7 +209,7 @@ void benchmark(shared_ptr<NeighborList> nl) {
 	} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 5);
 	
 	// make sure all kernels have been executed when using CUDA
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	cudaThreadSynchronize();
 	#endif
 	tend = clk.getTime();
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
 		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
 		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
 		("multi_gpu", value<unsigned int>(&num_gpus)->default_value(0), "Number of GPUs to run on in multi-gpu mode")
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNL.GPU"), "NeighboorList to benchmark")
 		#else
 		("nl_name,n", value<string>(&nl_name)->default_value("BinnedNL"), "NeighboorList to benchmark")
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 		cout << desc;
 		cout << "Available ForceComputes are: ";
 		cout << "NL_NSQ, BinnedNL";
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		cout << ", BinnedNL.GPU, and NL_NSQ.GPU";
 		#endif
 		cout << endl;

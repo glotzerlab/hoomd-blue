@@ -42,19 +42,19 @@
 ## This funny construction only allows the user to enable CUDA 
 ## if single precicsion is enabled
 remove_definitions (-DSINGLE_PRECISION)
-remove_definitions (-DUSE_CUDA)
+remove_definitions (-DENABLE_CUDA)
 if(SINGLE_PRECISION)
 	add_definitions (-DSINGLE_PRECISION)
 
-	option(USE_CUDA "Enable the compilation of the CUDA GPU code" off)
+	option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
 
-	if (USE_CUDA)
-		add_definitions (-DUSE_CUDA)
+	if (ENABLE_CUDA)
+		add_definitions (-DENABLE_CUDA)
 		find_package(Cuda REQUIRED)
-	endif (USE_CUDA)
+	endif (ENABLE_CUDA)
 
 # it is not known if this forcing of cuda off actually works
 #else(SINGLE_PRECISION)
 	# this line makes sure that cuda is disabled when single_precision is disabled
-	#set(USE_CUDA OFF CACHE BOOL "Enable the compilation of the CUDA GPU code - requires single precision" FORCE)
+	#set(ENABLE_CUDA OFF CACHE BOOL "Enable the compilation of the CUDA GPU code - requires single precision" FORCE)
 endif(SINGLE_PRECISION)

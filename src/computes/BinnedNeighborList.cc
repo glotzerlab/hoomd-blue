@@ -88,7 +88,7 @@ void BinnedNeighborList::buildNlist()
 	updateBins();
 	updateListFromBins();
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// after computing, the device now resides on the CPU
 	m_data_location = cpu;
 	#endif

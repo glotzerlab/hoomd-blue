@@ -43,7 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Code the GPUWorker class
 */
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 
 #include <boost/bind.hpp>
 #include <string>

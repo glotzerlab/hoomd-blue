@@ -63,7 +63,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost;
 using namespace std;
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 
 //! boost test case for GPUWorker basic operation
 BOOST_AUTO_TEST_CASE( GPUWorker_basic )

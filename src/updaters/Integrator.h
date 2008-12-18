@@ -51,7 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
 #endif
 
@@ -135,7 +135,7 @@ class Integrator : public Updater
 		//! helper function to compute accelerations
 		void computeAccelerations(unsigned int timestep, const std::string& profile_name);
 	
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		//! helper function to compute accelerations on the GPU
 		void computeAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
 

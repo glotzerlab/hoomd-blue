@@ -46,7 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
 #endif
 
@@ -69,7 +69,7 @@ using namespace boost;
 */
 ExecutionConfiguration::ExecutionConfiguration()
 	{
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	int dev_count;
 	cudaError_t error = cudaGetDeviceCount(&dev_count);
 	if (error != cudaSuccess)
@@ -102,7 +102,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int 
 	{
 	exec_mode = mode;
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (exec_mode == GPU)
 		{
 		int dev_count;
@@ -137,7 +137,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::ve
 	{
 	exec_mode = mode;
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (exec_mode == GPU)
 		{
 		int dev_count;
@@ -172,7 +172,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::ve
 	#endif
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 /*! \param file Passed to GPUWorker::setTag
 	\param line Passed to GPUWorker::setTag
 */

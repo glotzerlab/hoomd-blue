@@ -72,7 +72,7 @@ typedef double Scalar;
 
 using namespace std;
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
 #include "gpu_settings.h"
 #endif
@@ -348,7 +348,7 @@ class ParticleData : boost::noncopyable
 		//! Acquire read/write access to the particle data
 		const ParticleDataArrays& acquireReadWrite();
 		
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		//! Acquire read access to the particle data on the GPU
 		std::vector<gpu_pdata_arrays>& acquireReadOnlyGPU();
 		//! Acquire read/write access to the particle data on the GPU
@@ -411,7 +411,7 @@ class ParticleData : boost::noncopyable
 		boost::shared_ptr<WallData> m_wallData;		//!< Walls specified for the simulation box
 		boost::shared_ptr<BondData> m_bondData;		//!< Bonds specified for the simulation
 		
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		
 		//! Simple type for identifying where the most up to date particle data is
 		enum DataLocation

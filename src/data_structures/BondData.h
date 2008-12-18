@@ -51,7 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signal.hpp>
 #include <boost/utility.hpp>
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
 #include "BondData.cuh"
 #endif
@@ -128,7 +128,7 @@ class BondData : boost::noncopyable
 		//! Gets the name of a given particle type index
 		std::string getNameByType(unsigned int type);
 		
-		# ifdef USE_CUDA
+		# ifdef ENABLE_CUDA
 		//! Access the bonds on the GPU
 		std::vector<gpu_bondtable_array>& acquireGPU();
 		#endif
@@ -148,7 +148,7 @@ class BondData : boost::noncopyable
 		*/
 		void setDirty() { m_bonds_dirty = true; }
 			
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		std::vector<gpu_bondtable_array> m_gpu_bonddata;	//!< List of bonds on the GPU
 		uint2 *m_host_bonds;				//!< Host copy of the bond list
 		unsigned int *m_host_n_bonds;		//!< Host copy of the number of bonds

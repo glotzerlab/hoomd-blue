@@ -87,7 +87,7 @@ BondData::BondData(ParticleData* pdata, unsigned int n_bond_types) : m_n_bond_ty
 		m_bond_type_mapping.push_back(name);
 		}
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// get the execution configuration
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	
@@ -115,7 +115,7 @@ BondData::~BondData()
 	{
 	m_sort_connection.disconnect();
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (!exec_conf.gpu.empty())
 		{
@@ -208,7 +208,7 @@ std::string BondData::getNameByType(unsigned int type)
 	return m_bond_type_mapping[type];
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 
 /*! Updates the bond data on the GPU if needed and returns the data structure needed to access it.
 */

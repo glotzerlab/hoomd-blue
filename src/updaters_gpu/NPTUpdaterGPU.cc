@@ -152,7 +152,7 @@ void NPTUpdaterGPU::addForceCompute(boost::shared_ptr<ForceCompute> fc)
        {
 	 Integrator::addForceCompute(fc);
 	 // add stuff for virials
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (!exec_conf.gpu.empty())
 		{
@@ -183,7 +183,7 @@ void NPTUpdaterGPU::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 */
 void NPTUpdaterGPU::removeForceComputes()
 	{
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	 
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	if (!exec_conf.gpu.empty())

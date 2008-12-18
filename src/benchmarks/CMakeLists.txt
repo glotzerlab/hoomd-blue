@@ -56,7 +56,7 @@ install(TARGETS neighborlist_bmark force_compute_bmark
 	CONFIGURATIONS Release
 	)
 	
-if (USE_CUDA)
+if (ENABLE_CUDA)
 add_executable(pdata_gpucopy_bmark pdata_gpucopy_bmark.cc)
 target_link_libraries(pdata_gpucopy_bmark ${LIBS})
 
@@ -65,5 +65,5 @@ install(TARGETS pdata_gpucopy_bmark
 	RUNTIME DESTINATION ${LIB_INSTALL_DIR}
 	CONFIGURATIONS Release
 	)
-endif (USE_CUDA)
+endif (ENABLE_CUDA)
 

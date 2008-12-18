@@ -94,7 +94,7 @@ struct ExecutionConfiguration
 	
 	executionMode exec_mode;	//!< Execution mode specified in the constructor
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	//! Sets tags for all GPUWorkers
 	void tagAll(const std::string &file, unsigned int line) const;
 	

@@ -56,7 +56,7 @@ using namespace boost::python;
 
 #include <boost/bind.hpp>
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "Integrator.cuh"
 #endif
 
@@ -82,7 +82,7 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 	else using_gpu = true;
 
 	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_pdata, m_deltaT, m_T, m_seed));  
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (using_gpu) m_bdfc_gpu =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_pdata, m_deltaT, m_T, m_seed));
 	#endif    
 	
@@ -99,7 +99,7 @@ void BD_NVTUpdater::addStochasticBath()
 	if (m_bath)	cout << "Stochastic Bath Already Added" << endl;
 	else {
 
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		if (using_gpu) {
 			this->addForceCompute(m_bdfc_gpu);	
 			}	

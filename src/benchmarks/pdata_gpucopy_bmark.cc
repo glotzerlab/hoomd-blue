@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
  	\details This is indended a quick test of the performance of the copies
  		to verify that everything is working properly. 
  		
- 	\note This executable is only compiled when USE_CUDA is enabled.
+ 	\note This executable is only compiled when ENABLE_CUDA is enabled.
  	\ingroup benchmarks
 */
 
