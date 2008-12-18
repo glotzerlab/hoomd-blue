@@ -43,6 +43,15 @@ if(NOT PASSED_FIRST_CONFIGURE)
 	message(STATUS "Overriding CMake's default CFLAGS (this should appear only once)")
     
 	if(CMAKE_COMPILER_IS_GNUCXX)
+		# special handling to honor gentoo flags
+		if (HONOR_GENTOO_FLAGS)
+		set(CMAKE_CXX_FLAGS_DEBUG "-Wall" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
+		set(CMAKE_CXX_FLAGS_MINSIZEREL "-Wall -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
+		set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds." FORCE)
+		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+		
+		else (HONOR_GENTOO_FLAGS)
+
 		# default flags for g++
 		# default build type is Release when compiling make files
 		if(NOT CMAKE_BUILD_TYPE)
@@ -57,6 +66,7 @@ if(NOT PASSED_FIRST_CONFIGURE)
 		set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -ffast-math -DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds." FORCE)
 		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O -funroll-loops -ffast-math -DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 	
+		endif (HONOR_GENTOO_FLAGS)
 	elseif(MSVC80)
 		# default flags for visual studio 2005
 		if (CMAKE_CL_64)
