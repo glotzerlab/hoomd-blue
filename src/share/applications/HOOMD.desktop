@@ -2,10 +2,9 @@
 Comment=Launches the HOOMD Python interpreter
 Exec=hoomd %f
 Icon=hoomd
-InitialPreference=9
-MimeType=application/x-hoomd
+MimeType=application/x-hoomd;
 Name=HOOMD
 StartupNotify=false
 Terminal=true
 Type=Application
-Category=Physics
+Category=Physics;Chemistry;Science;Education;;
