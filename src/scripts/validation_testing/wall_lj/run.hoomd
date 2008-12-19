@@ -56,7 +56,7 @@ force.constant(fx=0.0, fy=-1.00, fz=0.0)
 integrate.bdnvt(dt=0.005, T=1.0)
 
 # equilibrate
-run(50000)
+run(50000, profile=True)
 
 # dump every 10k steps
 dump.mol2(filename="dump.mol2");
