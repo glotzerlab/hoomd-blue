@@ -127,6 +127,9 @@ void BD_NVTUpdater::removeForceComputes()
 */
 void BD_NVTUpdater::update(unsigned int timestep)
 	{
+	// hack to get correct profiling
+	m_bdfc->setProfiler(m_prof);
+
 	if (!m_bath) addStochasticBath();
 	NVEUpdater::update(timestep);
 	}

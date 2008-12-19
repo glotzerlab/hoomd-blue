@@ -80,6 +80,9 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
 	
+	// hack to get correct profiling
+	m_bdfc->setProfiler(m_prof);
+
 	if (!m_bath) addStochasticBath();
 
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
