@@ -78,15 +78,9 @@ BD_NVTUpdaterGPU::BD_NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar
 */
 void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	{
-	
-//	cout << "Update the system timestep " << timestep << endl;
 	assert(m_pdata);
 	
-//	cout << "Update the system 0.05" << endl;
-
 	if (!m_bath) addStochasticBath();
-	
-//	cout << "Update the system - 0.1" << endl;
 
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
@@ -94,19 +88,11 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 		m_accel_set = true;
 		// use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
 		// is calculated correctly
-//		cout << "Update the system - 0.4" << endl;
 		computeAccelerationsGPU(timestep, "BD_NVT", true);
-	    
-		
-//		boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
-//		assert(stochastic_force); 
-//		stochastic_force->checkRNGstate();
-	
 		}
 
 	if (m_prof)
 		m_prof->push(exec_conf, "BD_NVT");
-//	cout << "Update the system - 0.7" << endl;
 	
 	// access the particle data arrays
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
@@ -121,8 +107,6 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 		
 	exec_conf.syncAll();
 	
-//	cout << "Update the system - 1" << endl;
-
 	uint64_t mem_transfer = m_pdata->getN() * (16+32+32);
 	uint64_t flops = m_pdata->getN() * (15+3+9+12);
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
@@ -134,16 +118,8 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	// the profiling for now
 	if (m_prof) m_prof->pop(exec_conf);
 
-//	cout << "Update the system - 2" << endl;
-	
 	// for the next half of the step, we need the accelerations at t+deltaT
 	computeAccelerationsGPU(timestep+1, "BD_NVT", false);
-//	boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
-//	assert(stochastic_force); 
-//	stochastic_force->checkRNGstate();
-	
-//	cout << "Update the system - 3" << endl;
-
 	
 	if (m_prof) m_prof->push(exec_conf, "BD_NVT");
 	if (m_prof) m_prof->push(exec_conf, "Half-step 2");

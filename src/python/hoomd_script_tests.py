@@ -246,6 +246,36 @@ class integrate_nvt_tests (unittest.TestCase):
 	
 	def tearDown(self):
 		globals._clear();
+
+# unit tests for integrate.bdnvt
+class integrate_bdnvt_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=100, phi_p=0.05);
+		force.constant(fx=0.1, fy=0.1, fz=0.1)
+		
+	# tests basic creation of the dump
+	def test(self):
+		integrate.bdnvt(dt=0.005, T=1.2, limit=0.1, seed=52);
+		run(100);
+		integrate.bdnvt(dt=0.005, T=1.2, limit=0.1);
+		integrate.bdnvt(dt=0.005, T=1.2);
+	
+	# test set_params
+	def test_set_params(self):
+		bd = integrate.bdnvt(dt=0.005, T=1.2);
+		bd.set_params(dt=0.001);
+		bd.set_params(T=1.3);
+
+	# test set_gamma
+	def test_set_gamma(self):
+		bd = integrate.bdnvt(dt=0.005, T=1.2);
+		bd.set_gamma('A', 0.5);
+		bd.set_gamma('B', 1.0);
+	
+	def tearDown(self):
+		globals._clear();
+		
 		
 # unit tests for integrate.npt
 class integrate_npt_tests (unittest.TestCase):

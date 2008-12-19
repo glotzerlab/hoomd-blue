@@ -62,7 +62,6 @@ class BD_NVTUpdaterGPU : public BD_NVTUpdater
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
-		
 	};
 	
 //! Exports the BD_NVTUpdaterGPU class to python
