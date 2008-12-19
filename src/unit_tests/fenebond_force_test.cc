@@ -340,7 +340,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	ForceDataArrays arrays1 = fc1->acquire();
 	ForceDataArrays arrays2 = fc2->acquire();
 
-	Scalar rough_tol = Scalar(3.0);
+	Scalar rough_tol = Scalar(5.0);
 
 	for (unsigned int i = 0; i < N; i++)
 		{
