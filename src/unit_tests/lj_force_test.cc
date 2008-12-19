@@ -80,7 +80,7 @@ using namespace boost;
 
 //! Tolerance in percent to use for comparing various LJForceComputes to each other
 #ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(2);
+const Scalar tol = Scalar(4);
 #else
 const Scalar tol = 1e-6;
 #endif
