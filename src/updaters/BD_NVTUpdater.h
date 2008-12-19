@@ -46,7 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Updater.h"
 #include "NVEUpdater.h"
 #include "StochasticForceCompute.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "StochasticForceComputeGPU.h"
 #endif
 #include <vector>
@@ -110,7 +110,7 @@ class BD_NVTUpdater : public NVEUpdater
 		//! Attaches the Stochastic Bath Temperature
 		void addStochasticBath(); 
 		
-		#ifdef USE_CUDA 
+		#ifdef ENABLE_CUDA 
 		//! The GPU version of the StochasticForceCompute
 		boost::shared_ptr<StochasticForceComputeGPU> m_bdfc_gpu;
 		#endif

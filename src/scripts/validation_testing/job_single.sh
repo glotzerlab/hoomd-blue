@@ -18,10 +18,10 @@ GPU=`/home/joaander/gputop/gputop.py --reserve`
 if [ "$?" = 1 ]; then
 	echo "Error finding free GPU"
 	echo $GPU
-	exit 100
+	exit 1
 fi
 
-echo "Running hoomd on gpu ${GPU} with args ${HOOMD_ARGS}"
-directory_list=( pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj )
+directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj )
+echo "Running hoomd validation test ${directory_list[${SGE_TASK_ID}]} on gpu ${GPU} with args ${HOOMD_ARGS}"
 cd ${directory_list[${SGE_TASK_ID}]}
 hoomd run.hoomd ${HOOMD_ARGS} --mode=gpu --gpu=$GPU

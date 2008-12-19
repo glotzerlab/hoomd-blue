@@ -60,7 +60,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "NeighborListNsqGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "gpu_settings.h"
@@ -319,7 +319,7 @@ shared_ptr<NeighborList> binned_nlist_creator(shared_ptr<ParticleData> pdata, Sc
 	return shared_ptr<NeighborList>(new NeighborList(pdata, r_cut, r_buff));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 shared_ptr<NeighborList> gpu_nsq_nlist_creator(shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)
 	{
 	return shared_ptr<NeighborList>(new NeighborListNsqGPU(pdata, r_cut, r_buff));
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborList_tests )
 	neighborlist_comparison_test(base_creator, binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! boost test case for NeighborListNsqGPU
 BOOST_AUTO_TEST_CASE( NeighborListNsqGPU_tests )
 	{

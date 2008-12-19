@@ -61,7 +61,7 @@ using namespace std;
 using namespace boost;
 
 
-#ifdef USE_FFTW
+#ifdef ENABLE_FFTW
 
 #include "FftwWrapper.h"
 #include "IndexTransform.h"

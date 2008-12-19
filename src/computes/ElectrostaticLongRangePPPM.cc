@@ -46,7 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // conditionally compile only if a fast fourier transform is defined
-#ifdef USE_FFT
+#ifdef ENABLE_FFT
 
 #ifdef WIN32
 #define _USE_MATH_DEFINES
@@ -852,7 +852,7 @@ void ElectrostaticLongRangePPPM::computeForces(unsigned int timestep)
 
 	// and this is it, forces, energies and virial(TO DO) are calculated
 
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// the force data is now only up to date on the cpu
 	m_data_location = cpu;
 	#endif

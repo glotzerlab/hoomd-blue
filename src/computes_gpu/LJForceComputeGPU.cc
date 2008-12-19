@@ -90,14 +90,16 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 	int dev;
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));	
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor < 2)
+	if (deviceProp.major == 1 && deviceProp.minor == 0)
 		m_block_size = 320;
+	else if (deviceProp.major == 1 && deviceProp.minor == 1)
+		m_block_size = 256;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 352;
+		m_block_size = 384;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for LJForceComputeGPU" << endl;
-		m_block_size = 96;
+		m_block_size = 64;
 		}
 
 	// allocate the coeff data on the GPU

@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 
-#ifdef USE_FFT
+#ifdef ENABLE_FFT
 
 /*! \file FFTClass.h
 	\brief Declares the FFTClass class

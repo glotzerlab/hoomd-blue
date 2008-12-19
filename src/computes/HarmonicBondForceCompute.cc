@@ -256,7 +256,7 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 
 	m_pdata->release();
 
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// the data is now only up to date on the CPU
 	m_data_location = cpu;
 	#endif

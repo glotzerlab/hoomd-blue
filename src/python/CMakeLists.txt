@@ -39,22 +39,22 @@
 # $URL$
 
 # enable unit tests in this directory
-if (USE_TEST)
+if (ENABLE_TEST)
 	enable_testing()
-endif (USE_TEST)
+endif (ENABLE_TEST)
 
 # here is where we actually compile the python module version of the library
-if (USE_CUDA)
+if (ENABLE_CUDA)
 cuda_add_library (hoomd_python_module ${HOOMD_LIB_MODE} ${HOOMD_CPU_SRCS}
 ${HOOMD_GPU_SRCS} ${PYTHON_SRCS})
-else (USE_CUDA)
+else (ENABLE_CUDA)
 add_library (hoomd_python_module ${HOOMD_LIB_MODE} ${HOOMD_CPU_SRCS}
 ${PYTHON_SRCS})
-endif (USE_CUDA)
+endif (ENABLE_CUDA)
 
 ##################################
 # change the name of the library if it is dynamic
-if (NOT USE_STATIC)
+if (NOT ENABLE_STATIC)
 	# link the library to its dependancies
 	target_link_libraries(hoomd_python_module ${HOOMD_COMMON_LIBS})
 
@@ -84,7 +84,7 @@ if (NOT USE_STATIC)
 			RENAME hoomd
 			)
 	endif (NOT WIN32)
-endif (NOT USE_STATIC)
+endif (NOT ENABLE_STATIC)
 
 ########################
 ## now setup the hoomd executable
@@ -92,7 +92,7 @@ endif (NOT USE_STATIC)
 # setup the python runner executable
 # it won't link dynamically with the changed name above, but there really isn't a need to create a dynamically
 # linked version as it can be loaded into python directly
-if (USE_STATIC)
+if (ENABLE_STATIC)
 	add_executable(hoomd hoomd.cc)
 	target_link_libraries(hoomd hoomd_python_module ${HOOMD_COMMON_LIBS})
 	set_target_properties(hoomd
@@ -123,18 +123,18 @@ if (USE_STATIC)
 	# unfortunately, this needs to be handled differently in visual studio
 	if (MSVC)
 		add_test(hoomd_script_tests_cpu ${EXECUTABLE_OUTPUT_PATH}/hoomd ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=cpu)
-		if (USE_CUDA)
+		if (ENABLE_CUDA)
 			add_test(hoomd_script_tests_gpu ${EXECUTABLE_OUTPUT_PATH}/hoomd ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=gpu)
-		endif (USE_CUDA)
+		endif (ENABLE_CUDA)
 	else (MSVC)
 		add_test(hoomd_script_tests_cpu ${CUR_TEST_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=cpu)
 		
-		if (USE_CUDA)
+		if (ENABLE_CUDA)
 			add_test(hoomd_script_tests_gpu ${CUR_TEST_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py --mode=gpu)
-		endif (USE_CUDA)
+		endif (ENABLE_CUDA)
 	endif (MSVC)
 	
-endif (USE_STATIC)
+endif (ENABLE_STATIC)
 
 #################################
 ## Create source file groups

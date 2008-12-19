@@ -97,7 +97,7 @@ endif (WIN32)
 
 # use our overrided NSIS template files
 # different directories are needed for 64 bit builds vs 32 bit ones
-
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" ${CMAKE_MODULE_PATH})
 if (CMAKE_CL_64)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/x86_64" ${CMAKE_MODULE_PATH})
 else (CMAKE_CL_64)
@@ -126,13 +126,13 @@ endif (NOT MSVC90_REDIST_DIR)
 endif(MSVC80)
 
 # install cudart.dll if CUDA is enabled
-if (USE_CUDA)
+if (ENABLE_CUDA)
 find_file(CUDA_CUDART_DLL cudart.dll
 		HINTS ${CUDA_INSTALL_PREFIX})
 mark_as_advanced(CUDA_CUDART_DLL)
 
 install(PROGRAMS ${CUDA_CUDART_DLL} DESTINATION bin)
-endif (USE_CUDA)
+endif (ENABLE_CUDA)
 
 endif(WIN32)
 

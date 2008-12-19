@@ -56,7 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HarmonicBondForceCompute.h"
 #include "ConstForceCompute.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "HarmonicBondForceComputeGPU.h"
 #endif
 
@@ -374,7 +374,7 @@ shared_ptr<HarmonicBondForceCompute> base_class_bf_creator(shared_ptr<ParticleDa
 	return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceCompute(pdata));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! BondForceCompute creator for bond_force_basic_tests()
 shared_ptr<HarmonicBondForceCompute> gpu_bf_creator(shared_ptr<ParticleData> pdata)
 	{
@@ -389,7 +389,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
 	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! boost test case for bond forces on the GPU
 BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_basic )
 	{

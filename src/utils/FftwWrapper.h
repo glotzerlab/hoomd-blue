@@ -44,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Adapts fftw for use in HOOMD
 */
 
-#ifdef USE_FFTW
+#ifdef ENABLE_FFTW
 
 #include "FFTClass.h"
 #include "fftw3.h"

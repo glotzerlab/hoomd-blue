@@ -64,7 +64,7 @@ using namespace boost;
 
 
 //You need a fft defined in order to pass this text
-#ifdef USE_FFTW
+#ifdef ENABLE_FFTW
 
 #include "ElectrostaticLongRangePPPM.h"
 #include "FFTClass.h"

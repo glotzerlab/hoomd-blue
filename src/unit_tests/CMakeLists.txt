@@ -64,7 +64,7 @@ endif (UNIX AND NOT APPLE)
 
 ## User gets an option to enable valgrind tests
 if (VALGRIND)
-	option(USE_VALGRIND OFF "Enable running of unit tests through valgrind")
+	option(ENABLE_VALGRIND OFF "Enable running of unit tests through valgrind")
 
 	set(VALGRIND_COMMON_ARGS "--leak-check=full;--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/cudart_valgrind.supp;--error-exitcode=1")
 	mark_as_advanced(VALGRIND)
@@ -83,7 +83,7 @@ set(TEST_LIST
 	lj_wall_compute_test
 	neighborlist_test
 	lj_force_test
-        shiftedlj_force_test
+	shiftedlj_force_test
 	nve_updater_test
 	nvt_updater_test
 	zero_momentum_updater_test
@@ -91,16 +91,16 @@ set(TEST_LIST
 	xml_reader_writer_test system_test
 	ElectrostaticShortRange_force_test)
 	
-if (USE_FFT)
+if (ENABLE_FFT)
 	set(TEST_LIST ${TEST_LIST} 
 	ElectrostaticLongRange_PPPM_test
 	Fourier_transform_test)
-endif (USE_FFT)
+endif (ENABLE_FFT)
 
-if(USE_CUDA)
+if(ENABLE_CUDA)
 	set(TEST_LIST ${TEST_LIST} 
 	gpu_worker_test)
-endif(USE_CUDA)
+endif(ENABLE_CUDA)
 
 	# put the longest tests last
 	set(TEST_LIST ${TEST_LIST}
@@ -121,8 +121,8 @@ foreach (CUR_TEST ${TEST_LIST})
 	else (MSVC)
 		add_test(${CUR_TEST} ${CUR_TEST_EXE})
 		# add a valgrind executed test if requested
-		if (USE_VALGRIND)
+		if (ENABLE_VALGRIND)
 			add_test(valgrind_${CUR_TEST} ${VALGRIND} ${VALGRIND_COMMON_ARGS} ${CUR_TEST_EXE})
-		endif (USE_VALGRIND)
+		endif (ENABLE_VALGRIND)
 	endif (MSVC)
 endforeach (CUR_TEST)

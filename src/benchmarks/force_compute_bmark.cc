@@ -72,7 +72,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Initializers.h"
 #include "SFCPackUpdater.h"
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "LJForceComputeGPU.h"
 #include "YukawaForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
@@ -137,7 +137,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	// handle creation of the various lennard-jones computes
 	if (fc_name == "LJ")
 		result = shared_ptr<ForceCompute>(new LJForceCompute(pdata, nlist, r_cut));
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (fc_name == "LJ.GPU")
 		{
 		shared_ptr<LJForceComputeGPU> tmp = shared_ptr<LJForceComputeGPU>(new LJForceComputeGPU(pdata, nlist, r_cut));
@@ -154,7 +154,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		init_bond_tables(pdata);
 		result = tmp;
 		}
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (fc_name == "Bond.GPU")
 		{
 		shared_ptr<HarmonicBondForceComputeGPU> tmp = shared_ptr<HarmonicBondForceComputeGPU>(new HarmonicBondForceComputeGPU(pdata));
@@ -173,7 +173,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 		init_bond_tables(pdata);
 		result = tmp;
 		}
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (fc_name == "FENE.GPU")
 		{
 		shared_ptr<FENEBondForceComputeGPU> tmp = shared_ptr<FENEBondForceComputeGPU>(new FENEBondForceComputeGPU(pdata));
@@ -187,7 +187,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	// handle creation of the various stochastic force computes
 	if (fc_name == "SF")
 		result = shared_ptr<ForceCompute>(new StochasticForceCompute(pdata, Scalar(0.005), Scalar(1.0), 0));
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (fc_name == "SF.GPU")
 		{
 		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(pdata, Scalar(0.005), Scalar(1.0), 0));
@@ -199,7 +199,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	// handle creation of the yukawa force compute
 	if (fc_name == "Yukawa")
 		result = shared_ptr<ForceCompute>(new YukawaForceCompute(pdata, nlist, r_cut, kappa));
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (fc_name == "Yukawa.GPU")
 		{
 		shared_ptr<YukawaForceComputeGPU> tmp = shared_ptr<YukawaForceComputeGPU>(new YukawaForceComputeGPU(pdata, nlist, r_cut, kappa));
@@ -250,22 +250,23 @@ void benchmark(shared_ptr<ForceCompute> fc)
 	int count = 2;
 
 	// do a warmup run so memory allocations don't change the benchmark numbers
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// also check for errors during the warm up run
 	g_gpu_error_checking = true;
 	try {
 	#endif
 	fc->compute(count++);
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	} 
 	catch (runtime_error e)
 		{
 		cout << "n/a s/step" << endl;
 		return;
 		}
+	g_gpu_error_checking = false;
 	#endif
 
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	cudaThreadSynchronize();
 	#endif
 	int64_t tstart = clk.getTime();
@@ -293,7 +294,7 @@ void benchmark(shared_ptr<ForceCompute> fc)
 		} while((tend - tstart) < int64_t(nsec) * int64_t(1000000000) || nrepeat < 5);
 	
 	// make sure all kernels have been executed when using CUDA
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	cudaThreadSynchronize();
 	#endif
 	tend = clk.getTime();
@@ -328,7 +329,7 @@ int main(int argc, char **argv)
 		("half_nlist", value<bool>(&half_nlist)->default_value(true), "Only store 1/2 of the neighbors (optimization for some pair force computes")
 		("nsec", value<unsigned int>(&nsec)->default_value(10), "Number of seconds to profile for")
 		("multi_gpu", value<unsigned int>(&num_gpus)->default_value(0), "Number of GPUs to run on in multi-gpu mode")
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		("fc_name,f", value<string>(&fc_name)->default_value("LJ.GPU"), "ForceCompute to benchmark")
 		#else
 		("fc_name,f", value<string>(&fc_name)->default_value("LJ"), "ForceCompute to benchmark")
@@ -349,7 +350,7 @@ int main(int argc, char **argv)
 		cout << desc;
 		cout << "Available ForceComputes are: ";
 		cout << "LJ, Yukawa, Bond, FENE and SF ";
-		#ifdef USE_CUDA
+		#ifdef ENABLE_CUDA
 		cout << "LJ.GPU, Yukawa.GPU, Bond.GPU, FENE.GPU and SF.GPU" << endl;
 		#else
 		cout << endl;

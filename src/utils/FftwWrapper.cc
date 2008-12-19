@@ -36,7 +36,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef USE_FFTW
+#ifdef ENABLE_FFTW
 
 #include "FftwWrapper.h"
 #include <math.h>

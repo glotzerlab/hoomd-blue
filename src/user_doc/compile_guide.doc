@@ -172,7 +172,7 @@ Choose your preferred build environemnt and click OK. This guide assumes that "U
 Now you should see a screen like this:
 \image html cmake_linux_firstpress.png
 
-If you are building with GPU support enabled, check the USE_CUDA box. 
+If you are building with GPU support enabled, check the ENABLE_CUDA box. 
 
 To generate the makefiles now, click \b configure several times until all the red settings turn white,
 then click \b generate.
@@ -196,7 +196,7 @@ CMake generated make files for make. Just run
  $ make -j4
 \endcode
 in the \b bin directory to compile everything. This documentation will even be generated if
-USE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's best to set 
+ENABLE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's best to set 
 the value to twice the number of CPU cores in your system.
 
 <hr>
@@ -232,7 +232,7 @@ You will then see a screen that looks like this:
 (this image was captured using the Unix Makefiles generator. Your screen may be slightly
 different if you chose Xcode)
 
-If you are building with GPU support enabled, check the USE_CUDA box. 
+If you are building with GPU support enabled, check the ENABLE_CUDA box. 
 
 To generate the makefiles (or XCode project) now, click \b configure several times until all the red settings turn white, then click \b generate.
 
@@ -274,26 +274,26 @@ Here is a list of all the build options that can be changed by CMake.
 		identify.
 	- \b Release - All compiler optimizations are enabled and asserts are removed.
 		Recommended for production builds: required for any benchmarking.
- - \b USE_DOXYGEN - enables the generation of detailed user and developer documentation
+ - \b ENABLE_DOXYGEN - enables the generation of detailed user and developer documentation
  	- Requires doxygen to be installed
  - \b SINGLE_PRECISION - Controls precision
  	- When set to \b ON, all calculations are performed in single precision.
  	- When set to \b OFF, all calculations are performed in double precision. 
- 	- Must be set to \b ON to enable the \b USE_CUDA option (GPUs are single precision)
- - \b USE_CUDA - Enable compiling of the GPU accelerated computations using CUDA
+ 	- Must be set to \b ON to enable the \b ENABLE_CUDA option (GPUs are single precision)
+ - \b ENABLE_CUDA - Enable compiling of the GPU accelerated computations using CUDA
  	- Requires the CUDA Toolkit to be installed
- - \b USE_STATIC - Controls the compiling and linking of static libraries
+ - \b ENABLE_STATIC - Controls the compiling and linking of static libraries
  	- When set to \b ON, \b libhoomd is compiled as a static library and all 
  		other libraries (i.e. boost) are linked statically if possible.
  	- When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
  		other libraries are linked dynamically if possible.
- 	- Note: \b USE_STATIC=OFF is not supported on windows. 
- 	- Note 2: \b USE_STATIC defaults ON and can only be set off from the command line 
+ 	- Note: \b ENABLE_STATIC=OFF is not supported on windows. 
+ 	- Note 2: \b ENABLE_STATIC defaults ON and can only be set off from the command line 
  		and when configuring a clean build directory.
 		Example:
- 		\code ccmake -D USE_STATIC=OFF ../src
+ 		\code ccmake -D ENABLE_STATIC=OFF ../src
  		\endcode
- - \b USE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
+ - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
  
 There are a few options for controling the CUDA compilation.
  - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.

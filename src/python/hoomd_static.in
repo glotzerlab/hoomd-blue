@@ -1,4 +1,4 @@
-# /bin/bash
+#!/bin/bash
 
 if [ -z "${HOOMD_ROOT}" ] ; then
 	# If HOOMD_ROOT cannot be automatically identified, modify the next line 

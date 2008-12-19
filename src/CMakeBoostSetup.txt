@@ -41,15 +41,18 @@
 ## Boost is a required library
 
 # setup the boost static linkage
-if(USE_STATIC)
+if(ENABLE_STATIC)
 set(Boost_USE_STATIC_LIBS "ON")
-else(USE_STATIC)
+else(ENABLE_STATIC)
 if(WIN32)
 	message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
 		you really want this feature, make it work yourself")
 endif(WIN32)
 set(Boost_USE_STATIC_LIBS "OFF")
-endif(USE_STATIC)
+endif(ENABLE_STATIC)
+
+# setup some additional boost versions so that the newest versions of boost will be found
+set(Boost_ADDITIONAL_VERSIONS "1.39.2 1.39.1 1.39.0 1.39 1.38.2 1.38.1 1.38.0 1.38 1.37.2 1.37.1 1.37.0 1.37")
 
 # first, see if we can get any supported version of Boost
 find_package(Boost 1.32.0 COMPONENTS thread filesystem python signals program_options unit_test_framework REQUIRED)

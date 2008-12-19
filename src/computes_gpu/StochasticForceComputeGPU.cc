@@ -71,21 +71,25 @@ using namespace std;
 StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) 
 	: StochasticForceCompute(pdata, deltaT, Temp, seed)
 	{
-	//  I DO NOT KNOW IF THIS APPLIES TO THIS FORCE		
 	// default block size is the highest performance in testing on different hardware
 	// choose based on compute capability of the device
 	cudaDeviceProp deviceProp;
 	int dev;
-	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));	
+	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor < 2)
-		m_block_size = 128;
+	// catch Tesla C1060 first, as it requires a different tuning then the rest
+	if (string(deviceProp.name) == string("Tesla C1060"))
+		m_block_size = 128;	// note: I don't know what the proper setting is, JA	
+	else if (deviceProp.major == 1 && deviceProp.minor == 0)
+		m_block_size = 64;
+	else if (deviceProp.major == 1 && deviceProp.minor == 1)
+		m_block_size = 64;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 96;
+		m_block_size = 128;
 	else
 		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for StochasticForceComputeGPU" << endl;
-		m_block_size = 96;
+		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for StohasticForceComputeGPU" << endl;
+		m_block_size = 64;
 		}
 		
 	// allocate the gamma data on the GPU

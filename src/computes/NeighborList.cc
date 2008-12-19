@@ -114,7 +114,7 @@ NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, 
 	m_last_updated_tstep = 0;
 	m_every = 0;
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// setup the memory pointer list for all GPUs
 	m_gpu_nlist.resize(exec_conf.gpu.size());	
 	
@@ -143,7 +143,7 @@ NeighborList::~NeighborList()
 	delete[] m_last_y;
 	delete[] m_last_z;
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (!exec_conf.gpu.empty())
 		freeGPUData();
 	#endif
@@ -151,7 +151,7 @@ NeighborList::~NeighborList()
 	m_sort_connection.disconnect();
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 void NeighborList::allocateGPUData(int height)
 	{
 	size_t pitch;
@@ -252,7 +252,7 @@ void NeighborList::compute(unsigned int timestep)
 
 	if (m_prof) m_prof->push("Neighbor");
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// update the exclusion data if this is a forced update
 	if (m_force_update)
 		updateExclusionData();
@@ -298,7 +298,7 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
 */
 const std::vector< std::vector<unsigned int> >& NeighborList::getList()
 	{
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	
 	// this is the complicated graphics card version, need to do some work
 	// switch based on the current location of the data
@@ -357,7 +357,7 @@ Scalar NeighborList::estimateNNeigh()
 	return n_dens * vol_cut;
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 /*! \returns Neighbor list data structure stored on the GPU.
 	If the neighbor list was last updated on the CPU, calling this routine will result
 	in a very time consuming copy to the device. It is meant only as a debugging/testing
@@ -763,7 +763,7 @@ void NeighborList::printStats()
 	cout << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
 
 	// copy the list back from the device if we need to
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (m_data_location == gpu)
 		{
 		deviceToHostCopy();
@@ -906,7 +906,7 @@ void NeighborList::buildNlist()
 
 	m_pdata->release();
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// after computing, the device now resides on the CPU
 	m_data_location = cpu;
 	#endif

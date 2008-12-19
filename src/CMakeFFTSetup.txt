@@ -40,17 +40,17 @@
 
 #################################
 ## Optional include of a FFT
-OPTION(USE_FFT "A Fast Fourier Transform routine is defined" OFF)
-if(USE_FFT)
-add_definitions(-DUSE_FFT)
-endif(USE_FFT)
+OPTION(ENABLE_FFT "A Fast Fourier Transform routine is defined" OFF)
+if(ENABLE_FFT)
+add_definitions(-DENABLE_FFT)
+endif(ENABLE_FFT)
 
-if (USE_FFT)
-option(USE_FFTW "Link to the FFTW library" OFF)
+if (ENABLE_FFT)
+option(ENABLE_FFTW "Link to the FFTW library" OFF)
 option(I_WILL_NOT_DISTRUBUTE_THIS_HOOMD "Enable to indicate that you will not distrubute this build of HOOMD" OFF)
 
-if (USE_FFTW)
-	add_definitions(-DUSE_FFTW)
+if (ENABLE_FFTW)
+	add_definitions(-DENABLE_FFTW)
 	
 	if (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
 		message(SEND_ERROR "FFTW is under the GPLv2 license. A HOOMD build linked to it cannot be distributed without  violating that license, as HOOMD is released under the new BSD license. Specify that you will not distribute this build of HOOMD by setting the I_WILL_NOT_DISTRUBUTE_THIS_HOOMD option to ON")
@@ -83,7 +83,7 @@ if (USE_FFTW)
 		HINTS ${FFTW_LIBRARY_SEARCH_DIRS}
 		DOC "FFTW3 library"
 		)
-		
+
 	# hide the variables if the user doesn't need to see them
 	if (FFTW_LIBRARY)
 		mark_as_advanced(
@@ -93,7 +93,7 @@ if (USE_FFTW)
 			)
 	endif (FFTW_LIBRARY)
 			
-endif (USE_FFTW)
+endif (ENABLE_FFTW)
 
-endif (USE_FFT)
+endif (ENABLE_FFT)
 

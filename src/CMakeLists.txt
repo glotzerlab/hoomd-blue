@@ -106,12 +106,12 @@ else (WIN32)
 endif (WIN32)
 
 # setup the library compile mode
-if(USE_STATIC)
+if(ENABLE_STATIC)
 	set(HOOMD_LIB_MODE STATIC)
 	add_definitions(-DBOOST_PYTHON_STATIC_LIB)
-else(USE_STATIC)
+else(ENABLE_STATIC)
 	set(HOOMD_LIB_MODE SHARED)
-endif(USE_STATIC)
+endif(ENABLE_STATIC)
 
 ################################
 ## Process subdirectories
@@ -123,17 +123,17 @@ add_subdirectory (python)
 
 ################################
 # set up unit tests
-if (USE_TEST)
+if (ENABLE_TEST)
 	enable_testing()
 	add_subdirectory (unit_tests)
-endif (USE_TEST)
+endif (ENABLE_TEST)
 
 ###############################
 ## include documentation directories
-if (USE_DOXYGEN)
+if (ENABLE_DOXYGEN)
 	add_subdirectory (doc)
 	add_subdirectory (user_doc)
-endif (USE_DOXYGEN)
+endif (ENABLE_DOXYGEN)
 
 add_subdirectory (installer)
 

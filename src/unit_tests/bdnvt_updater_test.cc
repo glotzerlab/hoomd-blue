@@ -57,7 +57,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //#include "StochasticForceCompute.h"
 #include "BD_NVTUpdater.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "BD_NVTUpdaterGPU.h"
 #endif
 
@@ -443,7 +443,7 @@ shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<ParticleData> pdat
 	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(pdata, deltaT, Temp, seed));
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
 shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)
 	{
@@ -472,7 +472,7 @@ BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! Basic test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 	{

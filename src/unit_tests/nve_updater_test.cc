@@ -57,7 +57,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ConstForceCompute.h"
 #include "NVEUpdater.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "NVEUpdaterGPU.h"
 #endif
 
@@ -356,7 +356,7 @@ shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<ParticleData> pdata, Sc
 	return shared_ptr<NVEUpdater>(new NVEUpdater(pdata, deltaT));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! NVEUpdaterGPU factory for the unit tests
 shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT)
 	{
@@ -386,7 +386,7 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_boundary_tests )
 	nve_updater_boundary_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 	{

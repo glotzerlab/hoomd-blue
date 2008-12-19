@@ -56,7 +56,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FENEBondForceCompute.h"
 #include "ConstForceCompute.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "FENEBondForceComputeGPU.h"
 #endif
 
@@ -357,7 +357,7 @@ shared_ptr<FENEBondForceCompute> base_class_bf_creator(shared_ptr<ParticleData> 
 	return shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(pdata));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! FENEBondForceCompute creator for bond_force_basic_tests()
 shared_ptr<FENEBondForceCompute> gpu_bf_creator(shared_ptr<ParticleData> pdata)
 	{
@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_CASE( FENEBondForceCompute_basic )
 	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! boost test case for bond forces on the GPU
 BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_basic )
 	{

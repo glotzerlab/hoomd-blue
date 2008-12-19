@@ -55,7 +55,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ConstForceCompute.h"
 #include "NPTUpdater.h"
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "NPTUpdaterGPU.h"
 #endif
 
@@ -232,7 +232,7 @@ shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<ParticleData> pdata, Sc
 	  return shared_ptr<NPTUpdater>(new NPTUpdater(pdata, deltaT,tau,tauP,T,P));
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! NPTUpdaterGPU factory for the unit tests
 shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
 	{
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE( NPTUpdater_tests )
 	}
 	
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_tests )

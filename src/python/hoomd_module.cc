@@ -87,7 +87,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "System.h"
 
 // include GPU classes
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "NVTUpdaterGPU.h"
 #include "NVEUpdaterGPU.h"
 #include "NPTUpdaterGPU.h"
@@ -116,7 +116,7 @@ using namespace boost::python;
 using namespace std;
 
 // include gpu_settings.h for g_gpu_error_checking
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 #include "gpu_settings.h"
 #else
 // otherwise, we need a dummy variable that will do nothing
@@ -294,7 +294,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_TempCompute();
 	export_NeighborList();
 	export_BinnedNeighborList();
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	export_BinnedNeighborListGPU();
 	export_NeighborListNsqGPU();
 	export_LJForceComputeGPU();
@@ -323,7 +323,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_NPTUpdater();
 	export_NVEUpdater();
 	export_BD_NVTUpdater();
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	export_NVEUpdaterGPU();
 	export_NVTUpdaterGPU();
 	export_NPTUpdaterGPU();

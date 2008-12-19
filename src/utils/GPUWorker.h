@@ -43,8 +43,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Defines the GPUWorker class
 */
 
-// only compile if USE_CUDA is enabled
-#ifdef USE_CUDA
+// only compile if ENABLE_CUDA is enabled
+#ifdef ENABLE_CUDA
 
 #ifndef __GPUWORKER_H__
 #define __GPUWORKER_H__

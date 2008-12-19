@@ -77,7 +77,7 @@ void output_version_info(bool verbose)
 	cout << "WARNING: This is a DEBUG build, expect slow performance." << endl;
 	#endif
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	if (string(CUDA_BUILD_TYPE) != string("Device"))
 		cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
 	#endif

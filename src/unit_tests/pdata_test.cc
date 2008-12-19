@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	b.release();
 	}
 	
-#ifdef USE_CUDA
+#ifdef ENABLE_CUDA
 //! Tests the ability of the ParticleData class to copy data between CPU <-> GPU
 BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 	{

@@ -322,7 +322,7 @@ void ShiftedLJForceCompute::computeForces(unsigned int timestep)
 
 	m_pdata->release();
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	// the force data is now only up to date on the cpu
 	m_data_location = cpu;
 	#endif

@@ -171,7 +171,7 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 		m_pe[i] = pe;
 		}
 	
-	#ifdef USE_CUDA
+	#ifdef ENABLE_CUDA
 	m_data_location = cpu;
 	#endif
 	m_pdata->release();

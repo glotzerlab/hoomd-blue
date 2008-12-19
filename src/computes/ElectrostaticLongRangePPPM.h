@@ -75,7 +75,7 @@ using namespace std;
 
 using namespace std;
 
-#ifdef USE_FFT
+#ifdef ENABLE_FFT
 #include "FFTClass.h"
 #include "IndexTransform.h"
 
