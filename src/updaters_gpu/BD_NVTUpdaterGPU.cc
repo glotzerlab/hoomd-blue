@@ -117,6 +117,9 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	// release the particle data arrays so that they can be accessed to add up the accelerations
 	m_pdata->release();
 	
+	// communicate the updated positions among the GPUs
+	m_pdata->communicatePosition();
+	
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
 	if (m_prof) m_prof->pop(exec_conf);
