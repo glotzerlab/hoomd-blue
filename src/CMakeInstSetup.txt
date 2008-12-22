@@ -58,7 +58,11 @@ set(HOOMD_VERSION_MAJOR "0")
 set(HOOMD_VERSION_MINOR "8")
 set(HOOMD_VERSION_PATCH "0")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
+if ("$URL$" MATCHES "svn2.assembla.com/svn/hoomd/tags")
+set(HOOMD_SUBVERSION_BUILD "0")
+else ("$URL$" MATCHES "svn2.assembla.com/svn/hoomd/tags")
 set(HOOMD_SUBVERSION_BUILD "1")
+endif ("$URL$" MATCHES "svn2.assembla.com/svn/hoomd/tags")
 
 # users may not have subversion installed, search for it and set an unknown version if that is
 # the case
