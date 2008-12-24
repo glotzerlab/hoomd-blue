@@ -77,7 +77,12 @@ class BD_NVTUpdater : public NVEUpdater
 		void setT(Scalar Temp); 
 
 		//! Resets the simulation timestep
-		void setDeltaT(Scalar deltaT) {m_deltaT = deltaT; stochastic_force->setDeltaT(deltaT); Integrator::setDeltaT(deltaT);}		
+		void setDeltaT(Scalar deltaT) 
+			{
+			assert(m_bdfc);
+			m_bdfc->setDeltaT(deltaT); 
+			Integrator::setDeltaT(deltaT);
+			}		
 
 		//! Sets the type-dependant drag coefficient
 		/*! \param type Particle type index to set the coefficient on
@@ -85,9 +90,8 @@ class BD_NVTUpdater : public NVEUpdater
 		*/
 		void setGamma(unsigned int type, Scalar gamma) 
 			{
-			boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
-			assert(stochastic_force); 
-			stochastic_force->setParams(type,gamma);
+			assert(m_bdfc);
+			m_bdfc->setParams(type,gamma);
 			} 
 				
 		//! Removes all ForceComputes from the list
@@ -97,30 +101,15 @@ class BD_NVTUpdater : public NVEUpdater
 		virtual void update(unsigned int timestep);
 		
 	protected:
-		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
-		bool m_limit;		//!< True if we should limit the distance a particle moves in one step
-		Scalar m_limit_val;	//!< The maximum distance a particle is to move in one step
 		Scalar m_T;			//!< The Temperature of the Stochastic Bath
-		Scalar m_deltaT;    //!< The simulation time step
 		unsigned int m_seed;//!< The seed for the RNG of the Stochastic Bath 
 		bool m_bath;		//!< Whether the bath has been set or not
-		unsigned int m_bath_index; //!<< The index of the stochastic force compute in the force compute list		
-		bool using_gpu;    //!<  Flag to indicate which version of StochasticForceCompute should be used.
 		
 		//! Attaches the Stochastic Bath Temperature
 		void addStochasticBath(); 
 		
-		#ifdef ENABLE_CUDA 
-		//! The GPU version of the StochasticForceCompute
-		boost::shared_ptr<StochasticForceComputeGPU> m_bdfc_gpu;
-		#endif
-		
-		//! The CPU version of the StochasticForceCompute
+		//! The StochasticForceCompute to use in applying the temperature bath
 		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
-		//! ?? What is this for?
-		boost::shared_ptr<StochasticForceCompute> stochastic_force;
-
-
 	};
 	
 //! Exports the BD_NVTUpdater class to python

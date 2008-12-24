@@ -421,25 +421,26 @@ class bdnvt(_integrator):
 
 	## Sets gamma parameter for a particle type
 	# \param a Particle type
-	# \param gamma Gamma for particle type (see below for examples)
+	# \param gamma \f$ \gamma \f$ for particle type (see below for examples)
 	#
-	# Calling set() results in the gamma parameter being set for a single type %pair.
-	# Particle types are identified by name, and parameters are also added by name. 
+	# set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
+	# by name.
 	#
 	# The gamma parameter determines how strongly a particular particle is coupled to 
-	# the stochastic bath.  The higher the gamma, the more strongly coupled.
+	# the stochastic bath.  The higher the gamma, the more strongly coupled: see 
+	# integrate.bdnvt.
 	#
-	# Particle types with their gamma values not set will automatically default to gamma = 1.0 
-	# It is not an error, however, to specify gammas for particle types that do not exist in the simulation.
-	# This can be useful in defining a simulation for many different types of particles even
-	# when some simulations only include a subset.
+	# If gamma is not set for any particle type will automatically default to  1.0.
+	# It is not an error to specify gammas for particle types that do not exist in the simulation.
+	# This can be useful in defining a single simulation script for many different types of particles 
+	# even when some simulations only include a subset.
 	#
 	# \b Examples:
 	# \code
-	# bd.set('A', gamma=2.0)
+	# bd.set_gamma('A', gamma=2.0)
 	# \endcode
 	#
-	def set(self, a, gamma):
+	def set_gamma(self, a, gamma):
 		util.print_status_line();
 		
 		# check that proper initialization has occured

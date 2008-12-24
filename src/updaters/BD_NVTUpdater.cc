@@ -68,26 +68,20 @@ using namespace std;
 	\param Temp Temperature to set
 	\param seed Random seed to use for the random force compuataion
 */
-BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : NVEUpdater(pdata, deltaT), 
-	m_accel_set(false), m_limit(false), m_limit_val(1.0), m_T(Temp), m_deltaT(deltaT), m_seed(seed), m_bath(false)
+BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : NVEUpdater(pdata, deltaT), m_T(Temp), m_seed(seed), m_bath(false)
 	{
-
-
-	cout << "Adding on Stochastic Bath with deltaT = " << deltaT << " and Temp  = " << m_T << endl; 	
-
-	
+	#ifdef ENABLE_CUDA
 	// check the execution configuration
 	if (exec_conf.exec_mode == ExecutionConfiguration::CPU )
-		using_gpu = false;
-	else using_gpu = true;
-
+		m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_pdata, m_deltaT, m_T, m_seed));  
+	else
+		m_bdfc =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_pdata, m_deltaT, m_T, m_seed));
+	
+	#else
 	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_pdata, m_deltaT, m_T, m_seed));  
-	#ifdef ENABLE_CUDA
-	if (using_gpu) m_bdfc_gpu =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_pdata, m_deltaT, m_T, m_seed));
 	#endif    
 	
 	addStochasticBath();
-
 	}
 
 /*! The StochasticForceCompute is added to the list \a m_forces. 
@@ -96,36 +90,21 @@ BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar delta
 */
 void BD_NVTUpdater::addStochasticBath()
 	{
-	if (m_bath)	cout << "Stochastic Bath Already Added" << endl;
-	else {
-
-		#ifdef ENABLE_CUDA
-		if (using_gpu) {
-			this->addForceCompute(m_bdfc_gpu);	
-			}	
-		#endif 
-		if (!using_gpu) {
-			this->addForceCompute(m_bdfc);	
-			}
-
-		m_bath_index = (unsigned int)m_forces.size() - 1;	
-		
-		boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
-		assert(stochastic_force);
-	    
+	if (m_bath)	
+		cout << "Stochastic Bath Already Added" << endl;
+	else 
+		{
+		addForceCompute(m_bdfc);	
 		m_bath = true;
 		}
-		
 	}
-
 
 /*! \param Temp Temperature of the Stochastic Bath
 */	
 void BD_NVTUpdater::setT(Scalar Temp) 
-	{	
-	 m_T = Temp;
-	boost::shared_ptr<StochasticForceCompute> stochastic_force(boost::shared_dynamic_cast<StochasticForceCompute>(m_forces[m_bath_index]));	
-	stochastic_force->setT(m_T); 
+	{
+	m_T = Temp;
+	m_bdfc->setT(m_T); 
 	}	
 
 /*! Disables the ForceComputes
@@ -148,6 +127,9 @@ void BD_NVTUpdater::removeForceComputes()
 */
 void BD_NVTUpdater::update(unsigned int timestep)
 	{
+	// hack to get correct profiling
+	m_bdfc->setProfiler(m_prof);
+
 	if (!m_bath) addStochasticBath();
 	NVEUpdater::update(timestep);
 	}
@@ -155,12 +137,11 @@ void BD_NVTUpdater::update(unsigned int timestep)
 //! Exports the BD_NVTUpdater class to python	
 void export_BD_NVTUpdater()
 	{
-	class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<Integrator>, boost::noncopyable>
+	class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<NVEUpdater>, boost::noncopyable>
 		("BD_NVTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, unsigned int >())
 		.def("setGamma", &BD_NVTUpdater::setGamma)
 		.def("setT", &BD_NVTUpdater::setT)
-		.def("setLimit", &BD_NVTUpdater::setLimit)
-		.def("removeLimit", &BD_NVTUpdater::removeLimit);
+		;
 	}
 
 #ifdef WIN32

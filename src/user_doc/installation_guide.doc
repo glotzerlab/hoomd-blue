@@ -114,9 +114,12 @@ Check out the \ref page_quick_start to learn how to use HOOMD.
  		compatible driver version(s). 
  -# Extract the HOOMD package using your favorite tool or by running
  	\code
- tar -xvjf hoomd-0.7.1-Linux-x86_64-Python2.5.tar.bz2
+ tar -xvjpf hoomd-0.7.1-Linux-x86_64-Python2.5.tar.bz2
  	\endcode
  	in a terminal (modify the filename to match the one you downloaded of course).
+	- Note: If you extract this package in /opt as root, it will be installed in a system directory for
+		any user on the system to run. If you prefer/need to have your own local copy, just extract
+		to your home directory.
  -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
     i.e. /home/joaander/software/hoomd-0.7.1-Linux-x86_64-Python2.5
  -# Add EXTRACTED_LOCATION/bin to your $PATH. 
@@ -161,9 +164,12 @@ Check out the \ref page_quick_start to learn how to use HOOMD.
  -# Make sure that the Apple \b Software \b Update tool has installed all updates related to the video drivers. 
  -# Extract the HOOMD package using your favorite tool or by running
  	\code
- tar -xvjf hoomd-0.8.0-Darwin-i386-Python2.5.tar.bz2
+ tar -xvjpf hoomd-0.8.0-Darwin-i386-Python2.5.tar.bz2
  	\endcode
  	in a terminal (modify the filename to match the one you downloaded of course).
+	- Note: If you extract this package in /opt as root, it will be installed in a system directory for
+		any user on the system to run. If you prefer/need to have your own local copy, just extract
+		to your home directory.
  -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
     i.e. /home/joaander/software/hoomd-0.8.0-Darwin-i386-Python2.5
  -# Add EXTRACTED_LOCATION/bin to your $PATH. 
