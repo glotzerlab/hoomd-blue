@@ -263,7 +263,7 @@ Users on 10.5 (Leopard) probably skip this step.
 <b>3. Download and compile boost</b><br>
 Building boost is a fairly complicated and time consuming process.
 
-Start by downloading \b boost_1_36_0.tar.bz2 from http://www.boost.org/. Extract the tarball and 
+Start by downloading \b boost_1_36_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
 configure boost for building with the following commands.
 \code
  $ tar -xjf boost_1_36_0.tar.bz2 
