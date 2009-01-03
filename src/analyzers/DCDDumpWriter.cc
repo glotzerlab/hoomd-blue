@@ -182,7 +182,7 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
 	char time_str[81];
 	time_t cur_time = time(NULL);
 	tm *tmbuf=localtime(&cur_time);
-	strftime(time_str, 80, "REMARKS Created  %d %B, %Y at %R", tmbuf);
+	strftime(time_str, 80, "REMARKS Created  %d %B, %Y at %H:%M", tmbuf);
 	file.write(time_str, 80);
 	
 	write_int(file, 164);
