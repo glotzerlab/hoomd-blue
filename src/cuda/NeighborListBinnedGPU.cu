@@ -251,10 +251,10 @@ extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist
 						*nlist.overflow = 1;
 					}
 				}
-			else
-				{
-				break;
-				}
+			//else
+			//	{
+			//	break;
+			//	}
 			}
 		}
 	
