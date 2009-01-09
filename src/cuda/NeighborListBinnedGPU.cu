@@ -251,6 +251,7 @@ extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist
 						*nlist.overflow = 1;
 					}
 				}
+			// Adding the break improves the nlist performance a little bit, but seems to cause random ULFs on compute 1.1 devices.
 			//else
 			//	{
 			//	break;
