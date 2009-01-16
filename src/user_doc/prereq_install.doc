@@ -317,7 +317,7 @@ After typing in your password and a considerably shorter wait, you should see
 \endcode
 again. Boost is now installed.
 
-You can delete the boost_1_34_1 directory now if you wish. It might be worth 
+You can delete the boost_1_36_0 directory now if you wish. It might be worth 
 saving for a little while until you have compiled HOOMD and know everything 
 is working so that you won't need to go through all the setup steps again. 
 A common error may be to forget the "sudo" in the last command which will 
