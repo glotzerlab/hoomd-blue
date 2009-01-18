@@ -75,6 +75,7 @@ Table of contents:
 	- \ref sec_system_class_requirements
 - \subpage page_hoomd_script_design
 - \subpage page_gpu_impl
+- \subpage page_rigid
 */
 
 /*!
@@ -923,6 +924,78 @@ kernel source code for more information.
 There are 1001 more nitty-gritty details that anyone implementing CUDA kernels in HOOMD must know,
 and there is no way I can go over them all here at a high level. One simply must look into the existing
 code and see how things are done.
+
+<hr>
+\ref page_rigid "Back to Table of Contents"
+
+*/
+
+
+/*!
+\page page_rigid Rigid bodies
+
+<b>Rationale/Implementation notes</b>
+
+Adding rigid body dynamics to HOOMD should be fairly straightforward from a computational standpoint. Almost 
+everything is already almost there (as of HOOMD 0.8.0), we just need to add the data structures for storing
+the rigid body data and fit the update process into the integrators. The biggest problem to overcome is basically
+just the data structures. HOOMD's ParticeData setup has gotten quite bloated and is not easily extensible to 
+rigid bodies. A redesign is in progress that will result in the creation of a templated GPUArray class which 
+encapsulates the concept of a CPU data mirrored to the GPU with read/write aquire capabilities built in. Once
+this array is built, it will be absolutely trivial to add new fields to ParticleData and the forthcoming rigid 
+data.
+
+The fundamental definition of a rigid body (in ParticleData) is just a new integer tag added to each particle that 
+identifies which body the particle belongs to. Sentinel values (0? or -1 (0xffffffff)?) will be used to signify particles that
+belong to no rigid body. 
+
+Executing on the GPU, this data structure is not good for the force/torque summation step. An additional data
+structure must be maintained that lists the index of each particle belonging to each body. With this auxilliary
+structure, a single thread can go down the list for a single body and sum the net force and torque on that body
+in parallel with all the other threads doing the same calculation for different bodies.
+
+A number of additional values will need to be stored for each rigid body. Along with the aux list of particle indices
+for each body, these will all be contained in RigidData each in their own GPUArray. Since adding a new data element
+will just require adding a new GPUArray member variable this can be easily done by everyone. Values are stored
+in the read/write aquire capable GPUArray so that Rigid updaters / force computes / etc.. can be easily written
+on the CPU and/or GPU in a mixed fashion for testing and implementation of new algorithms.
+
+For performance reasons in simulations not using rigid bodies, the non-rigid integrators will be left as they are.
+Derived classes (i.e. NVERigidUpdater) will be created that know how to ingrate mixed systems of rigid bodies
+and particles. 
+
+One might imagine a simulations where forces are applied to rigid bodies as a whole (i.e. orientational forces) 
+or even something as crazy as "pair" potentials between pairs of rigid bodies. HOOMD's architecture should allow
+for such possible future expansions. This is most naturally done by creating a RigidForceCompute class which
+is managed much like the ForceCompute class so that any concievable set of forces can be easily added. The
+addition of the net force on each particle to the net force and torque on each rigid body can be done within
+this framework as well, with a small bit of magic in hoomd_script to maintain the list of ForceComputes as
+the source forces.
+
+<b>Tasks</b>
+
+Putting all this together requires the completion of a number of tasks.
+
+ -# Create the RigidData class and integrate it with SystemData.
+ -# Data initialization routines need to be written to read rigid bodies in from hoomd_xml files and initialize
+ 	the new RigidData.
+ -# Create the RigidForceCompute base class
+ -# Write the RigidNetForce class to calculate forces on rigid bodies from the net forces on particles belonging
+    to that body
+ -# Write derived integrators for moving the rigid bodies forward in time
+
+ <b>Questions</b>
+
+ Here are a few open questions at this point:
+  - How is the input data specified in XML? 
+    - A list of the body value for each particle (ugly, as it requires the user to 
+    manually set the sentinel value for free particles)? 
+    - Or a list of bodies, with a list of indices of each particle
+	belonging to that body (somewhat nicer, but now the user is able to specify one particle in two bodies requiring
+	detailed error checking to prevent this)
+  - Does there need to be a way to dump data like rigid body COM, orientation, etc?
+  - Do pair forces need to be turned off between particles belonging to the same body?
+    - Does this need to be an enableable option?
 
 <hr>
 \ref page_dev_info "Back to Table of Contents"
