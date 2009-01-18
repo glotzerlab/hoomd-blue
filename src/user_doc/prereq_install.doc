@@ -317,7 +317,7 @@ After typing in your password and a considerably shorter wait, you should see
 \endcode
 again. Boost is now installed.
 
-You can delete the boost_1_34_1 directory now if you wish. It might be worth 
+You can delete the boost_1_36_0 directory now if you wish. It might be worth 
 saving for a little while until you have compiled HOOMD and know everything 
 is working so that you won't need to go through all the setup steps again. 
 A common error may be to forget the "sudo" in the last command which will 
@@ -431,14 +431,14 @@ These instructions are really only intended for advanced users and developers th
 linked builds for download.
 
 Download the source code from http://www.boost.org. This document assumes you have
-downloaded boost 1.34.1 (these instructions are known not to work for 1.35 without modifications which will
+downloaded boost 1.34.1 (these instructions are known not to work for newer versions without modifications which will
 be added eventually). Additionally, you must download and install python before continuing. Instructions are above.
 
 Download the source code for<br>
 \b bzip: http://www.bzip.org/downloads.html <br>
 \b zlib: http://www.zlib.net/ <br>
 
-The full instructions for building boost are here: http://www.boost.org/more/getting_started/windows.html. 
+The full instructions for building boost are here: http://www.boost.org/doc/libs/1_37_0/more/getting_started/windows.html . 
 A summary of the commands needed are listed below.
 
 \b 1. Download bjam: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=72941
