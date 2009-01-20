@@ -56,53 +56,92 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "ExecutionConfiguration.h"
 
-//! Handle to access the data pointer handled by GPUArray
-/*! When data is aquired from GPUArray, it is returned in an ArrayHandle.
-	The pointer is accessible for the lifetime of the ArrayHandle. When the
-	ArrayHandle is destroyed, the GPUArray is notified that the data has been
-	released.
-*/
-template <class T> class ArrayHandle
-	{
-	private:
-		//! Constructs an ArrayHandle
-		ArrayHandle(GPUArray<T>& gpu_array, T* const data);
-		//! Notifies the containing GPUArray that the handle has been released
-		~ArrayHandle();
-		
-		GPUArray<T>& m_gpu_array;	//!< Reference to source GPUArray
-		
-		friend GPUArray<T>;
-		
-	public:
-		T* const m_data;			//!< Pointer to data
-	};
-	
 //! Specifies where to acquire the data
-enum acquire_location
+struct access_location
 	{
-	host,	//!< Ask to acquire the data on the host
-	device	//!< Ask to acquire the data on the device
+	//! The enum
+	enum Enum
+		{
+		host,	//!< Ask to acquire the data on the host
+		#ifdef ENABLE_CUDA
+		device	//!< Ask to acquire the data on the device
+		#endif
+		};
 	};
 	
 //! Defines where the data is currently stored
-enum data_location
+struct data_location
 	{
-	host,		//!< Data was last updated on the host
-	device,		//!< Data was last updated on the device
-	hostdevice	//!< Data is up to date on both the host and device
+	//! The enum
+	enum Enum
+		{
+		host,		//!< Data was last updated on the host
+		#ifdef ENABLE_CUDA
+		device,		//!< Data was last updated on the device
+		hostdevice	//!< Data is up to date on both the host and device
+		#endif
+		};
 	};
+	
+//! Sepcify how the data is to be accessed
+struct access_mode
+	{
+	//! The enum
+	enum Enum
+		{
+		read,		//!< Data will be accessed read only
+		readwrite,	//!< Data will be accessed for read and write
+		overwrite	//!< The data is to be completely overwritten during this aquire
+		};
+	};
+	
+template<class T> class GPUArray;
 
+//! Handle to access the data pointer handled by GPUArray
+/*! The data in GPUArray is only accessible via ArrayHandle. The pointer is accessible for the lifetime of the 
+	ArrayHandle. When the ArrayHandle is destroyed, the GPUArray is notified that the data has been released. This 
+	tracking mechanism provides for error checking that will cause code assertions to fail if the data is aquired
+	more than once.
+	
+	ArrayHandle is intended to be used within a scope limiting its use. For example:
+	\code
+	GPUArray<int> gpu_array(100);
+	
+		{
+		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
+		// use h_handle.data .....
+		}
+	\endcode
+	
+	The actual raw pointer \a data should \b NOT be assumed to be the same after the handle is released.
+	The pointer may in fact be re-allocated somewhere else after the handle is released and before the next handle
+	is acquired.
+*/
+template<class T> class ArrayHandle
+	{
+	public:
+		//! Aquires the data and sets \a m_data
+		inline ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location = access_location::host, 
+							const access_mode::Enum mode = access_mode::readwrite);
+		//! Notifies the containing GPUArray that the handle has been released
+		inline ~ArrayHandle();
+		
+		T* const data;			//!< Pointer to data
+		
+	private:
+		const GPUArray<T>& m_gpu_array;
+	};
+	
 //! Class for managing an array of elements on the GPU mirrored to the CPU
 /*!
 GPUArray provides a template class for managing the majority of the GPU<->CPU memory usage patterns in 
 HOOMD. It represents a single array of elements which is present both on the CPU and GPU. Via 
-GPUArray::acquire, classes can access the array pointers through a handle for a short time. All needed
+ArrayHandle, classes can access the array pointers through a handle for a short time. All needed
 memory transfers from the host <-> device are handled by the class. For instance, if in the previous call,
 the data was acquired for writing on the CPU, this call to acquire for data on the GPU results in the
 data being copied to the GPU.
 */
-template <class T> class GPUArray
+template<class T> class GPUArray
 	{
 	public:
 		//! Constructs a GPUArray
@@ -110,31 +149,41 @@ template <class T> class GPUArray
 		//! Frees memory
 		~GPUArray();
 		
-		//! Acquire a handle for read-only data access
-		ArrayHandle<T> acquireReadOnly(const acquire_location& location);
-		//! Acquire a handle for read-write data access
-		ArrayHandle<T>acquireReadWrite(const acquire_location& location);
-		//! Acquire a handle to be overwritten
-		ArrayHandle<T>acquireOverWrite(const acquire_location& location);
+		//! Copy constructor
+		GPUArray(const GPUArray& from);
+		//! = operator
+		GPUArray& operator=(const GPUArray& rhs);
+		
+		//! get the number of elements
+		unsigned int getNumElements()
+			{
+			return m_num_elements;
+			}
 		
 	private:
-		unsigned int m_num_elements;	//!< Number of elements
+		unsigned int m_num_elements;			//!< Number of elements
 		
-		bool m_acquired;				//!< Tracks whether the data has been aquired
-		data_location m_data_location;	//!< Tracks the current location of the data
-		ExecutionConfiguration m_exec_conf;	//!< The execution configuration
+		mutable bool m_acquired;				//!< Tracks whether the data has been aquired
+		mutable data_location::Enum m_data_location;	//!< Tracks the current location of the data
+		ExecutionConfiguration m_exec_conf;		//!< The execution configuration
 		
 		#ifdef ENABLE_CUDA
-		T* d_data;		//!< Pointer to allocated device memory
+		mutable T* d_data;		//!< Pointer to allocated device memory
 		#endif
 		
-		T* h_data;		//!< Pointer to allocated host memory		
+		mutable T* h_data;		//!< Pointer to allocated host memory		
 		
-		friend ArrayHandle<T*>;
-		friend ArrayHandle<const T*>;
+		//! Acquires the data pointer for use
+		inline T* const aquire(const access_mode::Enum mode, const access_location::Enum location, unsigned int gpu) const;
+		
+		//! Helper function to copy memory from the device to host
+		inline void memcpyDeviceToHost() const;
+		//! Helper function to copy memory from the host to device
+		inline void memcpyHostToDevice() const;
+		
+		// need to be frineds of all the implementations of ArrayHandle
+		friend class ArrayHandle<T>;
 	};
-
-
 
 //******************************************
 // ArrayHandle implementation
@@ -143,12 +192,13 @@ template <class T> class GPUArray
 /*! \param gpu_array GPUArray host to the pointer data
 	\param data Pointer to the data
 */
-template <class T> ArrayHandle::ArrayHandle(GPUArray<T>& gpu_array, T* const data); : 
-	m_gpu_array(gpu_array), m_data(data)
+template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location,
+												const access_mode::Enum mode) : 
+	data(gpu_array.aquire(mode,location,0)), m_gpu_array(gpu_array)
 	{
 	}
 
-template <class T> ArrayHandle::~ArrayHandle()
+template<class T> ArrayHandle<T>::~ArrayHandle()
 	{
 	assert(m_gpu_array.m_acquired);
 	m_gpu_array.m_acquired = false;
@@ -160,29 +210,302 @@ template <class T> ArrayHandle::~ArrayHandle()
 
 /*! \param num_elements Number of elements to allocate in the array
 */
-template <class T> GPUArray::GPUArray(unsigned int num_elements, const ExecutionConfiguration& exec_conf) : 
-	m_num_elements(num_elements), m_acquired(false), m_data_location(host), m_exec_conf(exec_conf)
+template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const ExecutionConfiguration& exec_conf) : 
+	m_num_elements(num_elements), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf)
 	{
-	// allocate host memory
 	#ifdef ENABLE_CUDA
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, &h_data, num_elements*sizeof(T)));
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), num_elements*sizeof(T)));
+	// the current implementation only supports a signle GPU
+	if (m_exec_conf.gpu.size() > 1)
+		{
+		std::cerr << std::endl << "GPUArray doesn't support multi-GPU runs yet" << std::endl << std::endl;
+		throw std::runtime_error("Error constructing GPUArray");
+		}
+	#endif
+	
+	// allocate memory
+	#ifdef ENABLE_CUDA
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
 	#else
-	h_data = new T[num_elements];
+	h_data = new T[m_num_elements];
+	#endif
+	
+	// clear memory
+	memset(h_data, 0, sizeof(T)*m_num_elements);
+	#ifdef ENABLE_CUDA
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
 	#endif
 	}
 
-template <class T> GPUArray::~GPUArray()
+template<class T> GPUArray<T>::~GPUArray()
 	{
+	// sanity check
+	assert(!m_acquired);
+	assert(h_data);
 	
+	// free memory
+	#ifdef ENABLE_CUDA
+	assert(d_data);
+	m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
+	m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
+	#else
+	delete[] h_data;
+	#endif
+	
+	// set pointers to NULL
+	h_data = NULL;
+	#ifdef ENABLE_CUDA
+	d_data = NULL;
+	#endif
 	}
-		
-		//! Acquire a handle for read-only data access
-		ArrayHandle<T> acquireReadOnly(const acquire_location& location);
-		//! Acquire a handle for read-write data access
-		ArrayHandle<T>acquireReadWrite(const acquire_location& location);
-		//! Acquire a handle to be overwritten
-		ArrayHandle<T>acquireOverWrite(const acquire_location& location);
 
+template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_acquired(false), 
+	m_data_location(data_location::host), m_exec_conf(from.m_exec_conf)
+	{	
+	// allocate new memory the same size as the data in from
+	#ifdef ENABLE_CUDA
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+	#else
+	h_data = new T[m_num_elements];
+	#endif
+	
+	// copy over the data to the host
+		{
+		ArrayHandle<T> h_handle(from, access_location::host, access_mode::read);
+		memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+		}
+	
+	// clear the data on the GPU. Any aquire on the device will result in copying the valid data from the host
+	#ifdef ENABLE_CUDA
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+	#endif
+	}
+
+
+template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
+	{
+	if (this != &rhs) // protect against invalid self-assignment
+		{
+		// sanity check
+		assert(!m_acquired);
+		assert(h_data);	
+		
+		// free current memory
+		#ifdef ENABLE_CUDA
+		assert(d_data);
+		m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
+		m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
+		#else
+		delete[] h_data;
+		#endif
+		
+		// copy over basic elements
+		m_num_elements = rhs.m_num_elements;
+		m_exec_conf = rhs.m_exec_conf;
+		
+		// initialize state variables
+		m_data_location = data_location::host;
+		
+		// allocate new memory the same size as the data in from
+		#ifdef ENABLE_CUDA
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+		#else
+		h_data = new T[m_num_elements];
+		#endif
+		
+		// copy over the data to the host
+			{
+			ArrayHandle<T> h_handle(rhs, access_location::host, access_mode::read);
+			memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+			}
+		
+		// clear the data on the GPU. Any aquire on the device will result in copying the valid data from the host
+		#ifdef ENABLE_CUDA
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+		#endif
+		}
+		
+	return *this;
+	}
+
+/*! \post All memory on the device is copied to the host array
+*/
+template<class T> void GPUArray<T>::memcpyDeviceToHost() const
+	{
+	assert(m_num_elements > 0);
+	#ifdef ENABLE_CUDA
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMemcpy, h_data, d_data, sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost));
+	#endif
+	}
+
+/*! \post All memory on the host is copied to the device array
+*/	
+template<class T> void GPUArray<T>::memcpyHostToDevice() const
+	{
+	assert(m_num_elements > 0);
+	#ifdef ENABLE_CUDA
+	m_exec_conf.gpu[0]->call(boost::bind(cudaMemcpy, d_data, h_data, sizeof(T)*m_num_elements, cudaMemcpyHostToDevice));
+	#endif
+	}	
+
+/*! aquire() is the workhorse of GPUArray. It tracks the internal state variable \a data_location and
+	performs all host<->device memory copies as needed during the state changes given the
+	specified access mode and location where the data is to be acquired.
+	
+	aquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
+*/
+template<class T> T* const GPUArray<T>::aquire(const access_mode::Enum mode, const access_location::Enum location,
+	unsigned int gpu) const
+	{
+	// sanity check
+	assert(!m_acquired);
+	m_acquired = true;
+	
+	// first, break down based on where the data is to be acquired
+	if (location == access_location::host)
+		{
+		// then break down based on the current location of the data
+		if (m_data_location == data_location::host)
+			{
+			// the state stays on the host regardles of the access mode
+			return h_data;
+			}
+		#ifdef ENABLE_CUDA
+		else if (m_data_location == data_location::hostdevice)
+			{
+			// finally perform the action baed on the access mode requested
+			if (mode == access_mode::read)	// state stays on hostdevice
+				m_data_location = data_location::hostdevice;
+			else if (mode == access_mode::readwrite)	// state goes to host
+				m_data_location = data_location::host;
+			else if (mode == access_mode::overwrite)	// state goes to host
+				m_data_location = data_location::host;
+			else
+				{
+				std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+				throw std::runtime_error("Error acquiring data");
+				}
+				
+			return h_data;
+			}
+		else if (m_data_location == data_location::device)
+			{
+			// finally perform the action baed on the access mode requested
+			if (mode == access_mode::read)
+				{
+				// need to copy data from the device to the host
+				memcpyDeviceToHost();
+				// state goes to hostdevice
+				m_data_location = data_location::hostdevice;
+				}
+			else if (mode == access_mode::readwrite)
+				{
+				// need to copy data from the device to the host
+				memcpyDeviceToHost();
+				// state goes to host
+				m_data_location = data_location::host;
+				}
+			else if (mode == access_mode::overwrite)
+				{
+				// no need to copy data, it will be overwritten
+				// state goes to host
+				m_data_location = data_location::host;	
+				}
+			else
+				{
+				std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+				throw std::runtime_error("Error acquiring data");
+				}
+				
+			return h_data;
+			}
+		#endif
+		else
+			{
+			std::cerr << std::endl << "Invalid data location state" << std::endl << std::endl;
+			throw std::runtime_error("Error acquiring data");
+			return NULL;
+			}
+		}
+	#ifdef ENABLE_CUDA
+	else if (location == access_location::device)
+		{
+		// check that a GPU is actually specified
+		if (m_exec_conf.gpu.size() == 0)
+			{
+			std::cerr << std::endl << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl << std::endl;
+			throw std::runtime_error("Error acquiring data");
+			}
+
+		// then break down based on the current location of the data
+		if (m_data_location == data_location::host)
+			{
+			// finally perform the action baed on the access mode requested
+			if (mode == access_mode::read)
+				{
+				// need to copy data to the device
+				memcpyHostToDevice();
+				// state goes to hostdevice
+				m_data_location = data_location::hostdevice;
+				}
+			else if (mode == access_mode::readwrite)
+				{
+				// need to copy data to the device
+				memcpyHostToDevice();
+				// state goes to device
+				m_data_location = data_location::device;
+				}
+			else if (mode == access_mode::overwrite)
+				{
+				// no need to copy data to the device, it is to be overwritten
+				// state goes to device
+				m_data_location = data_location::device;
+				}
+			else
+				{
+				std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+				throw std::runtime_error("Error acquiring data");
+				}
+				
+			return d_data;
+			}
+		else if (m_data_location == data_location::hostdevice)
+			{
+			// finally perform the action baed on the access mode requested
+			if (mode == access_mode::read)	// state stays on hostdevice
+				m_data_location = data_location::hostdevice;
+			else if (mode == access_mode::readwrite)	// state goes to device
+				m_data_location = data_location::device;
+			else if (mode == access_mode::overwrite)	// state goes to device
+				m_data_location = data_location::device;
+			else
+				{
+				std::cerr << std::endl << "Invalid access mode requested" << std::endl << std::endl;
+				throw std::runtime_error("Error acquiring data");
+				}
+			return d_data;
+			}
+		else if (m_data_location == data_location::device)
+			{
+			// the stat stays on the device regardless of the access mode
+			return d_data;		
+			}
+		else
+			{
+			std::cerr << std::endl << "Invalid data_location state" << std::endl << std::endl;
+			throw std::runtime_error("Error acquiring data");
+			return NULL;
+			}
+		}
+	#endif
+	else
+		{
+		std::cerr << std::endl << "Invalid location requested" << std::endl << std::endl;
+		throw std::runtime_error("Error acquiring data");
+		return NULL;
+		}
+	}
 
 #endif
