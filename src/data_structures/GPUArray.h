@@ -37,7 +37,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // $Id$
-// $UR$
+// $URL$
 
 /*! \file GPUArray.h
 	\brief Defines the GPUArray class
@@ -51,7 +51,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime_api.h>
 #else
 
-// TODO: define vector types
+// GPUArray is likely to be used with various vector types defined in cuda (float4, etc...)
+// for builds on systems where CUDA is not available, include copies of the relevant CUDA header
+// files for convenience
+#include "cudacpu_vector_types.h"
+#include "cudacpu_vector_functions.h"
 
 #endif
 #include "ExecutionConfiguration.h"
@@ -129,7 +133,7 @@ template<class T> class ArrayHandle
 		T* const data;			//!< Pointer to data
 		
 	private:
-		const GPUArray<T>& m_gpu_array;
+		const GPUArray<T>& m_gpu_array;	//!< Reference to the GPUArray that owns \a data
 	};
 	
 //! Class for managing an array of elements on the GPU mirrored to the CPU
@@ -174,7 +178,7 @@ template<class T> class GPUArray
 		mutable T* h_data;		//!< Pointer to allocated host memory		
 		
 		//! Acquires the data pointer for use
-		inline T* const aquire(const access_mode::Enum mode, const access_location::Enum location, unsigned int gpu) const;
+		inline T* const aquire(const access_location::Enum location, const access_mode::Enum mode, unsigned int gpu) const;
 		
 		//! Helper function to copy memory from the device to host
 		inline void memcpyDeviceToHost() const;
@@ -190,11 +194,12 @@ template<class T> class GPUArray
 // *****************************************
 
 /*! \param gpu_array GPUArray host to the pointer data
-	\param data Pointer to the data
+	\param location Desired location to access the data
+	\param mode Mode to access the data with
 */
 template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location,
 												const access_mode::Enum mode) : 
-	data(gpu_array.aquire(mode,location,0)), m_gpu_array(gpu_array)
+	data(gpu_array.aquire(location, mode, 0)), m_gpu_array(gpu_array)
 	{
 	}
 
@@ -209,6 +214,7 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 // *****************************************
 
 /*! \param num_elements Number of elements to allocate in the array
+	\param exec_conf Execution configuration specifying the GPUs on which to allocate memory
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const ExecutionConfiguration& exec_conf) : 
 	m_num_elements(num_elements), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf)
@@ -224,8 +230,11 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const Executi
 	
 	// allocate memory
 	#ifdef ENABLE_CUDA
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+	if (m_exec_conf.gpu.size() > 0)
+		{
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+		}
 	#else
 	h_data = new T[m_num_elements];
 	#endif
@@ -233,7 +242,10 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const Executi
 	// clear memory
 	memset(h_data, 0, sizeof(T)*m_num_elements);
 	#ifdef ENABLE_CUDA
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+	if (m_exec_conf.gpu.size() > 0)
+		{
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+		}
 	#endif
 	}
 
@@ -246,8 +258,11 @@ template<class T> GPUArray<T>::~GPUArray()
 	// free memory
 	#ifdef ENABLE_CUDA
 	assert(d_data);
-	m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
-	m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
+	if (m_exec_conf.gpu.size() > 0)
+		{
+		m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
+		m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
+		}
 	#else
 	delete[] h_data;
 	#endif
@@ -264,8 +279,11 @@ template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(f
 	{	
 	// allocate new memory the same size as the data in from
 	#ifdef ENABLE_CUDA
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+	if (m_exec_conf.gpu.size() > 0)
+		{
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+		}
 	#else
 	h_data = new T[m_num_elements];
 	#endif
@@ -278,7 +296,10 @@ template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(f
 	
 	// clear the data on the GPU. Any aquire on the device will result in copying the valid data from the host
 	#ifdef ENABLE_CUDA
-	m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+	if (m_exec_conf.gpu.size() > 0)
+		{
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+		}
 	#endif
 	}
 
@@ -293,9 +314,12 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
 		
 		// free current memory
 		#ifdef ENABLE_CUDA
-		assert(d_data);
-		m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
-		m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
+		if (m_exec_conf.gpu.size() > 0)
+			{
+			assert(d_data);
+			m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
+			m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
+			}
 		#else
 		delete[] h_data;
 		#endif
@@ -309,8 +333,11 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
 		
 		// allocate new memory the same size as the data in from
 		#ifdef ENABLE_CUDA
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+		if (m_exec_conf.gpu.size() > 0)
+			{
+			m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
+			m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+			}
 		#else
 		h_data = new T[m_num_elements];
 		#endif
@@ -323,7 +350,10 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
 		
 		// clear the data on the GPU. Any aquire on the device will result in copying the valid data from the host
 		#ifdef ENABLE_CUDA
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+		if (m_exec_conf.gpu.size() > 0)
+			{
+			m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
+			}
 		#endif
 		}
 		
@@ -350,13 +380,17 @@ template<class T> void GPUArray<T>::memcpyHostToDevice() const
 	#endif
 	}	
 
-/*! aquire() is the workhorse of GPUArray. It tracks the internal state variable \a data_location and
+/*! \param location Desired location to access the data
+	\param mode Mode to access the data with
+	\param gpu GPU to access the data on (if accessing on the device)
+
+	aquire() is the workhorse of GPUArray. It tracks the internal state variable \a data_location and
 	performs all host<->device memory copies as needed during the state changes given the
 	specified access mode and location where the data is to be acquired.
 	
 	aquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
 */
-template<class T> T* const GPUArray<T>::aquire(const access_mode::Enum mode, const access_location::Enum location,
+template<class T> T* const GPUArray<T>::aquire(const access_location::Enum location, const access_mode::Enum mode, 
 	unsigned int gpu) const
 	{
 	// sanity check

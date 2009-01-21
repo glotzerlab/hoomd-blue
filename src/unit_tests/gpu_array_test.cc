@@ -56,13 +56,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "GPUArray.h"
-#include "ParticleData.h"
+
+#include "gpu_array_test.cuh"
 
 using namespace std;
 using namespace boost;
 
-/*! \file lj_force_test.cc
-	\brief Implements unit tests for LJForceCompute and descendants
+/*! \file gpu_array_test.cc
+	\brief Implements unit tests for GPUArray
 	\ingroup unit_tests
 */
 
@@ -70,13 +71,6 @@ using namespace boost;
 #define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
 //! Helper macro for testing if a number is small
 #define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various LJForceComputes to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1);
-#else
-const Scalar tol = 1e-6;
-#endif
 
 //! boost test case for testing the basic operation of GPUArray
 BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
@@ -128,6 +122,113 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
 		}
 	
 	}
+	
+#ifdef ENABLE_CUDA
+//! boost test case for testing device to/from host transfers
+BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
+	{
+	ExecutionConfiguration exec_conf;
+	BOOST_REQUIRE(exec_conf.gpu.size() == 1);
+	
+	GPUArray<int> gpu_array(100, exec_conf);
+	
+	// initialize the data on the device
+		{
+		ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
+		BOOST_REQUIRE(d_handle.data != NULL);
+		
+		exec_conf.gpu[0]->call(bind(gpu_fill_test_pattern, d_handle.data, gpu_array.getNumElements()));
+		}
+		
+	// copy it to the host and verify
+		{
+		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
+		BOOST_REQUIRE(h_handle.data != NULL);
+		for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
+			{
+			BOOST_CHECK_EQUAL(h_handle.data[i], i*i);
+			// overwrite the data as we verify
+			h_handle.data[i] = 100+i;
+			}
+		}
+		
+	// data has been overwitten on the host. Increment it on the device in overwrite mode
+	// and verify that the data was not copied from the host to device
+		{
+		ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::overwrite);
+		BOOST_REQUIRE(d_handle.data != NULL);
+		
+		exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+		}
+		
+	// copy it back to the host and verify
+		{
+		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
+		BOOST_REQUIRE(h_handle.data != NULL);
+		for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
+			{
+			BOOST_CHECK_EQUAL(h_handle.data[i], i*i+1);
+			// overwrite the data as we verify
+			h_handle.data[i] = 100+i;
+			}
+		}
+		
+	// access it on the device in read only mode, but be a bad boy and overwrite the data
+	// the verify on the host should then still show the overwritten data as the internal state
+	// should still be hostdevice and not copy the data back from the device
+		{
+		ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::read);
+		BOOST_REQUIRE(d_handle.data != NULL);
+		
+		exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+		}
+		
+		{
+		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
+		BOOST_REQUIRE(h_handle.data != NULL);
+		for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
+			{
+			BOOST_CHECK_EQUAL(h_handle.data[i], 100+i);
+			}
+		}
+		
+	// finally, test host-> device copies
+		{
+		ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
+		BOOST_REQUIRE(d_handle.data != NULL);
+		
+		exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+		}
+		
+	// via the read access mode
+		{
+		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::read);
+		BOOST_REQUIRE(h_handle.data != NULL);
+		for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
+			{
+			BOOST_CHECK_EQUAL(h_handle.data[i], 100+i+1);
+			}
+		}
+		
+		{
+		ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
+		BOOST_REQUIRE(d_handle.data != NULL);
+		
+		exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+		}
+		
+	// and via the readwrite access mode
+		{
+		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
+		BOOST_REQUIRE(h_handle.data != NULL);
+		for (int i = 0; i < (int)gpu_array.getNumElements(); i++)
+			{
+			BOOST_CHECK_EQUAL(h_handle.data[i], 100+i+1+1);
+			}
+		}
+	}
+	
+#endif
 	
 #ifdef WIN32
 #pragma warning( pop )
