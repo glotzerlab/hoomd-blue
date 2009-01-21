@@ -113,7 +113,7 @@ template<class T> class GPUArray;
 	
 		{
 		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
-		// use h_handle.data .....
+		... use h_handle.data ...
 		}
 	\endcode
 	
@@ -141,9 +141,30 @@ template<class T> class ArrayHandle
 GPUArray provides a template class for managing the majority of the GPU<->CPU memory usage patterns in 
 HOOMD. It represents a single array of elements which is present both on the CPU and GPU. Via 
 ArrayHandle, classes can access the array pointers through a handle for a short time. All needed
-memory transfers from the host <-> device are handled by the class. For instance, if in the previous call,
-the data was acquired for writing on the CPU, this call to acquire for data on the GPU results in the
-data being copied to the GPU.
+memory transfers from the host <-> device are handled by the class based on the access mode and
+location specified when acquiring an ArrayHandle.
+
+GPUArray is fairly advanced, C++ wise. It is a template class, so GPUArray's of floats, float4's, 
+uint2's, etc.. can be made. It comes with a copy constructor and = operator so you can (expensively)
+pass GPUArray's around in arguments or overwite one with another via assignment. The ArrayHandle acquisition
+method guarantees that every aquired handle will be released. About the only thing it \b doesn't do is prevent
+the user from writing to a pointer acquired with a read only mode.
+
+At a high level, GPUArray encapsulates a single flat data pointer \a T* \a data with \a num_elements
+elements, and keeps a copy of this data on both the host and device. When accessing this data through
+the construction of an ArrayHandle instance, the\a location (host or device) you wish to access the data
+must be specified along with an access \a mode (read, readwrite, overwrite). 
+
+When the data is accessed in the same location it was last written to, the pointer is simply returned. 
+If the data is accessed in a different location, it will be copied before the pointer is returned.
+
+When the data is accessed in the \a read mode, it is assumed that the data will not be written to and
+thus there is no need to copy memory the next time the data is aquired somewhere else. Using the readwrite
+mode specifies that the data is to be read and written to, necessitating possible copies to the desired location
+before the data can be accessed and again before the next access. If the data is to be completely overwritten 
+\b without reading it first, then an expensive memory copy can be avoided by using the \a overwrite mode.
+
+A future modification of GPUArray will allow mirroring or splitting the data across multiple GPUs. 
 */
 template<class T> class GPUArray
 	{
