@@ -1170,6 +1170,7 @@ void ParticleData::communicatePosition()
 	// count the number of bytes transferred
 	unsigned int num_bytes = 0;
 	
+	if (m_prof) m_prof->push(m_exec_conf, "device2host");
 	// copy position data from all GPUs to the staging area
 	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
 		{
@@ -1181,7 +1182,9 @@ void ParticleData::communicatePosition()
 		
 		num_bytes += local_num*sizeof(float4);
 		}
-	
+	if (m_prof) m_prof->pop(m_exec_conf, 0, num_bytes);
+	num_bytes = 0;
+
 	m_exec_conf.tagAll(__FILE__, __LINE__);
 	
 	// special handling for the swapping done on 2 GPUs
@@ -1189,16 +1192,24 @@ void ParticleData::communicatePosition()
 		{
 		// copy GPU0 read data to GPU1 through its write buffer
 		m_exec_conf.gpu[0]->sync();
+
+		if (m_prof) m_prof->push("host2host");
 		memcpy(h_write_staging[1], h_read_staging[0], m_gpu_pdata[0].local_num*sizeof(float4));
+		if (m_prof) m_prof->pop(0, m_gpu_pdata[0].local_num*sizeof(float4));
+		
+		if (m_prof) m_prof->push(m_exec_conf, "host2device");
 		m_exec_conf.gpu[1]->sync();
 		m_exec_conf.gpu[1]->callAsync(bind(cudaMemcpy, m_gpu_pdata[1].pos, h_write_staging[1], m_gpu_pdata[0].local_num*sizeof(float4), cudaMemcpyHostToDevice));
+		if (m_prof) m_prof->pop(m_exec_conf, 0, m_gpu_pdata[0].local_num*sizeof(float4));
 		
 		// copy GPU 1 read data to GPU0 through its write buffer
+		if (m_prof) m_prof->push("host2host");
 		memcpy(h_write_staging[0], h_read_staging[1], m_gpu_pdata[1].local_num*sizeof(float4));
-				
-		m_exec_conf.gpu[0]->callAsync(bind(cudaMemcpy, m_gpu_pdata[0].pos+m_gpu_pdata[1].local_beg, h_write_staging[0], m_gpu_pdata[1].local_num*sizeof(float4), cudaMemcpyHostToDevice));
+		if (m_prof) m_prof->pop(0, m_gpu_pdata[0].local_num*sizeof(float4));
 		
-		num_bytes += getN() * sizeof(float4);
+		if (m_prof) m_prof->push(m_exec_conf, "host2device");
+		m_exec_conf.gpu[0]->callAsync(bind(cudaMemcpy, m_gpu_pdata[0].pos+m_gpu_pdata[1].local_beg, h_write_staging[0], m_gpu_pdata[1].local_num*sizeof(float4), cudaMemcpyHostToDevice));
+		if (m_prof) m_prof->pop(m_exec_conf, 0, m_gpu_pdata[1].local_num*sizeof(float4));
 		}
 	else
 		{
