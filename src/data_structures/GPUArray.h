@@ -60,6 +60,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "ExecutionConfiguration.h"
 
+#include <algorithm>
+
 //! Specifies where to acquire the data
 struct access_location
 	{
@@ -109,12 +111,12 @@ template<class T> class GPUArray;
 	
 	ArrayHandle is intended to be used within a scope limiting its use. For example:
 	\code
-	GPUArray<int> gpu_array(100);
-	
-		{
-		ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
-		... use h_handle.data ...
-		}
+GPUArray<int> gpu_array(100);
+
+	{
+	ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
+	... use h_handle.data ...
+	}
 	\endcode
 	
 	The actual raw pointer \a data should \b NOT be assumed to be the same after the handle is released.
@@ -146,14 +148,15 @@ location specified when acquiring an ArrayHandle.
 
 GPUArray is fairly advanced, C++ wise. It is a template class, so GPUArray's of floats, float4's, 
 uint2's, etc.. can be made. It comes with a copy constructor and = operator so you can (expensively)
-pass GPUArray's around in arguments or overwite one with another via assignment. The ArrayHandle acquisition
-method guarantees that every aquired handle will be released. About the only thing it \b doesn't do is prevent
-the user from writing to a pointer acquired with a read only mode.
+pass GPUArray's around in arguments or overwite one with another via assignment (inexpensive swaps can be
+performed with swap()). The ArrayHandle acquisition method guarantees that every aquired handle will be 
+released. About the only thing it \b doesn't do is prevent the user from writing to a pointer acquired 
+with a read only mode.
 
 At a high level, GPUArray encapsulates a single flat data pointer \a T* \a data with \a num_elements
 elements, and keeps a copy of this data on both the host and device. When accessing this data through
-the construction of an ArrayHandle instance, the\a location (host or device) you wish to access the data
-must be specified along with an access \a mode (read, readwrite, overwrite). 
+the construction of an ArrayHandle instance, the \a location (host or device) you wish to access the data
+must be specified along with an access \a mode (read, readwrite, overwrite).
 
 When the data is accessed in the same location it was last written to, the pointer is simply returned. 
 If the data is accessed in a different location, it will be copied before the pointer is returned.
@@ -164,13 +167,29 @@ mode specifies that the data is to be read and written to, necessitating possibl
 before the data can be accessed and again before the next access. If the data is to be completely overwritten 
 \b without reading it first, then an expensive memory copy can be avoided by using the \a overwrite mode.
 
+Data with both 1-D and 2-D representations can be allocated by using the appropriate constructor. 
+2-D allocated data is still just a flat pointer, but the row width is rounded up to a multiple of 
+16 elements to facilitate coalescing. The actual allocated width is accessible with getPitch(). Here 
+is an example of addressing element i,j in a 2-D allocated GPUArray.
+\code
+GPUArray<int> gpu_array(100, 200, exec_conf);
+unsigned int pitch = gpu_array.getPitch();
+
+ArrayHandle<int> h_handle(gpu_array, access_location::host, access_mode::readwrite);
+h_handle.data[i*pitch + j] = 5;
+\endcode
+
 A future modification of GPUArray will allow mirroring or splitting the data across multiple GPUs. 
 */
 template<class T> class GPUArray
 	{
 	public:
-		//! Constructs a GPUArray
+		//! Constructs a NULL GPUArray
+		GPUArray();
+		//! Constructs a 1-D GPUArray
 		GPUArray(unsigned int num_elements, const ExecutionConfiguration& exec_conf);
+		//! Constructs a 2-D GPUArray
+		GPUArray(unsigned int width, unsigned int height, const ExecutionConfiguration& exec_conf);
 		//! Frees memory
 		~GPUArray();
 		
@@ -179,14 +198,48 @@ template<class T> class GPUArray
 		//! = operator
 		GPUArray& operator=(const GPUArray& rhs);
 		
-		//! get the number of elements
-		unsigned int getNumElements()
+		//! Swap the pointers in two GPUArrays
+		inline void swap(GPUArray& from);
+		
+		//! Get the number of elements
+		/*! 
+		 - For 1-D allocated GPUArrays, this is the number of elements allocated.
+		 - For 2-D allocated GPUArrays, this is the \b total number of elements (\a pitch * \a height) allocated
+		*/
+		unsigned int getNumElements() const
 			{
 			return m_num_elements;
 			}
 		
+		//! Test if the GPUArray is NULL
+		bool isNull() const
+			{
+			return (h_data == NULL);
+			}
+			
+		//! Get the width of the allocated rows in elements
+		/*! 
+		 - For 2-D allocated GPUArrays, this is the total width of a row in memory (including the padding added for coalescing)
+	 	 - For 1-D allocated GPUArrays, this is the simply the number of elements allocated.
+		*/
+		unsigned int getPitch() const
+			{
+			return m_pitch;
+			}
+			
+		//! Get the number of rows allocated
+		/*! 
+		 - For 2-D allocated GPUArrays, this is the height given to the constructor
+		 - For 1-D allocated GPUArrays, this is the simply 1.
+		*/		
+		unsigned int getHeight() const
+			{
+			return m_height;
+			}
 	private:
 		unsigned int m_num_elements;			//!< Number of elements
+		unsigned int m_pitch;					//!< Pitch of the rows in elements
+		unsigned int m_height;					//!< Number of allocated rows
 		
 		mutable bool m_acquired;				//!< Tracks whether the data has been aquired
 		mutable data_location::Enum m_data_location;	//!< Tracks the current location of the data
@@ -200,6 +253,13 @@ template<class T> class GPUArray
 		
 		//! Acquires the data pointer for use
 		inline T* const aquire(const access_location::Enum location, const access_mode::Enum mode, unsigned int gpu) const;
+		
+		//! Helper function to allocate memory
+		inline void allocate();
+		//! Helper function to free memory
+		inline void deallocate();
+		//! Helper function to clear memory
+		inline void memclear();
 		
 		//! Helper function to copy memory from the device to host
 		inline void memcpyDeviceToHost() const;
@@ -234,12 +294,133 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 // GPUArray implementation
 // *****************************************
 
+template<class T> GPUArray<T>::GPUArray() : 
+	m_num_elements(0), m_acquired(false), m_data_location(data_location::host), d_data(NULL), h_data(NULL)
+	{
+	}
+
 /*! \param num_elements Number of elements to allocate in the array
 	\param exec_conf Execution configuration specifying the GPUs on which to allocate memory
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const ExecutionConfiguration& exec_conf) : 
-	m_num_elements(num_elements), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf)
+	m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf), d_data(NULL), h_data(NULL)
 	{
+	// allocate and clear memory
+	allocate();
+	memclear();
+	}
+	
+/*! \param width Width of the 2-D array to allocate (in elements)
+	\param height Number of rows to allocate in the 2D array
+	\param exec_conf Execution configuration specifying the GPUs on which to allocate memory
+*/
+template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, const ExecutionConfiguration& exec_conf) : 
+	m_height(height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf), d_data(NULL), h_data(NULL)
+	{
+	// make m_pitch the next multiple of 16 larger or equal to the given width
+	m_pitch = (width + (16 - width & 15));
+	
+	// setup the number of elements
+	m_num_elements = m_pitch * m_height;
+	
+	// allocate and clear memory
+	allocate();
+	memclear();
+	}	
+
+template<class T> GPUArray<T>::~GPUArray()
+	{
+	deallocate();
+	}
+
+template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
+	m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(from.m_exec_conf), 
+	d_data(NULL), h_data(NULL)
+	{	
+	// allocate and clear new memory the same size as the data in from
+	allocate();
+	memclear();
+	
+	// copy over the data to the host, any future GPU aquire will result in a copy
+	ArrayHandle<T> h_handle(from, access_location::host, access_mode::read);
+	memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+	}
+
+template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
+	{
+	if (this != &rhs) // protect against invalid self-assignment
+		{
+		// sanity check
+		assert(!m_acquired && !rhs.m_acquired);
+		assert(h_data);
+		
+		// free current memory
+		deallocate();
+		
+		// copy over basic elements
+		m_num_elements = rhs.m_num_elements;
+		m_pitch = rhs.m_pitch;
+		m_height = rhs.m_height;
+		m_exec_conf = rhs.m_exec_conf;
+		
+		// initialize state variables
+		m_data_location = data_location::host;
+		
+		// allocate and clear new memory the same size as the data in rhs
+		allocate();
+		memclear();
+		
+		// copy over the data to the host
+		ArrayHandle<T> h_handle(rhs, access_location::host, access_mode::read);
+		memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+		}
+		
+	return *this;
+	}
+	
+/*! \param from GPUArray to swap \a this with
+
+	a.swap(b) will result in the equivalent of:
+	\code
+GPUArray c(a);
+a = b;
+b = c;
+	\endcode
+	
+	But it will be done in a super-efficent way by just swapping the internal pointers, thus avoiding all the expensive
+	memory deallocations/allocations and copies using the copy constructor and assignment operator.
+*/
+template<class T> void GPUArray<T>::swap(GPUArray& from)
+	{
+	// this may work, but really shouldn't be done when aquired
+	assert(!m_acquired && !from.m_acquired);
+	
+	std::swap(m_num_elements, from.m_num_elements);
+	std::swap(m_pitch, from.m_pitch);
+	std::swap(m_height, from.m_height);
+	std::swap(m_acquired, from.m_acquired);
+	std::swap(m_data_location, from.m_data_location);
+	std::swap(m_exec_conf, from.m_exec_conf);
+	#ifdef ENABLE_CUDA
+	std::swap(d_data, from.d_data);
+	#endif
+	std::swap(h_data, from.h_data);
+	}
+	
+/*! \pre m_num_elements is set
+	\pre pointers are not allocated
+	\post All memory pointers needed for GPUArray are allocated
+*/
+template<class T> void GPUArray<T>::allocate()
+	{
+	// don't allocate anything if there are zero elements
+	if (m_num_elements == 0)
+		return;
+		
+	// sanity check
+	assert(h_data == NULL);
+	assert(d_data == NULL);
+	
 	#ifdef ENABLE_CUDA
 	// the current implementation only supports a signle GPU
 	if (m_exec_conf.gpu.size() > 1)
@@ -259,19 +440,17 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const Executi
 	#else
 	h_data = new T[m_num_elements];
 	#endif
-	
-	// clear memory
-	memset(h_data, 0, sizeof(T)*m_num_elements);
-	#ifdef ENABLE_CUDA
-	if (m_exec_conf.gpu.size() > 0)
-		{
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
-		}
-	#endif
 	}
-
-template<class T> GPUArray<T>::~GPUArray()
+	
+/*! \pre allocate() has been called
+	\post All allocated memory is freed
+*/
+template<class T> void GPUArray<T>::deallocate()
 	{
+	// don't do anything if there are no elements
+	if (m_num_elements == 0)
+		return;	
+	
 	// sanity check
 	assert(!m_acquired);
 	assert(h_data);
@@ -295,27 +474,17 @@ template<class T> GPUArray<T>::~GPUArray()
 	#endif
 	}
 
-template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_acquired(false), 
-	m_data_location(data_location::host), m_exec_conf(from.m_exec_conf)
-	{	
-	// allocate new memory the same size as the data in from
-	#ifdef ENABLE_CUDA
-	if (m_exec_conf.gpu.size() > 0)
-		{
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
-		}
-	#else
-	h_data = new T[m_num_elements];
-	#endif
+/*! \pre allocate() has been called
+	\post All allocated memory is set to 0
+*/
+template<class T> void GPUArray<T>::memclear()
+	{
+	// don't do anything if there are no elements
+	if (m_num_elements == 0)
+		return;
 	
-	// copy over the data to the host
-		{
-		ArrayHandle<T> h_handle(from, access_location::host, access_mode::read);
-		memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
-		}
-	
-	// clear the data on the GPU. Any aquire on the device will result in copying the valid data from the host
+	// clear memory
+	memset(h_data, 0, sizeof(T)*m_num_elements);
 	#ifdef ENABLE_CUDA
 	if (m_exec_conf.gpu.size() > 0)
 		{
@@ -325,67 +494,14 @@ template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(f
 	}
 
 
-template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
-	{
-	if (this != &rhs) // protect against invalid self-assignment
-		{
-		// sanity check
-		assert(!m_acquired);
-		assert(h_data);	
-		
-		// free current memory
-		#ifdef ENABLE_CUDA
-		if (m_exec_conf.gpu.size() > 0)
-			{
-			assert(d_data);
-			m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
-			m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
-			}
-		#else
-		delete[] h_data;
-		#endif
-		
-		// copy over basic elements
-		m_num_elements = rhs.m_num_elements;
-		m_exec_conf = rhs.m_exec_conf;
-		
-		// initialize state variables
-		m_data_location = data_location::host;
-		
-		// allocate new memory the same size as the data in from
-		#ifdef ENABLE_CUDA
-		if (m_exec_conf.gpu.size() > 0)
-			{
-			m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
-			m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
-			}
-		#else
-		h_data = new T[m_num_elements];
-		#endif
-		
-		// copy over the data to the host
-			{
-			ArrayHandle<T> h_handle(rhs, access_location::host, access_mode::read);
-			memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
-			}
-		
-		// clear the data on the GPU. Any aquire on the device will result in copying the valid data from the host
-		#ifdef ENABLE_CUDA
-		if (m_exec_conf.gpu.size() > 0)
-			{
-			m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
-			}
-		#endif
-		}
-		
-	return *this;
-	}
-
 /*! \post All memory on the device is copied to the host array
 */
 template<class T> void GPUArray<T>::memcpyDeviceToHost() const
 	{
-	assert(m_num_elements > 0);
+	// don't do anything if there are no elements
+	if (m_num_elements == 0)
+		return;
+		
 	#ifdef ENABLE_CUDA
 	m_exec_conf.gpu[0]->call(boost::bind(cudaMemcpy, h_data, d_data, sizeof(T)*m_num_elements, cudaMemcpyDeviceToHost));
 	#endif
@@ -395,7 +511,10 @@ template<class T> void GPUArray<T>::memcpyDeviceToHost() const
 */	
 template<class T> void GPUArray<T>::memcpyHostToDevice() const
 	{
-	assert(m_num_elements > 0);
+	// don't do anything if there are no elements
+	if (m_num_elements == 0)
+		return;
+		
 	#ifdef ENABLE_CUDA
 	m_exec_conf.gpu[0]->call(boost::bind(cudaMemcpy, d_data, h_data, sizeof(T)*m_num_elements, cudaMemcpyHostToDevice));
 	#endif

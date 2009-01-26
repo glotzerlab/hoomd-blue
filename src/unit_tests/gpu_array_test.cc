@@ -97,9 +97,17 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
 			BOOST_CHECK_EQUAL(h_handle.data[i], i);
 		}
 		
+	// basic check 3.5: test the construction of a 2-D GPUArray
+	GPUArray<int> gpu_array_2d(63, 120, exec_conf);
+	BOOST_CHECK_EQUAL((int)gpu_array_2d.getPitch(), 64);
+	BOOST_CHECK_EQUAL((int)gpu_array_2d.getHeight(), 120);
+	BOOST_CHECK_EQUAL((int)gpu_array_2d.getNumElements(), 7680);
+		
 	// basic check 4: verify the copy constructor
 	GPUArray<int> array_b(gpu_array);
 	BOOST_CHECK_EQUAL((int)array_b.getNumElements(), 100);
+	BOOST_CHECK_EQUAL((int)array_b.getPitch(), 100);
+	BOOST_CHECK_EQUAL((int)array_b.getHeight(), 1);
 	
 		{
 		ArrayHandle<int> h_handle(array_b, access_location::host, access_mode::read);
@@ -113,6 +121,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
 	array_c = gpu_array;
 
 	BOOST_CHECK_EQUAL((int)array_c.getNumElements(), 100);
+	BOOST_CHECK_EQUAL((int)array_c.getPitch(), 100);
+	BOOST_CHECK_EQUAL((int)array_c.getHeight(), 1);	
 	
 		{
 		ArrayHandle<int> h_handle(array_c, access_location::host, access_mode::read);
@@ -226,6 +236,40 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
 			BOOST_CHECK_EQUAL(h_handle.data[i], 100+i+1+1);
 			}
 		}
+	}
+	
+//! Tests operations on NULL GPUArrays
+BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
+	{
+	// Construct a NULL GPUArray
+	GPUArray<int> a;
+	
+	BOOST_CHECK(a.isNull());
+	BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned)0);
+	
+	// check copy construction of a NULL GPUArray
+	GPUArray<int> b(a);
+	
+	BOOST_CHECK(b.isNull());
+	BOOST_CHECK_EQUAL(b.getNumElements(), (unsigned)0);
+	
+	// check assignment of a NULL GPUArray
+	ExecutionConfiguration exec_conf;
+	GPUArray<int> c(1000, exec_conf);
+	c = a;
+	
+	BOOST_CHECK(c.isNull());
+	BOOST_CHECK_EQUAL(c.getNumElements(), (unsigned)0);
+	
+	// check swapping of a NULL GPUArray
+	GPUArray<int> d(1000, exec_conf);
+	
+	d.swap(a);
+	BOOST_CHECK(d.isNull());
+	BOOST_CHECK_EQUAL(d.getNumElements(), (unsigned)0);
+	
+	BOOST_CHECK(!a.isNull());
+	BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned)1000);
 	}
 	
 #endif
