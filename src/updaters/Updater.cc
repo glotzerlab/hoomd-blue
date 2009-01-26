@@ -53,14 +53,14 @@ using namespace boost::python;
 	\brief Defines a base class for all updaters
 */
 
-/*! \param pdata Particle data this compute will act on. Must not be NULL.
+/*! \param sysdef System this compute will act on. Must not be NULL.
 	\post The Updater is constructed with the given particle data and a NULL profiler.
 */
-Updater::Updater(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata), exec_conf(pdata->getExecConf())
+Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf())
 	{
 	// sanity check
-	assert(pdata);
-	assert(pdata->getN() > 0);
+	assert(m_sysdef);
+	assert(m_pdata);
 	}
 		
 /*! It is useful for the user to know where computation time is spent, so all Updaters
@@ -82,9 +82,9 @@ class UpdaterWrap: public Updater, public wrapper<Updater>
 	{
 	public:
 		//! Forwards construction on to the base class
-		/*! \param pdata parameter to forward to the base class constructor
+		/*! \param sysdef parameter to forward to the base class constructor
 		*/
-		UpdaterWrap(boost::shared_ptr<ParticleData> pdata) : Updater(pdata) { }
+		UpdaterWrap(boost::shared_ptr<SystemDefinition> sysdef) : Updater(sysdef) { }
 		
 		//! Hanldes pure virtual Updater::update()
 		/*! \param timestep parameter to forward to Updater::update()
@@ -97,7 +97,7 @@ class UpdaterWrap: public Updater, public wrapper<Updater>
 	
 void export_Updater()
 	{
-	class_<UpdaterWrap, boost::shared_ptr<UpdaterWrap>, boost::noncopyable>("Updater", init< boost::shared_ptr<ParticleData> >())
+	class_<UpdaterWrap, boost::shared_ptr<UpdaterWrap>, boost::noncopyable>("Updater", init< boost::shared_ptr<SystemDefinition> >())
 		.def("update", pure_virtual(&Updater::update))
 		.def("setProfiler", &Updater::setProfiler)
 		;

@@ -54,14 +54,14 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System to update
 	\param deltaT Time step to use
 	\param tau Nose-Hoover period
 	\param tauP barostat period
 	\param T Temperature set point
 	\param P Pressure set point
 */
-NPTUpdater::NPTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) : Integrator(pdata, deltaT), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_accel_set(false)
+NPTUpdater::NPTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) : Integrator(sysdef, deltaT), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_accel_set(false)
 	{
 	if (m_tau <= 0.0)
 		cout << "***Warning! tau set less than 0.0 in NPTUpdater" << endl;
@@ -376,11 +376,11 @@ Scalar NPTUpdater::computeTemperature(unsigned int timestep)
 void export_NPTUpdater()
 	{
 	class_<NPTUpdater, boost::shared_ptr<NPTUpdater>, bases<Integrator>, boost::noncopyable>
-	  ("NPTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar, Scalar, Scalar >())
+	  ("NPTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar, Scalar, Scalar >())
 		.def("setT", &NPTUpdater::setT)
 		.def("setTau", &NPTUpdater::setTau)
-	        .def("setP", &NPTUpdater::setP)
-	        .def("setTauP", &NPTUpdater::setTauP) 
+		.def("setP", &NPTUpdater::setP)
+		.def("setTauP", &NPTUpdater::setTauP) 
 		;
 		
 	}

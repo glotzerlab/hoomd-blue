@@ -58,7 +58,7 @@ class LJWallForceCompute :	public ForceCompute
 	{
 	public:
 		//! Constructor
-		LJWallForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar r_cut);
+		LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut);
 		//! Destructor
 		~LJWallForceCompute();
 		//! Sets force parameters

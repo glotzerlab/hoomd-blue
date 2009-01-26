@@ -83,7 +83,7 @@ const Scalar tol = 1e-6;
 #endif
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<FENEBondForceCompute>  (shared_ptr<ParticleData> pdata)> bondforce_creator;
+typedef boost::function<shared_ptr<FENEBondForceCompute>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration exec_conf)
@@ -94,7 +94,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box with only one bond type
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, exec_conf));
+	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9);
@@ -102,7 +103,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	pdata_2->release();
 
 	// create the bond force compute to check
-	shared_ptr<FENEBondForceCompute> fc_2 = bf_creator(pdata_2);
+	shared_ptr<FENEBondForceCompute> fc_2 = bf_creator(sysdef_2);
 	fc_2->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
 
 	// compute the force and check the results
@@ -116,7 +117,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 	
 	// add a bond and check again
-	pdata_2->getBondData()->addBond(Bond(0, 0, 1));
+	sysdef_2->getBondData()->addBond(Bond(0, 0, 1));
 	fc_2->compute(1);
 	
 	// this time there should be a force
@@ -160,7 +161,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of bond
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 3, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+	
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -170,14 +173,14 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
 	pdata_6->release();
 	
-	shared_ptr<FENEBondForceCompute> fc_6 = bf_creator(pdata_6);
+	shared_ptr<FENEBondForceCompute> fc_6 = bf_creator(sysdef_6);
 	fc_6->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
 	fc_6->setParams(1, Scalar(2.0*1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
 	fc_6->setParams(2, Scalar(1.5), Scalar(1.0), Scalar(1.0), Scalar(1.0/4.0));
 	
-	pdata_6->getBondData()->addBond(Bond(0, 0,1));
-	pdata_6->getBondData()->addBond(Bond(1, 2,3));
-	pdata_6->getBondData()->addBond(Bond(2, 4,5));
+	sysdef_6->getBondData()->addBond(Bond(0, 0,1));
+	sysdef_6->getBondData()->addBond(Bond(1, 2,3));
+	sysdef_6->getBondData()->addBond(Bond(2, 4,5));
 	
 	fc_6->compute(0);
 	// check that the forces are correctly computed
@@ -221,7 +224,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, exec_conf));
+	shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 	arrays = pdata_4->acquireReadWrite();
 	// make a square of particles
 	arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
@@ -240,12 +244,12 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	pdata_4->release();
 
 	// build the bond force compute and try it out
-	shared_ptr<FENEBondForceCompute> fc_4 = bf_creator(pdata_4);
+	shared_ptr<FENEBondForceCompute> fc_4 = bf_creator(sysdef_4);
 	fc_4->setParams(0, Scalar(1.5), Scalar(1.75), Scalar(1.2), Scalar(1.0/4.0));
 	// only add bonds on the left, top, and bottom of the square
-	pdata_4->getBondData()->addBond(Bond(0, 2,3));
-	pdata_4->getBondData()->addBond(Bond(0, 2,0));
-	pdata_4->getBondData()->addBond(Bond(0, 0,1));
+	sysdef_4->getBondData()->addBond(Bond(0, 2,3));
+	sysdef_4->getBondData()->addBond(Bond(0, 2,0));
+	sysdef_4->getBondData()->addBond(Bond(0, 0,1));
 
 	fc_4->compute(0);
 	force_arrays = fc_4->acquire();
@@ -291,10 +295,11 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	// use a simple cubic array of particles so that random bonds
 	// don't result in huge forces on a random particle arrangement
 	SimpleCubicInitializer sc_init(M, 1.5, "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(sc_init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(sc_init, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
-	shared_ptr<FENEBondForceCompute> fc1 = bf_creator1(pdata);
-	shared_ptr<FENEBondForceCompute> fc2 = bf_creator2(pdata);
+	shared_ptr<FENEBondForceCompute> fc1 = bf_creator1(sysdef);
+	shared_ptr<FENEBondForceCompute> fc2 = bf_creator2(sysdef);
 	fc1->setParams(0, Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0/4.0));
 	fc2->setParams(0, Scalar(300.0), Scalar(1.6), Scalar(1.0), Scalar(1.0/4.0));
 
@@ -328,7 +333,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 		for (unsigned int j = 0; j < M; j++)
 			for (unsigned int k = 0; k < M-1; k++)
 				{
-				pdata->getBondData()->addBond(Bond(0, i*M*M + j*M + k, i*M*M + j*M + k + 1));
+				sysdef->getBondData()->addBond(Bond(0, i*M*M + j*M + k, i*M*M + j*M + k + 1));
 				}
 
 		
@@ -352,16 +357,16 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 	}
 	
 //! FEBEBondForceCompute creator for bond_force_basic_tests()
-shared_ptr<FENEBondForceCompute> base_class_bf_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<FENEBondForceCompute> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(pdata));
+	return shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(sysdef));
 	}
 	
 #ifdef ENABLE_CUDA
 //! FENEBondForceCompute creator for bond_force_basic_tests()
-shared_ptr<FENEBondForceCompute> gpu_bf_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<FENEBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<FENEBondForceCompute>(new FENEBondForceComputeGPU(pdata));
+	return shared_ptr<FENEBondForceCompute>(new FENEBondForceComputeGPU(sysdef));
 	}
 #endif
 

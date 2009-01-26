@@ -63,13 +63,8 @@ using namespace std;
 
 /*! \param pdata ParticleData these bonds refer into
 	\param n_bond_types Number of bond types in the list
-	
-	Taking in pdata as a pointer instead of a shared pointer is sloppy, but there really isn't an alternative
-	due to the way ParticleData is constructed. Things will be fixed in a later version with a reorganization
-	of the various data structures. For now, be careful not to destroy the ParticleData and keep the BondData hanging
-	around.
 */
-BondData::BondData(ParticleData* pdata, unsigned int n_bond_types) : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata)
+BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata)
 	{
 	assert(pdata);
 	
@@ -381,7 +376,7 @@ void BondData::copyBondTable()
 
 void export_BondData()
 	{
-	class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<ParticleData *, unsigned int>())
+	class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<shared_ptr<ParticleData>, unsigned int>())
 		.def("getNumBonds", &BondData::getNumBonds)
 		.def("getNBondTypes", &BondData::getNBondTypes)
 		.def("getTypeByName", &BondData::getTypeByName)

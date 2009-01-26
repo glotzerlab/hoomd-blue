@@ -1094,19 +1094,19 @@ double q_reference[]  = { 1.6 , 1.6000093706007106 , 1.6000373852098038 ,
 
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<NVTUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T)> nvtup_creator;
+typedef boost::function<shared_ptr<NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)> nvtup_creator;
 
 //! NVTUpdater creator
-shared_ptr<NVTUpdater> base_class_nvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T)
+shared_ptr<NVTUpdater> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)
 	{
-	return shared_ptr<NVTUpdater>(new NVTUpdater(pdata, deltaT, Q, T));
+	return shared_ptr<NVTUpdater>(new NVTUpdater(sysdef, deltaT, Q, T));
 	}
 	
 #ifdef ENABLE_CUDA
 //! NVTUpdaterGPU factory for the unit tests
-shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T)
+shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)
 	{
-	return shared_ptr<NVTUpdater>(new NVTUpdaterGPU(pdata, deltaT, Q, T));
+	return shared_ptr<NVTUpdater>(new NVTUpdaterGPU(sysdef, deltaT, Q, T));
 	}
 #endif
 
@@ -1120,7 +1120,9 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 	// check that the nvt updater can actually integrate particle positions and velocities correctly
 	// start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -1137,10 +1139,10 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 	Scalar Q = Scalar(2.0);
 	Scalar T = Scalar(1.5/3.0);
 	Scalar tau = sqrt(Q / (Scalar(3.0) * T));
-	shared_ptr<NVTUpdater> nvt_up = nvt_creator(pdata, deltaT, tau, T);
+	shared_ptr<NVTUpdater> nvt_up = nvt_creator(sysdef, deltaT, tau, T);
 	
 	// see what happens with a constant force
-	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata, 0.0, 0.0, 0.75));
+	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
 	nvt_up->addForceCompute(fc1);
 	
 	// integrate through time and compare to the reference
@@ -1168,15 +1170,17 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 	RandomInitializer rand_init1(N, Scalar(0.2), Scalar(0.9), "A");
 	RandomInitializer rand_init2(N, Scalar(0.2), Scalar(0.9), "A");
 	rand_init1.setSeed(12345);
-	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(rand_init1, exec_conf));
+	shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
 	rand_init2.setSeed(12345);
-	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2, exec_conf));
-
-	shared_ptr<NeighborList> nlist1(new NeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
-	shared_ptr<NeighborList> nlist2(new NeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(rand_init2, exec_conf));
+	shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
 	
-	shared_ptr<LJForceCompute> fc1(new LJForceCompute(pdata1, nlist1, Scalar(3.0)));
-	shared_ptr<LJForceCompute> fc2(new LJForceCompute(pdata2, nlist2, Scalar(3.0)));
+	shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
+	
+	shared_ptr<LJForceCompute> fc1(new LJForceCompute(sysdef1, nlist1, Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc2(new LJForceCompute(sysdef2, nlist2, Scalar(3.0)));
 		
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
@@ -1189,8 +1193,8 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 	fc1->setParams(0,0,lj1,lj2);
 	fc2->setParams(0,0,lj1,lj2);
 
-	shared_ptr<NVTUpdater> nvt1 = nvt_creator1(pdata1, Scalar(0.005), Scalar(0.5), Scalar(1.2));
-	shared_ptr<NVTUpdater> nvt2 = nvt_creator2(pdata2, Scalar(0.005), Scalar(0.5), Scalar(1.2));
+	shared_ptr<NVTUpdater> nvt1 = nvt_creator1(sysdef1, Scalar(0.005), Scalar(0.5), Scalar(1.2));
+	shared_ptr<NVTUpdater> nvt2 = nvt_creator2(sysdef2, Scalar(0.005), Scalar(0.5), Scalar(1.2));
 
 	nvt1->addForceCompute(fc1);
 	nvt2->addForceCompute(fc2);

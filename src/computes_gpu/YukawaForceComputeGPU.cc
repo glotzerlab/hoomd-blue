@@ -61,7 +61,7 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\param kappa Coefficient to use in calculating the force
@@ -69,8 +69,8 @@ using namespace std;
 	\note The YukawaForceComputeGPU does not own the Neighborlist, the caller should
 		delete the neighborlist when done.
 */
-YukawaForceComputeGPU::YukawaForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa) 
-	: YukawaForceCompute(pdata, nlist, r_cut, kappa)
+YukawaForceComputeGPU::YukawaForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa) 
+	: YukawaForceCompute(sysdef, nlist, r_cut, kappa)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -221,7 +221,7 @@ void YukawaForceComputeGPU::computeForces(unsigned int timestep)
 void export_YukawaForceComputeGPU()
 	{
 	class_<YukawaForceComputeGPU, boost::shared_ptr<YukawaForceComputeGPU>, bases<YukawaForceCompute>, boost::noncopyable >
-		("YukawaForceComputeGPU", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar, Scalar >())
+		("YukawaForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar, Scalar >())
 		.def("setBlockSize", &YukawaForceComputeGPU::setBlockSize)
 		;
 	}

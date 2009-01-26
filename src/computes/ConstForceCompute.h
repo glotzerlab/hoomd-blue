@@ -57,7 +57,7 @@ class ConstForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		ConstForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar fx, Scalar fy, Scalar fz);
+		ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz);
 		
 		//! Set the force to a new value
 		void setForce(Scalar fx, Scalar fy, Scalar fz);

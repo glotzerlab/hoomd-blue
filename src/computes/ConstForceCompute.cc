@@ -55,14 +55,14 @@ using namespace std;
 	\brief Contains code for the ConstForceCompute class
 */
 
-/*! \param pdata Particle data to compute forces on
+/*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 	\param fx x-component of the force
 	\param fy y-component of the force
 	\param fz z-component of the force
 	\note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
-ConstForceCompute::ConstForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar fx, Scalar fy, Scalar fz)
-	: ForceCompute(pdata)
+ConstForceCompute::ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz)
+	: ForceCompute(sysdef)
 	{
 	setForce(fx,fy,fz);
 	}
@@ -102,7 +102,7 @@ void ConstForceCompute::computeForces(unsigned int timestep)
 void export_ConstForceCompute()
 	{
 	class_< ConstForceCompute, boost::shared_ptr<ConstForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("ConstForceCompute", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar >())
+		("ConstForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar >())
 		.def("setForce", &ConstForceCompute::setForce)
 		;
 	}

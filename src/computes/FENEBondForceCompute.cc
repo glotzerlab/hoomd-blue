@@ -60,14 +60,14 @@ using namespace std;
 	\brief Defines the FENEBondForceCompute class
 */
 
-/*! \param pdata Particle data to compute forces on
+/*! \param sysdef System to compute forces on
 	\post Memory is allocated, default parameters are set and forces are zeroed.
 */
-FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
+FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef),
 	m_K(NULL), m_r_0(NULL), m_lj1(NULL), m_lj2(NULL), m_epsilon(NULL)
 	{
 	// access the bond data for later use
-	m_bond_data = m_pdata->getBondData();
+	m_bond_data = m_sysdef->getBondData();
 	
 	// check for some silly errors a user could make 
 	if (m_bond_data->getNBondTypes() == 0)
@@ -310,7 +310,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 void export_FENEBondForceCompute()
 	{
 	class_<FENEBondForceCompute, boost::shared_ptr<FENEBondForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("FENEBondForceCompute", init< boost::shared_ptr<ParticleData> >())
+		("FENEBondForceCompute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setParams", &FENEBondForceCompute::setParams)
 		;
 	}

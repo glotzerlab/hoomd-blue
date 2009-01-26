@@ -42,7 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-#include "ParticleData.h"
+#include "SystemDefinition.h"
 #include "Profiler.h"
 
 #ifndef __UPDATER_H__
@@ -84,7 +84,7 @@ class Updater : boost::noncopyable
 	{
 	public:
 		//! Constructs the compute and associates it with the ParticleData
-		Updater(boost::shared_ptr<ParticleData> pdata);
+		Updater(boost::shared_ptr<SystemDefinition> sysdef);
 		virtual ~Updater() {};
 		
 		//! Abstract method that performs the update
@@ -118,8 +118,9 @@ class Updater : boost::noncopyable
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) { return Scalar(0.0); }
 		
 	protected:
-		const boost::shared_ptr<ParticleData> m_pdata;	//!< The particle data this compute is associated with
-		boost::shared_ptr<Profiler> m_prof;				//!< The profiler this compute is to use
+		const boost::shared_ptr<SystemDefinition> m_sysdef;	//!< The system definition this compute is associated with
+		const boost::shared_ptr<ParticleData> m_pdata;		//!< The particle data this compute is associated with
+		boost::shared_ptr<Profiler> m_prof;					//!< The profiler this compute is to use
 		const ExecutionConfiguration& exec_conf;			//!< Cached reference to the execution configuration
 		
 		

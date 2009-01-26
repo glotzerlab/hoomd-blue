@@ -58,10 +58,10 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata ParticleData to compute bond forces on
+/*! \param sysdef System to compute bond forces on
 */
-HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: HarmonicBondForceCompute(pdata)
+HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+	: HarmonicBondForceCompute(sysdef)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -173,7 +173,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 void export_HarmonicBondForceComputeGPU()
 	{
 	class_<HarmonicBondForceComputeGPU, boost::shared_ptr<HarmonicBondForceComputeGPU>, bases<HarmonicBondForceCompute>, boost::noncopyable >
-		("HarmonicBondForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicBondForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setBlockSize", &HarmonicBondForceComputeGPU::setBlockSize)
 		;
 	}

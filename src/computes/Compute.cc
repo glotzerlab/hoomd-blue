@@ -56,14 +56,15 @@ using namespace std;
 	\brief Contains code for the Compute class
 */
 
-/*! \param pdata Particle data this compute will act on. Must not be NULL.
+/*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
 	\post The Compute is constructed with the given particle data and a NULL profiler.
 */
-Compute::Compute(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata), exec_conf(pdata->getExecConf()), m_last_computed(0), m_first_compute(true)
+Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+	exec_conf(m_pdata->getExecConf()), m_last_computed(0), m_first_compute(true)
 	{
 	// sanity check
-	assert(pdata);
-	assert(pdata->getN() > 0);
+	assert(m_sysdef);
+	assert(m_pdata);
 	}
 		
 /*! It is useful for the user to know where computation time is spent, so all Computes
@@ -119,9 +120,9 @@ class ComputeWrap : public Compute, public wrapper<Compute>
 	{
 	public:
 		//! Constructor
-		/*! \param pdata Particle data to pass on to the base class */
-		ComputeWrap(boost::shared_ptr<ParticleData> pdata) : Compute(pdata) 
-			{ 
+		/*! \param sysdef Particle data to pass on to the base class */
+		ComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef)
+			{
 			}
 	
 		//! Calls overidden Compute::compute()
@@ -173,7 +174,7 @@ class ComputeWrap : public Compute, public wrapper<Compute>
 
 void export_Compute()
 	{
-	class_<ComputeWrap, boost::shared_ptr<ComputeWrap>, boost::noncopyable>("Compute", init< boost::shared_ptr<ParticleData> >())
+	class_<ComputeWrap, boost::shared_ptr<ComputeWrap>, boost::noncopyable>("Compute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("compute", pure_virtual(&Compute::compute))
 		.def("printStats", &Compute::printStats, &ComputeWrap::default_printStats)
 		.def("setProfiler", &Compute::setProfiler)

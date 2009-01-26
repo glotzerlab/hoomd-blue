@@ -85,7 +85,7 @@ class SFCPackUpdater : public Updater
 	{
 	public:
 		//! Constructor
-		SFCPackUpdater(boost::shared_ptr<ParticleData> pdata, Scalar bin_width);
+		SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar bin_width);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);

@@ -59,12 +59,12 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data to set temperature on
+/*! \param sysdef System to set temperature on
 	\param tc TempCompute to compute the temperature with
 	\param tset Temperature set point
 */
-TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<TempCompute> tc, Scalar tset)
-	: Updater(pdata), m_tc(tc), m_tset(tset)
+TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<TempCompute> tc, Scalar tset)
+	: Updater(sysdef), m_tc(tc), m_tset(tset)
 	{
 	assert(m_pdata);
 	assert(tc);
@@ -132,7 +132,7 @@ void TempRescaleUpdater::setT(Scalar tset)
 void export_TempRescaleUpdater()
 	{
 	class_<TempRescaleUpdater, boost::shared_ptr<TempRescaleUpdater>, bases<Updater>, boost::noncopyable>
-		("TempRescaleUpdater", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<TempCompute>, Scalar >())
+		("TempRescaleUpdater", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<TempCompute>, Scalar >())
 		.def("setT", &TempRescaleUpdater::setT)
 		;
 	}

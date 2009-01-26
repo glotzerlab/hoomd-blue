@@ -223,15 +223,15 @@ cudaError_t ForceDataArraysGPU::deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar 
 
 #endif
 	
-/*! \param pdata ParticleData to compute forces on
+/*! \param sysdef System to compute forces on
 	\post The Compute is initialized and all memory needed for the forces is allocated
 	\post \c fx, \c fy, \c fz pointers in m_arrays are set
 	\post All forces are initialized to 0
 */
-ForceCompute::ForceCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdata), m_particles_sorted(false)
+ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
 	{
-	assert(pdata);
-	assert(pdata->getN());
+	assert(m_pdata);
+	assert(m_pdata->getN() > 0);
 	
 	// allocate data on the host
 	unsigned int num_particles = m_pdata->getN();
@@ -459,8 +459,8 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
 	{
 	public:
 		//! Constructor
-		/*! \param pdata Particle data passed to the base class */
-		ForceComputeWrap(shared_ptr<ParticleData> pdata) : ForceCompute(pdata) { }
+		/*! \param sysdef Particle data passed to the base class */
+		ForceComputeWrap(shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
 	protected:
 		//! Calls the overidden ForceCompute::computeForces()
 		/*! \param timestep parameter to pass on to the overidden method */
@@ -473,7 +473,7 @@ class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
 void export_ForceCompute()
 	{
 	class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
-		("ForceCompute", init< boost::shared_ptr<ParticleData> >())
+		("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("acquire", &ForceCompute::acquire, return_value_policy<copy_const_reference>())
 		;
 	}

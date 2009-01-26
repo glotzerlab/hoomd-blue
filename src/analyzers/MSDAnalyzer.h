@@ -71,7 +71,7 @@ class MSDAnalyzer : public Analyzer
 	{
 	public:
 		//! Construct the msd analyzer
-		MSDAnalyzer(boost::shared_ptr<ParticleData> pdata, std::string fname, const std::string& header_prefix="");
+		MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef, std::string fname, const std::string& header_prefix="");
 		
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);

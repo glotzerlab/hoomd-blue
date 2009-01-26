@@ -122,6 +122,8 @@ GPUArray<int> gpu_array(100);
 	The actual raw pointer \a data should \b NOT be assumed to be the same after the handle is released.
 	The pointer may in fact be re-allocated somewhere else after the handle is released and before the next handle
 	is acquired.
+	
+	\ingroup data_structs
 */
 template<class T> class ArrayHandle
 	{
@@ -180,6 +182,8 @@ h_handle.data[i*pitch + j] = 5;
 \endcode
 
 A future modification of GPUArray will allow mirroring or splitting the data across multiple GPUs. 
+
+\ingroup data_structs
 */
 template<class T> class GPUArray
 	{

@@ -64,13 +64,13 @@ using namespace boost::python;
 using namespace std;
 using namespace boost;
 
-/*! \param pdata Particle data to read when dumping files
+/*! \param sysdef SystemDefinition containing the ParticleData to dump
 	\param base_fname The base name of the file xml file to output the information
 
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
-HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname)
-	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
+HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
+	: Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
 	{
 	}
 
@@ -240,7 +240,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	if (m_output_bond)
 		{
 		f << "<bond>" << endl;
-		shared_ptr<BondData> bond_data = m_pdata->getBondData();
+		shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 		
 		// loop over all bonds and write them out
 		for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
@@ -256,7 +256,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	if (m_output_wall)
 		{
 		f << "<wall>" << endl;
-		shared_ptr<WallData> wall_data = m_pdata->getWallData();
+		shared_ptr<WallData> wall_data = m_sysdef->getWallData();
 		
 		// loop over all walls and write them out
 		for (unsigned int i = 0; i < wall_data->getNumWalls(); i++)
@@ -284,7 +284,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 void export_HOOMDDumpWriter()
 	{
 	class_<HOOMDDumpWriter, boost::shared_ptr<HOOMDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-		("HOOMDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string >())
+		("HOOMDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
 		.def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
 		.def("setOutputImage", &HOOMDDumpWriter::setOutputImage)
 		.def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)

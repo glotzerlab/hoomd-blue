@@ -73,7 +73,7 @@ class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata);
+		HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
 		//! Destructor
 		~HarmonicBondForceComputeGPU();
 		

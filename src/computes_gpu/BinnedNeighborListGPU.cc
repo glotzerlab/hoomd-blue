@@ -68,7 +68,7 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-/*! \param pdata Particle data the neighborlist is to compute neighbors for
+/*! \param sysdef System the neighborlist is to compute neighbors for
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffer distance to include around the cutoff
 	\post The neighbor list is initialized and the list memory has been allocated,
@@ -76,7 +76,7 @@ using namespace std;
 	\post The storage mode defaults to full
 	\sa NeighborList
 */
-BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) : NeighborList(pdata, r_cut, r_buff)
+BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) : NeighborList(sysdef, r_cut, r_buff)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -687,7 +687,7 @@ void BinnedNeighborListGPU::printStats()
 void export_BinnedNeighborListGPU()
 	{
 	class_<BinnedNeighborListGPU, boost::shared_ptr<BinnedNeighborListGPU>, bases<NeighborList>, boost::noncopyable >
-		("BinnedNeighborListGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		("BinnedNeighborListGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
 		.def("setBlockSize", &BinnedNeighborListGPU::setBlockSize)
 		;
 	}

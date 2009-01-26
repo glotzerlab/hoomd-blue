@@ -56,14 +56,14 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\param kappa Coefficient to use in calculating the force
 	\post memory is allocated and the parameter epsilon is set to 0.0
 */
-YukawaForceCompute::YukawaForceCompute(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa) 
-	: ForceCompute(pdata), m_nlist(nlist), m_r_cut(r_cut), m_kappa(kappa)
+YukawaForceCompute::YukawaForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa) 
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_kappa(kappa)
 	{
 	assert(m_pdata);
 	assert(m_nlist);
@@ -328,7 +328,7 @@ void YukawaForceCompute::computeForces(unsigned int timestep)
 void export_YukawaForceCompute()
 	{
 	class_<YukawaForceCompute, boost::shared_ptr<YukawaForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("YukawaForceCompute", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar, Scalar >())
+		("YukawaForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar, Scalar >())
 		.def("setParams", &YukawaForceCompute::setParams)
 		;
 	}

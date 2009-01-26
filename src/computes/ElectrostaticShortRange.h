@@ -81,7 +81,7 @@ class ElectrostaticShortRange : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		ElectrostaticShortRange(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value);
+		ElectrostaticShortRange(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value);
 		
 		//! Destructor
 		virtual ~ElectrostaticShortRange();

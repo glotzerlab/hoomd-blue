@@ -64,7 +64,7 @@ class NeighborListNsqGPU : public NeighborList
 	{
 	public:
 		//! Constructs the compute
-		NeighborListNsqGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff);
+		NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
 
 		//! Destructor
 		virtual ~NeighborListNsqGPU();

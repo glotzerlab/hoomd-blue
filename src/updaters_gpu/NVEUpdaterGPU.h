@@ -61,7 +61,7 @@ class NVEUpdaterGPU : public NVEUpdater
 	{
 	public:
 		//! Constructor
-		NVEUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT);
+		NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);

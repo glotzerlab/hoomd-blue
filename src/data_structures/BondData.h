@@ -83,9 +83,6 @@ struct Bond
 	table with every column listing the bonds of a single particle: see 
 	gpu_bondtable_array for more info.
 	
-	A ParticleData instance owns a single BondData which classes such as BondForceCompute 
-	can access for their needs.
-	
 	Bonds can be dynamically added, although doing this on a per-timestep basis can 
 	slow performance significantly. For simplicity and convinence, however, the number
 	of bond types cannot change after initialization.
@@ -95,7 +92,7 @@ class BondData : boost::noncopyable
 	{
 	public:
 		//! Constructs an empty list with no bonds
-		BondData(ParticleData* pdata, unsigned int n_bond_types);
+		BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types);
 		
 		//! Destructor
 		~BondData();
@@ -136,7 +133,7 @@ class BondData : boost::noncopyable
 	private:
 		const unsigned int m_n_bond_types;				//!< Number of bond types
 		bool m_bonds_dirty;								//!< True if the bond list has been changed
-		ParticleData* m_pdata;							//!< Particle Data these bonds belong to
+		boost::shared_ptr<ParticleData> m_pdata;		//!< Particle Data these bonds belong to
 		std::vector<Bond> m_bonds;						//!< List of bonds on the CPU
 		std::vector<std::string> m_bond_type_mapping;	//!< Mapping between bond type indices and names
 		

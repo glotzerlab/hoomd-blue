@@ -62,10 +62,10 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System to update
 	\param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : Updater(pdata), m_deltaT(deltaT)
+Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
 	{
 	if (m_deltaT <= 0.0)
 		cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
@@ -458,7 +458,7 @@ void Integrator::update(unsigned int timestep)
 void export_Integrator()
 	{
 	class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
-		("Integrator", init< boost::shared_ptr<ParticleData>, Scalar >())
+		("Integrator", init< boost::shared_ptr<SystemDefinition>, Scalar >())
 		.def("addForceCompute", &Integrator::addForceCompute)
 		.def("removeForceComputes", &Integrator::removeForceComputes)
 		.def("setDeltaT", &Integrator::setDeltaT)

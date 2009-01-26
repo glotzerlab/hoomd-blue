@@ -59,7 +59,7 @@ class StochasticForceCompute :	public ForceCompute
 	{
 	public:
 		//! Constructor
-		StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
+		StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed);
 
 		//! Destructor
 		~StochasticForceCompute();

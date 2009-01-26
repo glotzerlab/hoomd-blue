@@ -59,7 +59,7 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-/*! \param pdata Particle data the neighborlist is to compute neighbors for
+/*! \param sysdef System the neighborlist is to compute neighbors for
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffer distance around the cuttoff within which particles are included
 	\post NeighborList is initialized and the list memory has been allocated,
@@ -67,8 +67,8 @@ using namespace boost;
 	\post The storage mode defaults to half
 	\todo update docs
 */
-NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) 
-	: NeighborList(pdata, r_cut, r_buff)
+NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) 
+	: NeighborList(sysdef, r_cut, r_buff)
 	{
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
@@ -162,7 +162,7 @@ void NeighborListNsqGPU::buildNlistAttempt()
 void export_NeighborListNsqGPU()
 	{
 	class_<NeighborListNsqGPU, boost::shared_ptr<NeighborListNsqGPU>, bases<NeighborList>, boost::noncopyable >
-		("NeighborListNsqGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		("NeighborListNsqGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
 		;
 	}
 

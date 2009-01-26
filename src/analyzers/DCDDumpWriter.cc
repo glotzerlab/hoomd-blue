@@ -70,7 +70,7 @@ using namespace std;
 /*! Constructs the DCDDumpWriter. After construction, settings are set. No file operations are
 	attempted until analyze() is called.
 	
-	\param pdata ParticleData to dump
+	\param sysdef SystemDefinition containing the ParticleData to dump
 	\param fname File name to write DCD data to
 	\param period Period which analyze() is going to be called at
 	
@@ -78,7 +78,7 @@ using namespace std;
 	the time step inforamtion in the file will be invalid. analyze() will print a warning 
 	if it is called out of sequence.
 */
-DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<ParticleData> pdata, const std::string &fname, unsigned int period) : Analyzer(pdata), m_fname(fname), m_start_timestep(0), m_period(period), m_num_frames_written(0)
+DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const std::string &fname, unsigned int period) : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_num_frames_written(0)
 	{
 	m_staging_buffer = new Scalar[m_pdata->getN()];
 	}
@@ -289,7 +289,7 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
 void export_DCDDumpWriter()
 	{
 	class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-		("DCDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string, unsigned int>())
+		("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int>())
 		;
 	}	
 

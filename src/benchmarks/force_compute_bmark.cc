@@ -119,28 +119,28 @@ Scalar phi_p = Scalar(0.2);
 unsigned int num_gpus = 1;
 
 //! Helper function to initialize bonds
-void init_bond_tables(shared_ptr<ParticleData> pdata)
+void init_bond_tables(shared_ptr<SystemDefinition> sysdef)
 	{
 	const unsigned int nbonds = 2;
 	for (unsigned int j = 0; j < N-nbonds/2; j++)
 		{
 		for (unsigned int k = 1; k <= nbonds/2; k++)
-			pdata->getBondData()->addBond(Bond(0, j,j+k));
+			sysdef->getBondData()->addBond(Bond(0, j,j+k));
 		}
 	}	
 
 //! Initialize the force compute from a string selecting it
-shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist)
+shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist)
 	{
 	shared_ptr<ForceCompute> result;
 	
 	// handle creation of the various lennard-jones computes
 	if (fc_name == "LJ")
-		result = shared_ptr<ForceCompute>(new LJForceCompute(pdata, nlist, r_cut));
+		result = shared_ptr<ForceCompute>(new LJForceCompute(sysdef, nlist, r_cut));
 	#ifdef ENABLE_CUDA
 	if (fc_name == "LJ.GPU")
 		{
-		shared_ptr<LJForceComputeGPU> tmp = shared_ptr<LJForceComputeGPU>(new LJForceComputeGPU(pdata, nlist, r_cut));
+		shared_ptr<LJForceComputeGPU> tmp = shared_ptr<LJForceComputeGPU>(new LJForceComputeGPU(sysdef, nlist, r_cut));
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
@@ -149,17 +149,17 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	// handle the various bond force computes
 	if (fc_name == "Bond")
 		{
-		shared_ptr<HarmonicBondForceCompute> tmp = shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceCompute(pdata));
+		shared_ptr<HarmonicBondForceCompute> tmp = shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceCompute(sysdef));
 		tmp->setParams(0, 150, 1.0);
-		init_bond_tables(pdata);
+		init_bond_tables(sysdef);
 		result = tmp;
 		}
 	#ifdef ENABLE_CUDA
 	if (fc_name == "Bond.GPU")
 		{
-		shared_ptr<HarmonicBondForceComputeGPU> tmp = shared_ptr<HarmonicBondForceComputeGPU>(new HarmonicBondForceComputeGPU(pdata));
+		shared_ptr<HarmonicBondForceComputeGPU> tmp = shared_ptr<HarmonicBondForceComputeGPU>(new HarmonicBondForceComputeGPU(sysdef));
 		tmp->setParams(0, 150, 1.0);
-		init_bond_tables(pdata);
+		init_bond_tables(sysdef);
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
@@ -168,17 +168,17 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	// handle the FENE bonds
 	if (fc_name == "FENE")
 		{
-		shared_ptr<FENEBondForceCompute> tmp = shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(pdata));
+		shared_ptr<FENEBondForceCompute> tmp = shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(sysdef));
 		tmp->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
-		init_bond_tables(pdata);
+		init_bond_tables(sysdef);
 		result = tmp;
 		}
 	#ifdef ENABLE_CUDA
 	if (fc_name == "FENE.GPU")
 		{
-		shared_ptr<FENEBondForceComputeGPU> tmp = shared_ptr<FENEBondForceComputeGPU>(new FENEBondForceComputeGPU(pdata));
+		shared_ptr<FENEBondForceComputeGPU> tmp = shared_ptr<FENEBondForceComputeGPU>(new FENEBondForceComputeGPU(sysdef));
 		tmp->setParams(0, Scalar(1.5), Scalar(1.1), Scalar(1.0), Scalar(1.0/4.0));
-		init_bond_tables(pdata);
+		init_bond_tables(sysdef);
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
@@ -186,11 +186,11 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 
 	// handle creation of the various stochastic force computes
 	if (fc_name == "SF")
-		result = shared_ptr<ForceCompute>(new StochasticForceCompute(pdata, Scalar(0.005), Scalar(1.0), 0));
+		result = shared_ptr<ForceCompute>(new StochasticForceCompute(sysdef, Scalar(0.005), Scalar(1.0), 0));
 	#ifdef ENABLE_CUDA
 	if (fc_name == "SF.GPU")
 		{
-		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(pdata, Scalar(0.005), Scalar(1.0), 0));
+		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(sysdef, Scalar(0.005), Scalar(1.0), 0));
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
@@ -198,11 +198,11 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Pa
 	
 	// handle creation of the yukawa force compute
 	if (fc_name == "Yukawa")
-		result = shared_ptr<ForceCompute>(new YukawaForceCompute(pdata, nlist, r_cut, kappa));
+		result = shared_ptr<ForceCompute>(new YukawaForceCompute(sysdef, nlist, r_cut, kappa));
 	#ifdef ENABLE_CUDA
 	if (fc_name == "Yukawa.GPU")
 		{
-		shared_ptr<YukawaForceComputeGPU> tmp = shared_ptr<YukawaForceComputeGPU>(new YukawaForceComputeGPU(pdata, nlist, r_cut, kappa));
+		shared_ptr<YukawaForceComputeGPU> tmp = shared_ptr<YukawaForceComputeGPU>(new YukawaForceComputeGPU(sysdef, nlist, r_cut, kappa));
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}

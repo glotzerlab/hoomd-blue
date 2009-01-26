@@ -59,13 +59,13 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata ParticleData to compute forces on
+/*! \param sysdef System to compute forces on
 	\param Temp Temperature of the bath of random particles
 	\param deltaT Length of the computation timestep
 	\param seed	Seed for initializing the RNG
 */
-StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed):
-ForceCompute(pdata), m_T(Temp), m_dt(deltaT), m_seed(seed)
+StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed):
+ForceCompute(sysdef), m_T(Temp), m_dt(deltaT), m_seed(seed)
 	{
 	if (m_T <= 0.0)
 		{

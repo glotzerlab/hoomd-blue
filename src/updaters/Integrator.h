@@ -93,7 +93,7 @@ class Integrator : public Updater
 	{
 	public:
 		//! Constructor
-		Integrator(boost::shared_ptr<ParticleData> pdata, Scalar deltaT);
+		Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 		
 		//! Destructor
 		~Integrator();

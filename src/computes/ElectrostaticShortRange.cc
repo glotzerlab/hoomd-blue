@@ -72,15 +72,15 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\param alpha Split parameter of short vs long range electrostatics (see header file for more info) 
 	\param delta Spacing of the lookup table for erfc (see header file for more info)
 	\param min_value minimum value expected to compute using the look up table
 */
-ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)
-	:ForceCompute(pdata), m_nlist(nlist), m_r_cut(r_cut),m_alpha(alpha),m_delta(delta),m_min_value(min_value)
+ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)
+	:ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut),m_alpha(alpha),m_delta(delta),m_min_value(min_value)
 	{
 	assert(m_pdata);
 	assert(m_nlist);
@@ -320,7 +320,7 @@ void ElectrostaticShortRange::computeForces(unsigned int timestep)
 /* void export_ElectrostaticShortRange()
 	{
 	class_<ElectrostaticShortRange,bases<ForceCompute>, boost::noncopyable >
-		("ElectrostaticShortRange", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar, Scalar,Scalar >())
+		("ElectrostaticShortRange", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar, Scalar,Scalar >())
 		.def()
 		;
 	} 
