@@ -804,7 +804,18 @@ void ParticleData::allocate(unsigned int N)
 		
 	// allocate host staging location
 	if (!m_exec_conf.gpu.empty())
+		{
 		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_h_staging), sizeof(float4)*N));
+		
+		h_read_staging.resize(m_exec_conf.gpu.size());
+		h_write_staging.resize(m_exec_conf.gpu.size());
+		
+		for (unsigned int i = 0; i < m_exec_conf.gpu.size(); i++)
+			{
+			m_exec_conf.gpu[i]->call(bind(cudaMallocHost, (void **)((void *)&h_read_staging[i]), sizeof(float4)*N));
+			m_exec_conf.gpu[i]->call(bind(cudaMallocHost, (void **)((void *)&h_write_staging[i]), sizeof(float4)*N));
+			}
+		}
 		
 	// assign which particles are local to which GPU
 	if (!m_exec_conf.gpu.empty())
@@ -1166,38 +1177,70 @@ void ParticleData::communicatePosition()
 		int local_beg = m_gpu_pdata[cur_gpu].local_beg;
 		int local_num = m_gpu_pdata[cur_gpu].local_num;
 		
-		m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_h_staging+local_beg, m_gpu_pdata[cur_gpu].pos + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
+		m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, h_read_staging[cur_gpu], m_gpu_pdata[cur_gpu].pos + local_beg, local_num*sizeof(float4), cudaMemcpyDeviceToHost));
 		
 		num_bytes += local_num*sizeof(float4);
 		}
-		
-	m_exec_conf.syncAll();
-		
-	// copy the full data back to all GPUs
-	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
+	
+	m_exec_conf.tagAll(__FILE__, __LINE__);
+	
+	// special handling for the swapping done on 2 GPUs
+	if (m_exec_conf.gpu.size() == 2)
 		{
-		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		unsigned int local_beg = m_gpu_pdata[cur_gpu].local_beg;
-		unsigned int local_num = m_gpu_pdata[cur_gpu].local_num;
-		unsigned int local_end = local_beg + local_num;
+		// copy GPU0 read data to GPU1 through its write buffer
+		m_exec_conf.gpu[0]->sync();
+		memcpy(h_write_staging[1], h_read_staging[0], m_gpu_pdata[0].local_num*sizeof(float4));
+		m_exec_conf.gpu[1]->sync();
+		m_exec_conf.gpu[1]->callAsync(bind(cudaMemcpy, m_gpu_pdata[1].pos, h_write_staging[1], m_gpu_pdata[0].local_num*sizeof(float4), cudaMemcpyHostToDevice));
 		
-		if (local_beg != 0)
+		// copy GPU 1 read data to GPU0 through its write buffer
+		memcpy(h_write_staging[0], h_read_staging[1], m_gpu_pdata[1].local_num*sizeof(float4));
+				
+		m_exec_conf.gpu[0]->callAsync(bind(cudaMemcpy, m_gpu_pdata[0].pos+m_gpu_pdata[1].local_beg, h_write_staging[0], m_gpu_pdata[1].local_num*sizeof(float4), cudaMemcpyHostToDevice));
+		
+		num_bytes += getN() * sizeof(float4);
+		}
+	else
+		{
+		m_exec_conf.syncAll();
+		
+		// for now, fall back on the slower method for transfers with > 2 GPUs
+		// copy position data from all GPUs to the staging area
+		for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
 			{
-			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos, m_h_staging, (local_beg)*sizeof(float4), cudaMemcpyHostToDevice));
+			int local_beg = m_gpu_pdata[cur_gpu].local_beg;
+			int local_num = m_gpu_pdata[cur_gpu].local_num;
 			
-			num_bytes += (local_beg)*sizeof(float4);
+			memcpy(m_h_staging + local_beg, h_read_staging[cur_gpu], local_num*sizeof(float4));
 			}
-			
-		if (local_end != getN())
+		
+		// copy the full data back to all GPUs
+		for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
 			{
-			m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos + local_end, m_h_staging + local_end, (getN() - local_end)*sizeof(float4), cudaMemcpyHostToDevice));
+			m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+			unsigned int local_beg = m_gpu_pdata[cur_gpu].local_beg;
+			unsigned int local_num = m_gpu_pdata[cur_gpu].local_num;
+			unsigned int local_end = local_beg + local_num;
 			
-			num_bytes += (getN() - local_end)*sizeof(float4);
+			if (local_beg != 0)
+				{
+				m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos, m_h_staging, (local_beg)*sizeof(float4), cudaMemcpyHostToDevice));
+				
+				num_bytes += (local_beg)*sizeof(float4);
+				}
+				
+			if (local_end != getN())
+				{
+				m_exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].pos + local_end, m_h_staging + local_end, (getN() - local_end)*sizeof(float4), cudaMemcpyHostToDevice));
+				
+				num_bytes += (getN() - local_end)*sizeof(float4);
+				}
 			}
 		}
 		
 	m_exec_conf.syncAll();
-		
+
+	
 	if (m_prof) m_prof->pop(m_exec_conf, 0, num_bytes);
 	}
 	
