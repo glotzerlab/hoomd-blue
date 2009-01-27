@@ -24,4 +24,4 @@ fi
 directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj )
 echo "Running hoomd validation test ${directory_list[${SGE_TASK_ID}]} on gpu ${GPU} with args ${HOOMD_ARGS}"
 cd ${directory_list[${SGE_TASK_ID}]}
-hoomd run.hoomd ${HOOMD_ARGS} --mode=gpu --gpu=$GPU
+hoomd run.hoomd ${HOOMD_ARGS} --gpu_error_checking --mode=gpu --gpu=$GPU
