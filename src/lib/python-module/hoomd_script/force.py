@@ -185,7 +185,7 @@ class constant(_force):
 		_force.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_force = hoomd.ConstForceCompute(globals.particle_data, fx, fy, fz);
+		self.cpp_force = hoomd.ConstForceCompute(globals.system_definition, fx, fy, fz);
 			
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		

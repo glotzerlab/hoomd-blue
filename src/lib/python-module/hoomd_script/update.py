@@ -220,7 +220,7 @@ class sort(_updater):
 		_updater.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_updater = hoomd.SFCPackUpdater(globals.particle_data, 1.0);
+		self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition, 1.0);
 		globals.system.addUpdater(self.cpp_updater, self.updater_name, 500);
 
 	## Change sorter parameters
@@ -269,7 +269,7 @@ class rescale_temp(_updater):
 		_updater.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_updater = hoomd.TempRescaleUpdater(globals.particle_data, hoomd.TempCompute(globals.particle_data), T);
+		self.cpp_updater = hoomd.TempRescaleUpdater(globals.system_definition, hoomd.TempCompute(globals.system_definition), T);
 		globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
 
 	## Change rescale_temp parameters
@@ -321,7 +321,7 @@ class zero_momentum(_updater):
 		_updater.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.particle_data);
+		self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.system_definition);
 		globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
 
 # Global current id counter to assign updaters unique names

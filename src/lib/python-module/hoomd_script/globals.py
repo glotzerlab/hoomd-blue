@@ -47,10 +47,10 @@
 # there may be some special cases where it is needed. Any variable
 # defined here can be accessed in a user script by prepending
 # "globals." to the variable name. For example, to access the 
-# global ParticleData, a user script can access \c globals.particle_data .
+# global SystemDefinition, a user script can access \c globals.system_definition .
 
-## Global variable that holds the ParticleData shared by all parts of hoomd_script
-particle_data = None;
+## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
+system_definition = None;
 
 ## Global variable that holds the System shared by all parts of hoomd_script
 system = None;
@@ -72,9 +72,9 @@ loggers = [];
 # \details \note Only use this if you really know what you are doing. Its intended use
 # is only for unit testsing hoomd_script.
 def _clear():
-	global particle_data, system, forces, integrator, neighbor_list, loggers;
+	global system_definition, system, forces, integrator, neighbor_list, loggers;
 	
-	particle_data = None;
+	system_definition = None;
 	system = None;
 	forces = [];
 	integrator = None;

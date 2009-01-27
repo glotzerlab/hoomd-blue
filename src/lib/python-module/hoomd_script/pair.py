@@ -183,10 +183,10 @@ class coeff:
 			raise RuntimeError('Error verifying pair coefficients');
 		
 		# get a list of types from the particle data
-		ntypes = globals.particle_data.getNTypes();
+		ntypes = globals.system_definition.getParticleData().getNTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 		
 		valid = True;
 		# loop over all possible pairs and verify that all required variables are set
@@ -264,26 +264,26 @@ class nlist:
 		
 		mode = "binned";
 		
-		box = globals.particle_data.getBox();
+		box = globals.system_definition.getParticleData().getBox();
 		min_width_for_bin = (default_r_buff + r_cut)*3.0;
 		if (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin or (box.zhi - box.zlo) < min_width_for_bin:
 			print "Notice: Forcing use of O(N^2) neighbor list due to small box dimensions";
 			mode = "nsq";
 		
 		# create the C++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
 			if mode == "binned":
-				self.cpp_nlist = hoomd.BinnedNeighborList(globals.particle_data, r_cut, default_r_buff)
+				self.cpp_nlist = hoomd.BinnedNeighborList(globals.system_definition, r_cut, default_r_buff)
 			elif mode == "nsq":
-				self.cpp_nlist = hoomd.NeighborList(globals.particle_data, r_cut, default_r_buff)
+				self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
 			else:
 				print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
 				raise RuntimeError("Error creating neighbor list");
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			if mode == "binned":
-				self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.particle_data, r_cut, default_r_buff)
+				self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
 			elif mode == "nsq":
-				self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.particle_data, r_cut, default_r_buff)
+				self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.system_definition, r_cut, default_r_buff)
 			else:
 				print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
 				raise RuntimeError("Error creating neighbor list");
@@ -422,11 +422,11 @@ class lj(force._force):
 		neighbor_list = _update_global_nlist(r_cut);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.LJForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.LJForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.LJForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force = hoomd.LJForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating lj pair force");
@@ -444,10 +444,10 @@ class lj(force._force):
 			raise RuntimeError("Error updating pair coefficients");
 		
 		# set all the params
-		ntypes = globals.particle_data.getNTypes();
+		ntypes = globals.system_definition.getParticleData().getNTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 		
 		for i in xrange(0,ntypes):
 			for j in xrange(i,ntypes):
@@ -506,11 +506,11 @@ class yukawa(force._force):
 		neighbor_list = _update_global_nlist(r_cut);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.YukawaForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, kappa);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.YukawaForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut, kappa);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.YukawaForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, kappa);
+			self.cpp_force = hoomd.YukawaForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut, kappa);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating yukawa pair force");
@@ -528,10 +528,10 @@ class yukawa(force._force):
 			raise RuntimeError("Error updating pair coefficients");
 		
 		# set all the params
-		ntypes = globals.particle_data.getNTypes();
+		ntypes = globals.system_definition.getParticleData().getNTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 		
 		for i in xrange(0,ntypes):
 			for j in xrange(i,ntypes):

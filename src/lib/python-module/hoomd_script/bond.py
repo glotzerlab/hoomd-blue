@@ -77,7 +77,7 @@ class harmonic(force._force):
 		util.print_status_line();
 		
 		# check that some bonds are defined
-		if globals.particle_data.getBondData().getNumBonds() == 0:
+		if globals.system_definition.getBondData().getNumBonds() == 0:
 			print >> sys.stderr, "\n***Error! No bonds are defined.\n";
 			raise RuntimeError("Error creating bond forces");		
 		
@@ -85,10 +85,10 @@ class harmonic(force._force):
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.HarmonicBondForceCompute(globals.particle_data);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_force = hoomd.HarmonicBondForceComputeGPU(globals.particle_data);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.HarmonicBondForceCompute(globals.system_definition);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_force = hoomd.HarmonicBondForceComputeGPU(globals.system_definition);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");
@@ -123,7 +123,7 @@ class harmonic(force._force):
 		util.print_status_line();
 		
 		# set the parameters for the appropriate type
-		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0);
+		self.cpp_force.setParams(globals.system_definition.getBondData().getTypeByName(bond_type), k, r0);
 		
 		# track which particle types we have set
 		if not bond_type in self.bond_types_set:
@@ -131,10 +131,10 @@ class harmonic(force._force):
 		
 	def update_coeffs(self):
 		# get a list of all bond types in the simulation
-		ntypes = globals.particle_data.getBondData().getNBondTypes();
+		ntypes = globals.system_definition.getBondData().getNBondTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getBondData().getNameByType(i));
+			type_list.append(globals.system_definition.getBondData().getNameByType(i));
 			
 		# check to see if all particle types have been set
 		for cur_type in type_list:
@@ -170,7 +170,7 @@ class fene(force._force):
 		util.print_status_line();
 		
 		# check that some bonds are defined
-		if globals.particle_data.getBondData().getNumBonds() == 0:
+		if globals.system_definition.getBondData().getNumBonds() == 0:
 			print >> sys.stderr, "\n***Error! No bonds are defined.\n";
 			raise RuntimeError("Error creating bond forces");		
 		
@@ -178,10 +178,10 @@ class fene(force._force):
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.FENEBondForceCompute(globals.particle_data);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_force = hoomd.FENEBondForceComputeGPU(globals.particle_data);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.FENEBondForceCompute(globals.system_definition);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_force = hoomd.FENEBondForceComputeGPU(globals.system_definition);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");
@@ -217,17 +217,17 @@ class fene(force._force):
 	def set_coeff(self, bond_type, k, r0, sigma, epsilon):
 		util.print_status_line();
 		
-		self.cpp_force.setParams(globals.particle_data.getBondData().getTypeByName(bond_type), k, r0, sigma, epsilon);
+		self.cpp_force.setParams(globals.system_definition.getBondData().getTypeByName(bond_type), k, r0, sigma, epsilon);
 		# track which particle types we have set
 		if not bond_type in self.bond_types_set:
 			self.bond_types_set.append(bond_type);
 		
 	def update_coeffs(self):
 		# get a list of all bond types in the simulation
-		ntypes = globals.particle_data.getBondData().getNBondTypes();
+		ntypes = globals.system_definition.getBondData().getNBondTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getBondData().getNameByType(i));
+			type_list.append(globals.system_definition.getBondData().getNameByType(i));
 			
 		# check to see if all particle types have been set
 		for cur_type in type_list:

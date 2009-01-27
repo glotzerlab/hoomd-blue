@@ -98,10 +98,10 @@ class lj(force._force):
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
-		#if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-		self.cpp_force = hoomd.LJWallForceCompute(globals.particle_data, r_cut);
-		#elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-		#	self.cpp_force = hoomd.LJWallForceComputeGPU(globals.particle_data, f_cut);
+		#if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+		self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
+		#elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		#	self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
 		#else:
 		#	print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 		#	raise RuntimeError("Error creating wall.lj forces");
@@ -138,7 +138,7 @@ class lj(force._force):
 		lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
 		lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
 		# set the parameters for the appropriate type
-		self.cpp_force.setParams(globals.particle_data.getTypeByName(particle_type), lj1, lj2);
+		self.cpp_force.setParams(globals.system_definition.getParticleData().getTypeByName(particle_type), lj1, lj2);
 		
 		# track which particle types we have set
 		if not particle_type in self.particle_types_set:
@@ -146,10 +146,10 @@ class lj(force._force):
 		
 	def update_coeffs(self):
 		# get a list of all particle types in the simulation
-		ntypes = globals.particle_data.getNTypes();
+		ntypes = globals.system_definition.getParticleData().getNTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 			
 		# check to see if all particle types have been set
 		for cur_type in type_list:

@@ -13,13 +13,13 @@ class init_create_random_tests (unittest.TestCase):
 	# tests basic creation of the random initializer
 	def test(self):
 		init.create_random(N=100, phi_p=0.05);
-		self.assert_(globals.particle_data);
+		self.assert_(globals.system_definition);
 		self.assert_(globals.system);
 	
 	# tests creation with a few more arugments specified
 	def test_moreargs(self):
 		init.create_random(name="B", min_dist=0.1, N=100, phi_p=0.05);
-		self.assert_(globals.particle_data);
+		self.assert_(globals.system_definition);
 		self.assert_(globals.system);
 		
 	# checks for an error if initialized twice
@@ -43,7 +43,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
 	# tests basic creation of the random initializer
 	def test(self):
 		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
-		self.assert_(globals.particle_data);
+		self.assert_(globals.system_definition);
 		self.assert_(globals.system);
 	
 	# checks for an error if initialized twice

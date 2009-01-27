@@ -218,7 +218,7 @@ class imd(_analyzer):
 		_analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.IMDInterface(globals.particle_data, port);
+		self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port);
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
 
 
@@ -288,7 +288,7 @@ class log(_analyzer):
 		_analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.Logger(globals.particle_data, filename, header_prefix);
+		self.cpp_analyzer = hoomd.Logger(globals.system_definition, filename, header_prefix);
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
 		
 		# set the logged quantities
@@ -390,7 +390,7 @@ class msd(_analyzer):
 		_analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.MSDAnalyzer(globals.particle_data, filename, header_prefix);
+		self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix);
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
 	
 		# it is an error to specify no groups
