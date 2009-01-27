@@ -87,7 +87,7 @@ class System
 	{
 	public:
 		//! Constructor
-		System(boost::shared_ptr<ParticleData> pdata, unsigned int initial_tstep);
+		System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep);
 		
 		// -------------- Analyzer get/set methods
 		
@@ -232,9 +232,9 @@ class System
 		
 		std::map< std::string, boost::shared_ptr<Compute> > m_computes;	//!< Named list of Computes belonging to this System
 		
-		boost::shared_ptr<Integrator> m_integrator;	//!< Integrator that advances time in this System
-		boost::shared_ptr<ParticleData> m_pdata;	//!< Particle Data owned by this System
-		boost::shared_ptr<Profiler> m_profiler;		//!< Profiler to profile runs
+		boost::shared_ptr<Integrator> m_integrator;		//!< Integrator that advances time in this System
+		boost::shared_ptr<SystemDefinition> m_sysdef;	//!< SystemDefinition for this System
+		boost::shared_ptr<Profiler> m_profiler;			//!< Profiler to profile runs
 		unsigned int m_start_tstep;		//!< Intial time step of the current run
 		unsigned int m_end_tstep;		//!< Final time step of the current run
 		unsigned int m_cur_tstep;		//!< Current time step

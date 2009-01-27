@@ -58,20 +58,19 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data that makes up the system to be simulated
+/*! \param sysdef SystemDefinition for the system to be simulated
 	\param initial_tstep Time step to start counting from when run() is first called
 	
 	\post The System is constructed with no attached computes, updaters, 
 		analyzers or integrators. Profiling defaults to disabled and
 		statistics are printed every 10 seconds.
 */	
-System::System(boost::shared_ptr<ParticleData> pdata, unsigned int initial_tstep)
-	: m_pdata(pdata), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
+System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
+	: m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
 		m_last_status_time(0), m_last_status_tstep(initial_tstep), m_profile(false), m_stats_period(10)
 	{
 	// sanity check
-	assert(pdata);
-	assert(pdata->getN() > 0);	
+	assert(m_sysdef);
 	}
 	
 /*! \param analyzer Shared pointer to the Analyzer to add
@@ -460,7 +459,7 @@ void System::setupProfiling()
 	// set the profiler on everything
 	if (m_integrator)
 		m_integrator->setProfiler(m_profiler);
-	m_pdata->setProfiler(m_profiler);
+	m_sysdef->getParticleData()->setProfiler(m_profiler);
 	
 	// analyzers
 	vector<analyzer_item>::iterator analyzer;
@@ -483,7 +482,7 @@ void System::printStats()
 	cout << "---------" << endl;
 	// set the profiler on everything
 	//m_integrator->printStats();
-	//m_pdata->printStats();
+	//m_sysdef->getParticleData()->printStats();
 	
 	// analyzers
 	//vector<analyzer_item>::iterator analyzer;
@@ -525,7 +524,7 @@ void System::generateStatusLine()
 
 void export_System()
 	{
-	class_< System, boost::shared_ptr<System>, boost::noncopyable > ("System", init< boost::shared_ptr<ParticleData>, unsigned int >())
+	class_< System, boost::shared_ptr<System>, boost::noncopyable > ("System", init< boost::shared_ptr<SystemDefinition>, unsigned int >())
 		.def("addAnalyzer", &System::addAnalyzer)
 		.def("removeAnalyzer", &System::removeAnalyzer)
 		.def("getAnalyzer", &System::getAnalyzer)
