@@ -58,10 +58,10 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata ParticleData to compute bond forces on
+/*! \param sysdef System to compute bond forces on
 */
-FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: FENEBondForceCompute(pdata)
+FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+	: FENEBondForceCompute(sysdef)
 	{
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
@@ -209,7 +209,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 void export_FENEBondForceComputeGPU()
 	{
 	class_<FENEBondForceComputeGPU, boost::shared_ptr<FENEBondForceComputeGPU>, bases<FENEBondForceCompute>, boost::noncopyable >
-		("FENEBondForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
+		("FENEBondForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setBlockSize", &FENEBondForceComputeGPU::setBlockSize)
 		;
 	}

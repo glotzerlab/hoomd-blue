@@ -61,15 +61,15 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 	\note The LJForceComputeGPU does not own the Neighborlist, the caller should
 		delete the neighborlist when done.
 */
-LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: LJForceCompute(pdata, nlist, r_cut)
+LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
+	: LJForceCompute(sysdef, nlist, r_cut)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -225,7 +225,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 void export_LJForceComputeGPU()
 	{
 	class_<LJForceComputeGPU, boost::shared_ptr<LJForceComputeGPU>, bases<LJForceCompute>, boost::noncopyable >
-		("LJForceComputeGPU", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar >())
+		("LJForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
 		.def("setBlockSize", &LJForceComputeGPU::setBlockSize)
 		;
 	}

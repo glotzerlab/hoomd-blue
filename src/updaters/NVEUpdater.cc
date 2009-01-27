@@ -56,10 +56,10 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System to update
 	\param deltaT Time step to use
 */
-NVEUpdater::NVEUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : Integrator(pdata, deltaT), m_accel_set(false), m_limit(false), m_limit_val(1.0)
+NVEUpdater::NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Integrator(sysdef, deltaT), m_accel_set(false), m_limit(false), m_limit_val(1.0)
 	{
 	}
 
@@ -278,7 +278,7 @@ void NVEUpdater::update(unsigned int timestep)
 void export_NVEUpdater()
 	{
 	class_<NVEUpdater, boost::shared_ptr<NVEUpdater>, bases<Integrator>, boost::noncopyable>
-		("NVEUpdater", init< boost::shared_ptr<ParticleData>, Scalar >())
+		("NVEUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar >())
 		.def("setLimit", &NVEUpdater::setLimit)
 		.def("removeLimit", &NVEUpdater::removeLimit);
 	}

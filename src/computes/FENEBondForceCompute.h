@@ -63,7 +63,7 @@ class FENEBondForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		FENEBondForceCompute(boost::shared_ptr<ParticleData> pdata);
+		FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
 		
 		//! Destructor
 		~FENEBondForceCompute();

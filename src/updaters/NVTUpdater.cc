@@ -56,12 +56,12 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System to update
 	\param deltaT Time step to use
 	\param tau NVT period
 	\param T Temperature set point
 */
-NVTUpdater::NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : Integrator(pdata, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
+NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar T) : Integrator(sysdef, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
 	{
 	if (m_tau <= 0.0)
 		cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
@@ -286,7 +286,7 @@ void NVTUpdater::update(unsigned int timestep)
 void export_NVTUpdater()
 	{
 	class_<NVTUpdater, boost::shared_ptr<NVTUpdater>, bases<Integrator>, boost::noncopyable>
-		("NVTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar >())
+		("NVTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar >())
 		.def("setT", &NVTUpdater::setT)
 		.def("setTau", &NVTUpdater::setTau)
 		;

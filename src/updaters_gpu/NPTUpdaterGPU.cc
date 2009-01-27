@@ -55,14 +55,14 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System to update
 	\param deltaT Time step to use
 	\param tau Nose-Hoover period
 	\param tauP barostat period
 	\param T Temperature set point
 	\param P Pressure set point
 */
-NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) : NPTUpdater(pdata, deltaT, tau, tauP, T, P)
+NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) : NPTUpdater(sysdef, deltaT, tau, tauP, T, P)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
@@ -398,7 +398,7 @@ Scalar NPTUpdaterGPU::computePressure(unsigned int timestep)
 void export_NPTUpdaterGPU()
 	{
 	class_<NPTUpdaterGPU, boost::shared_ptr<NPTUpdaterGPU>, bases<NPTUpdater>, boost::noncopyable>
-	  ("NPTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar, Scalar, Scalar >())
+	  ("NPTUpdaterGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar, Scalar, Scalar >())
 		;
 	}
 

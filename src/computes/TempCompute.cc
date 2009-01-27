@@ -57,9 +57,9 @@ using namespace boost::python;
 using namespace std;
 
 
-/*! \param pdata Particle Data to compute temperature of
+/*! \param sysdef System to compute temperature of
 */
-TempCompute::TempCompute(boost::shared_ptr<ParticleData> pdata) : Compute(pdata), m_temp(0.0)
+TempCompute::TempCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_temp(0.0)
 	{
 	assert(m_pdata);
 	m_dof = m_pdata->getN() * 3;
@@ -110,7 +110,7 @@ void TempCompute::computeTemp()
 void export_TempCompute()
 	{
 	class_<TempCompute, boost::shared_ptr<TempCompute>, bases<Compute>, boost::noncopyable >
-		("TempCompute", init< boost::shared_ptr<ParticleData> >())
+		("TempCompute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setDOF", &TempCompute::setDOF)
 		.def("getTemp", &TempCompute::getTemp)
 		;

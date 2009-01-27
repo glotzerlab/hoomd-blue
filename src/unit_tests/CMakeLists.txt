@@ -74,7 +74,8 @@ enable_testing()
 
 ###################################
 ## Setup all of the test executables in a for loop
-set(TEST_LIST 
+set(TEST_LIST
+	gpu_array_test
 	pdata_test
 	particle_group_test
 	utils_test
@@ -109,7 +110,12 @@ endif(ENABLE_CUDA)
 
 foreach (CUR_TEST ${TEST_LIST})
 	# add and link the unit test executable
+	if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+	cuda_add_executable(${CUR_TEST} ${CUR_TEST}.cc ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+	else(ENABLEC_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
 	add_executable(${CUR_TEST} ${CUR_TEST}.cc)
+	endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+	
 	target_link_libraries(${CUR_TEST} hoomd_python_module ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
 
 	# add it to the unit test list

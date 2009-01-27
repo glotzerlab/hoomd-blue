@@ -58,12 +58,12 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System data to update
 	\param deltaT Time step to use
 	\param tau NVT period
 	\param T Temperature set point
 */
-NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : NVTUpdater(pdata, deltaT, tau, T)
+NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar T) : NVTUpdater(sysdef, deltaT, tau, T)
 	{
 	// at least one GPU is needed
 	if (exec_conf.gpu.size() == 0)
@@ -213,7 +213,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 void export_NVTUpdaterGPU()
 	{
 	class_<NVTUpdaterGPU, boost::shared_ptr<NVTUpdaterGPU>, bases<NVTUpdater>, boost::noncopyable>
-		("NVTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar >())
+		("NVTUpdaterGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar >())
 		;
 	}
 

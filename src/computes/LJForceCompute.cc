@@ -56,13 +56,13 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 */
-LJForceCompute::LJForceCompute(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: ForceCompute(pdata), m_nlist(nlist), m_r_cut(r_cut)
+LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
 	{
 	assert(m_pdata);
 	assert(m_nlist);
@@ -334,7 +334,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 void export_LJForceCompute()
 	{
 	class_<LJForceCompute, boost::shared_ptr<LJForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("LJForceCompute", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar >())
+		("LJForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
 		.def("setParams", &LJForceCompute::setParams)
 		;
 	}

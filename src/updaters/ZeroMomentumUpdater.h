@@ -61,7 +61,7 @@ class ZeroMomentumUpdater : public Updater
 	{
 	public:
 		//! Constructor
-		ZeroMomentumUpdater(boost::shared_ptr<ParticleData> pdata);
+		ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);

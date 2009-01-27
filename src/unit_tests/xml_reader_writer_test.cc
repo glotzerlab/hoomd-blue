@@ -92,7 +92,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	BoxDim box(Scalar(2.5), Scalar(4.5), Scalar(12.1));
 	int n_types = 5;
 	int n_bond_types = 2;
-	shared_ptr<ParticleData> pdata(new ParticleData(2, box, n_types, n_bond_types));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, box, n_types, n_bond_types));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	// set recognizable values for the particle
 	const ParticleDataArrays array = pdata->acquireReadWrite();
 	array.x[0] = Scalar(1.1);
@@ -125,16 +127,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	pdata->release();
 	
 	// add a couple walls for fun
-	pdata->getWallData()->addWall(Wall(1,0,0, 0,1,0));
-	pdata->getWallData()->addWall(Wall(0,1,0, 0,0,1));
-	pdata->getWallData()->addWall(Wall(0,0,1, 1,0,0));
+	sysdef->getWallData()->addWall(Wall(1,0,0, 0,1,0));
+	sysdef->getWallData()->addWall(Wall(0,1,0, 0,0,1));
+	sysdef->getWallData()->addWall(Wall(0,0,1, 1,0,0));
 	
 	// add a few bonds too
-	pdata->getBondData()->addBond(Bond(0, 0, 1));
-	pdata->getBondData()->addBond(Bond(1, 1, 0));
+	sysdef->getBondData()->addBond(Bond(0, 0, 1));
+	sysdef->getBondData()->addBond(Bond(1, 1, 0));
 	
 	// create the writer
-	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test"));
+	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
 	
 	// first file written will have all outputs disabled
 	writer->setOutputPosition(false);
@@ -445,7 +447,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 	// start by creating a single particle system: see it the correct file is written
 	BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
 	int n_types = 10;
-	shared_ptr<ParticleData> pdata(new ParticleData(6, box, n_types));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, box, n_types));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
 	// this is the shuffle order of the particles
 	unsigned int tags[6] = { 5, 2, 3, 1, 0, 4 };
@@ -476,7 +479,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 	pdata->release();
 	
 	// create the writer
-	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test"));
+	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
 	
 	// write the file with all outputs enabled
 	writer->setOutputPosition(true);
@@ -726,7 +729,8 @@ bond_c 3 4\n\
 
 	// now that we have created a test file, load it up into a pdata
 	HOOMDInitializer init("test_input.xml");
-	shared_ptr<ParticleData> pdata(new ParticleData(init));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(init));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
 	// verify all parameters
 	BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)150000000);
@@ -764,8 +768,8 @@ bond_c 3 4\n\
 	pdata->release();
 
 	// check the walls
-	BOOST_REQUIRE_EQUAL(pdata->getWallData()->getNumWalls(), (unsigned int)2);
-	Wall wall1 = pdata->getWallData()->getWall(0);
+	BOOST_REQUIRE_EQUAL(sysdef->getWallData()->getNumWalls(), (unsigned int)2);
+	Wall wall1 = sysdef->getWallData()->getWall(0);
 	MY_BOOST_CHECK_CLOSE(wall1.origin_x, 1.0, tol);
 	MY_BOOST_CHECK_CLOSE(wall1.origin_y, 2.0, tol);
 	MY_BOOST_CHECK_CLOSE(wall1.origin_z, 3.0, tol);
@@ -774,7 +778,7 @@ bond_c 3 4\n\
 	MY_BOOST_CHECK_CLOSE(wall1.normal_y, 0.569802882, tol);
 	MY_BOOST_CHECK_CLOSE(wall1.normal_z, 0.683763459, tol);
 
-	Wall wall2 = pdata->getWallData()->getWall(1);
+	Wall wall2 = sysdef->getWallData()->getWall(1);
 	MY_BOOST_CHECK_CLOSE(wall2.origin_x, 7.0, tol);
 	MY_BOOST_CHECK_CLOSE(wall2.origin_y, 8.0, tol);
 	MY_BOOST_CHECK_CLOSE(wall2.origin_z, 9.0, tol);
@@ -784,7 +788,7 @@ bond_c 3 4\n\
 	MY_BOOST_CHECK_CLOSE(wall2.normal_z, -0.628108707, tol);
 
 	// check the bonds
-	boost::shared_ptr<BondData> bond_data = pdata->getBondData();
+	boost::shared_ptr<BondData> bond_data = sysdef->getBondData();
 	
 	// 4 bonds should have been read in
 	BOOST_REQUIRE_EQUAL(bond_data->getNumBonds(), (unsigned int)4);

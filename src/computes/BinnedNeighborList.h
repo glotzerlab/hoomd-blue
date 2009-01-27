@@ -63,7 +63,7 @@ class BinnedNeighborList : public NeighborList
 	{
 	public:
 		//! Constructor
-		BinnedNeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff);
+		BinnedNeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
 				
 		//! Print statistics on the neighborlist
 		virtual void printStats();
@@ -86,7 +86,7 @@ class BinnedNeighborList : public NeighborList
 		void updateListFromBins();
 		
 		//! Builds the neighbor list
-		virtual void buildNlist();		
+		virtual void buildNlist();
 		
 	};
 

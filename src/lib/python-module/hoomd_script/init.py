@@ -82,19 +82,19 @@ def read_xml(filename):
 	_parse_command_line();
 
 	# check if initialization has already occured
-	if (globals.particle_data != None):
+	if (globals.system_definition != None):
 		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');
 
 	# read in the data
 	initializer = hoomd.HOOMDInitializer(filename);
-	globals.particle_data = hoomd.ParticleData(initializer, _create_exec_conf());
+	globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
 	
 	# initialize the system
-	globals.system = hoomd.System(globals.particle_data, initializer.getTimeStep());
+	globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
 	
 	_perform_common_init_tasks();
-	return globals.particle_data;
+	return globals.system_definition;
 
 
 ## Generates N randomly positioned particles of the same type
@@ -125,7 +125,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 	my_exec_conf = _create_exec_conf();
 	
 	# check if initialization has already occured
-	if (globals.particle_data != None):
+	if (globals.system_definition != None):
 		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');
 
@@ -154,13 +154,13 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 	# generate the particles
 	generator.generate();
 	
-	globals.particle_data = hoomd.ParticleData(generator, my_exec_conf);
+	globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
 	
 	# initialize the system
-	globals.system = hoomd.System(globals.particle_data, 0);
+	globals.system = hoomd.System(globals.system_definition, 0);
 	
 	_perform_common_init_tasks();
-	return globals.particle_data;
+	return globals.system_definition;
 
 
 ## Generates any number of randomly positioned polymers of configurable types
@@ -260,7 +260,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	my_exec_conf = _create_exec_conf();
 		
 	# check if initialization has already occured
-	if (globals.particle_data != None):
+	if (globals.system_definition != None):
 		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError("Error creating random polymers");
 	
@@ -350,13 +350,13 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	# generate the particles
 	generator.generate();
 	
-	globals.particle_data = hoomd.ParticleData(generator, my_exec_conf);
+	globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
 	
 	# initialize the system
-	globals.system = hoomd.System(globals.particle_data, 0);
+	globals.system = hoomd.System(globals.system_definition, 0);
 	
 	_perform_common_init_tasks();
-	return globals.particle_data;
+	return globals.system_definition;
 
 
 ## Performs common initialization tasks

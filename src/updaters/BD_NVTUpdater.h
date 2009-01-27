@@ -71,7 +71,7 @@ class BD_NVTUpdater : public NVEUpdater
 	{
 	public:
 		//! Constructor
-		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
+		BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed);
 		
 		//! Sets the Stochastic Bath Temperature
 		void setT(Scalar Temp); 

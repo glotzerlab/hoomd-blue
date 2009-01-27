@@ -63,7 +63,7 @@ class HarmonicBondForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicBondForceCompute(boost::shared_ptr<ParticleData> pdata);
+		HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
 		
 		//! Destructor
 		~HarmonicBondForceCompute();

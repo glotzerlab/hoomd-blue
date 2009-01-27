@@ -81,7 +81,7 @@ const Scalar tol = 1e-6;
 #endif
 
 //! Typedef'd LJWallForceCompute factory
-typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<ParticleData> pdata, Scalar r_cut)> ljwallforce_creator;
+typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinition> sysdef, Scalar r_cut)> ljwallforce_creator;
 
 //! Test the ability of the lj wall force compute to actually calculate forces
 void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionConfiguration exec_conf)
@@ -91,7 +91,9 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	#endif
 	
 	// this 3 particle test will check proper wall force computation among all 3 axes
-	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
 	arrays.x[0] = 0.0; arrays.y[0] = Scalar(1.2); arrays.z[0] = 0.0;	// particle to test wall at pos 0,0,0
 	arrays.x[1] = Scalar(12.2); arrays.y[1] = Scalar(-10.0); arrays.z[1] = 0.0;	// particle to test wall at pos 10,0,0
@@ -99,7 +101,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	pdata_3->release();
 	
 	// create the wall force compute with a default cuttoff of 1.0 => all forces should be 0 for the first round
-	shared_ptr<LJWallForceCompute> fc_3 = ljwall_creator(pdata_3, Scalar(1.0));
+	shared_ptr<LJWallForceCompute> fc_3 = ljwall_creator(sysdef_3, Scalar(1.0));
 	
 	// pick some parameters
 	Scalar epsilon = Scalar(1.15);
@@ -130,9 +132,9 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	MY_BOOST_CHECK_SMALL(force_arrays.pe[2], tol);
 	
 	// add the walls
-	pdata_3->getWallData()->addWall(Wall(0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
-	pdata_3->getWallData()->addWall(Wall(10.0, 0.0, 0.0, 1.0, 0.0, 0.0));
-	pdata_3->getWallData()->addWall(Wall(0.0, 0.0, -10.0, 0.0, 0.0, 1.0));
+	sysdef_3->getWallData()->addWall(Wall(0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
+	sysdef_3->getWallData()->addWall(Wall(10.0, 0.0, 0.0, 1.0, 0.0, 0.0));
+	sysdef_3->getWallData()->addWall(Wall(0.0, 0.0, -10.0, 0.0, 0.0, 1.0));
 	
 	// compute the forces again
 	fc_3->compute(1);
@@ -175,9 +177,9 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	}
 
 //! LJWallForceCompute creator for unit tests
-shared_ptr<LJWallForceCompute> base_class_ljwall_creator(shared_ptr<ParticleData> pdata, Scalar r_cut)
+shared_ptr<LJWallForceCompute> base_class_ljwall_creator(shared_ptr<SystemDefinition> sysdef, Scalar r_cut)
 	{
-	return shared_ptr<LJWallForceCompute>(new LJWallForceCompute(pdata, r_cut));
+	return shared_ptr<LJWallForceCompute>(new LJWallForceCompute(sysdef, r_cut));
 	}
 
 //! boost test case for particle test on CPU

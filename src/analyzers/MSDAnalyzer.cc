@@ -51,7 +51,7 @@ using namespace boost::python;
 #include <iomanip>
 using namespace std;
 
-/*! \param pdata Particle data to analyze
+/*! \param sysdef SystemDefinition containing the Particle data to analyze
 	\param fname File name to write output to
 	\param header_prefix String to print before the file header
 	
@@ -59,8 +59,8 @@ using namespace std;
 	(and overwritten if necessary). Nothing is initially written to the file, that will occur on the first call to 
 	analyze()
 */
-MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<ParticleData> pdata, std::string fname, const std::string& header_prefix)
-	: Analyzer(pdata), m_delimiter("\t"), m_header_prefix(header_prefix), m_columns_changed(false), m_file(fname.c_str())
+MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef, std::string fname, const std::string& header_prefix)
+	: Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_columns_changed(false), m_file(fname.c_str())
 	{
 	// record the initial particle positions by tag
 	m_initial_x.resize(m_pdata->getN());
@@ -247,7 +247,7 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
 void export_MSDAnalyzer()
 	{
 	class_<MSDAnalyzer, boost::shared_ptr<MSDAnalyzer>, bases<Analyzer>, boost::noncopyable>
-		("MSDAnalyzer", init< boost::shared_ptr<ParticleData>, const std::string&, const std::string& >())
+		("MSDAnalyzer", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string& >())
 		.def("setDelimiter", &MSDAnalyzer::setDelimiter)
 		.def("addColumn", &MSDAnalyzer::addColumn)
 		;

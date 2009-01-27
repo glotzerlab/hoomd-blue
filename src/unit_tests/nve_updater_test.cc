@@ -88,7 +88,7 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT)> nveup_creator;
+typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT)> nveup_creator;
 
 //! Integrate 1 particle through time and compare to an analytical solution
 void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
@@ -100,7 +100,9 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	// check that the nve updater can actually integrate particle positions and velocities correctly
 	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -121,11 +123,11 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	pdata->release();
 	
 	Scalar deltaT = Scalar(0.0001);
-	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata, deltaT);
+	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
 	// also test the ability of the updater to add two force computes together properly
-	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata, 1.5, 0.0, 0.0));
+	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1.5, 0.0, 0.0));
 	nve_up->addForceCompute(fc1);
-	shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(pdata, 0.0, 2.5, 0.0));
+	shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(sysdef, 0.0, 2.5, 0.0));
 	nve_up->addForceCompute(fc2);
 	
 	// verify proper integration compared to x = x0 + v0 t + 1/2 a t^2, v = v0 + a t
@@ -167,7 +169,9 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
 	#endif
 	
 	// create a simple 1 particle system
-	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -181,13 +185,13 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
 	pdata->release();
 	
 	Scalar deltaT = Scalar(0.0001);
-	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata, deltaT);
+	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
 	// set the limit
 	Scalar limit = Scalar(0.1);
 	nve_up->setLimit(limit);
 
 	// create an insanely large force to test the limiting method
-	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata, 1e9, 2e9, 3e9));
+	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1e9, 2e9, 3e9));
 	nve_up->addForceCompute(fc1);
 	
 	// expected movement vectors
@@ -233,7 +237,9 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
 	// there are way too many permutations to test here, so I will simply
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles set to move across each boundary
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.vx[0] = Scalar(-0.5);
@@ -250,9 +256,9 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
 	pdata_6->release();
 	
 	Scalar deltaT = 1.0;
-	shared_ptr<NVEUpdater> nve_up = nve_creator(pdata_6, deltaT);
+	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef_6, deltaT);
 	// no forces on these particles
-	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(pdata_6, 0, 0.0, 0.0));
+	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef_6, 0, 0.0, 0.0));
 	nve_up->addForceCompute(fc1);
 	
 	// move the particles across the boundary
@@ -289,15 +295,17 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
 	RandomInitializer rand_init1(N, Scalar(0.2), Scalar(0.9), "A");
 	RandomInitializer rand_init2(N, Scalar(0.2), Scalar(0.9), "A");
 	rand_init1.setSeed(12345);
-	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(rand_init1, exec_conf));
+	shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
 	rand_init2.setSeed(12345);
-	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2, exec_conf));
+	shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(rand_init2, exec_conf));
+	shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
 
-	shared_ptr<NeighborList> nlist1(new NeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
-	shared_ptr<NeighborList> nlist2(new NeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
 	
-	shared_ptr<LJForceCompute> fc1(new LJForceCompute(pdata1, nlist1, Scalar(3.0)));
-	shared_ptr<LJForceCompute> fc2(new LJForceCompute(pdata2, nlist2, Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc1(new LJForceCompute(sysdef1, nlist1, Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc2(new LJForceCompute(sysdef2, nlist2, Scalar(3.0)));
 		
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
@@ -310,8 +318,8 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
 	fc1->setParams(0,0,lj1,lj2);
 	fc2->setParams(0,0,lj1,lj2);
 
-	shared_ptr<NVEUpdater> nve1 = nve_creator1(pdata1, Scalar(0.005));
-	shared_ptr<NVEUpdater> nve2 = nve_creator2(pdata2, Scalar(0.005));
+	shared_ptr<NVEUpdater> nve1 = nve_creator1(sysdef1, Scalar(0.005));
+	shared_ptr<NVEUpdater> nve2 = nve_creator2(sysdef2, Scalar(0.005));
 
 	nve1->addForceCompute(fc1);
 	nve2->addForceCompute(fc2);
@@ -351,16 +359,16 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
 	}
 	
 //! NVEUpdater factory for the unit tests
-shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT)
+shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
 	{
-	return shared_ptr<NVEUpdater>(new NVEUpdater(pdata, deltaT));
+	return shared_ptr<NVEUpdater>(new NVEUpdater(sysdef, deltaT));
 	}
 	
 #ifdef ENABLE_CUDA
 //! NVEUpdaterGPU factory for the unit tests
-shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<ParticleData> pdata, Scalar deltaT)
+shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
 	{
-	return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(pdata, deltaT));
+	return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(sysdef, deltaT));
 	}
 #endif
 	

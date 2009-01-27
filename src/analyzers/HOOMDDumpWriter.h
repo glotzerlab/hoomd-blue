@@ -79,7 +79,7 @@ class HOOMDDumpWriter : public Analyzer
 	{
 	public:
 		//! Construct the writer
-		HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname);
+		HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
 		
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);

@@ -77,7 +77,7 @@ class FENEBondForceComputeGPU : public FENEBondForceCompute
 	{
 	public:
 		//! Constructs the compute
-		FENEBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata);
+		FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
 		//! Destructor
 		~FENEBondForceComputeGPU();
 		

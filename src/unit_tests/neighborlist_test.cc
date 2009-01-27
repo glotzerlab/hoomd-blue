@@ -73,7 +73,7 @@ using namespace boost;
 #define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
 
 //! Shortcut for defining a factory
-typedef boost::function<shared_ptr<NeighborList> (shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)> nlist_creator_typ;
+typedef boost::function<shared_ptr<NeighborList> (shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)> nlist_creator_typ;
 
 //! Performs basic functionality tests on a neighbor list
 void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
@@ -84,14 +84,16 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(25.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = arrays.y[1] = arrays.z[1] = 3.25;
 	pdata_2->release();
 
 	// test construction of the neighborlist
-	shared_ptr<NeighborList> nlist_2 = nlist_creator(pdata_2, 3.0, 0.25);
+	shared_ptr<NeighborList> nlist_2 = nlist_creator(sysdef_2, 3.0, 0.25);
 	nlist_2->compute(1);
 
 	// with the given radius, there should be no neighbors: check that
@@ -126,7 +128,9 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 	// there are way too many permutations to test here, so I will simply
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+	
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -136,7 +140,7 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 	arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
 	pdata_6->release();
 
-	shared_ptr<NeighborList> nlist_6 = nlist_creator(pdata_6, 3.0, 0.25);
+	shared_ptr<NeighborList> nlist_6 = nlist_creator(sysdef_6, 3.0, 0.25);
 	nlist_6->setStorageMode(NeighborList::full);
 	nlist_6->compute(0);
 	// verify the neighbor list
@@ -196,7 +200,9 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConf
 	g_gpu_error_checking = true;
 	#endif
 	
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+	
 	// lets make this test simple: put all 6 particles on top of each other and 
 	// see if the exclusion code can ignore 4 of the particles
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
@@ -208,7 +214,7 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConf
 	arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  0;
 	pdata_6->release();
 
-	shared_ptr<NeighborList> nlist_6 = nlist_creator(pdata_6, 3.0, 0.25);
+	shared_ptr<NeighborList> nlist_6 = nlist_creator(sysdef_6, 3.0, 0.25);
 	nlist_6->setStorageMode(NeighborList::full);
 	nlist_6->addExclusion(0,1);
 	nlist_6->addExclusion(0,2);
@@ -262,12 +268,13 @@ void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creato
 	// construct the particle system
 	RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
 	
-	shared_ptr<ParticleData> pdata(new ParticleData(init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(init, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 		
-	shared_ptr<NeighborList> nlist1 = nlist_creator1(pdata, Scalar(3.0), Scalar(0.4));
+	shared_ptr<NeighborList> nlist1 = nlist_creator1(sysdef, Scalar(3.0), Scalar(0.4));
 	nlist1->setStorageMode(NeighborList::full);
 	
-	shared_ptr<NeighborList> nlist2 = nlist_creator2(pdata, Scalar(3.0), Scalar(0.4));
+	shared_ptr<NeighborList> nlist2 = nlist_creator2(sysdef, Scalar(3.0), Scalar(0.4));
 	nlist2->setStorageMode(NeighborList::full);
 	
 	// setup some exclusions: try to fill out all four exclusions for each particle
@@ -309,24 +316,24 @@ void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creato
 	}
 
 // define the creators
-shared_ptr<NeighborList> base_class_nlist_creator(shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)
+shared_ptr<NeighborList> base_class_nlist_creator(shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
 	{
-	return shared_ptr<NeighborList>(new NeighborList(pdata, r_cut, r_buff));
+	return shared_ptr<NeighborList>(new NeighborList(sysdef, r_cut, r_buff));
 	}
 	
-shared_ptr<NeighborList> binned_nlist_creator(shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)
+shared_ptr<NeighborList> binned_nlist_creator(shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
 	{
-	return shared_ptr<NeighborList>(new NeighborList(pdata, r_cut, r_buff));
+	return shared_ptr<NeighborList>(new NeighborList(sysdef, r_cut, r_buff));
 	}
 	
 #ifdef ENABLE_CUDA
-shared_ptr<NeighborList> gpu_nsq_nlist_creator(shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)
+shared_ptr<NeighborList> gpu_nsq_nlist_creator(shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
 	{
-	return shared_ptr<NeighborList>(new NeighborListNsqGPU(pdata, r_cut, r_buff));
+	return shared_ptr<NeighborList>(new NeighborListNsqGPU(sysdef, r_cut, r_buff));
 	}
-shared_ptr<NeighborList> gpu_binned_nlist_creator(shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff)
+shared_ptr<NeighborList> gpu_binned_nlist_creator(shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
 	{
-	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
+	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, r_cut, r_buff));
 	// the default block size kills valgrind :) reduce it
 	nlist->setBlockSize(64);
 	return nlist;

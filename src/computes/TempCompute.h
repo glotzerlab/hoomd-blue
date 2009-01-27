@@ -59,7 +59,7 @@ class TempCompute : public Compute
 	{
 	public:
 		//! Constructs the compute
-		TempCompute(boost::shared_ptr<ParticleData> pdata);
+		TempCompute(boost::shared_ptr<SystemDefinition> sysdef);
 
 		//! Compute the temperature
 		virtual void compute(unsigned int timestep);

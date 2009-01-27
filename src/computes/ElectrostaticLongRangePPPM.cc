@@ -64,7 +64,7 @@ using namespace std;
 
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
 	\param Mmesh_x Number of mesh points along the x axis
 	\param Mmesh_y Number of mesh points along the y axis
 	\param Mmesh_z Number of mesh points along the z axis
@@ -75,8 +75,8 @@ using namespace std;
 	
 	\todo document me!
 */
-ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata, unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z,unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m)
-	:ForceCompute(pdata),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),FFT(FFTP),third_law(third_law_m)
+ElectrostaticLongRangePPPM::ElectrostaticLongRangePPPM(boost::shared_ptr<SystemDefinition> sysdef, unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z,unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m)
+	:ForceCompute(sysdef),N_mesh_x(Mmesh_x),N_mesh_y(Mmesh_y),N_mesh_z(Mmesh_z),P_order(P_order_a),m_alpha(alpha),FFT(FFTP),third_law(third_law_m)
 	{
 	assert(m_pdata);
 

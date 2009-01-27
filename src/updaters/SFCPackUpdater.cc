@@ -58,12 +58,12 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data to perform sorts on
+/*! \param sysdef System to perform sorts on
 	\param bin_width Maximum width of bins to place particles in
 	\note bin_width will be dynamically decreased to reach a power of two grid size
  */
-SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<ParticleData> pdata, Scalar bin_width)
-	: Updater(pdata), m_bin_width(bin_width), m_lastMmax(0)
+SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar bin_width)
+	: Updater(sysdef), m_bin_width(bin_width), m_lastMmax(0)
 	{
 	// perform lots of sanity checks
 	assert(m_pdata);
@@ -582,7 +582,7 @@ void SFCPackUpdater::getSortedOrder()
 void export_SFCPackUpdater()
 	{
 	class_<SFCPackUpdater, boost::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
-		("SFCPackUpdater", init< boost::shared_ptr<ParticleData>, Scalar >())
+		("SFCPackUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar >())
 		.def("setBinWidth", &SFCPackUpdater::setBinWidth)
 		;
 	}

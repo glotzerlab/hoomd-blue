@@ -52,6 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
+#include "SystemDefinition.h"
 #include "BondData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
@@ -273,7 +274,8 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ParticleDataInitializer();
 	export_ParticleData();
 	export_ExecutionConfiguration();
-	export_BondData();	
+	export_BondData();
+	export_SystemDefinition();
 
 	// initializers
 	export_RandomInitializer();

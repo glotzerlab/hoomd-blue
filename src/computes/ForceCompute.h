@@ -136,7 +136,7 @@ class ForceCompute : public Compute
 	{
 	public:
 		//! Constructs the compute
-		ForceCompute(boost::shared_ptr<ParticleData> pdata);
+		ForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
 		
 		//! Destructor
 		virtual ~ForceCompute();

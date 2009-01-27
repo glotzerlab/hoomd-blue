@@ -65,7 +65,7 @@ class IMDInterface : public Analyzer
 	{
 	public:
 		//! Constructor
-		IMDInterface(boost::shared_ptr<ParticleData> pdata, int port = 54321);
+		IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port = 54321);
 			
 		//! Destructor
 		~IMDInterface();

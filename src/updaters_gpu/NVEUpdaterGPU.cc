@@ -59,10 +59,10 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System to update
 	\param deltaT Time step to use
 */
-NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT) : NVEUpdater(pdata, deltaT)
+NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : NVEUpdater(sysdef, deltaT)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 	// at least one GPU is needed
@@ -150,7 +150,7 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 void export_NVEUpdaterGPU()
 	{
 	class_<NVEUpdaterGPU, boost::shared_ptr<NVEUpdaterGPU>, bases<NVEUpdater>, boost::noncopyable>
-		("NVEUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar >())
+		("NVEUpdaterGPU", init< boost::shared_ptr<SystemDefinition>, Scalar >())
 		;
 	}
 

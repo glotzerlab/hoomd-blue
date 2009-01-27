@@ -82,7 +82,7 @@ class xml(analyze._analyzer):
 		analyze._analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.particle_data, filename);
+		self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename);
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
 
 	## Change xml write parameters
@@ -156,7 +156,7 @@ class mol2(analyze._analyzer):
 		analyze._analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.particle_data, filename);
+		self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.system_definition, filename);
 
 		# run it with a ludicrous period so that it is really only run once
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(1e9));
@@ -203,7 +203,7 @@ class dcd(analyze._analyzer):
 		analyze._analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.DCDDumpWriter(globals.particle_data, filename, int(period));
+		self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(period));
 		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
 	
 	def enable(self):

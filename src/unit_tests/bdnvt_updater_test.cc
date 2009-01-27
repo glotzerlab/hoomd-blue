@@ -88,7 +88,7 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)> bdnvtup_creator;
+typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)> bdnvtup_creator;
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
@@ -102,7 +102,8 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 	// a correct temperature and diffuction coefficent  
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -124,7 +125,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 	cout << "Creating an ideal gas of 1000 particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 		
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT, Temp, 123);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT, Temp, 123);
 
     int i;
 	Scalar AvgT = Scalar(0);
@@ -267,7 +268,8 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
 	// and correct average temperature when applied to a population of two different particle types 
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -292,7 +294,7 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
 	cout << "Creating an ideal gas of 1000 particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 		
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT, Temp, 268);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT, Temp, 268);
 
     int i;
 	Scalar AvgT = Scalar(0);
@@ -347,7 +349,9 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 	
 	// check that a stochastic force applied on top of NVE integrator for a 1000 LJ particles stilll produces the correct average temperature
 	// Build a 1000 particle system with particles scattered on the x, y, and z axes.
-	shared_ptr<ParticleData> pdata(new ParticleData(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -368,10 +372,10 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 	cout << "Creating 1000 LJ particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 	
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(pdata, deltaT,Temp, 358);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT,Temp, 358);
 
-	shared_ptr<NeighborList> nlist(new NeighborList(pdata, Scalar(1.3), Scalar(3.0)));
-	shared_ptr<LJForceCompute> fc3(new LJForceCompute(pdata, nlist, Scalar(1.3)));
+	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc3(new LJForceCompute(sysdef, nlist, Scalar(1.3)));
 	
 	Scalar epsilon = Scalar(1.15);
 	Scalar sigma = Scalar(1.0);
@@ -438,18 +442,18 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 
 	
 //! BD_NVTUpdater factory for the unit tests
-shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)
+shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)
 	{
-	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(pdata, deltaT, Temp, seed));
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(sysdef, deltaT, Temp, seed));
 	}
 
 #ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
-shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)
+shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)
 	{
-	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(pdata, deltaT, Temp, seed));
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(sysdef, deltaT, Temp, seed));
 	}
-#endif		
+#endif
 
 //! Basic test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )

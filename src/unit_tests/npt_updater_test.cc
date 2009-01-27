@@ -86,7 +86,7 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NPTUpdator class factory
-typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) > nptup_creator;
+typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) > nptup_creator;
 	
 
 //! Basic functionality test of a generic NPTUpdater
@@ -103,11 +103,12 @@ void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_con
 	// create two identical random particle systems to simulate
 	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
 	rand_init.setSeed(12345);
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(pdata, Scalar(2.5), Scalar(0.8)));
+	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
 
-	shared_ptr<LJForceCompute> fc(new LJForceCompute(pdata, nlist, Scalar(2.5)));
+	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
 
 		
 	// setup some values for alpha and sigma
@@ -121,7 +122,7 @@ void npt_updater_test(nptup_creator npt_creator, ExecutionConfiguration exec_con
 	fc->setParams(0,0,lj1,lj2);
 
 
-	shared_ptr<NPTUpdater> npt = npt_creator(pdata, Scalar(0.001),Scalar(1.0),Scalar(1.0),T,P);
+	shared_ptr<NPTUpdater> npt = npt_creator(sysdef, Scalar(0.001),Scalar(1.0),Scalar(1.0),T,P);
 
 
 	npt->addForceCompute(fc);
@@ -167,15 +168,17 @@ void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_crea
 	RandomInitializer rand_init1(N, Scalar(0.2), Scalar(0.9), "A");
 	RandomInitializer rand_init2(N, Scalar(0.2), Scalar(0.9), "A");
 	rand_init1.setSeed(12345);
-	shared_ptr<ParticleData> pdata1(new ParticleData(rand_init1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(rand_init1, exec_conf));
+	shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
 	rand_init2.setSeed(12345);
-	shared_ptr<ParticleData> pdata2(new ParticleData(rand_init2, exec_conf));
+	shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(rand_init2, exec_conf));
+	shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
 
-	shared_ptr<NeighborList> nlist1(new NeighborList(pdata1, Scalar(3.0), Scalar(0.8)));
-	shared_ptr<NeighborList> nlist2(new NeighborList(pdata2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
 	
-	shared_ptr<LJForceCompute> fc1(new LJForceCompute(pdata1, nlist1, Scalar(3.0)));
-	shared_ptr<LJForceCompute> fc2(new LJForceCompute(pdata2, nlist2, Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc1(new LJForceCompute(sysdef1, nlist1, Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc2(new LJForceCompute(sysdef2, nlist2, Scalar(3.0)));
 		
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
@@ -188,8 +191,8 @@ void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_crea
 	fc1->setParams(0,0,lj1,lj2);
 	fc2->setParams(0,0,lj1,lj2);
 
-	shared_ptr<NPTUpdater> npt1 = npt_creator1(pdata1, Scalar(0.005),Scalar(1.0),Scalar(1.0),T,P);
-	shared_ptr<NPTUpdater> npt2 = npt_creator2(pdata2, Scalar(0.005),Scalar(1.0),Scalar(1.0),T,P);
+	shared_ptr<NPTUpdater> npt1 = npt_creator1(sysdef1, Scalar(0.005),Scalar(1.0),Scalar(1.0),T,P);
+	shared_ptr<NPTUpdater> npt2 = npt_creator2(sysdef2, Scalar(0.005),Scalar(1.0),Scalar(1.0),T,P);
 
 	npt1->addForceCompute(fc1);
 	npt2->addForceCompute(fc2);
@@ -227,16 +230,16 @@ void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_crea
 	}
 	
 //! NPTUpdater factory for the unit tests
-shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
+shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
 	{
-	  return shared_ptr<NPTUpdater>(new NPTUpdater(pdata, deltaT,tau,tauP,T,P));
+	  return shared_ptr<NPTUpdater>(new NPTUpdater(sysdef, deltaT,tau,tauP,T,P));
 	}
 	
 #ifdef ENABLE_CUDA
 //! NPTUpdaterGPU factory for the unit tests
-shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
+shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
 	{
-	  return shared_ptr<NPTUpdater>(new NPTUpdaterGPU(pdata, deltaT, tau, tauP, T, P));
+	  return shared_ptr<NPTUpdater>(new NPTUpdaterGPU(sysdef, deltaT, tau, tauP, T, P));
 	}
 #endif
 	

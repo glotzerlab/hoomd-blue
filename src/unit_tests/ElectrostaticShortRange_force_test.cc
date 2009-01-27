@@ -86,21 +86,22 @@ const Scalar tol = Scalar(1);
 const Scalar MIN_force=Scalar(1.0e-9); 
 
 //! Typedef'd ElectrostaticShortRange factory
-typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)> ElectrostaticShortRange_force_creator;
+typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)> ElectrostaticShortRange_force_creator;
 	
 //! Test the ability of the Short Range Electrostatic force compute to actually calculate forces
 void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator, ExecutionConfiguration exec_conf)
 	{
 	cout << "Testing the accuracy of the look up table in ElectrostaticShortRange" << endl;
 	// Simple test to check the accuracy of the look up table
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0; arrays.charge[0]=1.0;
 	// A positively charged particle is located at the origin
 	arrays.x[1] = 1.0; arrays.y[1] = arrays.z[1] = 0.0; arrays.charge[1]=1.0;
 	// Another positive charge is located at distance 1 in the x axis
 	pdata_2->release();
-	shared_ptr<NeighborList> nlist_2(new NeighborList(pdata_2, Scalar(3.0), Scalar(5.0)));
+	shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(5.0)));
 	// The cut-off is set to 3 while the buffer size is 5
 	Scalar r_cut=Scalar(3.0);
 	
@@ -111,7 +112,7 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 
 	Scalar alpha=Scalar(0.1+k1);
     //Test different values of alpha as well
-	shared_ptr<ElectrostaticShortRange> fc_2=Elstatics_ShortRange_creator(pdata_2,nlist_2,r_cut,alpha,delta,min_value);
+	shared_ptr<ElectrostaticShortRange> fc_2=Elstatics_ShortRange_creator(sysdef_2,nlist_2,r_cut,alpha,delta,min_value);
 	// An ElectrostaticShortRange object with specified value of cut_off, alpha, delta and min_value is instantiated
 	// now let us check how much the force differs from the exact calculation for N_p**3 points within the cut_off;
 	
@@ -175,8 +176,9 @@ void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator
     // Here we are going to place particles next to the boundary of the box and see that 
 	// periodic boudnary conditions work as expected
 	// simuilar test as in lj_force_test
-
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6,BoxDim(20.0,40.0,60.0),1, 0, exec_conf));
+	
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6,BoxDim(20.0,40.0,60.0),1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 	ParticleDataArrays arrays=pdata_6->acquireReadWrite();
 	
 	arrays.x[0]=Scalar(-9.6);arrays.y[0]=Scalar(0.0);arrays.z[0]=Scalar(0.0);arrays.charge[0]=1.0;
@@ -191,8 +193,8 @@ void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator
 	Scalar r_cut=Scalar(3.0);
     Scalar alpha=Scalar(1.0);
 
-	shared_ptr<NeighborList> nlist_6(new NeighborList(pdata_6,r_cut,Scalar(5.0)));
-	shared_ptr<ElectrostaticShortRange> fc_6=Elstatics_ShortRange_creator(pdata_6,nlist_6,r_cut,alpha,Scalar(0.2),Scalar(0.3));
+	shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6,r_cut,Scalar(5.0)));
+	shared_ptr<ElectrostaticShortRange> fc_6=Elstatics_ShortRange_creator(sysdef_6,nlist_6,r_cut,alpha,Scalar(0.2),Scalar(0.3));
 
 	fc_6->compute(0);
 	ForceDataArrays force_arrays=fc_6->acquire();
@@ -240,9 +242,9 @@ void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator
 }
 
 //! ElectrostaticShortRange creator for unit tests
-shared_ptr<ElectrostaticShortRange> base_class_ShortRangeElectrostatic_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)
+shared_ptr<ElectrostaticShortRange> base_class_ShortRangeElectrostatic_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar alpha, Scalar delta, Scalar min_value)
 	{
-	return shared_ptr<ElectrostaticShortRange>(new ElectrostaticShortRange(pdata, nlist, r_cut, alpha, delta,min_value));
+	return shared_ptr<ElectrostaticShortRange>(new ElectrostaticShortRange(sysdef, nlist, r_cut, alpha, delta,min_value));
 	}
 	
 //! boost test case for particle test on CPU

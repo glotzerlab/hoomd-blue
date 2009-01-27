@@ -57,11 +57,11 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata ParticleData to compute forces on
+/*! \param sysdef System to compute forces on
 	\param r_cut Cuttoff distance beyond which the force is zero.
 */
-LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar r_cut):
-ForceCompute(pdata), m_r_cut(r_cut)
+LJWallForceCompute::LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut):
+ForceCompute(sysdef), m_r_cut(r_cut)
 	{
 	if (r_cut < 0.0)
 		{
@@ -148,7 +148,7 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 	
 	// get numparticle var for easier access
 	unsigned int numParticles = m_pdata->getN();
-	boost::shared_ptr<WallData> wall_data = m_pdata->getWallData();
+	boost::shared_ptr<WallData> wall_data = m_sysdef->getWallData();
 	unsigned int numWalls = wall_data->getNumWalls();
 
 	// precalculate r_cut squqred
@@ -255,7 +255,7 @@ void LJWallForceCompute::computeForces(unsigned int timestep)
 void export_LJWallForceCompute()
 	{
 	class_<LJWallForceCompute, boost::shared_ptr<LJWallForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("LJWallForceCompute", init< boost::shared_ptr<ParticleData>, Scalar >())
+		("LJWallForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar >())
 		.def("setParams", &LJWallForceCompute::setParams)
 		;
 	}

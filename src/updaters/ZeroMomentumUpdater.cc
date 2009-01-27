@@ -59,10 +59,10 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data to zero the momentum of
+/*! \param sysdef System to zero the momentum of
 */
-ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<ParticleData> pdata)
-	: Updater(pdata)
+ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+	: Updater(sysdef)
 	{
 	assert(m_pdata);
 	}
@@ -115,7 +115,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 void export_ZeroMomentumUpdater()
 	{
 	class_<ZeroMomentumUpdater, boost::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
-		("ZeroMomentumUpdater", init< boost::shared_ptr<ParticleData> >())
+		("ZeroMomentumUpdater", init< boost::shared_ptr<SystemDefinition> >())
 		;
 	}
 

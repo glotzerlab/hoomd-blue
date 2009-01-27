@@ -79,7 +79,7 @@ class DCDDumpWriter : public Analyzer
 	{
 	public:
 		//! Construct the writer
-		DCDDumpWriter(boost::shared_ptr<ParticleData> pdata, const std::string &fname, unsigned int period);
+		DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const std::string &fname, unsigned int period);
 		
 		//! Destructor
 		~DCDDumpWriter();

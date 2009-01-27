@@ -63,7 +63,7 @@ class NVEUpdater : public Integrator
 	{
 	public:
 		//! Constructor
-		NVEUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT);
+		NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 		
 		//! Sets the movement limit
 		void setLimit(Scalar limit);

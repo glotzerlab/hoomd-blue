@@ -148,10 +148,10 @@ class nvt(_integrator):
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.NVTUpdater(globals.particle_data, dt, tau, T);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.particle_data, dt, tau, T);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NVTUpdater(globals.system_definition, dt, tau, T);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.system_definition, dt, tau, T);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVT integrator");
@@ -218,10 +218,10 @@ class npt(_integrator):
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.NPTUpdater(globals.particle_data, dt, tau, tauP, T, P);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.particle_data, dt, tau, tauP, T, P);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NPTUpdater(globals.system_definition, dt, tau, tauP, T, P);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.system_definition, dt, tau, tauP, T, P);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVT integrator");
@@ -296,10 +296,10 @@ class nve(_integrator):
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.NVEUpdater(globals.particle_data, dt);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.NVEUpdaterGPU(globals.particle_data, dt);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NVEUpdater(globals.system_definition, dt);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NVEUpdaterGPU(globals.system_definition, dt);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVE integrator");
@@ -376,10 +376,10 @@ class bdnvt(_integrator):
 		_integrator.__init__(self);
 		
 		# initialize the reflected c++ class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.particle_data, dt, T, seed);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.particle_data, dt, T, seed);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.system_definition, dt, T, seed);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.system_definition, dt, T, seed);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating BD NVT integrator");
@@ -448,10 +448,10 @@ class bdnvt(_integrator):
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
 			raise RuntimeError('Error updating forces');
 		
-		ntypes = globals.particle_data.getNTypes();
+		ntypes = globals.system_definition.getParticleData().getNTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 		
 		# change the parameters
 		for i in xrange(0,ntypes):

@@ -49,8 +49,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-#include "ParticleData.h"
 #include "Profiler.h"
+#include "SystemDefinition.h"
 
 /*! \ingroup hoomd_lib
 	@{
@@ -87,7 +87,7 @@ class Analyzer : boost::noncopyable
 	{
 	public:
 		//! Constructs the analyzer and associates it with the ParticleData
-		Analyzer(boost::shared_ptr<ParticleData> pdata);
+		Analyzer(boost::shared_ptr<SystemDefinition> sysdef);
 		virtual ~Analyzer() {};
 		
 		//! Abstract method that performs the analysis
@@ -100,8 +100,9 @@ class Analyzer : boost::noncopyable
 		void setProfiler(boost::shared_ptr<Profiler> prof);
 		
 	protected:
-		const boost::shared_ptr<ParticleData> m_pdata;	//!< The particle data this analyzer is associated with
-		boost::shared_ptr<Profiler> m_prof;				//!< The profiler this analyzer is to use
+		const boost::shared_ptr<SystemDefinition> m_sysdef;	//!< The system definition this analyzer is associated with
+		const boost::shared_ptr<ParticleData> m_pdata;		//!< The particle data this analyzer is associated with
+		boost::shared_ptr<Profiler> m_prof;					//!< The profiler this analyzer is to use
 	};
 
 //! Export the Analyzer class to python

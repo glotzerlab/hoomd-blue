@@ -75,7 +75,7 @@ class BinnedNeighborListGPU : public NeighborList
 	{
 	public:
 		//! Constructor
-		BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff);
+		BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
 
 		virtual ~BinnedNeighborListGPU();
 

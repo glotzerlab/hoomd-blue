@@ -61,7 +61,7 @@ class TempRescaleUpdater : public Updater
 	{
 	public:
 		//! Constructor
-		TempRescaleUpdater(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<TempCompute> tc, Scalar tset);
+		TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<TempCompute> tc, Scalar tset);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);

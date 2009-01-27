@@ -69,7 +69,7 @@ using namespace std;
 	\brief Defines the NeighborList class
 */
 
-/*! \param pdata Particle data the neighborlist is to compute neighbors for
+/*! \param sysdef System the neighborlist is to compute neighbors for
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffere radius around \a r_cut in which neighbors will be included
 	
@@ -77,8 +77,8 @@ using namespace std;
 		but the list will not be computed until compute is called.
 	\post The storage mode defaults to half
 */
-NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) 
-	: Compute(pdata), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
+NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) 
+	: Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
 	{
 	// check for two sensless errors the user could make
 	if (m_r_cut < 0.0)
@@ -94,22 +94,22 @@ NeighborList::NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, 
 		}
 	
 	// allocate the list memory
-	m_list.resize(pdata->getN());
-	m_exclusions.resize(pdata->getN());
+	m_list.resize(m_pdata->getN());
+	m_exclusions.resize(m_pdata->getN());
 
 	// allocate memory for storing the last particle positions
-	m_last_x = new Scalar[pdata->getN()];
-	m_last_y = new Scalar[pdata->getN()];
-	m_last_z = new Scalar[pdata->getN()];
+	m_last_x = new Scalar[m_pdata->getN()];
+	m_last_y = new Scalar[m_pdata->getN()];
+	m_last_z = new Scalar[m_pdata->getN()];
 
 	assert(m_last_x);
 	assert(m_last_y);
 	assert(m_last_z);
 
 	// zero data
-	memset((void*)m_last_x, 0, sizeof(Scalar)*pdata->getN());
-	memset((void*)m_last_y, 0, sizeof(Scalar)*pdata->getN());
-	memset((void*)m_last_z, 0, sizeof(Scalar)*pdata->getN());
+	memset((void*)m_last_x, 0, sizeof(Scalar)*m_pdata->getN());
+	memset((void*)m_last_y, 0, sizeof(Scalar)*m_pdata->getN());
+	memset((void*)m_last_z, 0, sizeof(Scalar)*m_pdata->getN());
 	
 	m_last_updated_tstep = 0;
 	m_every = 0;
@@ -605,7 +605,7 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 */
 void NeighborList::copyExclusionsFromBonds()
 	{
-	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
+	boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 	
 	// for each bond
 	for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
@@ -953,7 +953,7 @@ void export_NeighborList()
 		;
 	
 	scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
-		("NeighborList", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		("NeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
 		.def("setRCut", &NeighborList::setRCut)
 		.def("setEvery", &NeighborList::setEvery)
 		.def("getList", &NeighborList::getList, return_internal_reference<>())

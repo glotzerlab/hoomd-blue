@@ -87,7 +87,9 @@ BOOST_AUTO_TEST_CASE( TempCompute_basic )
 	
 	// verify that we can constructe a TempCompute properly
 	// create a simple particle data to test with
-	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
@@ -96,7 +98,7 @@ BOOST_AUTO_TEST_CASE( TempCompute_basic )
 	pdata->release();
 	
 	// construct a TempCompute and see that everything is set properly
-	shared_ptr<TempCompute> tc(new TempCompute(pdata));
+	shared_ptr<TempCompute> tc(new TempCompute(sysdef));
 		
 	// check that we can actually compute temperature
 	tc->compute(0);
@@ -111,7 +113,9 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
 	#endif
 	
 	// create a simple particle data to test with
-	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
@@ -120,10 +124,10 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
 	pdata->release();
 	
 	// construct a TempCompute for the updater
-	shared_ptr<TempCompute> tc(new TempCompute(pdata));
+	shared_ptr<TempCompute> tc(new TempCompute(sysdef));
 	
 	// construct the updater and make sure everything is set properly
-	shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(pdata, tc, Scalar(1.2)));
+	shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, Scalar(1.2)));
 	
 	// run the updater and check the new temperature
 	rescaler->update(0);

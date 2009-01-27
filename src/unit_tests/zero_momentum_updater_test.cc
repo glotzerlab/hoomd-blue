@@ -85,7 +85,9 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
 	#endif
 	
 	// create a simple particle data to test with
-	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
@@ -94,7 +96,7 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
 	pdata->release();
 	
 	// construct the updater and make sure everything is set properly
-	shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(pdata));
+	shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
 	
 	// run the updater and check the new temperature
 	zerop->update(0);

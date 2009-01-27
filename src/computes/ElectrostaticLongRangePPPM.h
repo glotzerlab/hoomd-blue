@@ -87,7 +87,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		ElectrostaticLongRangePPPM(boost::shared_ptr<ParticleData> pdata,unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z, unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m);
+		ElectrostaticLongRangePPPM(boost::shared_ptr<SystemDefinition> sysdef,unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z, unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m);
 		
 		//! Destructor
 		virtual ~ElectrostaticLongRangePPPM();

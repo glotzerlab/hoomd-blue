@@ -50,9 +50,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Compute.h"
 
-//#incldue <string.h>
-using std::string;
-
 #ifdef ENABLE_CUDA
 #include "NeighborList.cuh"
 #endif
@@ -134,7 +131,7 @@ class NeighborList : public Compute
 			};
 			
 		//! Constructs the compute
-		NeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff);
+		NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
 
 		//! Destructor
 		virtual ~NeighborList();

@@ -69,7 +69,7 @@ class YukawaForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		YukawaForceCompute(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa);
+		YukawaForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa);
 		
 		//! Destructor
 		virtual ~YukawaForceCompute();

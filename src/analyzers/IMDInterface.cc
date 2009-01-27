@@ -62,14 +62,13 @@ using namespace std;
 
 /*! After construction, IMDInterface is listening for connections on port \a port.
 	analyze() must be called to handle any incoming connections.
-	\param pdata ParticleData that will be transmitted to VMD
+	\param sysdef SystemDefinition containing the ParticleData that will be transmitted to VMD
 	\param port port number to listen for connections on
 */	
-IMDInterface::IMDInterface(boost::shared_ptr<ParticleData> pdata, int port) : Analyzer(pdata)
+IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port) : Analyzer(sysdef)
 	{
 	int err = 0;
 	
-	assert(pdata);
 	if (port <= 0)
 		{
 		cerr << endl << "***Error! Invalid port specified" << endl << endl;
@@ -77,7 +76,7 @@ IMDInterface::IMDInterface(boost::shared_ptr<ParticleData> pdata, int port) : An
 		}
 		
 	// start by initializing memory
-	m_tmp_coords = new float[pdata->getN() * 3];
+	m_tmp_coords = new float[m_pdata->getN() * 3];
 	
 	// intialize the listening socket
 	vmdsock_init();
@@ -275,7 +274,7 @@ void IMDInterface::analyze(unsigned int timestep)
 	
 void export_IMDInterface()
 	{
-	class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>("IMDInterface", init< boost::shared_ptr<ParticleData>, int >())
+	class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int >())
 		;
 	}
 

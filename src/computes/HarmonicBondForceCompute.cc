@@ -60,14 +60,14 @@ using namespace std;
 	\brief Contains code for the HarmonicBondForceCompute class
 */
 
-/*! \param pdata Particle data to compute forces on
+/*! \param sysdef System to compute forces on
 	\post Memory is allocated, and forces are zeroed.
 */
-HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
+HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef),
 	m_K(NULL), m_r_0(NULL)
 	{
 	// access the bond data for later use
-	m_bond_data = m_pdata->getBondData();
+	m_bond_data = m_sysdef->getBondData();
 	
 	// check for some silly errors a user could make 
 	if (m_bond_data->getNBondTypes() == 0)
@@ -269,7 +269,7 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 void export_HarmonicBondForceCompute()
 	{
 	class_<HarmonicBondForceCompute, boost::shared_ptr<HarmonicBondForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("HarmonicBondForceCompute", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicBondForceCompute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setParams", &HarmonicBondForceCompute::setParams)
 		;
 	}

@@ -65,7 +65,7 @@ class YukawaForceComputeGPU : public YukawaForceCompute
 	{
 	public:
 		//! Constructs the compute
-		YukawaForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa);
+		YukawaForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa);
 		
 		//! Destructor
 		virtual ~YukawaForceComputeGPU();

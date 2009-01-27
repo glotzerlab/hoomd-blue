@@ -86,7 +86,7 @@ const Scalar tol = 1e-6;
 #endif
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)> ljforce_creator;
+typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)> ljforce_creator;
 	
 //! Test the ability of the lj force compute to actually calucate forces
 void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
@@ -103,14 +103,16 @@ void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	// a particle and ignore a particle outside the radius
 	
 	// periodic boundary conditions will be handeled in another test
-	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(pow(2.0,1.0/6.0)); arrays.y[1] = arrays.z[1] = 0.0;
 	arrays.x[2] = Scalar(2.0*pow(2.0,1.0/6.0)); arrays.y[2] = arrays.z[2] = 0.0;
 	pdata_3->release();
-	shared_ptr<NeighborList> nlist_3(new NeighborList(pdata_3, Scalar(1.3), Scalar(3.0)));
-	shared_ptr<LJForceCompute> fc_3 = lj_creator(pdata_3, nlist_3, Scalar(1.3));
+	shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc_3 = lj_creator(sysdef_3, nlist_3, Scalar(1.3));
 	
 	// first test: setup a sigma of 1.0 so that all forces will be 0
 	Scalar epsilon = Scalar(1.15);
@@ -206,7 +208,9 @@ void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	// build a 6 particle system with particles across each boundary
 	// also test the ability of the force compute to use different particle types
 	
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 3, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -223,8 +227,8 @@ void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	arrays.type[5] = 1;
 	pdata_6->release();
 	
-	shared_ptr<NeighborList> nlist_6(new NeighborList(pdata_6, Scalar(1.3), Scalar(3.0)));
-	shared_ptr<LJForceCompute> fc_6 = lj_creator(pdata_6, nlist_6, Scalar(1.3));
+	shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
+	shared_ptr<LJForceCompute> fc_6 = lj_creator(sysdef_6, nlist_6, Scalar(1.3));
 		
 	// choose a small sigma so that all interactions are attractive
 	Scalar epsilon = Scalar(1.0);
@@ -292,11 +296,13 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 	
 	// create a random particle system to sum forces on
 	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
-	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(pdata, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
-	shared_ptr<LJForceCompute> fc1 = lj_creator1(pdata, nlist, Scalar(3.0));
-	shared_ptr<LJForceCompute> fc2 = lj_creator2(pdata, nlist, Scalar(3.0));
+	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
+	
+	shared_ptr<LJForceCompute> fc1 = lj_creator1(sysdef, nlist, Scalar(3.0));
+	shared_ptr<LJForceCompute> fc2 = lj_creator2(sysdef, nlist, Scalar(3.0));
 		
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
@@ -328,17 +334,17 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 	}
 	
 //! LJForceCompute creator for unit tests
-shared_ptr<LJForceCompute> base_class_lj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
+shared_ptr<LJForceCompute> base_class_lj_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
-	return shared_ptr<LJForceCompute>(new LJForceCompute(pdata, nlist, r_cut));
+	return shared_ptr<LJForceCompute>(new LJForceCompute(sysdef, nlist, r_cut));
 	}
 	
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
-shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
+shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
 	nlist->setStorageMode(NeighborList::full);
-	shared_ptr<LJForceComputeGPU> lj(new LJForceComputeGPU(pdata, nlist, r_cut));
+	shared_ptr<LJForceComputeGPU> lj(new LJForceComputeGPU(sysdef, nlist, r_cut));
 	// the default block size kills valgrind :) reduce it
 	lj->setBlockSize(64);
 	return lj;

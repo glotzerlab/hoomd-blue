@@ -66,7 +66,7 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle data the neighborlist is to compute neighbors for
+/*! \param sysdef SystemDefinition containing the Particle data the neighborlist is to compute neighbors for
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffere radius around \a r_cut in which neighbors will be included
 	
@@ -74,7 +74,7 @@ using namespace std;
 		but the list will not be computed until compute is called.
 	\post The storage mode defaults to half
 */
-BinnedNeighborList::BinnedNeighborList(boost::shared_ptr<ParticleData> pdata, Scalar r_cut, Scalar r_buff) : NeighborList(pdata, r_cut, r_buff)
+BinnedNeighborList::BinnedNeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) : NeighborList(sysdef, r_cut, r_buff)
 	{
 	}
 
@@ -403,7 +403,7 @@ void BinnedNeighborList::printStats()
 void export_BinnedNeighborList()
 	{
 	class_<BinnedNeighborList, boost::shared_ptr<BinnedNeighborList>, bases<NeighborList>, boost::noncopyable >
-		("BinnedNeighborList", init< boost::shared_ptr<ParticleData>, Scalar, Scalar >())
+		("BinnedNeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
 		;
 	}
 

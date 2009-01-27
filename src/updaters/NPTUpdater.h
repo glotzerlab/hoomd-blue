@@ -62,7 +62,7 @@ class NPTUpdater : public Integrator
 	{
 	public:
 		//! Constructor
-	        NPTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P);
+	        NPTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);

@@ -53,13 +53,14 @@ using namespace boost::python;
 
 #include "Analyzer.h"
 
-/*! \param pdata Particle data this compute will act on. Must not be NULL.
-	\post The Compute is constructed with the given particle data and a NULL profiler.
+/*! \param sysdef System definition this analyzer will act on. Must not be NULL.
+	\post The Analyzer is constructed with the given particle data and a NULL profiler.
 */
-Analyzer::Analyzer(boost::shared_ptr<ParticleData> pdata) : m_pdata(pdata)
+Analyzer::Analyzer(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData())
 	{
 	// sanity check
-	assert(pdata);
+	assert(m_sysdef);
+	assert(m_pdata);	
 	}
 
 /*! It is useful for the user to know where computation time is spent, so all Analyzers
@@ -81,9 +82,9 @@ class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
 	{
 	public:
 		//! Forwards construction on to the base class
-		/*! \param pdata parameter to forward to the base class constructor
+		/*! \param sysdef parameter to forward to the base class constructor
 		*/
-		AnalyzerWrap(boost::shared_ptr<ParticleData> pdata) : Analyzer(pdata) { }
+		AnalyzerWrap(boost::shared_ptr<SystemDefinition> sysdef) : Analyzer(sysdef) { }
 		
 		//! Hanldes pure virtual Analyzer::analyze()
 		/*! \param timestep parameter to forward to Analyzer::analyze()
@@ -96,7 +97,7 @@ class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
 
 void export_Analyzer()
 	{
-	class_<AnalyzerWrap, boost::shared_ptr<AnalyzerWrap>, boost::noncopyable>("Analyzer", init< boost::shared_ptr<ParticleData> >())
+	class_<AnalyzerWrap, boost::shared_ptr<AnalyzerWrap>, boost::noncopyable>("Analyzer", init< boost::shared_ptr<SystemDefinition> >())
 		.def("analyze", pure_virtual(&Analyzer::analyze))
 		.def("setProfiler", &Analyzer::setProfiler)
 		;
