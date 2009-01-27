@@ -213,7 +213,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Sy
 	
 
 //! Initializes the particle data to a random set of particles
-shared_ptr<ParticleData> init_pdata()
+shared_ptr<SystemDefinition> init_sysdef()
 	{
 	ExecutionConfiguration exec_conf;
 	if (num_gpus >= 1)
@@ -227,14 +227,14 @@ shared_ptr<ParticleData> init_pdata()
 	
 	
 	RandomInitializer rand_init(N, phi_p, 0.0, "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 	if (sort_particles)
 		{
-		SFCPackUpdater sorter(pdata, Scalar(1.0));
+		SFCPackUpdater sorter(sysdef, Scalar(1.0));
 		sorter.update(0);
 		}
 		
-	return pdata;
+	return sysdef;
 	}
 
 //! Actually performs the benchmark on the preconstructed force compute
@@ -374,12 +374,12 @@ int main(int argc, char **argv)
 	// initialize the particle data
 	if (!quiet)
 		cout << "Building particle data..." << endl;
-	shared_ptr<ParticleData> pdata = init_pdata();
+	shared_ptr<SystemDefinition> sysdef = init_sysdef();
 	
 	// initialize the neighbor list
 	if (!quiet)
 		cout << "Building neighbor list data..." << endl;	
-	shared_ptr<NeighborList> nlist(new BinnedNeighborList(pdata, r_cut, r_buff));
+	shared_ptr<NeighborList> nlist(new BinnedNeighborList(sysdef, r_cut, r_buff));
 	if (half_nlist)
 		nlist->setStorageMode(NeighborList::half);
 	else
@@ -396,7 +396,7 @@ int main(int argc, char **argv)
 	double avgNneigh = double(neigh_count) / double(N);
 		
 	// initialize the force compute
-	shared_ptr<ForceCompute> fc = init_force_compute(fc_name, pdata, nlist);
+	shared_ptr<ForceCompute> fc = init_force_compute(fc_name, sysdef, nlist);
 	if (fc == NULL)
 		{
 		cerr << "Unrecognized force compute: " << fc_name << endl;

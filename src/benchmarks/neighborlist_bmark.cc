@@ -110,24 +110,24 @@ Scalar phi_p = Scalar(0.2);
 unsigned int num_gpus = 1;
 
 //! Initialize the force compute from a string selecting it
-shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, shared_ptr<ParticleData> pdata)
+shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, shared_ptr<SystemDefinition> sysdef)
 	{
 	shared_ptr<NeighborList> result;
 	
 	// handle creation of the various lennard=jones computes
 	if (nl_name == "BinnedNL")
-		result = shared_ptr<NeighborList>(new BinnedNeighborList(pdata, r_cut, r_buff));
+		result = shared_ptr<NeighborList>(new BinnedNeighborList(sysdef, r_cut, r_buff));
 	if (nl_name == "NL_NSQ")
-		result = shared_ptr<NeighborList>(new NeighborList(pdata, r_cut, r_buff));
+		result = shared_ptr<NeighborList>(new NeighborList(sysdef, r_cut, r_buff));
 	#ifdef ENABLE_CUDA
 	if (nl_name == "BinnedNL.GPU")
 		{
-		shared_ptr<BinnedNeighborListGPU> tmp = shared_ptr<BinnedNeighborListGPU>(new BinnedNeighborListGPU(pdata, r_cut, r_buff));
+		shared_ptr<BinnedNeighborListGPU> tmp = shared_ptr<BinnedNeighborListGPU>(new BinnedNeighborListGPU(sysdef, r_cut, r_buff));
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
 	if (nl_name == "NL_NSQ.GPU")
-		result = shared_ptr<NeighborList>(new NeighborListNsqGPU(pdata, r_cut, r_buff));
+		result = shared_ptr<NeighborList>(new NeighborListNsqGPU(sysdef, r_cut, r_buff));
 	#endif
 
 	if (!result)
@@ -141,7 +141,7 @@ shared_ptr<NeighborList> init_neighboorlist_compute(const string& nl_name, share
 	
 
 //! Initializes the particle data to a random set of particles
-shared_ptr<ParticleData> init_pdata()
+shared_ptr<SystemDefinition> init_sysdef()
 	{
 	ExecutionConfiguration exec_conf;
 	if (num_gpus >= 1)
@@ -154,14 +154,14 @@ shared_ptr<ParticleData> init_pdata()
 		}	
 	
 	RandomInitializer rand_init(N, phi_p, 0.0, "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 	if (sort_particles)
 		{
-		SFCPackUpdater sorter(pdata, Scalar(1.0));
+		SFCPackUpdater sorter(sysdef, Scalar(1.0));
 		sorter.update(0);
 		}
 		
-	return pdata;
+	return sysdef;
 	}
 
 //! Actually performs the benchmark on the preconstructed force compute
@@ -290,13 +290,13 @@ int main(int argc, char **argv)
 	if (!quiet)
 		cout << "Building particle data...";
 
-	shared_ptr<ParticleData> pdata = init_pdata();
+	shared_ptr<SystemDefinition> sysdef = init_sysdef();
 	
 	if (!quiet)
 		cout << "done." << endl;
 	
 	// initialize the neighbor list
-	shared_ptr<NeighborList> nlist = init_neighboorlist_compute(nl_name, pdata);
+	shared_ptr<NeighborList> nlist = init_neighboorlist_compute(nl_name, sysdef);
 	
 	if (nl_name == "Nl" || nl_name == "BinnedNl"){
 		if (half_nlist)

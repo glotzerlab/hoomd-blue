@@ -58,7 +58,7 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata Particle data to update
+/*! \param sysdef System data to update
 	\param deltaT Time step to use
 	\param tau NVT period
 	\param T Temperature set point
