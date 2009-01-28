@@ -104,13 +104,6 @@ find_package(Threads)
 ## setup python library and executable
 # find the python interpreter, first
 find_package(PythonInterp REQUIRED)
-
-if (NOT WIN32)
-	# take the python found exe and get the root directory it is in
-	string(REGEX REPLACE "/[^/]*/[^/]*$" " " PYTHON_ROOT ${PYTHON_EXECUTABLE})
-endif (NOT WIN32)
-
-set(PythonLibs_USE_STATIC_LIBS ${ENABLE_STATIC})
 # find the python libraries to link to
 find_package(PythonLibs REQUIRED)
 
