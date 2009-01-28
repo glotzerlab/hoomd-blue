@@ -82,8 +82,32 @@ ExecutionConfiguration::ExecutionConfiguration()
 		{
 		if (dev_count > 0)
 			{
+			#ifdef ENABLE_CAC_GPU_ID
+			vector<unsigned int> gpu_ids = getDefaultGPUList();
+			
+			if (gpu_ids.size() == 0)
+				{
+				cerr << endl << "***Error! GPU configuration requested with no GPU ids!" << endl << endl;
+				throw runtime_error("Error initializing execution configuration");
+				return;
+				}
+				
+			for (unsigned int i = 0; i < gpu_ids.size(); i++)
+				{
+				if ((unsigned int)dev_count > gpu_ids[i])
+					gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_ids[i])));
+				else
+					{
+					cerr << endl << "***Error! GPU " << gpu_ids[i] << " was requested, but only " << dev_count << " was/were found" << endl << endl;
+					throw runtime_error("Error initializing execution configuration");
+					}
+				}
+			
+			exec_mode = GPU;
+			#else
 			gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(0)));
 			exec_mode = GPU;
+			#endif
 			}
 		else
 			exec_mode = CPU;
@@ -197,6 +221,109 @@ void ExecutionConfiguration::callAll(const boost::function< cudaError_t (void) >
 	for (unsigned int i = 0; i < gpu.size(); i++)
 		gpu[i]->call(func);
 	}
+
+/*! \returns 0 in normal builds
+	\returns the value of the environment variable $CAC_GPU_ID when built with \a ENABLE_CAC_GPU_ID turned on in CMake
+*/
+unsigned int ExecutionConfiguration::getDefaultGPU()
+	{
+	#ifdef ENABLE_CAC_GPU_ID
+	char *id_str = getenv("CAC_GPU_ID");
+	if (id_str)
+		{
+		unsigned int id = atoi(id_str);
+		cout << "Notice: HOOMD is running on GPU " << id << " as specified by $CAC_GPU_ID" << endl;
+		return id;
+		}
+	else
+		{
+		cerr << endl << "***Warning! HOOMD built with CAC_GPU_ID support, but no CAC_GPU_ID specified!" << endl << endl;
+		throw runtime_error("Error initializing execution configuration");
+		}
+	#else
+	return 0;
+	#endif
+	}
+
+#ifdef ENABLE_CAC_GPU_ID
+//! simple tokenizer
+/*! \param str String to tokenize
+	\param delimiters Delmiters that break up the string
+	This code originated here: http://www.digitalpeer.com/id/simple
+*/
+static vector<string> tokenize(const string& str,const string& delimiters)
+	{
+	vector<string> tokens;
+	
+	// skip delimiters at beginning.
+	string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+		
+	// find first "non-delimiter".
+	string::size_type pos = str.find_first_of(delimiters, lastPos);
+	
+	while (string::npos != pos || string::npos != lastPos)	
+		{
+		// found a token, add it to the vector.
+		tokens.push_back(str.substr(lastPos, pos - lastPos));
+			
+		// skip delimiters.  Note the "not_of"
+		lastPos = str.find_first_not_of(delimiters, pos);
+		
+		// find next "non-delimiter"
+		pos = str.find_first_of(delimiters, lastPos);
+		}
+	
+	return tokens;
+	}
+#endif
+	
+/*! \returns a list with 0 in it in normal builds
+	\returns the value of the environment variable $CAC_GPU_ID when built with \a ENABLE_CAC_GPU_ID turned on in CMake
+*/
+std::vector< unsigned int > ExecutionConfiguration::getDefaultGPUList()
+	{
+	#ifdef ENABLE_CAC_GPU_ID
+	char *id_str = getenv("CAC_GPU_ID");
+	if (id_str)
+		{
+		vector<string> tokens = tokenize(string(id_str), ",");
+		vector< unsigned int > result;
+		for (unsigned int i = 0; i < tokens.size(); i++)
+			{
+			int id = atoi(tokens[i].c_str());
+			if (id < 0)
+				{
+				cout << endl << "***Error! CAC_GPU_ID contains negative values!" << endl << endl;
+				throw runtime_error("Error initializing execution configuration");
+				}
+				
+			result.push_back(id);
+			}
+		
+		cout << "Notice: HOOMD is running on GPUs ";
+		for (unsigned int i = 0; i < result.size(); i++)
+			{
+			cout << result[i];
+			if (i != result.size()-1)
+				cout << ",";
+			}
+		
+		cout << " as specified by $CAC_GPU_ID" << endl;
+		
+		return result;
+		}
+	else
+		{
+		cerr << endl << "***Warning! HOOMD built with CAC_GPU_ID support, but no CAC_GPU_ID specified!" << endl << endl;
+		throw runtime_error("Error initializing execution configuration");
+		}
+	#else
+	vector< unsigned int > result;
+	result.push_back(0);
+	return result;
+	#endif
+	}
+	
 #endif
 
 void export_ExecutionConfiguration()
