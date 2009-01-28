@@ -59,8 +59,6 @@ if (WIN32 AND NOT UNIX)
 	set(CPACK_PACKAGE_EXECUTABLES "hoomd;HOOMD Python Interpreter")
 	
 else (WIN32 AND NOT UNIX)
-	set(CPACK_STRIP_FILES ${LIB_INSTALL_DIR}/hoomd ${LIB_INSTALL_DIR}/force_compute_bmark ${LIB_INSTALL_DIR}/neighborlist_bmark ${LIB_INSTALL_DIR}/pdata_gpucopy_bmark)
-
 	# on linux, I want to have x86_64 or x86 in the name of the package
 	find_program(UNAME_EXE "uname" DOC "uname executable")
 	mark_as_advanced(UNAME_EXE)
