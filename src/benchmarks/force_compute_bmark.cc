@@ -216,6 +216,7 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Sy
 shared_ptr<SystemDefinition> init_sysdef()
 	{
 	ExecutionConfiguration exec_conf;
+	#ifndef CAC_GPU_ID
 	if (num_gpus >= 1)
 		{
 		// setup multi-gpu execution configuration
@@ -224,6 +225,7 @@ shared_ptr<SystemDefinition> init_sysdef()
 			gpu_list.push_back(i);
 		exec_conf = ExecutionConfiguration(ExecutionConfiguration::GPU, gpu_list);
 		}
+	#endif
 	
 	
 	RandomInitializer rand_init(N, phi_p, 0.0, "A");

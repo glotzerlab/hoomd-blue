@@ -76,11 +76,11 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	Each thread will calculate the total force on one particle.
 	The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq)
+template<bool ulf_workaround> __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq)
 	{
 	// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
-	for (int cur_offset = 0; cur_offset < coeff_width*coeff_width; cur_offset += blockDim.x)
+	for (unsigned int cur_offset = 0; cur_offset < coeff_width*coeff_width; cur_offset += blockDim.x)
 		{
 		if (cur_offset + threadIdx.x < coeff_width*coeff_width)
 			s_coeffs[cur_offset + threadIdx.x] = d_coeffs[cur_offset + threadIdx.x];
@@ -88,15 +88,15 @@ extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays fo
 	__syncthreads();
 	
 	// start by identifying which particle we are to handle
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	
 	if (idx_local >= pdata.local_num)
 		return;
 	
-	int idx_global = idx_local + pdata.local_beg;
+	unsigned int idx_global = idx_local + pdata.local_beg;
 	
 	// load in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[idx_global];
+	unsigned int n_neigh = nlist.n_neigh[idx_global];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
@@ -107,18 +107,22 @@ extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays fo
 	float virial = 0.0f;
 
 	// prefetch neighbor index
-	int cur_neigh = 0;
-	int next_neigh = nlist.list[idx_global];
+	unsigned int cur_neigh = 0;
+	unsigned int next_neigh = nlist.list[idx_global];
 
 	// loop over neighbors
-	#ifdef ARCH_SM13
-	// sm13 offers warp voting which makes this hardware bug workaround less of a performance penalty
-	for (int neigh_idx = 0; __any(neigh_idx < n_neigh); neigh_idx++)
-	#else
-	for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
-	#endif
+	// on pre C1060 hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
+	// the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
+	// inside the loop
+	int n_loop;
+	if (ulf_workaround)
+		n_loop = nlist.height;
+	else
+		n_loop = n_neigh;
+		
+	for (int neigh_idx = 0; neigh_idx < n_loop; neigh_idx++)
 		{
-		if (neigh_idx < n_neigh)
+		if (!ulf_workaround || neigh_idx < n_neigh)
 		{
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
 		// prefetch the next value and set the current one
@@ -189,12 +193,13 @@ extern "C" __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays fo
 	\param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the 
 		force is set to 0
 	\param block_size Block size to execute
+	\param ulf_workaround Set to true to enable the ULF workaround (needed on pre C1060 devices)
 	
 	\returns Any error code resulting from the kernel launch
 	
 	This is just a driver for calcLJForces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int block_size)
+cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int block_size, bool ulf_workaround)
 	{
 	assert(d_coeffs);
 	assert(coeff_width > 0);
@@ -210,9 +215,12 @@ cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const
 	if (error != cudaSuccess)
 		return error;
 
-    // run the kernel
-    gpu_compute_lj_forces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
-
+	// run the kernel
+	if (ulf_workaround)
+		gpu_compute_lj_forces_kernel<true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
+	else
+		gpu_compute_lj_forces_kernel<false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, 	d_coeffs, coeff_width, r_cutsq);
+	
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;

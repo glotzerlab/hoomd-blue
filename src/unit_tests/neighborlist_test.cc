@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE( NeighborListNsqGPU_tests )
 	
 	neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
-	neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 	
 //! boost test case for BinnedNeighborListGPU
@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborListGPU_tests )
 	
 	neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
-	neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 
 //! boost test case for BinnedNeighborListGPU multi-gpu

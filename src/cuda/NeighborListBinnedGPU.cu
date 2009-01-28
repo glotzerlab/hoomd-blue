@@ -73,9 +73,9 @@ texture<unsigned int, 2, cudaReadModeElementType> bin_idxlist_tex;
 extern "C" __global__ void gpu_nlist_idxlist2coord_kernel(gpu_pdata_arrays pdata, gpu_bin_array bins)
 	{
 	// each thread writes the coord_idxlist of a single bin
-	int binidx = threadIdx.x + blockDim.x*blockIdx.x;
+	unsigned int binidx = threadIdx.x + blockDim.x*blockIdx.x;
 	
-	int nbins = bins.Mx*bins.My*bins.Mz;
+	unsigned int nbins = bins.Mx*bins.My*bins.Mz;
 	
 	// return if we are past the array bouds
 	if (binidx >= nbins)
@@ -170,7 +170,7 @@ texture<unsigned int, 1, cudaReadModeElementType> mem_location_tex;
 	peak bandwidth on the device. It seems more wasteful than a one block per cell
 	method, but actually is ~40% faster.
 */
-extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d_pos, unsigned int local_beg, unsigned int local_num, gpu_boxsize box, gpu_bin_array bins, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez)
+template<bool ulf_workaround> __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d_pos, unsigned int local_beg, unsigned int local_num, gpu_boxsize box, gpu_bin_array bins, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez)
 	{
 	// each thread is going to compute the neighbor list for a single particle
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -251,11 +251,12 @@ extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist
 						*nlist.overflow = 1;
 					}
 				}
-			// Adding the break improves the nlist performance a little bit, but seems to cause random ULFs on compute 1.1 devices.
-			//else
-			//	{
-			//	break;
-			//	}
+			else
+				{
+				// this break causes random ULFs to happen often on compute 1.1 devices
+				if (!ulf_workaround)
+					break;
+				}
 			}
 		}
 	
@@ -272,10 +273,11 @@ extern "C" __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist
 	\param r_maxsq Precalculated value for r_max*r_max
 	\param curNmax Number of particles currently in the largest bin
 	\param block_size Block size to run the kernel on the device
+	\param ulf_workaround Set to true to enable the ulf workaround (needed on compute 1.1 devices)
 	
 	See updateFromBins_new for more information
 */
-cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size)
+cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size, bool ulf_workaround)
 	{
 	assert(block_size > 0);
 
@@ -318,7 +320,11 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pda
 	float scalez = 1.0f / binz;
 
 	// run the kernel
-	gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+	if (ulf_workaround)
+		gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+	else
+		gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+
 	
 	if (!g_gpu_error_checking)
 		{

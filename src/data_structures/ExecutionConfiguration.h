@@ -105,6 +105,9 @@ struct ExecutionConfiguration
 	void callAll(const boost::function< cudaError_t (void) > &func) const;
 	
 	std::vector< boost::shared_ptr<GPUWorker> > gpu;	//!< GPUs to execute on
+	
+	static unsigned int getDefaultGPU();	//!< returns the default GPU to run on
+	static std::vector< unsigned int > getDefaultGPUList();	//!< returns the list of default GPUs to run on
 	#endif
 	};
 

@@ -51,6 +51,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __LJFORCEGPU_CUH__
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int block_size);
+cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int block_size, bool ulf_workaround);
 
 #endif

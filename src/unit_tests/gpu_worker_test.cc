@@ -59,6 +59,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 
 #include "GPUWorker.h"
+#include "ExecutionConfiguration.h"
 
 using namespace boost;
 using namespace std;
@@ -68,7 +69,7 @@ using namespace std;
 //! boost test case for GPUWorker basic operation
 BOOST_AUTO_TEST_CASE( GPUWorker_basic )
 	{
-	GPUWorker gpu(0);
+	GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
 	
 	// try allocating and memcpying some data
 	float *d_float;
@@ -92,7 +93,7 @@ BOOST_AUTO_TEST_CASE( GPUWorker_basic )
 //! boost test case for GPUWorker error detection
 BOOST_AUTO_TEST_CASE( GPUWorker_throw )
 	{
-	GPUWorker gpu(0);
+	GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
 	
 	// try allocating and memcpying some data
 	float *d_float;

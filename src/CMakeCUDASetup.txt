@@ -52,7 +52,27 @@ if(SINGLE_PRECISION)
 		add_definitions (-DENABLE_CUDA)
 		find_package(Cuda REQUIRED)
 	endif (ENABLE_CUDA)
-
+	
+	option(DISABLE_ULF_WORKAROUND "Set to ON to enable higher performace at the cost of stability on pre C1060 GPUs" off)
+	
+	if (DISABLE_ULF_WORKAROUND)
+		add_definitions (-DDISABLE_ULF_WORKAROUND)
+	endif (DISABLE_ULF_WORKAROUND)
+	
+	
+	site_name(MACHINE_NAME)
+	if (MACHINE_NAME MATCHES "nyx")
+		message(STATUS "Compiling on nyx")
+		option(ENABLE_CAC_GPU_ID "Set to ON to have all HOOMD benchmarks, tests, and hoomd_script automatically parse CAC_GPU_ID to tell which GPUs to run on" on)
+	else (MACHINE_NAME MATCHES "nyx")
+		option(ENABLE_CAC_GPU_ID "Set to ON to have all HOOMD benchmarks, tests, and hoomd_script automatically parse CAC_GPU_ID to tell which GPUs to run on" off)
+	endif (MACHINE_NAME MATCHES "nyx")
+	mark_as_advanced(MACHINE_NAME)
+	
+	if (ENABLE_CAC_GPU_ID)
+		add_definitions (-DENABLE_CAC_GPU_ID)
+	endif (ENABLE_CAC_GPU_ID)
+	
 # it is not known if this forcing of cuda off actually works
 #else(SINGLE_PRECISION)
 	# this line makes sure that cuda is disabled when single_precision is disabled

@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE( NPTUpdater_tests )
 BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_tests )
 	{
 	nptup_creator npt_creator = bind(gpu_npt_creator, _1, _2,_3,_4,_5,_6);
-	npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 
 //! boost test case for comparing the GPU integrator to the CPU one
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_comparison_tests)
 	{
 	nptup_creator npt_creator_gpu = bind(gpu_npt_creator, _1, _2, _3,_4,_5,_6);
 	nptup_creator npt_creator = bind(base_class_npt_creator, _1, _2, _3,_4,_5,_6);
-	npt_updater_compare_test(npt_creator, npt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	npt_updater_compare_test(npt_creator, npt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 #endif
 
