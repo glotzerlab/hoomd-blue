@@ -52,6 +52,12 @@ if(SINGLE_PRECISION)
 		add_definitions (-DENABLE_CUDA)
 		find_package(Cuda REQUIRED)
 	endif (ENABLE_CUDA)
+	
+	option(DISABLE_ULF_WORKAROUND "Set to ON to enable higher performace at the cost of stability on pre C1060 GPUs" off)
+	
+	if (DISABLE_ULF_WORKAROUND)
+		add_definitions (-DDISABLE_ULF_WORKAROUND)
+	endif (DISABLE_ULF_WORKAROUND)
 
 # it is not known if this forcing of cuda off actually works
 #else(SINGLE_PRECISION)

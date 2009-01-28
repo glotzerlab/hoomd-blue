@@ -101,6 +101,23 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for LJForceComputeGPU" << endl;
 		m_block_size = 64;
 		}
+		
+	// ulf workaround setup
+	#ifndef DISABLE_ULF_WORKAROUND
+	// the ULF workaround is needed on GTX280 and older GPUS
+	// it is not needed on C1060, S1070, GTX285, GTX295, and (hopefully) newer ones
+	m_ulf_workaround = true;
+	
+	if (deviceProp.major == 1 && deviceProp.minor >= 3)
+		m_ulf_workaround = false;
+	if (string(deviceProp.name) == "GTX 280")
+		m_ulf_workaround = true;
+		
+	if (m_ulf_workaround)
+		cout << "Notice: ULF bug workaround enabled for LJForceComputeGPU" << endl;
+	#else
+	m_ulf_workaround = false;
+	#endif
 
 	// allocate the coeff data on the GPU
 	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
@@ -207,7 +224,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	// run the kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_lj_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_lj_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size, m_ulf_workaround));
 	exec_conf.syncAll();
 	
 	m_pdata->release();
