@@ -427,8 +427,6 @@ class ParticleData : boost::noncopyable
 		gpu_boxsize m_gpu_box;				//!< Mirror structure of m_box for the GPU
 		std::vector<float *> m_d_staging;	//!< Staging array (device memory) where uninterleaved data is copied to/from.
 		float4 *m_h_staging;				//!< Staging array (host memory) to copy interleaved data to
-		vector<float4 *> h_read_staging;	//!< Staging array (host memory) to copy data from the GPUs to, one per GPU
-		vector<float4 *> h_write_staging;	//!< Staging array (host memory) to copy data to write to the GPUs, one per GPU
 		unsigned int m_uninterleave_pitch;	//!< Remember the pitch between x,y,z,type in the uninterleaved data
 		unsigned int m_single_xarray_bytes;	//!< Remember the number of bytes allocated for a single float array
 				
