@@ -959,7 +959,7 @@ void ParticleData::hostToDeviceCopy()
 	assert(m_exec_conf.gpu.size() >= 1);
 	
 	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-	// if (m_prof) m_prof->push(m_exec_conf, "PDATA C2G");
+	if (m_prof) m_prof->push(m_exec_conf, "PDATA C2G");
 		
 	const int N = m_arrays.nparticles;	
 	
@@ -1011,7 +1011,7 @@ void ParticleData::hostToDeviceCopy()
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
 		}
 	
-	// if (m_prof) m_prof->pop(m_exec_conf, 0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
+	if (m_prof) m_prof->pop(m_exec_conf, 0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 	}
 
 //! Basic union for coverting ints <-> floats
@@ -1026,8 +1026,8 @@ union floatint
 void ParticleData::deviceToHostCopy()
 	{
 	// commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-	// if (m_prof) m_prof->push(m_exec_conf, "PDATA G2C");
-	// const int N = m_arrays.nparticles;
+	if (m_prof) m_prof->push(m_exec_conf, "PDATA G2C");
+	const int N = m_arrays.nparticles;
 	
 	// we should never be called unless 1 or more gpus is in the exec conf... verify
 	assert(m_exec_conf.gpu.size() >= 1);
@@ -1113,7 +1113,7 @@ void ParticleData::deviceToHostCopy()
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.rtag + local_beg, m_gpu_pdata[cur_gpu].rtag + local_beg, sizeof(unsigned int)*local_num, cudaMemcpyDeviceToHost));
 		}
 
-	// if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
+	if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
 	}
 	
 unsigned int ParticleData::getLocalBeg(unsigned int gpu)

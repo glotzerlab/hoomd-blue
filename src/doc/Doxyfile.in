@@ -608,6 +608,7 @@ EXCLUDE_SYMLINKS       = NO
 
 EXCLUDE_PATTERNS       = */extern/* \
                          */share/* \
+                         */microbenchmarks/* \
                          */cuda/saruprngCUDA.h \
                          ${DOXYGEN_ADDITIONAL_EXCLUSIONS}
 
