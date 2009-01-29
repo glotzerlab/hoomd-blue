@@ -607,17 +607,54 @@ __device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id
 	
 __device__ inline bool operator< (const bin_id_pair& a, const bin_id_pair& b)
 	{
-	return (a.bin < b.bin);
+	if (a.bin == b.bin)
+		return (a.id < b.id);
+	else
+		return (a.bin < b.bin);
 	}
 
 __device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
 	{
-	return (a.bin > b.bin);
+	if (a.bin == b.bin)
+		return (a.id > b.id);
+	else
+		return (a.bin > b.bin);	
+	}
+
+template<class T, unsigned int block_size> __device__ inline void scan_naive(T *temp)
+	{
+	int thid = threadIdx.x;
+	int n = blockDim.x;
+	
+	int pout = 0;
+	int pin = 1;
+	
+	for (int offset = 1; offset < block_size; offset *= 2)
+		{
+		pout = 1 - pout;
+		pin  = 1 - pout;
+		__syncthreads();
+		
+		temp[pout*n+thid] = temp[pin*n+thid];
+		
+		if (thid >= offset)
+			temp[pout*n+thid] += temp[pin*n+thid - offset];
+		}
+		
+	__syncthreads();
+	// bring the data back to the initial array
+	if (pout == 1)
+		{
+		pout = 1 - pout;
+		pin  = 1 - pout;
+		temp[pout*n+thid] = temp[pin*n+thid];
+		__syncthreads();
+		}
 	}
 
 /*template<unsigned int block_size> */__global__ void rebin_simple_sort_kernel(unsigned int *d_idxlist, unsigned int *d_bin_size, float4 *d_pos, unsigned int N, float xlo, float ylo, float zlo, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, float scalex, float scaley, float scalez)
 	{
-	const int block_size = 256;
+	const int block_size = 32;
 	// read in the particle that belongs to this thread
 	unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	
@@ -643,12 +680,12 @@ __device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
 		bin = 0xffffffff;
 	
 	// load up shared memory
-	__shared__ bin_id_pair sdata[block_size];
-	sdata[threadIdx.x] = make_bin_id_pair(bin, idx);
+	__shared__ bin_id_pair bin_pairs[block_size];
+	bin_pairs[threadIdx.x] = make_bin_id_pair(bin, idx);
 	__syncthreads();
 	
 	// sort it 
-	bitonic_sort<bin_id_pair, block_size>(sdata);
+	bitonic_sort<bin_id_pair, block_size>(bin_pairs);
 	
 	// testing: print out the sorted data
 	/*if (idx == 0)
@@ -658,16 +695,56 @@ __device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
 			printf("%d %d\n", sdata[i].bin, sdata[i].id);
 			}
 		}*/
+	// identify the breaking points
+	__shared__ unsigned int unique[block_size*2];
 	
-	unsigned int size = atomicInc(&d_bin_size[bin], 0xffffffff);
-	if (size < Nmax)
-		d_idxlist[bin*Nmax + size] = idx;
+	bool is_unique = false;
+	if (threadIdx.x > 0 && bin_pairs[threadIdx.x].bin != bin_pairs[threadIdx.x-1].bin)
+		is_unique = true;
+	
+	unique[threadIdx.x] = 0;
+	if (is_unique)
+		unique[threadIdx.x] = 1;
+	
+	// threadIdx.x = 0 is unique: but we don't want to count it in the scan
+	if (threadIdx.x == 0)
+		is_unique = true;
+	
+	__syncthreads();
+	
+	// scan to find addresses to write to
+	scan_naive<unsigned int, block_size>(unique);
+	
+	// determine start location of each unique value in the array
+	__shared__ unsigned int start[block_size+1];
+	
+	if (is_unique)
+		start[unique[threadIdx.x]] = threadIdx.x;
+				
+	// boundary condition: need one past the end
+	if (threadIdx.x == 0)
+		start[unique[block_size-1]+1] = block_size;
+	
+	__syncthreads();
+	
+	// now: each unique start point does it's own atomicAdd to find the starting offset
+	__shared__ unsigned int start_offset[block_size];
+	
+	if (is_unique)
+		start_offset[unique[threadIdx.x]] = atomicAdd(&d_bin_size[bin_pairs[threadIdx.x].bin], start[unique[threadIdx.x]+1] - start[unique[threadIdx.x]]);
+	
+	__syncthreads();
+	
+	// finally! we can write out all the particles
+	unsigned int offset = start_offset[unique[threadIdx.x]];
+	if (offset + threadIdx.x - start[unique[threadIdx.x]] < Nmax)
+		d_idxlist[bin_pairs[threadIdx.x].bin*Nmax + offset + threadIdx.x - start[unique[threadIdx.x]]] = bin_pairs[threadIdx.x].id;
 	}
 	
 void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
 	// run one particle per thread
-	const int block_size = 256;
+	const int block_size = 32;
 	int n_blocks = (int)ceil(float(N)/(float)block_size);
 
 	// make even bin dimensions
@@ -703,7 +780,7 @@ void bmark_simple_sort_rebinning()
 	// verify results
 	if (!verify())
 		{
-		printf("Invalid results in GPU/simple bmark!\n");
+		printf("Invalid results in GPU/simple/sort bmark!\n");
 		return;
 		}
 	
@@ -736,7 +813,7 @@ void bmark_simple_sort_rebinning()
 	// verify results again to be sure
 	if (!verify())
 		{
-		printf("Invalid results at end of GPU/simple bmark!\n");
+		printf("Invalid results at end of GPU/simple/sort bmark!\n");
 		return;
 		}	
 	
@@ -968,6 +1045,10 @@ int main(int argc, char **argv)
 	allocate_data();
 	initialize_data();
 	sort_data();
+	
+	// normally, data in HOOMD is not perfectly sorted:
+	//for (unsigned int i = 0; i < 100; i++)
+		//tweak_data();	
 	
 	// run the various benchmarks
 	bmark_host_rebinning(false);
