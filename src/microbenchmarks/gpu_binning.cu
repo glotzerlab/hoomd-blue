@@ -146,7 +146,7 @@ void initialize_data()
 		gh_pos[i].z = float((rand())/float(RAND_MAX) - 0.5)*g_Lz;
 		gh_pos[i].w = 0.0f;
 		}
-		
+	
 	// copy particles to the device
 	CUDA_SAFE_CALL(cudaMemcpy(gd_pos, gh_pos, sizeof(float4)*g_N, cudaMemcpyHostToDevice));
 	
@@ -213,7 +213,79 @@ void tweak_data()
 	// update the data on the device
 	cudaMemcpy(gd_pos, gh_pos, sizeof(float4)*g_N, cudaMemcpyHostToDevice);
 	}
+
+// sorts the data to mimic HOOMD's standard data pattern (sort of)
+void sort_data()
+	{
+	printf("sorting....\n");
+	unsigned int * bin_list = (unsigned int*)malloc(sizeof(unsigned int) *g_N);
+	// make even bin dimensions
+	float binx = g_Lx / float(g_Mx);
+	float biny = g_Ly / float(g_My);
+	float binz = g_Lz / float(g_Mz);
 	
+	float xlo = -g_Lx/2.0f;
+	float ylo = -g_Lx/2.0f;
+	float zlo = -g_Lx/2.0f;
+
+	// precompute scale factors to eliminate division in inner loop
+	float scalex = 1.0f / binx;
+	float scaley = 1.0f / biny;
+	float scalez = 1.0f / binz;
+	
+	for (unsigned int i = 0; i < g_N; i++)
+		{
+		// find the bin each particle belongs in
+		unsigned int ib = (unsigned int)((gh_pos[i].x-xlo)*scalex);
+		unsigned int jb = (unsigned int)((gh_pos[i].y-ylo)*scaley);
+		unsigned int kb = (unsigned int)((gh_pos[i].z-zlo)*scalez);
+		
+		// need to handle the case where the particle is exactly at the box hi
+		if (ib == g_Mx)
+			ib = 0;
+		if (jb == g_My)
+			jb = 0;
+		if (kb == g_Mz)
+			kb = 0;
+			
+		// update the bin
+		unsigned int bin = ib*(g_Mz*g_My) + jb * g_Mz + kb;
+		bin_list[i] = bin;
+		}
+
+	bool swapped = false;
+	do
+		{
+		swapped = false;
+		for (unsigned int i = 0; i < g_N-1; i++)
+			{
+			if (bin_list[i] > bin_list[i+1])
+				{
+				unsigned int tmp = bin_list[i+1];
+				bin_list[i+1] = bin_list[i];
+				bin_list[i] = tmp;
+				
+				float4 tmpf = gh_pos[i+1];
+				gh_pos[i+1] = gh_pos[i];
+				gh_pos[i] = tmpf;
+				swapped = true;
+				}
+			}
+		} while (swapped);
+	
+		
+	free(bin_list);
+	// update the data on the device
+	cudaMemcpy(gd_pos, gh_pos, sizeof(float4)*g_N, cudaMemcpyHostToDevice);
+	printf("	done.\n");
+	}
+	
+__global__ void fast_memclear_kernal(unsigned int *d_data, unsigned int N)
+	{
+	unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	d_data[idx] = 0;
+	}
+
 
 void rebin_particles_host(unsigned int *idxlist, unsigned int *bin_size, float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax);
 	
@@ -408,7 +480,8 @@ void rebin_particles_simple(unsigned int *idxlist, unsigned int *bin_size, float
 	float scalez = 1.0f / binz;
 	
 	// call the kernel
-	cudaMemset(gd_bin_size, 0, sizeof(unsigned int)*g_Mx*g_My*g_Mz);
+	//cudaMemset(gd_bin_size, 0, sizeof(unsigned int)*Mx*My*Mz);
+	fast_memclear_kernal<<<(int)ceil(float(Mx*My*Mz)/(float)block_size), block_size>>>(gd_bin_size, Mx*My*Mz);
 	rebin_simple_kernel<<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
 	}
 	
@@ -465,6 +538,212 @@ void bmark_simple_rebinning()
 	printf("GPU/simple          : ");
 	printf("%f ms\n", avg_t);
 	}
+	
+//*************************** simple method of binning on the GPU - with sorting
+// Run one thread per particle
+// determine the bin that particle belongs in
+// sort the particles based on the bin
+// calculate the number of particles added to each bin in the sorted array
+// atomicInc the bin size in global memory
+// write the particle into the bin
+// done.
+
+// bitonic sort from CUDA SDK
+template<class T> __device__ inline void swap(T & a, T & b)
+	{
+	T tmp = a;
+	a = b;
+	b = tmp;
+	}
+
+template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T *shared)
+	{
+	unsigned int tid = threadIdx.x;
+	
+	// Parallel bitonic sort.
+	for (int k = 2; k <= block_size; k *= 2)
+		{
+		// Bitonic merge:
+		for (int j = k / 2; j>0; j /= 2)
+			{
+			int ixj = tid ^ j;
+			
+			if (ixj > tid)
+				{
+				if ((tid & k) == 0)
+					{
+					if (shared[tid] > shared[ixj])
+						{
+						swap(shared[tid], shared[ixj]);
+						}
+					}
+				else
+					{
+					if (shared[tid] < shared[ixj])
+						{
+						swap(shared[tid], shared[ixj]);
+						}
+					}
+				}
+				
+			__syncthreads();
+			}
+		}
+	}
+	
+struct bin_id_pair
+	{
+	unsigned int bin;
+	unsigned int id;
+	};
+	
+__device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id)
+	{
+	bin_id_pair res;
+	res.bin = bin;
+	res.id = id;
+	return res;
+	}
+	
+__device__ inline bool operator< (const bin_id_pair& a, const bin_id_pair& b)
+	{
+	return (a.bin < b.bin);
+	}
+
+__device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
+	{
+	return (a.bin > b.bin);
+	}
+
+/*template<unsigned int block_size> */__global__ void rebin_simple_sort_kernel(unsigned int *d_idxlist, unsigned int *d_bin_size, float4 *d_pos, unsigned int N, float xlo, float ylo, float zlo, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, float scalex, float scaley, float scalez)
+	{
+	const int block_size = 256;
+	// read in the particle that belongs to this thread
+	unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
+	
+	float4 pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	if (idx < N)
+		pos = d_pos[idx];
+	
+	// determine which bin it belongs in
+	unsigned int ib = (unsigned int)((pos.x-xlo)*scalex);
+	unsigned int jb = (unsigned int)((pos.y-ylo)*scaley);
+	unsigned int kb = (unsigned int)((pos.z-zlo)*scalez);
+	
+	// need to handle the case where the particle is exactly at the box hi
+	if (ib == Mx)
+		ib = 0;
+	if (jb == My)
+		jb = 0;
+	if (kb == Mz)
+		kb = 0;
+		
+	unsigned int bin = ib*(Mz*My) + jb * Mz + kb;
+	if (idx >= N)
+		bin = 0xffffffff;
+	
+	// load up shared memory
+	__shared__ bin_id_pair sdata[block_size];
+	sdata[threadIdx.x] = make_bin_id_pair(bin, idx);
+	__syncthreads();
+	
+	// sort it 
+	bitonic_sort<bin_id_pair, block_size>(sdata);
+	
+	// testing: print out the sorted data
+	/*if (idx == 0)
+		{
+		for (int i = 0; i < block_size; i++)
+			{
+			printf("%d %d\n", sdata[i].bin, sdata[i].id);
+			}
+		}*/
+	
+	unsigned int size = atomicInc(&d_bin_size[bin], 0xffffffff);
+	if (size < Nmax)
+		d_idxlist[bin*Nmax + size] = idx;
+	}
+	
+void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
+	{
+	// run one particle per thread
+	const int block_size = 256;
+	int n_blocks = (int)ceil(float(N)/(float)block_size);
+
+	// make even bin dimensions
+	float binx = Lx / float(Mx);
+	float biny = Ly / float(My);
+	float binz = Lz / float(Mz);
+	
+	float xlo = -Lx/2.0f;
+	float ylo = -Lx/2.0f;
+	float zlo = -Lx/2.0f;
+
+	// precompute scale factors to eliminate division in inner loop
+	float scalex = 1.0f / binx;
+	float scaley = 1.0f / biny;
+	float scalez = 1.0f / binz;
+	
+	// call the kernel
+	//cudaMemset(gd_bin_size, 0, sizeof(unsigned int)*Mx*My*Mz);
+	fast_memclear_kernal<<<(int)ceil(float(Mx*My*Mz)/(float)block_size), block_size>>>(gd_bin_size, Mx*My*Mz);
+	rebin_simple_sort_kernel/*<block_size>*/<<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	}
+	
+// benchmark the device rebinning
+void bmark_simple_sort_rebinning()
+	{
+	// warm up
+	rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+	CUT_CHECK_ERROR("kernel failed");
+	// copy back from device
+	CUDA_SAFE_CALL(cudaMemcpy(gh_idxlist, gd_idxlist, g_Mx*g_My*g_Mz*g_Nmax*sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	CUDA_SAFE_CALL(cudaMemcpy(gh_bin_size, gd_bin_size, g_Mx*g_My*g_Mz*sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	
+	// verify results
+	if (!verify())
+		{
+		printf("Invalid results in GPU/simple bmark!\n");
+		return;
+		}
+	
+	// benchmarks
+	float total_time = 0.0f;
+	cudaEvent_t start, end;
+    cudaEventCreate(&start);
+    cudaEventCreate(&end);
+	
+	
+	unsigned int iters = 1000;
+	for (unsigned int i = 0; i < iters; i++)
+		{
+		cudaEventRecord(start, 0);
+		rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+		cudaEventRecord(end, 0);
+		
+		float tmp;
+		cudaEventSynchronize(end);
+		cudaEventElapsedTime(&tmp, start, end);
+		total_time += tmp;
+		}
+	
+	float avg_t = total_time/float(iters);
+	
+	// copy back from device
+	CUDA_SAFE_CALL(cudaMemcpy(gh_idxlist, gd_idxlist, g_Mx*g_My*g_Mz*g_Nmax*sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	CUDA_SAFE_CALL(cudaMemcpy(gh_bin_size, gd_bin_size, g_Mx*g_My*g_Mz*sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	
+	// verify results again to be sure
+	if (!verify())
+		{
+		printf("Invalid results at end of GPU/simple bmark!\n");
+		return;
+		}	
+	
+	printf("GPU/simple/sort     : ");
+	printf("%f ms\n", avg_t);
+	}
+
 	
 //*************************** simple update method of binning on the GPU
 // Run one thread per bin
@@ -685,13 +964,16 @@ int main(int argc, char **argv)
 	g_Lx = g_Ly = g_Lz = L;
 	
 	// setup
+	printf("Running gpu_binning microbenchmark: %d %f\n", g_N, g_rcut);
 	allocate_data();
 	initialize_data();
+	sort_data();
 	
 	// run the various benchmarks
 	bmark_host_rebinning(false);
 	bmark_host_rebinning(true);
 	bmark_simple_rebinning();
+	bmark_simple_sort_rebinning();
 	bmark_simple_updating();
 	
 	free_data();
