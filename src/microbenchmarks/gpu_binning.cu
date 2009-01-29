@@ -1047,8 +1047,8 @@ int main(int argc, char **argv)
 	sort_data();
 	
 	// normally, data in HOOMD is not perfectly sorted:
-	//for (unsigned int i = 0; i < 100; i++)
-		//tweak_data();	
+	for (unsigned int i = 0; i < 100; i++)
+		tweak_data();	
 	
 	// run the various benchmarks
 	bmark_host_rebinning(false);
