@@ -652,9 +652,8 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
 		}
 	}
 
-/*template<unsigned int block_size> */__global__ void rebin_simple_sort_kernel(unsigned int *d_idxlist, unsigned int *d_bin_size, float4 *d_pos, unsigned int N, float xlo, float ylo, float zlo, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, float scalex, float scaley, float scalez)
+template<unsigned int block_size> __global__ void rebin_simple_sort_kernel(unsigned int *d_idxlist, unsigned int *d_bin_size, float4 *d_pos, unsigned int N, float xlo, float ylo, float zlo, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, float scalex, float scaley, float scalez)
 	{
-	const int block_size = 32;
 	// read in the particle that belongs to this thread
 	unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	
@@ -687,14 +686,6 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
 	// sort it 
 	bitonic_sort<bin_id_pair, block_size>(bin_pairs);
 	
-	// testing: print out the sorted data
-	/*if (idx == 0)
-		{
-		for (int i = 0; i < block_size; i++)
-			{
-			printf("%d %d\n", sdata[i].bin, sdata[i].id);
-			}
-		}*/
 	// identify the breaking points
 	__shared__ unsigned int unique[block_size*2];
 	
@@ -744,7 +735,7 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
 void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
 	// run one particle per thread
-	const int block_size = 32;
+	const int block_size = 64;
 	int n_blocks = (int)ceil(float(N)/(float)block_size);
 
 	// make even bin dimensions
@@ -764,7 +755,7 @@ void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, 
 	// call the kernel
 	//cudaMemset(gd_bin_size, 0, sizeof(unsigned int)*Mx*My*Mz);
 	fast_memclear_kernal<<<(int)ceil(float(Mx*My*Mz)/(float)block_size), block_size>>>(gd_bin_size, Mx*My*Mz);
-	rebin_simple_sort_kernel/*<block_size>*/<<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	rebin_simple_sort_kernel<block_size><<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
 	}
 	
 // benchmark the device rebinning
