@@ -62,11 +62,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //*************** parameters of the benchmark
-const unsigned int g_N = 64000;
-const float g_Lx = 55.1294f;
-const float g_Ly = 55.1294f;
-const float g_Lz = 55.1294f;
-const float g_rcut = 3.8f;
+unsigned int g_N;
+float g_Lx;
+float g_Ly;
+float g_Lz;
+float g_rcut;
 const unsigned int g_Nmax = 128;	// Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
 
@@ -559,7 +559,7 @@ __global__ void update_simple_kernel(unsigned int *d_out_idxlist, unsigned int *
 void update_particles_simple(float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
 	// run one bin per thread
-	int block_size = 128;
+	int block_size = 256;
 	int n_blocks = (int)ceil(float(Mx*My*Mz)/(float)block_size);
 
 	// make even bin dimensions
@@ -655,7 +655,7 @@ void bmark_simple_updating()
 	}
 
 
-int main(void)
+int main(int argc, char **argv)
 	{
 	#ifdef ENABLE_CAC_GPU_ID
 	if (!getenv("CAC_GPU_ID"))
@@ -663,6 +663,26 @@ int main(void)
 	else
 		cudaSetDevice(atoi(getenv("CAC_GPU_ID")));
 	#endif
+	
+	// choose defaults if no args specified
+	if (argc == 1)
+		{
+		g_N = 64000;
+		g_rcut = 3.8f;
+		}
+	if (argc == 2)
+		{
+		g_N = atoi(argv[1]);
+		g_rcut = 3.8f;
+		}
+	if (argc == 3)
+		{
+		g_N = atoi(argv[1]);
+		g_rcut = atof(argv[2]);
+		}
+		
+	float L = pow(float(M_PI/6.0)*float(g_N) / 0.20f, 1.0f/3.0f);
+	g_Lx = g_Ly = g_Lz = L;
 	
 	// setup
 	allocate_data();
