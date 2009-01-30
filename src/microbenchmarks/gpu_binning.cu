@@ -561,9 +561,11 @@ template<class T, unsigned int block_size> __device__ inline void bitonic_sort(T
 	unsigned int tid = threadIdx.x;
 	
 	// Parallel bitonic sort.
+	#pragma unroll
 	for (int k = 2; k <= block_size; k *= 2)
 		{
 		// Bitonic merge:
+		#pragma unroll
 		for (int j = k / 2; j>0; j /= 2)
 			{
 			int ixj = tid ^ j;
@@ -595,6 +597,7 @@ struct bin_id_pair
 	{
 	unsigned int bin;
 	unsigned int id;
+	unsigned int start_offset;	// pad to minimize bank conflicts
 	};
 	
 __device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id)
@@ -602,6 +605,7 @@ __device__ inline bin_id_pair make_bin_id_pair(unsigned int bin, unsigned int id
 	bin_id_pair res;
 	res.bin = bin;
 	res.id = id;
+	res.start_offset = 0;
 	return res;
 	}
 	
@@ -624,21 +628,21 @@ __device__ inline bool operator> (const bin_id_pair& a, const bin_id_pair& b)
 template<class T, unsigned int block_size> __device__ inline void scan_naive(T *temp)
 	{
 	int thid = threadIdx.x;
-	int n = blockDim.x;
 	
 	int pout = 0;
 	int pin = 1;
 	
+	#pragma unroll
 	for (int offset = 1; offset < block_size; offset *= 2)
 		{
 		pout = 1 - pout;
 		pin  = 1 - pout;
 		__syncthreads();
 		
-		temp[pout*n+thid] = temp[pin*n+thid];
+		temp[pout*block_size+thid] = temp[pin*block_size+thid];
 		
 		if (thid >= offset)
-			temp[pout*n+thid] += temp[pin*n+thid - offset];
+			temp[pout*block_size+thid] += temp[pin*block_size+thid - offset];
 		}
 		
 	__syncthreads();
@@ -647,13 +651,16 @@ template<class T, unsigned int block_size> __device__ inline void scan_naive(T *
 		{
 		pout = 1 - pout;
 		pin  = 1 - pout;
-		temp[pout*n+thid] = temp[pin*n+thid];
+		temp[pout*block_size+thid] = temp[pin*block_size+thid];
 		__syncthreads();
 		}
 	}
 
 template<unsigned int block_size> __global__ void rebin_simple_sort_kernel(unsigned int *d_idxlist, unsigned int *d_bin_size, float4 *d_pos, unsigned int N, float xlo, float ylo, float zlo, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, float scalex, float scaley, float scalez)
 	{
+	// sentinel to label a bin as invalid
+	const unsigned int INVALID_BIN = 0xffffffff;
+	
 	// read in the particle that belongs to this thread
 	unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	
@@ -675,8 +682,10 @@ template<unsigned int block_size> __global__ void rebin_simple_sort_kernel(unsig
 		kb = 0;
 		
 	unsigned int bin = ib*(Mz*My) + jb * Mz + kb;
+	
+	// if we are past the end of the array, mark the bin as invalid
 	if (idx >= N)
-		bin = 0xffffffff;
+		bin = INVALID_BIN;
 	
 	// load up shared memory
 	__shared__ bin_id_pair bin_pairs[block_size];
@@ -687,7 +696,7 @@ template<unsigned int block_size> __global__ void rebin_simple_sort_kernel(unsig
 	bitonic_sort<bin_id_pair, block_size>(bin_pairs);
 	
 	// identify the breaking points
-	__shared__ unsigned int unique[block_size*2];
+	__shared__ unsigned int unique[block_size*2+1];
 	
 	bool is_unique = false;
 	if (threadIdx.x > 0 && bin_pairs[threadIdx.x].bin != bin_pairs[threadIdx.x-1].bin)
@@ -707,7 +716,8 @@ template<unsigned int block_size> __global__ void rebin_simple_sort_kernel(unsig
 	scan_naive<unsigned int, block_size>(unique);
 	
 	// determine start location of each unique value in the array
-	__shared__ unsigned int start[block_size+1];
+	// save shared memory by reusing the temp data in the unique[] array
+	unsigned int *start = &unique[block_size];
 	
 	if (is_unique)
 		start[unique[threadIdx.x]] = threadIdx.x;
@@ -718,24 +728,25 @@ template<unsigned int block_size> __global__ void rebin_simple_sort_kernel(unsig
 	
 	__syncthreads();
 	
-	// now: each unique start point does it's own atomicAdd to find the starting offset
-	__shared__ unsigned int start_offset[block_size];
+	bool is_valid = (bin_pairs[threadIdx.x].bin < Mx*My*Mz);
 	
-	if (is_unique)
-		start_offset[unique[threadIdx.x]] = atomicAdd(&d_bin_size[bin_pairs[threadIdx.x].bin], start[unique[threadIdx.x]+1] - start[unique[threadIdx.x]]);
+	// now: each unique start point does it's own atomicAdd to find the starting offset
+	// the is_valid check is to prevent writing to out of bounds memory at the tail end of the array
+	if (is_unique && is_valid)
+		bin_pairs[unique[threadIdx.x]].start_offset = atomicAdd(&d_bin_size[bin_pairs[threadIdx.x].bin], start[unique[threadIdx.x]+1] - start[unique[threadIdx.x]]);
 	
 	__syncthreads();
 	
 	// finally! we can write out all the particles
-	unsigned int offset = start_offset[unique[threadIdx.x]];
-	if (offset + threadIdx.x - start[unique[threadIdx.x]] < Nmax)
+	// the is_valid check is to prevent writing to out of bounds memory at the tail end of the array
+	unsigned int offset = bin_pairs[unique[threadIdx.x]].start_offset;
+	if (offset + threadIdx.x - start[unique[threadIdx.x]] < Nmax && is_valid)
 		d_idxlist[bin_pairs[threadIdx.x].bin*Nmax + offset + threadIdx.x - start[unique[threadIdx.x]]] = bin_pairs[threadIdx.x].id;
 	}
 	
-void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
+void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, unsigned int block_size)
 	{
 	// run one particle per thread
-	const int block_size = 64;
 	int n_blocks = (int)ceil(float(N)/(float)block_size);
 
 	// make even bin dimensions
@@ -755,14 +766,29 @@ void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, 
 	// call the kernel
 	//cudaMemset(gd_bin_size, 0, sizeof(unsigned int)*Mx*My*Mz);
 	fast_memclear_kernal<<<(int)ceil(float(Mx*My*Mz)/(float)block_size), block_size>>>(gd_bin_size, Mx*My*Mz);
-	rebin_simple_sort_kernel<block_size><<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	
+	if (block_size == 32)
+		rebin_simple_sort_kernel<32><<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	else if (block_size == 64)
+		rebin_simple_sort_kernel<64><<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	else if (block_size == 128)
+		rebin_simple_sort_kernel<128><<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	else if (block_size == 256)
+		rebin_simple_sort_kernel<256><<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	else if (block_size == 512)
+		rebin_simple_sort_kernel<512><<<n_blocks, block_size>>>(idxlist, bin_size, pos, N, xlo, ylo, zlo, Mx, My, Mz, Nmax, scalex, scaley, scalez);
+	else
+		{
+		printf("invalid block size!\n");
+		exit(1);
+		}
 	}
 	
 // benchmark the device rebinning
-void bmark_simple_sort_rebinning()
+void bmark_simple_sort_rebinning(unsigned int block_size)
 	{
 	// warm up
-	rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+	rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, block_size);
 	CUT_CHECK_ERROR("kernel failed");
 	// copy back from device
 	CUDA_SAFE_CALL(cudaMemcpy(gh_idxlist, gd_idxlist, g_Mx*g_My*g_Mz*g_Nmax*sizeof(unsigned int), cudaMemcpyDeviceToHost));
@@ -786,7 +812,7 @@ void bmark_simple_sort_rebinning()
 	for (unsigned int i = 0; i < iters; i++)
 		{
 		cudaEventRecord(start, 0);
-		rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+		rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, block_size);
 		cudaEventRecord(end, 0);
 		
 		float tmp;
@@ -808,7 +834,7 @@ void bmark_simple_sort_rebinning()
 		return;
 		}	
 	
-	printf("GPU/simple/sort     : ");
+	printf("GPU/simple/sort/%3d : ", block_size);
 	printf("%f ms\n", avg_t);
 	}
 
@@ -1039,13 +1065,17 @@ int main(int argc, char **argv)
 	
 	// normally, data in HOOMD is not perfectly sorted:
 	for (unsigned int i = 0; i < 100; i++)
-		tweak_data();	
+		tweak_data();
 	
 	// run the various benchmarks
 	bmark_host_rebinning(false);
 	bmark_host_rebinning(true);
 	bmark_simple_rebinning();
-	bmark_simple_sort_rebinning();
+	bmark_simple_sort_rebinning(32);
+	bmark_simple_sort_rebinning(64);
+	bmark_simple_sort_rebinning(128);
+	bmark_simple_sort_rebinning(256);
+	bmark_simple_sort_rebinning(512);
 	bmark_simple_updating();
 	
 	free_data();
