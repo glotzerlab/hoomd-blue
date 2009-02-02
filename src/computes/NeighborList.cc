@@ -620,6 +620,9 @@ void NeighborList::copyExclusionsFromBonds()
 		to this method that returned true.
 	\returns false If none of the particles has been moved more than 1/2 of the buffer distance since the last call to this
 		method that returned true.
+		
+	Note: this method relies on data set by setLastUpdatedPos(), which must be called to set the previous data used
+	in the next call to distanceCheck();
 */
 bool NeighborList::distanceCheck()
 	{
@@ -673,17 +676,8 @@ bool NeighborList::distanceCheck()
 		if (dx*dx + dy*dy + dz*dz >= maxsq)
 			{
 			result = true;
-			m_updates += 1;
 			break;
 			}
-		}
-
-	// if we are updating, update the last position arrays
-	if (result)
-		{
-		memcpy((void *)m_last_x, arrays.x, sizeof(Scalar)*arrays.nparticles);
-		memcpy((void *)m_last_y, arrays.y, sizeof(Scalar)*arrays.nparticles);
-		memcpy((void *)m_last_z, arrays.z, sizeof(Scalar)*arrays.nparticles);
 		}
 
 	// don't worry about computing flops here, this is fast
@@ -691,6 +685,26 @@ bool NeighborList::distanceCheck()
 		
 	m_pdata->release();
 	return result;
+	}
+
+/*! Copies the current positions of all particles over to m_last_x etc...
+*/
+void NeighborList::setLastUpdatedPos()
+	{
+	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+	// sanity check
+	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+	
+ 	// profile
+	if (m_prof) m_prof->push("Dist check");	
+	
+	// if we are updating, update the last position arrays
+	memcpy((void *)m_last_x, arrays.x, sizeof(Scalar)*arrays.nparticles);
+	memcpy((void *)m_last_y, arrays.y, sizeof(Scalar)*arrays.nparticles);
+	memcpy((void *)m_last_z, arrays.z, sizeof(Scalar)*arrays.nparticles);
+			
+	if (m_prof) m_prof->pop();
+	m_pdata->release();
 	}
 
 /*! \returns true If the neighbor list needs to be updated
@@ -742,7 +756,12 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 			m_updates += 1;
 			}
 		}
-		
+
+	// need to update teh last position so it is ready for the next call to this
+	// method
+	if (result)
+		setLastUpdatedPos();
+	
 	// warn the user if this is a dangerous build
 	if (result && dangerous)
 		{

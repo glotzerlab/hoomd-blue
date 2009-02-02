@@ -686,6 +686,12 @@ bool BinnedNeighborListGPU::distanceCheck()
 	return result;
 	}
 
+/*! Does nothing in BinnedNeighborListGPU. The last position values are set whenever the neighbor list is built.
+*/
+void BinnedNeighborListGPU::setLastUpdatedPos()
+	{
+	}
+
 /*! This method just adds a few statistic numbers specific to this class. The base class method is called
 	first to get the more general stats from there.
 */
