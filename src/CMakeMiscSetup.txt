@@ -52,7 +52,22 @@ OPTION(ENABLE_TEST "Enables unit tests" ON)
 
 #################################
 ## Optionally enable documentation build
+find_package(Doxygen)
+if (DOXYGEN_FOUND)
+# get the doxygen version
+exec_program(${DOXYGEN_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE DOXYGEN_VERSION)
+STRING(REGEX REPLACE "^([0-9]+)\\.[0-9]+\\.[0-9]+.*" "\\1" DOXYGEN_VERSION_MAJOR "${DOXYGEN_VERSION}")
+STRING(REGEX REPLACE "^[0-9]+\\.([0-9])+\\.[0-9]+.*" "\\1" DOXYGEN_VERSION_MINOR "${DOXYGEN_VERSION}")
+STRING(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" DOXYGEN_VERSION_PATCH "${DOXYGEN_VERSION}")
+
+if (DOXYGEN_VERSION_MAJOR GREATER 0 AND DOXYGEN_VERSION_MINOR GREATER 4 AND DOXYGEN_VERSION_PATCH GREATER 5)
 OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" ON)
+else (DOXYGEN_VERSION_MAJOR GREATER 0 AND DOXYGEN_VERSION_MINOR GREATER 4 AND DOXYGEN_VERSION_PATCH GREATER 5)
+message("Doxygen version less than 1.5.5, defaulting ENABLE_DOXYGEN=OFF")
+OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
+endif (DOXYGEN_VERSION_MAJOR GREATER 0 AND DOXYGEN_VERSION_MINOR GREATER 4 AND DOXYGEN_VERSION_PATCH GREATER 5)
+
+endif (DOXYGEN_FOUND)
 
 ################################
 ## thread safe compiling

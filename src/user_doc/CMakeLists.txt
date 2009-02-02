@@ -37,8 +37,6 @@
 # $Id: CMakeLists.txt 1029 2008-06-03 20:30:06Z joaander $
 # $URL: http://svn2.assembla.com/svn/hoomd/branches/gpu-iface-rewrite/src/doc/CMakeLists.txt $
 
-find_package(Doxygen)
-
 if (DOXYGEN)
 
 # disable DOT in doxygen if dot is not found
@@ -59,6 +57,7 @@ endif (HOOMD_SUBVERSION_BUILD)
 # doxygen docs fit in with the main HOOMD homepage. Enable them as an option
 option(ENABLE_DOXYGEN_HOOMD_STYLE OFF "Enable the usage of the HOOMD homepage
 stylesheet in processing the doxygen html")
+mark_as_advanced(ENABLE_DOXYGEN_HOOMD_STYLE)
 if (ENABLE_DOXYGEN_HOOMD_STYLE)
 	set(DOXYGEN_HTML_HEADER ${HOOMD_SOURCE_DIR}/user_doc/header.html)
 	set(DOXYGEN_HTML_FOOTER ${HOOMD_SOURCE_DIR}/user_doc/footer.html)
