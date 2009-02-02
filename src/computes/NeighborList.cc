@@ -676,7 +676,6 @@ bool NeighborList::distanceCheck()
 		if (dx*dx + dy*dy + dz*dz >= maxsq)
 			{
 			result = true;
-			m_updates += 1;
 			break;
 			}
 		}
@@ -757,12 +756,11 @@ bool NeighborList::needsUpdating(unsigned int timestep)
 			m_updates += 1;
 			}
 		}
-	
+
+	// need to update teh last position so it is ready for the next call to this
+	// method
 	if (result)
-		{
 		setLastUpdatedPos();
-		cout << "Updating on timestep " << timestep << endl;
-		}
 	
 	// warn the user if this is a dangerous build
 	if (result && dangerous)
