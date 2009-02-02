@@ -108,10 +108,31 @@ ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
   SET(nvcc_flags --host-compilation C++)
 ENDIF(CUDA_BUILD_TYPE MATCHES "Emulation")
 
+# nvcc 64-bit build workaround
 if (CMAKE_CL_64)
   set(nvcc_flags ${nvcc_flags} -ccbin "C:\\Program Files (x86)\\Microsoft Visual Studio 8\\VC\\bin")
 endif (CMAKE_CL_64)
 
+###############
+## CUDA ARCH settings
+set(CUDA_ARCH 13 CACHE STRING "Target architecture to compile CUDA code for. Valid options are 10, 11, 12, or 13 (currently). They correspond to compute 1.0, 1.1, 1.2, and 1.3 GPU hardware")
+# the arch is going to be passed on a command line: verify it so the user doesn't make any blunders
+set(_cuda_arch_ok FALSE)
+foreach(_valid_cuda_arch 10 11 12 13)
+	if (CUDA_ARCH EQUAL ${_valid_cuda_arch})
+		set(_cuda_arch_ok TRUE)
+	endif (CUDA_ARCH EQUAL ${_valid_cuda_arch})
+endforeach(_valid_cuda_arch)
+if (NOT _cuda_arch_ok)
+	message(FATAL_ERROR "Wrong CUDA_ARCH specified. Must be one of 10, 11, 12, or 13")
+endif (NOT _cuda_arch_ok)
+
+set(nvcc_flags ${nvcc_flags} -arch sm_${CUDA_ARCH} -DARCH_SM${CUDA_ARCH})
+add_definitions(-DARCH_SM${CUDA_ARCH})
+
+
+
+# user options
 SET(CUDA_BUILD_CUBIN FALSE CACHE BOOL "Generate and parse .cubin files in Device mode.")
 SET(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
 
@@ -119,7 +140,7 @@ SET(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
 IF(NOT CUDA_INSTALL_PREFIX)
   FIND_PATH(CUDA_INSTALL_PREFIX
     NAMES nvcc nvcc.exe
-    PATHS /usr/local/cuda /opt/cuda /opt/cuda-1.1 /opt/cuda-2.0 /opt/cuda-2.1 /opt/cuda-2.2 /opt/cuda-2.3 /opt/cuda/2.4 /opt/cuda-2.5 /opt/cuda-2.6 /opt/cuda-2.7 /opt/cuda-2.8 /opt/cuda-2.9 /opt/cuda-3.0 ENV CUDA_BIN_PATH
+    PATHS /usr/local/cuda /opt/cuda ENV CUDA_BIN_PATH
     PATH_SUFFIXES bin
     DOC "Toolkit location."
     )

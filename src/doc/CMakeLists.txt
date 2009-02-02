@@ -37,8 +37,6 @@
 # $Id$
 # $URL$
 
-find_package(Doxygen)
-
 if (DOXYGEN)
 
 # policy change: always build all documentation even on platforms that don't

@@ -2,6 +2,7 @@
 
 import os;
 import commands;
+import re;
 plotting = False;
 try:
 	import matplotlib.pyplot as plt;
@@ -18,16 +19,23 @@ block_size_list = range(32,513,32);
 for block_size in block_size_list:
 	# run the benchmark and get the output
 	bmark_output = commands.getoutput("./neighborlist_bmark " + args_base + " --block_size " + str(block_size));
+	if re.search("n/a s/step", bmark_output):
+		print "probably reached maximum block size allowed, stopping"
+		print bmark_output
+		break;
+
+	match = re.search("(\d*\.\d*) s/step", bmark_output);
+	value = match.group(1);
 	
-	print block_size, bmark_output
+	print block_size, value
 	
-	# save the time in bmark_results
-	values = bmark_output.split();
 	try:
-		bmark_time.append(float(values[0]));
+		bmark_time.append(float(value));
 	except ValueError:
-		print "reached maximum block size allowed, or other error occured running neighborlist_compute_bmark"
+		print "error parsing value"
+		print bmark_output
 		break
+	
 
 # block_size_list is likely larger than bmark_time, shrink them to the same size
 block_size_list = block_size_list[0:len(bmark_time)];

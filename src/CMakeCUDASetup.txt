@@ -48,33 +48,37 @@ if(SINGLE_PRECISION)
 
 	option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
 
+	# add ENABLE_CUDA definition to compiler to enable #ifdef'd code
 	if (ENABLE_CUDA)
+		find_package(Cuda)
 		add_definitions (-DENABLE_CUDA)
-		find_package(Cuda REQUIRED)
 	endif (ENABLE_CUDA)
 	
-	option(DISABLE_ULF_WORKAROUND "Set to ON to enable higher performace at the cost of stability on pre C1060 GPUs" off)
-	
-	if (DISABLE_ULF_WORKAROUND)
-		add_definitions (-DDISABLE_ULF_WORKAROUND)
-	endif (DISABLE_ULF_WORKAROUND)
-	
-	
-	site_name(MACHINE_NAME)
-	if (MACHINE_NAME MATCHES "nyx")
-		message(STATUS "Compiling on nyx")
-		option(ENABLE_CAC_GPU_ID "Set to ON to have all HOOMD benchmarks, tests, and hoomd_script automatically parse CAC_GPU_ID to tell which GPUs to run on" on)
-	else (MACHINE_NAME MATCHES "nyx")
-		option(ENABLE_CAC_GPU_ID "Set to ON to have all HOOMD benchmarks, tests, and hoomd_script automatically parse CAC_GPU_ID to tell which GPUs to run on" off)
-	endif (MACHINE_NAME MATCHES "nyx")
-	mark_as_advanced(MACHINE_NAME)
-	
-	if (ENABLE_CAC_GPU_ID)
-		add_definitions (-DENABLE_CAC_GPU_ID)
-	endif (ENABLE_CAC_GPU_ID)
-	
-# it is not known if this forcing of cuda off actually works
-#else(SINGLE_PRECISION)
-	# this line makes sure that cuda is disabled when single_precision is disabled
-	#set(ENABLE_CUDA OFF CACHE BOOL "Enable the compilation of the CUDA GPU code - requires single precision" FORCE)
 endif(SINGLE_PRECISION)
+	
+##############
+## Option to disable the ULF bug workaround
+option(DISABLE_ULF_WORKAROUND "Set to ON to enable higher performace at the cost of stability on pre C1060 GPUs" off)
+mark_as_advanced(DISABLE_ULF_WORKAROUND)	
+if (DISABLE_ULF_WORKAROUND)
+	add_definitions (-DDISABLE_ULF_WORKAROUND)
+endif (DISABLE_ULF_WORKAROUND)
+	
+	
+##############
+## Option to read GPU to run on from CAC_GPU_ID
+## - defaults to ON when compiling on nyx
+site_name(MACHINE_NAME)
+if (MACHINE_NAME MATCHES "nyx")
+	message(STATUS "Compiling on nyx")
+	option(ENABLE_CAC_GPU_ID "Set to ON to have all HOOMD benchmarks, tests, and hoomd_script automatically parse CAC_GPU_ID to tell which GPUs to run on" on)
+else (MACHINE_NAME MATCHES "nyx")
+	option(ENABLE_CAC_GPU_ID "Set to ON to have all HOOMD benchmarks, tests, and hoomd_script automatically parse CAC_GPU_ID to tell which GPUs to run on" off)
+endif (MACHINE_NAME MATCHES "nyx")
+mark_as_advanced(MACHINE_NAME)
+mark_as_advanced(ENABLE_CAC_GPU_ID)
+	
+if (ENABLE_CAC_GPU_ID)
+	add_definitions (-DENABLE_CAC_GPU_ID)
+endif (ENABLE_CAC_GPU_ID)
+	
