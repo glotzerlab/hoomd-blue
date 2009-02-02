@@ -123,6 +123,9 @@ class BinnedNeighborListGPU : public NeighborList
 		//! Performs the distance check
 		virtual bool distanceCheck();
 		
+		//! Updates the previous position table for use in the next distance check
+		virtual void setLastUpdatedPos();
+		
 		//! Helper function to allocate bin data
 		void allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax);
 		
