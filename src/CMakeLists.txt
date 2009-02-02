@@ -118,7 +118,7 @@ endif(ENABLE_STATIC)
 ## Process subdirectories
 add_subdirectory (lib)
 add_subdirectory (benchmarks)
-add_subdirectory (microbenchmarks)
+add_subdirectory (microbenchmarks EXCLUDE_FROM_ALL)
 add_subdirectory (share)
 add_subdirectory (scripts)
 add_subdirectory (python)

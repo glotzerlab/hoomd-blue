@@ -425,6 +425,8 @@ void bmark_host_rebinning(bool include_memcpy)
 	printf("%f ms\n", avg_t);
 	}
 
+#if CUDA_ARCH >= 11
+
 //*************************** simple method of binning on the GPU
 // Run one thread per particle
 // determine the bin that particle belongs in
@@ -538,7 +540,8 @@ void bmark_simple_rebinning()
 	printf("GPU/simple          : ");
 	printf("%f ms\n", avg_t);
 	}
-	
+
+
 //*************************** simple method of binning on the GPU - with sorting
 // Run one thread per particle
 // determine the bin that particle belongs in
@@ -1027,6 +1030,7 @@ void bmark_simple_updating()
 	printf("%f ms\n", avg_t);
 	}
 
+#endif
 
 int main(int argc, char **argv)
 	{
@@ -1070,6 +1074,7 @@ int main(int argc, char **argv)
 	// run the various benchmarks
 	bmark_host_rebinning(false);
 	bmark_host_rebinning(true);
+	#if CUDA_ARCH >= 11
 	bmark_simple_rebinning();
 	bmark_simple_sort_rebinning(32);
 	bmark_simple_sort_rebinning(64);
@@ -1077,6 +1082,7 @@ int main(int argc, char **argv)
 	bmark_simple_sort_rebinning(256);
 	bmark_simple_sort_rebinning(512);
 	bmark_simple_updating();
+	#endif
 	
 	free_data();
 	

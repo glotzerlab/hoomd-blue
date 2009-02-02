@@ -37,4 +37,6 @@
 # $Id$
 # $URL$
 
+if(ENABLE_CUDA)
 cuda_add_executable(gpu_binning gpu_binning.cu)
+endif(ENABLE_CUDA)

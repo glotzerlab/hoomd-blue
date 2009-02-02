@@ -127,8 +127,8 @@ if (NOT _cuda_arch_ok)
 	message(FATAL_ERROR "Wrong CUDA_ARCH specified. Must be one of 10, 11, 12, or 13")
 endif (NOT _cuda_arch_ok)
 
-set(nvcc_flags ${nvcc_flags} -arch sm_${CUDA_ARCH} -DARCH_SM${CUDA_ARCH})
-add_definitions(-DARCH_SM${CUDA_ARCH})
+set(nvcc_flags ${nvcc_flags} -arch sm_${CUDA_ARCH} -DCUDA_ARCH=${CUDA_ARCH})
+add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
 
 
 
