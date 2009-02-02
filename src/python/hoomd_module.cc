@@ -153,6 +153,10 @@ string find_hoomd_data_dir()
 			}
 		}
 
+	// as a final fallback: try the source directory
+	if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / "hoomd_data_dir"))
+		return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
+
 	#ifdef WIN32
 	// access the registry key
 	string name = string("hoomd ") + string(HOOMD_VERSION);
@@ -188,10 +192,6 @@ string find_hoomd_data_dir()
 		return "/opt/hoomd/share";
 	#endif
 
-	// as a final fallback: try the source directory
-	if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / "hoomd_data_dir"))
-		return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
-	
 	cerr << endl << "***Error! HOOMD data directory not found, please set the environment variable HOOMD_ROOT" << endl << endl;
 	return string("");
 	}
