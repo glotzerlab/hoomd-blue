@@ -56,15 +56,51 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
 
+#include "GPUArray.h"
+
 // The requirements state that we need to handle both single and double precision through
 // a define
 #ifdef SINGLE_PRECISION
 //! Floating point type (single precision)
 typedef float Scalar;
+//! Floating point type with x,y elements (single precision)
+typedef float2 Scalar2;
+//! Floating point type with x,y,z,w elements (single precision)
+typedef float4 Scalar4;
 #else
 //! Floating point type (double precision)
 typedef double Scalar;
+//! Floating point type with x,y elements (double precision)
+typedef double2 Scalar2;
+//! Floating point type with x,y,z,w elements (double precision)
+struct Scalar4
+	{
+	double x;	//!< x component
+	double y;	//!< y component
+	double z;	//!< z component
+	double w;	//!< w component
+	};
 #endif
+
+//! make a scalar2 value
+inline Scalar2 make_scalar2(Scalar x, Scalar y)
+	{
+	Scalar2 retval;
+	retval.x = x;
+	retval.y = y;
+	return retval;
+	}
+
+//! make a scalar4 value
+inline Scalar4 make_scalar2(Scalar x, Scalar y, Scalar z, Scalar w)
+	{
+	Scalar4 retval;
+	retval.x = x;
+	retval.y = y;
+	retval.z = z;
+	retval.w = w;
+	return retval;
+	}
 
 #include <stdlib.h>
 #include <vector>

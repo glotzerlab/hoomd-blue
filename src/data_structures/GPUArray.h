@@ -61,6 +61,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 
 #include <algorithm>
+#include <boost/bind.hpp>
 
 //! Specifies where to acquire the data
 struct access_location
@@ -441,6 +442,10 @@ template<class T> void GPUArray<T>::allocate()
 		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
 		m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
 		}
+	else
+		{
+		h_data = new T[m_num_elements];
+		}
 	#else
 	h_data = new T[m_num_elements];
 	#endif
@@ -461,11 +466,15 @@ template<class T> void GPUArray<T>::deallocate()
 	
 	// free memory
 	#ifdef ENABLE_CUDA
-	assert(d_data);
 	if (m_exec_conf.gpu.size() > 0)
 		{
+		assert(d_data);
 		m_exec_conf.gpu[0]->call(boost::bind(cudaFreeHost, h_data));
 		m_exec_conf.gpu[0]->call(boost::bind(cudaFree, d_data));
+		}
+	else
+		{
+		delete[] h_data;
 		}
 	#else
 	delete[] h_data;
@@ -487,11 +496,14 @@ template<class T> void GPUArray<T>::memclear()
 	if (m_num_elements == 0)
 		return;
 	
+	assert(h_data);
+	
 	// clear memory
 	memset(h_data, 0, sizeof(T)*m_num_elements);
 	#ifdef ENABLE_CUDA
 	if (m_exec_conf.gpu.size() > 0)
 		{
+		assert(d_data);
 		m_exec_conf.gpu[0]->call(boost::bind(cudaMemset, d_data, 0, m_num_elements*sizeof(T)));
 		}
 	#endif

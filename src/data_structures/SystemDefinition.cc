@@ -72,6 +72,11 @@ SystemDefinition::SystemDefinition(unsigned int N, const BoxDim &box, unsigned i
 	m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf));
 	m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
 	m_wall_data = boost::shared_ptr<WallData>(new WallData());
+	
+	// only initialize the rigid body data if we are not running on multiple GPUs
+	// this is a temporary hack only while GPUArray doesn't support multiple GPUs
+	if (exec_conf.gpu.size() <= 1)
+		m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
 	}
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
@@ -90,6 +95,11 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 	
 	m_wall_data = boost::shared_ptr<WallData>(new WallData());
 	init.initWallData(m_wall_data);
+	
+	// only initialize the rigid body data if we are not running on multiple GPUs
+	// this is a temporary hack only while GPUArray doesn't support multiple GPUs	
+	if (exec_conf.gpu.size() <= 1)
+		m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
 	}	
 
 void export_SystemDefinition()
@@ -101,6 +111,7 @@ void export_SystemDefinition()
 		.def("getParticleData", &SystemDefinition::getParticleData)
 		.def("getBondData", &SystemDefinition::getBondData)
 		.def("getWallData", &SystemDefinition::getWallData)
+		.def("getRigidData", &SystemDefinition::getRigidData)
 		;
 	}
 

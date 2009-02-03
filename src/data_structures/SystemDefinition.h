@@ -46,6 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "BondData.h"
 #include "WallData.h"
+#include "RigidData.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -105,11 +106,14 @@ class SystemDefinition
 		boost::shared_ptr<BondData> getBondData() const { return m_bond_data; }
 		//! Get the wall data
 		boost::shared_ptr<WallData> getWallData() const { return m_wall_data; }
+		//! Get the rigid body data
+		boost::shared_ptr<RigidData> getRigidData() const { return m_rigid_data; }
 		
 	private:
 		boost::shared_ptr<ParticleData> m_particle_data;	//!< Particle data for the system
 		boost::shared_ptr<BondData> m_bond_data;			//!< Bond data for the system
 		boost::shared_ptr<WallData> m_wall_data;			//!< Wall data for the system
+		boost::shared_ptr<RigidData> m_rigid_data;			//!< Rigid bodies data for the system
 	};
 
 //! Exports SystemDefinition to python
