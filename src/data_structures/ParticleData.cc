@@ -117,7 +117,7 @@ BoxDim::BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z)
 */
 ParticleDataArrays::ParticleDataArrays() : nparticles(0), x(NULL), y(NULL), z(NULL),
 	vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), mass(NULL), diameter(NULL), ix(NULL),
-	iy(NULL), iz(NULL), type(NULL), rtag(NULL)
+	iy(NULL), iz(NULL), body(NULL), type(NULL), rtag(NULL)
 	{
 	}
 
@@ -125,7 +125,7 @@ ParticleDataArrays::ParticleDataArrays() : nparticles(0), x(NULL), y(NULL), z(NU
 */
 ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(NULL), z(NULL),
 	vx(NULL), vy(NULL), vz(NULL), ax(NULL), ay(NULL), az(NULL), charge(NULL), mass(NULL), diameter(NULL), ix(NULL),
-	iy(NULL), iz(NULL), type(NULL), rtag(NULL)
+	iy(NULL), iz(NULL), body(NULL), type(NULL), rtag(NULL)
 	{
 	}	
 	
@@ -146,6 +146,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	\post \c rtag is allocated and given the default initialization rtag[i] = i
 	\post \c tag is allocated and given the default initialization tag[i] = i
 	\post \c type is allocated and given the default value of type[i] = 0
+	\post \c body is allocated and given the devault value of type[i] = NO_BODY
 	\post Arrays are not currently acquired
 	
 	Type mappings assign particle types "A", "B", "C", ....
@@ -175,6 +176,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	assert(m_arrays.ix != NULL && m_arrays.iy != NULL && m_arrays.iz != NULL);
 	assert(m_arrays.mass != NULL && m_arrays.diameter != NULL);
 	assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
+	assert(m_arrays.body != NULL);
 	
 	// set default values
 	for (unsigned int i = 0; i < N; i++)
@@ -187,6 +189,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 		m_arrays.diameter[i] = 1.0;
 		m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
 		
+		m_arrays.body[i] = NO_BODY;
 		m_arrays.type[i] = 0;
 		m_arrays.rtag[i] = i;
 		m_arrays.tag[i] = i;
@@ -258,6 +261,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	assert(m_arrays.ix != NULL && m_arrays.iy != NULL && m_arrays.iz != NULL);
 	assert(m_arrays.mass != NULL && m_arrays.diameter != NULL);
 	assert(m_arrays.type != NULL && m_arrays.rtag != NULL && m_arrays.tag != NULL && m_arrays.charge != NULL);
+	assert(m_arrays.body != NULL);
 	
 	// set default values
 	for (unsigned int i = 0; i < m_arrays.nparticles; i++)
@@ -269,7 +273,8 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 		m_arrays.mass[i] = 1.0;
 		m_arrays.diameter[i] = 1.0;
 		m_arrays.ix[i] = m_arrays.iy[i] = m_arrays.iz[i] = 0;
-				
+		
+		m_arrays.body[i] = NO_BODY;
 		m_arrays.type[i] = 0;
 		m_arrays.rtag[i] = i;
 		m_arrays.tag[i] = i;
@@ -696,7 +701,7 @@ void ParticleData::allocate(unsigned int N)
 	if ((single_iarray_bytes & 255) != 0)
 		single_iarray_bytes += 256 - (single_iarray_bytes & 255);
 	
-	m_nbytes += single_iarray_bytes * 6;
+	m_nbytes += single_iarray_bytes * 7;
 	
 	#else
 	
@@ -710,7 +715,7 @@ void ParticleData::allocate(unsigned int N)
 	// now add up the number of bytes for the int arrays
 	unsigned int single_iarray_bytes = sizeof(unsigned int) * N;
 	
-	m_nbytes += single_iarray_bytes * 6;
+	m_nbytes += single_iarray_bytes * 7;
 	#endif
 	
 	//////////////////////////////////////////////////////
@@ -750,6 +755,7 @@ void ParticleData::allocate(unsigned int N)
 	m_arrays_const.iz = m_arrays.iz = (int *)cur_byte;  cur_byte += single_iarray_bytes;
 	m_arrays_const.rtag = m_arrays.rtag = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
 	m_arrays_const.tag = m_arrays.tag = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
+	m_arrays_const.body = m_arrays.body = (unsigned int *)cur_byte;  cur_byte += single_iarray_bytes;
 	m_arrays_const.nparticles = m_arrays.nparticles = N;
 	
 	// sanity check
@@ -780,6 +786,7 @@ void ParticleData::allocate(unsigned int N)
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].image), single_xarray_bytes * 4) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].tag), sizeof(unsigned int)*N) );
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].rtag), sizeof(unsigned int)*N));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].body), sizeof(unsigned int)*N));
 		
 		// allocate temporary holding area for uninterleaved data
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging[cur_gpu]), single_xarray_bytes*4));
@@ -866,6 +873,7 @@ void ParticleData::deallocate()
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].image));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].tag));
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].rtag));
+			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_pdata[cur_gpu].body));
 			
 			m_exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_d_staging[cur_gpu]));
 			
@@ -879,6 +887,7 @@ void ParticleData::deallocate()
 			m_gpu_pdata[cur_gpu].image = NULL;
 			m_gpu_pdata[cur_gpu].tag = NULL;
 			m_gpu_pdata[cur_gpu].rtag = NULL;
+			m_gpu_pdata[cur_gpu].body = NULL;
 			m_d_staging[cur_gpu] = NULL;
 			}
 		}
@@ -911,6 +920,7 @@ void ParticleData::deallocate()
 	m_arrays_const.type = m_arrays.type = 0;
 	m_arrays_const.rtag = m_arrays.rtag = 0;
 	m_arrays_const.tag = m_arrays.tag = 0;
+	m_arrays_const.body = m_arrays.body = 0;
 	}
 	
 /*! \param need_aquire set to true if the inBox check should aquire the data before checking
@@ -1009,9 +1019,10 @@ void ParticleData::hostToDeviceCopy()
 		// copy the tag and rtag data
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice)); 
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].body, m_arrays.body, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));
 		}
 	
-	if (m_prof) m_prof->pop(m_exec_conf, 0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
+	if (m_prof) m_prof->pop(m_exec_conf, 0, m_exec_conf.gpu.size() * m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 3);
 	}
 
 //! Basic union for coverting ints <-> floats
@@ -1111,9 +1122,10 @@ void ParticleData::deviceToHostCopy()
 		// copy the tag and rtag data
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.tag + local_beg, m_gpu_pdata[cur_gpu].tag + local_beg, sizeof(unsigned int)*local_num, cudaMemcpyDeviceToHost)); 
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.rtag + local_beg, m_gpu_pdata[cur_gpu].rtag + local_beg, sizeof(unsigned int)*local_num, cudaMemcpyDeviceToHost));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_arrays.body + local_beg, m_gpu_pdata[cur_gpu].body + local_beg, sizeof(unsigned int)*local_num, cudaMemcpyDeviceToHost));
 		}
 
-	if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 2);
+	if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 3);
 	}
 	
 unsigned int ParticleData::getLocalBeg(unsigned int gpu)

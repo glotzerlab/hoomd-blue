@@ -173,7 +173,9 @@ struct BoxDim
 	//! Constructs a box from -Len_x/2 to Len_x/2 for each dimension x
 	BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z);
 	};
-	
+
+const int NO_BODY = 0xffffffff;
+
 //! Structure of arrays containing the particle data
 /*! Once acquired, the user of the ParticleData gets access to the data arrays
 	through this structure. 
@@ -219,6 +221,7 @@ struct ParticleDataArrays
 	int * __restrict__ iy;	//!< array of x-component of images
 	int * __restrict__ iz;	//!< array of x-component of images
 	
+	unsigned int * __restrict__ body; //!< Rigid body index this particle belongs to (NO_BODY if not in a rigid body)
 	unsigned int * __restrict__ type; //!< Type index of each particle
 	unsigned int * __restrict__ rtag; //!< Reverse-lookup tag.
 	unsigned int * __restrict__ tag;  //!< Forward-lookup tag.
@@ -251,9 +254,10 @@ struct ParticleDataArraysConst
 	int const * __restrict__ iy;	//!< array of x-component of images
 	int const * __restrict__ iz;	//!< array of x-component of images
 	
+	unsigned int const * __restrict__ body; //!< Rigid body index this particle belongs to (NO_BODY if not in a rigid body)
 	unsigned int const * __restrict__ type; //!< Type index of each particle
 	unsigned int const * __restrict__ rtag; //!< Reverse-lookup tag.
-	unsigned int const * __restrict__ tag;  //!< Forward-lookup tag. 
+	unsigned int const * __restrict__ tag;  //!< Forward-lookup tag.
 	};
 	
 //! Abstract interface for initializing a ParticleData
