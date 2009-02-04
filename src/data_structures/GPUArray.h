@@ -60,6 +60,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "ExecutionConfiguration.h"
 
+#include <iostream>
 #include <algorithm>
 #include <boost/bind.hpp>
 
