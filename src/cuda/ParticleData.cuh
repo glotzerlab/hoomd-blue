@@ -78,6 +78,7 @@ struct gpu_pdata_arrays
 	
 	unsigned int *tag;	//!< Particle tag
 	unsigned int *rtag;	//!< Particle rtag 
+	unsigned int *body;	//!< Rigid body
 	};
 
 //! Store the box size on the GPU
