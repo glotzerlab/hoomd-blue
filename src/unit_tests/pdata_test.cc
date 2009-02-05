@@ -184,6 +184,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	BOOST_CHECK(arrays.type[0] == 0);
 	BOOST_CHECK(arrays.rtag[0] == 0);
 	BOOST_CHECK(arrays.tag[0] == 0);
+	BOOST_CHECK(arrays.body[0] == NO_BODY);
 	
 	// set some new values for testing
 	arrays.x[0] = 1.0;
@@ -202,6 +203,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	arrays.iy[0] = 28;
 	arrays.iz[0] = 29;
 	arrays.type[0] = 1;
+	arrays.body[0] = 0;
 	
 	a.release();
 	
@@ -225,7 +227,8 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 	BOOST_CHECK_EQUAL(arrays_const.iz[0], 29);
 	BOOST_CHECK(arrays_const.type[0] == 1);
 	BOOST_CHECK(arrays_const.rtag[0] == 0);
-	BOOST_CHECK(arrays_const.tag[0] == 0);	
+	BOOST_CHECK(arrays_const.tag[0] == 0);
+	BOOST_CHECK(arrays_const.body[0] == 0);
 	
 	a.release();
 	
@@ -254,6 +257,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 		BOOST_CHECK(arrays_const.type[i] == 0);
 		BOOST_CHECK(arrays_const.rtag[i] == i);
 		BOOST_CHECK(arrays_const.tag[i] == i);
+		BOOST_CHECK(arrays_const.body[i] == NO_BODY);
 		}
 
 	b.release();
@@ -297,6 +301,8 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 		arrays.iz[i] = i*9;
 		
 		arrays.type[i] = i;
+		
+		arrays.body[i] = i % 10;
 		}
 	pdata.release();
 	// try accessing the data on the GPU
@@ -337,6 +343,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 		BOOST_CHECK_EQUAL(arrays.iz[i], (int)i*9);
 
 		BOOST_CHECK(arrays.type[i] == i);
+		BOOST_CHECK(arrays.body[i] == i % 10);
 		}
 	pdata.release();
 	}
@@ -386,6 +393,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 		arrays.iz[i] = i*9;
 		
 		arrays.type[i] = i;
+		arrays.body[i] = i % 10;
 		}
 	pdata.release();
 	
@@ -427,6 +435,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 		BOOST_CHECK_EQUAL(arrays.iz[i], (int)i*9);
 
 		BOOST_CHECK(arrays.type[i] == i);
+		BOOST_CHECK(arrays.body[i] == i % 10);
 		}
 	pdata.release();
 	}

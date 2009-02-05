@@ -77,8 +77,8 @@ struct gpu_pdata_arrays
 	int4 *image;	//!< Particle box image location in \c x, c y, and \c z. Nothing in \c w.
 	
 	unsigned int *tag;	//!< Particle tag
-	unsigned int *rtag;	//!< Particle rtag 
-	unsigned int *body;	//!< Rigid body
+	unsigned int *rtag;	//!< Particle rtag
+	unsigned int *body; //!< Particle rigid body (0xffffffff if not in a body)
 	};
 
 //! Store the box size on the GPU
