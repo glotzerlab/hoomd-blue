@@ -812,7 +812,7 @@ void NeighborList::printStats()
 	cout << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
 	
 	// lets dump out the nlist to a file
-	ofstream f("nlist.m");
+	/*ofstream f("nlist.m");
 	f << "nlist_data2 = [";
 	for (int j = 0; j < n_neigh_max; j++)
 		{
@@ -826,7 +826,7 @@ void NeighborList::printStats()
 		f << ";" << endl;
 		}
 		
-	f << "];" << endl;
+	f << "];" << endl;*/
 	}
 
 /*! Loops through the particles and finds all of the particles \c j who's distance is less than
