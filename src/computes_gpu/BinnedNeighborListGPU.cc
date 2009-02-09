@@ -107,7 +107,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	if (deviceProp.major == 1 && deviceProp.minor == 0)
 		m_block_size = 64;
 	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 192;
+		m_block_size = 64;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
 		m_block_size = 384;
 	else

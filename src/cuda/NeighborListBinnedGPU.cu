@@ -223,34 +223,31 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d
 			neigh_pos.z = cur_neigh_blob.z;
 			int cur_neigh = __float_as_int(cur_neigh_blob.w);
 			
-			if (cur_neigh != EMPTY_BIN)
-				{
-				// FLOPS: 15
-				float dx = my_pos.x - neigh_pos.x;
-				dx = dx - box.Lx * rintf(dx * box.Lxinv);
-				
-				float dy = my_pos.y - neigh_pos.y;
-				dy = dy - box.Ly * rintf(dy * box.Lyinv);
-				
-				float dz = my_pos.z - neigh_pos.z;
-				dz = dz - box.Lz * rintf(dz * box.Lzinv);
+			// FLOPS: 15
+			float dx = my_pos.x - neigh_pos.x;
+			dx = dx - box.Lx * rintf(dx * box.Lxinv);
+			
+			float dy = my_pos.y - neigh_pos.y;
+			dy = dy - box.Ly * rintf(dy * box.Lyinv);
+			
+			float dz = my_pos.z - neigh_pos.z;
+			dz = dz - box.Lz * rintf(dz * box.Lzinv);
 
-				// FLOPS: 5
-				float dr = dx*dx + dy*dy + dz*dz;
-				int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
-				
-				// FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
-				if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
+			// FLOPS: 5
+			float dr = dx*dx + dy*dy + dz*dz;
+			int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
+			
+			// FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
+			if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)
+				{
+				// check for overflow
+				if (n_neigh < nlist.height)
 					{
-					// check for overflow
-					if (n_neigh < nlist.height)
-						{
-						nlist.list[my_pidx + n_neigh*nlist.pitch] = cur_neigh;
-						n_neigh++;
-						}
-					else
-						*nlist.overflow = 1;
+					nlist.list[my_pidx + n_neigh*nlist.pitch] = cur_neigh;
+					n_neigh++;
 					}
+				else
+					*nlist.overflow = 1;
 				}
 			}
 		}
