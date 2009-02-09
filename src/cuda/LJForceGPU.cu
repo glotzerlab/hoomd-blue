@@ -127,8 +127,7 @@ template<bool ulf_workaround> __global__ void gpu_compute_lj_forces_kernel(gpu_f
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
 		// prefetch the next value and set the current one
 		cur_neigh = next_neigh;
-		if (neigh_idx+1 < nlist.height)
-			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
 		
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
