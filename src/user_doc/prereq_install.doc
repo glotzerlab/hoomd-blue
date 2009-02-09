@@ -426,7 +426,7 @@ If you are going to be building a \b 64-bit hoomd, make sure you download and in
 <b>Option 1: Install binaries.</b> Easy, but it only supports version \b 2.5.x of python 
 (for boost 1.35.0, this may differ for the other boost versions, depending on which version of python 
 boost-consulting compiled them against). This option \b cannot be used if you are going to build
-a \bt 64-bit hoomd.
+a \b 64-bit hoomd.
 
 Download the boost 1.35.0 installer from here http://www.boostpro.com/products/free .
 When you run it, you will get an option screen that looks like this:

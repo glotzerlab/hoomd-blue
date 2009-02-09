@@ -143,15 +143,15 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	Lz=Scalar(box.zhi-box.zlo);
 	
 	f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" <<endl;
-	f << "<hoomd_xml>" << endl;
+	f << "<hoomd_xml version=\"1.0\">" << endl;
 	f << "<configuration time_step=\"" << timestep << "\">" << endl;
 	
-	f << "<box units=\"sigma\" " << " Lx=\""<< Lx << "\" Ly=\""<< Ly << "\" Lz=\""<< Lz << "\"/>" << endl;
+	f << "<box units=\"sigma\" " << " lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << endl;
 
 	// If the position flag is true output the position of all particles to the file 
 	if (m_output_position)
 		{
-		f << "<position units=\"sigma\">" << endl;
+		f << "<position units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << endl;
 		for (unsigned int j = 0; j < arrays.nparticles; j++)
 			{
 			// use the rtag data to output the particles in the order they were read in
@@ -176,7 +176,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	// If the image flag is true, output the image of each particle to the file
 	if (m_output_image)
 		{
-		f << "<image>" << endl;
+		f << "<image num=\"" << m_pdata->getN() << "\">" << endl;
 		for (unsigned int j = 0; j < arrays.nparticles; j++)
 			{
 			// use the rtag data to output the particles in the order they were read in
@@ -201,7 +201,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	// If the velocity flag is true output the velocity of all particles to the file
 	if (m_output_velocity)
 		{
-		f <<"<velocity units=\"sigma/tau\">" << endl;
+		f <<"<velocity units=\"sigma/tau\" num=\"" << m_pdata->getN() << "\">" << endl;
 
 		for (unsigned int j = 0; j < arrays.nparticles; j++)
 			{
@@ -226,7 +226,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	// If the Type flag is true output the types of all particles to an xml file
 	if	(m_output_type)
 		{
-		f <<"<type>" <<endl;
+		f <<"<type num=\"" << m_pdata->getN() << "\">" <<endl;
 		for (unsigned int j = 0; j < arrays.nparticles; j++)
 			{
 			int i;
@@ -239,7 +239,7 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 	// if the bond flag is true, output the bonds to the xml file
 	if (m_output_bond)
 		{
-		f << "<bond>" << endl;
+		f << "<bond num=\"" << m_pdata->getBondData()->getNumBonds() << "\">" << endl;
 		shared_ptr<BondData> bond_data = m_pdata->getBondData();
 		
 		// loop over all bonds and write them out

@@ -1,4 +1,5 @@
 /*! \page page_xml_file_format XML File Format
+<center><b>Version 1.0</b></center>
 
 \section sec_xml_overview Overview
 
@@ -10,7 +11,7 @@ XML is that it is also easily machine readable and commonly used, so many parser
 The basic outline of a HOOMD xml file looks like this
 \code
 <?xml version="1.0" encoding="UTF-8"?>
-<hoomd_xml>
+<hoomd_xml version="1.0">
 <!-- this is a comment, you can put as many of these in the file 
 	wherever you wish to. -->
 <configuration time_step="0">
@@ -26,9 +27,10 @@ The first line of the file
 is just something that \b must be there to identify that this is an XML file.
 
 The second and last lines signify the start and end of the root node \c hoomd_xml. 
-The contents of the root node is between these begin and end markers.
+The contents of the root node is between these begin and end markers. The version="1.0"
+attribute specifies the version of the xml file format used when writing this file.
 \code
-<hoomd_xml>
+<hoomd_xml version="1.0">
 	<!-- contents of root node -->
 </hoomd_xml>
 \endcode
@@ -44,7 +46,15 @@ and the time step will default to 0. It is used as the initial time step in the 
 by \link hoomd_script.init.read_xml init.read_xml\endlink. In files written by HOOMD, \c time_step 
 will be set to the value of the time step when the system snapshot was taken.
 
-A number of data nodes can be included as part of the configuration and in any order.
+<b>A note on case-sensitivity:</b> 
+ - All node names and attributes are in all lower case. As XML is a case
+	sensitive file format, all readers and writers must adhere to this. However, \link hoomd_script.init.read_xml init.read_xml\endlink
+	will try to be generous and handle any possible typos that a user makes on entering data and will accept
+	files with varying cases.
+ - The \b content of any node is of course case sensitive.
+
+A number of data nodes can be included inside the configuration node <b>in any order</b>.
+
  - \b box (\ref sec_xml_box)
  - \b position (\ref sec_xml_position)
  - \b image (\ref sec_xml_image)
@@ -63,14 +73,14 @@ The \<box\> node defines the dimensions of the simulation box which particles ar
 
 \b Example:
 \code
-<box units="sigma"  Lx="5.1" Ly="9.6" Lz="15.8"/>
+<box units="sigma"  lx="5.1" ly="9.6" lz="15.8"/>
 \endcode
 \b Attributes:
  - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
  	for length, energy, etc...
- - \a Lx Box length in the \b x direction
- - \a Ly Box length in the \b y direction
- - \a Lz Box length in the \b z direction
+ - \a lx Box length in the \b x direction
+ - \a ly Box length in the \b y direction
+ - \a lz Box length in the \b z direction
 
 <hr>
 
@@ -89,7 +99,9 @@ The \<position\> node sets the position of each particle in the simulation.<br>
 \endcode
 \b Attributes:
  - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
- 	for length, energy, etc...
+ 	for length, energy, etc...\
+ - \a num (\b optional) number of particles coming in the node content. This attribute is written by
+	\link hoomd_script.init.read_xml init.read_xml\endlink to potentially aid in making parsers easier to write.
 
 In between the begin and end markers \<position\> and \</position\> is a series of floating point
 numbers in plain-text separated by whitespace. These are read in order <i>x0 y0 z0 x1 y1 z1 x2 
@@ -117,6 +129,9 @@ When used in an input file, the images specified are used as the initial conditi
 13 -5 0
 </velocity>
 \endcode
+\b Attributes:
+ - \a num (\b optional) number of images coming in the node content. This attribute is written by
+	\link hoomd_script.init.read_xml init.read_xml\endlink to potentially aid in making parsers easier to write.
 
 The format of the node data is the same as for \<position\> (see \ref sec_xml_position), except that the 
 values must be integers. If specifying both position and image in an input file, be certain to include the 
@@ -147,6 +162,8 @@ When used in an input file, the velocities specified are used as the initial con
 \b Attributes:
  - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
  	for length, energy, etc...
+ - \a num (\b optional) number of velocities coming in the node content. This attribute is written by
+	\link hoomd_script.init.read_xml init.read_xml\endlink to potentially aid in making parsers easier to write.	
 
 The format of the node data is the same as for \<position\> (see \ref sec_xml_position). If specifying
 both position and velocity in an input file, be certain to include the same number of particles in each,
@@ -167,6 +184,9 @@ long_type_name
 A
 </type>
 \endcode
+\b Attributes:
+ - \a num (\b optional) number of types coming in the node content. This attribute is written by
+	\link hoomd_script.init.read_xml init.read_xml\endlink to potentially aid in making parsers easier to write.
 
 The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
 except that only one type is specified for each particle. A particle type can be \b any
@@ -194,6 +214,9 @@ polymer 0 1
 backbone 1 2
 </bond>
 \endcode
+\b Attributes:
+ - \a num (\b optional) number of bonds coming in the node content. This attribute is written by
+	\link hoomd_script.init.read_xml init.read_xml\endlink to potentially aid in making parsers easier to write.
 
 The above example creates a bond of type \em polymer between particle 0 and 1 and one of type
 \em backbone between 1 and 2. The general format is <i>type0 idx_a0 idx_b0 type1 idx_a1 idx_b1 ....</i>

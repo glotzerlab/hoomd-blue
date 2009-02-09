@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<hoomd_xml>");
+		BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.0\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  Lx=\"2.5\" Ly=\"4.5\" Lz=\"12.1\"/>");
+		BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  lx=\"2.5\" ly=\"4.5\" lz=\"12.1\"/>");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\">");
+		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"2\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -246,7 +246,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\">");
+		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"2\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -284,7 +284,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<type>");
+		BOOST_CHECK_EQUAL(line, "<type num=\"2\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -367,7 +367,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<bond>");
+		BOOST_CHECK_EQUAL(line, "<bond num=\"2\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -408,7 +408,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<image>");
+		BOOST_CHECK_EQUAL(line, "<image num=\"2\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -504,7 +504,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<hoomd_xml>");
+		BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.0\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -512,11 +512,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  Lx=\"100.5\" Ly=\"120.5\" Lz=\"130.5\"/>");
+		BOOST_CHECK_EQUAL(line,  "<box units=\"sigma\"  lx=\"100.5\" ly=\"120.5\" lz=\"130.5\"/>");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\">");
+		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"6\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		// check all the positions
@@ -550,7 +550,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		
 		// check all the images
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<image>");
+		BOOST_CHECK_EQUAL(line, "<image num=\"6\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -583,7 +583,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		
 		// check all velocities
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\">");
+		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"6\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -615,7 +615,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		
 		// check all types
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<type>");
+		BOOST_CHECK_EQUAL(line, "<type num=\"6\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -667,9 +667,9 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 	// create a test input file
 	ofstream f("test_input.xml");
 f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
-<hoomd_xml>\n\
+<hoomd_xml version=\"1.0\">\n\
 <configuration time_step=\"150000000\">\n\
-<box Units =\"sigma\"  Lx=\"20.05\" Ly= \"32.12345\" Lz=\"45.098\" />\n\
+<box units =\"sigma\"  lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
 <position units =\"sigma\" >\n\
 1.4 2.567890 3.45\n\
 2.4 3.567890 4.45\n\
