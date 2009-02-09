@@ -211,11 +211,16 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d
 		int neigh_bin = tex2D(bin_adj_tex, my_bin, cur_adj);
 		unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
 
+		// prefetch
+		float4 next_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, 0);
+		
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < size; cur_offset++)
 			{
 			// MEM TRANSFER: 16 bytes
-			float4 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, cur_offset);
+			float4 cur_neigh_blob = next_neigh_blob;
+			// no guard branch needed since the texture will just clamp and we will never use the last read value
+			next_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, cur_offset+1);
 			
 			float3 neigh_pos;
 			neigh_pos.x = cur_neigh_blob.x;
