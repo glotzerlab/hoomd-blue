@@ -117,7 +117,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
 		}
 	
 	// ulf workaround setup
-	#ifndef DISABLE_ULF_WORKAROUND
+	/*#ifndef DISABLE_ULF_WORKAROUND
 	m_ulf_workaround = false;
 	
 	// the ULF workaround is needed on all compute 1.1 GPUs
@@ -128,7 +128,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
 		cout << "Notice: ULF bug workaround enabled for BinnedNeighborListGPU" << endl;
 	#else
 	m_ulf_workaround = false;
-	#endif
+	#endif*/
 	
 	// bogus values for last value
 	m_last_Mx = INT_MAX;
@@ -144,55 +144,6 @@ BinnedNeighborListGPU::~BinnedNeighborListGPU()
 	freeGPUBinData();
 	}
 	
-//! Helper function to generate a Z curve through a 3D grid
-/*! \param i recursive variable tracking the current i-position in the 3D array
-	\param j recursive variable tracking the current j-position in the 3D array
-	\param k recursive variable tracking the current k-position in the 3D array
-	\param w recursive variable tracking the current width of the cells being handled
-	\param Mmax Mmax needs to be the next highest power of 2 greater than the longest dimension in the i,j,k direction
-	\param Mx Actual dimension of the box in the i-direction
-	\param My Actual dimension of the box in the j-direction
-	\param Mz Actual dimension of the box in the k-direction
-	\param mem_location memory array to be filled out with the traversal order
-	\param cur_val variable global to all recursive calls used to increment the value output to \a mem_location
-	
-	See below for details.
-	
-	this function will generate a Z-order traversal through the 3d array Mx by My x Mz
-	it is done recursively through an octree subdivision over a power of 2 dimension Mmax which must be greater
-	than Mx, My, and Mz (values that don't fit into the real grid are omitted)
-	w on the first call should be equal to Mmax
-	i,j,k on the first call should be 0
-	cur_val on the first call should be 0
-	
-	as it recurses down, w will be decreased appropriately
-	mem_location[i*Mz*My + j*Mz + k] will be filled out with the location to put
-	bin i,j,k in memory so it will be in the Z-order
-*/
-static void generateTraversalOrder(unsigned int i, unsigned int j, unsigned int k, unsigned int w, unsigned int Mmax, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int *mem_location, unsigned int &cur_val)
-	{
-	if (w == 1)
-		{
-		// handle base case
-		if (i < Mx && j < My && k < Mz)
-			mem_location[i*Mz*My + j*Mz + k] = cur_val++;
-		}
-	else
-		{
-		// handle arbitrary case, split the box into 8 sub boxes
-		w = w / 2;
-		generateTraversalOrder(i,j,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-		generateTraversalOrder(i,j,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-		generateTraversalOrder(i,j+w,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-		generateTraversalOrder(i,j+w,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-
-		generateTraversalOrder(i+w,j,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-		generateTraversalOrder(i+w,j,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-		generateTraversalOrder(i+w,j+w,k,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-		generateTraversalOrder(i+w,j+w,k+w,w,Mmax, Mx, My, Mz, mem_location, cur_val);
-		}
-	}
-
 /*! \param Mx Number of bins in the x direction
 	\param My Number of bins in the y direction
 	\param Mz Number of bins in the z direction
@@ -224,6 +175,8 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		// want pitch in elements, not bytes
 		Nmax = (int)pitch / sizeof(unsigned int);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_bin_data[cur_gpu].idxlist, 0, pitch * Mx*My*Mz));
+
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data[cur_gpu].bin_size), Mx*My*Mz*sizeof(unsigned int)));
 	
 		cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< unsigned int >();
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
@@ -231,43 +184,11 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		// allocate the bin adjacent list array
 		cudaChannelFormatDesc bin_adj_desc = cudaCreateChannelDesc< int >();
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].bin_adj_array, &bin_adj_desc, Mx*My*Mz, 27));
-	
-		// allocate the mem location data
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data[cur_gpu].mem_location), Mx*My*Mz*sizeof(unsigned int)));
 		}
 	
 	// allocate and zero host memory
 	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
 	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
-	
-	// mem_location on host
-	m_mem_location = new unsigned int[Mx*My*Mz];
-
-	// find maximum bin dimension
-	unsigned int Mmax = Mx;
-	if (My > Mmax)
-		Mmax = My;
-	if (Mz > Mmax)
-		Mmax = Mz;
-	// round up to the nearest power of 2 (algorithm from wikpedia)
-	--Mmax;
-	Mmax |= Mmax >> 1;
-	Mmax |= Mmax >> 2;
-	Mmax |= Mmax >> 4;
-	Mmax |= Mmax >> 8;
-	Mmax |= Mmax >> 16;
-	Mmax++;
-
-	// fill out the mem_location data
-	unsigned int cur_val = 0;
-	generateTraversalOrder(0, 0, 0, Mmax, Mmax, Mx, My, Mz, m_mem_location, cur_val);
-	
-	// copy it to the GPUs
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_bin_data[cur_gpu].mem_location, m_mem_location, sizeof(unsigned int)*Mx*My*Mz, cudaMemcpyHostToDevice));
-		}
 	
 	// allocate the host bin adj array
 	int *bin_adj_host = new int[Mx*My*Mz*27];
@@ -279,7 +200,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 			{
 			for (int k = 0; k < (int)Mz; k++)
 				{
-				int bin = m_mem_location[i*Mz*My + j*Mz + k];
+				int bin = i*Mz*My + j*Mz + k;
 				
 				// loop over neighboring bins
 				int cur_adj = 0;
@@ -301,7 +222,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 							if (c < 0) c+= Mz;
 							if (c >= (int)Mz) c-= Mz;
 							
-							int neigh_bin = m_mem_location[a*Mz*My + b*Mz + c];
+							int neigh_bin = a*Mz*My + b*Mz + c;
 							bin_adj_host[bin + cur_adj*Mx*My*Mz] = neigh_bin;
 							cur_adj++;
 							}
@@ -310,7 +231,27 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 				}
 			}
 		}
-		
+	// sort to improve memory access pattern
+	unsigned int nbins = Mx*My*Mz;
+	for (unsigned int cur_bin = 0; cur_bin < nbins; cur_bin++)
+		{
+		bool swapped = false;
+		do
+			{
+			swapped = false;
+			for (unsigned int i = 0; i < 27-1; i++)
+				{
+				if (bin_adj_host[nbins*i + cur_bin] > bin_adj_host[nbins*(i+1) + cur_bin])
+					{
+					unsigned int tmp = bin_adj_host[nbins*(i+1) + cur_bin];
+					bin_adj_host[nbins*(i+1) + cur_bin] = bin_adj_host[nbins*i + cur_bin];
+					bin_adj_host[nbins*i + cur_bin] = tmp;
+					swapped = true;
+					}
+				}
+			} while (swapped);
+		}
+	
 	// copy it to the device. This only needs to be done once
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
@@ -357,9 +298,9 @@ void BinnedNeighborListGPU::freeGPUBinData()
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bin_data[cur_gpu].idxlist));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFreeArray, m_gpu_bin_data[cur_gpu].idxlist_array));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bin_data[cur_gpu].coord_idxlist));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bin_data[cur_gpu].bin_size));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFreeArray, m_gpu_bin_data[cur_gpu].coord_idxlist_array));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFreeArray, m_gpu_bin_data[cur_gpu].bin_adj_array));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_bin_data[cur_gpu].mem_location));
 	
 		// set pointers to NULL so no one will think they are valid 
 		m_gpu_bin_data[cur_gpu].idxlist = NULL;
@@ -367,7 +308,6 @@ void BinnedNeighborListGPU::freeGPUBinData()
 	
 	// free the hsot memory
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_idxlist));
-	delete[] m_mem_location;
 	m_host_idxlist = NULL;
 	}
 
@@ -392,6 +332,7 @@ void BinnedNeighborListGPU::buildNlist()
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpyToArray, m_gpu_bin_data[cur_gpu].idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(cudaMemcpy, m_gpu_bin_data[cur_gpu].bin_size, &m_bin_sizes[0], sizeof(unsigned int)*m_gpu_bin_data[0].Mx*m_gpu_bin_data[0].My*m_gpu_bin_data[0].Mz, cudaMemcpyHostToDevice));
 		}
 	exec_conf.syncAll();
 	
@@ -550,16 +491,14 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 		assert(ib >= 0 && ib < m_Mx && jb >= 0 && jb < m_My && kb >= 0 && kb < m_Mz);
 
 		// record its bin
-		unsigned int mem_bin = ib*(m_Mz*m_My) + jb * m_Mz + kb;
+		unsigned int bin = ib*(m_Mz*m_My) + jb * m_Mz + kb;
 		// check if the particle is inside
-		if (mem_bin >= m_Mx*m_My*m_Mz)
+		if (bin >= m_Mx*m_My*m_Mz)
 			{
 			cerr << endl << "***Error! Elvis has left the building (particle " << n << " is no longer in the simulation box)." << endl << endl;
 			throw runtime_error("Error binning particles");
 			}
 		
-		unsigned int bin = m_mem_location[mem_bin];
-				
 		unsigned int size = m_bin_sizes[bin];
 	
 		// track the size of the largest bin
@@ -640,7 +579,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{	
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], r_max_sq, m_curNmax, m_block_size, m_ulf_workaround));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], r_max_sq, m_curNmax, m_block_size));
 		}
 		
 	exec_conf.syncAll();

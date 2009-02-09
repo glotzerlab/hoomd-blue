@@ -300,7 +300,12 @@ std::vector< unsigned int > ExecutionConfiguration::getDefaultGPUList()
 			result.push_back(id);
 			}
 		
-		cout << "Notice: HOOMD is running on GPUs ";
+		cout << "Notice: HOOMD is running on ";
+		if (result.size() == 1)
+			cout << "GPU ";
+		else
+			cout << "the GPUs ";
+
 		for (unsigned int i = 0; i < result.size(); i++)
 			{
 			cout << result[i];

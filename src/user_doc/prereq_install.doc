@@ -53,7 +53,7 @@ In Gentoo (http://www.gentoo.org/)
  $ emerge python
 \endcode
 would install python. Look at your linux distrubition's documentation to find how to install
-packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" to
+packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" or use sudo to
 become root before installing.
 
 \section software_req_install_linux_python Python
@@ -190,8 +190,14 @@ Even if you do not have the needed graphics hardware to run, you can still insta
 run executables in emulation mode. The emulation is slow, but will allow you to develop and test
 any changes you make that affect any of the *GPU classes. 
 
-CUDA is quite new and it is not likely that there
-is a package available through your linux distribution. Go to http://developer.nvidia.com/object/cuda.html#downloads  
+CUDA is quite new and it is not likely that there is a package available through your linux distribution. 
+Gentoo is the only distrubution currently offering a package:
+\code
+ $ emerge nvidia-cuda-toolkit
+\endcode
+will install the latest version of the CUDA toolkit and set all environment variables for you.
+
+If your distrubution doesn't come with a package, go to http://developer.nvidia.com/object/cuda.html  
 and download the latest CUDA toolkit for you architecture and linux distribution. If your distribution isn't listed,
 pick one that looks close, it will likely work. To install, simply go to the directory where you downloaded 
 the toolkit and run:
@@ -200,9 +206,7 @@ the toolkit and run:
 \endcode
 Note, this example lists a specific file: change the command to match the file that you downloaded. The
 file is a self-unpacking and installing script. Just accept the default location if you have root access
-to install, or install to ~/CUDA or anywhere else you please.
-
-Open up ~/.bashrc in your
+to install, or install to ~/CUDA or anywhere else you please. Open up ~/.bashrc in your
 favorite text editor and add the following line:
 \code
 export LD_LIBRARY_PATH=/usr/local/cuda/lib:$DYLD_LIBRARY_PATH
@@ -258,7 +262,7 @@ if you have Mac OS X 10.4, or 3.0 if you have Mac OS X 10.5.
 <b>2. Install python</b><br>
 If you are running Mac OS X 10.4, you need to download and install the latest 
 version of python (2.5.1) from http://www.python.org/download/ . 
-Users on 10.5 (Leopard) probably skip this step.
+Users on 10.5 (Leopard) should skip this step.
 
 <b>3. Download and compile boost</b><br>
 Building boost is a fairly complicated and time consuming process.
@@ -332,7 +336,7 @@ Even if you do not have the needed graphics hardware to run, you can still insta
 run executables in emulation mode. The emulation is slow, but will allow you to develop and test
 any changes you make that affect any of the *GPU classes. 
 
-Go to http://developer.nvidia.com/object/cuda.html#downloads and download the latest CUDA toolkit. Double-click
+Go to http://developer.nvidia.com/object/cuda.html and download the latest CUDA toolkit. Double-click
 on the downloaded package to install it. 
 
 One more step needs to be performed so that applications can find the CUDA libraries. Open up ~/.bash_profile in your
@@ -365,11 +369,13 @@ is a dmg available for download at http://www.stack.nl/~dimitri/doxygen/ .
 
 First things first, you will need a compiler to build C++ applications. If you don't already
 have one, that is not a problem. You can download and install a fully featured IDE and compiler, <b>Visual 
-C++ Express 2005</b> from here: http://www.microsoft.com/express/2005/ . (note, if you search 
-around you will find that there is a newer express verion, 2008, but it is not currently
-supported by NVIDIA CUDA, has problems with the current version of boost and thus should not be used).
+C++ Express 2005</b> from here: http://www.microsoft.com/express/2005/ . 
 
-After installing Visual C++ Express, you <b>absolutely, positively, most certainly MUST</b>
+To build \b 64-bit applications, the express edition is not sufficient. You must install the
+professional edition. If you don't have Visual C++ professional, you can still install the express edition
+and 32-bit versions of all the other libraries and tools to build 32-bit executables on windows 64-bit.
+
+After installing Visual C++ Express (or professional), you <b>absolutely, positively, most certainly MUST</b>
 install Service Pack 1 for it. This can be done using Windows Update or by accessing Help->Update 
 from within Visual Studio.
 
@@ -408,82 +414,62 @@ on user's machines.
 \section software_req_install_windows_python Python
 
 Download and install python binaries from http://www.python.org. If you choose to 
-download the boost binaries (below), you \e must install python version \b 2.5.1. 
+download the boost binaries (below), you \e must install python version \b 2.5.x. 
 If you plan to build boost from source, you can install any version of python
-you like, as long as it is newer than \b 2.3.
+you like, as long as it is newer than \b 2.3. 
+
+If you are going to be building a \b 64-bit hoomd, make sure you download and install the
+64-bit python.
 
 \section software_req_install_windows_boost Boost
 
 <b>Option 1: Install binaries.</b> Easy, but it only supports version \b 2.5.x of python 
 (for boost 1.35.0, this may differ for the other boost versions, depending on which version of python 
-boost-consulting compiled them against).
+boost-consulting compiled them against). This option \b cannot be used if you are going to build
+a \b 64-bit hoomd.
 
 Download the boost 1.35.0 installer from here http://www.boostpro.com/products/free .
 When you run it, you will get an option screen that looks like this:
 \image html boost_binary_install_windows.png
-Select the options as indicated. You may also be interested in the "Multithread, Debug DLL"
-and "Multithread, DLL" versions of the libraries, but only select those options if you 
-are an expert HOOMD developer and really know all the implications in linking
-HOOMD to boost dynamically.
+Select the options as indicated.
 
 <b>Option 2: Compile from source.</b> Difficult, but enables the use of any supported version of python. 
 These instructions are really only intended for advanced users and developers that will be building statically 
-linked builds for download.
+linked builds for download. This is the only way to get a \b 64-bit boost to use in compiling hoomd.
 
 Download the source code from http://www.boost.org. This document assumes you have
-downloaded boost 1.34.1 (these instructions are known not to work for newer versions without modifications which will
-be added eventually). Additionally, you must download and install python before continuing. Instructions are above.
+downloaded boost 1.38.0. Additionally, you must download and install python before continuing. Instructions are above.
 
-Download the source code for<br>
-\b bzip: http://www.bzip.org/downloads.html <br>
-\b zlib: http://www.zlib.net/ <br>
-
-The full instructions for building boost are here: http://www.boost.org/doc/libs/1_37_0/more/getting_started/windows.html . 
+The full instructions for building boost are here: http://www.boost.org/doc/libs/1_38_0/more/getting_started/index.html . 
 A summary of the commands needed are listed below.
 
 \b 1. Download bjam: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=72941
-You will need the file \b boost-jam-3.1.16-1-ntx86.zip
+You will need the file \b boost-jam-3.1.17-1-ntx86.zip
 
-\b 2. Extract everything to a nice place. These instructions assume that \b boost, \b zlib
-and \b bzip2 are all extracted to <i>c:\\libraries</i> and \b bjam.exe is extracted to 
-<i> c:\\libraries\\bjam.exe </i>.
+\b 2. Extract everything to a nice place. These instructions assume that \b boost has been 
+extracted to <i>c:\\libraries\\boost_1_38_0</i> and \b bjam.exe is extracted to 
+<i> c:\\libraries\\boost_1_38_0\\bjam.exe </i>.
 
 \b 3. To compile, first open a build environment: 
 	Start->Microsoft Platform SDK->Open Build Environment Window->Windows XP 32-bit Build Environment->Set Windows XP 32-bit Build Environment (Retail)
+	(open the \b 64-bit build environment if you are going to build a 64-bit hoomd)
 	
-\b 4. In the terminal window that opens, cd to the extracted \e boost_1_34_1 directory and
+\b 4. In the terminal window that opens, cd to the extracted \e boost_1_38_0 directory and
 	run the following command, then wait a \e long time for everything to compile.
 	It is easiest to copy the entire command as one line and paste it
 	(right click and choose paste in the command line window).
-	If you extracted anything to different locations, you will need to change
-	the values in the command line. 
+	It will install boost header files and libraries into c:\\opt (you can change
+	the location by changing the value after --prefix).
 \code
-C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= 
-   -sNO_BZIP2= -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" 
-   -sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 stage
+bjam --toolset="msvc" python=2.5 variant=release,debug threading=multi link=shared,static --prefix=c:\opt install
 \endcode
-	\b Note: bjam will \b NOT give any errors if any paths are specified incorrectly. 
-	Adding --debug-configuration to the end of the command line will provide some information,
-	but not enough to really tell what is going on. The only way to be certain that bzip and zlib 
-	are being compiled in is to check at
-	the end for compiled libraries containint \b zlib and \b bzip2 in their file names (it is
-	easiest to check after the install step below). Fortunately, if a path is entered incorrectly,
-	you can just rerun this command with the modified path and it will only recompile what is needed
-	so it won't take very long.
+	\b Note: add \c address-model=64 to the command line if you are going to build a \b 64-bit hoomd
 
-Then, run the next command (below). It will install boost header files and libraries into c:\\opt (you can change
-the location by changing the value after --prefix). 
-\code
-C:\libraries\bjam.exe --toolset="msvc" -sNO_COMPRESSION= -sNO_BZIP2= 
-    -sNO_ZLIB= -sBZIP2_SOURCE="c:\libraries\bzip2-1.0.4" 
-	-sZLIB_SOURCE="c:\libraries\zlib-1.2.3" python=2.5 
-	--prefix=c:\opt install
-\endcode
 For CMake to find your newly compiled boost libraries, you must set the environment 
 variable \b BOOST_ROOT to c:\\opt (or wherever you installed boost).
 
 \section software_req_install_windows_cuda CUDA
-Download and install the latest toolkiet from http://www.nvidia.com/object/cuda_get.html#windows. There
+Download and install the latest toolkit from http://www.nvidia.com/object/cuda_get.html. There
 is no need to install the SDK. If you have a CUDA capable graphics card, you will also need
 the driver listed on that page in order to execute HOOMD on the GPU. If you do not have
 a CUDA capable graphics card, you can still install the toolkit and compile HOOMD in

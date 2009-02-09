@@ -57,12 +57,12 @@ HOOMD requires a number of prerequisite software packages and libraries to be co
 - Python >= 2.3 
 - boost >= 1.32.0
 - CMake >= 2.6.0
-	- >= 2.6.1 is recommended on Windows due to an annoying bug in 2.6.0
+	- >= 2.6.2 is recommended because of numerous bug fixes
 - Compiler to build source
 	- gcc 4.1 on Linux
 	- Visual Studio Express 2005 on Windows XP
 	- all code is standard c++ and should work on nearly any other (recent) compiler
-	- \b note: Visual Studio 9 (aka 2008) does not currently work because of incompatibilities with boost and CUDA
+	- \b note: Visual Studio 9 (aka 2008) should work with CUDA 2.1 and boost 1.37, but this configuration has not yet been tested
 - CUDA Toolkit and the appropriate NVIDIA display driver:
 	- <em>optional</em>, but needed to enable GPU support
 - Subversion
@@ -86,7 +86,7 @@ Click for detailed instructions: \subpage page_software_req_install_windows
  - Option 2) Get the latest development source with subversion 
 This command (assuming you've installed the command line svn tools)
 \code
- $ svn co https://svn2.assembla.com/svn/hoomd/trunk hoomd
+ $ svn co https://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8 hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
 the current development version of the source code. You can perform the same operation
@@ -100,9 +100,9 @@ You should now have a directory \b hoomd on your hard drive with a subdirectory
 \b src containing the source code. CMake must be run to generate the visual studio
 project that will compile HOOMD. 
  -# Start cmake-gui
- -# Set \b C:\\Users\\joaander\\hoomd\\src (modifying to match the location of your hoomd src directory) in
+ -# Set \b C:\\Users\\user\\hoomd\\src (modifying to match the location of your hoomd src directory) in
 	the box labeled "Where is the Source code".
- -# Set \b C:\\Users\\joaander\\hoomd\\msvc (again, modified to mach the location of your hoomd directory) 
+ -# Set \b C:\\Users\\user\\hoomd\\msvc (again, modified to mach the location of your hoomd directory) 
 	in the box labeled "Where to build the binaries"
  -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
  -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
@@ -146,7 +146,7 @@ Click for detailed instructions: \subpage page_software_req_install_linux
  - Option 2) Get the latest development source with subversion 
 This command
 \code
- $ svn co https://svn2.assembla.com/svn/hoomd/trunk hoomd
+ $ svn co https://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8 hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
 the current development version of the source code.
@@ -242,7 +242,7 @@ Click for detailed instructions: \subpage page_software_req_install_mac
  - Option 2) Get the latest development source with subversion 
 This command
 \code
- $ svn co https://svn2.assembla.com/svn/hoomd/trunk hoomd
+ $ svn co https://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8 hoomd
 \endcode
 will create a directory \e hoomd in your current working directory which will contain
 the current development version of the source code.
@@ -360,8 +360,8 @@ There are a few options for controlling the CUDA compilation.
 		- \b 10 - compile for compute 1.0 and newer devices. Executable will run on all CUDA GPUs, but no fast
 			code paths are activated.
 		- \b 11 - compile for compute 1.1 and newer devices. Some faster code paths are activated.
-		- \b 12 - compile for compute 1.2 and newer devices. Nothing more is added vs. 11.
-		- \b 13 - compile for compute 1.3 and newer devices. Nothing is is add vs. 12.
+		- \b 12 - compile for compute 1.2 and newer devices. Currently, nothing more is added vs. 11.
+		- \b 13 - compile for compute 1.3 and newer devices. Currently, nothing is is added vs. 12.
  - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
  - \b CUDA_BUILD_TYPE - Controls device/emulation builds
  	- \b Device - will compile all GPU kernels to run on the GPU hardware

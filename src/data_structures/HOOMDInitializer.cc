@@ -54,6 +54,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <stdexcept>
 #include <sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -201,7 +202,7 @@ void HOOMDInitializer::readFile(const string &fname)
 	// Open the file and read the root element "hoomd_xml"
 	cout<< "Reading " << fname << "..." << endl;
 	XMLResults results;
-	root_node = XMLNode::parseFile(fname.c_str(),"HOOMD_xml", &results);
+	root_node = XMLNode::parseFile(fname.c_str(),"hoomd_xml", &results);
 
     // handle errors
     if (results.error != eXMLErrorNone)
@@ -218,6 +219,21 @@ void HOOMDInitializer::readFile(const string &fname)
 		cerr << endl << "***Error! " << error_message.str() << endl << endl;
 		throw runtime_error("Error reading xml file");
 		}
+		
+	string xml_version;
+	if (root_node.isAttributeSet("version"))
+		{
+		xml_version = root_node.getAttribute("version");
+		}
+	else
+		{
+		cout << "Notice: No version specified in hoomd_xml root node: assuming 1.0" << endl;
+		xml_version = string("1.0");
+		}
+		
+	// right now, the version tag doesn't do anything: just warn if it is not 1.0
+	if (xml_version != string("1.0"))
+		cout << endl << "***Warning! hoomd_xml file with version other than 1.0 specified, I don't know how to read this. Continuing anyways." << endl << endl;
 
 	// the file was parsed successfully by the XML reader. Extract the information now
 	// start by checking the number of configurations in the file
@@ -247,6 +263,8 @@ void HOOMDInitializer::readFile(const string &fname)
 		// extract the name and call the appropriate node parser, if it exists
 		XMLNode node = configuration_node.getChildNode(cur_node);
 		string name = node.getName();
+		transform(name.begin(), name.end(), name.begin(), ::tolower);
+		
 		std::map< std::string, boost::function< void (const XMLNode&) > >::iterator parser;
 		parser = m_parser_map.find(name);
 		if (parser != m_parser_map.end())
@@ -311,7 +329,9 @@ void HOOMDInitializer::readFile(const string &fname)
 void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 	{
 	// first, verify that this is the box node
-	assert(string(node.getName()) == string("box"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("box"));
 	
 	// temporary values for extracting attributes as Scalars
 	Scalar Lx,Ly,Lz;
@@ -319,30 +339,30 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 	
 	// use string streams to extract Lx, Ly, Lz
 	// throw exceptions if these attributes are not set
-	if (!node.isAttributeSet("Lx"))
+	if (!node.isAttributeSet("lx"))
 		{
-		cerr << endl << "***Error! Lx not set in <box> node" << endl << endl;
+		cerr << endl << "***Error! lx not set in <box> node" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
-	temp.str(node.getAttribute("Lx"));
+	temp.str(node.getAttribute("lx"));
 	temp >> Lx;
 	temp.clear();
 
-	if (!node.isAttributeSet("Ly"))
+	if (!node.isAttributeSet("ly"))
 		{
-		cerr << endl << "***Error! Ly not set in <box> node" << endl << endl;
+		cerr << endl << "***Error! ly not set in <box> node" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
-	temp.str(node.getAttribute("Ly"));
+	temp.str(node.getAttribute("ly"));
 	temp >> Ly;
 	temp.clear();
 
-	if (!node.isAttributeSet("Lz")) 
+	if (!node.isAttributeSet("lz")) 
 		{
-		cerr << endl << "***Error! Lz not set in <box> node" << endl << endl;
+		cerr << endl << "***Error! lz not set in <box> node" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
-	temp.str(node.getAttribute("Lz"));
+	temp.str(node.getAttribute("lz"));
 	temp >> Lz;
 	temp.clear();
 
@@ -358,7 +378,9 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
 void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 	{
 	// check that this is actually a position node
-	assert(string(node.getName()) == string("position"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("position"));
 
 	// units is currently unused, but will be someday: warn the user if they forget it
 	if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <position> node" << endl;
@@ -387,8 +409,9 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 */
 void HOOMDInitializer::parseImageNode(const XMLNode& node)
 	{
-	// check that this is actually a position node
-	assert(string(node.getName()) == string("image"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);
+	assert(name == string("image"));
 
 	// extract the data from the node
 	istringstream parser;
@@ -415,7 +438,9 @@ void HOOMDInitializer::parseImageNode(const XMLNode& node)
 void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 	{
 	// check that this is actually a velocity node
-	assert(string(node.getName()) == string("velocity"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("velocity"));
 
 	// units is currently unused, but will be someday: warn the user if they forget it
 	if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
@@ -445,7 +470,9 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 	{
 	// check that this is actually a type node
-	assert(string(node.getName()) == string("type"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("type"));
 
 	// extract the data from the node
 	istringstream parser;
@@ -474,7 +501,9 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 void HOOMDInitializer::parseBondNode(const XMLNode &node)
 	{
 	// check that this is actually a bond node
-	assert(string(node.getName()) == string("bond"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("bond"));
 
 	// extract the data from the node
 	istringstream parser;
@@ -502,7 +531,9 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 void HOOMDInitializer::parseChargeNode(const XMLNode &node)
 	{
 	// check that this is actually a charge node
-	assert(string(node.getName()) == string("charge"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("charge"));
 
 	// extract the data from the node
 	istringstream parser;
@@ -530,7 +561,9 @@ void HOOMDInitializer::parseChargeNode(const XMLNode &node)
 void HOOMDInitializer::parseWallNode(const XMLNode& node)
 	{
 	// check that this is actually a wall node
-	assert(string(node.getName()) == string("wall"));
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("wall"));
 
 	for (int cur_node=0; cur_node < node.nChildNode(); cur_node++)
 		{

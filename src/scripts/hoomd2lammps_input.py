@@ -16,9 +16,9 @@ configuration = hoomd_xml.getElementsByTagName('configuration')[0];
 
 # read the box size
 box 	= configuration.getElementsByTagName('box')[0];
-Lx = box.getAttribute('Lx');
-Ly = box.getAttribute('Ly');
-Lz = box.getAttribute('Lz');
+Lx = box.getAttribute('lx');
+Ly = box.getAttribute('ly');
+Lz = box.getAttribute('lz');
 
 # parse the particle coordinates
 position = configuration.getElementsByTagName('position')[0];

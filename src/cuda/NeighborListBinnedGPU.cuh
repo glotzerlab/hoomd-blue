@@ -68,14 +68,13 @@ struct gpu_bin_array
         unsigned int Nmax;	//!< Maximum number of particles each cell can hold
         unsigned int Nparticles;		//!< Total number of particles binned
         unsigned int coord_idxlist_width;	//!< Width of the coord_idxlist data
-		
+	
+		unsigned int *bin_size;	//!< \a nbins length array listing the number of particles in each bin
         unsigned int *idxlist;	//!< \a Mx x \a My x \a Mz x \a Nmax 4D array holding the indices of the particles in each cell
 		cudaArray *idxlist_array;	//!< An array memory copy of \a idxlist for 2D texturing
 		
 		float4 *coord_idxlist;	//!< \a Mx x \a My x \a Mz x \a Nmax 4D array holding the positions and indices of the particles in each cell (x,y,z are position and w holds the index)
 		cudaArray *coord_idxlist_array;	//!< An array memory copy of \a coord_idxlist for 2D texturing
-		
-		unsigned int *mem_location;		//!< Maps a bin index i*Nmax*Mz*My + j*Nmax*Mz + k*Nmax to the actual location in memory where it is stored
 		
 		cudaArray *bin_adj_array;	//!< bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = neighboring bin memory location)
 		};
@@ -85,7 +84,7 @@ struct gpu_bin_array
 cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins, int curNmax, int block_size);
 
 //! Kernel driver for GPU computation in BinnedNeighborListGPU
-cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size, bool ulf_workaround);
+cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size);
 
 #endif
 
