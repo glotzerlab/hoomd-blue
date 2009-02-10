@@ -87,6 +87,7 @@ class xml(analyze._analyzer):
 
 	## Change xml write parameters
 	#
+	# \param all (if true) Enables the output of all optional parameters below
 	# \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
 	# \param image (if set) Set to True/False to enable/disable the output of particle images in the xml file
 	# \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
@@ -106,8 +107,9 @@ class xml(analyze._analyzer):
 	# xml.set_params(type=True, position=True)
 	# xml.set_params(position=True, wall=True)
 	# xml.set_params(bond=True)
+	# xml.set_params(all=True)
 	# \endcode
-	def set_params(self, position=None, image=None, velocity=None, type=None, wall=None, bond=None):
+	def set_params(self, all=None, position=None, image=None, velocity=None, type=None, wall=None, bond=None):
 		util.print_status_line();
 	
 		# check that proper initialization has occured
@@ -115,6 +117,9 @@ class xml(analyze._analyzer):
 			print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
 			raise RuntimeError('Error setting xml parameters');
 			
+		if all:
+			position = image = velocity = type = wall = bond = True;
+
 		if position != None:
 			self.cpp_analyzer.setOutputPosition(position);
 
