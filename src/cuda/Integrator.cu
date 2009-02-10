@@ -68,8 +68,11 @@ __global__ void gpu_integrator_sum_accel_kernel(gpu_pdata_arrays pdata, float4 *
 	int idx_local = blockDim.x * blockIdx.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
 
-	// note: mass is assumed to be 1.0
 	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	float mass = pdata.mass[idx_global];
+	accel.x /= mass;
+	accel.y /= mass;
+	accel.z /= mass;
 
 	if (idx_local < pdata.local_num)
 		{

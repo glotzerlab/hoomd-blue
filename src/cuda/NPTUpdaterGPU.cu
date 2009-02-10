@@ -310,12 +310,17 @@ extern "C" __global__ void gpu_npt_step_kernel(gpu_pdata_arrays pdata, gpu_npt_d
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // local particle index on this GPU
 	int idx_global = idx_local + pdata.local_beg; // global particle index across all GPUs
 	
-	// note assumes mac is 1.0
 	// add up all forces
 	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	
 	if (idx_local < pdata.local_num)
 		{
-		  // fetch velocities
+		float mass = pdata.mass[idx_global];
+		accel.x /= mass;
+		accel.y /= mass;
+		accel.z /= mass;
+	
+		// fetch velocities
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 			
 		// propagate velocities from t+1/2*deltaT to t+deltaT according to the 
@@ -458,18 +463,19 @@ extern "C" __global__ void gpu_npt_temperature_kernel(gpu_npt_data d_npt_data, g
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_global = idx_local + pdata.local_beg;
 	
-	float vsq;
+	float psq2;	// p^2 * 2
 	if (idx_local < pdata.local_num)
 		{
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
-		vsq = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
+		float mass = pdata.mass[idx_global];
+		psq2 = mass*(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
 		}
 	else
 		{
-		vsq = 0.0f;
+		psq2 = 0.0f;
 		}
 		
-	npt_sdata[threadIdx.x] = vsq;
+	npt_sdata[threadIdx.x] = psq2;
 	__syncthreads();
 
 	// reduce the sum in parallel

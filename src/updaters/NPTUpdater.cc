@@ -103,7 +103,7 @@ Scalar NPTUpdater::getLogValue(const std::string& quantity, unsigned int timeste
 	else if (quantity == string("conserved_quantity"))
 		{
 		cout << "**Warning! conserved_quantity not implemented in NPT integration yet" << endl;
-		return 0.0; // not implemented yet!		
+		return 0.0; // not implemented yet!
 		}
 	else
 		{
@@ -358,20 +358,20 @@ Scalar NPTUpdater::computeTemperature(unsigned int timestep)
 	Scalar g = Scalar(3*m_pdata->getN());
 	Scalar Ksum = 0.0;
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
-	        {
-		Ksum += arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j];
+		{
+		Ksum += arrays.mass[j]*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 		}
 
 	m_pdata->release();
 
 	if (m_prof)
-	        {
-		m_prof->pop();	
-		m_prof->pop();	
+		{
+		m_prof->pop();
+		m_prof->pop();
 		}
 	return Ksum / g;
 
-        }
+	}
 	
 void export_NPTUpdater()
 	{

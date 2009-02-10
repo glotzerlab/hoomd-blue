@@ -255,10 +255,6 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void Integrator::computeAccelerations(unsigned int timestep, const std::string& profiler_name)
 	{
-	// this code is written in reduced units, so m=1. I set it here just in case the code is ever
-	// modified to support other masses
-	Scalar minv = 1.0;
-	
 	// compute the forces
 	for (unsigned int i = 0; i < m_forces.size(); i++)
 		{
@@ -288,6 +284,7 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 		
 		for (unsigned int j = 0; j < arrays.nparticles; j++)
 			{
+			Scalar minv = Scalar(1.0) / arrays.mass[j];
 			arrays.ax[j] += force_arrays.fx[j]*minv;
 			arrays.ay[j] += force_arrays.fy[j]*minv;
 			arrays.az[j] += force_arrays.fz[j]*minv;
@@ -298,7 +295,7 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 	
 	if (m_prof)
 		{
-		m_prof->pop(6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*3*m_pdata->getN()*(1+2*m_forces.size()));
+		m_prof->pop(7*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(2*m_forces.size()) + sizeof(Scalar)*3*m_pdata->getN());
 		m_prof->pop();
 		}
 	}
@@ -356,7 +353,7 @@ Scalar Integrator::computeKineticEnergy(unsigned int timestep)
 	double ke_total = 0.0;
 	for (unsigned int i=0; i < m_pdata->getN(); i++)
 		{
-		ke_total += 0.5 * ((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
+		ke_total += 0.5 * (double)arrays.mass[i]*((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
 		}
 	
 	// done!
@@ -440,7 +437,7 @@ void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::strin
 		
 		if (m_prof)
 			{
-			m_prof->pop(exec_conf, 6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(1+m_forces.size()));
+			m_prof->pop(exec_conf, 6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*5*m_pdata->getN()*(1+m_forces.size()));
 			m_prof->pop();
 			}
 		}

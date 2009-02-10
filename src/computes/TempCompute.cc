@@ -94,8 +94,7 @@ void TempCompute::computeTemp()
 	Scalar K = 0.0;
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
-		// note m=1 in reduced units		
-		K += Scalar(1.0/2.0) * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
+		K += Scalar(1.0/2.0) * arrays.mass[i] * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
 		}
 		
 	// K = 1/2 * k_b * T * dof

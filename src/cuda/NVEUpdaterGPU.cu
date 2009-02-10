@@ -216,6 +216,12 @@ extern "C" __global__ void gpu_nve_step_kernel(gpu_pdata_arrays pdata, float4 **
 	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
 	if (idx_local < pdata.local_num)
 		{
+		// MEM TRANSFER: 4 bytes   FLOPS: 3
+		float mass = pdata.mass[idx_global];
+		accel.x /= mass;
+		accel.y /= mass;
+		accel.z /= mass;
+		
 		// read the current particle velocity (MEM TRANSFER: 16 bytes)
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 		
