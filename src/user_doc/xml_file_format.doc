@@ -59,6 +59,8 @@ A number of data nodes can be included inside the configuration node <b>in any o
  - \b position (\ref sec_xml_position)
  - \b image (\ref sec_xml_image)
  - \b velocity (\ref sec_xml_velocity)
+ - \b mass (\ref sec_xml_mass)
+ - \b diameter (\ref sec_xml_diameter)
  - \b type (\ref sec_xml_type)
  - \b bond (\ref sec_xml_bond)
  - \b wall (\ref sec_xml_wall)
@@ -127,7 +129,7 @@ When used in an input file, the images specified are used as the initial conditi
 -1 -5 12
 18 2 -10
 13 -5 0
-</velocity>
+</image>
 \endcode
 \b Attributes:
  - \a num (\b optional) number of images coming in the node content. This attribute is written by
@@ -168,6 +170,52 @@ When used in an input file, the velocities specified are used as the initial con
 The format of the node data is the same as for \<position\> (see \ref sec_xml_position). If specifying
 both position and velocity in an input file, be certain to include the same number of particles in each,
 or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
+<hr>
+
+\section sec_xml_mass Particle masses
+The \<mass\> node sets the mass of each particle in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node (all masses default to 1.0 if it is not specified).<br>
+
+\b Example:
+\code
+<mass>
+1.0
+2.0
+1.0
+</mass>
+\endcode
+\b Attributes:
+ - \a num (\b optional) number of masses coming in the node content. This attribute is written by
+	\link hoomd_script.init.read_xml init.read_xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is the same as for \<position\> (see \ref sec_xml_position), except that only one value
+per particle is specified.
+
+<hr>
+
+\section sec_xml_diameter Particle diameters
+The \<diameter\> node sets the diameter of each particle in the simulation.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node (all diameters default to 1.0 if it is not specified).<br>
+
+\b Example:
+\code
+<diameter units="sigma">
+1.0
+2.0
+1.0
+</diameter>
+\endcode
+\b Attributes:
+ - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ 	for length, energy, etc...
+ - \a num (\b optional) number of masses coming in the node content. This attribute is written by
+	\link hoomd_script.init.read_xml init.read_xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is the same as for \<position\> (see \ref sec_xml_position), except that only one value
+per particle is specified.
 
 <hr>
 

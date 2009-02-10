@@ -89,6 +89,10 @@ class HOOMDDumpWriter : public Analyzer
 		void setOutputImage(bool enable);
 		//! Enables/disables the writing of particle velocities
 		void setOutputVelocity(bool enable);
+		//! Enables/disables the writing of particle masses
+		void setOutputMass(bool enable);
+		//! Enables/disables the writing of particle diameters
+		void setOutputDiameter(bool enable);
 		//! Enables/disables the writing of particle types
 		void setOutputType(bool enable);
 		//! Enables/disables the writing of bonds
@@ -101,6 +105,8 @@ class HOOMDDumpWriter : public Analyzer
 		bool m_output_position;		//!< true if the particle positions should be written
 		bool m_output_image;		//!< true if the particle positions should be written
 		bool m_output_velocity;		//!< true if the particle velocities should be written
+		bool m_output_mass;			//!< true if the particle masses should be written
+		bool m_output_diameter;		//!< true if the particle diameters should be written
 		bool m_output_type;			//!< true if the particle types should be written
 		bool m_output_bond;			//!< true if the bond should be written
 		bool m_output_wall;			//!< true if the walls should be written

@@ -91,6 +91,8 @@ class xml(analyze._analyzer):
 	# \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
 	# \param image (if set) Set to True/False to enable/disable the output of particle images in the xml file
 	# \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
+	# \param mass (if set) Set to True/False to enable/disable the output of particle masses in the xml file
+	# \param diameter (if set) Set to True/False to enable/disable the output of particle diameters in the xml file
 	# \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
 	# \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
 	# \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
@@ -109,7 +111,7 @@ class xml(analyze._analyzer):
 	# xml.set_params(bond=True)
 	# xml.set_params(all=True)
 	# \endcode
-	def set_params(self, all=None, position=None, image=None, velocity=None, type=None, wall=None, bond=None):
+	def set_params(self, all=None, position=None, image=None, velocity=None, mass=None, diameter=None, type=None, wall=None, bond=None):
 		util.print_status_line();
 	
 		# check that proper initialization has occured
@@ -118,7 +120,7 @@ class xml(analyze._analyzer):
 			raise RuntimeError('Error setting xml parameters');
 			
 		if all:
-			position = image = velocity = type = wall = bond = True;
+			position = image = velocity = mass = diameter = type = wall = bond = True;
 
 		if position != None:
 			self.cpp_analyzer.setOutputPosition(position);
@@ -128,6 +130,12 @@ class xml(analyze._analyzer):
 
 		if velocity != None:
 			self.cpp_analyzer.setOutputVelocity(velocity);
+			
+		if mass != None:
+			self.cpp_analyzer.setOutputMass(mass);
+			
+		if diameter != None:
+			self.cpp_analyzer.setOutputDiameter(diameter);
 			
 		if type != None:
 			self.cpp_analyzer.setOutputType(type);

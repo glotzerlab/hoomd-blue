@@ -118,6 +118,10 @@ class HOOMDInitializer : public ParticleDataInitializer
 		void parseImageNode(const XMLNode& node);
 		//! Helper function to parse the velocity node
 		void parseVelocityNode(const XMLNode& node);
+		//! Helper function to parse the mass node
+		void parseMassNode(const XMLNode& node);
+		//! Helper function to parse diameter node
+		void parseDiameterNode(const XMLNode& node);
 		//! Helper function to parse the type node
 		void parseTypeNode(const XMLNode& node);
 		//! Helper function to parse the bonds node
@@ -180,6 +184,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		std::vector< vec > m_pos_array;				//!< positions of all particles loaded
 		std::vector< vec_int > m_image_array;		//!< images of all particles loaded
 		std::vector< vec > m_vel_array;				//!< velocities of all particles loaded
+		std::vector< Scalar > m_mass_array;			//!< masses of all particles loaded
+		std::vector< Scalar > m_diameter_array;		//!< diameters of all particles loaded
 		std::vector< unsigned int > m_type_array;	//!< type values for all particles loaded
 		std::vector< Scalar > m_charge_array;		//!< charge of the particles loaded
 		std::vector< Wall > m_walls;				//!< walls loaded from the file
