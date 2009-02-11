@@ -197,6 +197,7 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
 	result.push_back("pressure");
 	result.push_back("kinetic_energy");
 	result.push_back("potential_energy");
+	result.push_back("momentum");
 	result.push_back("conserved_quantity");
 	return result;
 	}
@@ -236,6 +237,8 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 		return computeKineticEnergy(timestep);
 	else if (quantity == "potential_energy")
 		return computePotentialEnergy(timestep);
+	else if (quantity == "momentum")
+		return computeTotalMomentum(timestep);
 	else if (quantity == "conserved_quantity")
 		{
 		cout << "***Warning! The integrator you are using doesn't report conserved_quantitiy, logging a value of 0.0"
@@ -377,7 +380,35 @@ Scalar Integrator::computePotentialEnergy(unsigned int timestep)
 		}
 	return pe_total;
 	}
+
+/*! \param timestep Current time step of the simulation
 	
+	computeTotalMomentum()  accesses the particle data on the CPU, loops through it and calculates the magnitude of the total 
+	system momentum
+*/
+Scalar Integrator::computeTotalMomentum(unsigned int timestep)
+	{
+	// grab access to the particle data
+	const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+	
+	// sum up the kinetic energy 
+	double p_tot_x = 0.0;
+	double p_tot_y = 0.0;
+	double p_tot_z = 0.0;
+	for (unsigned int i=0; i < m_pdata->getN(); i++)
+		{
+		p_tot_x += (double)arrays.mass[i]*(double)arrays.vx[i];
+		p_tot_y += (double)arrays.mass[i]*(double)arrays.vy[i];
+		p_tot_z += (double)arrays.mass[i]*(double)arrays.vz[i];
+		}
+
+	double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z);
+	
+	// done!
+	m_pdata->release();	
+	return Scalar(p_tot);
+	}
+		
 #ifdef ENABLE_CUDA
 
 /*! \param timestep Current timestep
