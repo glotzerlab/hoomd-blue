@@ -46,6 +46,7 @@ import update;
 import math;
 import sys;
 import util;
+import gc;
 
 ## \internal
 # \brief Parsed command line options
@@ -59,6 +60,49 @@ _options = {};
 # be run.
 #
 # \sa \ref page_quick_start
+
+## Resets all hoomd_script variables
+#
+# After calling init.reset() all global variables used in hoomd_script are cleared and all allocated
+# memory is freed so the simulation can begin anew without needing to launch hoomd again.
+#
+# \note There is a very important memory management issue that must be kept in mind when using
+# reset(). If you have saved a variable such as an integrator or a force for changing parameters, 
+# that saved object \b must be deleted before the reset() command is called. If all objects are 
+# not deleted, then a memory leak will result causing repeated runs of even a small simulation 
+# to eventually run the system out of memory. reset() will throw an error if it detects that this 
+# is the case.
+#
+# \b Example:
+# \code
+# init.create_random(N=1000, phi_p = 0.2)
+# lj = pair.lj(r_cut=3.0)
+# .... setup and run simulation
+# del lj
+# init.reset()
+# init.create_random(N=2000, phi_p = 0.2)
+# .... setup and run simulation
+# \endcode
+def reset():
+	if globals.particle_data == None:
+		print "\n***Warning! Trying to reset an uninitialized system";
+		return;
+
+	# perform some reference counting magic to verify that the user has cleared all saved variables
+	pdata = globals.particle_data;
+	globals._clear();
+	
+	count = sys.getrefcount(pdata)
+
+	# note: the check should be against 2. I have no idea why it works out to 3. 
+	# there must be a temporary reference haning around somewhere in this function
+	if count != 3:
+		print "\n***Warning! Not all saved variables were cleared before calling reset()";
+		print count-3, "references still exist somewhere\n"
+		raise RuntimeError('Error resetting');
+
+	del pdata
+	gc.collect();
 
 ## Reads initial system state from an XML file
 #

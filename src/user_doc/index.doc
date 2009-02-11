@@ -28,6 +28,7 @@ Initialization commands (\link hoomd_script.init init\endlink):
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>\copybrief hoomd_script::init::create_random_polymers() </i>
+ - \link hoomd_script.init.reset() init.reset\endlink - <i>\copybrief hoomd_script::init::reset() </i>
 
 Pair forces (\link hoomd_script.pair pair\endlink):
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
