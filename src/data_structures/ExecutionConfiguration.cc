@@ -112,6 +112,7 @@ ExecutionConfiguration::ExecutionConfiguration()
 		else
 			exec_mode = CPU;
 		}
+	checkCudaArch();
 	#else
 	exec_mode=CPU;
 	#endif
@@ -149,6 +150,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int 
 			}
 			
 		}
+	checkCudaArch();
 	#endif
 	}
 	
@@ -193,6 +195,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::ve
 				}
 			}
 		}
+
+	checkCudaArch();
 	#endif
 	}
 	
@@ -328,7 +332,40 @@ std::vector< unsigned int > ExecutionConfiguration::getDefaultGPUList()
 	return result;
 	#endif
 	}
+
+void ExecutionConfiguration::checkCudaArch()
+	{
+	int min_major = CUDA_ARCH/10;
+	int min_minor = CUDA_ARCH - min_major*10;
 	
+	// check each GPU in the configuration
+	for (unsigned int i = 0; i < gpu.size(); i++)
+		{
+		cudaDeviceProp dev_prop;
+		int dev;
+		
+		// get the device and poperties
+		gpu[i]->call(bind(cudaGetDevice, &dev));
+		gpu[i]->call(bind(cudaGetDeviceProperties, &dev_prop, dev));
+
+		if (dev_prop.major < min_major)
+			{
+			cout << endl << "***Error! CUDA device " << dev << " reports compute capability " << dev_prop.major << "." << dev_prop.minor << " while this build of hoomd was compiled for a minimum of " << min_major << "." << min_minor << endl << endl;
+			throw runtime_error("Error initializing execution configuration");
+			}
+
+		// check that it meets the requirements
+		if (dev_prop.major > min_major)
+			continue;	// ths one is OK: continue
+
+		// at this point dev_prop.major must be == min_major, so check the minor
+		if (dev_prop.minor < min_minor)
+			{
+			cout << endl << "***Error! CUDA device " << dev << " reports compute capability " << dev_prop.major << "." << dev_prop.minor << " while this build of hoomd was compiled for a minimum of " << min_major << "." << min_minor << endl << endl;
+			throw runtime_error("Error initializing execution configuration");
+			}
+		}
+	}
 #endif
 
 void export_ExecutionConfiguration()

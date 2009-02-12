@@ -108,6 +108,9 @@ struct ExecutionConfiguration
 	
 	static unsigned int getDefaultGPU();	//!< returns the default GPU to run on
 	static std::vector< unsigned int > getDefaultGPUList();	//!< returns the list of default GPUs to run on
+
+	//! Checks all GPUs in the execution configuration to see if they meet the CUDA_ARCH min req.
+	void checkCudaArch();
 	#endif
 	};
 
