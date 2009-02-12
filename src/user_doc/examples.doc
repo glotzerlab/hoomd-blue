@@ -9,7 +9,8 @@ Examples:
  	<i>The polymer generator can generate complicated initial conditions for bead-spring polymer systems</i>
  - \ref sec_example_hoomd_xml<br>
  	<i>None of the built-in generators works for you? Write an input file describing the initial condition and load it in.</i>
-
+ - \ref sec_example_loop<br>
+	<i>One simulation in a script not enough? Use a simple python loop to run many in a row!</i>
 <hr>
 
 \section sec_example_dump Example 1: Using dump files

@@ -47,6 +47,7 @@ import math;
 import sys;
 import util;
 import gc;
+import os;
 
 ## \internal
 # \brief Parsed command line options
@@ -94,13 +95,15 @@ def reset():
 	
 	count = sys.getrefcount(pdata)
 
-	# note: the check should be against 2. I have no idea why it works out to 3. 
+	# note: the check should be against 2. I have no idea why it works out to 3 on mac os x. 
+	# it is 2 on all other systems I tried (linux, windows, python 2.4 and 2.5)
 	# there must be a temporary reference haning around somewhere in this function
-	# great: after trying this on another machine the ref count was 2. Maybe a less than 
-	# comparison will work on all machines
-	if count > 3:
+	expected_count = 2;
+	if os.name == 'posix' and os.uname()[0] == 'Darwin':
+		expected_count = 3;
+	if count != expected_count:
 		print "\n***Warning! Not all saved variables were cleared before calling reset()";
-		print count-2, "or", count-3, "references still exist somewhere\n"
+		print count-expected_count, "references to the particle data still exist somewhere\n"
 		raise RuntimeError('Error resetting');
 
 	del pdata
