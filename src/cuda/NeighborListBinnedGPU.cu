@@ -170,7 +170,7 @@ texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
 	peak bandwidth on the device. It seems more wasteful than a one block per cell
 	method, but actually is ~40% faster.
 */
-__global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d_pos, unsigned int local_beg, unsigned int local_num, gpu_boxsize box, gpu_bin_array bins, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez)
+template <bool ulf_workaround> __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d_pos, unsigned int local_beg, unsigned int local_num, gpu_boxsize box, gpu_bin_array bins, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez)
 	{
 	// each thread is going to compute the neighbor list for a single particle
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -214,8 +214,14 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d
 		// prefetch
 		float4 next_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, 0);
 		
+		unsigned int loop_count = size;
+		if (ulf_workaround)
+			loop_count = actual_Nmax;
+
 		// now, we are set to loop through the array
-		for (int cur_offset = 0; cur_offset < size; cur_offset++)
+		for (int cur_offset = 0; cur_offset < loop_count; cur_offset++)
+			{
+			if (!ulf_workaround || cur_offset < loop_count)
 			{
 			// MEM TRANSFER: 16 bytes
 			float4 cur_neigh_blob = next_neigh_blob;
@@ -255,6 +261,7 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d
 					*nlist.overflow = 1;
 				}
 			}
+			}
 		}
 	
 	// MEM TRANSFER 8 bytes
@@ -273,7 +280,7 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist, float4 *d
 	
 	See updateFromBins_new for more information
 */
-cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size)
+cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size, bool ulf_workaround)
 	{
 	assert(block_size > 0);
 
@@ -316,7 +323,10 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pda
 	float scalez = 1.0f / binz;
 
 	// run the kernel
-	gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+	if (ulf_workaround)
+		gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+	else
+		gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
 	
 	if (!g_gpu_error_checking)
 		{
