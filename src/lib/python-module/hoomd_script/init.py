@@ -93,14 +93,12 @@ def reset():
 	pdata = globals.particle_data;
 	globals._clear();
 	
+	gc.collect();
 	count = sys.getrefcount(pdata)
 
-	# note: the check should be against 2. I have no idea why it works out to 3 on mac os x. 
-	# it is 2 on all other systems I tried (linux, windows, python 2.4 and 2.5)
-	# there must be a temporary reference haning around somewhere in this function
-	expected_count = 2;
-	if os.name == 'posix' and os.uname()[0] == 'Darwin':
-		expected_count = 3;
+	# note: the check should be against 2, getrefcount counts the temporary reference 
+	# passed to it in the argument
+	expected_count = 2
 	if count != expected_count:
 		print "\n***Warning! Not all saved variables were cleared before calling reset()";
 		print count-expected_count, "references to the particle data still exist somewhere\n"
