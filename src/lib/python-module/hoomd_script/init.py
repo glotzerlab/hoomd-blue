@@ -96,9 +96,11 @@ def reset():
 
 	# note: the check should be against 2. I have no idea why it works out to 3. 
 	# there must be a temporary reference haning around somewhere in this function
-	if count != 3:
+	# great: after trying this on another machine the ref count was 2. Maybe a less than 
+	# comparison will work on all machines
+	if count > 3:
 		print "\n***Warning! Not all saved variables were cleared before calling reset()";
-		print count-3, "references still exist somewhere\n"
+		print count-2, "or", count-3, "references still exist somewhere\n"
 		raise RuntimeError('Error resetting');
 
 	del pdata
