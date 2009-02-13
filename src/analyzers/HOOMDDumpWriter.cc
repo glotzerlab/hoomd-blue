@@ -70,7 +70,7 @@ using namespace boost;
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
-	: Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
+	: Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
 	{
 	}
 
@@ -89,12 +89,26 @@ void HOOMDDumpWriter::setOutputImage(bool enable)
 	}
 
 /*!\param enable Set to true to output particle velocities to the XML file on the next call to analyze()
-
 */
 void HOOMDDumpWriter::setOutputVelocity(bool enable)
 	{
 	m_output_velocity = enable;
 	}
+
+/*!\param enable Set to true to output particle masses to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputMass(bool enable)
+	{
+	m_output_mass = enable;
+	}
+	
+/*!\param enable Set to true to output particle diameters to the XML file on the next call to analyze()
+*/	
+void HOOMDDumpWriter::setOutputDiameter(bool enable)
+	{
+	m_output_diameter = enable;
+	}
+	
 /*! \param enable Set to true to output particle types to the XML file on the next call to analyze()
 */
 void HOOMDDumpWriter::setOutputType(bool enable)
@@ -112,32 +126,26 @@ void HOOMDDumpWriter::setOutputBond(bool enable)
 void HOOMDDumpWriter::setOutputWall(bool enable)
 	{
 	m_output_wall = enable;
-	}	
-
-/*! \param timestep Current time step of the simulation
-	Writes a snapshot of the current state of the ParticleData to a hoomd_xml file.
-*/
-void HOOMDDumpWriter::analyze(unsigned int timestep)
-	{
-	ostringstream full_fname;
-	Scalar Lx,Ly,Lz;
-	string filetype = ".xml";
+	}
 	
-	// Generate a filename with the timestep padded to ten zeros
-	full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
-
+/*! \param fname File name to write
+	\param timestep Current time step of the simulation
+*/
+void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
+	{
 	// open the file for writing
-	ofstream f(full_fname.str().c_str());
+	ofstream f(fname.c_str());
 	
 	if (!f.good())
 		{
-		cerr << endl << "***Error! Unable to open dump file for writing: " << full_fname.str() << endl << endl;
+		cerr << endl << "***Error! Unable to open dump file for writing: " << fname << endl << endl;
 		throw runtime_error("Error writting hoomd_xml dump file");
 		}
 
 	// acquire the particle data
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 	BoxDim box = m_pdata->getBox();
+	Scalar Lx,Ly,Lz;
 	Lx=Scalar(box.xhi-box.xlo);
 	Ly=Scalar(box.yhi-box.ylo);
 	Lz=Scalar(box.zhi-box.zlo);
@@ -222,6 +230,52 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 
 		f <<"</velocity>" <<endl;
 		}
+		
+	// If the mass flag is true output the mass of all particles to the file
+	if (m_output_mass)
+		{
+		f <<"<mass num=\"" << m_pdata->getN() << "\">" << endl;
+
+		for (unsigned int j = 0; j < arrays.nparticles; j++)
+			{
+			// use the rtag data to output the particles in the order they were read in
+			int i;
+			i= arrays.rtag[j];
+		
+			Scalar mass = arrays.mass[i];
+			f << mass << endl;
+			if (!f.good())
+				{
+				cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+				throw runtime_error("Error writting HOOMD dump file");
+				}
+			}
+
+		f <<"</mass>" <<endl;
+		}
+		
+	// If the diameter flag is true output the mass of all particles to the file
+	if (m_output_diameter)
+		{
+		f <<"<diameter units=\"sigma\" num=\"" << m_pdata->getN() << "\">" << endl;
+
+		for (unsigned int j = 0; j < arrays.nparticles; j++)
+			{
+			// use the rtag data to output the particles in the order they were read in
+			int i;
+			i= arrays.rtag[j];
+		
+			Scalar diameter = arrays.diameter[i];
+			f << diameter << endl;
+			if (!f.good())
+				{
+				cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+				throw runtime_error("Error writting HOOMD dump file");
+				}
+			}
+
+		f <<"</diameter>" <<endl;
+		}
 
 	// If the Type flag is true output the types of all particles to an xml file
 	if	(m_output_type)
@@ -279,6 +333,20 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 
 	f.close();
 	m_pdata->release();
+	
+	}
+
+/*! \param timestep Current time step of the simulation
+	Writes a snapshot of the current state of the ParticleData to a hoomd_xml file.
+*/
+void HOOMDDumpWriter::analyze(unsigned int timestep)
+	{
+	ostringstream full_fname;
+	string filetype = ".xml";
+	
+	// Generate a filename with the timestep padded to ten zeros
+	full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
+	writeFile(full_fname.str(), timestep);
 	}
 
 void export_HOOMDDumpWriter()
@@ -288,9 +356,12 @@ void export_HOOMDDumpWriter()
 		.def("setOutputPosition", &HOOMDDumpWriter::setOutputPosition)
 		.def("setOutputImage", &HOOMDDumpWriter::setOutputImage)
 		.def("setOutputVelocity", &HOOMDDumpWriter::setOutputVelocity)
+		.def("setOutputMass", &HOOMDDumpWriter::setOutputMass)
+		.def("setOutputDiameter", &HOOMDDumpWriter::setOutputDiameter)
 		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
 		.def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
 		.def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
+		.def("writeFile", &HOOMDDumpWriter::writeFile)
 		;
 	}
 	

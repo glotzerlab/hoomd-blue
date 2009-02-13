@@ -84,7 +84,7 @@ struct gpu_bin_array
 cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins, int curNmax, int block_size);
 
 //! Kernel driver for GPU computation in BinnedNeighborListGPU
-cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size);
+cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bin_array &bins, float r_maxsq, int curNmax, int block_size, bool ulf_workaround);
 
 #endif
 

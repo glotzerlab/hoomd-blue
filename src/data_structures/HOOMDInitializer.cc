@@ -77,6 +77,8 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 	m_parser_map["position"] = bind(&HOOMDInitializer::parsePositionNode, this, _1);
 	m_parser_map["image"] = bind(&HOOMDInitializer::parseImageNode, this, _1);
 	m_parser_map["velocity"] = bind(&HOOMDInitializer::parseVelocityNode, this, _1);
+	m_parser_map["mass"] = bind(&HOOMDInitializer::parseMassNode, this, _1);
+	m_parser_map["diameter"] = bind(&HOOMDInitializer::parseDiameterNode, this, _1);
 	m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
 	m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
 	m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
@@ -159,6 +161,22 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
 			pdata.vy[i] = m_vel_array[i].y;
 			pdata.vz[i] = m_vel_array[i].z;
 			}
+		}
+		
+	if (m_mass_array.size() != 0)
+		{
+		assert(m_mass_array.size() == m_pos_array.size());
+		
+		for (unsigned int i = 0; i < m_pos_array.size(); i++)
+			pdata.mass[i] = m_mass_array[i];
+		}
+		
+	if (m_diameter_array.size() != 0)
+		{
+		assert(m_diameter_array.size() == m_pos_array.size());
+		
+		for (unsigned int i = 0; i < m_pos_array.size(); i++)
+			pdata.diameter[i] = m_diameter_array[i];
 		}
 
 	if (m_charge_array.size() != 0)
@@ -291,6 +309,16 @@ void HOOMDInitializer::readFile(const string &fname)
 		cerr << endl << "***Error! " << m_vel_array.size() << " velocities != " << m_pos_array.size() << " positions" << endl << endl;
 		throw runtime_error("Error extracting data from hoomd_xml file");
 		}
+	if (m_mass_array.size() != 0 && m_mass_array.size() != m_pos_array.size())
+		{
+		cerr << endl << "***Error! " << m_mass_array.size() << " masses != " << m_pos_array.size() << " positions" << endl << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
+	if (m_diameter_array.size() != 0 && m_diameter_array.size() != m_pos_array.size())
+		{
+		cerr << endl << "***Error! " << m_diameter_array.size() << " diameters != " << m_pos_array.size() << " positions" << endl << endl;
+		throw runtime_error("Error extracting data from hoomd_xml file");
+		}
 	if (m_image_array.size() != 0 && m_image_array.size() != m_pos_array.size())
 		{
 		cerr << endl << "***Error! " << m_image_array.size() << " images != " << m_pos_array.size() << " positions" << endl << endl;
@@ -314,6 +342,10 @@ void HOOMDInitializer::readFile(const string &fname)
 		cout << m_image_array.size() << " images" << endl;	
 	if (m_vel_array.size() > 0)
 		cout << m_vel_array.size() << " velocities" << endl;
+	if (m_mass_array.size() > 0)
+		cout << m_mass_array.size() << " masses" << endl;
+	if (m_diameter_array.size() > 0)
+		cout << m_diameter_array.size() << " diameters" << endl;
 	cout << getNumParticleTypes() <<  " particle types" << endl;
 	if (m_bonds.size() > 0)
 		cout << m_bonds.size() << " bonds" << endl;
@@ -383,7 +415,7 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 	assert(name == string("position"));
 
 	// units is currently unused, but will be someday: warn the user if they forget it
-	if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <position> node" << endl;
+	//if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <position> node" << endl;
 
 	// extract the data from the node
 	istringstream parser;
@@ -427,7 +459,7 @@ void HOOMDInitializer::parseImageNode(const XMLNode& node)
 		}
 	else
 		{
-		cout << "***Warning! Found position node with no text. Possible typo." << endl;
+		cout << "***Warning! Found image node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -443,7 +475,7 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 	assert(name == string("velocity"));
 
 	// units is currently unused, but will be someday: warn the user if they forget it
-	if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
+	// if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
 
 	// extract the data from the node
 	istringstream parser;
@@ -460,6 +492,70 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 	else
 		{
 		cout << "***Warning! Found velocity node with no text. Possible typo." << endl;
+		}
+	}
+	
+/*! \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b mass node and fills out m_mass_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseMassNode(const XMLNode &node)
+	{
+	// check that this is actually a velocity node
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("mass"));
+
+	// units is currently unused, but will be someday: warn the user if they forget it
+	// if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
+
+	// extract the data from the node
+	istringstream parser;
+	if (node.getText())
+		{
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			Scalar mass;
+			parser >> mass;
+			m_mass_array.push_back(mass);
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found mass node with no text. Possible typo." << endl;
+		}
+	}
+	
+/*! \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b diameter node and fills out m_diameter_array. The number
+	of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseDiameterNode(const XMLNode &node)
+	{
+	// check that this is actually a velocity node
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("diameter"));
+
+	// units is currently unused, but will be someday: warn the user if they forget it
+	// if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
+
+	// extract the data from the node
+	istringstream parser;
+	if (node.getText())
+		{
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			Scalar diameter;
+			parser >> diameter;
+			m_diameter_array.push_back(diameter);
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found diameter node with no text. Possible typo." << endl;
 		}
 	}
 

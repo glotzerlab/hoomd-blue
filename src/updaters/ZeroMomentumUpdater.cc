@@ -88,9 +88,10 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 	// note: assuming mass == 1 for now	
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
-		sum_px += arrays.vx[i];
-		sum_py += arrays.vy[i];
-		sum_pz += arrays.vz[i];
+		Scalar mass = arrays.mass[i];
+		sum_px += mass*arrays.vx[i];
+		sum_py += mass*arrays.vy[i];
+		sum_pz += mass*arrays.vz[i];
 		}
 	
 	// calculate the average
@@ -102,9 +103,10 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 	// note: assuming mass == 1 for now
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
-		arrays.vx[i] -= avg_px;
-		arrays.vy[i] -= avg_py;
-		arrays.vz[i] -= avg_pz;
+		Scalar mass = arrays.mass[i];
+		arrays.vx[i] -= avg_px/mass;
+		arrays.vy[i] -= avg_py/mass;
+		arrays.vz[i] -= avg_pz/mass;
 		}
 	
 	m_pdata->release();

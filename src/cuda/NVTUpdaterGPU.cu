@@ -80,7 +80,7 @@ extern "C" __global__ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 	int idx_global = idx_local + pdata.local_beg;
 	// do Nose-Hoover integrate
 	
-	float vsq;
+	float psq2;	//p^2 * 2
 	if (idx_local < pdata.local_num)
 		{
 		// update positions to the next timestep and update velocities to the next half step
@@ -133,15 +133,15 @@ extern "C" __global__ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata, gpu_b
 		// now we need to do the partial K sums
 	
 		// compute our contribution to the sum
-		// NOTE: mass = 1.0
-		vsq = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
+		float mass = pdata.mass[idx_global];
+		psq2 = mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
 		}
 	else
 		{
-		vsq = 0.0f;
+		psq2 = 0.0f;
 		}
 		
-	nvt_sdata[threadIdx.x] = vsq;
+	nvt_sdata[threadIdx.x] = psq2;
 	__syncthreads();
 
 	// reduce the sum in parallel
@@ -221,6 +221,11 @@ extern "C" __global__ void gpu_nvt_step_kernel(gpu_pdata_arrays pdata, gpu_nvt_d
 	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
 	if (idx_local < pdata.local_num)
 		{
+		float mass = pdata.mass[idx_global];
+		accel.x /= mass;
+		accel.y /= mass;
+		accel.z /= mass;
+		
 		float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
 			
 		vel.x += (1.0f/2.0f) * deltaT * (accel.x - Xi * vel.x);

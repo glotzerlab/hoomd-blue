@@ -159,7 +159,6 @@ void NVTUpdater::update(unsigned int timestep)
 	
 	// now we can get on with the Nose-Hoover
 	// first half step: update the velocities and positions
-	// NOTE: Mass = 1.0
 	// sum up K while we are doing the loop
 	Scalar Ksum = 0.0;
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
@@ -175,7 +174,7 @@ void NVTUpdater::update(unsigned int timestep)
 		arrays.vz[j] = (arrays.vz[j] + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT) * denominv;
 		arrays.z[j] += m_deltaT * arrays.vz[j];
 
-		Ksum += arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j];
+		Ksum += arrays.mass[j] * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 		}
 	
 	// need previous xi to update eta

@@ -69,8 +69,7 @@ loggers = [];
 
 ## \internal
 # \brief Clears all global variables to default values
-# \details \note Only use this if you really know what you are doing. Its intended use
-# is only for unit testsing hoomd_script.
+# \details called by hoomd_script.reset()
 def _clear():
 	global system_definition, system, forces, integrator, neighbor_list, loggers;
 	

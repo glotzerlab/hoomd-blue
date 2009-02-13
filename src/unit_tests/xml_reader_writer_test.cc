@@ -109,6 +109,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	array.vy[0] = Scalar(-10.0987654321098765);
 	array.vz[0] = Scalar(56.78);
 	
+	array.mass[0] = Scalar(1.8);
+	
+	array.diameter[0] = Scalar(3.8);
+	
 	array.type[0] = 3;
 	
 	array.x[1] = Scalar(1.2);
@@ -122,6 +126,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	array.vx[1] = Scalar(-1.5);
 	array.vy[1] = Scalar(-10.6);
 	array.vz[1] = Scalar(5.7);
+	
+	array.mass[1] = Scalar(2.8);
+	
+	array.diameter[1] = Scalar(4.8);
 	
 	array.type[1] = 0;
 	pdata->release();
@@ -142,6 +150,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	writer->setOutputPosition(false);
 	writer->setOutputImage(false);
 	writer->setOutputVelocity(false);
+	writer->setOutputMass(false);
+	writer->setOutputDiameter(false);	
 	writer->setOutputType(false);
 
 	// first test
@@ -425,7 +435,91 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_CHECK_EQUAL(line, "</image>");
 		f.close();
 		}
+		
+	// eith test: test mass
+		{
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(false);
+		writer->setOutputType(false);
+		writer->setOutputWall(false);
+		writer->setOutputBond(false);
+		writer->setOutputImage(false);
+		writer->setOutputMass(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000080.xml");
+		BOOST_REQUIRE(!exists("test.0000000080.xml"));	
+		
+		// write the file
+		writer->analyze(80);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000080.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<mass num=\"2\">");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "1.8");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "2.8");
+		BOOST_REQUIRE(!f.bad());
+	
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</mass>");
+		f.close();
+		}
 
+	// ninth test: test diameter
+		{
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(false);
+		writer->setOutputType(false);
+		writer->setOutputWall(false);
+		writer->setOutputBond(false);
+		writer->setOutputImage(false);
+		writer->setOutputMass(false);
+		writer->setOutputDiameter(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000090.xml");
+		BOOST_REQUIRE(!exists("test.0000000090.xml"));	
+		
+		// write the file
+		writer->analyze(90);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000090.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<diameter units=\"sigma\" num=\"2\">");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "3.8");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "4.8");
+		BOOST_REQUIRE(!f.bad());
+	
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</diameter>");
+		f.close();
+		}
 
 	remove_all("test.0000000000.xml");
 	remove_all("test.0000000010.xml");
@@ -435,6 +529,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	remove_all("test.0000000050.xml");
 	remove_all("test.0000000060.xml");
 	remove_all("test.0000000070.xml");
+	remove_all("test.0000000080.xml");
+	remove_all("test.0000000090.xml");
 	}
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
@@ -697,6 +793,22 @@ f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 50.12 52.1567 5.056\n\
 60.12 62.1567 6.056\n\
 </velocity>\n\
+<mass>\n\
+1.0\n\
+2.0\n\
+3.0\n\
+4.0\n\
+5.0\n\
+6.0\n\
+</mass>\n\
+<diameter>\n\
+7.0\n\
+8.0\n\
+9.0\n\
+10.0\n\
+11.0\n\
+12.0\n\
+</diameter>\n\
 <type>\n\
 5\n\
 4\n\
@@ -754,6 +866,10 @@ bond_c 3 4\n\
 		MY_BOOST_CHECK_CLOSE(arrays.vx[i], Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.vy[i], Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
 		MY_BOOST_CHECK_CLOSE(arrays.vz[i], Scalar(i+1) + Scalar(0.056), tol);
+
+		MY_BOOST_CHECK_CLOSE(arrays.mass[i], Scalar(i+1), tol);
+		
+		MY_BOOST_CHECK_CLOSE(arrays.diameter[i], Scalar(i+7), tol);
 
 		MY_BOOST_CHECK_CLOSE(arrays.charge[i], Scalar(i)*Scalar(10.0), tol);
 		

@@ -550,6 +550,7 @@ void export_System()
 		.def("run", &System::run)
 		
 		.def("getLastTPS", &System::getLastTPS)
+		.def("getCurrentTimeStep", &System::getCurrentTimeStep)
 		;
 	}
 

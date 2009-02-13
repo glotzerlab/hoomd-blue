@@ -37,6 +37,8 @@
 # $Id$
 # $URL$
 
+if (NOT ENABLE_MINIMAL_INSTALL)
+
 ## install the share directory
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/benchmarks ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/demos
 		DESTINATION ${DATA_INSTALL_DIR}
@@ -68,3 +70,5 @@ if (WIN32)
 		CONFIGURATIONS Release
 		)
 endif (WIN32)
+
+endif (NOT ENABLE_MINIMAL_INSTALL)

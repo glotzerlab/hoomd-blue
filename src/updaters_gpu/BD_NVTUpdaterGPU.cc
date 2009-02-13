@@ -144,8 +144,8 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
 	if (m_prof)
 		{
-		mem_transfer = m_pdata->getN() * (16*m_forces.size() + 16 + 32);
-		flops = m_pdata->getN() * (3*m_forces.size() + 6);
+		mem_transfer = m_pdata->getN() * (16*m_forces.size() + 4 + 16 + 32);
+		flops = m_pdata->getN() * (3*m_forces.size() + 3 + 6);
 		m_prof->pop(exec_conf, flops, mem_transfer);
 		m_prof->pop();
 		}

@@ -51,6 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#include <iomanip>
 #include <fstream>
 #include <stdexcept>
 #include <boost/shared_ptr.hpp>
@@ -61,30 +62,37 @@ using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to dump
-	\param fname The file name to write the output to
+	\param fname_base The base file name to write the output to
 */
-MOL2DumpWriter::MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname)
-	: Analyzer(sysdef), m_fname(fname), m_written(false)
+MOL2DumpWriter::MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname_base)
+	: Analyzer(sysdef), m_base_fname(fname_base)
 	{
 	}
 
 /*! \param timestep Current time step of the simulation
-	Writes a snapshot of the current state of the ParticleData to a hoomd_xml file.
+	Writes a snapshot of the current state of the ParticleData to a mol2 file
 */
 void MOL2DumpWriter::analyze(unsigned int timestep)
 	{
-	if (m_written)
-		{
-		cout << "***Warning! MOL2 file " << m_fname << " already written, not overwriting." << endl;
-		return;
-		}
+	ostringstream full_fname;
+	string filetype = ".mol2";
 	
+	// Generate a filename with the timestep padded to ten zeros
+	full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
+	writeFile(full_fname.str());
+
+	}
+
+/*! \param fname File name to write
+*/
+void MOL2DumpWriter::writeFile(std::string fname)
+	{
 	// open the file for writing
-	ofstream f(m_fname.c_str());
+	ofstream f(fname.c_str());
 	
 	if (!f.good())
 		{
-		cerr << endl << "***Error! Unable to open dump file for writing: " << m_fname << endl << endl;
+		cerr << endl << "***Error! Unable to open dump file for writing: " << fname << endl << endl;
 		throw runtime_error("Error writting mol2 dump file");
 		}
 
@@ -151,9 +159,7 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 		{
 		f << "1 1 2 1" << endl;
 		}
-
-
-
+	
 	if (!f.good())
 		{
 		cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
@@ -162,17 +168,15 @@ void MOL2DumpWriter::analyze(unsigned int timestep)
 
 	f.close();
 	m_pdata->release();
-	
-	m_written = true;
 	}
 
 void export_MOL2DumpWriter()
 	{
 	class_<MOL2DumpWriter, boost::shared_ptr<MOL2DumpWriter>, bases<Analyzer>, boost::noncopyable>
 		("MOL2DumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
-		.def( init< boost::shared_ptr<SystemDefinition>, std::string >() )
+		.def("writeFile", &MOL2DumpWriter::writeFile)
 		;
-	// no .defs, everything is inherited
+	
 	}
 	
 #ifdef WIN32

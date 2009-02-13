@@ -39,8 +39,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-/*! \file MOL2DumpWriter.h
-	\brief Declares the MOL2DumpWriter class
+/*! \file PDBDumpWriter.h
+	\brief Declares the PDBDumpWriter class
 */
 
 #include <string>
@@ -49,32 +49,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Analyzer.h"
 
-#ifndef __MOL2_DUMP_WRITER_H__
-#define __MOL2_DUMP_WRITER_H__
+#ifndef __PDB_DUMP_WRITER_H__
+#define __PDB_DUMP_WRITER_H__
 
-//! Analyzer for writing out MOL2 dump files
-/*! MOL2DumpWriter writes a single .mol2 formated file each time analyze() is called. The timestep is 
-	added into the file name the same as HOOMDDumpWriter and PDBDumpWriter do.
-	
+//! Analyzer for writing out HOOMD  dump files
+/*! PDBDumpWriter dumps the current positions of all particles (and optionall bonds) to a pdb file periodically
+	during a simulation. 
+
 	\ingroup analyzers
 */
-class MOL2DumpWriter : public Analyzer
+class PDBDumpWriter : public Analyzer
 	{
 	public:
 		//! Construct the writer
-		MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname_base);
-		
+		PDBDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
+
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);
-		
-		//! Write the mol2 file
-		void writeFile(std::string fname);
+
+		//! Set the output bond flag
+		void setOutputBond(bool enable)	{ m_output_bond = enable; }
+	
+		//! Helper function to write file
+		void writeFile(std::string fname);	
 	private:
-		std::string m_base_fname;	//!< String used to store the file name of the output file
+		std::string m_base_fname;	//!< String used to store the base file name of the PDB file
+		bool m_output_bond;			//!< Flag telling whether to output bonds
 	};
 	
-//! Exports the MOL2DumpWriter class to python
-void export_MOL2DumpWriter();
+//! Exports the PDBDumpWriter class to python
+void export_PDBDumpWriter();
 
 #endif
-
