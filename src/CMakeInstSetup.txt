@@ -79,3 +79,7 @@ if(HOOMD_SUBVERSION_BUILD)
 	set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION}_beta${SVNVERSION_UNDERSCORE}")
 endif(HOOMD_SUBVERSION_BUILD)
 
+#################################
+## Minimal install option
+option(ENABLE_MINIMAL_INSTALL "When set to ON, only a minimal set of files neededo to run HOOMD are installed" OFF)
+

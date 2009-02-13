@@ -37,6 +37,8 @@
 # $Id$
 # $URL$
 
+if (NOT ENABLE_MINIMAL_INSTALL)
+
 ## install the file conversion scripts
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hoomd2lammps_input.py ${CMAKE_CURRENT_SOURCE_DIR}/hoomd2lammps_dump.py
 		DESTINATION ${BIN_INSTALL_DIR}
@@ -44,3 +46,4 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hoomd2lammps_input.py ${CMAKE_CURRENT_
 		CONFIGURATIONS Release
 		)
 
+endif (NOT ENABLE_MINIMAL_INSTALL)
