@@ -59,7 +59,7 @@ import util;
 class xml(analyze._analyzer):
 	## Initialize the hoomd_xml writer
 	#
-	# \param filename Base of the time name
+	# \param filename Base of the file name
 	# \param period Number of time steps between file dumps
 	# 
 	# \b Examples:
@@ -231,3 +231,92 @@ class dcd(analyze._analyzer):
 		
 		print >> sys.stderr, "\n***Error! you cannot change the period of a dcd dump writer\n";
 		raise RuntimeError('Error changing updater period');
+
+
+## Writes simulation snapshots in the PBD format
+#
+# Every \a period time steps, a new file will be created. The state of the 
+# particles at that time step is written to the file in the PDB format.
+#
+class pdb(analyze._analyzer):
+	## Initialize the pdb writer
+	#
+	# \param filename (optional) Base of the file name
+	# \param period (optional) Number of time steps between file dumps
+	#
+	# \b Examples:
+	# \code
+	# dump.pdb(filename="atoms.dump", period=1000)
+	# pdb = dump.pdb(filename="particles", period=1e5)
+	# pdb = dump.pdb()
+	# \endcode
+	#
+	# If \a period is specified, a new file will be created every \a period steps. The time step 
+	# at which the file is created is added to the file name in a fixed width format to allow 
+	# files to easily be read in order. I.e. the write at time step 0 with \c filename="particles" produces 
+	# the file \c particles.0000000000.pdb
+	#
+	# By default, only particle positions are output to the dump files. This can be changed
+	# with set_params().
+	#
+	# If \a period is not specified, then no periodic updates will occur. Instead, the write()
+	# command must be executed to write an output file.	
+	def __init__(self, filename="dump", period=None):
+		util.print_status_line();
+	
+		# initialize base class
+		analyze._analyzer.__init__(self);
+		
+		# create the c++ mirror class
+		self.cpp_analyzer = hoomd.PDBDumpWriter(globals.particle_data, filename);
+		
+		if period != None:
+			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+
+	## Change xml write parameters
+	#
+	# \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
+	#
+	# Using set_params() requires that the %dump was saved in a variable when it was specified.
+	# \code
+	# pdb = dump.pdb(filename="particles", period=1e5)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# pdb.set_params(bond=True)
+	# \endcode
+	def set_params(self, bond=None):
+		util.print_status_line();
+	
+		# check that proper initialization has occured
+		if self.cpp_analyzer == None:
+			print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
+			raise RuntimeError('Error setting pdb parameters');
+			
+		if bond != None:
+			self.cpp_analyzer.setOutputBond(bond);
+	
+	## Write a file at the current time step
+	#
+	# The periodic file writes can be temporarily overridden and a file with any file name
+	# written at the current time step.
+	#
+	# Executing write() requires that the %dump was saved in a variable when it was specified.
+	# \code
+	# pdb = dump.pdb()
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# pdb.write(filename="start.pdb");
+	# \end
+	def write(self, filename):
+		util.print_status_line();
+		
+		# check that proper initialization has occured
+		if self.cpp_analyzer == None:
+			print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
+			raise RuntimeError('Error writing pdb');
+		
+		self.cpp_analyzer.writeFile(filename);
