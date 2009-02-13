@@ -5,7 +5,7 @@
 #$ -j y
 #$ -cwd
 #$ -S /bin/bash
-#$ -t 1-21
+#$ -t 1-13
 
 source ~/.bashrc
 
