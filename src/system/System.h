@@ -159,6 +159,9 @@ class System
 		//! Get the average TPS from the last run
 		Scalar getLastTPS()	const { return m_last_TPS; }
 		
+		//! Get the current time step
+		unsigned int getCurrentTimeStep() { return m_cur_tstep; }
+		
 	private:
 		//! Holds an item in the list of analyzers
 		struct analyzer_item

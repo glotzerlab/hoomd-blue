@@ -100,6 +100,8 @@ class HOOMDDumpWriter : public Analyzer
 		//! Enables/disables the writing of walls
 		void setOutputWall(bool enable);
 
+		//! Writes a file at the current time step
+		void writeFile(std::string fname, unsigned int timestep);
 	private:
 		std::string m_base_fname;	//!< String used to store the file name of the XML file
 		bool m_output_position;		//!< true if the particle positions should be written

@@ -53,11 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __MOL2_DUMP_WRITER_H__
 
 //! Analyzer for writing out MOL2 dump files
-/*! MOL2DumpWriter writes a single .mol2 formated file on the first time step analyze() is called.
-	Subsequent calls to analyze() do not produce any output. The intention is for use in randomly
-	generated initial conditions: a \c structure.mol2 file can be written for the structure information and
-	the trajectory \c dump.dcd can be written by DCDDumpWriter. Thse can be loaded into VMD for display
-	with the command line \c vmd \c structure.mol2 \c dump.dcd.
+/*! MOL2DumpWriter writes a single .mol2 formated file each time analyze() is called. The timestep is 
+	added into the file name the same as HOOMDDumpWriter and PDBDumpWriter do.
 	
 	\ingroup analyzers
 */
@@ -65,14 +62,15 @@ class MOL2DumpWriter : public Analyzer
 	{
 	public:
 		//! Construct the writer
-		MOL2DumpWriter(boost::shared_ptr<ParticleData> pdata, std::string fname);
+		MOL2DumpWriter(boost::shared_ptr<ParticleData> pdata, std::string fname_base);
 		
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);
-
+		
+		//! Write the mol2 file
+		void writeFile(std::string fname);
 	private:
-		std::string m_fname;	//!< String used to store the file name of the output file
-		bool m_written;			//!< Set to true if the file has been written
+		std::string m_base_fname;	//!< String used to store the file name of the output file
 	};
 	
 //! Exports the MOL2DumpWriter class to python

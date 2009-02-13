@@ -126,32 +126,26 @@ void HOOMDDumpWriter::setOutputBond(bool enable)
 void HOOMDDumpWriter::setOutputWall(bool enable)
 	{
 	m_output_wall = enable;
-	}	
-
-/*! \param timestep Current time step of the simulation
-	Writes a snapshot of the current state of the ParticleData to a hoomd_xml file.
-*/
-void HOOMDDumpWriter::analyze(unsigned int timestep)
-	{
-	ostringstream full_fname;
-	Scalar Lx,Ly,Lz;
-	string filetype = ".xml";
+	}
 	
-	// Generate a filename with the timestep padded to ten zeros
-	full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
-
+/*! \param fname File name to write
+	\param timestep Current time step of the simulation
+*/
+void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
+	{
 	// open the file for writing
-	ofstream f(full_fname.str().c_str());
+	ofstream f(fname.c_str());
 	
 	if (!f.good())
 		{
-		cerr << endl << "***Error! Unable to open dump file for writing: " << full_fname.str() << endl << endl;
+		cerr << endl << "***Error! Unable to open dump file for writing: " << fname << endl << endl;
 		throw runtime_error("Error writting hoomd_xml dump file");
 		}
 
 	// acquire the particle data
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 	BoxDim box = m_pdata->getBox();
+	Scalar Lx,Ly,Lz;
 	Lx=Scalar(box.xhi-box.xlo);
 	Ly=Scalar(box.yhi-box.ylo);
 	Lz=Scalar(box.zhi-box.zlo);
@@ -339,6 +333,20 @@ void HOOMDDumpWriter::analyze(unsigned int timestep)
 
 	f.close();
 	m_pdata->release();
+	
+	}
+
+/*! \param timestep Current time step of the simulation
+	Writes a snapshot of the current state of the ParticleData to a hoomd_xml file.
+*/
+void HOOMDDumpWriter::analyze(unsigned int timestep)
+	{
+	ostringstream full_fname;
+	string filetype = ".xml";
+	
+	// Generate a filename with the timestep padded to ten zeros
+	full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
+	writeFile(full_fname.str(), timestep);
 	}
 
 void export_HOOMDDumpWriter()
@@ -353,6 +361,7 @@ void export_HOOMDDumpWriter()
 		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
 		.def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
 		.def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
+		.def("writeFile", &HOOMDDumpWriter::writeFile)
 		;
 	}
 	
