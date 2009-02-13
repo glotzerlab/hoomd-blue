@@ -221,7 +221,7 @@ template <bool ulf_workaround> __global__ void gpu_compute_nlist_binned_kernel(g
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < loop_count; cur_offset++)
 			{
-			if (!ulf_workaround || cur_offset < loop_count)
+			if (!ulf_workaround || cur_offset < size)
 			{
 			// MEM TRANSFER: 16 bytes
 			float4 cur_neigh_blob = next_neigh_blob;
