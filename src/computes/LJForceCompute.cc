@@ -62,7 +62,7 @@ using namespace std;
 	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 */
 LJForceCompute::LJForceCompute(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: ForceCompute(pdata), m_nlist(nlist), m_r_cut(r_cut)
+	: ForceCompute(pdata), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0))
 	{
 	assert(m_pdata);
 	assert(m_nlist);
@@ -189,6 +189,12 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	// create a temporary copy of r_cut sqaured
 	Scalar r_cut_sq = m_r_cut * m_r_cut;
 	
+	// factor out loop invariants
+	Scalar r_on_sq = m_xplor_fraction*m_xplor_fraction * r_cut_sq;
+	Scalar rcut2inv = Scalar(1.0) / r_cut_sq;
+	Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+	Scalar xplor_denom = (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq);
+	
 	// precalculate box lenghts for use in the periodic imaging
 	Scalar Lx = box.xhi - box.xlo;
 	Scalar Ly = box.yhi - box.ylo;
@@ -281,11 +287,37 @@ void LJForceCompute::computeForces(unsigned int timestep)
 				Scalar r6inv = r2inv * r2inv * r2inv;
 				Scalar forcemag_divr = r2inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
 				
-				// compute the pair energy and virial (FLOPS: 6)
-				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
-				// there is no - in the 1/6 to compensate				
-				Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
+				// compute the pair energy (FLOPS: 4)
 				Scalar pair_eng = Scalar(0.5) * r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
+				
+				if (m_shift_mode == shift)
+					{
+					// shifting is enabled: shift the energy (FLOPS: 4)
+					pair_eng -= rcut6inv * (lj1_row[typej]*rcut6inv - lj2_row[typej]);
+					}
+				else
+				if (m_shift_mode == xplor)
+					{
+					if (rsq >= r_on_sq)
+						{
+						// Implement XPLOR smoothing (FLOPS: 15)
+						Scalar old_pair_eng = pair_eng;
+						Scalar old_forcemag_divr = forcemag_divr;
+						
+						Scalar rsq_minus_r_cut_sq = rsq - r_cut_sq;
+						Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq * (r_cut_sq + Scalar(2.0) * rsq - Scalar(3.0) * r_on_sq) / xplor_denom;
+						Scalar ds_dr_divr = Scalar(12.0) * (rsq - r_on_sq) * rsq_minus_r_cut_sq;
+						
+						// make modifications to the old pair energy and force
+						pair_eng = old_pair_eng * s;
+						forcemag_divr = s * old_forcemag_divr + ds_dr_divr * old_pair_eng;
+						}
+					}
+					
+				// compute the virial (FLOPS: 2)
+				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
+				// there is no - in the 1/6 to compensate	
+				Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
 				
 				// add the force, potential energy and virial to the particle i
 				// (FLOPS: 8)
@@ -325,6 +357,12 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	#endif
 
 	int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+9+6+8);
+	if (m_shift_mode == shift)
+		flops += n_calc * 4;
+	else
+	if (m_shift_mode == xplor)
+		flops += n_calc * 15;
+
 	if (third_law) flops += n_calc * 8;
 	int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);
 	if (third_law) mem_transfer += n_calc*10*sizeof(Scalar);
@@ -333,9 +371,17 @@ void LJForceCompute::computeForces(unsigned int timestep)
 
 void export_LJForceCompute()
 	{
-	class_<LJForceCompute, boost::shared_ptr<LJForceCompute>, bases<ForceCompute>, boost::noncopyable >
+	scope in_lj = class_<LJForceCompute, boost::shared_ptr<LJForceCompute>, bases<ForceCompute>, boost::noncopyable >
 		("LJForceCompute", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar >())
 		.def("setParams", &LJForceCompute::setParams)
+		.def("setXplorFraction", &LJForceCompute::setXplorFraction)
+		.def("setShiftMode", &LJForceCompute::setShiftMode)
+		;
+		
+	enum_<LJForceCompute::energyShiftMode>("energyShiftMode")
+		.value("no_shift", LJForceCompute::no_shift)
+		.value("shift", LJForceCompute::shift)
+		.value("xplor", LJForceCompute::xplor)
 		;
 	}
 

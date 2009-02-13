@@ -90,7 +90,7 @@ import util;
 # Example (file \em force_field.py):
 # \code
 # from hoomd_script import *
-# my_coeffs = coeff();
+# my_coeffs = pair.coeff();
 # my_coeffs.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
 # my_coeffs.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 # my_coeffs.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
@@ -458,6 +458,42 @@ class lj(force._force):
 				lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
 				lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
 				self.cpp_force.setParams(i, j, lj1, lj2);
+				
+	## Set parameters controlling the way forces are computed
+	#
+	# \param mode (if set) Set the mode with which potentials are handled at the cutoff
+	# \param fraction (if set) Change the fraction of \f$ r_{\mathrm{cut}} \f$ at which the XPLOR smoothing starts (default is 2.0/3.0). Only applies of \a mode is set to "xplor"
+	#
+	# valid values for \a mode are: "none" (the default), "shift", and "xplor"
+	#  - \b none - No shifting is performed and potentials are abrubtly cut off
+	#  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+	#  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the cutoff
+	# (see above for forumlas and more information)
+	#
+	# \b Examples:
+	# \code
+	# lj.set_params(mode="shift")
+	# lj.set_params(mode="no_shift")
+	# lj.set_params(mode="xplor", xplor_factor = 0.5)
+	# \endcode	
+	# 
+	def set_params(self, mode=None, fraction=None):
+		util.print_status_line();
+		
+		if mode != None:
+			if mode == "no_shift":
+				self.cpp_force.setShiftMode(hoomd.LJForceComputeGPU.energyShiftMode.no_shift)
+			elif mode == "shift":
+				self.cpp_force.setShiftMode(hoomd.LJForceComputeGPU.energyShiftMode.shift)
+			elif mode == "xplor":
+				self.cpp_force.setShiftMode(hoomd.LJForceComputeGPU.energyShiftMode.xplor)
+			else:
+				print >> sys.stderr, "\n***Error: invalid mode", mode, "\n";
+				raise RuntimeError("Error setting lj parameters");
+			
+		if fraction != None:
+			self.cpp_force.setXplorFraction(fraction);
+		
 ## Yukawa %pair %force
 #
 # The command pair.yukawa specifies that a Yukawa type %pair %force should be added to every

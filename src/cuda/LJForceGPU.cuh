@@ -50,7 +50,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __LJFORCEGPU_CUH__
 #define __LJFORCEGPU_CUH__
 
+struct lj_options
+	{
+	float r_cutsq;			//!< cutoff distance squared
+	int block_size;			//!< block size to execute on
+	float xplor_fraction;	//!< fraction at which xplor smoothing starts
+	bool ulf_workaround;	//!< Set to true to enable the ULF workaroudn
+	unsigned int shift_mode;//!< Shift mode for pair energy
+	};
+
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int block_size, bool ulf_workaround);
+cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const lj_options& opt);
 
 #endif

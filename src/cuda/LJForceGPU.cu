@@ -76,7 +76,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	Each thread will calculate the total force on one particle.
 	The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<bool ulf_workaround> __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq)
+template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, float rcut6inv, float xplor_denom, float r_on_sq)
 	{
 	// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
@@ -161,10 +161,38 @@ template<bool ulf_workaround> __global__ void gpu_compute_lj_forces_kernel(gpu_f
 		float r6inv = r2inv*r2inv*r2inv;
 		// calculate the force magnitude / r (FLOPS: 6)
 		float forcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
-		// calculate the virial (FLOPS: 3)
-		virial += float(1.0/6.0) * rsq * forcemag_divr;
 		// calculate the pair energy (FLOPS: 3)
 		float pair_eng = r6inv * (lj1 * r6inv - lj2);
+		
+		if (shift_mode == 1)
+			{
+			// shifting is enabled: shift the energy (FLOPS: 4)
+			pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
+			}
+		else
+		if (shift_mode == 2)
+			{
+			if (rsq >= r_on_sq)
+				{
+				// Implement XPLOR smoothing (FLOPS: 15)
+				float old_pair_eng = pair_eng;
+				float old_forcemag_divr = forcemag_divr;
+						
+				float rsq_minus_r_cut_sq = rsq - r_cutsq;
+				float s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq * (r_cutsq + 2.0f * rsq - 3.0f * r_on_sq) / xplor_denom;
+				float ds_dr_divr = 12.0f * (rsq - r_on_sq) * rsq_minus_r_cut_sq;
+						
+				// make modifications to the old pair energy and force
+				if (rsq < r_cutsq)
+					{
+					pair_eng = old_pair_eng * s;
+					forcemag_divr = s * old_forcemag_divr + ds_dr_divr * old_pair_eng;
+					}
+				}
+			}
+
+		// calculate the virial (FLOPS: 3)
+		virial += float(1.0/6.0) * rsq * forcemag_divr;
 
 		// add up the force vector components (FLOPS: 7)
 		force.x += dx * forcemag_divr;
@@ -189,23 +217,20 @@ template<bool ulf_workaround> __global__ void gpu_compute_lj_forces_kernel(gpu_f
 	\param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
 		pair i,j. The x-component is lj1 and the y-component is lj2.
 	\param coeff_width Width of the \a d_coeffs matrix.
-	\param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the 
-		force is set to 0
-	\param block_size Block size to execute
-	\param ulf_workaround Set to true to enable the ULF workaround (needed on pre C1060 devices)
+	\param opt More execution options bundled up in a strct
 	
 	\returns Any error code resulting from the kernel launch
 	
 	This is just a driver for calcLJForces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, int block_size, bool ulf_workaround)
+cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const lj_options& opt)
 	{
 	assert(d_coeffs);
 	assert(coeff_width > 0);
 
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid( (int)ceil((double)pdata.local_num / (double)opt.block_size), 1, 1);
+    dim3 threads(opt.block_size, 1, 1);
 
 	// bind the texture
 	pdata_pos_tex.normalized = false;
@@ -213,13 +238,37 @@ cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const
 	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
+		
+	// precompue some values
+	float rcut2inv = 1.0f / opt.r_cutsq;
+	float rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+	float r_on_sq = opt.xplor_fraction * opt.xplor_fraction * opt.r_cutsq;	
+	float xplor_denom = (opt.r_cutsq - r_on_sq) * (opt.r_cutsq - r_on_sq) * (opt.r_cutsq - r_on_sq);
 
 	// run the kernel
-	if (ulf_workaround)
-		gpu_compute_lj_forces_kernel<true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
+	if (opt.ulf_workaround)
+		{
+		if (opt.shift_mode == 0)
+			gpu_compute_lj_forces_kernel<true, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom, r_on_sq);
+		else if (opt.shift_mode == 1)
+			gpu_compute_lj_forces_kernel<true, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom, r_on_sq);
+		else if (opt.shift_mode == 2)
+			gpu_compute_lj_forces_kernel<true, 2><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom, r_on_sq);
+		else
+			return cudaErrorUnknown;
+		}
 	else
-		gpu_compute_lj_forces_kernel<false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, 	d_coeffs, coeff_width, r_cutsq);
-	
+		{
+		if (opt.shift_mode == 0)
+			gpu_compute_lj_forces_kernel<false, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom, r_on_sq);
+		else if (opt.shift_mode == 1)
+			gpu_compute_lj_forces_kernel<false, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom, r_on_sq);
+		else if (opt.shift_mode == 2)
+			gpu_compute_lj_forces_kernel<false, 2><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom, r_on_sq);
+		else
+			return cudaErrorUnknown;
+		}
+		
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;
