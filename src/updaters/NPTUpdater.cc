@@ -102,7 +102,7 @@ Scalar NPTUpdater::getLogValue(const std::string& quantity, unsigned int timeste
 		}
 	else if (quantity == string("conserved_quantity"))
 		{
-		cout << "**Warning! conserved_quantity not implemented in NPT integration yet" << endl;
+		cout << "**Warning! conserved_quantity not known for NPT integration" << endl;
 		return 0.0; // not implemented yet!
 		}
 	else
