@@ -482,11 +482,11 @@ class lj(force._force):
 		
 		if mode != None:
 			if mode == "no_shift":
-				self.cpp_force.setShiftMode(hoomd.LJForceComputeGPU.energyShiftMode.no_shift)
+				self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.no_shift)
 			elif mode == "shift":
-				self.cpp_force.setShiftMode(hoomd.LJForceComputeGPU.energyShiftMode.shift)
+				self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.shift)
 			elif mode == "xplor":
-				self.cpp_force.setShiftMode(hoomd.LJForceComputeGPU.energyShiftMode.xplor)
+				self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.xplor)
 			else:
 				print >> sys.stderr, "\n***Error: invalid mode", mode, "\n";
 				raise RuntimeError("Error setting lj parameters");
