@@ -50,6 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __LJFORCEGPU_CUH__
 #define __LJFORCEGPU_CUH__
 
+//! options struct for passing additional options to gpu_compute_lj_forces
 struct lj_options
 	{
 	float r_cutsq;			//!< cutoff distance squared

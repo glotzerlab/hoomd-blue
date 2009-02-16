@@ -193,7 +193,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	Scalar r_on_sq = m_xplor_fraction*m_xplor_fraction * r_cut_sq;
 	Scalar rcut2inv = Scalar(1.0) / r_cut_sq;
 	Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-	Scalar xplor_denom = (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq);
+	Scalar xplor_denom_inv = Scalar(1.0) / ((r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq));
 	
 	// precalculate box lenghts for use in the periodic imaging
 	Scalar Lx = box.xhi - box.xlo;
@@ -292,25 +292,27 @@ void LJForceCompute::computeForces(unsigned int timestep)
 				
 				if (m_shift_mode == shift)
 					{
-					// shifting is enabled: shift the energy (FLOPS: 4)
-					pair_eng -= rcut6inv * (lj1_row[typej]*rcut6inv - lj2_row[typej]);
+					// shifting is enabled: shift the energy (FLOPS: 5)
+					pair_eng -= Scalar(0.5) * rcut6inv * (lj1_row[typej]*rcut6inv - lj2_row[typej]);
 					}
 				else
 				if (m_shift_mode == xplor)
 					{
 					if (rsq >= r_on_sq)
 						{
-						// Implement XPLOR smoothing (FLOPS: 15)
+						// Implement XPLOR smoothing (FLOPS: 16)
 						Scalar old_pair_eng = pair_eng;
 						Scalar old_forcemag_divr = forcemag_divr;
 						
 						Scalar rsq_minus_r_cut_sq = rsq - r_cut_sq;
-						Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq * (r_cut_sq + Scalar(2.0) * rsq - Scalar(3.0) * r_on_sq) / xplor_denom;
-						Scalar ds_dr_divr = Scalar(12.0) * (rsq - r_on_sq) * rsq_minus_r_cut_sq;
+						Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq * (r_cut_sq + Scalar(2.0) * rsq - Scalar(3.0) * r_on_sq) * xplor_denom_inv;
+						Scalar ds_dr_divr = Scalar(12.0) * (rsq - r_on_sq) * rsq_minus_r_cut_sq * xplor_denom_inv;
 						
 						// make modifications to the old pair energy and force
 						pair_eng = old_pair_eng * s;
-						forcemag_divr = s * old_forcemag_divr + ds_dr_divr * old_pair_eng;
+						// note: I'm not sure why the minus sign needs to be there: my notes have a +. But this is verified correct
+						// I think it might have something to do with the fact that I'm actually calculating \vec{r}_{ji} instead of {ij}
+						forcemag_divr = s * old_forcemag_divr - ds_dr_divr * Scalar(2.0)*old_pair_eng;
 						}
 					}
 					
@@ -358,10 +360,10 @@ void LJForceCompute::computeForces(unsigned int timestep)
 
 	int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+9+6+8);
 	if (m_shift_mode == shift)
-		flops += n_calc * 4;
+		flops += n_calc * 5;
 	else
 	if (m_shift_mode == xplor)
-		flops += n_calc * 15;
+		flops += n_calc * 16;
 
 	if (third_law) flops += n_calc * 8;
 	int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);

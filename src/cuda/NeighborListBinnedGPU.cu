@@ -277,6 +277,7 @@ template <bool ulf_workaround> __global__ void gpu_compute_nlist_binned_kernel(g
 	\param r_maxsq Precalculated value for r_max*r_max
 	\param curNmax Number of particles currently in the largest bin
 	\param block_size Block size to run the kernel on the device
+	\param ulf_workaround Set to true to enable an attempted workaround for ULFs on compute 1.1 devices
 	
 	See updateFromBins_new for more information
 */
