@@ -382,9 +382,22 @@ def _update_global_nlist(r_cut):
 #	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
 #			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
 #	\f}
-# where
-# \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+# where \f$ V(r) \f$ is chosen by a mode switch (see set_params())
+# \f{eqnarray*}
+#	V(r)  = & V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ no\_shift} \\
+#			 = & V_{\mathrm{LJ}}(r) - V_{\mathrm{LJ}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift}	\\
+#			 = & S(r) \cdot V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ xplor}	\\
+#	\f}
+# , \f$ S(r) \f$ is the XPLOR smoothing function
+# \f{eqnarray*} 
+#	S(r) = & 1 & r < r_{\mathrm{on}} \\
+#	= & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 - 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3} & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
+#  = & 0 & r > r_{\mathrm{cut}} \\
+# \f}
+# , with \f$ r_{\mathrm{on}} = \lambda \cdot r_{\mathrm{cut}} \f$,
+# \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
 # 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+# ,
 # and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See pair or 
@@ -392,6 +405,10 @@ def _update_global_nlist(r_cut):
 # - \f$ \varepsilon \f$ - \c epsilon
 # - \f$ \sigma \f$ - \c sigma
 # - \f$ \alpha \f$ - \c alpha
+#
+# The following parameters are set globally via set_params()
+# - mode - mode (default = "no_shift)
+# - \f$ \lambda \f$ - \c xplor_factor (default = 2.0/3.0)
 #
 # \b Example:
 # \code
