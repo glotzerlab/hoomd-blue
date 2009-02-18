@@ -1,0 +1,32 @@
+#PBS -N hoomd_vldtst
+#PBS -l nodes=1,walltime=02:15:00,software=graphics,pmem=1gb
+#PBS -V
+#PBS -j oe
+#PBS -q route
+#PBS -t 1-9
+
+HOOMD_ARGS=
+
+cd ${PBS_O_WORKDIR}
+
+###################
+# Job status info
+echo "Job: ${PBS_JOBNAME}"
+echo "Array ID: ${PBS_ARRAYID}" 
+echo "Directory: ${PBS_O_WORKDIR}"
+echo "GPU ID: $CAC_GPU_ID"
+echo "Nodes:"
+cat $PBS_NODEFILE
+echo "-----"
+echo ""
+###################
+
+###################
+# run the job
+
+directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj pair_gaussian )
+echo "Running hoomd validation test ${directory_list[${PBS_ARRAYID}]} on gpu ${CAC_GPU_ID} with args ${HOOMD_ARGS}"
+cd ${directory_list[${PBS_ARRAYID}]}
+hoomd run.hoomd ${HOOMD_ARGS} --gpu_error_checking --mode=gpu --gpu=${CAC_GPU_ID}
+
+echo "job done"

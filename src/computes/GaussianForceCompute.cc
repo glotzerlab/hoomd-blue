@@ -184,11 +184,7 @@ void GaussianForceCompute::computeForces(unsigned int timestep)
 	
 	// create a temporary copy of r_cut sqaured
 	Scalar r_cut_sq = m_r_cut * m_r_cut;
-	
-	// factor out loop invariants
-	Scalar rcut2inv = Scalar(1.0) / r_cut_sq;
-	Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-	
+		
 	// precalculate box lenghts for use in the periodic imaging
 	Scalar Lx = box.xhi - box.xlo;
 	Scalar Ly = box.yhi - box.ylo;
@@ -290,8 +286,8 @@ void GaussianForceCompute::computeForces(unsigned int timestep)
 								
 				if (m_shift_mode == shift)
 					{
-					// shifting is enabled: shift the energy (FLOPS: 5)
-					pair_eng -= Scalar(0.5) * exp(-Scalar(1.0)/Scalar(2.0) * r_cut_sq / sigma_sq);
+					// shifting is enabled: shift the energy (FLOPS: 6)
+					pair_eng -= Scalar(0.5) * epsilon * exp(-Scalar(1.0)/Scalar(2.0) * r_cut_sq / sigma_sq);
 					}
 					
 				// compute the virial (FLOPS: 2)
@@ -338,7 +334,7 @@ void GaussianForceCompute::computeForces(unsigned int timestep)
 
 	int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+7+2+2);
 	if (m_shift_mode == shift)
-		flops += n_calc * 5;
+		flops += n_calc * 6;
 
 	if (third_law) flops += n_calc * 8;
 	int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);

@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id $
-// $URL $
+// $Id$
+// $URL$
 
 #ifdef WIN32
 #pragma warning( push )
@@ -58,7 +58,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "GaussianForceCompute.h"
 #ifdef ENABLE_CUDA
-//#include "GaussianForceComputeGPU.h"
+#include "GaussianForceGPU.h"
 #endif
 
 #include "BinnedNeighborList.h"
@@ -161,9 +161,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfig
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -0.622542302888418, tol);
 	}
 
-/*
-//! Tests the ability of a LJForceCompute to handle periodic boundary conditions
-void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
+//! Tests the ability of a GaussianForceCompute to handle periodic boundary conditions
+void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
@@ -194,65 +193,62 @@ void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	pdata_6->release();
 	
 	shared_ptr<NeighborList> nlist_6(new NeighborList(pdata_6, Scalar(1.3), Scalar(3.0)));
-	shared_ptr<LJForceCompute> fc_6 = lj_creator(pdata_6, nlist_6, Scalar(1.3));
+	shared_ptr<GaussianForceCompute> fc_6 = gauss_creator(pdata_6, nlist_6, Scalar(1.3));
 		
 	// choose a small sigma so that all interactions are attractive
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(0.5);
-	Scalar alpha = Scalar(0.45);
-	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	
 	// make life easy: just change epsilon for the different pairs
-	fc_6->setParams(0,0,lj1,lj2);
-	fc_6->setParams(0,1,Scalar(2.0)*lj1,Scalar(2.0)*lj2);
-	fc_6->setParams(0,2,Scalar(3.0)*lj1,Scalar(3.0)*lj2);
-	fc_6->setParams(1,1,Scalar(4.0)*lj1,Scalar(4.0)*lj2);
-	fc_6->setParams(1,2,Scalar(5.0)*lj1,Scalar(5.0)*lj2);
-	fc_6->setParams(2,2,Scalar(6.0)*lj1,Scalar(6.0)*lj2);
+	fc_6->setParams(0,0,epsilon,sigma);
+	fc_6->setParams(0,1,Scalar(2.0)*epsilon,sigma);
+	fc_6->setParams(0,2,Scalar(3.0)*epsilon,sigma);
+	fc_6->setParams(1,1,Scalar(4.0)*epsilon,sigma);
+	fc_6->setParams(1,2,Scalar(5.0)*epsilon,sigma);
+	fc_6->setParams(2,2,Scalar(6.0)*epsilon,sigma);
 	
 	fc_6->compute(0);	
 	
 	ForceDataArrays force_arrays = fc_6->acquire();
-	// particle 0 should be pulled left
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -1.18299976747949, tol);
+	// particle 0 should be pushed right
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 2.224298403625553*0.8, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], -0.15773330233059, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 0.296573120483407*0.8, tol);
 
-	// particle 1 should be pulled right
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 1.18299976747949, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], 1e-5);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], -0.15773330233059, tol);
+	// particle 1 should be pushed left
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -2.224298403625553*0.8, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 0.296573120483407*0.8, tol);
 	
-	// particle 2 should be pulled down
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -1.77449965121923, tol);
+	// particle 2 should be pushed up
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 3.336447605438329*0.8, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], -0.23659995349591, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], 0.444859680725111*0.8, tol);
 
-	// particle 3 should be pulled up
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 1.77449965121923, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[3], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], 1e-5);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], -0.23659995349591, tol);
+	// particle 3 should be pushed down
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -3.336447605438329*0.8, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[3], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], 0.444859680725111*0.8, tol);
 	
-	// particle 4 should be pulled back
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], -2.95749941869871, tol);
+	// particle 4 should be pushed forward
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 5.560746009063882*0.8, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[4], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[4], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[4], -0.39433325582651, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[4], 0.741432801208518*0.8, tol);
 
-	// particle 3 should be pulled forward
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5], 2.95749941869871, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[5], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[5], 1e-5);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[5], -0.39433325582651, tol);
+	// particle 3 should be pushed back
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5], -5.560746009063882*0.8, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[5], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[5], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[5], 0.741432801208518*0.8, tol);
 	}
 	
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
-void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2, ExecutionConfiguration exec_conf)
+void gauss_force_comparison_test(gaussforce_creator gauss_creator1, gaussforce_creator gauss_creator2, ExecutionConfiguration exec_conf)
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
@@ -265,19 +261,16 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
 	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(pdata, Scalar(3.0), Scalar(0.8)));
 	
-	shared_ptr<LJForceCompute> fc1 = lj_creator1(pdata, nlist, Scalar(3.0));
-	shared_ptr<LJForceCompute> fc2 = lj_creator2(pdata, nlist, Scalar(3.0));
+	shared_ptr<GaussianForceCompute> fc1 = gauss_creator1(pdata, nlist, Scalar(3.0));
+	shared_ptr<GaussianForceCompute> fc2 = gauss_creator2(pdata, nlist, Scalar(3.0));
 		
-	// setup some values for alpha and sigma
+	// setup some values for epsilon and sigma
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(1.2);
-	Scalar alpha = Scalar(0.45);
-	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	
 	// specify the force parameters
-	fc1->setParams(0,0,lj1,lj2);
-	fc2->setParams(0,0,lj1,lj2);
+	fc1->setParams(0,0,epsilon,sigma);
+	fc2->setParams(0,0,epsilon,sigma);
 	
 	// compute the forces
 	fc1->compute(0);
@@ -297,8 +290,8 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 		}
 	}
 	
-//! Test the ability of the lj force compute to compute forces with different shift modes
-void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
+//! Test the ability of the gauss force compute to compute forces with different shift modes
+void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
@@ -311,82 +304,36 @@ void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec
 	arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;
 	pdata_2->release();
 	shared_ptr<NeighborList> nlist_2(new NeighborList(pdata_2, Scalar(3.0), Scalar(0.8)));
-	shared_ptr<LJForceCompute> fc_no_shift = lj_creator(pdata_2, nlist_2, Scalar(3.0));
-	fc_no_shift->setShiftMode(LJForceCompute::no_shift);
-	shared_ptr<LJForceCompute> fc_shift = lj_creator(pdata_2, nlist_2, Scalar(3.0));
-	fc_shift->setShiftMode(LJForceCompute::shift);
-	shared_ptr<LJForceCompute> fc_xplor = lj_creator(pdata_2, nlist_2, Scalar(3.0));
-	fc_xplor->setShiftMode(LJForceCompute::xplor);
-	fc_xplor->setXplorFraction(Scalar(2.0/3.0));
+	shared_ptr<GaussianForceCompute> fc_no_shift = gauss_creator(pdata_2, nlist_2, Scalar(3.0));
+	fc_no_shift->setShiftMode(GaussianForceCompute::no_shift);
+	shared_ptr<GaussianForceCompute> fc_shift = gauss_creator(pdata_2, nlist_2, Scalar(3.0));
+	fc_shift->setShiftMode(GaussianForceCompute::shift);
 	
 	nlist_2->setStorageMode(NeighborList::full);
 
 	// setup a standard epsilon and sigma
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(1.0);
-	Scalar alpha = Scalar(1.0);
-	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-	fc_no_shift->setParams(0,0,lj1,lj2);
-	fc_shift->setParams(0,0,lj1,lj2);
-	fc_xplor->setParams(0,0,lj1,lj2);
+	fc_no_shift->setParams(0,0,epsilon,sigma);
+	fc_shift->setParams(0,0,epsilon,sigma);
 	
 	fc_no_shift->compute(0);
 	fc_shift->compute(0);
-	fc_xplor->compute(0);
 
 	ForceDataArrays force_arrays_no_shift = fc_no_shift->acquire();
 	ForceDataArrays force_arrays_shift = fc_shift->acquire();
-	ForceDataArrays force_arrays_xplor = fc_xplor->acquire();
-
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], 0.017713272731914, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], -0.0041417095577326, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[1], -0.017713272731914, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], -0.0041417095577326, tol);
+	
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], -0.055555065284237, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], 0.019841094744370/2.0, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[1], 0.055555065284237, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], 0.019841094744370/2.0, tol);
 
 	// shifted just has pe shifted by a given amount
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], 0.017713272731914, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], -0.0014019886856134, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[1], -0.017713272731914, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[1], -0.0014019886856134, tol);
-
-	// xplor has slight tweaks
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[0], 0.012335911924312, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[0], -0.001130667359194/2.0, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[1], -0.012335911924312, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[1], -0.001130667359194/2.0, tol);
-	
-	// check again, prior to r_on to make sure xplor isn't doing something weird
-	arrays = pdata_2->acquireReadWrite();
-	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-	arrays.x[1] = Scalar(1.5); arrays.y[1] = arrays.z[1] = 0.0;
-	pdata_2->release();
-	
-	fc_no_shift->compute(1);
-	fc_shift->compute(1);
-	fc_xplor->compute(1);
-
-	force_arrays_no_shift = fc_no_shift->acquire();
-	force_arrays_shift = fc_shift->acquire();
-	force_arrays_xplor = fc_xplor->acquire();
-
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], 1.1580288310461, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], -0.16016829713928, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[1], -1.1580288310461, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], -0.16016829713928, tol);
-
-	// shifted just has pe shifted by a given amount
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], 1.1580288310461, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], -0.15742857626716, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[1], -1.1580288310461, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[1], -0.15742857626716, tol);
-
-	// xplor has slight tweaks
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[0], 1.1580288310461, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[0], -0.16016829713928, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[1], -1.1580288310461, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[1], -0.16016829713928, tol);
-	
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], -0.055555065284237, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], 0.008732098206128/2.0, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[1], 0.055555065284237, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[1], 0.008732098206128/2.0, tol);
+		
 	// check once again to verify that nothing fish happens past r_cut
 	arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
@@ -395,11 +342,9 @@ void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec
 	
 	fc_no_shift->compute(2);
 	fc_shift->compute(2);
-	fc_xplor->compute(2);
 
 	force_arrays_no_shift = fc_no_shift->acquire();
 	force_arrays_shift = fc_shift->acquire();
-	force_arrays_xplor = fc_xplor->acquire();
 
 	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[0], tol);
@@ -411,13 +356,7 @@ void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec
 	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[1], tol);
-
-	// xplor has slight tweaks
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[1], tol);
-	}*/
+	}
 
 //! LJForceCompute creator for unit tests
 shared_ptr<GaussianForceCompute> base_class_gauss_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
@@ -426,15 +365,15 @@ shared_ptr<GaussianForceCompute> base_class_gauss_creator(shared_ptr<ParticleDat
 	}
 
 #ifdef ENABLE_CUDA
-/*//! GaussianForceComputeGPU creator for unit tests
+//! GaussianForceComputeGPU creator for unit tests
 shared_ptr<GaussianForceCompute> gpu_gauss_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
 	nlist->setStorageMode(NeighborList::full);
-	shared_ptr<GaussianForceComputeGPU> gauss(new GaussianForceComputeGPU(pdata, nlist, r_cut));
+	shared_ptr<GaussianForceGPU> gauss(new GaussianForceGPU(pdata, nlist, r_cut));
 	// the default block size kills valgrind :) reduce it
 	gauss->setBlockSize(64);
 	return gauss;
-	}*/
+	}
 #endif
 	
 //! boost test case for particle test on CPU
@@ -444,7 +383,7 @@ BOOST_AUTO_TEST_CASE( GaussForce_particle )
 	gauss_force_particle_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 	
-/*//! boost test case for periodic test on CPU
+//! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_periodic )
 	{
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
@@ -456,10 +395,10 @@ BOOST_AUTO_TEST_CASE( GaussForce_shift )
 	{
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
 	gauss_force_shift_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
-	}*/
+	}
 	
 # ifdef ENABLE_CUDA
-/*//! boost test case for particle test on GPU
+//! boost test case for particle test on GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_particle )
 	{
 	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
@@ -476,8 +415,8 @@ BOOST_AUTO_TEST_CASE( GaussForceGPU_periodic )
 //! boost test case for shift test on GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_shift )
 	{
-	ljforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
-	lj_force_shift_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
+	gauss_force_shift_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 
 //! boost test case for comparing GPU output to base class output
@@ -501,7 +440,7 @@ BOOST_AUTO_TEST_CASE( GaussForceMultiGPU_compare )
 	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
 	gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, exec_conf);
-	}*/
+	}
 #endif
 
 #ifdef WIN32

@@ -39,3 +39,8 @@ cd ../wall_lj
 echo "****************"
 echo "Running wall_lj"
 hoomd run.hoomd --gpu_error_checking "$@" 2>&1
+
+cd ../pair_gaussian
+echo "****************"
+echo "Running pair_gaussian"
+hoomd run.hoomd --gpu_error_checking "$@" 2>&1

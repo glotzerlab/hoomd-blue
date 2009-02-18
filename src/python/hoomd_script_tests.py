@@ -364,9 +364,51 @@ class pair_lj_tests (unittest.TestCase):
 		lj = pair.lj(r_cut=3.0);
 		self.assertRaises(RuntimeError, lj.update_coeffs);
 	
+	# test set params
+	def test_set_params(self):
+		lj = pair.lj(r_cut=3.0);
+		lj.set_params(fraction=0.5);
+		lj.set_params(mode="no_shift");
+		lj.set_params(mode="shift");
+		lj.set_params(mode="xplor");
+		self.assertRaises(RuntimeError, lj.set_params, mode="blah");
+	
 	def tearDown(self):
 		globals._clear();
 		
+		
+# pair.gauss
+class pair_gauss_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=1000, phi_p=0.05);
+		
+	# basic test of creation
+	def test(self):
+		gauss = pair.gauss(r_cut=3.0);
+		gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
+		gauss.update_coeffs();
+
+	# test missing coefficients
+	def test_set_missing_epsilon(self):
+		gauss = pair.lj(r_cut=3.0);
+		gauss.pair_coeff.set('A', 'A', sigma=1.0);
+		self.assertRaises(RuntimeError, gauss.update_coeffs);
+		
+	# test missing coefficients
+	def test_missing_AA(self):
+		gauss = pair.gauss(r_cut=3.0);
+		self.assertRaises(RuntimeError, gauss.update_coeffs);
+	
+	# test set params
+	def test_set_params(self):
+		gauss = pair.gauss(r_cut=3.0);
+		gauss.set_params(mode="no_shift");
+		gauss.set_params(mode="shift");
+		self.assertRaises(RuntimeError, gauss.set_params, mode="blah");
+	
+	def tearDown(self):
+		globals._clear();
 		
 # tests force.constant
 class force_constant_tests (unittest.TestCase):
