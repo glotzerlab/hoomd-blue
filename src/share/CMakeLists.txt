@@ -48,12 +48,6 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/benchmarks ${CMAKE_CURRENT_S
 		PATTERN ".svn" EXCLUDE
 		)
 		
-## install the license file
-install(FILES ${HOOMD_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/hoomd_data_dir
-		DESTINATION ${DATA_INSTALL_DIR}
-		CONFIGURATIONS Release
-		)
-		
 ## install the icon, mime type and application menu entry in linux
 if (NOT WIN32 AND NOT APPLE)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/icons ${CMAKE_CURRENT_SOURCE_DIR}/mime ${CMAKE_CURRENT_SOURCE_DIR}/applications
@@ -72,3 +66,9 @@ if (WIN32)
 endif (WIN32)
 
 endif (NOT ENABLE_MINIMAL_INSTALL)
+
+## install the license file
+install(FILES ${HOOMD_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/hoomd_data_dir
+		DESTINATION ${DATA_INSTALL_DIR}
+		CONFIGURATIONS Release
+		)
