@@ -45,6 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <iostream>
+#include <fstream>
 
 //! Name the unit test module
 #define BOOST_TEST_MODULE LJForceTests
@@ -333,12 +334,136 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 		}
 	}
 	
+//! Test the ability of the lj force compute to compute forces with different shift modes
+void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
+	{
+	#ifdef CUDA
+	g_gpu_error_checking = true;
+	#endif
+	
+	// this 2-particle test is just to get a plot of the potential and force vs r cut
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+	
+	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
+	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+	arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;
+	pdata_2->release();
+	shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<LJForceCompute> fc_no_shift = lj_creator(sysdef_2, nlist_2, Scalar(3.0));
+	fc_no_shift->setShiftMode(LJForceCompute::no_shift);
+	shared_ptr<LJForceCompute> fc_shift = lj_creator(sysdef_2, nlist_2, Scalar(3.0));
+	fc_shift->setShiftMode(LJForceCompute::shift);
+	shared_ptr<LJForceCompute> fc_xplor = lj_creator(sysdef_2, nlist_2, Scalar(3.0));
+	fc_xplor->setShiftMode(LJForceCompute::xplor);
+	fc_xplor->setXplorFraction(Scalar(2.0/3.0));
+	
+	nlist_2->setStorageMode(NeighborList::full);
+
+	// setup a standard epsilon and sigma
+	Scalar epsilon = Scalar(1.0);
+	Scalar sigma = Scalar(1.0);
+	Scalar alpha = Scalar(1.0);
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	fc_no_shift->setParams(0,0,lj1,lj2);
+	fc_shift->setParams(0,0,lj1,lj2);
+	fc_xplor->setParams(0,0,lj1,lj2);
+	
+	fc_no_shift->compute(0);
+	fc_shift->compute(0);
+	fc_xplor->compute(0);
+
+	ForceDataArrays force_arrays_no_shift = fc_no_shift->acquire();
+	ForceDataArrays force_arrays_shift = fc_shift->acquire();
+	ForceDataArrays force_arrays_xplor = fc_xplor->acquire();
+
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], 0.017713272731914, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], -0.0041417095577326, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[1], -0.017713272731914, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], -0.0041417095577326, tol);
+
+	// shifted just has pe shifted by a given amount
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], 0.017713272731914, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], -0.0014019886856134, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[1], -0.017713272731914, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[1], -0.0014019886856134, tol);
+
+	// xplor has slight tweaks
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[0], 0.012335911924312, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[0], -0.001130667359194/2.0, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[1], -0.012335911924312, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[1], -0.001130667359194/2.0, tol);
+	
+	// check again, prior to r_on to make sure xplor isn't doing something weird
+	arrays = pdata_2->acquireReadWrite();
+	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+	arrays.x[1] = Scalar(1.5); arrays.y[1] = arrays.z[1] = 0.0;
+	pdata_2->release();
+	
+	fc_no_shift->compute(1);
+	fc_shift->compute(1);
+	fc_xplor->compute(1);
+
+	force_arrays_no_shift = fc_no_shift->acquire();
+	force_arrays_shift = fc_shift->acquire();
+	force_arrays_xplor = fc_xplor->acquire();
+
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[0], 1.1580288310461, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[0], -0.16016829713928, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.fx[1], -1.1580288310461, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_no_shift.pe[1], -0.16016829713928, tol);
+
+	// shifted just has pe shifted by a given amount
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[0], 1.1580288310461, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[0], -0.15742857626716, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.fx[1], -1.1580288310461, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_shift.pe[1], -0.15742857626716, tol);
+
+	// xplor has slight tweaks
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[0], 1.1580288310461, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[0], -0.16016829713928, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.fx[1], -1.1580288310461, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays_xplor.pe[1], -0.16016829713928, tol);
+	
+	// check once again to verify that nothing fish happens past r_cut
+	arrays = pdata_2->acquireReadWrite();
+	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+	arrays.x[1] = Scalar(3.1); arrays.y[1] = arrays.z[1] = 0.0;
+	pdata_2->release();
+	
+	fc_no_shift->compute(2);
+	fc_shift->compute(2);
+	fc_xplor->compute(2);
+
+	force_arrays_no_shift = fc_no_shift->acquire();
+	force_arrays_shift = fc_shift->acquire();
+	force_arrays_xplor = fc_xplor->acquire();
+
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[1], tol);
+
+	// shifted just has pe shifted by a given amount
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[1], tol);
+
+	// xplor has slight tweaks
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[1], tol);
+	}
+
 //! LJForceCompute creator for unit tests
 shared_ptr<LJForceCompute> base_class_lj_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
 	return shared_ptr<LJForceCompute>(new LJForceCompute(sysdef, nlist, r_cut));
 	}
-	
+
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
 shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
@@ -364,9 +489,16 @@ BOOST_AUTO_TEST_CASE( LJForce_periodic )
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
 	lj_force_periodic_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
+
+//! boost test case for particle test on CPU
+BOOST_AUTO_TEST_CASE( LJForce_shift )
+	{
+	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
+	lj_force_shift_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	}
 	
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on CPU - threaded
+//! boost test case for particle test on GPU
 BOOST_AUTO_TEST_CASE( LJForceGPU_particle )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
@@ -378,6 +510,13 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_periodic )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
 	lj_force_periodic_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	}
+
+//! boost test case for shift test on GPU
+BOOST_AUTO_TEST_CASE( LJForceGPU_shift )
+	{
+	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
+	lj_force_shift_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 
 //! boost test case for comparing GPU output to base class output
@@ -403,6 +542,53 @@ BOOST_AUTO_TEST_CASE( LJForceMultiGPU_compare )
 	lj_force_comparison_test(lj_creator_base, lj_creator_gpu, exec_conf);
 	}
 #endif
+
+/*BOOST_AUTO_TEST_CASE(potential_writer)
+	{
+	#ifdef CUDA
+	g_gpu_error_checking = true;
+	#endif
+	
+	// this 2-particle test is just to get a plot of the potential and force vs r cut
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, ExecutionConfiguration()));
+	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
+	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+	arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
+	pdata_2->release();
+	shared_ptr<NeighborList> nlist_2(new NeighborList(pdata_2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<LJForceCompute> fc(new LJForceCompute(pdata_2, nlist_2, Scalar(3.0)));
+	// nlist_2->setStorageMode(NeighborList::full);
+	fc->setShiftMode(LJForceCompute::xplor);
+
+	// setup a standard epsilon and sigma
+	Scalar epsilon = Scalar(1.0);
+	Scalar sigma = Scalar(1.0);
+	Scalar alpha = Scalar(1.0);
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	fc->setParams(0,0,lj1,lj2);
+	
+	ofstream f("lj_dat.m");
+	f << "lj = [";
+	unsigned int count = 0;	
+	for (float r = 0.96; r <= 3.5; r+= 0.001)
+		{
+		// set the distance
+		ParticleDataArrays arrays = pdata_2->acquireReadWrite();
+		arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+		arrays.x[1] = Scalar(r); arrays.y[1] = arrays.z[1] = 0.0;
+		pdata_2->release();
+		
+		// compute the forces
+		fc->compute(count);
+		count++;
+	
+		ForceDataArrays force_arrays = fc->acquire();
+		f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;	
+		}
+	f << "];" << endl;
+	f.close();
+	}*/
 
 #ifdef WIN32
 #pragma warning( pop )

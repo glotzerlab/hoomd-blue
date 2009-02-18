@@ -65,6 +65,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
 #include "YukawaForceCompute.h"
+#include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
@@ -98,6 +99,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
 #include "YukawaForceComputeGPU.h"
+#include "GaussianForceGPU.h"
 #include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
@@ -293,6 +295,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
 	export_YukawaForceCompute();	
+	export_GaussianForceCompute();
 	export_LJWallForceCompute();
 	export_TempCompute();
 	export_NeighborList();
@@ -302,6 +305,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_NeighborListNsqGPU();
 	export_LJForceComputeGPU();
 	export_YukawaForceComputeGPU();
+	export_GaussianForceGPU();
 	export_HarmonicBondForceComputeGPU();
 	export_FENEBondForceComputeGPU();
 	#endif

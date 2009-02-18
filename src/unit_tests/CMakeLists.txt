@@ -85,6 +85,7 @@ set(TEST_LIST
 	neighborlist_test
 	lj_force_test
 	shiftedlj_force_test
+	gaussian_force_test
 	nve_updater_test
 	nvt_updater_test
 	zero_momentum_updater_test

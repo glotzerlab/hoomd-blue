@@ -39,28 +39,51 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "ForceCompute.cuh"
-#include "NeighborList.cuh"
-#include "ParticleData.cuh"
+#include "GaussianForceCompute.h"
+#include "NeighborList.h"
+#include "GaussianForceGPU.cuh"
 
-/*! \file LJForceGPU.cuh
-	\brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
+#include <boost/shared_ptr.hpp>
+
+/*! \file GaussianForceGPU.h
+	\brief Declares the class GaussianForceGPU
 */
 
-#ifndef __LJFORCEGPU_CUH__
-#define __LJFORCEGPU_CUH__
+#ifndef __GAUSSIANFORCEGPU_H__
+#define __GAUSSIANFORCEGPU_H__
 
-//! options struct for passing additional options to gpu_compute_lj_forces
-struct lj_options
+//! Computes Gaussian forces on each particle using the GPU
+/*! Calculates the same forces as GaussianForceCompute, but on the GPU.
+	
+	The GPU kernel for calculating the forces is in GaussianForceGPU.cu.
+	\ingroup computes
+*/
+class GaussianForceGPU : public GaussianForceCompute
 	{
-	float r_cutsq;			//!< cutoff distance squared
-	int block_size;			//!< block size to execute on
-	float xplor_fraction;	//!< fraction at which xplor smoothing starts
-	bool ulf_workaround;	//!< Set to true to enable the ULF workaroudn
-	unsigned int shift_mode;//!< Shift mode for pair energy
-	};
+	public:
+		//! Constructs the compute
+		GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+		
+		//! Destructor
+		virtual ~GaussianForceGPU();
+		
+		//! Set the parameters for a single type pair
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma);
+		
+		//! Sets the block size to run at
+		void setBlockSize(int block_size);
 
-//! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
-cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const lj_options& opt);
+	protected:
+		vector<float2 *> d_coeffs;		//!< Pointer to the coefficients on the GPU
+		float2 * h_coeffs;				//!< Pointer to the coefficients on the host
+		int m_block_size;				//!< The block size to run on the GPU
+		bool m_ulf_workaround;			//!< Stores decision made by the constructor whether to enable the ULF workaround
+
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
+//! Exports the GaussianForceGPU class to python
+void export_GaussianForceGPU();
 
 #endif

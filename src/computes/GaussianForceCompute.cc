@@ -47,30 +47,30 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
-#include "LJForceCompute.h"
+#include "GaussianForceCompute.h"
 #include <stdexcept>
 
-/*! \file LJForceCompute.cc
-	\brief Defines the LJForceCompute class
+/*! \file GaussianForceCompute.cc
+	\brief Defines the GaussianForceCompute class
 */
 
 using namespace std;
 
-/*! \param sysdef System to compute forces on
+/*! \param sysdef System definition with particle Data to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
-	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
+	\post memory is allocated and all parameters epsilon and sigma are set to 0.0
 */
-LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0))
+GaussianForceCompute::GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift)
 	{
 	assert(m_pdata);
 	assert(m_nlist);
 	
 	if (r_cut < 0.0)
 		{
-		cerr << endl << "***Error! Negative r_cut in LJForceCompute makes no sense" << endl << endl;
-		throw runtime_error("Error initializing LJForceCompute");
+		cerr << endl << "***Error! Negative r_cut in GaussianForceCompute makes no sense" << endl << endl;
+		throw runtime_error("Error initializing GaussianForceCompute");
 		}
 	
 	// initialize the number of types value
@@ -78,33 +78,29 @@ LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost
 	assert(m_ntypes > 0);
 	
 	// allocate data for lj1 and lj2
-	m_lj1 = new Scalar[m_ntypes*m_ntypes];
-	m_lj2 = new Scalar[m_ntypes*m_ntypes];
+	m_epsilon = new Scalar[m_ntypes*m_ntypes];
+	m_sigma = new Scalar[m_ntypes*m_ntypes];
 	
 	// sanity check
-	assert(m_lj1 != NULL && m_lj2 != NULL);
+	assert(m_epsilon != NULL && m_sigma != NULL);
 	
 	// initialize the parameters to 0;
-	memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-	memset((void*)m_lj2, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_epsilon, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_sigma, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
 	}
 	
 
-LJForceCompute::~LJForceCompute()
+GaussianForceCompute::~GaussianForceCompute()
 	{
 	// deallocate our memory
-	delete[] m_lj1;
-	delete[] m_lj2;
-	m_lj1 = NULL;
-	m_lj2 = NULL;
+	delete[] m_epsilon;
+	delete[] m_sigma;
+	m_epsilon = NULL;
+	m_sigma = NULL;
 	}
 		
 
-/*! \post The parameters \a lj1 and \a lj2 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
-	\note \a lj? are low level parameters used in the calculation. In order to specify
-	these for a normal lennard jones formula (with alpha), they should be set to the following.
-	- \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-	- \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
+/*! \post The parameters \a epsilon and \a sigma are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
 	
 	Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
 	is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
@@ -112,62 +108,62 @@ LJForceCompute::~LJForceCompute()
 	
 	\param typ1 Specifies one type of the pair
 	\param typ2 Specifies the second type of the pair
-	\param lj1 First parameter used to calcluate forces
-	\param lj2 Second parameter used to calculate forces
+	\param epsilon First parameter used to calcluate forces
+	\param sigma Second parameter used to calculate forces
 */
-void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2)
+void GaussianForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma)
 	{
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
 		{
-		cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
-		throw runtime_error("Error setting parameters in LJForceCompute");
+		cerr << endl << "***Error! Trying to set Gaussian params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+		throw runtime_error("Error setting parameters in GaussianForceCompute");
 		}
 	
-	// set lj1 in both symmetric positions in the matrix	
-	m_lj1[typ1*m_ntypes + typ2] = lj1;
-	m_lj1[typ2*m_ntypes + typ1] = lj1;
+	// set epsilon in both symmetric positions in the matrix	
+	m_epsilon[typ1*m_ntypes + typ2] = epsilon;
+	m_epsilon[typ2*m_ntypes + typ1] = epsilon;
 	
-	// set lj2 in both symmetric positions in the matrix
-	m_lj2[typ1*m_ntypes + typ2] = lj2;
-	m_lj2[typ2*m_ntypes + typ1] = lj2;
+	// set sigma in both symmetric positions in the matrix
+	m_sigma[typ1*m_ntypes + typ2] = sigma;
+	m_sigma[typ2*m_ntypes + typ1] = sigma;
 	}
 	
-/*! LJForceCompute provides
-	- \c lj_energy
+/*! GaussianForceCompute provides
+	- \c pair_gauss_energy
 */
-std::vector< std::string > LJForceCompute::getProvidedLogQuantities()
+std::vector< std::string > GaussianForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("pair_lj_energy");
+	list.push_back("pair_gauss_energy");
 	return list;
 	}
 	
-Scalar LJForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
+Scalar GaussianForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("pair_lj_energy"))
+	if (quantity == string("pair_gauss_energy"))
 		{
 		compute(timestep);
 		return calcEnergySum();
 		}
 	else
 		{
-		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for LJForceCompute" << endl << endl;
+		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for GaussianForceCompute" << endl << endl;
 		throw runtime_error("Error getting log value");
 		}
 	}
 
-/*! \post The lennard jones forces are computed for the given timestep. The neighborlist's
+/*! \post The gaussian forces are computed for the given timestep. The neighborlist's
  	compute method is called to ensure that it is up to date.
 	
 	\param timestep specifies the current time step of the simulation
 */
-void LJForceCompute::computeForces(unsigned int timestep)
+void GaussianForceCompute::computeForces(unsigned int timestep)
 	{
 	// start by updating the neighborlist
 	m_nlist->compute(timestep);
 	
 	// start the profile for this compute
-	if (m_prof) m_prof->push("LJ pair");
+	if (m_prof) m_prof->push("Gauss pair");
 	
 	// depending on the neighborlist settings, we can take advantage of newton's third law
 	// to reduce computations at the cost of memory access complexity: set that flag now
@@ -188,13 +184,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	
 	// create a temporary copy of r_cut sqaured
 	Scalar r_cut_sq = m_r_cut * m_r_cut;
-	
-	// factor out loop invariants
-	Scalar r_on_sq = m_xplor_fraction*m_xplor_fraction * r_cut_sq;
-	Scalar rcut2inv = Scalar(1.0) / r_cut_sq;
-	Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-	Scalar xplor_denom_inv = Scalar(1.0) / ((r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq));
-	
+		
 	// precalculate box lenghts for use in the periodic imaging
 	Scalar Lx = box.xhi - box.xlo;
 	Scalar Ly = box.yhi - box.ylo;
@@ -223,8 +213,8 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		assert(typei < m_pdata->getNTypes());
 		
 		// access the lj1 and lj2 rows for the current particle type
-		Scalar * __restrict__ lj1_row = &(m_lj1[typei*m_ntypes]);
-		Scalar * __restrict__ lj2_row = &(m_lj2[typei*m_ntypes]);
+		Scalar * __restrict__ epsilon_row = &(m_epsilon[typei*m_ntypes]);
+		Scalar * __restrict__ sigma_row = &(m_sigma[typei*m_ntypes]);
 
 		// initialize current particle force, potential energy, and virial to 0
 		Scalar fxi = 0.0;
@@ -282,38 +272,22 @@ void LJForceCompute::computeForces(unsigned int timestep)
 			// only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
 			if (rsq < r_cut_sq)
 				{
-				// compute the force magnitude/r in forcemag_divr (FLOPS: 9)
-				Scalar r2inv = Scalar(1.0)/rsq;
-				Scalar r6inv = r2inv * r2inv * r2inv;
-				Scalar forcemag_divr = r2inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
+				// compute the force magnitude/r in forcemag_divr (FLOPS: 7)
+				Scalar sigma = sigma_row[typej];
+				Scalar sigma_sq = sigma*sigma;
+				Scalar epsilon = epsilon_row[typej];
 				
-				// compute the pair energy (FLOPS: 4)
-				Scalar pair_eng = Scalar(0.5) * r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
-				
+				Scalar r_over_sigma_sq = rsq / sigma_sq;
+				Scalar exp_val = exp(-Scalar(1.0)/Scalar(2.0) * r_over_sigma_sq);
+				Scalar forcemag_divr = epsilon / sigma_sq * exp_val;
+								
+				// compute the pair energy (FLOPS: 2)
+				Scalar pair_eng = Scalar(0.5) * epsilon * exp_val;
+								
 				if (m_shift_mode == shift)
 					{
-					// shifting is enabled: shift the energy (FLOPS: 5)
-					pair_eng -= Scalar(0.5) * rcut6inv * (lj1_row[typej]*rcut6inv - lj2_row[typej]);
-					}
-				else
-				if (m_shift_mode == xplor)
-					{
-					if (rsq >= r_on_sq)
-						{
-						// Implement XPLOR smoothing (FLOPS: 16)
-						Scalar old_pair_eng = pair_eng;
-						Scalar old_forcemag_divr = forcemag_divr;
-						
-						Scalar rsq_minus_r_cut_sq = rsq - r_cut_sq;
-						Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq * (r_cut_sq + Scalar(2.0) * rsq - Scalar(3.0) * r_on_sq) * xplor_denom_inv;
-						Scalar ds_dr_divr = Scalar(12.0) * (rsq - r_on_sq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-						
-						// make modifications to the old pair energy and force
-						pair_eng = old_pair_eng * s;
-						// note: I'm not sure why the minus sign needs to be there: my notes have a +. But this is verified correct
-						// I think it might have something to do with the fact that I'm actually calculating \vec{r}_{ji} instead of {ij}
-						forcemag_divr = s * old_forcemag_divr - ds_dr_divr * Scalar(2.0)*old_pair_eng;
-						}
+					// shifting is enabled: shift the energy (FLOPS: 6)
+					pair_eng -= Scalar(0.5) * epsilon * exp(-Scalar(1.0)/Scalar(2.0) * r_cut_sq / sigma_sq);
 					}
 					
 				// compute the virial (FLOPS: 2)
@@ -358,12 +332,9 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-	int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+9+6+8);
+	int64_t flops = m_pdata->getN() * 5 + n_calc * (3+5+9+1+7+2+2);
 	if (m_shift_mode == shift)
-		flops += n_calc * 5;
-	else
-	if (m_shift_mode == xplor)
-		flops += n_calc * 16;
+		flops += n_calc * 6;
 
 	if (third_law) flops += n_calc * 8;
 	int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);
@@ -371,19 +342,17 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	if (m_prof) m_prof->pop(flops, mem_transfer);
 	}
 
-void export_LJForceCompute()
+void export_GaussianForceCompute()
 	{
-	scope in_lj = class_<LJForceCompute, boost::shared_ptr<LJForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("LJForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
-		.def("setParams", &LJForceCompute::setParams)
-		.def("setXplorFraction", &LJForceCompute::setXplorFraction)
-		.def("setShiftMode", &LJForceCompute::setShiftMode)
+	scope in_lj = class_<GaussianForceCompute, boost::shared_ptr<GaussianForceCompute>, bases<ForceCompute>, boost::noncopyable >
+		("GaussianForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+		.def("setParams", &GaussianForceCompute::setParams)
+		.def("setShiftMode", &GaussianForceCompute::setShiftMode)
 		;
 		
-	enum_<LJForceCompute::energyShiftMode>("energyShiftMode")
-		.value("no_shift", LJForceCompute::no_shift)
-		.value("shift", LJForceCompute::shift)
-		.value("xplor", LJForceCompute::xplor)
+	enum_<GaussianForceCompute::energyShiftMode>("energyShiftMode")
+		.value("no_shift", GaussianForceCompute::no_shift)
+		.value("shift", GaussianForceCompute::shift)
 		;
 	}
 

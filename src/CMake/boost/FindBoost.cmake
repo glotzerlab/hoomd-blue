@@ -157,7 +157,7 @@ else(Boost_FIND_VERSION_EXACT)
         # This version is a short-form for the requested version with
         # the patch level dropped.
         list(APPEND _boost_TEST_VERSIONS "${version}")
-      endif()
+      endif(NOT "${version}" VERSION_LESS "${Boost_FIND_VERSION}")
     endforeach(version)
   else(Boost_FIND_VERSION)
     # Any version is acceptable.

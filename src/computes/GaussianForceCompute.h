@@ -44,41 +44,37 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 
-/*! \file LJForceCompute.h
-	\brief Declares the LJForceCompute class
+/*! \file GaussianForceCompute.h
+	\brief Declares the GaussianForceCompute class
 */
 
-#ifndef __LJFORCECOMPUTE_H__
-#define __LJFORCECOMPUTE_H__
+#ifndef __GAUSSIANFORCECOMPUTE_H__
+#define __GAUSSIANFORCECOMPUTE_H__
 
-//! Computes Lennard-Jones forces on each particle
+//! Computes Gaussian forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
 	neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
 	to identify these neighbors. Calling compute() in this class will in turn result in a call to the 
 	NeighborList's compute() to make sure that the neighbor list is up to date.
 	
-	Usage: Construct a LJForceCompute, providing it an already constructed ParticleData and NeighborList.
-	Then set parameters for all possible pairs of types by calling setParams. 
-	
-	Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but 
-	a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater. 
+	\f[ V(r) = \varepsilon \exp \left[ -\frac{1}{2} \left(\frac{r}{\sigma} \right)^2 \right] \f]
 	
 	\ingroup computes
 */
-class LJForceCompute : public ForceCompute
+class GaussianForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+		GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
 		
 		//! Destructor
-		virtual ~LJForceCompute();
+		virtual ~GaussianForceCompute();
 		
 		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2);
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma);
 		
 		//! Returns a list of log quantities this compute calculates
-		virtual std::vector< std::string > getProvidedLogQuantities(); 
+		virtual std::vector< std::string > getProvidedLogQuantities();
 		
 		//! Calculates the requested log value and returns it
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
@@ -87,12 +83,8 @@ class LJForceCompute : public ForceCompute
 		enum energyShiftMode
 			{
 			no_shift = 0,
-			shift,
-			xplor
+			shift
 			};
-		
-		//! Set the fraction of r_cut at which the xplor shifting is enabled (if that mode is set)
-		void setXplorFraction(Scalar f) { m_xplor_fraction = f; }
 		
 		//! Set the mode to use for shifting the energy
 		void setShiftMode(energyShiftMode mode) { m_shift_mode = mode; }
@@ -102,19 +94,18 @@ class LJForceCompute : public ForceCompute
 		Scalar m_r_cut;								//!< Cuttoff radius beyond which the force is set to 0
 		unsigned int m_ntypes;						//!< Store the width and height of lj1 and lj2 here
 		energyShiftMode m_shift_mode;				//!< Store the mode with which to handle the energy shift at r_cut
-		Scalar m_xplor_fraction;					//!< Fraction of r_cut at which to turn on the xplor shifting
 		
 		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
 		// level concepts like mixing. That is for the caller to handle. So, I only store 
-		// lj1 and lj2 here
-		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
-		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
+		// epsilon and sigma here
+		Scalar * __restrict__ m_epsilon;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		Scalar * __restrict__ m_sigma;		//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
 		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);
 	};
 	
-//! Exports the LJForceCompute class to python
-void export_LJForceCompute();
+//! Exports the GaussianForceCompute class to python
+void export_GaussianForceCompute();
 
 #endif

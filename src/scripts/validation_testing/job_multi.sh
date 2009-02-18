@@ -7,7 +7,7 @@
 #$ -j y
 #$ -cwd
 #$ -S /bin/bash
-#$ -t 1-8
+#$ -t 1-9
 #$ -v HOOMD_ARGS
 
 source ~/.bashrc
@@ -28,7 +28,7 @@ if [ "$?" = 1 ]; then
 	exit 100
 fi
 
-directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj )
+directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj pair_gaussian )
 echo "Running hoomd validation test ${directory_list[${SGE_TASK_ID}]} on gpu $GPU1,$GPU2 with args ${HOOMD_ARGS}"
 cd ${directory_list[${SGE_TASK_ID}]}
 hoomd run.hoomd ${HOOMD_ARGS} --gpu_error_checking --mode=gpu --gpu=$GPU1,$GPU2

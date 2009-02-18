@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "gpu_settings.h"
-#include "LJForceGPU.cuh"
+#include "GaussianForceGPU.cuh"
 
 #ifdef WIN32
 #include <cassert>
@@ -48,30 +48,27 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file LJForceGPU.cu
-	\brief Defines GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
+/*! \file GaussianForceGPU.cu
+	\brief Defines GPU kernel code for calculating the Gaussian pair forces. Used by GaussianForceGPU.
 */
 
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
-//! Kernel for calculating lj forces
-/*! This kerenel is called to calculate the lennard-jones forces on all N particles
+//! Kernel for calculating gaussian forces
+/*! This kerenel is called to calculate the gaussian forces on all N particles
 
 	\param force_data Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on
+	\param box Box dimensions used to implement periodic boundary conditions
 	\param nlist Neigbhor list data on the GPU to use to calculate the forces
-	\param d_coeffs Coefficients to the lennard jones force.
+	\param d_coeffs Coefficients to the gaussian force.
 	\param coeff_width Width of the coefficient matrix
 	\param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
 		set to 0
-	\param rcut6inv Precalculated 1/r_cut**6
-	\param xplor_denom_inv Precalculated 1/xplor denominator
-	\param r_on_sq Precalculated r_on*r_on (for xplor)
-	\param box Box dimensions used to implement periodic boundary conditions
 	
-	\a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a lj1 for the type pair \a i, \a j.
-	Similarly, .y is the \a lj2 parameter. The values in d_coeffs are read into shared memory, so 
+	\a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a epsilon for the type pair \a i, \a j.
+	Similarly, .y is the \a sigma parameter. The values in d_coeffs are read into shared memory, so 
 	\c coeff_width*coeff_width*sizeof(float2) bytes of extern shared memory must be allocated for the kernel call.
 	
 	Developer information:
@@ -79,7 +76,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	Each thread will calculate the total force on one particle.
 	The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, float rcut6inv, float xplor_denom_inv, float r_on_sq)
+template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compute_gauss_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq)
 	{
 	// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
@@ -148,63 +145,37 @@ template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compu
 		// calculate r squard (FLOPS: 5)
 		float rsq = dx*dx + dy*dy + dz*dz;
 		
-		// calculate 1/r^2 (FLOPS: 2)
-		float r2inv;
-		if (rsq >= r_cutsq)
-			r2inv = 0.0f;
-		else
-			r2inv = 1.0f / rsq;
-
-		// lookup the coefficients between this combination of particle types
-		int typ_pair = __float_as_int(neigh_pos.w) * coeff_width + __float_as_int(pos.w);
-		float lj1 = s_coeffs[typ_pair].x;
-		float lj2 = s_coeffs[typ_pair].y;
-	
-		// calculate 1/r^6 (FLOPS: 2)
-		float r6inv = r2inv*r2inv*r2inv;
-		// calculate the force magnitude / r (FLOPS: 6)
-		float forcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
-		// calculate the pair energy (FLOPS: 3)
-		float pair_eng = r6inv * (lj1 * r6inv - lj2);
-		
-		if (shift_mode == 1)
+		if (rsq < r_cutsq)
 			{
-			// shifting is enabled: shift the energy (FLOPS: 4)
-			if (rsq < r_cutsq)
-				pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
-			}
-		else
-		if (shift_mode == 2)
-			{
-			if (rsq >= r_on_sq)
+			// lookup the coefficients between this combination of particle types
+			int typ_pair = __float_as_int(neigh_pos.w) * coeff_width + __float_as_int(pos.w);
+			float epsilon = s_coeffs[typ_pair].x;
+			float sigma = s_coeffs[typ_pair].y;
+			
+			// calculate the force magnitude divided by r (FLOPS: 6)
+			float sigma_sq = sigma*sigma;
+			float r_over_sigma_sq = rsq / sigma_sq;
+			float exp_val = expf(-1.0f/2.0f * r_over_sigma_sq);
+			float forcemag_divr = epsilon / sigma_sq * exp_val;
+			
+			// calculate pair energy (FLOPS: 1)
+			float pair_eng = epsilon * exp_val;
+			
+			if (shift_mode == 1)
 				{
-				// Implement XPLOR smoothing (FLOPS: 15)
-				float old_pair_eng = pair_eng;
-				float old_forcemag_divr = forcemag_divr;
-						
-				float rsq_minus_r_cut_sq = rsq - r_cutsq;
-				float s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq * (r_cutsq + 2.0f * rsq - 3.0f * r_on_sq) * xplor_denom_inv;
-				float ds_dr_divr = 12.0f * (rsq - r_on_sq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-						
-				// make modifications to the old pair energy and force
-				if (rsq < r_cutsq)
-					{
-					pair_eng = old_pair_eng * s;
-					// note: I'm not sure why the minus sign needs to be there: my notes have a +. But this is verified correct
-					// I think it might have something to do with the fact that I'm actually calculating \vec{r}_{ji} instead of {ij}
-					forcemag_divr = s * old_forcemag_divr - ds_dr_divr * old_pair_eng;
-					}
+				// shifting is enabled: shift the energy (FLOPS: 4)
+				pair_eng -= epsilon * expf(-1.0f/2.0f * r_cutsq / sigma_sq);
 				}
+			
+			// calculate the virial (FLOPS: 3)
+			virial += float(1.0/6.0) * rsq * forcemag_divr;
+
+			// add up the force vector components (FLOPS: 7)
+			force.x += dx * forcemag_divr;
+			force.y += dy * forcemag_divr;
+			force.z += dz * forcemag_divr;
+			force.w += pair_eng;
 			}
-
-		// calculate the virial (FLOPS: 3)
-		virial += float(1.0/6.0) * rsq * forcemag_divr;
-
-		// add up the force vector components (FLOPS: 7)
-		force.x += dx * forcemag_divr;
-		force.y += dy * forcemag_divr;
-		force.z += dz * forcemag_divr;
-		force.w += pair_eng;
 		}
 		}
 	
@@ -221,15 +192,15 @@ template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compu
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param nlist Neighbor list stored on the gpu
 	\param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
-		pair i,j. The x-component is lj1 and the y-component is lj2.
+		pair i,j. The x-component is epsilon and the y-component is sigma.
 	\param coeff_width Width of the \a d_coeffs matrix.
 	\param opt More execution options bundled up in a strct
 	
 	\returns Any error code resulting from the kernel launch
 	
-	This is just a driver for calcLJForces_kernel, see the documentation for it for more information.
+	This is just a driver for gpu_compute_gauss_forces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const lj_options& opt)
+cudaError_t gpu_compute_gauss_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const gauss_options& opt)
 	{
 	assert(d_coeffs);
 	assert(coeff_width > 0);
@@ -245,32 +216,22 @@ cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const
 	if (error != cudaSuccess)
 		return error;
 		
-	// precompue some values
-	float rcut2inv = 1.0f / opt.r_cutsq;
-	float rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-	float r_on_sq = opt.xplor_fraction * opt.xplor_fraction * opt.r_cutsq;	
-	float xplor_denom_inv = 1.0f / ((opt.r_cutsq - r_on_sq) * (opt.r_cutsq - r_on_sq) * (opt.r_cutsq - r_on_sq));
-
 	// run the kernel
 	if (opt.ulf_workaround)
 		{
 		if (opt.shift_mode == 0)
-			gpu_compute_lj_forces_kernel<true, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			gpu_compute_gauss_forces_kernel<true, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq);
 		else if (opt.shift_mode == 1)
-			gpu_compute_lj_forces_kernel<true, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
-		else if (opt.shift_mode == 2)
-			gpu_compute_lj_forces_kernel<true, 2><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			gpu_compute_gauss_forces_kernel<true, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq);
 		else
 			return cudaErrorUnknown;
 		}
 	else
 		{
 		if (opt.shift_mode == 0)
-			gpu_compute_lj_forces_kernel<false, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			gpu_compute_gauss_forces_kernel<false, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq);
 		else if (opt.shift_mode == 1)
-			gpu_compute_lj_forces_kernel<false, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
-		else if (opt.shift_mode == 2)
-			gpu_compute_lj_forces_kernel<false, 2><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			gpu_compute_gauss_forces_kernel<false, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq);
 		else
 			return cudaErrorUnknown;
 		}
