@@ -85,6 +85,8 @@ const Scalar tol = Scalar(4);
 #else
 const Scalar tol = 1e-6;
 #endif
+//! Global tolerance for check_small comparisons
+const Scalar tol_small = 1e-4;
 
 //! Typedef'd LJForceCompute factory
 typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)> ljforce_creator;
@@ -125,23 +127,23 @@ void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	fc_3->compute(0);
 	
 	ForceDataArrays force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.575, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol_small);
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -1.15, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol_small);
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.575, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol_small);
 	
 	// now change sigma and alpha so we can check that it is computing the right force
 	sigma = Scalar(1.2); // < bigger sigma should push particle 0 left and particle 2 right
@@ -153,22 +155,22 @@ void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	
 	force_arrays = fc_3->acquire();
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -93.09822608552962, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 3.5815110377468, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 17.416537590989, tol);
 
 	// center particle should still be a 0 force by symmetry
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], 1e-5);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
 	// there is still an energy and virial, though
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 7.1630220754935, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 34.833075181975, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 93.09822608552962, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 3.581511037746, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], 17.416537590989, tol);
 	
@@ -247,38 +249,38 @@ void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration e
 	ForceDataArrays force_arrays = fc_6->acquire();
 	// particle 0 should be pulled left
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -1.18299976747949, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], -0.15773330233059, tol);
 
 	// particle 1 should be pulled right
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 1.18299976747949, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], 1e-5);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], -0.15773330233059, tol);
 	
 	// particle 2 should be pulled down
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -1.77449965121923, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], -0.23659995349591, tol);
 
 	// particle 3 should be pulled up
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 1.77449965121923, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[3], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], 1e-5);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[3], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], -0.23659995349591, tol);
 	
 	// particle 4 should be pulled back
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], -2.95749941869871, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[4], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[4], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[4], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[4], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[4], -0.39433325582651, tol);
 
 	// particle 3 should be pulled forward
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[5], 2.95749941869871, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[5], 1e-5);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[5], 1e-5);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[5], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[5], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[5], -0.39433325582651, tol);
 	}
 	
@@ -432,22 +434,22 @@ void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec
 	force_arrays_shift = fc_shift->acquire();
 	force_arrays_xplor = fc_xplor->acquire();
 
-	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.fx[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_no_shift.pe[1], tol_small);
 
 	// shifted just has pe shifted by a given amount
-	MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.fx[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_shift.pe[1], tol_small);
 
 	// xplor has slight tweaks
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.fx[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays_xplor.pe[1], tol_small);
 	}
 
 //! LJForceCompute creator for unit tests

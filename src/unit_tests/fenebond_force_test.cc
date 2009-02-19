@@ -79,8 +79,10 @@ using namespace boost;
 #ifdef SINGLE_PRECISION
 const Scalar tol = Scalar(1e-1);
 #else
-const Scalar tol = 1e-6;
+const Scalar tol = 1e-3;
 #endif
+//! Global tolerance for check_small comparisons
+const Scalar tol_small = Scalar(1e-4);
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<shared_ptr<FENEBondForceCompute>  (shared_ptr<ParticleData> pdata)> bondforce_creator;
@@ -109,11 +111,11 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	fc_2->compute(0);
 	ForceDataArrays force_arrays = fc_2->acquire();
 	// check that the force is correct, it should be 0 since we haven't created any bonds yet
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol_small);
 	
 	// add a bond and check again
 	pdata_2->getBondData()->addBond(Bond(0, 0, 1));
@@ -122,8 +124,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	// this time there should be a force
 	force_arrays = fc_2->acquire();
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -30.581156, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);	
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);	
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 1.33177578 + 0.25/2, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 4.58717, tol);
 		
