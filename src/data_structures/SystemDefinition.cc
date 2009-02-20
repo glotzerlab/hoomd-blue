@@ -75,7 +75,9 @@ SystemDefinition::SystemDefinition(unsigned int N, const BoxDim &box, unsigned i
 	
 	// only initialize the rigid body data if we are not running on multiple GPUs
 	// this is a temporary hack only while GPUArray doesn't support multiple GPUs
+	#ifdef ENABLE_CUDA
 	if (exec_conf.gpu.size() <= 1)
+	#endif
 		m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
 	}
 
@@ -98,7 +100,9 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 	
 	// only initialize the rigid body data if we are not running on multiple GPUs
 	// this is a temporary hack only while GPUArray doesn't support multiple GPUs	
+	#ifdef ENABLE_CUDA
 	if (exec_conf.gpu.size() <= 1)
+	#endif
 		m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
 	}	
 

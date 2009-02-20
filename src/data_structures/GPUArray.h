@@ -301,7 +301,11 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 // *****************************************
 
 template<class T> GPUArray<T>::GPUArray() : 
-	m_num_elements(0), m_acquired(false), m_data_location(data_location::host), d_data(NULL), h_data(NULL)
+	m_num_elements(0), m_acquired(false), m_data_location(data_location::host), 
+	#ifdef ENABLE_CUDA
+	d_data(NULL), 
+	#endif
+	h_data(NULL)
 	{
 	}
 
@@ -309,7 +313,11 @@ template<class T> GPUArray<T>::GPUArray() :
 	\param exec_conf Execution configuration specifying the GPUs on which to allocate memory
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const ExecutionConfiguration& exec_conf) : 
-	m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf), d_data(NULL), h_data(NULL)
+	m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf), 
+	#ifdef ENABLE_CUDA
+	d_data(NULL), 
+	#endif
+	h_data(NULL)
 	{
 	// allocate and clear memory
 	allocate();
@@ -321,7 +329,11 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, const Executi
 	\param exec_conf Execution configuration specifying the GPUs on which to allocate memory
 */
 template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, const ExecutionConfiguration& exec_conf) : 
-	m_height(height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf), d_data(NULL), h_data(NULL)
+	m_height(height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf), 
+	#ifdef ENABLE_CUDA
+	d_data(NULL), 
+	#endif
+	h_data(NULL)
 	{
 	// make m_pitch the next multiple of 16 larger or equal to the given width
 	m_pitch = (width + (16 - width & 15));
@@ -341,7 +353,10 @@ template<class T> GPUArray<T>::~GPUArray()
 
 template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
 	m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(from.m_exec_conf), 
-	d_data(NULL), h_data(NULL)
+	#ifdef ENABLE_CUDA
+	d_data(NULL), 
+	#endif
+	h_data(NULL)
 	{	
 	// allocate and clear new memory the same size as the data in from
 	allocate();
