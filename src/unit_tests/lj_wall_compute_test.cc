@@ -77,8 +77,10 @@ using namespace boost;
 #ifdef SINGLE_PRECISION
 const Scalar tol = Scalar(1);
 #else
-const Scalar tol = 1e-6;
+const Scalar tol = 1e-3;
 #endif
+//! Global tolerance for check_small comparisons
+const Scalar tol_small = 1e-4;
 
 //! Typedef'd LJWallForceCompute factory
 typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinition> sysdef, Scalar r_cut)> ljwallforce_creator;
@@ -116,20 +118,20 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	
 	// there are no walls, so all forces should be zero
 	ForceDataArrays force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol_small);
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.pe[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[2], tol_small);
 	
 	// add the walls
 	sysdef_3->getWallData()->addWall(Wall(0.0, 0.0, 0.0, 0.0, 1.0, 0.0));
@@ -141,37 +143,37 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	
 	// they should still be zero
 	force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol);	
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol_small);	
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.pe[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.pe[2], tol_small);
 
 	// increase the cuttoff to check the actual force computation
 	fc_3->setRCut(3.0);
 	fc_3->compute(2);
 	force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -2.54344734, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -1.0246100807205, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.108697879, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -0.04021378505, tol);
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol_small);
+	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol_small);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0.0159463169, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], -0.0077203876329103, tol);
 	}
