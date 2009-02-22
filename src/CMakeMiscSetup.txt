@@ -119,3 +119,7 @@ find_package(PythonInterp REQUIRED)
 find_package(PythonLibs REQUIRED)
 
 include_directories(${PYTHON_INCLUDE_PATH})
+
+#################################
+## hide some unit testing stuff users don't really need to see
+mark_as_advanced(DART_TESTING_TIMEOUT)
