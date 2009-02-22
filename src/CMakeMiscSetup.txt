@@ -47,10 +47,6 @@ if (ENABLE_STATIC)
 endif(ENABLE_STATIC)
 
 #################################
-## Optionally enable unit tests
-OPTION(ENABLE_TEST "Enables unit tests" ON)
-
-#################################
 ## Optionally enable documentation build
 find_package(Doxygen)
 if (DOXYGEN_FOUND)

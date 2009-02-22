@@ -38,11 +38,6 @@
 # $Id$
 # $URL$
 
-# enable unit tests in this directory
-if (ENABLE_TEST)
-	enable_testing()
-endif (ENABLE_TEST)
-
 # here is where we actually compile the python module version of the library
 if (ENABLE_CUDA)
 cuda_add_library (hoomd_python_module ${HOOMD_LIB_MODE} ${HOOMD_CPU_SRCS}
