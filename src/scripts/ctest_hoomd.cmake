@@ -21,8 +21,8 @@ SET (TEST_GROUP "Experimental")
 # SET (TEST_GROUP "Nightly")
 # (name of computer performing the tests)
 SET (SITE_NAME "sitename")
-#SET (SITE_NAME "rain.local")
-#SET (SITE_NAME "photon.hopto.org")
+# SET (SITE_NAME "rain.local")
+# SET (SITE_NAME "photon.hopto.org")
 # (name of hoomd branch you are testing)
 #SET (HOOMD_BRANCH "trunk")
 SET (HOOMD_BRANCH "hoomd-0.8")
@@ -31,7 +31,7 @@ set (SYSTEM_NAME "Linux")
 # (a string identifying the compiler: this cannot be autodetected here)
 SET (COMPILER_NAME "gcc412")
 # (set to ON to enable CUDA build)
-SET (ENABLE_CUDA "ON")
+SET (ENABLE_CUDA "OFF")
 # (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
 SET (SINGLE_PRECISION "ON")
 # (set to OFF to enable shared library builds)
@@ -42,7 +42,7 @@ SET (ENABLE_STATIC "ON")
 SET (IGNORE_TESTS "-E \"bdnvt|npt\"")
 # (location of valgrind: Leave blank unless you REALLY want the long valgrind tests to run
 SET (MEMORYCHECK_COMMAND "")
-# SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
+#SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
 # (change to emulation if you want to compile and test a GPU emulation build)
 SET (CUDA_BUILD_TYPE "Device")
 #SET (CUDA_BUILD_TYPE "Emulation")
@@ -55,6 +55,10 @@ SET (ENABLE_COVERAGE OFF)
 # other stuff that you might want to modify
 SET (CTEST_SVN_COMMAND "svn")
 SET (CTEST_COMMAND "ctest -D ${TEST_GROUP} ${IGNORE_TESTS}")
+if (MEMORYCHECK_COMMAND)
+	set (CTEST_COMMAND "${CTEST_COMMAND}" 
+			"ctest -D ${TEST_GROUP}MemCheck -D ${TEST_GROUP}Submit ${IGNORE_TESTS}")
+endif (MEMORYCHECK_COMMAND)
 SET (CTEST_CMAKE_COMMAND "cmake")
 SET (CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
 
@@ -99,11 +103,8 @@ SINGLE_PRECISION:BOOL=${SINGLE_PRECISION}
 ENABLE_STATIC:BOOL=${ENABLE_STATIC}
 CMAKE_C_FLAGS:STRING=${COVERAGE_FLAGS}
 CMAKE_CXX_FLAGS:STRING=${COVERAGE_FLAGS}
-CMAKE_C_FLAGS:STRING=${COVERAGE_FLAGS}
-CMAKE_EXE_LINKER_FLAGS:STRING=${COVERAGE_FLAGS}
-CMAKE_MODULE_LINKER_FLAGS:STRING=${COVERAGE_FLAGS}
-CMAKE_SHARED_LINKER_FLAGS:STRING=${COVERAGE_FLAGS}
 MEMORYCHECK_COMMAND:FILEPATH=${MEMORYCHECK_COMMAND}
+MEMORYCHECK_SUPPRESSIONS_FILE:FILEPATH=${CTEST_CHECKOUT_DIR}/src/unit_tests/combined_valgrind.supp
 CUDA_BUILD_TYPE:STRING=${CUDA_BUILD_TYPE}
 CUDA_ARCH:STRING=${CUDA_ARCH}
 ")
