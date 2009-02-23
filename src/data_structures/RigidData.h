@@ -118,6 +118,9 @@ class RigidData
 		const GPUArray<Scalar4>& getEzSpace() { return m_ez_space; }
 		//@}
 		
+		//! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
+		void initializeData();
+
 	private:
 		boost::shared_ptr<ParticleData> m_pdata;		//!< The particle data with which this RigidData is associated
 		boost::signals::connection m_sort_connection;	//!< Connection to the resort signal from ParticleData
@@ -152,9 +155,6 @@ class RigidData
 
 		//! Recalculate the cached indices from the stored tags after a particle sort
 		void recalcIndices();
-		
-		//! Intitialize and fill out all data members
-		void initializeData();
 		
 		//! Functions used to diagonalize the inertia tensor for moment inertia and principle axes
 		int diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors);

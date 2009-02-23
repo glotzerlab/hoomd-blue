@@ -61,6 +61,9 @@ using namespace std;
 RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
 	: m_pdata(particle_data)
 	{
+
+/*	Let the caller NVEUpdater calls the initialization, because at this point, the rigid body information of particles might not yet be set
+ 
 	// read the body array from particle_data and extract some information
 	
 	// initialization should set this to true if no rigid bodies were defined in the particle data
@@ -107,7 +110,7 @@ RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
 	
 	// initialize the index cace
 	recalcIndices();
-	
+*/	
 	// connect the sort signal
 	m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));	
 	}
@@ -430,6 +433,9 @@ void RigidData::initializeData()
 	m_vel.swap(vel);
 	m_angmom.swap(angmom);
 	m_angvel.swap(angvel);
+	
+	// finish up by initializing the indices
+	recalcIndices();
 	}
 
 /*! Compute eigenvalues and eigenvectors of 3x3 real symmetric matrix based on Jacobi rotations
