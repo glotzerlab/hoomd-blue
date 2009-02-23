@@ -1,6 +1,6 @@
 # ctest -S script for testing HOOMD and submitting to the dashboard at my.cdash.org
 # this script must be copied and modified for each test build. Locations in the script
-# that need to be modified are labeled **MODIFY THIS and are mostly grouped at the beginning
+# that need to be modified to configure the build are near the top
 
 # instructions on use:
 # 1) checkout a copy of hoomd's source to be tested
@@ -11,41 +11,48 @@
 #     (you may want to ignore the bdnvt and npt tests for this as they are quite long)
 # 5) chate TEST_GROUP back to "Nightly" and set "ctest -S ctest_hoomd.cmake"  to run every day
 
-# **MODIFY THIS (location where hoomd src and bin directory are)
-SET (CTEST_SOURCE_DIRECTORY "$ENV{HOME}/hoomd/src")
-SET (CTEST_BINARY_DIRECTORY "$ENV{HOME}/hoomd/bin_ctest")
-
-# **MODIFY THIS (for testing the test)
-SET (TEST_GROUP "Experimental")
+# **MODIFY THESE 
+# (location where hoomd src and bin directory are)
+SET (CTEST_CHECKOUT_DIR "$ENV{HOME}/hoomd")
+SET (CTEST_SOURCE_DIRECTORY "${CTEST_CHECKOUT_DIR}/src")
+SET (CTEST_BINARY_DIRECTORY "${CTEST_CHECKOUT_DIR}/bin_ctest")
+# (Experimental is for testing the test, Nightly is for production tests)
+SET (TEST_GROUP "Experimental")  
 # SET (TEST_GROUP "Nightly")
-
-# **MODIFY THIS (name of computer performing the tests)
+# (name of computer performing the tests)
 SET (SITE_NAME "sitename")
-
-# **MODIFY THIS (name of hoomd branch you are testing)
+#SET (SITE_NAME "rain.local")
+#SET (SITE_NAME "photon.hopto.org")
+# (name of hoomd branch you are testing)
 #SET (HOOMD_BRANCH "trunk")
 SET (HOOMD_BRANCH "hoomd-0.8")
-
-# **MODIFY THIS (name of the system)
+# (name of the system)
 set (SYSTEM_NAME "Linux")
-
-# **MODIFY THIS (a string identifying the compiler: this cannot be autodetected yet)
+# (a string identifying the compiler: this cannot be autodetected here)
 SET (COMPILER_NAME "gcc412")
-
-# **MODIFY THIS (set to ON to enable CUDA build)
-SET (ENABLE_CUDA "OFF")
-
-# **MODIFY THIS (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
+# (set to ON to enable CUDA build)
+SET (ENABLE_CUDA "ON")
+# (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
 SET (SINGLE_PRECISION "ON")
-
-# **MODIFY THIS (set to OFF to enable shared library builds)
+# (set to OFF to enable shared library builds)
 SET (ENABLE_STATIC "ON")
+# (set tests to ignore, see the example for the format) 
+# (bdnvt and npt take minutes to run, and an enternity with valgrind enabled, so they are ignored by default)
+# SET (IGNORE_TESTS "")
+SET (IGNORE_TESTS "-E \"bdnvt|npt\"")
+# (location of valgrind: Leave blank unless you REALLY want the long valgrind tests to run
+SET (MEMORYCHECK_COMMAND "")
+# SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
+# (change to emulation if you want to compile and test a GPU emulation build)
+SET (CUDA_BUILD_TYPE "Device")
+#SET (CUDA_BUILD_TYPE "Emulation")
+# (architecture to compile CUDA for 10=compute 1.0 11=compute 1.1, ...)
+SET (CUDA_ARCH "10")
+# (set to ON to enable coverage tests: these extensive tests don't really need to be done on every single build)
+SET (ENABLE_COVERAGE OFF)
 
-# **MODIFY THIS (set tests to ignore, see the example for the format) (bdnvt and npt take minutes to run, and an enternity with valgrind enabled)
-SET (IGNORE_TESTS "")
-#SET (IGNORE_TESTS "-E \"bdnvt|npt\"")
 
-# other stuff
+# other stuff that you might want to modify
 SET (CTEST_SVN_COMMAND "svn")
 SET (CTEST_COMMAND "ctest -D ${TEST_GROUP} ${IGNORE_TESTS}")
 SET (CTEST_CMAKE_COMMAND "cmake")
@@ -72,7 +79,15 @@ endif (SINLE_PRECISION MATCHES "ON")
 
 if (ENABLE_CUDA MATCHES "ON")
 	SET (BUILDNAME "${BUILDNAME}-cuda")
+	if (CUDA_BUILD_TYPE MATCHES "Emulation")
+		SET (BUILDNAME "${BUILDNAME}-emu")
+	endif (CUDA_BUILD_TYPE MATCHES "Emulation")
 endif (ENABLE_CUDA MATCHES "ON")
+
+if (ENABLE_COVERAGE)
+	SET (COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage")
+endif (ENABLE_COVERAGE)
+
 
 SET (CTEST_INITIAL_CACHE "
 CMAKE_GENERATOR:INTERNAL=Unix Makefiles
@@ -82,4 +97,13 @@ CMAKE_BUILD_TYPE:STRING=Debug
 ENABLE_CUDA:BOOL=${ENABLE_CUDA}
 SINGLE_PRECISION:BOOL=${SINGLE_PRECISION}
 ENABLE_STATIC:BOOL=${ENABLE_STATIC}
+CMAKE_C_FLAGS:STRING=${COVERAGE_FLAGS}
+CMAKE_CXX_FLAGS:STRING=${COVERAGE_FLAGS}
+CMAKE_C_FLAGS:STRING=${COVERAGE_FLAGS}
+CMAKE_EXE_LINKER_FLAGS:STRING=${COVERAGE_FLAGS}
+CMAKE_MODULE_LINKER_FLAGS:STRING=${COVERAGE_FLAGS}
+CMAKE_SHARED_LINKER_FLAGS:STRING=${COVERAGE_FLAGS}
+MEMORYCHECK_COMMAND:FILEPATH=${MEMORYCHECK_COMMAND}
+CUDA_BUILD_TYPE:STRING=${CUDA_BUILD_TYPE}
+CUDA_ARCH:STRING=${CUDA_ARCH}
 ")
