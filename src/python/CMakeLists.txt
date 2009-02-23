@@ -38,10 +38,11 @@
 # $Id$
 # $URL$
 
-# enable unit tests in this directory
-if (ENABLE_TEST)
+# enable testing on this directory
+if (BUILD_TESTING)
 	enable_testing()
-endif (ENABLE_TEST)
+endif (BUILD_TESTING)
+
 
 # here is where we actually compile the python module version of the library
 if (ENABLE_CUDA)

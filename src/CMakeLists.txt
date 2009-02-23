@@ -125,10 +125,10 @@ add_subdirectory (python)
 
 ################################
 # set up unit tests
-if (ENABLE_TEST)
-	enable_testing()
+include(CTest)
+if (BUILD_TESTING)
 	add_subdirectory (unit_tests)
-endif (ENABLE_TEST)
+endif (BUILD_TESTING)
 
 ###############################
 ## include documentation directories

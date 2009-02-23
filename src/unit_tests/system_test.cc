@@ -296,12 +296,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 	sys.setIntegrator(integrator2);
 	BOOST_CHECK_EQUAL(sys.getIntegrator(), integrator2);
 	}
-	
+
+
+// since there is no automatic verification, there is no reason to run this test all the time
+// this test can be uncommented only when it needs to be checked by a person
+
 //! Tests System::run(), System::enableProfiler(), and System::setStatsPeriod()
 /*! Unfortunately, there is no way to automatically test these. A human will have to 
 	observe the output and verify that it is correct
 */
-BOOST_AUTO_TEST_CASE( run_tests )
+/*BOOST_AUTO_TEST_CASE( run_tests )
 	{
 	#ifdef CUDA
 	g_gpu_error_checking = true;
@@ -348,7 +352,7 @@ BOOST_AUTO_TEST_CASE( run_tests )
 	cout << "Third run: profiling enabled" << endl;
 	sys.enableProfiler(true);
 	sys.run(100);
-	}
+	}*/
 
 #ifdef WIN32
 #pragma warning( pop )
