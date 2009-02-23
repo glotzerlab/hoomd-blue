@@ -274,13 +274,10 @@ void NVERigidUpdater::initialIntegrate()
 	// set positions and velocities of particles in rigid bodies	
 	set_xv();
 
-	// release the particle data arrays so that they can be accessed later
-	m_pdata->release();
 	}
 
 void NVERigidUpdater::finalIntegrate()
-{	
-		
+{			
 	// compute net forces and torques on rigid bodies from particle forces 
 	computeForceAndTorque();
 	
@@ -319,8 +316,7 @@ void NVERigidUpdater::finalIntegrate()
 		
 	// set velocities of particles in rigid bodies	
 	set_v();
-		
-	m_pdata->release();
+
 	}
 
 
@@ -400,7 +396,11 @@ void NVERigidUpdater::computeForceAndTorque()
 			torque.data[body].z += rx * fy - ry * fx;
 			}
 		}
+	
+	m_pdata->release();
+		
 	}
+
 /*! Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
 	based on the body center of mass and particle relative position in each body frame.
   
@@ -467,6 +467,7 @@ void NVERigidUpdater::set_xv()
 			arrays.y[pidx] = com.data[body].y + yr;
 			arrays.z[pidx] = com.data[body].z + zr;
 			
+		/*	Let the caller NVEUpdater do the particle wrap-up
 			if (arrays.x[pidx] >= box.xhi)
 				{
 				arrays.x[pidx] -= Lx;
@@ -499,7 +500,7 @@ void NVERigidUpdater::set_xv()
 				arrays.z[pidx] += Lz;
 				arrays.iz[pidx]--;
 				}
-			
+		*/		
 			
 			arrays.vx[pidx] = vel.data[body].x + angvel.data[body].y * zr - angvel.data[body].z * yr;
 			arrays.vy[pidx] = vel.data[body].y + angvel.data[body].z * xr - angvel.data[body].x * zr;
@@ -507,6 +508,9 @@ void NVERigidUpdater::set_xv()
 
 			}
 		}
+	
+	m_pdata->release();
+	
 	}
 
 /*! Set velocity of constituent particles in rigid bodies in the 2nd half of integration
@@ -562,7 +566,10 @@ void NVERigidUpdater::set_v()
 			arrays.vy[pidx] = vel.data[body].y + angvel.data[body].z * xr - angvel.data[body].x * zr;
 			arrays.vz[pidx] = vel.data[body].z + angvel.data[body].x * yr - angvel.data[body].y * xr;
 			}
-		}	
+		}
+	
+	m_pdata->release();
+		
 	}
 
 /*! Update orientation (ex_space, ey_space, ez_space) from quaternion.

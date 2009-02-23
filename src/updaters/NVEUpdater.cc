@@ -52,6 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "NVEUpdater.h"
+#include "NVERigidUpdater.h"
 #include <math.h>
 
 using namespace std;
@@ -59,7 +60,8 @@ using namespace std;
 /*! \param sysdef System to update
 	\param deltaT Time step to use
 */
-NVEUpdater::NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Integrator(sysdef, deltaT), m_accel_set(false), m_limit(false), m_limit_val(1.0)
+NVEUpdater::NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Integrator(sysdef, deltaT),
+	m_accel_set(false), m_limit(false), m_limit_val(1.0)
 	{
 	}
 
@@ -113,8 +115,28 @@ Scalar NVEUpdater::getLogValue(const std::string& quantity, unsigned int timeste
 void NVEUpdater::update(unsigned int timestep)
 	{
 	assert(m_pdata);
-	static bool gave_warning = false;
 
+	// get the rigid data from SystemDefinition
+	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+	// if the rigid data needs to be initialized just before updating 
+	static bool rigid_initialized = false;
+	if (rigid_initialized == false)
+		{
+		rigid_data->initializeData();
+		rigid_initialized = true;
+		}
+	
+	// if there is any rigid body and the flag has not yet been set
+	static bool has_rigid_bodies = false;
+	if (rigid_data->getNumBodies() > 0 && has_rigid_bodies == false) 
+		{
+		// allocate the rigid updater
+		m_rigid_updater = boost::shared_ptr<NVERigidUpdater> (new NVERigidUpdater(m_sysdef, m_deltaT));
+		// set the flag
+		has_rigid_bodies = true;
+		}
+	
+	static bool gave_warning = false;	
 	if (m_forces.size() == 0 && !gave_warning)
 		{
 		cout << "Notice: No forces defined in NVEUpdater, Continuing anyways" << endl;
@@ -126,6 +148,15 @@ void NVEUpdater::update(unsigned int timestep)
 		{
 		m_accel_set = true;
 		computeAccelerations(timestep, "NVE");
+		
+		if (has_rigid_bodies == true)
+			{
+			assert(m_rigid_updater);
+			// compute the initial net forces, torques and angular momenta 
+			// angular velocities are computed from angular momenta during integration
+			m_rigid_updater->setup();
+			}
+			
 		}
 
 	if (m_prof)
@@ -145,6 +176,9 @@ void NVEUpdater::update(unsigned int timestep)
 	// v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
+		// no need to update particles in rigid bodies
+		if (arrays.body[j] != NO_BODY) continue;
+			
 		Scalar dx = arrays.vx[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT*m_deltaT;
 		Scalar dy = arrays.vy[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT*m_deltaT;
 		Scalar dz = arrays.vz[j]*m_deltaT + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT*m_deltaT;
@@ -222,8 +256,13 @@ void NVEUpdater::update(unsigned int timestep)
 			}
 		}
 	
-	// release the particle data arrays so that they can be accessed to add up the accelerations
+	// release the particle data arrays 
 	m_pdata->release();
+		
+	// rigid body 1st step integration	
+	if (has_rigid_bodies == true)
+		m_rigid_updater->initialIntegrate();
+		
 	
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
@@ -248,6 +287,9 @@ void NVEUpdater::update(unsigned int timestep)
 	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
+		// no need to update particles in rigid bodies
+		if (arrays.body[j] != NO_BODY) continue;
+			
 		arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
 		arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
 		arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
@@ -265,7 +307,13 @@ void NVEUpdater::update(unsigned int timestep)
 			}
 		}
 
+	// release the particle data arrays	
 	m_pdata->release();
+		
+	// rigid body 2nd step integration (net forces and torques are computed within)
+	if (has_rigid_bodies == true)
+		m_rigid_updater->finalIntegrate();
+
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
 	if (m_prof)
