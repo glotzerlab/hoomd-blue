@@ -59,7 +59,8 @@ update.zero_momentum(period=10)
 run(50000, profile=True)
 
 # dump every 10k steps
-dump.mol2(filename="dump.mol2");
+mol2 = dump.mol2()
+mol2.write(filename="dump.mol2");
 dump.dcd(filename="dump.dcd", period=200000);
 
 # log lj energy

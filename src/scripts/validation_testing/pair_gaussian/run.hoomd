@@ -38,16 +38,16 @@ init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[typeA, typeB, typeC, 
 s = 0.5;
 gauss = pair.gauss(r_cut=3.0)
 gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=s)
-gauss.pair_coeff.set('A', 'B', epsilon=5.0, sigma=s)
-gauss.pair_coeff.set('A', 'C', epsilon=5.0, sigma=s)
-gauss.pair_coeff.set('A', 'D', epsilon=5.0, sigma=s)
+gauss.pair_coeff.set('A', 'B', epsilon=5.0, sigma=s*2)
+gauss.pair_coeff.set('A', 'C', epsilon=5.0, sigma=s*2)
+gauss.pair_coeff.set('A', 'D', epsilon=5.0, sigma=s*2)
 
 gauss.pair_coeff.set('B', 'B', epsilon=1.0, sigma=s)
-gauss.pair_coeff.set('B', 'C', epsilon=5.0, sigma=s)
-gauss.pair_coeff.set('B', 'D', epsilon=5.0, sigma=s)
+gauss.pair_coeff.set('B', 'C', epsilon=5.0, sigma=s*2)
+gauss.pair_coeff.set('B', 'D', epsilon=5.0, sigma=s*2)
 
 gauss.pair_coeff.set('C', 'C', epsilon=1.0, sigma=s)
-gauss.pair_coeff.set('C', 'D', epsilon=5.0, sigma=s)
+gauss.pair_coeff.set('C', 'D', epsilon=5.0, sigma=s*2)
 
 gauss.pair_coeff.set('D', 'D', epsilon=1.0, sigma=s)
 
@@ -58,7 +58,8 @@ integrate.nvt(dt=0.005, tau=0.5, T=1.0)
 run(50000, profile=True)
 
 # dump every 10k steps
-dump.mol2(filename="dump.mol2");
+mol2 = dump.mol2();
+mol2.write(filename="dump.mol2")
 dump.dcd(filename="dump.dcd", period=200000);
 
 # log gauss energy
