@@ -85,7 +85,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<ParticleData> pdata, const std::s
 	
 DCDDumpWriter::~DCDDumpWriter()
 	{
-	delete m_staging_buffer;
+	delete[] m_staging_buffer;
 	}
 
 //! simple helper function to write an integer
