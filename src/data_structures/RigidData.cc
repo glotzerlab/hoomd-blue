@@ -191,6 +191,7 @@ void RigidData::initializeData()
 
 	// allocate nbodies-size arrays
 	GPUArray<Scalar> body_mass(m_n_bodies, m_pdata->getExecConf());
+	GPUArray<unsigned int> body_size(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> moment_inertia(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> orientation(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> ex_space(m_n_bodies, m_pdata->getExecConf());
@@ -205,9 +206,25 @@ void RigidData::initializeData()
 	GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> angvel(m_n_bodies, m_pdata->getExecConf());
 		
+	m_body_mass.swap(body_mass);
+	m_body_size.swap(body_size);
+	m_moment_inertia.swap(moment_inertia);
+	m_orientation.swap(orientation);
+	m_ex_space.swap(ex_space);
+	m_ey_space.swap(ey_space);
+	m_ez_space.swap(ez_space);
+	m_body_imagex.swap(body_imagex);
+	m_body_imagey.swap(body_imagey);
+	m_body_imagez.swap(body_imagez);
+		
+	m_com.swap(com);
+	m_vel.swap(vel);
+	m_angmom.swap(angmom);
+	m_angvel.swap(angvel);
+		
+		
 	// determine the largest size of rigid bodies (nmax)
-	GPUArray<unsigned int> body_size(m_n_bodies, m_pdata->getExecConf());
-	ArrayHandle<unsigned int> body_size_handle(body_size, access_location::host, access_mode::readwrite);
+	ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::readwrite);
 	for (unsigned int body = 0; body < m_n_bodies; body++)
 		body_size_handle.data[body] = 0;
 		
@@ -227,17 +244,17 @@ void RigidData::initializeData()
 	GPUArray<Scalar> inertia(6, m_n_bodies, m_pdata->getExecConf()); // the inertia tensor is symmetric, therefore we only need to store 6 elements
 	ArrayHandle<Scalar> inertia_handle(inertia, access_location::host, access_mode::readwrite);
 		
-	ArrayHandle<Scalar> body_mass_handle(body_mass, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> moment_inertia_handle(moment_inertia, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> orientation_handle(orientation, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ex_space_handle(ex_space, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ey_space_handle(ey_space, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ez_space_handle(ez_space, access_location::host, access_mode::readwrite);
-	ArrayHandle<unsigned int> body_imagex_handle(body_imagex, access_location::host, access_mode::readwrite);
-	ArrayHandle<unsigned int> body_imagey_handle(body_imagey, access_location::host, access_mode::readwrite);
-	ArrayHandle<unsigned int> body_imagez_handle(body_imagez, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> com_handle(com, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> vel_handle(vel, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::readwrite);
+	ArrayHandle<unsigned int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
+	ArrayHandle<unsigned int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
+	ArrayHandle<unsigned int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::readwrite);
 	
 	for (unsigned int body = 0; body < m_n_bodies; body++)
 	{
@@ -332,7 +349,7 @@ void RigidData::initializeData()
 		matrix[2][0] = matrix[0][2] = inertia_handle.data[6 * body + 5];
 		
 		int error = diagonalize(matrix, evalues, evectors);
-		if (error == 0) cout << "Insufficient Jacobi iterations for diagonalization!\n";
+		if (error) cout << "Insufficient Jacobi iterations for diagonalization!\n";
 		
 		// obtain the moment inertia from eigen values
 		moment_inertia_handle.data[body].x = evalues[0];
@@ -370,13 +387,18 @@ void RigidData::initializeData()
 	delete [] matrix;
 		
 		
-	// allocate nmax by m_n_bodies arrays
+	// allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
 	GPUArray<unsigned int> particle_tags(nmax, m_n_bodies, m_pdata->getExecConf());
-	ArrayHandle<unsigned int> particle_tags_handle(particle_tags, access_location::host, access_mode::readwrite); 
+	m_particle_tags.swap(particle_tags);
+	ArrayHandle<unsigned int> particle_tags_handle(m_particle_tags, access_location::host, access_mode::readwrite); 
+	
 	GPUArray<unsigned int> particle_indices(nmax, m_n_bodies, m_pdata->getExecConf());
-	ArrayHandle<unsigned int> particle_indices_handle(particle_indices, access_location::host, access_mode::readwrite); 
-	GPUArray<Scalar4> particle_pos(nmax, m_n_bodies, m_pdata->getExecConf());		
-	ArrayHandle<Scalar4> particle_pos_handle(particle_pos, access_location::host, access_mode::readwrite); 
+	m_particle_indices.swap(particle_indices);
+	ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite); 
+	
+	GPUArray<Scalar4> particle_pos(nmax, m_n_bodies, m_pdata->getExecConf());	
+	m_particle_pos.swap(particle_pos);
+	ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite); 
 
 	GPUArray<unsigned int> local_indices(m_n_bodies, m_pdata->getExecConf());
 	ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite); 
@@ -413,27 +435,11 @@ void RigidData::initializeData()
 		local_indices_handle.data[body]++;
 		}
 	
-	// swap the allocated GPUArray with the member variables
-	m_body_mass.swap(body_mass);
-	m_moment_inertia.swap(moment_inertia);
-	m_body_size.swap(body_size);
-	m_particle_tags.swap(particle_tags);
-	m_particle_indices.swap(particle_indices);
-	m_particle_pos.swap(particle_pos);
-		
-	m_orientation.swap(orientation);
-	m_ex_space.swap(ex_space);
-	m_ey_space.swap(ey_space);
-	m_ez_space.swap(ez_space);
-	m_body_imagex.swap(body_imagex);
-	m_body_imagey.swap(body_imagey);
-	m_body_imagez.swap(body_imagez);
-		
-	m_com.swap(com);
-	m_vel.swap(vel);
-	m_angmom.swap(angmom);
-	m_angvel.swap(angvel);
+	// release particle data for later access
+	m_pdata->release();	
 	
+	// also need to release GPUArray data here
+		
 	// finish up by initializing the indices
 	recalcIndices();
 	}
@@ -467,7 +473,7 @@ int RigidData::diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors)
 				sm += fabs(matrix[i][j]);
 		
 		if (sm == 0.0) return 0;
-		
+			
 		if (iter < 4) tresh = 0.2*sm/(3*3);
 		else tresh = 0.0;
 		
