@@ -186,7 +186,7 @@ void ShiftedLJForceCompute::computeForces(unsigned int timestep)
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
 	
 	// create a temporary copy of r_cut sqaured
-	Scalar r_cut_sq = m_r_cut * m_r_cut;
+	// Scalar r_cut_sq = m_r_cut * m_r_cut;
 	
 	// precalculate box lenghts for use in the periodic imaging
 	Scalar Lx = box.xhi - box.xlo;

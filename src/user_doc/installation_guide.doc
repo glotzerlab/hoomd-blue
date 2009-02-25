@@ -53,7 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
  - \b RAM: At least 1GB is recommended
  - \b GPU: Any CUDA capable card: http://www.nvidia.com/object/cuda_home.html
  	- \b Recommended (listed here in the rough order of performance expected, see http://www.ameslab.gov/hoomd/benchmarks.html for actual performance numbers): 
-		- GTX 280 (fastest)
+		- GTX 285/295 (fastest)
+		- GTX 280
 		- Tesla 10 series
 		- GTX 260
 		- Tesla 800 series

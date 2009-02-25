@@ -322,7 +322,7 @@ class zero_momentum(_updater):
 		
 		# create the c++ mirror class
 		self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.system_definition);
-		globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
+		globals.system.addUpdater(self.cpp_updater, self.updater_name, int(period));
 
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;

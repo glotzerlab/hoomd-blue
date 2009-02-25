@@ -61,7 +61,8 @@ integrate.nvt(dt=0.005, tau=0.5, T=1.0)
 run(50000, profile=True)
 
 # dump every 10k steps
-dump.mol2(filename="dump.mol2");
+mol2 = dump.mol2()
+mol2.write(filename="dump.mol2");
 dump.dcd(filename="dump.dcd", period=200000);
 
 # log lj energy

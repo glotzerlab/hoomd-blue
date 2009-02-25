@@ -160,8 +160,8 @@ class _analyzer:
 	#
 	# \b Examples:
 	# \code
-	# analyzer.set_period(100);
-	# analyzer.set_period(1);
+	# analyzer.set_period(100)
+	# analyzer.set_period(1)
 	# \endcode
 	#
 	# While the simulation is \ref run() "running", the action of each analyzer
