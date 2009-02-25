@@ -350,7 +350,8 @@ void ExecutionConfiguration::checkCudaArch()
 
 		if (dev_prop.major < min_major)
 			{
-			cout << endl << "***Error! CUDA device " << dev << " reports compute capability " << dev_prop.major << "." << dev_prop.minor << " while this build of hoomd was compiled for a minimum of " << min_major << "." << min_minor << endl << endl;
+			cout << endl << "***Error! CUDA device " << dev << " reports compute capability " << dev_prop.major << "." << dev_prop.minor << " while this build of hoomd was compiled for a minimum of " << min_major << "." << min_minor << endl;
+			cout << "Change CUDA_ARCH to " << dev_prop.major*10 + dev_prop.minor << " and recompile hoomd" << endl << endl;
 			throw runtime_error("Error initializing execution configuration");
 			}
 
@@ -361,7 +362,8 @@ void ExecutionConfiguration::checkCudaArch()
 		// at this point dev_prop.major must be == min_major, so check the minor
 		if (dev_prop.minor < min_minor)
 			{
-			cout << endl << "***Error! CUDA device " << dev << " reports compute capability " << dev_prop.major << "." << dev_prop.minor << " while this build of hoomd was compiled for a minimum of " << min_major << "." << min_minor << endl << endl;
+			cout << endl << "***Error! CUDA device " << dev << " reports compute capability " << dev_prop.major << "." << dev_prop.minor << " while this build of hoomd was compiled for a minimum of " << min_major << "." << min_minor << endl;
+			cout << "Change CUDA_ARCH to " << dev_prop.major*10 + dev_prop.minor << " and recompile hoomd" << endl << endl;
 			throw runtime_error("Error initializing execution configuration");
 			}
 		}

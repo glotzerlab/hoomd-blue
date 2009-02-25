@@ -115,7 +115,7 @@ endif (CMAKE_CL_64)
 
 ###############
 ## CUDA ARCH settings
-set(CUDA_ARCH 13 CACHE STRING "Target architecture to compile CUDA code for. Valid options are 10, 11, 12, or 13 (currently). They correspond to compute 1.0, 1.1, 1.2, and 1.3 GPU hardware")
+set(CUDA_ARCH 11 CACHE STRING "Target architecture to compile CUDA code for. Valid options are 10, 11, 12, or 13 (currently). They correspond to compute 1.0, 1.1, 1.2, and 1.3 GPU hardware")
 # the arch is going to be passed on a command line: verify it so the user doesn't make any blunders
 set(_cuda_arch_ok FALSE)
 foreach(_valid_cuda_arch 10 11 12 13)
