@@ -168,7 +168,7 @@ class xml(analyze._analyzer):
 	#
 	# \b Examples:
 	# \code
-	# xml.write(filename="start.xml");
+	# xml.write(filename="start.xml")
 	# \endcode
 	def write(self, filename):
 		util.print_status_line();
@@ -183,7 +183,7 @@ class xml(analyze._analyzer):
 ## Writes a simulation snapshot in the MOL2 format
 #
 # Every \a period time steps, a new file will be created. The state of the 
-# particles at that time step is written to the file in the HOOMD XML format.
+# particles at that time step is written to the file in the MOL2 format.
 #
 # The intended usage is to use write() to generate a single structure file that 
 # can be used by VMD for reading in particle names and %bond topology Use in 
@@ -204,7 +204,7 @@ class mol2(analyze._analyzer):
 	# If period is set, a new file will be created every \a period steps. The time step at which 
 	# the file is created is added to the file name in a fixed width format to allow files to easily 
 	# be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
-	# \c particles.0000000000.xml
+	# \c particles.0000000000.mol2
 	#
 	# If \a period is not specified, then no periodic updates will occur. Instead, the write()
 	# command must be executed to write an output file.
@@ -236,7 +236,7 @@ class mol2(analyze._analyzer):
 	#
 	# \b Examples:
 	# \code
-	# mol2.write(filename="start.mol2");
+	# mol2.write(filename="start.mol2")
 	# \endcode
 	def write(self, filename):
 		util.print_status_line();
@@ -340,9 +340,9 @@ class pdb(analyze._analyzer):
 			self.enabled = False;
 			self.prev_period = 1;
 			
-	## Change xml write parameters
+	## Change mol2 write parameters
 	#
-	# \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
+	# \param bond (if set) Set to True/False to enable/disable the output of bonds in the mol2 file
 	#
 	# Using set_params() requires that the %dump was saved in a variable when it was specified.
 	# \code
@@ -378,7 +378,7 @@ class pdb(analyze._analyzer):
 	#
 	# \b Examples:
 	# \code
-	# pdb.write(filename="start.pdb");
+	# pdb.write(filename="start.pdb")
 	# \endcode
 	def write(self, filename):
 		util.print_status_line();

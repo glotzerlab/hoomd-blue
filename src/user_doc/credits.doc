@@ -10,11 +10,13 @@ Joshua Anderson, ISU and Ames Lab - <b>primary developer</b>
  - Initial code architecture design
  - Neighbor list generation
  - Lennard-Jones forces
+ - Gaussian pair forces
  - Harmonic bond forces
  - NVE and NVT integration
  - hoomd_script design & implementation
  - hoomd_xml file format design & implementation
  - MOL2 & DCD file format writers
+ - PDB file format writer
  - Random polymer generator
  - IMD interface for VMD
  - Documentation
@@ -30,7 +32,9 @@ Rastko Sknepnek, ISU and Ames Lab - additional development
 Carolyn Phillips, University of Michigan - additional development
  - FENE bond forces
  - Shifted LJ forces
- - Testing and debugging HOOMD on Mac OS X systems
+ - Initial testing and debugging of HOOMD on Mac OS X systems
+
+While not having contributed a significant amount of code to HOOMD, David Tarjan at the University of Virginia is repsonsible for numerous performance tweaks to the neighbor list and Lennard-Jones force code.
 
 <hr>
 <h1>Source code</h1>

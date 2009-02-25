@@ -32,7 +32,8 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 integrate.nvt(dt=0.005, T=1.2, tau=0.5)
 
 # dump a .mol2 file for the structure information
-dump.mol2(filename='example1.mol2')
+mol2 = dump.mol2()
+mol2.write(filename='example1.mol2')
 
 # dump a .dcd file for the trajectory
 dump.dcd(filename='example1.dcd', period=100)
@@ -84,7 +85,8 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 integrate.nvt(dt=0.005, T=1.2, tau=0.5)
 
 # dump a .mol2 file for the structure information
-dump.mol2(filename='example2.mol2')
+mol2 = dump.mol2()
+mol2.write(filename='example2.mol2')
 
 # setup the IMD server
 analyze.imd(port=54321, period=500)
@@ -136,12 +138,12 @@ polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6,
                 bond="linear", count=n_poly)
 
 # perform some simple math to find the length of the box
-N = len(polymer1['type']) * polymer1['count'];
-L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
+N = len(polymer1['type']) * polymer1['count']
+L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0)
 
 # generate the polymer system
 init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer1], 
-                            separation=dict(A=0.35, B=0.35), seed=12);
+                            separation=dict(A=0.35, B=0.35), seed=12)
 
 # force field setup
 harmonic = bond.harmonic()
@@ -152,8 +154,9 @@ lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # dump every 100,000 steps
-dump.mol2(filename="example3.mol2");
-dump.dcd(filename="example3.dcd", period=100000);
+mol2 = dump.mol2()
+mol2.write(filename="example3.mol2")
+dump.dcd(filename="example3.dcd", period=100000)
 
 # integrate NVT for a bunch of time steps
 integrate.nvt(dt=0.005, T=T, tau=0.5)
@@ -240,8 +243,9 @@ lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # dump every few steps
-dump.mol2(filename="example4.mol2");
-dump.dcd(filename="example4.dcd", period=10);
+mol2 = dump.mol2()
+mol2.write(filename="example4.mol2")
+dump.dcd(filename="example4.dcd", period=10)
 
 # integrate NVT for a bunch of time steps
 integrate.nvt(dt=0.005, T=1.2, tau=0.5)
