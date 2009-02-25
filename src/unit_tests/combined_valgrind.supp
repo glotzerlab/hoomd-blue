@@ -84,6 +84,23 @@
    fun:cudaMallocHost
 }
 
+# apparent boost issue?
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZNSs4_Rep9_S_createEmmRKSaIcE
+   fun:_ZNSs4_Rep8_M_cloneERKSaIcEm
+   fun:_ZNSs7reserveEm
+   fun:_ZNSspLEc
+   fun:_ZN5boost10filesystem10basic_pathISsNS0_11path_traitsEE28m_append_separator_if_neededEv
+   fun:_ZN5boost10filesystem10basic_pathISsNS0_11path_traitsEEdVEPKc
+   fun:_ZN5boost10filesystem10basic_pathISsNS0_11path_traitsEEdVERKS3_
+   fun:_ZN5boost10filesystemdvISsNS0_11path_traitsEEENS0_10basic_pathIT_T0_EERKS6_PKNS4_10value_typeE
+   fun:_Z17find_hoomd_scriptv
+   fun:main
+}
+
 # Python supressions file follows
 #
 # This is a valgrind suppression file that should be used when using valgrind.
@@ -138,7 +155,7 @@
    Memcheck:Leak
    fun:realloc
    fun:_PyObject_GC_Resize
-   fun:COMMENT_THIS_LINE_TO_DISABLE_LEAK_WARNING
+#   fun:COMMENT_THIS_LINE_TO_DISABLE_LEAK_WARNING
 }
 
 {
@@ -146,7 +163,7 @@
    Memcheck:Leak
    fun:malloc
    fun:_PyObject_GC_New
-   fun:COMMENT_THIS_LINE_TO_DISABLE_LEAK_WARNING
+#   fun:COMMENT_THIS_LINE_TO_DISABLE_LEAK_WARNING
 }
 
 {
@@ -154,7 +171,15 @@
    Memcheck:Leak
    fun:malloc
    fun:_PyObject_GC_NewVar
-   fun:COMMENT_THIS_LINE_TO_DISABLE_LEAK_WARNING
+#   fun:COMMENT_THIS_LINE_TO_DISABLE_LEAK_WARNING
+}
+
+{
+   Handle PyMalloc confusing valgrind (possibly leaked)
+   Memcheck:Leak
+   fun:malloc
+   fun:_PyObject_GC_Malloc
+#   fun:COMMENT_THIS_LINE_TO_DISABLE_LEAK_WARNING
 }
 
 #
