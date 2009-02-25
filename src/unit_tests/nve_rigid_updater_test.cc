@@ -108,15 +108,15 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	arrays.x[4] = Scalar(-11.0); arrays.y[4] = 0.0; arrays.z[4] = 0.0;
 	arrays.vz[4] = Scalar(-0.2); arrays.body[4] = 0;
 	
-	arrays.x[5] = Scalar(0.0); arrays.y[5] = 0.0; arrays.z[5] = 0.0;
+	arrays.x[5] = 0.0; arrays.y[5] = Scalar(0.0); arrays.z[5] = 0.0;
 	arrays.vx[5] = Scalar(0.2);  arrays.body[5] = 1;
-	arrays.x[6] = Scalar(1.0); arrays.y[6] = 0.0; arrays.z[6] = 0.0;
+	arrays.x[6] = 0.0; arrays.y[6] = Scalar(1.0); arrays.z[6] = 0.0;
 	arrays.vy[6] = Scalar(0.8); arrays.body[6] = 1;
-	arrays.x[7] = Scalar(2.0); arrays.y[7] = 0.0; arrays.z[7] = 0.0;
+	arrays.x[7] = 0.0; arrays.y[7] = Scalar(2.0); arrays.z[7] = 0.0;
 	arrays.vy[7] = Scalar(-0.6); arrays.body[7] = 1;
-	arrays.x[8] = Scalar(3.0); arrays.y[8] = 0.0; arrays.z[8] = 0.0;
+	arrays.x[8] = 0.0; arrays.y[8] = Scalar(3.0); arrays.z[8] = 0.0;
 	arrays.vz[8] = Scalar(0.7); arrays.body[8] = 1;
-	arrays.x[9] = Scalar(4.0); arrays.y[5] = 0.0; arrays.z[9] = 0.0;
+	arrays.x[9] = 0.0; arrays.y[5] = Scalar(4.0); arrays.z[9] = 0.0;
 	arrays.vy[9] = Scalar(-0.5); arrays.body[9] = 1;
 	
 	pdata->release();
@@ -127,8 +127,8 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
-	Scalar sigma = Scalar(1.2);
-	Scalar alpha = Scalar(0.45);
+	Scalar sigma = Scalar(1.0);
+	Scalar alpha = Scalar(1.0);
 	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
 	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	
@@ -139,8 +139,10 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	
 	nve->addForceCompute(fc);
 	
-	for (int i = 0; i < 5; i++)
+	sysdef->init();
+	for (int i = 0; i < 50; i++)
 		{
+		if (i%10 == 0) cout << "step " << i << "\n";
 		nve->update(i);
 		}
 	}	
