@@ -128,17 +128,17 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
 	fc_3->compute(0);
 	
 	ForceDataArrays force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -17.72938667, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.575, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], -0.25118433, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 3.316760614, tol);
 
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 17.72938667, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], -1.15, tol);
-	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1],  -0.82618433, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 3.316760614, tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
@@ -155,19 +155,19 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
 	fc_3->compute(1);
 	
 	force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -93.09822608552962, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -336.9779601, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 3.5815110377468, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 17.416537590989, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 13.00370276, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 63.04082855, tol);
 
 	// center particle should still be a 0 force by symmetry
-	MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 243.87996, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[1], 1e-5);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], 1e-5);
 	// there is still an energy and virial, though
-	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 7.1630220754935, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 34.833075181975, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 16.58521, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], 80.4574, tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 93.09822608552962, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[2], tol);
@@ -192,7 +192,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
 	// recompute the forces at the same timestep, they should be updated
 	fc_3->compute(1);
 	force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 93.09822608552962, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 336.9779601, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -93.09822608552962, tol);
 	}
 
