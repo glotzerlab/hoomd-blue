@@ -45,6 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "RigidData.h"
 #include <cassert>
+#include <math.h>
 
 using namespace boost;
 using namespace std;

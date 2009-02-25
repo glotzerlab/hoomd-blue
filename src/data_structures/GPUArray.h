@@ -440,9 +440,9 @@ template<class T> void GPUArray<T>::allocate()
 		
 	// sanity check
 	assert(h_data == NULL);
-	assert(d_data == NULL);
 	
 	#ifdef ENABLE_CUDA
+	assert(d_data == NULL);
 	// the current implementation only supports a signle GPU
 	if (m_exec_conf.gpu.size() > 1)
 		{
