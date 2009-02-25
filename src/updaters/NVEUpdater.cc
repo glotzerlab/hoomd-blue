@@ -118,14 +118,7 @@ void NVEUpdater::update(unsigned int timestep)
 
 	// get the rigid data from SystemDefinition
 	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
-	// if the rigid data needs to be initialized just before updating 
-	static bool rigid_initialized = false;
-	if (rigid_initialized == false)
-		{
-		rigid_data->initializeData();
-		rigid_initialized = true;
-		}
-	
+
 	// if there is any rigid body and the flag has not yet been set
 	static bool has_rigid_bodies = false;
 	if (rigid_data->getNumBodies() > 0 && has_rigid_bodies == false) 
