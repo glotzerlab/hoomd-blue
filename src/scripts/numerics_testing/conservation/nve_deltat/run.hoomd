@@ -1,0 +1,31 @@
+#! /usr/bin/env hoomd
+
+from hoomd_script import *
+import os
+
+delta_t_array = [0.0005, 0.0008, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01]
+exec_mode = "gpu";
+shift_mode = "shift";
+
+# quick mode for testing
+tau_to_run = 50;
+
+# parse task id
+task_id = int(os.environ['SGE_TASK_ID'])-1;
+
+delta_t = delta_t_array[task_id];
+prefix = exec_mode + "_" + shift_mode;
+name = prefix + "_dt" + str(int(delta_t*10000));
+
+init.read_xml("initial_config.xml")
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.set_params(mode=shift_mode)
+
+# continue running in nve enseble with log output
+integrate.nve(dt=delta_t)
+
+analyze.log(filename = name + "_log.txt", period=10, quantities=["temperature", "pressure", "kinetic_energy", "pair_lj_energy", "conserved_quantity", "momentum"]);
+
+ts_to_run = tau_to_run / delta_t;
+run(ts_to_run);
