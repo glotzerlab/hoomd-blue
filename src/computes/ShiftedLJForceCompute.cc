@@ -244,7 +244,7 @@ void ShiftedLJForceCompute::computeForces(unsigned int timestep)
 			Scalar dx = xi - arrays.x[k];
 			Scalar dy = yi - arrays.y[k];
 			Scalar dz = zi - arrays.z[k];
-			Scalar alphaj = arrays.diameter[i]/2.0 - 1.0/2.0;  //Sigma here is being set to 1.0
+			Scalar alphaj = arrays.diameter[k]/2.0 - 1.0/2.0;  //Sigma here is being set to 1.0
 			
 			// access the type of the neighbor particle (MEM TRANSFER: 1 scalar
 			unsigned int typej = arrays.type[k];
@@ -273,21 +273,23 @@ void ShiftedLJForceCompute::computeForces(unsigned int timestep)
 			// start computing the force
 			// calculate r squared (FLOPS: 5)
 			Scalar rsq = dx*dx + dy*dy + dz*dz;
-			Scalar radj = sqrt(rsq) - alphai -alphaj; //CHECK HERE
+			Scalar r = sqrt(rsq);
+			Scalar radj = r - alphai -alphaj; //CHECK HERE
 		    Scalar radj_sq = radj*radj;
 			
 			// only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
 			if (radj < m_r_cut)
 				{
 				// compute the force magnitude/r in forcemag_divr (FLOPS: 9)
-				Scalar r2inv = Scalar(1.0)/radj_sq;
-				Scalar r6inv = r2inv * r2inv * r2inv;
-				Scalar forcemag_divr = r2inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
+				Scalar radj_inv = Scalar(1.0)/radj;
+				Scalar rinv = Scalar(1.0)/r;
+				Scalar r6inv = radj_inv * radj_inv * radj_inv * radj_inv * radj_inv * radj_inv;
+				Scalar forcemag_divr = rinv*radj_inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
 				
 				// compute the pair energy and virial (FLOPS: 6)
 				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
 				// there is no - in the 1/6 to compensate				
-				Scalar pair_virial = Scalar(1.0/6.0) * radj_sq * forcemag_divr;
+				Scalar pair_virial = Scalar(1.0/6.0) * r * r * forcemag_divr;  
 				Scalar pair_eng = Scalar(0.5) * r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
 				
 				// add the force, potential energy and virial to the particle i
