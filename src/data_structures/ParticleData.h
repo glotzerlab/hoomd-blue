@@ -376,6 +376,16 @@ class ParticleData : boost::noncopyable
 			{
 			return m_ntypes;
 			}
+			
+		//! Get the maximum diameter of the particle set
+		/*! \return Maximum Diameter Value
+		*/
+		Scalar getMaxDiameter() const
+			{
+			Scalar maxdiam = 0;
+			for (unsigned int i = 0; i < m_arrays.nparticles; i++) if (m_arrays.diameter[i] > maxdiam) maxdiam = m_arrays.diameter[i]; 
+			return maxdiam;
+			}			
 		
 		//! Acquire read access to the particle data
 		const ParticleDataArraysConst& acquireReadOnly();
