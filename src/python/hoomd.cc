@@ -109,7 +109,16 @@ int main(int argc, char **argv)
 		PyRun_SimpleString(python_cmds.c_str());
 		}
 
-	return Py_Main(argc, argv);
+	int retval = Py_Main(argc, argv);
+	
+	// trying to clean up python's messy memory leaks
+	PyGC_Collect();
+	PyGC_Collect();
+	PyGC_Collect();
+	PyGC_Collect();
+	
+	Py_Finalize();
+	return retval;
 	}
 #ifdef WIN32
 #pragma warning( pop )
