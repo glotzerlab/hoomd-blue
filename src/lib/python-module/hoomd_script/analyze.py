@@ -177,11 +177,17 @@ class _analyzer:
 	def set_period(self, period):
 		util.print_status_line();
 		
-		if self.enabled:
-			globals.system.setAnalyzerPeriod(self.analyzer_name, period);
+		if type(period) == type(1):
+			if self.enabled:
+				globals.system.setAnalyzerPeriod(self.analyzer_name, period);
+			else:
+				self.prev_period = period;
+		elif type(period) == type(lambda n: n*2):
+			if self.enabled:
+				globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
 		else:
-			self.prev_period = period;
-
+			print "***Warning! I don't know what to do with a period of type", type(period), "expecting an int or a function";
+		
 # set default counter
 _analyzer.cur_id = 0;
 

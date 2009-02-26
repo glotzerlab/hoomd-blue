@@ -153,8 +153,18 @@ void System::setAnalyzerPeriod(const std::string& name, unsigned int period)
 	assert(period != 0);
 	
 	vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
-	i->m_period = period;
+	i->setPeriod(period, m_cur_tstep);
 	}
+	
+/*! \param name Name of the Updater to modify
+	\param update_func A python callable function taking one argument that returns an integer value of the next time step to analyze at
+*/
+void System::setAnalyzerPeriodVariable(const std::string& name, boost::python::object update_func)
+	{
+	vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
+	i->setVariablePeriod(update_func, m_cur_tstep);
+	}
+	
 	
 /*! \param name Name of the Analyzer to get the period of
 	\returns Period of the Analyzer
@@ -247,7 +257,16 @@ void System::setUpdaterPeriod(const std::string& name, unsigned int period)
 	assert(period != 0);
 	
 	vector<System::updater_item>::iterator i = findUpdaterItem(name);
-	i->m_period = period;
+	i->setPeriod(period, m_cur_tstep);
+	}
+	
+/*! \param name Name of the Updater to modify
+	\param update_func A python callable function taking one argument that returns an integer value of the next time step to update at
+*/
+void System::setUpdaterPeriodVariable(const std::string& name, boost::python::object update_func)
+	{
+	vector<System::updater_item>::iterator i = findUpdaterItem(name);
+	i->setVariablePeriod(update_func, m_cur_tstep);
 	}
 	
 /*! \param name Name of the Updater to get the period of
@@ -530,12 +549,14 @@ void export_System()
 		.def("removeAnalyzer", &System::removeAnalyzer)
 		.def("getAnalyzer", &System::getAnalyzer)
 		.def("setAnalyzerPeriod", &System::setAnalyzerPeriod)
+		.def("setAnalyzerPeriodVariable", &System::setAnalyzerPeriodVariable)
 		.def("getAnalyzerPeriod", &System::getAnalyzerPeriod)
 
 		.def("addUpdater", &System::addUpdater)
 		.def("removeUpdater", &System::removeUpdater)
 		.def("getUpdater", &System::getUpdater)
 		.def("setUpdaterPeriod", &System::setUpdaterPeriod)
+		.def("setUpdaterPeriodVariable", &System::setUpdaterPeriodVariable)
 		.def("getUpdaterPeriod", &System::getUpdaterPeriod)
 
 		.def("addCompute", &System::addCompute)
