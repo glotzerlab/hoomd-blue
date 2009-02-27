@@ -174,7 +174,8 @@ struct BoxDim
 	BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z);
 	};
 
-const int NO_BODY = 0xffffffff;
+//! Sentinel value in \a body to signify that this particle does not belong to a rigid body
+const unsigned int NO_BODY = 0xffffffff;
 
 //! Structure of arrays containing the particle data
 /*! Once acquired, the user of the ParticleData gets access to the data arrays

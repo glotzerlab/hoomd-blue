@@ -60,58 +60,12 @@ using namespace std;
 	\post All data members in RigidData are completely initialized from the given info in \a particle_data
 */
 RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
-	: m_pdata(particle_data)
+	: m_pdata(particle_data), m_n_bodies(0)
 	{
+	// leave arrays initialized to NULL. There are currently 0 bodies and their 
+	// initialization is delayed because we cannot reasonably determine when that initialization
+	// must be done
 
-/*	Let the caller NVEUpdater calls the initialization, because at this point, the rigid body information of particles might not yet be set
- 
-	// read the body array from particle_data and extract some information
-	
-	// initialization should set this to true if no rigid bodies were defined in the particle data
-	bool no_rigid_bodies_defined = false;
-	if (no_rigid_bodies_defined)
-		{
-		// stop now and leave this class as an uninitialized shell
-		m_n_bodies = 0;
-		return;
-		}
-	
-	// initialize the number of bodies
-	m_n_bodies = 10;		// 10 is placeholder value in template
-	unsigned int nmax = 5;	// 5 is placeholder value in template
-	
-	// allocate memory via construct & swap to avoid the temporaries produced by the = operator
-	GPUArray<Scalar4> moment_inertia(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<unsigned int> body_size(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<unsigned int> particle_tags(nmax, m_n_bodies, m_pdata->getExecConf());
-	GPUArray<unsigned int> particle_indices(nmax, m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> particle_pos(nmax, m_n_bodies, m_pdata->getExecConf());
-
-	GPUArray<Scalar4> com(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> vel(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> orientation(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> angvel(m_n_bodies, m_pdata->getExecConf());
-	
-	// swap the allocated GPUArray with the member variables
-	m_moment_inertia.swap(moment_inertia);
-	m_body_size.swap(body_size);
-	m_particle_tags.swap(particle_tags);
-	m_particle_indices.swap(particle_indices);
-	m_particle_pos.swap(particle_pos);
-		
-	m_com.swap(com);
-	m_vel.swap(vel);
-	m_orientation.swap(orientation);
-	m_angmom.swap(angmom);
-	m_angvel.swap(angvel);
-	
-	// initialize the data
-	initializeData();
-	
-	// initialize the index cace
-	recalcIndices();
-*/	
 	// connect the sort signal
 	m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));	
 	}
@@ -129,13 +83,13 @@ RigidData::~RigidData()
 */
 void RigidData::recalcIndices()
 	{
-	if (m_particle_tags.isNull() || m_particle_indices.isNull())
+	if (m_n_bodies == 0)
 		return;
 		
 	// sanity check
 	assert(m_pdata);
-//	assert(!m_particle_tags.isNull());
-//	assert(!m_particle_indices.isNull());
+	assert(!m_particle_tags.isNull());
+	assert(!m_particle_indices.isNull());
 	assert(m_n_bodies <= m_particle_tags.getPitch());
 	assert(m_n_bodies <= m_particle_indices.getPitch());
 	assert(m_n_bodies == m_body_size.getNumElements());
@@ -157,7 +111,8 @@ void RigidData::recalcIndices()
 		{
 		// for each particle in this body
 		unsigned int len = body_size.data[body];
-	//	assert(len <= m_particle_tags.getHeight() && len <= m_particle_indices.getHeight());
+		assert(body <= m_particle_tags.getHeight() && body <= m_particle_indices.getHeight());
+		assert(len <= tags_pitch && len <= indices_pitch);
 		for (unsigned int i = 0; i < len; i++)
 			{
 			// translate the tag to the current index
@@ -392,7 +347,7 @@ void RigidData::initializeData()
 		
 		
 	// allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
-	GPUArray<unsigned int> particle_tags(nmax, m_n_bodies, m_pdata->getExecConf());
+	GPUArray<unsigned int> particle_tags(nmax, m_n_bodies,  m_pdata->getExecConf());
 	m_particle_tags.swap(particle_tags);
 	ArrayHandle<unsigned int> particle_tags_handle(m_particle_tags, access_location::host, access_mode::readwrite); 
 	unsigned int particle_tags_pitch = m_particle_tags.getPitch();

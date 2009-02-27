@@ -420,11 +420,6 @@ void NVERigidUpdater::set_xv()
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
 	
-	// precalculate box lenghts
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
-	
 	// handles
 	ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);	
 	ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);	

@@ -148,7 +148,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	
 	arrays = pdata->acquireReadWrite();
 	
-	for (int i = 0; i < arrays.nparticles; i++) 
+	for (unsigned int i = 0; i < arrays.nparticles; i++) 
 	{
 		cout << "N\t" << arrays.x[i] << "\t" << arrays.y[i] << "\t" << arrays.z[i] << "\n";
 	}
