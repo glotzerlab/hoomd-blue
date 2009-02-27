@@ -177,7 +177,7 @@ class _updater:
 		
 		if type(period) == type(1):
 			if self.enabled:
-				globals.system.setUpdaterPeriod(self.analyzer_name, period);
+				globals.system.setUpdaterPeriod(self.updater_name, period);
 			else:
 				self.prev_period = period;
 		elif type(period) == type(lambda n: n*2):
