@@ -129,10 +129,13 @@ RigidData::~RigidData()
 */
 void RigidData::recalcIndices()
 	{
+	if (m_particle_tags.isNull() || m_particle_indices.isNull())
+		return;
+		
 	// sanity check
 	assert(m_pdata);
-	assert(!m_particle_tags.isNull());
-	assert(!m_particle_indices.isNull());
+//	assert(!m_particle_tags.isNull());
+//	assert(!m_particle_indices.isNull());
 	assert(m_n_bodies <= m_particle_tags.getPitch());
 	assert(m_n_bodies <= m_particle_indices.getPitch());
 	assert(m_n_bodies == m_body_size.getNumElements());
@@ -154,7 +157,7 @@ void RigidData::recalcIndices()
 		{
 		// for each particle in this body
 		unsigned int len = body_size.data[body];
-		assert(len <= m_particle_tags.getHeight() && len <= m_particle_indices.getHeight());
+	//	assert(len <= m_particle_tags.getHeight() && len <= m_particle_indices.getHeight());
 		for (unsigned int i = 0; i < len; i++)
 			{
 			// translate the tag to the current index
@@ -223,7 +226,7 @@ void RigidData::initializeData()
 	m_angmom.swap(angmom);
 	m_angvel.swap(angvel);
 		
-		
+	{	
 	// determine the largest size of rigid bodies (nmax)
 	ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::readwrite);
 	for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -372,7 +375,7 @@ void RigidData::initializeData()
 		
 		// create the initial quaternion from the new body frame
 		quaternionFromExyz(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], 
-						   orientation_handle.data[body]);
+							orientation_handle.data[body]);	
 		}
 	
 	// deallocate temporary memory
@@ -392,15 +395,18 @@ void RigidData::initializeData()
 	GPUArray<unsigned int> particle_tags(nmax, m_n_bodies, m_pdata->getExecConf());
 	m_particle_tags.swap(particle_tags);
 	ArrayHandle<unsigned int> particle_tags_handle(m_particle_tags, access_location::host, access_mode::readwrite); 
-	
+	unsigned int particle_tags_pitch = m_particle_tags.getPitch();
+		
 	GPUArray<unsigned int> particle_indices(nmax, m_n_bodies, m_pdata->getExecConf());
 	m_particle_indices.swap(particle_indices);
 	ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite); 
-	
+	unsigned int particle_indices_pitch = m_particle_indices.getPitch();
+		
 	GPUArray<Scalar4> particle_pos(nmax, m_n_bodies, m_pdata->getExecConf());	
 	m_particle_pos.swap(particle_pos);
 	ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite); 
-
+	unsigned int particle_pos_pitch = m_particle_pos.getPitch();
+		
 	GPUArray<unsigned int> local_indices(m_n_bodies, m_pdata->getExecConf());
 	ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite); 
 	for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -416,30 +422,30 @@ void RigidData::initializeData()
 		// get the current index in the body
 		unsigned int current_localidx = local_indices_handle.data[body];
 		// set the particle index to be this value
-		particle_indices_handle.data[body * nmax + current_localidx] = j;
+		particle_indices_handle.data[body * particle_indices_pitch + current_localidx] = j;
 		// set the particle tag to be the tag of this particle
-		particle_tags_handle.data[body * nmax + current_localidx] = arrays.tag[j];
+		particle_tags_handle.data[body * particle_tags_pitch + current_localidx] = arrays.tag[j];
 		
 		// determine the particle position in the body frame 
 		// with ex_space, ey_space and ex_space vectors computed from the diagonalization
 		Scalar dx = arrays.x[j] - com_handle.data[body].x;
 		Scalar dy = arrays.y[j] - com_handle.data[body].y;
 		Scalar dz = arrays.z[j] - com_handle.data[body].z;
-		particle_pos_handle.data[body * nmax + current_localidx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
+		particle_pos_handle.data[body * particle_pos_pitch + current_localidx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
 					dz * ex_space_handle.data[body].z;
-		particle_pos_handle.data[body * nmax + current_localidx].y = dx * ey_space_handle.data[body].x + dy * ey_space_handle.data[body].y +
+		particle_pos_handle.data[body * particle_pos_pitch + current_localidx].y = dx * ey_space_handle.data[body].x + dy * ey_space_handle.data[body].y +
 					dz * ey_space_handle.data[body].z;
-		particle_pos_handle.data[body * nmax + current_localidx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
+		particle_pos_handle.data[body * particle_pos_pitch + current_localidx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
 					dz * ez_space_handle.data[body].z; 
 	
 		// increment the current index by one
 		local_indices_handle.data[body]++;
 		}
 	
+	
 	// release particle data for later access
 	m_pdata->release();	
-	
-	// also need to release GPUArray data here
+	}	// out of scope for handles
 		
 	// finish up by initializing the indices
 	recalcIndices();

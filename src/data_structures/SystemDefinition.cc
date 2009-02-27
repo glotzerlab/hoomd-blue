@@ -106,6 +106,17 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 		m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
 	}	
 
+/*! Initialize required data before runs
+ 
+*/
+int SystemDefinition::init()
+{
+	// initialize rigid bodies
+	if (m_rigid_data) m_rigid_data->initializeData();
+	
+	return 1;
+}
+
 void export_SystemDefinition()
 	{
 	class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())

@@ -100,6 +100,9 @@ class SystemDefinition
 		//! Construct from an initializer (temporary measure until the initializer setup is rewritten)
 		SystemDefinition(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
 		
+		//! Initialize data
+		int init();
+		
 		//! Get the particle data
 		boost::shared_ptr<ParticleData> getParticleData() const { return m_particle_data; }
 		//! Get the bond data
