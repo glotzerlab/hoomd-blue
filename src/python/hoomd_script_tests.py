@@ -79,40 +79,40 @@ class init_create_random_polymer_tests (unittest.TestCase):
 		globals._clear();
 
 # unit tests for analyze.imd
-class analyze_imd_tests (unittest.TestCase):
-	def setUp(self):
-		print
-		init.create_random(N=100, phi_p=0.05);
+#class analyze_imd_tests (unittest.TestCase):
+#	def setUp(self):
+#		print
+#		init.create_random(N=100, phi_p=0.05);
 
 	# tests basic creation of the analyzer
-	def test(self):
-		analyze.imd(port = 12345, period = 100);
-		run(100);
+#	def test(self):
+#		analyze.imd(port = 12345, period = 100);
+#		run(100);
 	
 	# test enable/disable
-	def test_enable_disable(self):
-		ana = analyze.imd(port = 12346, period = 100);
-		ana.disable();
-		self.assert_(not ana.enabled);
-		ana.disable();
-		self.assert_(not ana.enabled);
-		ana.enable();
-		self.assert_(ana.enabled);
-		ana.enable();
-		self.assert_(ana.enabled);
+#	def test_enable_disable(self):
+#		ana = analyze.imd(port = 12346, period = 100);
+#		ana.disable();
+#		self.assert_(not ana.enabled);
+#		ana.disable();
+#		self.assert_(not ana.enabled);
+#		ana.enable();
+#		self.assert_(ana.enabled);
+#		ana.enable();
+#		self.assert_(ana.enabled);
 		
 	# test set_period
-	def test_set_period(self):
-		ana = analyze.imd(port = 12347, period = 100);
-		ana.set_period(10);
-		ana.disable();
-		self.assertEqual(10, ana.prev_period);
-		ana.set_period(50);
-		self.assertEqual(50, ana.prev_period);
-		ana.enable();
+#	def test_set_period(self):
+#		ana = analyze.imd(port = 12347, period = 100);
+#		ana.set_period(10);
+#		ana.disable();
+#		self.assertEqual(10, ana.prev_period);
+#		ana.set_period(50);
+#		self.assertEqual(50, ana.prev_period);
+#		ana.enable();
 	
-	def tearDown(self):
-		globals._clear();
+#	def tearDown(self):
+#		globals._clear();
 
 # unit tests for analyze.log
 class analyze_log_tests (unittest.TestCase):
