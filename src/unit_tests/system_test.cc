@@ -57,6 +57,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <iostream>
 
+using namespace boost::python;
+
 /*! \file system_test.cc
 	\brief Unit tests for System
 	\ingroup unit_tests
@@ -82,7 +84,7 @@ class DummyAnalyzer : public Analyzer
 			if (m_prof)
 				m_prof->push(m_name);
 			cout << m_name << ": " << timestep << endl;
-			Sleep(50);
+			Sleep(5);
 			if (m_prof)
 				m_prof->pop();
 			}
@@ -107,7 +109,7 @@ class DummyUpdater : public Integrator
 			if (m_prof)
 				m_prof->push(m_name);
 			cout << m_name << ": " << timestep << endl;
-			Sleep(80);
+			Sleep(8);
 			if (m_prof)
 				m_prof->pop();
 			}
@@ -131,7 +133,7 @@ class DummyCompute : public Compute
 			if (m_prof)
 				m_prof->push(m_name);
 			cout << m_name << ": " << timestep << endl;
-			Sleep(80);
+			Sleep(8);
 			if (m_prof)
 				m_prof->pop();
 			}
@@ -307,6 +309,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 */
 /*BOOST_AUTO_TEST_CASE( run_tests )
 	{
+	Py_Initialize();
 	#ifdef CUDA
 	g_gpu_error_checking = true;
 	#endif
@@ -316,19 +319,27 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 		// create two analyzers to test adding
 	boost::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
 	boost::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
+	boost::shared_ptr< Analyzer > analyzer3(new DummyAnalyzer(pdata, "analyzer3"));
 	
 	// add them both to a System
 	System sys(sysdef, 0);
 	sys.addAnalyzer(analyzer1, "analyzer1", 15);
 	sys.addAnalyzer(analyzer2, "analyzer2", 20);
+	sys.addAnalyzer(analyzer3, "analyzer3", 1);
+	
+	sys.setAnalyzerPeriodVariable("analyzer3", eval("lambda n: n**2"));
 	
 	// create two updaters to test adding
 	boost::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
 	boost::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
+	boost::shared_ptr< Updater > updater3(new DummyUpdater(pdata, "updater3"));
 	
 	// add them both to a System
 	sys.addUpdater(updater1, "updater1", 5);
 	sys.addUpdater(updater2, "updater2", 10);
+	sys.addUpdater(updater3, "updater3", 20);
+	
+	sys.setUpdaterPeriodVariable("updater3", eval("lambda n: 0.5 * 10**n"));
 	
 	// create two updaters to test adding
 	boost::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
@@ -352,6 +363,8 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 	cout << "Third run: profiling enabled" << endl;
 	sys.enableProfiler(true);
 	sys.run(100);
+	
+	Py_Finalize();
 	}*/
 
 #ifdef WIN32
