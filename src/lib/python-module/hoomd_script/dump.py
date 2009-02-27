@@ -79,6 +79,8 @@ class xml(analyze._analyzer):
 	#
 	# If \a period is not specified, then no periodic updates will occur. Instead, the write()
 	# command must be executed to write an output file.
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, filename="dump", period=None):
 		util.print_status_line();
 	
@@ -89,7 +91,7 @@ class xml(analyze._analyzer):
 		self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename);
 		
 		if period != None:
-			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+			self.setupAnalyzer(period);
 			self.enabled = False;
 			self.prev_period = 1;
 
@@ -208,6 +210,8 @@ class mol2(analyze._analyzer):
 	#
 	# If \a period is not specified, then no periodic updates will occur. Instead, the write()
 	# command must be executed to write an output file.
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, filename="dump", period=None):
 		util.print_status_line();
 	
@@ -218,7 +222,7 @@ class mol2(analyze._analyzer):
 		self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.system_definition, filename);
 		
 		if period != None:
-			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
+			self.setupAnalyzer(period);
 			self.enabled = False;
 			self.prev_period = 1;
 				
@@ -274,6 +278,8 @@ class dcd(analyze._analyzer):
 	# dump.dcd(filename="trajectory.dcd", period=1000)<br>
 	# dcd = dump.dcd(filename"data/dump.dcd", period=1000)
 	# \endcode
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, filename, period):
 		util.print_status_line();
 		
@@ -281,8 +287,12 @@ class dcd(analyze._analyzer):
 		analyze._analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(period));
-		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
+		reported_period = period;
+		if type(period) != type(1):
+			reported_period = 1000;
+			
+		self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period));
+		self.setupAnalyzer(period);
 	
 	def enable(self):
 		util.print_status_line();
@@ -325,7 +335,9 @@ class pdb(analyze._analyzer):
 	# with set_params().
 	#
 	# If \a period is not specified, then no periodic updates will occur. Instead, the write()
-	# command must be executed to write an output file.	
+	# command must be executed to write an output file.
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, filename="dump", period=None):
 		util.print_status_line();
 	
@@ -336,7 +348,7 @@ class pdb(analyze._analyzer):
 		self.cpp_analyzer = hoomd.PDBDumpWriter(globals.system_definition, filename);
 		
 		if period != None:
-			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+			self.setupAnalyzer(period);
 			self.enabled = False;
 			self.prev_period = 1;
 			

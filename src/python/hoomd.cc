@@ -112,11 +112,6 @@ int main(int argc, char **argv)
 	int retval = Py_Main(argc, argv);
 	
 	// trying to clean up python's messy memory leaks
-	PyGC_Collect();
-	PyGC_Collect();
-	PyGC_Collect();
-	PyGC_Collect();
-	
 	Py_Finalize();
 	return retval;
 	}

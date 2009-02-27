@@ -79,40 +79,40 @@ class init_create_random_polymer_tests (unittest.TestCase):
 		globals._clear();
 
 # unit tests for analyze.imd
-class analyze_imd_tests (unittest.TestCase):
-	def setUp(self):
-		print
-		init.create_random(N=100, phi_p=0.05);
+#class analyze_imd_tests (unittest.TestCase):
+#	def setUp(self):
+#		print
+#		init.create_random(N=100, phi_p=0.05);
 
 	# tests basic creation of the analyzer
-	def test(self):
-		analyze.imd(port = 12345, period = 100);
-		run(100);
+#	def test(self):
+#		analyze.imd(port = 12345, period = 100);
+#		run(100);
 	
 	# test enable/disable
-	def test_enable_disable(self):
-		ana = analyze.imd(port = 12346, period = 100);
-		ana.disable();
-		self.assert_(not ana.enabled);
-		ana.disable();
-		self.assert_(not ana.enabled);
-		ana.enable();
-		self.assert_(ana.enabled);
-		ana.enable();
-		self.assert_(ana.enabled);
+#	def test_enable_disable(self):
+#		ana = analyze.imd(port = 12346, period = 100);
+#		ana.disable();
+#		self.assert_(not ana.enabled);
+#		ana.disable();
+#		self.assert_(not ana.enabled);
+#		ana.enable();
+#		self.assert_(ana.enabled);
+#		ana.enable();
+#		self.assert_(ana.enabled);
 		
 	# test set_period
-	def test_set_period(self):
-		ana = analyze.imd(port = 12347, period = 100);
-		ana.set_period(10);
-		ana.disable();
-		self.assertEqual(10, ana.prev_period);
-		ana.set_period(50);
-		self.assertEqual(50, ana.prev_period);
-		ana.enable();
+#	def test_set_period(self):
+#		ana = analyze.imd(port = 12347, period = 100);
+#		ana.set_period(10);
+#		ana.disable();
+#		self.assertEqual(10, ana.prev_period);
+#		ana.set_period(50);
+#		self.assertEqual(50, ana.prev_period);
+#		ana.enable();
 	
-	def tearDown(self):
-		globals._clear();
+#	def tearDown(self):
+#		globals._clear();
 
 # unit tests for analyze.log
 class analyze_log_tests (unittest.TestCase):
@@ -134,7 +134,11 @@ class analyze_log_tests (unittest.TestCase):
 		run(100);
 		ana.set_params(quantities = ['test2', 'test3'], delimiter=',')
 		run(100);
-		
+
+	# test variable period
+	def test_variable(self):
+		ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = lambda n: n*10, filename="test.log");
+		run(100);		
 	
 	def tearDown(self):
 		globals._clear();
@@ -149,6 +153,11 @@ class analyze_msd_tests (unittest.TestCase):
 	# tests basic creation of the analyzer
 	def test(self):
 		analyze.msd(period = 10, filename="test.log", groups=[group_all()]);
+		run(100);
+
+	# test variable period
+	def test_variable(self):
+		analyze.msd(period = lambda n: n*10, filename="test.log", groups=[group_all()]);
 		run(100);
 	
 	# test error if no groups defined
@@ -174,6 +183,10 @@ class dmp_xml_tests (unittest.TestCase):
 	# tests basic creation of the dump
 	def test(self):
 		dump.xml(filename="dump_xml", period=100);
+
+	# test variable period
+	def test_variable(self):
+		dump.xml(filename="dump_xml", period=lambda n: n*100);
 	
 	# test set_params
 	def test_set_params(self):
@@ -199,7 +212,11 @@ class dmp_mol2_tests (unittest.TestCase):
 
 	# tests basic creation of the dump
 	def test(self):
-		dump.mol2(filename="dump_mol2");
+		dump.mol2(filename="dump_mol2", period=100);
+	
+	# tests variable periods
+	def test_variable(self):
+		dump.mol2(filename="dump_mol2", period=lambda n: n*100);
 	
 	def tearDown(self):
 		globals._clear();
@@ -213,6 +230,10 @@ class dmp_dcd_tests (unittest.TestCase):
 	# tests basic creation of the dump
 	def test(self):
 		dump.dcd(filename="dump_dcd", period=100);
+	
+	# tests variable periods
+	def test_variable(self):
+		dump.dcd(filename="dump_dcd", period=lambda n: n*100);
 	
 	# test disable/enable
 	def test_enable_disable(self):
@@ -526,6 +547,11 @@ class update_rescale_temp_tests (unittest.TestCase):
 	def test(self):
 		update.rescale_temp(T=1.0)
 		run(100);
+
+	# test variable periods
+	def test_variable(self):
+		update.rescale_temp(T=1.0, period=lambda n: n*10)
+		run(100);
 	
 	# test enable/disable
 	def test_enable_disable(self):
@@ -580,6 +606,11 @@ class update_zero_momentum_tests (unittest.TestCase):
 	# tests basic creation of the updater
 	def test(self):
 		update.zero_momentum()
+		run(100);
+	
+	# test variable periods
+	def test_variable(self):
+		update.zero_momentum(period = lambda n: n*100);
 		run(100);
 	
 	# test enable/disable

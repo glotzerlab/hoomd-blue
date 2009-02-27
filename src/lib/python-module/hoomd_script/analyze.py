@@ -49,6 +49,56 @@ import util;
 # some form of output based on the analysis. Check the documentation for individual analyzers 
 # to see what they do.
 
+## \page variable_period_docs Variable period specification
+#
+# If, for any reason, a constant period for a command is not to your liking, you can make it any 
+# function you please! Just specify a function taking a single argument to the period parameter.
+# Any analyze, update, or dump command in hoomd can be given such a variable period. 
+# dump.xml is used as an example here, but the same works with \b any update, dump, 
+# or analyze command
+#
+# For example, lets say we want to dump xml files at time steps 1, 10, 100, 1000, ...
+# The following command will do the job.
+#
+# \code
+# dump.xml(filename="dump", period = lambda n: 10**n)
+# \endcode
+#
+# It is that simple. Any mathematical expression that can be represented in python can be used
+# in place of the 10**n.
+#
+# <b>More examples:</b>
+# \code
+# dump.xml(filename="dump", period = lambda n: n**2)
+# dump.xml(filename="dump", period = lambda n: 2**n)
+# dump.xml(filename="dump", period = lambda n: 1005 + 0.5 * 10**n)
+# \endcode
+#
+# The only requirement is that the object passed into period is callable, accepts one argument, and returns 
+# a floating point number or integer. The function also had better be monotonically increasing or the output
+# might not make any sense.
+#
+# <b>How does it work, exactly?</b>
+# - First, the current time step of the simulation is saved when the analyzer is created
+# - \a n is also set to 1 when the analyzer is created
+# - Every time the analyzer performs it's output, it evaluates the given function at the current value of \a n
+#   and records that as the next time to perform the analysis. \a n is then incremented by 1
+#
+# Here is a final example of how variable periods behave in simulations where analyzers are not created on time step 0.
+# The following
+# \code
+# ... initialize ...
+# run(4000)
+# dump.xml(filename="dump", period = lambda n: 2**n)
+# run(513)
+# \endcode
+# will result in dump files at time steps 4000, 4002, 4004, 4008, 4016, 4032, 4064, 4128, 4256, and 4512.
+#
+# In other words, the function specified for the period starts counting at the time step <b>when the analyzer is created</b>.
+# Consequently, any analyze, dump, or update command given a variable period becomes ill-defined if it is disabled and then re-enabled.
+# If this is done, it will then re-enable with a constant period of 1000 as a default case.
+#
+
 ## \internal
 # \brief Base class for analyzers
 #
@@ -78,6 +128,24 @@ class _analyzer:
 		self.analyzer_name = "analyzer%d" % (id);
 		self.enabled = True;
 
+	## Helper function to setup analyzer period
+	#
+	# \param period An integer or callable function period
+	#
+	# If an integer is specified, then that is set as the period for the analyzer.
+	# If a callable is passed in as a period, then a default period of 1000 is set 
+	# to the integer period and the variable period is enabled
+	#
+	def setupAnalyzer(self, period):
+		if type(period) == type(1):
+			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+		elif type(period) == type(lambda n: n*2):
+			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
+			globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
+		else:
+			print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
+			raise RuntimeError('Error creating analyzer');
+			
 	## \var enabled
 	# \internal
 	# \brief True if the analyzer is enabled
@@ -183,8 +251,7 @@ class _analyzer:
 			else:
 				self.prev_period = period;
 		elif type(period) == type(lambda n: n*2):
-			if self.enabled:
-				globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
+			print "***Warning! A period cannot be changed to a variable one";
 		else:
 			print "***Warning! I don't know what to do with a period of type", type(period), "expecting an int or a function";
 		
@@ -217,6 +284,8 @@ class imd(_analyzer):
 	# analyze.imd(port=54321, period=100)
 	# imd = analyze.imd(port=12345, period=1000)
 	# \endcode
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, port, period):
 		util.print_status_line();
 		
@@ -225,7 +294,7 @@ class imd(_analyzer):
 		
 		# create the c++ mirror class
 		self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port);
-		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+		self.setupAnalyzer(period);
 
 
 ## Logs a number of calculated quanties to a file
@@ -288,6 +357,8 @@ class log(_analyzer):
 	# is to specify header_prefix='#' so that \c gnuplot will ignore the header line
 	# automatically. Another use-case would be to specify a descriptive line containing
 	# details of the current run. Examples of each of these cases are given above.
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, filename, quantities, period, header_prefix=''):
 		util.print_status_line();
 		
@@ -296,7 +367,7 @@ class log(_analyzer):
 		
 		# create the c++ mirror class
 		self.cpp_analyzer = hoomd.Logger(globals.system_definition, filename, header_prefix);
-		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+		self.setupAnalyzer(period);
 		
 		# set the logged quantities
 		quantity_list = hoomd.std_vector_string();
@@ -390,6 +461,8 @@ class msd(_analyzer):
 	# is to specify header_prefix='#' so that \c gnuplot will ignore the header line
 	# automatically. Another use-case would be to specify a descriptive line containing
 	# details of the current run. Examples of each of these cases are given above.
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, filename, groups, period, header_prefix=''):
 		util.print_status_line();
 		
@@ -398,7 +471,7 @@ class msd(_analyzer):
 		
 		# create the c++ mirror class
 		self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix);
-		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+		self.setupAnalyzer(period);
 	
 		# it is an error to specify no groups
 		if len(groups) == 0:
