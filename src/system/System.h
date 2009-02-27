@@ -202,13 +202,13 @@ class System
 						
 						if (next < 0)
 							{
-							cout << endl << "***Warning! Variable period returned a negative value. Increasing to 1 to prevent inconsistancies" << endl << endl;
+							cout << "***Warning! Variable period returned a negative value. Increasing to 1 to prevent inconsistancies" << endl;
 							next = 1;
 							}
 							
 						if ((unsigned int)next <= tstep)
 							{
-							cout << endl << "***Warning! Variable period returned a value equal to the current timestep. Increasing by 1 to prevent inconsistancies" << endl << endl;
+							cout << "***Warning! Variable period returned a value equal to the current timestep. Increasing by 1 to prevent inconsistancies" << endl;
 							next = tstep+1;
 							}
 						
@@ -294,13 +294,13 @@ class System
 						
 						if (next < 0)
 							{
-							cout << endl << "***Warning! Variable period returned a negative value. Increasing to 1 to prevent inconsistancies" << endl << endl;
+							cout << "***Warning! Variable period returned a negative value. Increasing to 1 to prevent inconsistancies" << endl;
 							next = 1;
 							}
 							
 						if ((unsigned int)next <= tstep)
 							{
-							cout << endl << "***Warning! Variable period returned a value equal to the current timestep. Increasing by 1 to prevent inconsistancies" << endl << endl;
+							cout << "***Warning! Variable period returned a value equal to the current timestep. Increasing by 1 to prevent inconsistancies" << endl;
 							next = tstep+1;
 							}
 						

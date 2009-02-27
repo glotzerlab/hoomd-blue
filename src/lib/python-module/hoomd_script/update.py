@@ -75,6 +75,24 @@ class _updater:
 		
 		self.updater_name = "updater%d" % (id);
 		self.enabled = True;
+		
+	## Helper function to setup updater period
+	#
+	# \param period An integer or callable function period
+	#
+	# If an integer is specified, then that is set as the period for the analyzer.
+	# If a callable is passed in as a period, then a default period of 1000 is set 
+	# to the integer period and the variable period is enabled
+	#
+	def setupUpdater(self, period):
+		if type(period) == type(1):
+			globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
+		elif type(period) == type(lambda n: n*2):
+			globals.system.addUpdater(self.cpp_updater, self.updater_name, 1000);
+			globals.system.setUpdaterPeriodVariable(self.updater_name, period);
+		else:
+			print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
+			raise RuntimeError('Error creating updater');
 
 	## \var enabled
 	# \internal
@@ -181,8 +199,7 @@ class _updater:
 			else:
 				self.prev_period = period;
 		elif type(period) == type(lambda n: n*2):
-			if self.enabled:
-				globals.system.setUpdaterPeriodVariable(self.analyzer_name, period);
+			print "***Warning! A period cannot be changed to a variable one";
 		else:
 			print "***Warning! I don't know what to do with a period of type", type(period), "expecting an int or a function";
 
@@ -228,7 +245,7 @@ class sort(_updater):
 		
 		# create the c++ mirror class
 		self.cpp_updater = hoomd.SFCPackUpdater(globals.particle_data, 1.0);
-		globals.system.addUpdater(self.cpp_updater, self.updater_name, 500);
+		self.setupUpdater(500);
 
 	## Change sorter parameters
 	#
@@ -269,6 +286,8 @@ class rescale_temp(_updater):
 	# rescaler = update.rescale_temp(T=0.5)
 	# update.rescale_temp(period=100, T=1.03)
 	# \endcode
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, T, period=1):
 		util.print_status_line();
 	
@@ -277,7 +296,7 @@ class rescale_temp(_updater):
 		
 		# create the c++ mirror class
 		self.cpp_updater = hoomd.TempRescaleUpdater(globals.particle_data, hoomd.TempCompute(globals.particle_data), T);
-		globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
+		self.setupUpdater(period);
 
 	## Change rescale_temp parameters
 	#
@@ -321,6 +340,8 @@ class zero_momentum(_updater):
 	# update.zero_momentum()
 	# zeroer= update.zero_momentum(period=10)
 	# \endcode
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
 	def __init__(self, period=1):
 		util.print_status_line();
 	
@@ -329,7 +350,7 @@ class zero_momentum(_updater):
 		
 		# create the c++ mirror class
 		self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.particle_data);
-		globals.system.addUpdater(self.cpp_updater, self.updater_name, int(period));
+		self.setupUpdater(period);
 
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;
