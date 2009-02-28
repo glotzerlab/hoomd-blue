@@ -78,6 +78,7 @@ class LJForceComputeGPU : public LJForceCompute
 		float2 * h_coeffs;				//!< Pointer to the coefficients on the host
 		int m_block_size;				//!< The block size to run on the GPU
 		bool m_ulf_workaround;			//!< Stores decision made by the constructor whether to enable the ULF workaround
+		bool m_slj;						//!< Stores whether diameter shifted LJ potential is being calculated
 
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);

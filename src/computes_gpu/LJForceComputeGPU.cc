@@ -64,6 +64,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
+	\param slj	 Determines if Diameter Shifted LJ potential is being used
 	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 	\note The LJForceComputeGPU does not own the Neighborlist, the caller should
 		delete the neighborlist when done.
@@ -229,6 +230,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	opt.xplor_fraction = m_xplor_fraction;
 	opt.ulf_workaround = m_ulf_workaround;
 	opt.shift_mode = m_shift_mode;
+	opt.slj = m_slj;
 	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_lj_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), opt));
@@ -249,7 +251,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 void export_LJForceComputeGPU()
 	{
 	class_<LJForceComputeGPU, boost::shared_ptr<LJForceComputeGPU>, bases<LJForceCompute>, boost::noncopyable >
-		("LJForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+		("LJForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >(), bool >())
 		.def("setBlockSize", &LJForceComputeGPU::setBlockSize)
 		;
 	}
