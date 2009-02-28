@@ -97,12 +97,16 @@ class LJForceCompute : public ForceCompute
 		//! Set the mode to use for shifting the energy
 		void setShiftMode(energyShiftMode mode) { m_shift_mode = mode; }
 		
+		//! Set the mode to use for shifting the energy
+		void setSLJ(bool mode) { m_slj = mode; }		
+		
 	protected:
 		boost::shared_ptr<NeighborList> m_nlist;	//!< The neighborlist to use for the computation
 		Scalar m_r_cut;								//!< Cuttoff radius beyond which the force is set to 0
 		unsigned int m_ntypes;						//!< Store the width and height of lj1 and lj2 here
 		energyShiftMode m_shift_mode;				//!< Store the mode with which to handle the energy shift at r_cut
 		Scalar m_xplor_fraction;					//!< Fraction of r_cut at which to turn on the xplor shifting
+		bool m_slj;									//!< Determines whether diameter shifted LJ is being used
 		
 		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
 		// level concepts like mixing. That is for the caller to handle. So, I only store 

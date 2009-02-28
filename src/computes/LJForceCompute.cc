@@ -62,7 +62,7 @@ using namespace std;
 	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 */
 LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0))
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0)), m_slj(false)
 	{
 	assert(m_pdata);
 	assert(m_nlist);
@@ -218,6 +218,8 @@ void LJForceCompute::computeForces(unsigned int timestep)
 		Scalar xi = arrays.x[i];
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
+		Scalar alphai = 0.0;
+		if (m_slj) alphai = arrays.diameter[i]/2.0 - 1.0/2.0;  //Sigma here is being set to 1.0
 		unsigned int typei = arrays.type[i];
 		// sanity check
 		assert(typei < m_pdata->getNTypes());
@@ -250,6 +252,9 @@ void LJForceCompute::computeForces(unsigned int timestep)
 			Scalar dx = xi - arrays.x[k];
 			Scalar dy = yi - arrays.y[k];
 			Scalar dz = zi - arrays.z[k];
+			Scalar alphaj = 0.0;
+			if (m_slj) alphaj = arrays.diameter[k]/2.0 - 1.0/2.0;  //Sigma here is being set to 1.0
+
 			
 			// access the type of the neighbor particle (MEM TRANSFER: 1 scalar
 			unsigned int typej = arrays.type[k];
@@ -278,14 +283,29 @@ void LJForceCompute::computeForces(unsigned int timestep)
 			// start computing the force
 			// calculate r squared (FLOPS: 5)
 			Scalar rsq = dx*dx + dy*dy + dz*dz;
-		
+			
+			// Shift the distance if diameter-shifted LJ force being used
+			Scalar r, radj;
+			if (m_slj) {
+				r = sqrt(rsq);
+				radj = r - alphai -alphaj; 
+				rsq = radj*radj;		// This is now the diameter adjusted potential distance for slj
+				}
+				
 			// only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
 			if (rsq < r_cut_sq)
 				{
 				// compute the force magnitude/r in forcemag_divr (FLOPS: 9)
 				Scalar r2inv = Scalar(1.0)/rsq;
 				Scalar r6inv = r2inv * r2inv * r2inv;
-				Scalar forcemag_divr = r2inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
+				Scalar forcemag_divr; 
+				if (m_slj) {
+					Scalar radj_inv = Scalar(1.0)/radj;
+					Scalar r_inv = Scalar(1.0)/r;
+					forcemag_divr = radj_inv * r_inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
+					}
+				else forcemag_divr= r2inv * r6inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej]);
+				
 				
 				// compute the pair energy (FLOPS: 4)
 				Scalar pair_eng = Scalar(0.5) * r6inv * (lj1_row[typej]*r6inv - lj2_row[typej]);
@@ -319,7 +339,9 @@ void LJForceCompute::computeForces(unsigned int timestep)
 				// compute the virial (FLOPS: 2)
 				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
 				// there is no - in the 1/6 to compensate	
-				Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
+				Scalar pair_virial;
+				if (!m_slj) pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
+				else pair_virial = Scalar(1.0/6.0) * r * r * forcemag_divr;  //rsq has been "adjusted" for diameter, r has not!
 				
 				// add the force, potential energy and virial to the particle i
 				// (FLOPS: 8)
@@ -364,6 +386,8 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	else
 	if (m_shift_mode == xplor)
 		flops += n_calc * 16;
+		
+	//NEED TO ADD AN "if (m_slj)s	
 
 	if (third_law) flops += n_calc * 8;
 	int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);
@@ -378,6 +402,7 @@ void export_LJForceCompute()
 		.def("setParams", &LJForceCompute::setParams)
 		.def("setXplorFraction", &LJForceCompute::setXplorFraction)
 		.def("setShiftMode", &LJForceCompute::setShiftMode)
+		.def("setSLJ", &LJForceCompute::setSLJ)
 		;
 		
 	enum_<LJForceCompute::energyShiftMode>("energyShiftMode")
