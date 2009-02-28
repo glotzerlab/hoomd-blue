@@ -56,7 +56,8 @@ struct lj_options
 	float r_cutsq;			//!< cutoff distance squared
 	int block_size;			//!< block size to execute on
 	float xplor_fraction;	//!< fraction at which xplor smoothing starts
-	bool ulf_workaround;	//!< Set to true to enable the ULF workaroudn
+	bool ulf_workaround;	//!< Set to true to enable the ULF workaround
+	bool slj;	//!< Set to true to enable the ULF workaroudn	
 	unsigned int shift_mode;//!< Shift mode for pair energy
 	};
 

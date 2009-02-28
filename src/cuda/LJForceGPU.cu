@@ -55,6 +55,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
+
+//! Texture for reading particle diameters, only used if in slj mode
+texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
+
 //! Kernel for calculating lj forces
 /*! This kerenel is called to calculate the lennard-jones forces on all N particles
 
@@ -79,7 +83,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 	Each thread will calculate the total force on one particle.
 	The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, float rcut6inv, float xplor_denom_inv, float r_on_sq)
+template<bool ulf_workaround, unsigned int shift_mode, bool slj> __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, float rcut6inv, float xplor_denom_inv, float r_on_sq)
 	{
 	// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
@@ -104,6 +108,12 @@ template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compu
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
 	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+	
+	if (slj == 1) {
+		// read in the diameter of our particle. 
+		// (MEM TRANSFER: 4 bytes)
+		float diam = tex1Dfetch(pdata_diam_tex, idx_global);
+	}
 	
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -134,6 +144,11 @@ template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compu
 		
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+		
+		if (slj == true) {
+			// get the neighbor's diameter (MEM TRANSFER: 4 bytes)
+			float neigh_diam = tex1Dfetch(pdata_diam_tex, cur_neigh);
+			}
 		
 		// calculate dr (with periodic boundary conditions) (FLOPS: 3)
 		float dx = pos.x - neigh_pos.x;
@@ -244,8 +259,17 @@ cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const
 	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
-		
-	// precompue some values
+
+	if (opt.slj == 1) {
+		// bind the texture for the diameter read, even though this is only used if the slj option is turned on.
+		pdata_diam_tex.normalized = false;
+		pdata_diam_tex.filterMode = cudaFilterModePoint;	
+		error = cudaBindTexture(0, pdata_diam_tex, pdata.diameter, sizeof(float) * pdata.N);
+		if (error != cudaSuccess)
+			return error;		
+		}
+			
+	// precompue some values   - note these values will be recomputed in the kernel for opt.slj == 1
 	float rcut2inv = 1.0f / opt.r_cutsq;
 	float rcut6inv = rcut2inv * rcut2inv * rcut2inv;
 	float r_on_sq = opt.xplor_fraction * opt.xplor_fraction * opt.r_cutsq;	
@@ -255,22 +279,40 @@ cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const
 	if (opt.ulf_workaround)
 		{
 		if (opt.shift_mode == 0)
-			gpu_compute_lj_forces_kernel<true, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			if (opt.slj == 1)
+				gpu_compute_lj_forces_kernel<true, 0, true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			else
+				gpu_compute_lj_forces_kernel<true, 0, false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);				
 		else if (opt.shift_mode == 1)
-			gpu_compute_lj_forces_kernel<true, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			if (opt.slj == 1)
+				gpu_compute_lj_forces_kernel<true, 1, true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			else
+				gpu_compute_lj_forces_kernel<true, 1, false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);				
 		else if (opt.shift_mode == 2)
-			gpu_compute_lj_forces_kernel<true, 2><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			if (opt.slj == 1)		
+				gpu_compute_lj_forces_kernel<true, 2, true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			else
+				gpu_compute_lj_forces_kernel<true, 2, false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);			
 		else
 			return cudaErrorUnknown;
 		}
 	else
 		{
 		if (opt.shift_mode == 0)
-			gpu_compute_lj_forces_kernel<false, 0><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			if (opt.slj == 1)
+				gpu_compute_lj_forces_kernel<false, 0, true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			else
+				gpu_compute_lj_forces_kernel<false, 0, false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
 		else if (opt.shift_mode == 1)
-			gpu_compute_lj_forces_kernel<false, 1><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			if (opt.slj == 1)
+				gpu_compute_lj_forces_kernel<false, 1, true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			else
+				gpu_compute_lj_forces_kernel<false, 1, false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
 		else if (opt.shift_mode == 2)
-			gpu_compute_lj_forces_kernel<false, 2><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			if (opt.slj == 1)
+				gpu_compute_lj_forces_kernel<false, 2, true><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);
+			else
+				gpu_compute_lj_forces_kernel<false, 2, false><<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, opt.r_cutsq, rcut6inv, xplor_denom_inv, r_on_sq);				
 		else
 			return cudaErrorUnknown;
 		}
