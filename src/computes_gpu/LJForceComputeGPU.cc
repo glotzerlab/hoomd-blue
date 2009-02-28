@@ -251,7 +251,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 void export_LJForceComputeGPU()
 	{
 	class_<LJForceComputeGPU, boost::shared_ptr<LJForceComputeGPU>, bases<LJForceCompute>, boost::noncopyable >
-		("LJForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >(), bool >())
+		("LJForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
 		.def("setBlockSize", &LJForceComputeGPU::setBlockSize)
 		;
 	}
