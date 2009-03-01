@@ -68,7 +68,7 @@ class LJForceComputeGPU : public LJForceCompute
 		virtual ~LJForceComputeGPU();
 		
 		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2);
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2);	
 		
 		//! Sets the block size to run at
 		void setBlockSize(int block_size);
@@ -78,7 +78,6 @@ class LJForceComputeGPU : public LJForceCompute
 		float2 * h_coeffs;				//!< Pointer to the coefficients on the host
 		int m_block_size;				//!< The block size to run on the GPU
 		bool m_ulf_workaround;			//!< Stores decision made by the constructor whether to enable the ULF workaround
-		bool m_slj;						//!< Stores whether diameter shifted LJ potential is being calculated
 
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);

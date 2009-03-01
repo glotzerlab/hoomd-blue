@@ -119,7 +119,10 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
 	#else
 	m_ulf_workaround = false;
 	#endif
-
+/*
+	if (m_slj) cout << "Notice: Using Diameter-Shifted LJ Pair Potential for LJForceComputeGPU" << endl;
+	else cout << "Diameter-Shifted LJ Pair Potential is NOT set for LJForceComputeGPU" << endl;
+*/	
 	// allocate the coeff data on the GPU
 	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
 	
