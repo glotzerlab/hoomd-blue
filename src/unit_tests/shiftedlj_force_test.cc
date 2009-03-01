@@ -400,7 +400,7 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_particle )
 	shiftedlj_force_particle_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 
-/*
+
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_periodic )
 	{
@@ -430,7 +430,7 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForceMultiGPU_compare )
 	shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
 	shiftedlj_force_comparison_test(shiftedlj_creator_base, shiftedlj_creator_gpu, exec_conf);
 	}
-*/	
+
 #endif
 
 #ifdef WIN32
