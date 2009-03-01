@@ -386,8 +386,9 @@ void LJForceCompute::computeForces(unsigned int timestep)
 	else
 	if (m_shift_mode == xplor)
 		flops += n_calc * 16;
-		
-	//NEED TO ADD AN "if (m_slj)s	
+	
+	if (m_slj) flops += 10;  //At least I count 10 extra calculations, though I am counting a sqrt as only 1 FLOP.
+	
 
 	if (third_law) flops += n_calc * 8;
 	int64_t mem_transfer = m_pdata->getN() * (5+4+10)*sizeof(Scalar) + n_calc * (1+3+1)*sizeof(Scalar);
