@@ -435,7 +435,7 @@ class lj(force._force):
 		# initialize the base class
 		force._force.__init__(self);
 
-        r_cut_wc = r_cut;
+		r_cut_wc = r_cut;
 		
 		# Determine if diameter shifted LJ will be used
 		if slj != None:		
