@@ -169,7 +169,7 @@ template<bool ulf_workaround, unsigned int shift_mode, bool slj> __global__ void
 		float r, radj;
 		if (slj) {
 			r = sqrtf(rsq);
-			radj =  r - (diam/2.0f - neigh_diam/2.0f - 1.0);
+			radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0);
 			rsq = radj*radj;  // This is now a diameter adjusted potential distance for shifted LJ pair potentials
 		}
 		
