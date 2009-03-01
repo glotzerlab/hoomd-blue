@@ -56,11 +56,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "LJForceCompute.h"
-/*
+
 #ifdef ENABLE_CUDA
 #include "LJForceComputeGPU.h"
 #endif
-*/
+
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
 
@@ -110,6 +110,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
 	
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
 	arrays.x[0] = -0.2; 
+	//arrays.x[0] = 0;
 	arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(pow(2.0,1.0/6.0)); arrays.y[1] = arrays.z[1] = 0.0;
 	arrays.x[2] = Scalar(2.0*pow(2.0,1.0/6.0)); arrays.y[2] = arrays.z[2] = 0.0;
@@ -332,6 +333,8 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1, 
 	Scalar alpha = Scalar(0.45);
 	Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
 	Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	fc1->setSLJ(true);
+	fc2->setSLJ(true);
 	
 	// specify the force parameters
 	fc1->setParams(0,0,shiftedlj1,shiftedlj2);
@@ -361,19 +364,19 @@ shared_ptr<LJForceCompute> base_class_shiftedlj_creator(shared_ptr<SystemDefinit
 	return shared_ptr<LJForceCompute>(new LJForceCompute(sysdef, nlist, r_cut));
 	}
 	
-/*	
+	
 #ifdef ENABLE_CUDA
-//! ShiftedLJForceComputeGPU creator for unit tests
-shared_ptr<LJForceCompute> gpu_shiftedlj_creator(shared_ptr<ParticleData> pdata, shared_ptr<NeighborList> nlist, Scalar r_cut)
+//! LJForceComputeGPU creator for unit tests
+shared_ptr<LJForceCompute> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
 	{
 	nlist->setStorageMode(NeighborList::full);
-	shared_ptr<LJForceComputeGPU> shiftedlj(new LJForceComputeGPU(pdata, nlist, r_cut));
+	shared_ptr<LJForceComputeGPU> lj(new LJForceComputeGPU(sysdef, nlist, r_cut));
 	// the default block size kills valgrind :) reduce it
-	shiftedlj->setBlockSize(64);
-	return shiftedlj;
+	lj->setBlockSize(64);
+	return lj;
 	}
 #endif
-*/	
+	
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( ShiftedLJForce_particle )
 	{
@@ -388,7 +391,7 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForce_periodic )
 	shiftedlj_force_periodic_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
-/*	
+	
 # ifdef ENABLE_CUDA
 //! boost test case for particle test on CPU - threaded
 BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_particle )
@@ -397,6 +400,7 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_particle )
 	shiftedlj_force_particle_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
 
+/*
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_periodic )
 	{
@@ -426,8 +430,9 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForceMultiGPU_compare )
 	shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
 	shiftedlj_force_comparison_test(shiftedlj_creator_base, shiftedlj_creator_gpu, exec_conf);
 	}
+*/	
 #endif
-*/
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
