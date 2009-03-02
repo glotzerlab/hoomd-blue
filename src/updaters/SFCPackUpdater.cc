@@ -514,6 +514,15 @@ void SFCPackUpdater::getSortedOrder()
 	// also regenerate the traversal order
 	if (m_lastMmax != Mmax)
 		{
+		if (Mmax > 100)
+			{
+			cout << endl;
+			cout << "***Warning! sorter is about to allocate a very large amount of memory and may crash." << endl;
+			cout << "            Reduce the amount of memory allocated to prevent this by increasing the " << endl;
+			cout << "            bin width (i.e. sorter.set_params(bin_width=3.0) ) or by disabling it " << endl;
+			cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
+			}
+	
 		m_bins.resize(Mmax*Mmax*Mmax);
 
 		// generate the traversal order
@@ -523,7 +532,7 @@ void SFCPackUpdater::getSortedOrder()
 		// we need to start the hilbert curve with a seed order 0,1,2,3,4,5,6,7
 		vector<unsigned int> cell_order(8);
 		for (unsigned int i = 0; i < 8; i++)
-			cell_order[i] = i;	
+			cell_order[i] = i;
 		generateTraversalOrder(0,0,0, Mmax, Mmax, cell_order, m_traversal_order);
 
 		m_lastMmax = Mmax;
