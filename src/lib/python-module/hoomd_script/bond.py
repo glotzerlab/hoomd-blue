@@ -93,8 +93,6 @@ class harmonic(force._force):
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");
 
-		globals.bond_compute = self.cpp_force;
-
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
 		# variable for tracking which bond type coefficients have been set
@@ -185,8 +183,6 @@ class fene(force._force):
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");
-
-		globals.bond_compute = self.cpp_force;
 
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
