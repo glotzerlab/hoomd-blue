@@ -250,7 +250,7 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	int64_t flops = n_calc * (3+12+5+2+2+6+3+2+7);
 	if (m_slj) {	
 		flops += 11;
-		mem_transfer += m_pdata->getN() * (4) + n_calc * (4)
+		mem_transfer += m_pdata->getN() * (4) + n_calc * (4);
 		}
 	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	}
