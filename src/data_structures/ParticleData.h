@@ -65,6 +65,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 typedef float Scalar;
 //! Floating point type with x,y elements (single precision)
 typedef float2 Scalar2;
+//! Floating point type with x,y elements (single precision)
+typedef float3 Scalar3;
 //! Floating point type with x,y,z,w elements (single precision)
 typedef float4 Scalar4;
 #else
@@ -72,6 +74,13 @@ typedef float4 Scalar4;
 typedef double Scalar;
 //! Floating point type with x,y elements (double precision)
 typedef double2 Scalar2;
+//! Floating point type with x,y,z elements
+struct Scalar3
+	{
+	double x;	//!< x component
+	double y;	//!< y component
+	double z;	//!< z component
+	};
 //! Floating point type with x,y,z,w elements (double precision)
 struct Scalar4
 	{
@@ -90,6 +99,16 @@ inline Scalar2 make_scalar2(Scalar x, Scalar y)
 	retval.y = y;
 	return retval;
 	}
+	
+//! make a scalar3 value
+inline Scalar3 make_scalar3(Scalar x, Scalar y, Scalar z)
+	{
+	Scalar3 retval;
+	retval.x = x;
+	retval.y = y;
+	retval.z = z;
+	return retval;
+	}	
 
 //! make a scalar4 value
 inline Scalar4 make_scalar2(Scalar x, Scalar y, Scalar z, Scalar w)
