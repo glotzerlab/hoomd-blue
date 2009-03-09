@@ -59,6 +59,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "time.h"
 
 #include <boost/python.hpp>
+#include <boost/filesystem.hpp>
+using namespace boost::filesystem;
 using namespace boost::python;
 using namespace std;
 
@@ -67,27 +69,6 @@ using namespace std;
 //! File position of NSTEP in DCD header
 #define NSTEP_POS 20L
 
-/*! Constructs the DCDDumpWriter. After construction, settings are set. No file operations are
-	attempted until analyze() is called.
-	
-	\param pdata ParticleData to dump
-	\param fname File name to write DCD data to
-	\param period Period which analyze() is going to be called at
-	
-	\note You must call analyze() with the same period specified in the constructor or
-	the time step inforamtion in the file will be invalid. analyze() will print a warning 
-	if it is called out of sequence.
-*/
-DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<ParticleData> pdata, const std::string &fname, unsigned int period) : Analyzer(pdata), m_fname(fname), m_start_timestep(0), m_period(period), m_num_frames_written(0)
-	{
-	m_staging_buffer = new Scalar[m_pdata->getN()];
-	}
-	
-DCDDumpWriter::~DCDDumpWriter()
-	{
-	delete[] m_staging_buffer;
-	}
-
 //! simple helper function to write an integer
 /*! \param file file to write to
 	\param val integer to write
@@ -95,6 +76,69 @@ DCDDumpWriter::~DCDDumpWriter()
 static void write_int(fstream &file, unsigned int val)
 	{
 	file.write((char *)&val, sizeof(unsigned int));
+	}
+	
+//! simple helper function to read in integer
+/*! \param file file to read from
+	\returns integer read
+*/
+static unsigned int read_int(fstream &file)
+	{
+	unsigned int val;
+	file.read((char *)&val, sizeof(unsigned int));
+	return val;
+	}
+
+/*! Constructs the DCDDumpWriter. After construction, settings are set. No file operations are
+	attempted until analyze() is called.
+	
+	\param pdata ParticleData to dump
+	\param fname File name to write DCD data to
+	\param period Period which analyze() is going to be called at
+	\param overwrite If false, existing files will be appended to. If true, existing files will be overwritten.
+	
+	\note You must call analyze() with the same period specified in the constructor or
+	the time step inforamtion in the file will be invalid. analyze() will print a warning 
+	if it is called out of sequence.
+*/
+DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<ParticleData> pdata, const std::string &fname, unsigned int period, bool overwrite) : Analyzer(pdata), m_fname(fname), m_start_timestep(0), m_period(period), m_num_frames_written(0), m_last_written_step(0), m_appending(false)
+	{
+	// handle appending to an existing file if it is requested
+	if (!overwrite && exists(fname))
+		{
+		cout << "Notice: Appending to existing DCD file \"" << fname << "\"" << endl;
+				
+		// open the file and get data from the header
+		fstream file;
+		file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
+		file.seekp(NFILE_POS);
+		
+		m_num_frames_written = read_int(file);
+		m_start_timestep = read_int(file);
+		unsigned int file_period = read_int(file);
+		
+		// warn the user if we are now dumping at a different period
+		if (file_period != m_period)
+			cout << "***Warning! DCDDumpWriter is appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
+		
+		m_last_written_step = read_int(file);
+		
+		// check for errors
+		if (!file.good())
+			{
+			cerr << endl << "***Error! Error reading DCD header data" << endl << endl;
+			throw runtime_error("Error appending to DCD file");
+			}
+			
+		m_appending = true;
+		}
+	
+	m_staging_buffer = new Scalar[m_pdata->getN()];
+	}
+	
+DCDDumpWriter::~DCDDumpWriter()
+	{
+	delete[] m_staging_buffer;
 	}
 
 /*! \param timestep Current time step of the simulation
@@ -119,6 +163,12 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 		}
 	else
 		{
+		if (m_appending && timestep <= m_last_written_step)
+			{
+			cout << "***Warning! DCDDumpWriter is not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
+			return;
+			}
+		
 		// open the file and move the file pointer to the end
 		file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
 		
@@ -289,7 +339,7 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
 void export_DCDDumpWriter()
 	{
 	class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-		("DCDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string, unsigned int>())
+		("DCDDumpWriter", init< boost::shared_ptr<ParticleData>, std::string, unsigned int, bool>())
 		;
 	}	
 
