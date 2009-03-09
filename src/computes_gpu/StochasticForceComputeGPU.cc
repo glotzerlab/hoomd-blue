@@ -68,8 +68,8 @@ using namespace std;
 	\param deltaT Length of the computation timestep
 	\param seed	Seed for initializing the RNG
 */
-StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)
-	: StochasticForceCompute(sysdef, deltaT, Temp, seed)
+StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)
+	: StochasticForceCompute(sysdef, deltaT, Temp, seed, use_diam)
 	{
 	// default block size is the highest performance in testing on different hardware
 	// choose based on compute capability of the device
@@ -94,33 +94,37 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<SystemDef
 		
 	// allocate the gamma data on the GPU
 	int nbytes = sizeof(float)*m_pdata->getNTypes();
-	// allocate the coeff data on the CPU
-	h_gammas = new float[m_pdata->getNTypes()];
-	//All gamma coefficients initialized to 1.0
-	for (unsigned int j = 0; j < m_pdata->getNTypes(); j++) h_gammas[j] = 1.0;  
-	d_gammas.resize(exec_conf.gpu.size());
 	
-	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_gammas[cur_gpu]), nbytes));
-		assert(d_gammas[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void **)(void *) d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
+	if (!m_use_diam) {
+		// allocate the coeff data on the CPU
+		h_gammas = new float[m_pdata->getNTypes()];
+		//All gamma coefficients initialized to 1.0
+		for (unsigned int j = 0; j < m_pdata->getNTypes(); j++) h_gammas[j] = 1.0;  
+		d_gammas.resize(exec_conf.gpu.size());
+	
+		exec_conf.tagAll(__FILE__, __LINE__);
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_gammas[cur_gpu]), nbytes));
+			assert(d_gammas[cur_gpu]);
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void **)(void *) d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
+			}
 		}
-
 	}
 	
 
 StochasticForceComputeGPU::~StochasticForceComputeGPU()
 	{
 	// deallocate our memory
-	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		assert(d_gammas[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_gammas[cur_gpu]));
+	if (!m_use_diam) {
+		exec_conf.tagAll(__FILE__, __LINE__);
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			{
+			assert(d_gammas[cur_gpu]);
+			exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_gammas[cur_gpu]));
+			}
+		delete[] h_gammas;
 		}
-	delete[] h_gammas;
 	}	
 		
 /*! \param block_size Size of the block to run on the device
@@ -141,21 +145,24 @@ void StochasticForceComputeGPU::setBlockSize(int block_size)
 */
 void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 	{
-	assert(h_gammas);
-	if (typ >= m_ntypes)
-		{
-		cerr << endl << "***Error! Trying to set Stochastic Force param Gamma for a non existant type! " << typ << endl << endl;
-		throw runtime_error("StochasticForceComputeGpu::setParams argument error");
+	if (!m_use_diam) {
+		assert(h_gammas);
+		if (typ >= m_ntypes)
+			{
+			cerr << endl << "***Error! Trying to set Stochastic Force param Gamma for a non existant type! " << typ << endl << endl;
+			throw runtime_error("StochasticForceComputeGpu::setParams argument error");
+			}
+	
+		// set gamma coeffs 
+		h_gammas[typ] = gamma;
+		
+		int nbytes = sizeof(float)*m_pdata->getNTypes();
+	
+		exec_conf.tagAll(__FILE__, __LINE__);
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
 		}
-	
-	// set gamma coeffs 
-	h_gammas[typ] = gamma;
-	
-	int nbytes = sizeof(float)*m_pdata->getNTypes();
-	
-	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
+	else cerr << endl << "***Error! Trying to set Stochastic Force param Gamma while using Diameter as Gamma!" << endl << endl;	
 	}
 
 /*! \post The Temeperature of the Stochastic Bath \a T
@@ -208,11 +215,19 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	// access the particle data
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
 	
-	// call the kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
-
+	
+	if (!m_use_diam) {
+		// call the kernel on all GPUs in parallel
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
+        }
+	if (m_use_diam) {
+		// call the kernel on all GPUs in parallel
+		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces_diam, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T, m_seed, timestep, m_block_size));
+        }
+				
 	exec_conf.syncAll();
 	
 	m_pdata->release();

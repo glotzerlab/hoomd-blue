@@ -362,14 +362,15 @@ class bdnvt(_integrator):
 	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
 	# \param seed Random seed to use for the run. Otherwise identical simulations with different seeds set will follow 
 	# different trajectories.
+	# \param use_diam If this is set to 1, then the diameter of each particle will be used as gamma.
 	#
 	# \b Examples:
 	# \code
 	# integrate.bdnvt(dt=0.005, T=1.0, seed=5)
 	# integrator = integrate.bdnvt(dt=5e-3, T=1.0, seed=100)
-	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01)
+	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01, use_diam=1)
 	# \endcode
-	def __init__(self, dt, T, limit=None, seed=0):
+	def __init__(self, dt, T, limit=None, seed=0, use_diam=0):
 		util.print_status_line();
 		
 		# initialize base class
@@ -377,9 +378,9 @@ class bdnvt(_integrator):
 		
 		# initialize the reflected c++ class
 		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.system_definition, dt, T, seed);
+			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.system_definition, dt, T, seed, use_diam);
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.system_definition, dt, T, seed);
+			self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.system_definition, dt, T, seed, use_diam);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating BD NVT integrator");

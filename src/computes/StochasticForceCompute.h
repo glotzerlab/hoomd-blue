@@ -59,7 +59,7 @@ class StochasticForceCompute :	public ForceCompute
 	{
 	public:
 		//! Constructor
-		StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed);
+		StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam);
 
 		//! Destructor
 		~StochasticForceCompute();
@@ -85,6 +85,7 @@ class StochasticForceCompute :	public ForceCompute
 		unsigned int m_seed; //!< initializing seed for RNG
 		unsigned int m_ntypes; //!< Store the number of particle types
 		Scalar * __restrict__ m_gamma;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		bool m_use_diam; //!< This flag indicates whether gammas will be set by the type, or automatically set to the diameter
 		boost::shared_ptr<Saru> m_saru; //!< Store the instantiation of the Saru Random Number Geneator Class
 	};
 

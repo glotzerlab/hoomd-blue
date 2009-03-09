@@ -68,17 +68,17 @@ using namespace std;
 	\param Temp Temperature to set
 	\param seed Random seed to use for the random force compuataion
 */
-BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed) : NVEUpdater(sysdef, deltaT), m_T(Temp), m_seed(seed), m_bath(false)
+BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam) : NVEUpdater(sysdef, deltaT), m_T(Temp), m_seed(seed), m_bath(false), m_use_diam(use_diam)
 	{
 	#ifdef ENABLE_CUDA
 	// check the execution configuration
 	if (exec_conf.exec_mode == ExecutionConfiguration::CPU )
-		m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed));  
+		m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));  
 	else
-		m_bdfc =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_sysdef, m_deltaT, m_T, m_seed));
+		m_bdfc =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));
 	
 	#else
-	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed));  
+	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));  
 	#endif    
 	
 	addStochasticBath();
@@ -138,7 +138,7 @@ void BD_NVTUpdater::update(unsigned int timestep)
 void export_BD_NVTUpdater()
 	{
 	class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<NVEUpdater>, boost::noncopyable>
-		("BD_NVTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, unsigned int >())
+		("BD_NVTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, unsigned int, bool >())
 		.def("setGamma", &BD_NVTUpdater::setGamma)
 		.def("setT", &BD_NVTUpdater::setT)
 		;

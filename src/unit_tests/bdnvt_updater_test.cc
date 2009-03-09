@@ -88,7 +88,7 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)> bdnvtup_creator;
+typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)> bdnvtup_creator;
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
@@ -125,7 +125,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 	cout << "Creating an ideal gas of 1000 particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 		
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT, Temp, 123);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT, Temp, 123, 0);
 
     int i;
 	Scalar AvgT = Scalar(0);
@@ -256,6 +256,120 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
 	pdata->release();
    }
+ 
+   //! Apply the Stochastic BD Bath to 1000 particles ideal gas with gamma set by diameters
+void bd_updater_diamtests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
+	{
+	
+	cout << endl << "Test 2" << endl;
+	cout << "Test setting diameter" << endl;	
+	#ifdef CUDA
+	g_gpu_error_checking = true;
+	#endif
+	
+	// check that a Brownian Dynamics integrator results in a correct diffusion coefficient
+	// and correct average temperature.  Change the temperature and diameters and show this produces 
+	// a correct temperature and diffuction coefficent  
+	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
+	//also put everything in a huge box so boundary conditions don't come into play
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	ParticleDataArrays arrays = pdata->acquireReadWrite();
+	
+	// setup a simple initial state
+	for (int j = 0; j < 1000; j++) {
+		arrays.x[j] = 0.0;
+		arrays.y[j] = 0.0;
+		arrays.z[j] = 0.0;
+		arrays.vx[j] = 0.0;
+		arrays.vy[j] = 0.0;
+		arrays.vz[j] = 0.0;
+	}
+	
+	pdata->release();
+	
+	Scalar deltaT = Scalar(0.01);
+	Scalar Temp = Scalar(1.0);
+	cout << "Temperature set at " << Temp << endl;
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT, Temp, 123, 1);
+
+	Scalar AvgT = Scalar(0);
+	int i;
+	Scalar KE;
+	for (i = 0; i < 50000; i++)
+		{
+		if (i % 100 == 0) {
+			arrays = pdata->acquireReadWrite();
+			KE = Scalar(0);
+			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			// mass = 1.0;  k = 1.0;
+			AvgT += Scalar(2.0)*KE/(3*1000);
+			pdata->release();
+			}
+			
+		bdnvt_up->update(i);
+		}
+	AvgT /= Scalar(50000.0/100.0);
+		
+	arrays = pdata->acquireReadWrite();
+	Scalar MSD = Scalar(0);
+	Scalar t = Scalar(i) * deltaT;
+
+	for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+	Scalar D = MSD/(6*t*1000);
+
+	cout << "Calculating Diffusion Coefficient " << D << endl;
+	cout << "Average Temperature " << AvgT << endl;
+
+	//Dividing a very large number by a very large number... not great accuracy!
+    MY_BOOST_CHECK_CLOSE(D, 1.0, 5);
+	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
+	pdata->release();
+
+    // Setting Diameters to 0.5
+	cout << "Diameters set at 0.5" << endl;
+	arrays = pdata->acquireReadWrite();
+	for (int j = 0; j < 1000; j++) {
+		arrays.diameter[j] = 0.5;
+	}	
+	//Restoring the position of the particles to the origin for simplicity of calculating diffusion
+	for (int j = 0; j < 1000; j++) {
+		arrays.x[j] = 0.0;
+		arrays.y[j] = 0.0;
+		arrays.z[j] = 0.0;
+	}
+	pdata->release();
+
+	AvgT = Scalar(0);
+	for (i = 0; i < 50000; i++)
+		{
+		if (i % 100 == 0) {
+			arrays = pdata->acquireReadWrite();
+			KE = Scalar(0);
+			for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			// mass = 1.0;  k = 1.0;
+			AvgT += Scalar(2.0)*KE/(3*1000);
+			pdata->release();
+			}
+		bdnvt_up->update(i);
+		}
+	AvgT /= Scalar(50000.0/100.0);
+		
+	arrays = pdata->acquireReadWrite();
+	MSD = Scalar(0);
+	t = Scalar(i) * deltaT;
+
+	for (int j = 0; j < 1000; j++) MSD += (arrays.x[j]*arrays.x[j] + arrays.y[j]*arrays.y[j] + arrays.z[j]*arrays.z[j]);
+	D = MSD/(6*t*1000);
+
+	cout << "Calculating Diffusion Coefficient " << D << endl;
+	cout << "Average Temperature " << AvgT << endl;
+
+	//Dividing a very large number by a very large number... not great accuracy!
+    MY_BOOST_CHECK_CLOSE(D, 2.0, 5);
+	MY_BOOST_CHECK_CLOSE(AvgT, 1.0, 1);
+	pdata->release();
+   }  
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
@@ -290,11 +404,11 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
 	Scalar Temp = Scalar(1.0);
 
 
-	cout << endl << "Test 2" << endl;	
+	cout << endl << "Test 3" << endl;	
 	cout << "Creating an ideal gas of 1000 particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 		
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT, Temp, 268);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT, Temp, 268, 0);
 
     int i;
 	Scalar AvgT = Scalar(0);
@@ -368,11 +482,11 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 	
 	Scalar deltaT = Scalar(0.01);
 	Scalar Temp = Scalar(2.0);
-	cout << endl << "Test 3" << endl;
+	cout << endl << "Test 4" << endl;
 	cout << "Creating 1000 LJ particles" << endl;
 	cout << "Temperature set at " << Temp << endl;
 	
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT,Temp, 358);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdnvt_creator(sysdef, deltaT,Temp, 358, 0);
 
 	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
 	shared_ptr<LJForceCompute> fc3(new LJForceCompute(sysdef, nlist, Scalar(1.3)));
@@ -442,37 +556,44 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 
 	
 //! BD_NVTUpdater factory for the unit tests
-shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)
+shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)
 	{
-	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(sysdef, deltaT, Temp, seed));
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(sysdef, deltaT, Temp, seed, use_diam));
 	}
 
 #ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
-shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)
+shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)
 	{
-	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(sysdef, deltaT, Temp, seed));
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(sysdef, deltaT, Temp, seed, use_diam));
 	}
 #endif
 
 //! Basic test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
-	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
 	bd_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	}
+
+//! Diameter test for the base class
+BOOST_AUTO_TEST_CASE( BDUpdater_diamtests )
+	{
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
+	bd_updater_diamtests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 //! two particle test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
 	{
-	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
 	bd_twoparticles_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 //! extended LJ-liquid test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	{
-	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4);
+	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
 	bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
@@ -480,21 +601,28 @@ BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 //! Basic test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 	{
-	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
+	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
 	bd_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	}
+
+//! Diameter Setting test for the GPU class
+BOOST_AUTO_TEST_CASE( BDUpdaterGPU_diamtests )
+	{
+	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
+	bd_updater_diamtests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 	
 //! two particle test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_twoparticles_tests )
 	{
-	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
+	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
 	bd_twoparticles_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 	
 //! extended LJ-liquid test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 	{
-	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
+	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
 	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 #endif

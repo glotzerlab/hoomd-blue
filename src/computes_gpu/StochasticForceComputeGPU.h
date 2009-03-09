@@ -64,7 +64,7 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 	{
 	public:
 		//! Constructs the compute
-		StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed);
+		StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam);
 		
 		//! Destructor
 		virtual ~StochasticForceComputeGPU();

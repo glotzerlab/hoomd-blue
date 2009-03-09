@@ -64,8 +64,8 @@ using namespace std;
 	\param deltaT Length of the computation timestep
 	\param seed	Seed for initializing the RNG
 */
-StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed):
-ForceCompute(sysdef), m_T(Temp), m_dt(deltaT), m_seed(seed)
+StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam):
+ForceCompute(sysdef), m_T(Temp), m_dt(deltaT), m_seed(seed), m_use_diam(use_diam)
 	{
 	if (m_T <= 0.0)
 		{
@@ -77,26 +77,28 @@ ForceCompute(sysdef), m_T(Temp), m_dt(deltaT), m_seed(seed)
 	m_ntypes = m_pdata->getNTypes();
 	assert(m_ntypes > 0);
 	
-	// allocate memory for friction coefficients
-	m_gamma = new Scalar[m_ntypes]; 
+	if (!m_use_diam) {
+		// allocate memory for friction coefficients
+		m_gamma = new Scalar[m_ntypes]; 
 	
-	// sanity check
-	assert(m_gamma != NULL);
+		// sanity check
+		assert(m_gamma != NULL);
 	
-	// initialize the parameters to 1;
-	//memset((void *)m_gamma, Scalar(1),sizeof(Scalar)*m_ntypes);
-	for (unsigned int i = 0; i < m_ntypes; i++) m_gamma[i] = Scalar(1.0);
-
+		// initialize the parameters to 1;
+		//memset((void *)m_gamma, Scalar(1),sizeof(Scalar)*m_ntypes);
+		for (unsigned int i = 0; i < m_ntypes; i++) m_gamma[i] = Scalar(1.0);
+        }
+		
     // seed the RNG
 	//srand(seed);
-    m_saru = boost::shared_ptr<Saru>(new Saru(seed));
+    m_saru = boost::shared_ptr<Saru>(new Saru(seed)); 
 	}
 
 /*! Frees used memory
 */
 StochasticForceCompute::~StochasticForceCompute()
 	{
-	delete[] m_gamma;
+	if (!m_use_diam) delete[] m_gamma;
 	m_gamma = NULL;
 	}
 
@@ -109,6 +111,11 @@ StochasticForceCompute::~StochasticForceCompute()
 */
 void StochasticForceCompute::setParams(unsigned int typ, Scalar gamma)
 	{
+	if (m_use_diam) 
+		{
+		cerr << endl << "***Error! Trying to set gamma params while using diameter for gamma! " << typ << endl << endl;
+		throw runtime_error("Error setting params in StochasticForceCompute");
+		}
 	if (typ >= m_pdata->getNTypes())
 		{
 		cerr << endl << "***Error! Trying to set gamma params for a non existant type! " << typ << endl << endl;
@@ -163,12 +170,20 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 			
 	    // Calculate the coefficient  (How do I get dt?? - The World's most klugey method, the integrator must pass this along)
 		// Note, this formulation assumes a unit value for the boltzmann constant, kb
-		Scalar coeff_fric = sqrt(Scalar(6.0)*m_gamma[type]*m_T/m_dt);
-			
-		m_fx[i] = rx*coeff_fric - m_gamma[type]*vx;
-		m_fy[i] = ry*coeff_fric - m_gamma[type]*vy;
-		m_fz[i] = rz*coeff_fric - m_gamma[type]*vz;
+		if (m_use_diam) {
+			Scalar coeff_fric = sqrt(Scalar(6.0)*particles.diameter[i]*m_T/m_dt);				
+			m_fx[i] = rx*coeff_fric - particles.diameter[i]*vx;
+			m_fy[i] = ry*coeff_fric - particles.diameter[i]*vy;
+			m_fz[i] = rz*coeff_fric - particles.diameter[i]*vz;
+			}
+		else { 
+			Scalar coeff_fric = sqrt(Scalar(6.0)*m_gamma[type]*m_T/m_dt);				
+			m_fx[i] = rx*coeff_fric - m_gamma[type]*vx;
+			m_fy[i] = ry*coeff_fric - m_gamma[type]*vy;
+			m_fz[i] = rz*coeff_fric - m_gamma[type]*vz;
+		}	
 		m_pe[i] = pe;
+			
 		}
 	
 	#ifdef ENABLE_CUDA

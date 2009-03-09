@@ -186,15 +186,26 @@ shared_ptr<ForceCompute> init_force_compute(const string& fc_name, shared_ptr<Sy
 
 	// handle creation of the various stochastic force computes
 	if (fc_name == "SF")
-		result = shared_ptr<ForceCompute>(new StochasticForceCompute(sysdef, Scalar(0.005), Scalar(1.0), 0));
+		result = shared_ptr<ForceCompute>(new StochasticForceCompute(sysdef, Scalar(0.005), Scalar(1.0), 0, 0));
 	#ifdef ENABLE_CUDA
 	if (fc_name == "SF.GPU")
 		{
-		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(sysdef, Scalar(0.005), Scalar(1.0), 0));
+		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(sysdef, Scalar(0.005), Scalar(1.0), 0, 0));
 		tmp->setBlockSize(block_size);
 		result = tmp;
 		}
 	#endif	
+
+	if (fc_name == "SFD")
+		result = shared_ptr<ForceCompute>(new StochasticForceCompute(sysdef, Scalar(0.005), Scalar(1.0), 0, 1));
+	#ifdef ENABLE_CUDA
+	if (fc_name == "SFD.GPU")
+		{
+		shared_ptr<StochasticForceComputeGPU> tmp = shared_ptr<StochasticForceComputeGPU>(new StochasticForceComputeGPU(sysdef, Scalar(0.005), Scalar(1.0), 0, 0));
+		tmp->setBlockSize(block_size);
+		result = tmp;
+		}
+	#endif		
 	
 	// handle creation of the yukawa force compute
 	if (fc_name == "Yukawa")
