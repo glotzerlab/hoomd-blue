@@ -76,7 +76,9 @@ class _updater:
 		self.updater_name = "updater%d" % (id);
 		self.enabled = True;
 		
-	## Helper function to setup updater period
+	## \internal
+	# 
+	# \brief Helper function to setup updater period
 	#
 	# \param period An integer or callable function period
 	#

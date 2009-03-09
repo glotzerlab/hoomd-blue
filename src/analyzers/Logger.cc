@@ -51,7 +51,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Logger.h"
 
 #include <boost/python.hpp>
+#include <boost/filesystem.hpp>
 using namespace boost::python;
+using namespace boost::filesystem;
 
 #include <stdexcept>
 #include <iomanip>
@@ -60,13 +62,26 @@ using namespace std;
 /*! \param pdata Specified for Analyzer, but not used directly by Logger
 	\param fname File name to write the log to
 	\param header_prefix String to write before the header
+	\param overwrite Will overwite an exiting file if true (default is to append)
 	
 	Constructing a logger will open the file \a fname, overwriting it if it exists.
 */
-Logger::Logger(boost::shared_ptr<ParticleData> pdata, const std::string& fname, const std::string& header_prefix)
-	: Analyzer(pdata), m_delimiter("\t"), m_header_prefix(header_prefix), m_file(fname.c_str())
+Logger::Logger(boost::shared_ptr<ParticleData> pdata, const std::string& fname, const std::string& header_prefix, bool overwrite)
+	: Analyzer(pdata), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false)
 	{
 	// open the file
+	if (exists(fname) && !overwrite)
+		{
+		cout << "Notice: Appending log to existing file \"" << fname << "\"" << endl;
+		m_file.open(fname.c_str(), ios_base::in | ios_base::out | ios_base::ate);
+		m_appending = true;
+		}
+	else
+		{
+		cout << "Notice: Creating new log in file \"" << fname << "\"" << endl;
+		m_file.open(fname.c_str(), ios_base::out);
+		}
+		
 	if (!m_file.good())
 		{
 		cerr << endl << "***Error! Error opening log file " << fname << endl << endl;
@@ -134,11 +149,15 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 	{
 	m_logged_quantities = quantities;
 	
-	// write out the header prefix
-	m_file << m_header_prefix;
-	
-	// timestep is always output
-	m_file << "timestep";
+	// only write the header if this is a new file
+	if (!m_appending)
+		{
+		// write out the header prefix
+		m_file << m_header_prefix;
+		
+		// timestep is always output
+		m_file << "timestep";
+		}
 	
 	if (quantities.size() == 0)
 		{
@@ -146,15 +165,19 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 		return;
 		}
 	
-	// only print the delimiter after the timestep if there are more quantities logged
-	m_file << m_delimiter;
+	// only write the header if this is a new file
+	if (!m_appending)
+		{	
+		// only print the delimiter after the timestep if there are more quantities logged
+		m_file << m_delimiter;
 	
-	// write all but the last of the quantities separated by the delimiter
-	for (unsigned int i = 0; i < quantities.size()-1; i++)
-		m_file << quantities[i] << m_delimiter;
-	// write the last one with no delimiter after it
-	m_file << quantities[quantities.size()-1] << endl;
-	m_file.flush();
+		// write all but the last of the quantities separated by the delimiter
+		for (unsigned int i = 0; i < quantities.size()-1; i++)
+			m_file << quantities[i] << m_delimiter;
+		// write the last one with no delimiter after it
+		m_file << quantities[quantities.size()-1] << endl;
+		m_file.flush();
+		}
 	}
 		
 		
@@ -237,7 +260,7 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
 void export_Logger()
 	{
 	class_<Logger, boost::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>
-		("Logger", init< boost::shared_ptr<ParticleData>, const std::string&, const std::string& >())
+		("Logger", init< boost::shared_ptr<ParticleData>, const std::string&, const std::string&, bool >())
 		.def("registerCompute", &Logger::registerCompute)
 		.def("registerUpdater", &Logger::registerUpdater)
 		.def("removeAll", &Logger::removeAll)

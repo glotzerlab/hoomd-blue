@@ -128,7 +128,8 @@ class _analyzer:
 		self.analyzer_name = "analyzer%d" % (id);
 		self.enabled = True;
 
-	## Helper function to setup analyzer period
+	## \internal
+	# \brief Helper function to setup analyzer period
 	#
 	# \param period An integer or callable function period
 	#
@@ -333,6 +334,8 @@ class log(_analyzer):
 	# \param quantities List of quantities to log
 	# \param period Quantities are logged every \a period time steps
 	# \param header_prefix (optional) Specify a string to print before the header
+	# \param overwrite When False (the default) an existing log will be appended to. 
+	#                  If True, an existing log file will be overwritten instead.
 	#
 	# \b Examples:
 	# \code
@@ -347,6 +350,8 @@ class log(_analyzer):
 	#
 	# analyze.log(filename='mylog.log', quantities=['bond_harmonic_energy'], 
 	#             period=10, header_prefix='Log of harmonic energy, run 5\n')
+	# logger = analyze.log(filename='mylog.log', period=100,
+	#                      quantities=['pair_lj_energy'], overwrite=True)	
 	# \endcode
 	#
 	# By default, columns in the log file are separated by tabs, suitable for importing as a 
@@ -358,15 +363,19 @@ class log(_analyzer):
 	# automatically. Another use-case would be to specify a descriptive line containing
 	# details of the current run. Examples of each of these cases are given above.
 	#
+	# \warning When an existing log is appended to, the header is not printed. For the log to 
+	# remain consistent with the header already in the file, you must specify the same quantities
+	# to log and in the same order for all runs of hoomd that append to the same log.
+	#
 	# \a period can be a function: see \ref variable_period_docs for details
-	def __init__(self, filename, quantities, period, header_prefix=''):
+	def __init__(self, filename, quantities, period, header_prefix='', overwrite=False):
 		util.print_status_line();
 		
 		# initialize base class
 		_analyzer.__init__(self);
 		
 		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.Logger(globals.particle_data, filename, header_prefix);
+		self.cpp_analyzer = hoomd.Logger(globals.particle_data, filename, header_prefix, overwrite);
 		self.setupAnalyzer(period);
 		
 		# set the logged quantities
