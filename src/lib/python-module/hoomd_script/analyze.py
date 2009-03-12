@@ -313,7 +313,7 @@ class imd(_analyzer):
 # - \b pressure - Pressure of the system
 # - \b kinetic_energy - Total kinetic energy of the system
 # - \b potential_energy - Total potential energy of the system
-# - \b momentum - Magnitude of the total system momentum
+# - \b momentum - Magnitude of the average momentum of all particles
 # - \b conserved_quantity - Conserved quantity for the current integrator (the actual definition of this value
 # depends on which integrator is being used in the current run()
 # - \b time - Wall-clock running time from the start of the log in seconds
@@ -321,6 +321,7 @@ class imd(_analyzer):
 # The following quantities are only available of certain forces have been specified (as noted in the 
 # parantheses)
 # - \b pair_lj_energy (pair.lj) - Total Lennard-Jones potential energy
+# - \b pair_gauss_energy (pair.gauss) - Total Gaussian potential energy
 # - \b bond_fene_energy (bond.fene) - Total fene bond potential energy
 # - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy

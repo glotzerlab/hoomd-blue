@@ -184,6 +184,7 @@ void Integrator::setDeltaT(Scalar deltaT)
 		- pressure
 		- kinetic_energy
 		- potential_energy
+		- momentum
 		- conserved_quantity
 			 
 	See Logger for more information on what this is about.
@@ -402,7 +403,7 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 		p_tot_z += (double)arrays.mass[i]*(double)arrays.vz[i];
 		}
 
-	double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z);
+	double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getN());
 	
 	// done!
 	m_pdata->release();	
