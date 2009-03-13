@@ -65,10 +65,10 @@ dump.dcd(filename="dump.dcd", period=200000);
 analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'pair_lj_energy'], period=1000)
 
 # calculate and log msd
-groupA = group_type('A')
-groupB = group_type('B')
-groupC = group_type('C')
-groupD = group_type('D')
+groupA = group.type('A')
+groupB = group.type('B')
+groupC = group.type('C')
+groupD = group.type('D')
 analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=10000)
 
 # run for a a couple hours

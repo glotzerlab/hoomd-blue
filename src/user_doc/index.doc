@@ -24,6 +24,9 @@ following the instructions in \ref page_compile_guide.
 Click on an individual command in the list to go to its documentation. Click on the package link at the beginning of each list 
 to get a general overview of all commands in that package.
 
+Commands controlling the running of simulations:
+ - \link hoomd_script.run() run\endlink - <i>\copybrief hoomd_script::run() </i>
+
 Initialization commands (\link hoomd_script.init init\endlink):
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
@@ -67,9 +70,9 @@ File output for offline analysis (\link hoomd_script.dump dump\endlink):
  - \link hoomd_script.dump.pdb dump.pdb\endlink - <i>\copybrief hoomd_script::dump::pdb </i>
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>\copybrief hoomd_script::dump::xml </i>
 
-Define groups of particles:
- - \link hoomd_script.group_all() group_all\endlink - <i>\copybrief hoomd_script::group_all </i>
- - \link hoomd_script.group_tags() group_tags\endlink - <i>\copybrief hoomd_script::group_tags </i>
- - \link hoomd_script.group_type() group_type\endlink - <i>\copybrief hoomd_script::group_type </i>
+Define groups of particles (group):
+ - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
+ - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
+ - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
 
 */

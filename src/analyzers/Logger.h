@@ -80,7 +80,7 @@ class Logger : public Analyzer
 	{
 	public:
 		//! Constructs a logger and opens the file
-		Logger(boost::shared_ptr<SystemDefinition> sysdef, const std::string& fname, const std::string& header_prefix="");
+		Logger(boost::shared_ptr<SystemDefinition> sysdef, const std::string& fname, const std::string& header_prefix="", bool overwrite=false);
 		
 		//! Registers a compute
 		void registerCompute(boost::shared_ptr<Compute> compute);
@@ -105,6 +105,8 @@ class Logger : public Analyzer
 		std::string m_delimiter;
 		//! The prefix written at the beginning of the header line
 		std::string m_header_prefix;
+		//! Flag indicating this file is being appended to
+		bool m_appending;
 		//! The file we write out to
 		std::ofstream m_file;
 		//! A map of computes indexed by logged quantity that they provide

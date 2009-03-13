@@ -94,7 +94,7 @@ std::vector< std::string > NVTUpdater::getProvidedLogQuantities()
 	
 	Working out the math on paper starting from eq. 11 in "The Nose-Poincare Method for Constant Temperature 
 	Molecular Dynamics" yields the conserved quantity:
-	\f[ E_{\mathrm{ext}} = E + gkT \left( \frac{\xi^2\tau^2}{2} + \eta \right) \f]
+	\f[ E_{\mathrm{ext}} = E + gkT_0 \left( \frac{\xi^2\tau^2}{2} + \eta \right) \f]
 	
 	All other quantity requests are passed up to Integrator::getLogValue().
 */
@@ -104,7 +104,7 @@ Scalar NVTUpdater::getLogValue(const std::string& quantity, unsigned int timeste
 		{
 		Scalar g = Scalar(3*m_pdata->getN());
 		return computeKineticEnergy(timestep) + computePotentialEnergy(timestep) + 
-			g * m_curr_T * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
+			g * m_T * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
 		}
 	else if (quantity == string("temperature"))
 		{

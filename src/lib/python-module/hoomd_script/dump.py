@@ -272,6 +272,7 @@ class dcd(analyze._analyzer):
 	#
 	# \param filename File name to write to
 	# \param period Number of time steps between file dumps
+	# \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD file \a filename will be overwritten.
 	# 
 	# \b Examples:
 	# \code
@@ -279,8 +280,13 @@ class dcd(analyze._analyzer):
 	# dcd = dump.dcd(filename"data/dump.dcd", period=1000)
 	# \endcode
 	#
+	# \warning 
+	# When you use dump.dcd to append to an existing dcd file
+	# - The period must be the same or the time data in the file will not be consistent.
+	# - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a consistent timeline
+	#
 	# \a period can be a function: see \ref variable_period_docs for details
-	def __init__(self, filename, period):
+	def __init__(self, filename, period, overwrite=False):
 		util.print_status_line();
 		
 		# initialize base class
@@ -291,7 +297,7 @@ class dcd(analyze._analyzer):
 		if type(period) != type(1):
 			reported_period = 1000;
 			
-		self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period));
+		self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), overwrite);
 		self.setupAnalyzer(period);
 	
 	def enable(self):

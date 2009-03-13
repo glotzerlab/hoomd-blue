@@ -85,12 +85,12 @@ _options = {};
 # .... setup and run simulation
 # \endcode
 def reset():
-	if globals.particle_data == None:
+	if globals.system_definition == None:
 		print "\n***Warning! Trying to reset an uninitialized system";
 		return;
 
 	# perform some reference counting magic to verify that the user has cleared all saved variables
-	pdata = globals.particle_data;
+	sysdef = globals.system_definition;
 	globals._clear();
 	
 	gc.collect();
