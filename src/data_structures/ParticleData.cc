@@ -64,6 +64,7 @@ using namespace boost::python;
 #include "Profiler.h"
 #include "WallData.h"
 #include "BondData.h"
+#include "AngleData.h"
 
 #include <boost/bind.hpp>
 
@@ -139,6 +140,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	\param n_types Number of particle types that will exist in the data arrays
 	\param box Box the particles live in
 	\param n_bond_types Number of bond types to create
+        \param n_angle_types Number of angles to create
 	\param exec_conf ExecutionConfiguration to use when executing code on the GPU
 	
 	\post \c x,\c y,\c z,\c vx,\c vy,\c vz,\c ax,\c ay, and \c az are allocated and initialized to 0.0
@@ -153,7 +155,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	
 	Type mappings assign particle types "A", "B", "C", ....
 */ 
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, const ExecutionConfiguration& exec_conf)	
+ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, unsigned int n_angle_types, const ExecutionConfiguration& exec_conf)	
 	: m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
 	{
 	// check the input for errors
@@ -212,7 +214,10 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 		
 	// allocate bonds
 	m_bondData = shared_ptr<BondData>(new BondData(this, n_bond_types));
-		
+
+	// allocate angles
+	m_angleData = shared_ptr<AngleData>(new AngleData(this, n_angle_types));
+
 	// if this is a GPU build, initialize the graphics card mirror data structures
 	#ifdef ENABLE_CUDA
 	if (!m_exec_conf.gpu.empty())
@@ -312,6 +317,10 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	// allocate bonds
 	m_bondData = shared_ptr<BondData>(new BondData(this, init.getNumBondTypes()));
 	init.initBondData(m_bondData);
+
+	// allocate angles
+	m_angleData = shared_ptr<AngleData>(new AngleData(this, init.getNumAngleTypes()));
+	init.initAngleData(m_angleData);
 
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef ENABLE_CUDA
@@ -1299,7 +1308,7 @@ void export_ParticleData()
 	class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
 		.def(init<const ParticleDataInitializer&>())
 		.def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
-		.def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, const ExecutionConfiguration&>())
+		.def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, const ExecutionConfiguration&>()) 
 		.def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
 		.def("setBox", &ParticleData::setBox)
 		.def("getN", &ParticleData::getN)
@@ -1309,6 +1318,7 @@ void export_ParticleData()
 		.def("acquireReadOnly", &ParticleData::acquireReadOnly, return_value_policy<copy_const_reference>())
 		.def("acquireReadWrite", &ParticleData::acquireReadWrite, return_value_policy<copy_const_reference>())
 		.def("getBondData", &ParticleData::getBondData)
+		.def("getAngleData", &ParticleData::getAngleData)
 		.def("release", &ParticleData::release)
 		.def("setProfiler", &ParticleData::setProfiler)
 		.def("getExecConf", &ParticleData::getExecConf, return_internal_reference<>())

@@ -149,6 +149,10 @@ void Logger::removeAll()
 void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 	{
 	m_logged_quantities = quantities;
+
+        // prepare or adjust storage for caching the logger properties.
+        cached_timestep = -1;
+        cached_quantities.resize(quantities.size());
 	
 	// only write the header if this is a new file
 	if (!m_appending)
@@ -165,7 +169,7 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 		cout << "***Warning! No quantities specified for logging" << endl;
 		return;
 		}
-	
+
 	// only write the header if this is a new file
 	if (!m_appending)
 		{	
@@ -200,6 +204,7 @@ void Logger::analyze(unsigned int timestep)
 	
 	// The timestep is always output
 	m_file << setprecision(10) << timestep;
+        cached_timestep = timestep;
 	
 	// quit now if there is nothing to log
 	if (m_logged_quantities.size() == 0)
@@ -209,12 +214,16 @@ void Logger::analyze(unsigned int timestep)
 		
 	// only print the delimiter after the timestep if there are more quantities logged
 	m_file << m_delimiter;
-	
+
+	// update info in cache for later use and for immediate output.
+	for (unsigned int i = 0; i < m_logged_quantities.size(); i++) 
+	        cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
+
 	// write all but the last of the quantities separated by the delimiter
 	for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)
-		m_file << setprecision(10) << getValue(m_logged_quantities[i], timestep) << m_delimiter;
+		m_file << setprecision(10) << cached_quantities[i] << m_delimiter;
 	// write the last one with no delimiter after it
-	m_file << setprecision(10) << getValue(m_logged_quantities[m_logged_quantities.size()-1], timestep) << endl;
+	m_file << setprecision(10) << cached_quantities[m_logged_quantities.size()-1] << endl;
 	m_file.flush();
 	
 	if (!m_file.good())
@@ -226,6 +235,25 @@ void Logger::analyze(unsigned int timestep)
 	if (m_prof) m_prof->pop();
 	}
 		
+/*! \param quantity Quantity to get
+*/
+Scalar Logger::getCachedQuantity(const std::string &quantity)
+	{
+	// first see if it is the timestep number
+	if (quantity == "timestep")
+		{
+		return Scalar(cached_timestep);
+		}
+
+	// check to see if the quantity exists in the compute list
+	for (unsigned int i = 0; i < m_logged_quantities.size(); i++) 
+		if (m_logged_quantities[i] == quantity)
+			return cached_quantities[i];
+
+	cout << "***Warning! Log quantity " << quantity << " is not registered, returning a value of 0" << endl;
+	return Scalar(0.0);
+	}
+	
 /*! \param quantity Quantity to get
 	\param timestep Time step to compute value for (needed for Compute classes)
 */
@@ -267,6 +295,7 @@ void export_Logger()
 		.def("removeAll", &Logger::removeAll)
 		.def("setLoggedQuantities", &Logger::setLoggedQuantities)
 		.def("setDelimiter", &Logger::setDelimiter)
+		.def("getCachedQuantity", &Logger::getCachedQuantity)
 		;
 	}
 

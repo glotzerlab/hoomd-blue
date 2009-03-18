@@ -53,6 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Profiler.h"
 #include "ParticleData.h"
 #include "BondData.h"
+#include "AngleData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
@@ -61,8 +62,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ConstForceCompute.h"
 #include "HarmonicBondForceCompute.h"
+#include "HarmonicAngleForceCompute.h"
+#include "CGCMMAngleForceCompute.h"
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
+#include "CGCMMForceCompute.h"
 #include "GaussianForceCompute.h"
 //#include "YukawaForceCompute.h"
 #include "LJWallForceCompute.h"
@@ -97,10 +101,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
+#include "CGCMMForceComputeGPU.h"
 #include "GaussianForceGPU.h"
 //#include "YukawaForceComputeGPU.h"
 #include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
+#include "HarmonicAngleForceComputeGPU.h"
+#include "CGCMMAngleForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #endif
 
@@ -277,6 +284,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ParticleData();
 	export_ExecutionConfiguration();
 	export_BondData();	
+	export_AngleData();	
 
 	// initializers
 	export_RandomInitializer();
@@ -290,8 +298,11 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ForceCompute();
 	export_ConstForceCompute();
 	export_HarmonicBondForceCompute();
+	export_HarmonicAngleForceCompute();
+	export_CGCMMAngleForceCompute();
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
+	export_CGCMMForceCompute();
 	export_GaussianForceCompute();
 	//export_YukawaForceCompute();	
 	export_LJWallForceCompute();
@@ -302,9 +313,12 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_BinnedNeighborListGPU();
 	export_NeighborListNsqGPU();
 	export_LJForceComputeGPU();
+	export_CGCMMForceComputeGPU();
 	export_GaussianForceGPU();
 	//export_YukawaForceComputeGPU();
 	export_HarmonicBondForceComputeGPU();
+	export_HarmonicAngleForceComputeGPU();
+	export_CGCMMAngleForceComputeGPU();
 	export_FENEBondForceComputeGPU();
 	#endif
 	

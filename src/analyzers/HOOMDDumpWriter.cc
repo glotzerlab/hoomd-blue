@@ -59,6 +59,7 @@ using namespace boost::python;
 
 #include "HOOMDDumpWriter.h"
 #include "BondData.h"
+#include "AngleData.h"
 #include "WallData.h"
 
 using namespace std;
@@ -70,7 +71,7 @@ using namespace boost;
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname)
-	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false), m_output_bond(false), m_output_wall(false)
+	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false)
 	{
 	}
 
@@ -121,6 +122,12 @@ void HOOMDDumpWriter::setOutputBond(bool enable)
 	{
 	m_output_bond = enable;
 	}
+/*! \param enable Set to true to output angles to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputAngle(bool enable)
+	{
+	m_output_angle = enable;
+	}
 /*! \param enable Set to true to output walls to the XML file on the next call to analyze()
 */
 void HOOMDDumpWriter::setOutputWall(bool enable)
@@ -151,7 +158,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 	Lz=Scalar(box.zhi-box.zlo);
 	
 	f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" <<endl;
-	f << "<hoomd_xml version=\"1.0\">" << endl;
+	f << "<hoomd_xml version=\"1.1\">" << endl;
 	f << "<configuration time_step=\"" << timestep << "\">" << endl;
 	
 	f << "<box units=\"sigma\" " << " lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << endl;
@@ -306,6 +313,22 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 		f << "</bond>" << endl;
 		}
 		
+	// if the angle flag is true, output the angles to the xml file
+	if (m_output_angle)
+		{
+		f << "<angle num=\"" << m_pdata->getAngleData()->getNumAngles() << "\">" << endl;
+		shared_ptr<AngleData> angle_data = m_pdata->getAngleData();
+		
+		// loop over all angles and write them out
+		for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+			{
+			Angle angle = angle_data->getAngle(i);
+			f << angle_data->getNameByType(angle.type) << " " << angle.a  << " " << angle.b << " " << angle.c << endl;
+			}
+		
+		f << "</angle>" << endl;
+		}
+		
 	// if the wall flag is true, output the walls to the xml file
 	if (m_output_wall)
 		{
@@ -360,6 +383,7 @@ void export_HOOMDDumpWriter()
 		.def("setOutputDiameter", &HOOMDDumpWriter::setOutputDiameter)
 		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
 		.def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
+		.def("setOutputAngle", &HOOMDDumpWriter::setOutputAngle)
 		.def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
 		.def("writeFile", &HOOMDDumpWriter::writeFile)
 		;

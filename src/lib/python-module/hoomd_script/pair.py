@@ -511,6 +511,78 @@ class lj(force._force):
 		if fraction != None:
 			self.cpp_force.setXplorFraction(fraction);
 
+## cgcmm pair potential
+class cgcmm(force._force):
+	## Specify the CG-CMM Lennard-Jones %pair %force
+	#
+	# \param r_cut Cuttoff radius (see documentation above)
+	#
+	# \b Example:
+	# \code
+	# cg1 = pair.cgcmm(r_cut=3.0)
+	# cg1.pair_coeff.set('A', 'A', epsilon=0.5, sigma=1.0, alpha=1.0, exponents='lj12_4')
+	# \endcode
+	#
+	# \note Pair coefficients for all type pairs in the simulation must be
+	# set before it can be started with run()
+	def __init__(self, r_cut):
+		util.print_status_line();
+		
+		# initialize the base class
+		force._force.__init__(self);
+		
+		# update the neighbor list
+		neighbor_list = _update_global_nlist(r_cut);
+		
+		# create the c++ mirror class
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.CGCMMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+			self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating cgcmm pair force");
+			
+			
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		
+		# setup the coefficent matrix
+		self.pair_coeff = coeff();
+		
+	def update_coeffs(self):
+		# check that the pair coefficents are valid
+		if not self.pair_coeff.verify("epsilon", "sigma", "alpha", "exponents"):
+			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.cgcmm\n";
+			raise RuntimeError("Error updating pair coefficients");
+		
+		# set all the params
+		ntypes = globals.particle_data.getNTypes();
+		type_list = [];
+		for i in xrange(0,ntypes):
+			type_list.append(globals.particle_data.getNameByType(i));
+		
+		for i in xrange(0,ntypes):
+			for j in xrange(i,ntypes):
+				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
+				sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
+				alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
+				exponents = self.pair_coeff.get(type_list[i], type_list[j], "exponents");
+				# we support three variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
+				if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
+					lj1 = 2.598076 * epsilon * math.pow(sigma, 12.0);
+					lj2 = alpha * 2.598076 * epsilon * math.pow(sigma, 4.0);
+					self.cpp_force.setParams(i, j, lj1, 0.0, 0.0, lj2);
+				elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
+					lj1 = 6.75 * epsilon * math.pow(sigma, 9.0);
+					lj2 = alpha * 6.75 * epsilon * math.pow(sigma, 6.0);
+					self.cpp_force.setParams(i, j, 0.0, lj1, lj2, 0.0);
+				elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
+					lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+					lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+					self.cpp_force.setParams(i, j, lj1, 0.0, lj2, 0.0);
+				else:
+					raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
 ## Gaussian %pair %force
 #
 # The command pair.gauss specifies that a Gaussian type %pair %force should be added to every

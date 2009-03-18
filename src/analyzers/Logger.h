@@ -97,6 +97,9 @@ class Logger : public Analyzer
 		//! Sets the delimiter to use between fields
 		void setDelimiter(const std::string& delimiter);
 		
+		//! Query the last logged value for a given quantity
+		Scalar getCachedQuantity(const std::string& quantity="timestep");
+		
 		//! Write out the data for the current timestep
 		void analyze(unsigned int timestep);
 		
@@ -117,6 +120,10 @@ class Logger : public Analyzer
 		std::vector< std::string > m_logged_quantities;
 		//! Clock for the time log quantity
 		ClockSource m_clk;
+		//! The number of the last timestep when the logger was run.
+                int cached_timestep;
+		//! The values of the logged quantities at the last logger update.
+                std::vector< Scalar > cached_quantities;
 		
 		//! Helper function to get a value for a given quantity
 		Scalar getValue(const std::string &quantity, int timestep);
