@@ -429,7 +429,7 @@ class lj(force._force):
 	#
 	# \note Pair coefficients for all type pairs in the simulation must be
 	# set before it can be started with run()
-	def __init__(self, r_cut, slj=None):
+	def __init__(self, r_cut, slj=False):
 		util.print_status_line();
 		
 		# initialize the base class
@@ -437,12 +437,10 @@ class lj(force._force):
 
 		r_cut_wc = r_cut;
 		
-		# Determine if diameter shifted LJ will be used
-		if slj != None:		
-			self.cpp_force.setSLJ(1)	#not quite sure what goes in here!  Below is just the guess that I need to reset everything because I changed neighbor_list
-			# set all the params
-			maxdiam = globals.system_definition.getParticleData().getMaximumDiameter();		
-			r_cut_wc = r_cut + maxdiam - 1.0;
+		# Set neighborcutoff correctly if diameter shifted LJ will be used
+		if slj == True:		
+			maxdiam = globals.system_definition.getParticleData().getMaximumDiameter();
+			r_cut_wc = r_cut + maxdiam - 1.0;	
 		
 		# update the neighbor list
 		neighbor_list = _update_global_nlist(r_cut_wc);
@@ -462,6 +460,11 @@ class lj(force._force):
 		
 		# setup the coefficent matrix
 		self.pair_coeff = coeff();
+		
+		# Determine if diameter shifted LJ will be used
+		if slj != False:		
+			self.cpp_force.setSLJ(True)			
+		
 		
 	def update_coeffs(self):
 		# check that the pair coefficents are valid
