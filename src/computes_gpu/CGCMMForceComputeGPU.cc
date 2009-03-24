@@ -64,7 +64,7 @@ using namespace std;
 /*! \param pdata Particle Data to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
-	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
+	\post memory is allocated and all parameters ljX are set to 0.0
 	\note The CGCMMForceComputeGPU does not own the Neighborlist, the caller should
 		delete the neighborlist when done.
 */
@@ -156,17 +156,25 @@ void CGCMMForceComputeGPU::setBlockSize(int block_size)
 	m_block_size = block_size;
 	}
 
-/*! \post The parameters \a lj1 and \a lj2 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
+/*! \post The parameters \a lj1 through \a lj4 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
 	\note \a lj? are low level parameters used in the calculation. In order to specify
-	these for a normal lennard jones formula (with alpha), they should be set to the following.
-	- \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-	- \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0)
-	- \a lj3 = something
-	- \a lj4 = something else;
+	these for a 12-4 and 9-6 lennard jones formula (with alpha), they should be set to the following.
+
+        12-4
+	- \a lj1 = 2.598076 * epsilon * pow(sigma,12.0)
+	- \a lj2 = 0.0
+	- \a lj3 = 0.0
+	- \a lj4 = alpha * 2.598076 * epsilon * pow(sigma,4.0)
+
+        9-6
+	- \a lj1 = 0.0
+	- \a lj2 = alpha * 6.75 * epsilon * pow(sigma,6.0)
+	- \a lj3 = 6.75 * epsilon * pow(sigma,9.0);
+	- \a lj4 = 0.0
 	
 	Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
 	is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
-	for will have lj1 and lj2 set to 0.0.
+	for will have lj1 through lj4 set to 0.0.
 	
 	\param typ1 Specifies one type of the pair
 	\param typ2 Specifies the second type of the pair
@@ -194,7 +202,7 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_coeffs[cur_gpu], h_coeffs, nbytes, cudaMemcpyHostToDevice));
 	}
 		
-/*! \post The lennard jones forces are computed for the given timestep on the GPU. 
+/*! \post The CGCMM forces are computed for the given timestep on the GPU. 
 	The neighborlist's compute method is called to ensure that it is up to date
 	before forces are computed.
  	\param timestep Current time step of the simulation

@@ -51,7 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __CGCMMFORCECOMPUTE_H__
 #define __CGCMMFORCECOMPUTE_H__
 
-//! Computes Lennard-Jones forces on each particle
+//! Computes CGCMM forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
 	neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
 	to identify these neighbors. Calling compute() in this class will in turn result in a call to the 
@@ -86,11 +86,11 @@ class CGCMMForceCompute : public ForceCompute
 	protected:
 		boost::shared_ptr<NeighborList> m_nlist;	//!< The neighborlist to use for the computation
 		Scalar m_r_cut;	//!< Cuttoff radius beyond which the force is set to 0
-		unsigned int m_ntypes;	//!< Store the width and height of lj1 and lj2 here
+		unsigned int m_ntypes;	//!< Store the width and height of lj1, lj2, lj3, and lj4  here
 		
 		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
 		// level concepts like mixing. That is for the caller to handle. So, I only store 
-		// lj1 and lj2 here
+		// lj1, lj2, lj3, and lj4 here
 		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
 		Scalar * __restrict__ m_lj3;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)

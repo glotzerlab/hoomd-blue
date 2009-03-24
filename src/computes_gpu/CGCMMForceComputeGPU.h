@@ -52,7 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __CGCMMFORCECOMPUTEGPU_H__
 #define __CGCMMFORCECOMPUTEGPU_H__
 
-//! Computes Lennard-Jones forces on each particle using the GPU
+//! Computes CGCMM forces on each particle using the GPU
 /*! Calculates the same forces as CGCMMForceCompute, but on the GPU.
 	
 	The GPU kernel for calculating the forces is in cgcmmforcesum_kernel.cu.
