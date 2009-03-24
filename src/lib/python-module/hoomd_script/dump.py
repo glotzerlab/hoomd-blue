@@ -124,7 +124,7 @@ class xml(analyze._analyzer):
 	def set_params(self, all=None, position=None, image=None, velocity=None, mass=None, diameter=None, type=None, wall=None, bond=None):
 		util.print_status_line();
 	
-		# check that proper initialization has occured
+		# check that proper initialization has occurred
 		if self.cpp_analyzer == None:
 			print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
 			raise RuntimeError('Error setting xml parameters');

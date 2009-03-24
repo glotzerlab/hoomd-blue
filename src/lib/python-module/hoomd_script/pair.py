@@ -352,7 +352,7 @@ class nlist:
 ## \internal
 # \brief Creates the global neighbor list
 # \details
-# \param r_cut Cuttoff radius to set
+# \param r_cut Cutoff radius to set
 # If no neighbor list has been created, create one. If there is one, increase its r_cut value
 # to be the maximum of the current and the one specified here
 def _update_global_nlist(r_cut):
@@ -419,7 +419,7 @@ def _update_global_nlist(r_cut):
 class lj(force._force):
 	## Specify the Lennard-Jones %pair %force
 	#
-	# \param r_cut Cuttoff radius (see documentation above)
+	# \param r_cut Cutoff radius (see documentation above)
 	#
 	# \b Example:
 	# \code
@@ -494,10 +494,10 @@ class lj(force._force):
 	# \param fraction (if set) Change the fraction of \f$ r_{\mathrm{cut}} \f$ at which the XPLOR smoothing starts (default is 2.0/3.0). Only applies of \a mode is set to "xplor"
 	#
 	# valid values for \a mode are: "none" (the default), "shift", and "xplor"
-	#  - \b none - No shifting is performed and potentials are abrubtly cut off
+	#  - \b none - No shifting is performed and potentials are abruptly cut off
 	#  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
 	#  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the cutoff
-	# (see above for forumlas and more information)
+	# (see above for formulas and more information)
 	#
 	# \b Examples:
 	# \code
@@ -555,11 +555,11 @@ class lj(force._force):
 # gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.5)
 # \endcode
 #
-# The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.gauss is specified (see __init__())
+# The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.gauss is specified (see __init__())
 class gauss(force._force):
 	## Specify the Gaussian %pair %force
 	#
-	# \param r_cut Cuttoff radius (see documentation above)
+	# \param r_cut Cutoff radius (see documentation above)
 	#
 	# \b Example:
 	# \code
@@ -618,9 +618,9 @@ class gauss(force._force):
 	# \param mode (if set) Set the mode with which potentials are handled at the cutoff
 	#
 	# valid values for \a mode are: "none" (the default), and "shift"
-	#  - \b none - No shifting is performed and potentials are abrubtly cut off
+	#  - \b none - No shifting is performed and potentials are abruptly cut off
 	#  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-	# (see above for forumlas and more information)
+	# (see above for formulas and more information)
 	#
 	# \b Examples:
 	# \code

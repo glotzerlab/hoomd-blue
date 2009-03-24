@@ -96,7 +96,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
 	else if (deviceProp.major == 1 && deviceProp.minor == 1)
 		m_block_size = 256;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 384;
+		m_block_size = 32;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for LJForceComputeGPU" << endl;

@@ -191,7 +191,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 \endcode
 Press CTRL-D to exit.
 
-To test your installation further, you can execute benchmark scripts th check the performance of your setup
+To test your installation further, you can execute benchmark scripts to check the performance of your setup
 or run some live demos that are fun to watch. You will find them in EXTRACTED_LOCATION/share/hoomd
 For example, to run the polymer benchmark on the GPU:
 \code
