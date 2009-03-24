@@ -191,13 +191,13 @@ run executables in emulation mode. The emulation is slow, but will allow you to 
 any changes you make that affect any of the *GPU classes. 
 
 CUDA is quite new and it is not likely that there is a package available through your linux distribution. 
-Gentoo is the only distrubution currently offering a package:
+Gentoo is the only distribution currently offering a package:
 \code
  $ emerge nvidia-cuda-toolkit
 \endcode
 will install the latest version of the CUDA toolkit and set all environment variables for you.
 
-If your distrubution doesn't come with a package, go to http://developer.nvidia.com/object/cuda.html  
+If your distribution doesn't come with a package, go to http://developer.nvidia.com/object/cuda.html  
 and download the latest CUDA toolkit for you architecture and linux distribution. If your distribution isn't listed,
 pick one that looks close, it will likely work. To install, simply go to the directory where you downloaded 
 the toolkit and run:
@@ -311,7 +311,7 @@ and wait a \e long time for everything to compile. At the end, you should see a 
 ...updated 747 targets...
 \endcode
 
-Now, you are ready to install the library (requires administrator privleges).
+Now, you are ready to install the library (requires administrator privileges).
 \code
  $ sudo make install
 \endcode

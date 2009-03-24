@@ -49,7 +49,7 @@ import globals;
 
 ## Defines a group of particles
 #
-# group should not be created dirctly in hoomd_script code. The following methods can be used to create particle groups.
+# group should not be created directly in hoomd_script code. The following methods can be used to create particle groups.
 # - group.all()
 # - group.type()
 # - group.tags()
@@ -64,7 +64,7 @@ import globals;
 # that contains the intersection of all the particles present in two different groups, use the & operator. Similarly, 
 # the | operator creates a new group that is the a union of all particles in two different groups.
 #
-# \b Examles:
+# \b Examples:
 # \code
 # # create a group containing all particles in group A and those with 
 # # tags 100-199
@@ -92,7 +92,7 @@ class group:
 	## \internal
 	# \brief Creates a new group as the intersection of two given groups
 	# 
-	# \param a group to perform the interesection with
+	# \param a group to perform the intersection with
 	def __and__(self, a):
 		new_name = '(' + self.name + ' & ' + a.name + ')';
 		new_cpp_group = hoomd.ParticleGroup.groupIntersection(self.cpp_group, a.cpp_group);
@@ -101,7 +101,7 @@ class group:
 	## \internal
 	# \brief Creates a new group as the union of two given groups
 	# 
-	# \param a group to perform the interesection with
+	# \param a group to perform the union with
 	def __or__(self, a):
 		new_name = '(' + self.name + ' | ' + a.name + ')';
 		new_cpp_group = hoomd.ParticleGroup.groupUnion(self.cpp_group, a.cpp_group);
@@ -124,7 +124,7 @@ class group:
 def type(type):
 	util.print_status_line();
 	
-	# check if initialization has occured
+	# check if initialization has occurred
 	if globals.system == None:
 		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
 		raise RuntimeError('Error creating group');
@@ -160,7 +160,7 @@ def type(type):
 def tags(tag_min, tag_max=None):
 	util.print_status_line();
 	
-	# check if initialization has occured
+	# check if initialization has occurred
 	if globals.system == None:
 		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
 		raise RuntimeError('Error creating group');
@@ -197,7 +197,7 @@ def tags(tag_min, tag_max=None):
 def all():
 	util.print_status_line();
 
-	# check if initialization has occured
+	# check if initialization has occurred
 	if globals.system == None:
 		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
 		raise RuntimeError('Error creating group');

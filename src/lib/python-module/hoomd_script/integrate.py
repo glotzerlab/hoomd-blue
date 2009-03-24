@@ -249,7 +249,7 @@ class npt(_integrator):
 	# \endcode
 	def set_params(self, dt=None, T=None, tau=None, P=None, tauP=None):
 		util.print_status_line();
-		# check that proper initialization has occured
+		# check that proper initialization has occurred
 		if self.cpp_integrator == None:
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
 			raise RuntimeError('Error updating forces');
@@ -338,7 +338,7 @@ class nve(_integrator):
 
 ## NVT integration via Brownian dynamics
 #
-# integrate.bdnvt performs constant volume, fixed average temperature simuation based on a 
+# integrate.bdnvt performs constant volume, fixed average temperature simulation based on a 
 # NVE simulation with added damping and stochastic heat bath forces.
 #
 # The total added %force \f$ \vec{F}\f$ is
@@ -358,7 +358,7 @@ class nve(_integrator):
 class bdnvt(_integrator):
 	## Specifies the BD NVT integrator
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
-	# \param T Temperature of the simuation \a T
+	# \param T Temperature of the simulation \a T
 	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
 	# \param seed Random seed to use for the run. Otherwise identical simulations with different seeds set will follow 
 	# different trajectories.
