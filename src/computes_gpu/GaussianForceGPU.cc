@@ -93,7 +93,7 @@ GaussianForceGPU::GaussianForceGPU(boost::shared_ptr<ParticleData> pdata, boost:
 	else if (deviceProp.major == 1 && deviceProp.minor == 1)
 		m_block_size = 256;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 32;
+		m_block_size = 352;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for GaussianForceGPU" << endl;
