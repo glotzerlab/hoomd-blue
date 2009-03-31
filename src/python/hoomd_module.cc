@@ -82,6 +82,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "SFCPackUpdater.h"
+#include "BoxResizeUpdater.h"
 #include "NVTUpdater.h"
 #include "NPTUpdater.h"
 #include "NVEUpdater.h"
@@ -326,6 +327,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_TempRescaleUpdater();
 	export_ZeroMomentumUpdater();
 	export_SFCPackUpdater();
+	export_BoxResizeUpdater();
 	export_NVTUpdater();
 	export_NPTUpdater();
 	export_NVEUpdater();
