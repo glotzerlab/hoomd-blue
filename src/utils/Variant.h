@@ -49,16 +49,28 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 
 //! Base type for time varying quantities
-/*! Virtual base class for variables specified to vary over time.
+/*! Virtual base class for variables specified to vary over time. The base class provides
+	a common interface for all subclass Variants.
+	 - A double value can be gotten from the Variant at any given time
+	 - An offset can be specified. A value set at time "t" in a variant will be returned
+	   at the actual time t+offset. The intended use for the offset is so that times
+	   can be specified as 0, 1000, 1e6 (or whatever) and be conveniently referenced
+	   with 0 being the current step.
 	\ingroup utils
 */
 class Variant
 	{
 	public:
+		//! Constructor
+		Variant() : m_offset(0) { }
 		//! Virtual destructor
 		virtual ~Variant() { }
 		//! Gets the value at a given time step (just returns 0)
 		virtual double getValue(unsigned int timestep) { return 0.0; }
+		//! Sets the offset
+		virtual void setOffset(unsigned int offset) { m_offset = offset; }
+	protected:
+		unsigned int m_offset;	//!< Offset time
 	};
 
 //! Constant variant

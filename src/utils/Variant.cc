@@ -78,6 +78,12 @@ void VariantLinear::setPoint(unsigned int timestep, double val)
 */
 double VariantLinear::getValue(unsigned int timestep)
 	{
+	// first transform the timestep by the offset
+	if (timestep < m_offset)
+		timestep = 0;
+	else
+		timestep -= m_offset;
+	
 	// handle the degenerate case that the variant is empty
 	if (m_values.empty())
 		{
@@ -129,7 +135,8 @@ double VariantLinear::getValue(unsigned int timestep)
 void export_Variant()
 	{
 	class_<Variant, boost::shared_ptr<Variant> >("Variant", init< >())
-		.def("getValue", &Variant::getValue);
+		.def("getValue", &Variant::getValue)
+		.def("setOffset", &Variant::setOffset);
 		
 	class_<VariantConst, boost::shared_ptr<VariantConst>, bases<Variant> >("VariantConst", init< double >());
 	

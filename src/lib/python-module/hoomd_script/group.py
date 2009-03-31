@@ -34,8 +34,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id: __init__.py 1521 2008-12-03 18:34:14Z joaander $
-# $URL: https://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8/src/lib/python-module/hoomd_script/__init__.py $
+# $Id$
+# $URL$
 
 import hoomd;
 import sys;
