@@ -276,6 +276,16 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
 	MY_BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
 	MY_BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
 	MY_BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);	
+	
+	// mix up the order to make sure it works no matter what
+	MY_BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
+	MY_BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
+	MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+	MY_BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
+	MY_BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
+	MY_BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
+	MY_BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
+	MY_BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);	
 	}
 
 #ifdef WIN32
