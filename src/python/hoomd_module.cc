@@ -87,7 +87,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NVEUpdater.h"
 #include "BD_NVTUpdater.h"
 #include "System.h"
-#include "Variant.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -339,9 +338,6 @@ BOOST_PYTHON_MODULE(hoomd)
 
 	// system
 	export_System();
-	
-	// variant
-	export_Variant();
 	
 	}
 
