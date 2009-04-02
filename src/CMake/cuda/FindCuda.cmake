@@ -131,8 +131,6 @@ set(nvcc_flags ${nvcc_flags} -arch sm_${CUDA_ARCH} -DCUDA_ARCH=${CUDA_ARCH})
 add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
 
 
-
-# user options
 SET(CUDA_BUILD_CUBIN FALSE CACHE BOOL "Generate and parse .cubin files in Device mode.")
 SET(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
 
