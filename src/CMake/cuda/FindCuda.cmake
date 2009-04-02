@@ -269,21 +269,18 @@ MACRO(CUDA_add_custom_commands cuda_target)
   # commands for all the .cu files.
   FOREACH(file ${ARGN})
     IF(${file} MATCHES ".*\\.cu$")
-
-    # strip CMAKE_SOURCE_DIR from the head of ${file}
-    if(file MATCHES ${CMAKE_SOURCE_DIR})
-	string(LENGTH ${CMAKE_SOURCE_DIR} _cuda_source_dir_length)
-    string(LENGTH ${file} _cuda_file_length)
-    math(EXPR _begin "${_cuda_source_dir_length} + 1")
-    math(EXPR _stripped_file_length "${_cuda_file_length} - ${_cuda_source_dir_length} - 1")
-	STRING(SUBSTRING ${file} ${_begin} ${_stripped_file_length} stripped_file )
-    SET(source_file ${file})
-
+  
+	if(file MATCHES ${CMAKE_SOURCE_DIR})
+    	# strip CMAKE_SOURCE_DIR from the head of ${file}
+    	string(LENGTH ${CMAKE_SOURCE_DIR} _cuda_source_dir_length)
+		string(LENGTH ${file} _cuda_file_length)
+		math(EXPR _begin "${_cuda_source_dir_length} + 1")
+		math(EXPR _stripped_file_length "${_cuda_file_length} - ${_cuda_source_dir_length} - 1")
+		STRING(SUBSTRING ${file} ${_begin} ${_stripped_file_length} stripped_file )
+    	SET(source_file ${file})
 	else(file MATCHES ${CMAKE_SOURCE_DIR})
-	
-	set(stripped_file ${file})
-    SET(source_file "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
-	
+		set(stripped_file ${file})
+		SET(source_file "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
 	endif(file MATCHES ${CMAKE_SOURCE_DIR})
 
     # Add a custom target to generate a cpp file
@@ -292,7 +289,6 @@ MACRO(CUDA_add_custom_commands cuda_target)
     SET(generated_target "${stripped_file}_target")
     
     FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/cuda)
-
 
     # MESSAGE("${CUDA_NVCC} ${source_file} ${CUDA_NVCC_FLAGS} ${nvcc_flags} -cuda -o ${generated_file} ${CUDA_NVCC_INCLUDE_ARGS}")
     
