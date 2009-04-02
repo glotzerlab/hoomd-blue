@@ -55,6 +55,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Profiler.h"
 #include "Variant.h"
 
+#include <boost/test/floating_point_comparison.hpp>
+
 //! Helper macro for testing if two numbers are close
 #define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,double(b),double(c))
 //! Helper macro for testing if a number is small
