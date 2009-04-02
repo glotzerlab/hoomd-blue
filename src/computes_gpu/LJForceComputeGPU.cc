@@ -112,7 +112,10 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boos
 		m_ulf_workaround = false;
 	if (string(deviceProp.name) == "GTX 280")
 		m_ulf_workaround = true;
+	if (string(deviceProp.name) == "GeForce GTX 280")
+		m_ulf_workaround = true;
 		
+
 	if (m_ulf_workaround)
 		cout << "Notice: ULF bug workaround enabled for LJForceComputeGPU" << endl;
 	#else
