@@ -103,8 +103,13 @@ IF (CUDA_BUILD_TYPE MATCHES "Emulation")
   SET(nvcc_flags --device-emulation -D_DEVICEEMU -g --host-compilation C++)
 ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
   # Device present.
-  SET(nvcc_flags --host-compilation C++)
+  SET(nvcc_flags --host-compilation C++ -O3)
 ENDIF(CUDA_BUILD_TYPE MATCHES "Emulation")
+
+# support shared library builds
+if (NOT ENABLE_STATIC)
+set(nvcc_flags ${nvcc_flags} "-Xcompiler" ${CMAKE_SHARED_LIBRARY_C_FLAGS})
+endif (NOT ENABLE_STATIC)
 
 # nvcc 64-bit build workaround
 if (CMAKE_CL_64)
