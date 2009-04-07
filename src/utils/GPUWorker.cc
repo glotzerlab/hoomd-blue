@@ -185,6 +185,11 @@ void GPUWorker::callAsync(const boost::function< cudaError_t (void) > &func)
 	
 	// notify the threads there is work to do
 	m_cond_work_to_do.notify_one();
+
+	// automatically sync() in __DEVICEEMU, --device-emu doesn't seem to be thread safe
+	#ifdef _DEVICEEMU
+	sync();
+	#endif
 	}
 	
 /*! Call sync() to synchronize the master thread with the worker thread.

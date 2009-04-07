@@ -101,6 +101,7 @@ ENDIF(NOT CUDA_BUILD_TYPE)
 IF (CUDA_BUILD_TYPE MATCHES "Emulation")
   # Emulation.
   SET(nvcc_flags --device-emulation -D_DEVICEEMU -g --host-compilation C++)
+  add_definitions(-D_DEVICEEMU)
 ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
   # Device present.
   SET(nvcc_flags --host-compilation C++ -O3)
