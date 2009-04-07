@@ -355,15 +355,17 @@ boost::shared_ptr<Integrator> System::getIntegrator()
 // -------------- Methods for running the simulation
 		
 /*! \param nsteps Number of simulation steps to run
+	\param limit_hours Number of hours to run for (0.0 => infinity)
 	
 	During each simulation step, all added Analyzers and
 	Updaters are called, then the Integrator to move the system
-	forward one step in time. This is repeated \a nsteps times.
+	forward one step in time. This is repeated \a nsteps times,
+	or until a \a limit_hours hours have passed.
 	
-	run() can be called as many times as the user wishes: 
+	run() can be called as many times as the user wishes:
 	each time, it will continue at the time step where it left off.
 */
-void System::run(unsigned int nsteps)
+void System::run(unsigned int nsteps, double limit_hours)
 	{
 	m_start_tstep = m_cur_tstep;
 	m_end_tstep = m_cur_tstep + nsteps;
@@ -413,6 +415,17 @@ void System::run(unsigned int nsteps)
 			{
 			g_sigint_recvd = 0;
 			return;
+			}
+			
+		// check if the time limit has exceeded
+		if (limit_hours != 0.0f)
+			{
+			int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
+			if (int64_t(cur_time) - initial_time > time_limit)
+				{
+				cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+				break;
+				}
 			}
 		}
 		

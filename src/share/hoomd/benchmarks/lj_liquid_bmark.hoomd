@@ -22,6 +22,6 @@ nlist.set_params(check_period=10)
 run(2000, profile=True)
 
 # full benchmark 
-run(50000)
+run(50000, limit_hours = 5.0 / 60.0)
 
 raw_input("Benchmark complete: press enter to exit");

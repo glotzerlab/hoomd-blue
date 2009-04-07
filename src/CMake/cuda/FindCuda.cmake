@@ -84,8 +84,6 @@
 
 # FindCuda.cmake
 
-SET(CMAKE_BACKWARDS_COMPATIBILITY 2.2)
-
 INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/CudaDependency.cmake)
 
 ###############################################################################
@@ -103,10 +101,16 @@ ENDIF(NOT CUDA_BUILD_TYPE)
 IF (CUDA_BUILD_TYPE MATCHES "Emulation")
   # Emulation.
   SET(nvcc_flags --device-emulation -D_DEVICEEMU -g --host-compilation C++)
+  add_definitions(-D_DEVICEEMU)
 ELSE(CUDA_BUILD_TYPE MATCHES "Emulation")
   # Device present.
-  SET(nvcc_flags --host-compilation C++)
+  SET(nvcc_flags --host-compilation C++ -O3)
 ENDIF(CUDA_BUILD_TYPE MATCHES "Emulation")
+
+# support shared library builds
+if (NOT ENABLE_STATIC)
+set(nvcc_flags ${nvcc_flags} "-Xcompiler" ${CMAKE_SHARED_LIBRARY_C_FLAGS})
+endif (NOT ENABLE_STATIC)
 
 # nvcc 64-bit build workaround
 if (CMAKE_CL_64)
@@ -130,7 +134,7 @@ endif (NOT _cuda_arch_ok)
 set(nvcc_flags ${nvcc_flags} -arch sm_${CUDA_ARCH} -DCUDA_ARCH=${CUDA_ARCH})
 add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
 
-
+# user options
 SET(CUDA_BUILD_CUBIN FALSE CACHE BOOL "Generate and parse .cubin files in Device mode.")
 SET(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
 
@@ -282,7 +286,7 @@ MACRO(CUDA_add_custom_commands cuda_target)
 	endif(file MATCHES ${CMAKE_SOURCE_DIR})
 
     # Add a custom target to generate a cpp file
-	SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated.cpp")
+	SET(generated_file  "${CMAKE_BINARY_DIR}/src/cuda/${stripped_file}_${cuda_target}_generated${CMAKE_CXX_OUTPUT_EXTENSION}")
 
     SET(generated_target "${stripped_file}_target")
     
@@ -373,7 +377,7 @@ MACRO(CUDA_add_custom_commands cuda_target)
            ${nvcc_flags}
            -DNVCC
            --keep
-           -cuda -o ${generated_file} 
+           -c -o ${generated_file} 
            ${CUDA_NVCC_INCLUDE_ARGS}
        COMMENT "Building NVCC ${source_file}: ${generated_file}"
       )
@@ -383,6 +387,13 @@ MACRO(CUDA_add_custom_commands cuda_target)
     # Add the generated file name to the source list.
     SET(target_srcs ${target_srcs} ${generated_file})
     
+	SET_SOURCE_FILES_PROPERTIES(
+		${generated_file}
+		PROPERTIES
+		EXTERNAL_OBJECT true # to say that "this is actually an object file, so it should not be compiled, only linked"
+		GENERATED true       # to say that "it is OK that the obj-files do not exist before build time"
+  		)
+
     ELSE(${file} MATCHES ".*\\.cu$")
   
     # Otherwise add the file name to the source list.
@@ -412,7 +423,12 @@ MACRO(CUDA_ADD_LIBRARY cuda_target)
   TARGET_LINK_LIBRARIES(${cuda_target}
     ${CUDA_TARGET_LINK}
     )
-
+	
+	SET_TARGET_PROPERTIES(
+	${cuda_target}
+    PROPERTIES
+	LINKER_LANGUAGE CXX
+	)
 ENDMACRO(CUDA_ADD_LIBRARY cuda_target)
 
 
@@ -437,5 +453,10 @@ MACRO(CUDA_ADD_EXECUTABLE cuda_target)
     )
 
 
+	SET_TARGET_PROPERTIES(
+	${cuda_target}
+    PROPERTIES
+	LINKER_LANGUAGE CXX
+	)
 ENDMACRO(CUDA_ADD_EXECUTABLE cuda_target)
 
