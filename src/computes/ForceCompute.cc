@@ -453,6 +453,34 @@ void ForceCompute::compute(unsigned int timestep)
 	m_particles_sorted = false;
 	}
 	
+/*! \param num_iters Number of iterations to average for the benchmark
+	\returns Milliseconds of execution time per calculation
+	
+	Calls computeForces repeatedly to benchmark the force compute.
+*/
+double ForceCompute::benchmark(unsigned int num_iters)
+	{
+	ClockSource t;
+	// warm up run
+	computeForces(0);
+	
+	#ifdef ENABLE_CUDA
+	exec_conf.callAll(bind(cudaThreadSynchronize));
+	#endif
+	
+	// benchmark
+	uint64_t start_time = t.getTime();
+	for (unsigned int i = 0; i < num_iters; i++)
+		computeForces(0);
+		
+	#ifdef ENABLE_CUDA
+	exec_conf.callAll(bind(cudaThreadSynchronize));
+	#endif
+	uint64_t total_time_ns = t.getTime() - start_time;
+	
+	// convert the run time to milliseconds
+	return double(total_time_ns) / 1e6 / double(num_iters);
+	}
 
 //! Wrapper class for wrapping pure virtual methodos of ForceCompute in python
 class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
