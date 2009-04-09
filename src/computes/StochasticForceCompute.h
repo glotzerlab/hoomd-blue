@@ -46,6 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include "ForceCompute.h"
 #include "saruprng.h"
+#include "Variant.h"
 
 #ifndef __StochasticForceCompute__
 #define __StochasticForceCompute__
@@ -59,7 +60,7 @@ class StochasticForceCompute :	public ForceCompute
 	{
 	public:
 		//! Constructor
-		StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam);
+		StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
 
 		//! Destructor
 		~StochasticForceCompute();
@@ -68,10 +69,10 @@ class StochasticForceCompute :	public ForceCompute
 		virtual void setParams(unsigned int typ, Scalar gamma);
 		
 		//! Sets Temperature Parameter
-		virtual void setT(Scalar Temp) { m_T = Temp; }
+		virtual void setT(boost::shared_ptr<Variant> Temp) { m_T = Temp; }
 		
 		//! Sets timestep Parameter
-		virtual void setDeltaT(Scalar deltaT) { m_dt = deltaT; }		
+		virtual void setDeltaT(Scalar deltaT) { m_dt = deltaT; }
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
@@ -80,13 +81,13 @@ class StochasticForceCompute :	public ForceCompute
 		//! Computes forces
 		virtual void computeForces(unsigned int timestep);
 		
-		Scalar m_T;			//!< Temperature of the bath
-		Scalar m_dt;		//!< friction coefficient of the bath
-		unsigned int m_seed; //!< initializing seed for RNG
-		unsigned int m_ntypes; //!< Store the number of particle types
-		Scalar * __restrict__ m_gamma;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
-		bool m_use_diam; //!< This flag indicates whether gammas will be set by the type, or automatically set to the diameter
-		boost::shared_ptr<Saru> m_saru; //!< Store the instantiation of the Saru Random Number Geneator Class
+		boost::shared_ptr<Variant> m_T;			//!< Temperature of the bath
+		Scalar m_dt;							//!< friction coefficient of the bath
+		unsigned int m_seed; 					//!< initializing seed for RNG
+		unsigned int m_ntypes; 					//!< Store the number of particle types
+		Scalar * __restrict__ m_gamma;			//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		bool m_use_diam; 						//!< This flag indicates whether gammas will be set by the type, or automatically set to the diameter
+		boost::shared_ptr<Saru> m_saru; 		//!< Store the instantiation of the Saru Random Number Geneator Class
 	};
 
 

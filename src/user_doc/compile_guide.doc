@@ -352,7 +352,7 @@ Here is a list of all the build options that can be changed by CMake.
  - \b SINGLE_PRECISION - Controls precision
  	- When set to \b ON, all calculations are performed in single precision.
  	- When set to \b OFF, all calculations are performed in double precision. 
- 	- Must be set to \b ON to enable the \b ENABLE_CUDA option (GPUs are single precision)
+ 	- Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD has not yet been updated to perform double precision calculations)
 
 There are a few options for controlling the CUDA compilation.
  - \b CUDA_ARCH	- Sets the GPU architecture to compile for. Parts of HOOMD will run significantly faster 
@@ -361,8 +361,8 @@ There are a few options for controlling the CUDA compilation.
 		- \b 10 - compile for compute 1.0 and newer devices. Executable will run on all CUDA GPUs, but no fast
 			code paths are activated.
 		- \b 11 - compile for compute 1.1 and newer devices. Some faster code paths are activated.
-		- \b 12 - compile for compute 1.2 and newer devices. Currently, nothing more is added vs. 11.
-		- \b 13 - compile for compute 1.3 and newer devices. Currently, nothing is is added vs. 12.
+		- \b 12 - compile for compute 1.2 and newer devices. 
+		- \b 13 - compile for compute 1.3 and newer devices. Allows double precision calculations.
  - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
  - \b CUDA_BUILD_TYPE - Controls device/emulation builds
  	- \b Device - will compile all GPU kernels to run on the GPU hardware
@@ -372,10 +372,6 @@ There are a few options for controlling the CUDA compilation.
  		kernel development is not recommended without a hardware device to 
  		run on.
  - \b NVCC_USER_FLAGS - Allows additional flags to be passed to nvcc.
-	- If you are building HOOMD for execution solely on G200 and newer GPUs, set
-		NVCC_USER_FLAGS to <i>-arch;sm_13;-DARCH_SM13</i> to take advantage of the
-		hardware features present in those GPUs. This boosts HOOMD's overall
-		performance.
 
 The following are advanced variables, and thus will only show when CMake's advanced mode is turned on.
 You really shouldn't change these from their defaults unless you really know what you are doing.

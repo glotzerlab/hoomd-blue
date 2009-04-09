@@ -2,6 +2,97 @@
 {
    <insert a suppression name here>
    Memcheck:Addr8
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/libdl-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/libdl-2.8.so
+   fun:dlopen
+   obj:/opt/cuda/lib/libcudart.so.2.1
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/libdl-2.8.so
+   obj:/lib64/ld-2.8.so
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/libdl-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/libdl-2.8.so
+   fun:dlopen
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   fun:cudaGetDeviceCount
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib64/ld-2.8.so
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.2.5
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   fun:cudaMallocHost
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib64/ld-2.8.so
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.2.5
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   fun:cudaLaunch
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/libdl-2.8.so
+   obj:/lib64/ld-2.8.so
+   obj:/lib64/libdl-2.8.so
+   fun:dlopen
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   obj:/opt/cuda/lib/libcudart.so.2.1
+   fun:cudaSetDevice
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
    obj:/lib64/ld-2.6.1.so
    obj:/lib64/ld-2.6.1.so
    obj:/lib64/ld-2.6.1.so

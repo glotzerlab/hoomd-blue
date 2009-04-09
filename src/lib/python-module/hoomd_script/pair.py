@@ -349,6 +349,36 @@ class nlist:
 		if check_period != None:
 			self.cpp_nlist.setEvery(check_period);
 			
+	## Benchmarks the neighbor list computation
+	# \param n Number of iterations to average the benchmark over
+	#
+	# \b Examples:
+	# \code
+	# t = nlist.benchmark(n = 100)
+	# \endcode
+	#
+	# The value returned by benchmark() is the average time to perform the neighbor list 
+	# computation, in milliseconds. The benchmark is performed by taking the current
+	# positions of all particles in the simulation and repeatedly calculating the neighbor list.
+	# Thus, you can benchmark different situations as you need to by simply 
+	# running a simulation to achieve the desired state before running benchmark().
+	#
+	# \note
+	# There is, however, one subtle side effect. If the benchmark() command is run 
+	# directly after the particle data is intialized with an init command, then the 
+	# results of the benchmark will not be typical of the time needed during the actual
+	# simulation. Particles are not reorederd to improve cache performance until at least
+	# one time step is performed. Executing run(1) before the benchmark will solve this problem.
+	#
+	def benchmark(self, n):
+		# check that we have been initialized properly
+		if self.cpp_nlist == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+			raise RuntimeError('Error benchmarking neighbor list');
+		
+		# run the benchmark
+		return self.cpp_nlist.benchmark(int(n))
+			
 ## \internal
 # \brief Creates the global neighbor list
 # \details

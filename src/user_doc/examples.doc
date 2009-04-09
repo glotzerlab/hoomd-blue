@@ -258,7 +258,7 @@ In a loop, this example performs a simulation of a Lennard-Jones liquid
 at different system sizes one after the other. It shows how the power of python
 code in a hoomd script can be utilized to accomplish complicated tasks. 
 For more information on python and a tutorial on the python language,
-check out http://www.python.org.
+check out http://www.python.org .
 
 \code
 from hoomd_script import *

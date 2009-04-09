@@ -64,15 +64,9 @@ using namespace std;
 	\param deltaT Length of the computation timestep
 	\param seed	Seed for initializing the RNG
 */
-StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam):
+StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam):
 ForceCompute(sysdef), m_T(Temp), m_dt(deltaT), m_seed(seed), m_use_diam(use_diam)
 	{
-	if (m_T <= 0.0)
-		{
-		cerr << endl << "***Error! Negative or Zero Temperature in StochasticForceCompute doesn't make sense." << endl << endl;
-		throw runtime_error("Error initializing StochasticForceCompute");
-		}
-		
 	// initialize the number of types value
 	m_ntypes = m_pdata->getNTypes();
 	assert(m_ntypes > 0);
@@ -148,14 +142,15 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 	// access the particle data
 	const ParticleDataArraysConst &particles=  m_pdata->acquireReadOnly();
 	
+	const Scalar currentTemp = m_T->getValue(timestep);
+	
 	// here we go, main calc loop
 	// loop over every particle in the sim, 
 	// calculate forces and store them int m_fx,y,z
 	for (unsigned int i = 0; i < numParticles; i++)
 		{
-
-        // No potential energy results from these dissipative forces
-		Scalar pe = 0.0;  
+		// No potential energy results from these dissipative forces
+		Scalar pe = 0.0;
 
 		// Grab particle data from all the arrays for this loop
 		Scalar vx = particles.vx[i];
@@ -171,19 +166,18 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 	    // Calculate the coefficient  (How do I get dt?? - The World's most klugey method, the integrator must pass this along)
 		// Note, this formulation assumes a unit value for the boltzmann constant, kb
 		if (m_use_diam) {
-			Scalar coeff_fric = sqrt(Scalar(6.0)*particles.diameter[i]*m_T/m_dt);				
+			Scalar coeff_fric = sqrt(Scalar(6.0)*particles.diameter[i]*currentTemp/m_dt);
 			m_fx[i] = rx*coeff_fric - particles.diameter[i]*vx;
 			m_fy[i] = ry*coeff_fric - particles.diameter[i]*vy;
 			m_fz[i] = rz*coeff_fric - particles.diameter[i]*vz;
 			}
 		else { 
-			Scalar coeff_fric = sqrt(Scalar(6.0)*m_gamma[type]*m_T/m_dt);				
+			Scalar coeff_fric = sqrt(Scalar(6.0)*m_gamma[type]*currentTemp/m_dt);
 			m_fx[i] = rx*coeff_fric - m_gamma[type]*vx;
 			m_fy[i] = ry*coeff_fric - m_gamma[type]*vy;
 			m_fz[i] = rz*coeff_fric - m_gamma[type]*vz;
-		}	
+		}
 		m_pe[i] = pe;
-			
 		}
 	
 	#ifdef ENABLE_CUDA

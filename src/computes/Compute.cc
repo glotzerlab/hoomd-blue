@@ -48,6 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include <iostream>
+#include <stdexcept>
 using namespace std;
 
 #include "Compute.h"
@@ -65,6 +66,16 @@ Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef),
 	// sanity check
 	assert(m_sysdef);
 	assert(m_pdata);
+	}
+	
+/*! \param num_iters Number of iterations to average for the benchmark
+	\returns Milliseconds of execution time per calculation
+	Derived classes can optionally implement this method. */
+double Compute::benchmark(unsigned int num_iters)
+	{
+	cerr << endl << "***Error! This compute doesn't support benchmarking" << endl << endl;
+	throw runtime_error("Error benchmarking compute");
+	return 0.0;
 	}
 		
 /*! It is useful for the user to know where computation time is spent, so all Computes
@@ -131,6 +142,16 @@ class ComputeWrap : public Compute, public wrapper<Compute>
 			{
 			this->get_override("compute")(timestep);
 			}
+			
+		//! Calls overidden Compute::compute()
+		/*! \param num_iters Parameter to pass on to the base class method */
+		double benchmark(unsigned int num_iters)
+			{
+			if (override f = this->get_override("benchmark"))
+				return f(num_iters);
+			else
+				return Compute::benchmark(num_iters);
+			}
 		
 		//! Calls overridden Compute::printStats()
 		void printStats()
@@ -176,6 +197,7 @@ void export_Compute()
 	{
 	class_<ComputeWrap, boost::shared_ptr<ComputeWrap>, boost::noncopyable>("Compute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("compute", pure_virtual(&Compute::compute))
+		.def("benchmark", pure_virtual(&Compute::benchmark))
 		.def("printStats", &Compute::printStats, &ComputeWrap::default_printStats)
 		.def("setProfiler", &Compute::setProfiler)
 		;

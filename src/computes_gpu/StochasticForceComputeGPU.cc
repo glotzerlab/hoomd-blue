@@ -68,7 +68,7 @@ using namespace std;
 	\param deltaT Length of the computation timestep
 	\param seed	Seed for initializing the RNG
 */
-StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)
+StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam)
 	: StochasticForceCompute(sysdef, deltaT, Temp, seed, use_diam)
 	{
 	// default block size is the highest performance in testing on different hardware
@@ -165,43 +165,6 @@ void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 	else cerr << endl << "***Error! Trying to set Stochastic Force param Gamma while using Diameter as Gamma!" << endl << endl;	
 	}
 
-/*! \post The Temeperature of the Stochastic Bath \a T
-	\note \a T is a low level parameter used in the calculation. 
-	
-	\param T Temperature of Stochastic Bath
-*/
-void StochasticForceComputeGPU::setT(Scalar T)
-	{
-	if (T <= 0)
-		{
-		cerr << endl << "***Error! Trying to set a Temperature <= 0 " << endl << endl;
-		throw runtime_error("StochasticForceComputeGpu::setT argument error");
-		}
-	
-	// set Temperature
-	m_T = T;	
-	cout << "Set T to " << m_T << endl;	
-	}	
-
-/*! \post The timestep of the Stochastic Bath \a T
-	\note \a deltaT is a low level parameter used in the calculation. 
-	
-	\param deltaT timestep of Stochastic Bath
-*/
-void StochasticForceComputeGPU::setDeltaT(Scalar deltaT)
-	{
-	if (deltaT <= 0)
-		{
-		cerr << endl << "***Error! Trying to set a timestep <= 0 " << endl << endl;
-		throw runtime_error("StochasticForceComputeGpu::setDeltaT argument error");
-		}
-	
-	m_dt=deltaT;
-	
-		
-	}	
-
-		
 /*! \post The stochastic forces are computed for the given timestep on the GPU. 
  	\param timestep Current time step of the simulation
  	
@@ -220,14 +183,14 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	if (!m_use_diam) {
 		// call the kernel on all GPUs in parallel
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T->getValue(timestep), d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
         }
 	if (m_use_diam) {
 		// call the kernel on all GPUs in parallel
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces_diam, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T, m_seed, timestep, m_block_size));
+			exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces_diam, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T->getValue(timestep), m_seed, timestep, m_block_size));
         }
-				
+	
 	exec_conf.syncAll();
 	
 	m_pdata->release();
@@ -239,7 +202,7 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 //	int64_t flops = n_calc * (3+12+5+2+2+6+3+7);
 	// if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
 	
-	// I'm not sure why the above is commented out, but we cannot have a push (above) without a pop! - JA
+	// I'm not sure why the above is commented out, but we cannot have a push (above) without a pop!
 	if (m_prof) m_prof->pop();
 	}
 

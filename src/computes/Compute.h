@@ -97,6 +97,9 @@ class Compute : boost::noncopyable
 		/*! \param timestep Current time step
 			Derived classes will implement this method to calculate their results*/
 		virtual void compute(unsigned int timestep) = 0;
+
+		//! Abstract method that performs a benchmark
+		virtual double benchmark(unsigned int num_iters);
 		
 		//! Print some basic stats to stdout
 		/*! Derived classes can optionally implement this function. A System will

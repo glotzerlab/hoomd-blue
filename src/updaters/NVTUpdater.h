@@ -45,6 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Updater.h"
 #include "Integrator.h"
+#include "Variant.h"
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
@@ -63,7 +64,7 @@ class NVTUpdater : public Integrator
 	{
 	public:
 		//! Constructor
-		NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar T);
+		NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
@@ -71,7 +72,7 @@ class NVTUpdater : public Integrator
 		//! Update the temperature
 		/*! \param T New temperature to set
 		*/
-		virtual void setT(Scalar T) { m_T = T; }
+		virtual void setT(boost::shared_ptr<Variant> T) { m_T = T; }
 				
 		//! Update the tau value
 		/*! \param tau New time constant to set
@@ -84,12 +85,12 @@ class NVTUpdater : public Integrator
 		//! Calculates the requested log value and returns it
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);		
 	protected:
-		Scalar m_tau;		//!< tau value for Nose-Hoover
-		Scalar m_T;			//!< Temperature set point
-		Scalar m_Xi;		//!< Friction coeff
-		Scalar m_eta;		//!< Added degree of freedom
-		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
-		Scalar m_curr_T;	//!< Current calculated temperature of the system
+		Scalar m_tau;					//!< tau value for Nose-Hoover
+		boost::shared_ptr<Variant> m_T;	//!< Temperature set point
+		Scalar m_Xi;					//!< Friction coeff
+		Scalar m_eta;					//!< Added degree of freedom
+		bool m_accel_set;				//!< Flag to tell if we have set the accelleration yet
+		Scalar m_curr_T;				//!< Current calculated temperature of the system
 	};
 	
 //! Exports the NVTUpdater class to python

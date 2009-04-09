@@ -58,7 +58,7 @@ class BD_NVTUpdaterGPU : public BD_NVTUpdater
 	{
 	public:
 		//! Constructor
-		BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam);
+		BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);

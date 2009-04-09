@@ -72,6 +72,7 @@ import hoomd;
 import globals;
 import sys;
 import util;
+import variant;
 
 ## \internal
 # \brief Base class for integrators
@@ -129,17 +130,20 @@ class _integrator:
 class nvt(_integrator):
 	## Specifies the NVT integrator
 	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
-	# \param T Temperature set point for the Nos&eacute;-Hoover thermostat
+	# \param T Temperature set point for the Nos&eacute;-Hoover thermostat.
 	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
 	#
 	# \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
 	# \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
 	# and \f$ T_0 \f$ is the temperature set point (\a T above).
 	#
+	# \a T can be a variant type, allowing for temperature ramps in simulation runs.
+	#
 	# \b Examples:
 	# \code
 	# integrate.nvt(dt=0.005, T=1.0, tau=0.5)
 	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
+	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
 	# \endcode
 	def __init__(self, dt, T, tau):
 		util.print_status_line();
@@ -147,11 +151,14 @@ class nvt(_integrator):
 		# initialize base class
 		_integrator.__init__(self);
 		
+		# setup the variant inputs
+		T = variant._setup_variant_input(T);
+		
 		# initialize the reflected c++ class
 		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.NVTUpdater(globals.system_definition, dt, tau, T);
+			self.cpp_integrator = hoomd.NVTUpdater(globals.system_definition, dt, tau, T.cpp_variant);
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.system_definition, dt, tau, T);
+			self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.system_definition, dt, tau, T.cpp_variant);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVT integrator");
@@ -186,7 +193,9 @@ class nvt(_integrator):
 		if dt != None:
 			self.cpp_integrator.setDeltaT(dt);
 		if T != None:
-			self.cpp_integrator.setT(T);
+			# setup the variant inputs
+			T = variant._setup_variant_input(T);
+			self.cpp_integrator.setT(T.cpp_variant);
 		if tau != None:
 			self.cpp_integrator.setTau(tau);
 
@@ -217,11 +226,15 @@ class npt(_integrator):
 		# initialize base class
 		_integrator.__init__(self);
 		
+		# setup the variant inputs
+		T = variant._setup_variant_input(T);
+		P = variant._setup_variant_input(P);
+		
 		# initialize the reflected c++ class
 		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.NPTUpdater(globals.system_definition, dt, tau, tauP, T, P);
+			self.cpp_integrator = hoomd.NPTUpdater(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.system_definition, dt, tau, tauP, T, P);
+			self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating NVT integrator");
@@ -258,11 +271,15 @@ class npt(_integrator):
 		if dt != None:
 			self.cpp_integrator.setDeltaT(dt);
 		if T != None:
-			self.cpp_integrator.setT(T);
+			# setup the variant inputs
+			T = variant._setup_variant_input(T);
+			self.cpp_integrator.setT(T.cpp_variant);
 		if tau != None:
 			self.cpp_integrator.setTau(tau);
 		if P != None:
-			self.cpp_integrator.setP(P);
+			# setup the variant inputs
+			P = variant._setup_variant_input(P);
+			self.cpp_integrator.setP(P.cpp_variant);
 		if tauP != None:
 			self.cpp_integrator.setTauP(tauP);
 
@@ -364,11 +381,14 @@ class bdnvt(_integrator):
 	# different trajectories.
 	# \param use_diam If this is set to 1, then the diameter of each particle will be used as gamma.
 	#
+	# \a T can be a variant type, allowing for temperature ramps in simulation runs.
+	#
 	# \b Examples:
 	# \code
 	# integrate.bdnvt(dt=0.005, T=1.0, seed=5)
 	# integrator = integrate.bdnvt(dt=5e-3, T=1.0, seed=100)
 	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01, use_diam=1)
+	# integrate.bdnvt(dt=0.005, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
 	# \endcode
 	def __init__(self, dt, T, limit=None, seed=0, use_diam=0):
 		util.print_status_line();
@@ -376,18 +396,21 @@ class bdnvt(_integrator):
 		# initialize base class
 		_integrator.__init__(self);
 		
+		# setup the variant inputs
+		T = variant._setup_variant_input(T);
+		
 		# initialize the reflected c++ class
 		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.system_definition, dt, T, seed, use_diam);
+			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.system_definition, dt, T.cpp_variant, seed, use_diam);
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.system_definition, dt, T, seed, use_diam);
+			self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.system_definition, dt, T.cpp_variant, seed, use_diam);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating BD NVT integrator");
 		
 		# set the limit
 		if limit != None:
-			self.cpp_integrator.setLimit(limit);	
+			self.cpp_integrator.setLimit(limit);
 		
 		globals.system.setIntegrator(self.cpp_integrator);
 	
@@ -417,8 +440,9 @@ class bdnvt(_integrator):
 		if dt != None:
 			self.cpp_integrator.setDeltaT(dt);
 		if T != None:
-			self.cpp_integrator.setT(T);
-	
+			# setup the variant inputs
+			T = variant._setup_variant_input(T);
+			self.cpp_integrator.setT(T.cpp_variant);
 
 	## Sets gamma parameter for a particle type
 	# \param a Particle type
