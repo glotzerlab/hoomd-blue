@@ -110,6 +110,8 @@ GaussianForceGPU::GaussianForceGPU(boost::shared_ptr<ParticleData> pdata, boost:
 		m_ulf_workaround = false;
 	if (string(deviceProp.name) == "GTX 280")
 		m_ulf_workaround = true;
+	if (string(deviceProp.name) == "GeForce GTX 280")
+		m_ulf_workaround = true;
 		
 	if (m_ulf_workaround)
 		cout << "Notice: ULF bug workaround enabled for GaussianForceGPU" << endl;
