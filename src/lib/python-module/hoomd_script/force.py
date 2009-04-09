@@ -125,6 +125,43 @@ class _force:
 		self.enabled = False;
 		globals.forces.remove(self);
 
+	## Benchmarks the force computation
+	# \param n Number of iterations to average the benchmark over
+	#
+	# \b Examples:
+	# \code
+	# t = force.benchmark(n = 100)
+	# \endcode
+	#
+	# The value returned by benchmark() is the average time to perform the force 
+	# computation, in milliseconds. The benchmark is performed by taking the current
+	# positions of all particles in the simulation and repeatedly calculating the forces
+	# on them. Thus, you can benchmark different situations as you need to by simply 
+	# running a simulation to achieve the desired state before running benchmark().
+	#
+	# \note
+	# There is, however, one subtle side effect. If the benchmark() command is run 
+	# directly after the particle data is intialized with an init command, then the 
+	# results of the benchmark will not be typical of the time needed during the actual
+	# simulation. Particles are not reorederd to improve cache performance until at least
+	# one time step is performed. Executing run(1) before the benchmark will solve this problem.
+	#
+	# To use this command, you must have saved the force in a variable, as
+	# shown in this example:
+	# \code
+	# force = pair.some_force()
+	# # ... later in the script
+	# t = force.benchmark(n = 100)
+	# \endcode
+	def benchmark(self, n):
+		# check that we have been initialized properly
+		if self.cpp_force == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+			raise RuntimeError('Error benchmarking force');
+		
+		# run the benchmark
+		return self.cpp_force.benchmark(int(n))
+
 	## Enables the force
 	#
 	# \b Examples:
