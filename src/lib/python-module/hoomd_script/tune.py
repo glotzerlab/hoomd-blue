@@ -107,6 +107,7 @@ def _find_optimal_block_size_nl(nl, n):
 	fastest = min(timings);
 	print 'fastest:', fastest[1]
 	print '---------------'
+	nl.cpp_nlist.setBlockSize(fastest[1]);
 	
 	return fastest[1];
 		
@@ -132,31 +133,41 @@ def find_optimal_block_sizes():
 	init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
 	hoomd_script.run(1);
 	
-	# initialize an empty database of optimal sizes
-	optimal_db = {};
-	
-	# for each force compute
-	for (fc_name,fc_args,n) in fc_list:
-		print 'Benchmarking ', fc_name
-		# create it and benchmark it
-		fc = eval(fc_name + fc_args)
-		optimal = _find_optimal_block_size_fc(fc, n)
-		optimal_db[fc_name] = optimal;
+	# list of optimal databases
+	optimal_dbs = [];
+	num_repeats = 4;
+	for i in xrange(0,num_repeats):
 		
-		# clean up
-		fc.disable()
-		del fc
-	
-	# now, benchmark the neighbor list
-	print 'Benchmarking nlist'
-	optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
-	optimal_db['nlist'] = optimal;
+		# initialize an empty database of optimal sizes
+		optimal_db = {};
+		
+		# for each force compute
+		for (fc_name,fc_args,n) in fc_list:
+			print 'Benchmarking ', fc_name
+			# create it and benchmark it
+			fc = eval(fc_name + fc_args)
+			optimal = _find_optimal_block_size_fc(fc, n)
+			optimal_db[fc_name] = optimal;
+			
+			# clean up
+			fc.disable()
+			del fc
+		
+		# now, benchmark the neighbor list
+		print 'Benchmarking nlist'
+		optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
+		optimal_db['nlist'] = optimal;
+		
+		# add it to the list
+		optimal_dbs.append(optimal_db);
 	
 	init.reset();
 	util._disable_status_lines = False;
 	
 	print '*****************'
-	print 'Optimal block sizes found: ', optimal_db
+	print 'Optimal block sizes found: '
+	for db in optimal_dbs:
+		print db;
 	print '*****************'
 	
 	
