@@ -64,15 +64,9 @@ using namespace std;
 	\param deltaT Length of the computation timestep
 	\param seed	Seed for initializing the RNG
 */
-StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed):
+StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed):
 ForceCompute(pdata), m_T(Temp), m_dt(deltaT), m_seed(seed)
 	{
-	if (m_T <= 0.0)
-		{
-		cerr << endl << "***Error! Negative or Zero Temperature in StochasticForceCompute doesn't make sense." << endl << endl;
-		throw runtime_error("Error initializing StochasticForceCompute");
-		}
-		
 	// initialize the number of types value
 	m_ntypes = m_pdata->getNTypes();
 	assert(m_ntypes > 0);
@@ -163,7 +157,7 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 			
 	    // Calculate the coefficient  (How do I get dt?? - The World's most klugey method, the integrator must pass this along)
 		// Note, this formulation assumes a unit value for the boltzmann constant, kb
-		Scalar coeff_fric = sqrt(Scalar(6.0)*m_gamma[type]*m_T/m_dt);
+		Scalar coeff_fric = sqrt(Scalar(6.0)*m_gamma[type]*m_T->getValue(timestep)/m_dt);
 			
 		m_fx[i] = rx*coeff_fric - m_gamma[type]*vx;
 		m_fy[i] = ry*coeff_fric - m_gamma[type]*vy;

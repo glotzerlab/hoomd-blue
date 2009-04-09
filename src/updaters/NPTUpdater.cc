@@ -61,16 +61,12 @@ using namespace std;
 	\param T Temperature set point
 	\param P Pressure set point
 */
-NPTUpdater::NPTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) : Integrator(pdata, deltaT), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_accel_set(false)
+NPTUpdater::NPTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, boost::shared_ptr<Variant> T, boost::shared_ptr<Variant> P) : Integrator(pdata, deltaT), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_accel_set(false)
 	{
 	if (m_tau <= 0.0)
 		cout << "***Warning! tau set less than 0.0 in NPTUpdater" << endl;
 	if (m_tauP <= 0.0)
 	        cout << "***Warning! tauP set less than 0.0 in NPTUpdater" << endl;
-	if (m_T <= 0.0)
-		cout << "***Warning! T set less than 0.0 in NPTUpdater" << endl;
-	if (m_P <= 0.0)
-		cout << "***Warning! P set less than 0.0 in NPTUpdater" << endl;
 
 	m_Xi = 0.0;  // Initialize m_Xi and m_Eta
 	m_Eta = 0.0;
@@ -145,11 +141,11 @@ void NPTUpdater::update(unsigned int timestep)
 
 	// advance thermostat(m_Xi) half a time step
 
-	m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T - Scalar(1.0))*m_deltaT;
+	m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
 
 	// advance barostat (m_Eta) half time step
 
-	m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T)*(m_curr_P - m_P)*m_deltaT;
+	m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
 
 
 	// propagate velocites for a half time step
@@ -284,11 +280,11 @@ void NPTUpdater::update(unsigned int timestep)
 	
 	// Update m_Eta
 
-	m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T)*(m_curr_P - m_P)*m_deltaT;
+	m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
 
 	// Update m_Xi
 
-	m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T - Scalar(1.0))*m_deltaT;
+	m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
 
 	
 
@@ -376,7 +372,7 @@ Scalar NPTUpdater::computeTemperature(unsigned int timestep)
 void export_NPTUpdater()
 	{
 	class_<NPTUpdater, boost::shared_ptr<NPTUpdater>, bases<Integrator>, boost::noncopyable>
-	  ("NPTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar, Scalar, Scalar >())
+	  ("NPTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar, boost::shared_ptr<Variant>, boost::shared_ptr<Variant> >())
 		.def("setT", &NPTUpdater::setT)
 		.def("setTau", &NPTUpdater::setTau)
 	        .def("setP", &NPTUpdater::setP)

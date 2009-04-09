@@ -64,7 +64,7 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 	{
 	public:
 		//! Constructs the compute
-		StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
+		StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed);
 		
 		//! Destructor
 		virtual ~StochasticForceComputeGPU();
@@ -72,12 +72,6 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 		//! Set the force parameters
 		virtual void setParams(unsigned int typ, Scalar gamma);
 		
-		//! Sets Temperature Parameter
-		virtual void setT(Scalar Temp);
-
-		//! Sets timestep Parameter
-		virtual void setDeltaT(Scalar deltaT);		
-				
 		//! Sets the block size to run at
 		void setBlockSize(int block_size);
 

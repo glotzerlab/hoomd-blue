@@ -68,7 +68,7 @@ using namespace std;
 	\param deltaT Length of the computation timestep
 	\param seed	Seed for initializing the RNG
 */
-StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) 
+StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed) 
 	: StochasticForceCompute(pdata, deltaT, Temp, seed)
 	{
 	// default block size is the highest performance in testing on different hardware
@@ -158,43 +158,6 @@ void StochasticForceComputeGPU::setParams(unsigned int typ, Scalar gamma)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
 	}
 
-/*! \post The Temeperature of the Stochastic Bath \a T
-	\note \a T is a low level parameter used in the calculation. 
-	
-	\param T Temperature of Stochastic Bath
-*/
-void StochasticForceComputeGPU::setT(Scalar T)
-	{
-	if (T <= 0)
-		{
-		cerr << endl << "***Error! Trying to set a Temperature <= 0 " << endl << endl;
-		throw runtime_error("StochasticForceComputeGpu::setT argument error");
-		}
-	
-	// set Temperature
-	m_T = T;	
-	cout << "Set T to " << m_T << endl;	
-	}	
-
-/*! \post The timestep of the Stochastic Bath \a T
-	\note \a deltaT is a low level parameter used in the calculation. 
-	
-	\param deltaT timestep of Stochastic Bath
-*/
-void StochasticForceComputeGPU::setDeltaT(Scalar deltaT)
-	{
-	if (deltaT <= 0)
-		{
-		cerr << endl << "***Error! Trying to set a timestep <= 0 " << endl << endl;
-		throw runtime_error("StochasticForceComputeGpu::setDeltaT argument error");
-		}
-	
-	m_dt=deltaT;
-	
-		
-	}	
-
-		
 /*! \post The stochastic forces are computed for the given timestep on the GPU. 
  	\param timestep Current time step of the simulation
  	
@@ -211,7 +174,7 @@ void StochasticForceComputeGPU::computeForces(unsigned int timestep)
 	// call the kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T, d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_stochastic_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], m_dt, m_T->getValue(timestep), d_gammas[cur_gpu], m_seed, timestep, m_pdata->getNTypes(), m_block_size));
 
 	exec_conf.syncAll();
 	

@@ -1099,14 +1099,16 @@ typedef boost::function<shared_ptr<NVTUpdater> (shared_ptr<ParticleData> pdata, 
 //! NVTUpdater creator
 shared_ptr<NVTUpdater> base_class_nvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T)
 	{
-	return shared_ptr<NVTUpdater>(new NVTUpdater(pdata, deltaT, Q, T));
+	shared_ptr<VariantConst> T_variant(new VariantConst(T));
+	return shared_ptr<NVTUpdater>(new NVTUpdater(pdata, deltaT, Q, T_variant));
 	}
 	
 #ifdef ENABLE_CUDA
 //! NVTUpdaterGPU factory for the unit tests
 shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Q, Scalar T)
 	{
-	return shared_ptr<NVTUpdater>(new NVTUpdaterGPU(pdata, deltaT, Q, T));
+	shared_ptr<VariantConst> T_variant(new VariantConst(T));	
+	return shared_ptr<NVTUpdater>(new NVTUpdaterGPU(pdata, deltaT, Q, T_variant));
 	}
 #endif
 

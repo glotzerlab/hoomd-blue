@@ -71,10 +71,10 @@ class BD_NVTUpdater : public NVEUpdater
 	{
 	public:
 		//! Constructor
-		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed);
+		BD_NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed);
 		
 		//! Sets the Stochastic Bath Temperature
-		void setT(Scalar Temp); 
+		void setT(boost::shared_ptr<Variant> Temp);
 
 		//! Resets the simulation timestep
 		void setDeltaT(Scalar deltaT) 
@@ -82,17 +82,17 @@ class BD_NVTUpdater : public NVEUpdater
 			assert(m_bdfc);
 			m_bdfc->setDeltaT(deltaT); 
 			Integrator::setDeltaT(deltaT);
-			}		
+			}
 
 		//! Sets the type-dependant drag coefficient
 		/*! \param type Particle type index to set the coefficient on
 			\param gamma Drag coefficient to set
 		*/
-		void setGamma(unsigned int type, Scalar gamma) 
+		void setGamma(unsigned int type, Scalar gamma)
 			{
 			assert(m_bdfc);
 			m_bdfc->setParams(type,gamma);
-			} 
+			}
 				
 		//! Removes all ForceComputes from the list
 		virtual void removeForceComputes();
@@ -101,15 +101,15 @@ class BD_NVTUpdater : public NVEUpdater
 		virtual void update(unsigned int timestep);
 		
 	protected:
-		Scalar m_T;			//!< The Temperature of the Stochastic Bath
-		unsigned int m_seed;//!< The seed for the RNG of the Stochastic Bath 
-		bool m_bath;		//!< Whether the bath has been set or not
+		boost::shared_ptr<Variant> m_T;			//!< The Temperature of the Stochastic Bath
+		unsigned int m_seed;					//!< The seed for the RNG of the Stochastic Bath 
+		bool m_bath;							//!< Whether the bath has been set or not
 		
 		//! Attaches the Stochastic Bath Temperature
-		void addStochasticBath(); 
+		void addStochasticBath();
 		
 		//! The StochasticForceCompute to use in applying the temperature bath
-		boost::shared_ptr<StochasticForceCompute> m_bdfc; 
+		boost::shared_ptr<StochasticForceCompute> m_bdfc;
 	};
 	
 //! Exports the BD_NVTUpdater class to python

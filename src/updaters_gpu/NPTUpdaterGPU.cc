@@ -62,7 +62,7 @@ using namespace std;
 	\param T Temperature set point
 	\param P Pressure set point
 */
-NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) : NPTUpdater(pdata, deltaT, tau, tauP, T, P)
+NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, boost::shared_ptr<Variant> T, boost::shared_ptr<Variant> P) : NPTUpdater(pdata, deltaT, tau, tauP, T, P)
 	{
 	const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
 
@@ -235,10 +235,10 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
 		
 	// advance thermostat (m_Xi) half a time step
-	m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T - 1.0f)*m_deltaT;
+	m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - 1.0f)*m_deltaT;
 
 	// advance barostat (m_Eta) half time step
-	m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T)*(m_curr_P - m_P)*m_deltaT;
+	m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
 
 	
 	// perform first half of the time step; propagate velocities for 1/2*deltaT and
@@ -307,10 +307,10 @@ void NPTUpdaterGPU::update(unsigned int timestep)
 		}
 	
 	// Update barostat variable m_Eta to t+deltaT
-	m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T)*(m_curr_P - m_P)*m_deltaT;
+	m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
 
 	// Update thermostat variable m_Xi to t+deltaT
-	m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T - 1.0f)*m_deltaT;
+	m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - 1.0f)*m_deltaT;
 	}
 
 /*! \param timestep Current time step of the simulation
@@ -398,7 +398,7 @@ Scalar NPTUpdaterGPU::computePressure(unsigned int timestep)
 void export_NPTUpdaterGPU()
 	{
 	class_<NPTUpdaterGPU, boost::shared_ptr<NPTUpdaterGPU>, bases<NPTUpdater>, boost::noncopyable>
-	  ("NPTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar, Scalar, Scalar >())
+	  ("NPTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar, boost::shared_ptr<Variant>, boost::shared_ptr<Variant> >())
 		;
 	}
 

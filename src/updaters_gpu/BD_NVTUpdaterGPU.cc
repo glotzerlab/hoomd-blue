@@ -64,7 +64,7 @@ using namespace std;
 	\param Temp Temperature to set
 	\param seed Random seed to use for the random force compuataion
 */
-BD_NVTUpdaterGPU::BD_NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed) : BD_NVTUpdater(pdata, deltaT, Temp, seed)
+BD_NVTUpdaterGPU::BD_NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed) : BD_NVTUpdater(pdata, deltaT, Temp, seed)
 	{
 	// at least one GPU is needed
 	if (exec_conf.gpu.size() == 0)
@@ -154,7 +154,7 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
 void export_BD_NVTUpdaterGPU()
 	{
 	class_<BD_NVTUpdaterGPU, boost::shared_ptr<BD_NVTUpdaterGPU>, bases<BD_NVTUpdater>, boost::noncopyable>
-		("BD_NVTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, unsigned int >())
+		("BD_NVTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, boost::shared_ptr<Variant>, unsigned int >())
 		;
 	}
 

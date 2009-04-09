@@ -63,7 +63,7 @@ using namespace std;
 	\param tau NVT period
 	\param T Temperature set point
 */
-NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : NVTUpdater(pdata, deltaT, tau, T)
+NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T) : NVTUpdater(pdata, deltaT, tau, T)
 	{
 	// at least one GPU is needed
 	if (exec_conf.gpu.size() == 0)
@@ -187,7 +187,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	
 	// update Xi
 	m_curr_T = Ksum_total / (3.0f * float(m_pdata->getN()));
-	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T / m_T - 1.0f);
+	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T / m_T->getValue(timestep) - 1.0f);
 
 	// update eta
 	m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
@@ -213,7 +213,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 void export_NVTUpdaterGPU()
 	{
 	class_<NVTUpdaterGPU, boost::shared_ptr<NVTUpdaterGPU>, bases<NVTUpdater>, boost::noncopyable>
-		("NVTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar >())
+		("NVTUpdaterGPU", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, boost::shared_ptr<Variant> >())
 		;
 	}
 
