@@ -118,6 +118,7 @@ using namespace boost::filesystem;
 using namespace boost::python;
 
 #include <iostream>
+#include <sstream>
 using namespace std;
 
 // include gpu_settings.h for g_gpu_error_checking
@@ -254,6 +255,21 @@ void set_gpu_error_checking(bool value)
 	{
 	g_gpu_error_checking = value;
 	}
+	
+//! Method for getting the current version of HOOMD
+/*! \param returns Current HOOMD version identification string
+*/
+string get_hoomd_version()
+	{
+	ostringstream ver;
+	// output the version info differently if this is tagged as a subversion build or not
+	if (HOOMD_SUBVERSION_BUILD)
+		ver << "HOOMD svnversion " << HOOMD_SVNVERSION;
+	else
+		ver << "HOOMD " << HOOMD_VERSION << endl;
+	
+	return ver.str();
+	}
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
@@ -266,6 +282,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	def("find_hoomd_data_dir", &find_hoomd_data_dir);
 	def("find_vmd", &find_vmd);
 	def("set_gpu_error_checking", &set_gpu_error_checking);
+	def("get_hoomd_version", &get_hoomd_version);
 
 	InstallSIGINTHandler();
 
