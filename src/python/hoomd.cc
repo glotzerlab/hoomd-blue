@@ -97,7 +97,8 @@ string find_hoomd_script()
 */
 int main(int argc, char **argv)
 	{
-	PyImport_AppendInittab("hoomd", &inithoomd);
+	char module_name[] = "hoomd";
+	PyImport_AppendInittab(module_name, &inithoomd);
 	Py_Initialize();
 
 	// Need to inject the hoomd module path into sys.path
