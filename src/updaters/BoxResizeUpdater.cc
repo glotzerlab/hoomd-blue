@@ -57,6 +57,22 @@ using namespace boost::python;
 #include <iostream>
 #include <stdexcept>
 
+// windows feels that rintf should not exist.....
+#ifdef WIN32
+//! replacement for rint in windows
+double rint(double x)
+	{
+	return floor(x+.5);
+	}
+	
+//! replacement for rint in windows
+double rintf(float x)
+	{
+	return floorf(x+.5f);
+	}
+#endif
+
+
 using namespace std;
 
 /*! \param pdata Particle data to set the box size on

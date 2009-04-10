@@ -94,7 +94,7 @@ class ParticleGroup
 		*/
 		const unsigned int getNumMembers() const
 			{
-			return m_members.size();
+			return (unsigned int)m_members.size();
 			}
 			
 		//! Get a member from the group
