@@ -44,8 +44,15 @@ import traceback;
 # \package hoomd_script.util
 # \brief Internal utility functions used by hoomd_script
 
+## \internal
+# \brief Internal flag tracking if 
+_disable_status_lines = False;
+
 ## Prints a status line tracking the execution of the current hoomd script
 def print_status_line():
+	if _disable_status_lines:
+		return;
+	
 	# get the traceback info first
 	stack = traceback.extract_stack();
 	if len(stack) < 3:

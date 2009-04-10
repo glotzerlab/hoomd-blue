@@ -51,7 +51,8 @@ import util;
 ## \internal
 # \brief Internal python variable 
 __all__ = ["analyze", "bond", "dump", "force", "globals", "group", "init", 
-			"integrate", "pair", "update", "wall", "variant", "run", "hoomd"];
+			"integrate", "pair", "update", "wall", "variant", "run", 
+			"tune", "hoomd"];
 
 ## \brief Runs the simulation for a given number of time steps
 #
