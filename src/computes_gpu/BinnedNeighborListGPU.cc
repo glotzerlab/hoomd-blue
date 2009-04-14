@@ -109,7 +109,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<ParticleData> pda
 	else if (deviceProp.major == 1 && deviceProp.minor == 1)
 		m_block_size = 64;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 384;
+		m_block_size = 96;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;

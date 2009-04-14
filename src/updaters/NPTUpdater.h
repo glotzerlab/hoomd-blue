@@ -44,6 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Updater.h"
 #include "Integrator.h"
+#include "Variant.h"
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
@@ -62,7 +63,7 @@ class NPTUpdater : public Integrator
 	{
 	public:
 		//! Constructor
-	        NPTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P);
+	        NPTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, boost::shared_ptr<Variant> T, boost::shared_ptr<Variant> P);
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
@@ -70,7 +71,7 @@ class NPTUpdater : public Integrator
 		//! Update the temperature
 		/*! \param T New temperature to set
 		*/
-		virtual void setT(Scalar T) { m_T = T; }
+		virtual void setT(boost::shared_ptr<Variant> T) { m_T = T; }
 				
 		//! Update the tau value
 		/*! \param tau New time constant to set
@@ -80,7 +81,7 @@ class NPTUpdater : public Integrator
 		//! Update the pressure
 		/*! \param P New pressure to set
 		*/
-		virtual void setP(Scalar P) { m_P = P; }
+		virtual void setP(boost::shared_ptr<Variant> P) { m_P = P; }
 
 		//! Update the nuP value
 		/*! \param tauP New pressure constant to set
@@ -97,19 +98,19 @@ class NPTUpdater : public Integrator
 		virtual Scalar computeTemperature(unsigned int timestep);
 
 	protected:
-		Scalar m_tau;		//!< tau value for Nose-Hoover
-		Scalar m_tauP;          //!< tauP value for the barostat
-		Scalar m_T;			//!< Temperature set point
-		Scalar m_P;             //!< Pressure set point
-		Scalar m_Xi;		//!< Friction coeff
-		Scalar m_Eta;           //!< barostat friction
-		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
-		Scalar m_curr_P;        //!< Current (instanteneous) pressure
-		Scalar m_curr_T;        //!< Current (instanteneous)temperature
-		Scalar m_V;             //!< Current volume
-		Scalar m_Lx;            //!< Box length in x direction
-		Scalar m_Ly;            //!< Box length in y direction
-		Scalar m_Lz;            //!< Box length in z direction
+		Scalar m_tau;					//!< tau value for Nose-Hoover
+		Scalar m_tauP;					//!< tauP value for the barostat
+		boost::shared_ptr<Variant> m_T;	//!< Temperature set point
+		boost::shared_ptr<Variant> m_P;	//!< Pressure set point
+		Scalar m_Xi;					//!< Friction coeff
+		Scalar m_Eta;					//!< barostat friction
+		bool m_accel_set;				//!< Flag to tell if we have set the accelleration yet
+		Scalar m_curr_P;				//!< Current (instanteneous) pressure
+		Scalar m_curr_T;				//!< Current (instanteneous)temperature
+		Scalar m_V;						//!< Current volume
+		Scalar m_Lx;					//!< Box length in x direction
+		Scalar m_Ly;					//!< Box length in y direction
+		Scalar m_Lz;					//!< Box length in z direction
 		
 	};
 	

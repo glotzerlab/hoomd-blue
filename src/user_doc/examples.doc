@@ -96,7 +96,7 @@ run(1e9)
 \endcode
 Start the simulation running in HOOMD, then load up VMD. Inside VMD, create
 a new molecule and load the file \c example2.mol2 generated at the beginning
-of the simulation. Then go to the VMD command window and run the commnand
+of the simulation. Then go to the VMD command window and run the command
 \code
 imd connect localhost 54321
 \endcode
@@ -258,7 +258,7 @@ In a loop, this example performs a simulation of a Lennard-Jones liquid
 at different system sizes one after the other. It shows how the power of python
 code in a hoomd script can be utilized to accomplish complicated tasks. 
 For more information on python and a tutorial on the python language,
-check out http://www.python.org.
+check out http://www.python.org .
 
 \code
 from hoomd_script import *

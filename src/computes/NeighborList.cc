@@ -264,6 +264,39 @@ void NeighborList::compute(unsigned int timestep)
 	
 	if (m_prof) m_prof->pop();
 	}
+	
+/*! \param num_iters Number of iterations to average for the benchmark
+	\returns Milliseconds of execution time per calculation
+	
+	Calls buildNlist repeatedly to benchmark the neighbor list.
+*/
+double NeighborList::benchmark(unsigned int num_iters)
+	{
+	if (m_prof) m_prof->push("Neighbor");
+	
+	ClockSource t;
+	// warm up run
+	buildNlist();;
+	
+	#ifdef ENABLE_CUDA
+	exec_conf.callAll(bind(cudaThreadSynchronize));
+	#endif
+	
+	// benchmark
+	uint64_t start_time = t.getTime();
+	for (unsigned int i = 0; i < num_iters; i++)
+		buildNlist();
+		
+	#ifdef ENABLE_CUDA
+	exec_conf.callAll(bind(cudaThreadSynchronize));
+	#endif
+	uint64_t total_time_ns = t.getTime() - start_time;
+	
+	if (m_prof) m_prof->pop();
+	
+	// convert the run time to milliseconds
+	return double(total_time_ns) / 1e6 / double(num_iters);
+	}	
 		 
 /*! \param r_cut New cuttoff radius to set
 	\param r_buff New buffer radius to set

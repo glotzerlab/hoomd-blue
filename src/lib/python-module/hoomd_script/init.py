@@ -239,7 +239,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 #
 # In detail: 
 # -	\a bond_len defines the %bond length of the generated polymers. This should 
-# 	not necesarily be set to the equilibrium %bond length! The generator is dumb and doesn't know
+# 	not necessarily be set to the equilibrium %bond length! The generator is dumb and doesn't know
 # 	that bonded particles can be placed closer together than the separation (see below). Thus
 # 	\a bond_len must be at a minimum set at twice the value of the largest separation radius. An 
 # 	error will be generated if this is not the case.

@@ -168,9 +168,9 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 	pdata->release();
 	
     // Resetting the Temperature to 1.0
-	Temp = Scalar(1.0);
-	cout << "Temperature set at " << Temp << endl;
-    bdnvt_up->setT(Temp);
+	shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
+	cout << "Temperature set at " << T_variant->getValue(0) << endl;
+    bdnvt_up->setT(T_variant);
 	
 	//Restoring the position of the particles to the origin for simplicity of calculating diffusion
 	arrays = pdata->acquireReadWrite();
@@ -408,9 +408,9 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 	pdata->release();
 
 	// Resetting the Temperature to 1.0
-	Temp = Scalar(1.0);
-	cout << "Temperature set at " << Temp << endl;
-    bdnvt_up->setT(Temp);
+	shared_ptr<VariantConst> T_variant(new VariantConst(1.0));
+	cout << "Temperature set at " << T_variant->getValue(0) << endl;
+    bdnvt_up->setT(T_variant);
 
 	AvgT = Scalar(0);
 	for (i = 0; i < 50000; i++)
@@ -440,14 +440,16 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 //! BD_NVTUpdater factory for the unit tests
 shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)
 	{
-	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(pdata, deltaT, Temp, seed));
+	shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(pdata, deltaT, T_variant, seed));
 	}
 
 #ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
 shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar Temp, unsigned int seed)
 	{
-	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(pdata, deltaT, Temp, seed));
+	shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+	return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(pdata, deltaT, T_variant, seed));
 	}
 #endif		
 

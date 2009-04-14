@@ -152,6 +152,9 @@ class ForceCompute : public Compute
 		//! Computes the forces
 		virtual void compute(unsigned int timestep);
 		
+		//! Benchmark the force compute
+		virtual double benchmark(unsigned int num_iters);
+		
 		//! Total the potential energy
 		Scalar calcEnergySum();
 

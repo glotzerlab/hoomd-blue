@@ -15,7 +15,9 @@ phi_P = 0.20
 T = 1.2
 
 # the first list is for the full benchmark
-n_poly_list = [50, 100, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800];
+n_poly_list = [];
+for i in xrange(1,50):
+	n_poly_list.append(int(9 + 1.5964 * i**2))
 
 # this comment list is for generating dump files to convert to lammps and benchmark lammps
 #n_poly_list = [800, 1400, 1800, 2400];
@@ -56,12 +58,10 @@ for n_poly in n_poly_list:
 	f.write("%d\t%f\n" % (N, TPS));
 	f.flush();
 	
-	globals._clear();
 	del nlist
 	del lj
 	del harmonic
-	#if xml:
-	#	del xml
-
+	#del xml
+	init.reset()
 
 f.close();

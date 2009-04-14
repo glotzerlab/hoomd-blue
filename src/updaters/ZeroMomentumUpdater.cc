@@ -73,10 +73,9 @@ ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<ParticleData> pdata)
 */
 void ZeroMomentumUpdater::update(unsigned int timestep)
 	{
-	// find the current temperature
 	if (m_prof) m_prof->push("ZeroMomentum");
 
-	// calculate the average velocity
+	// calculate the average momentum
 	assert(m_pdata);
 	ParticleDataArrays arrays = m_pdata->acquireReadWrite();
 	
@@ -85,7 +84,6 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 	Scalar sum_py = 0.0;
 	Scalar sum_pz = 0.0;
 	
-	// note: assuming mass == 1 for now	
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		Scalar mass = arrays.mass[i];
@@ -100,7 +98,6 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
 	Scalar avg_pz = sum_pz / Scalar(arrays.nparticles);
 	
 	// subtract this momentum from every partcile
-	// note: assuming mass == 1 for now
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		Scalar mass = arrays.mass[i];

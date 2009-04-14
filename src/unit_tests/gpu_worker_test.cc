@@ -110,10 +110,12 @@ BOOST_AUTO_TEST_CASE( GPUWorker_throw )
 	// the error should be cleared now
 	BOOST_CHECK_NO_THROW(gpu.sync());
 	
-	// test this through sync
+	// test this through sync (which only works when not in device emu mode)
+	#ifndef _DEVICEEMU
 	gpu.callAsync(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyHostToDevice));
 	BOOST_CHECK_THROW(gpu.sync(), runtime_error);
-			
+	#endif
+
 	gpu.call(bind(cudaFree, d_float));
 	}
 

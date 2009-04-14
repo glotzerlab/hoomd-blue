@@ -40,6 +40,7 @@
 import hoomd;
 import globals;
 import util;
+import variant;
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
@@ -360,6 +361,84 @@ class zero_momentum(_updater):
 		# create the c++ mirror class
 		self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.particle_data);
 		self.setupUpdater(period);
+		
+## Rescales the system box size
+#
+# Every \a period time steps, the system box size is updated to a value given by
+# the user (in a variant). As an option, the particles can either be left in place
+# as the box is changed or their positions can be scaled with the box.
+#
+class box_resize(_updater):
+	## Initialize box size resizer
+	#
+	# \param Lx Variant specifying the value of the box length in the x direction as a function of time
+	# \param Ly (if set) Variant specifying the value of the box length in the y direction as a function of time
+	# \param Lz (if set) Variant specifying the value of the box length in the z direction as a function of time
+	# \param period The box size will be updated every \a period time steps
+	# 
+	# If Ly or Lz (or both) are left as None, then they will be set to Lx as a convenience for 
+	# defining cubes.
+	#
+	# \note
+	# By default, particle positions are rescaled with the box. To change this behavior,
+	# use set_params().
+	# 
+	# \b Examples:
+	# \code
+	# update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
+	# box_resize = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
+	# update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), 
+	#					Ly = variant.linear_interp([(0, 20), (1e6, 60)]),
+	#					Lz = variant.linear_interp([(0, 10), (1e6, 80)]))
+	# update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), Ly = 10, Lz = 10)
+	# \endcode
+	#
+	# \a period can be a function: see \ref variable_period_docs for details
+	def __init__(self, Lx, Ly = None, Lz = None, period = 1):
+		util.print_status_line();
+	
+		# initialize base class
+		_updater.__init__(self);
+		
+		# setup arguments
+		if Ly == None:
+			Ly = Lx;
+		if Lz == None:
+			Lz = Lx;
+			
+		Lx = variant._setup_variant_input(Lx);
+		Ly = variant._setup_variant_input(Ly);
+		Lz = variant._setup_variant_input(Lz);
+
+		# create the c++ mirror class
+		self.cpp_updater = hoomd.BoxResizeUpdater(globals.particle_data, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant);
+		self.setupUpdater(period);
+		
+	## Change box_resize parameters
+	#
+	# \param scale_particles Set to True to scale particles with the box. Set to False
+	# 							to have particles remain in place when the box is scaled.
+	# 
+	# To change the parameters of an existing updater, you must have saved it when it was specified.
+	# \code
+	# box_resize = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# box_resize.set_params(scale_particles = False)
+	# box_resize.set_params(scale_particles = Talse)
+	# \endcode
+	def set_params(self, scale_particles=None):
+		util.print_status_line();
+	
+		# check that proper initialization has occured
+		if self.cpp_updater == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
+			raise RuntimeError('Error setting box_resize parameters');
+			
+		if scale_particles != None:
+			self.cpp_updater.setParams(scale_particles);
 
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;

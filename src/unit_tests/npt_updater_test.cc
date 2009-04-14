@@ -229,14 +229,18 @@ void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_crea
 //! NPTUpdater factory for the unit tests
 shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
 	{
-	  return shared_ptr<NPTUpdater>(new NPTUpdater(pdata, deltaT,tau,tauP,T,P));
+	boost::shared_ptr<Variant> T_variant(new VariantConst(T));
+	boost::shared_ptr<Variant> P_variant(new VariantConst(P));
+	return shared_ptr<NPTUpdater>(new NPTUpdater(pdata, deltaT,tau,tauP,T_variant,P_variant));
 	}
 	
 #ifdef ENABLE_CUDA
 //! NPTUpdaterGPU factory for the unit tests
 shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
 	{
-	  return shared_ptr<NPTUpdater>(new NPTUpdaterGPU(pdata, deltaT, tau, tauP, T, P));
+	boost::shared_ptr<Variant> T_variant(new VariantConst(T));
+	boost::shared_ptr<Variant> P_variant(new VariantConst(P));	
+	return shared_ptr<NPTUpdater>(new NPTUpdaterGPU(pdata, deltaT, tau, tauP, T_variant, P_variant));
 	}
 #endif
 	

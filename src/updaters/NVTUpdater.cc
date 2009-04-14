@@ -61,12 +61,11 @@ using namespace std;
 	\param tau NVT period
 	\param T Temperature set point
 */
-NVTUpdater::NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar T) : Integrator(pdata, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
+NVTUpdater::NVTUpdater(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T) : Integrator(pdata, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
 	{
 	if (m_tau <= 0.0)
 		cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
-	if (m_T <= 0.0)
-		cout << "***Warning! T set less than 0.0 in NVTUpdater" << endl;
+	
 	m_Xi = 1.0;
 	m_eta = 1.0;
 	m_curr_T = computeTemperature(0);
@@ -104,7 +103,7 @@ Scalar NVTUpdater::getLogValue(const std::string& quantity, unsigned int timeste
 		{
 		Scalar g = Scalar(3*m_pdata->getN());
 		return computeKineticEnergy(timestep) + computePotentialEnergy(timestep) + 
-			g * m_T * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
+			g * m_T->getValue(timestep) * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
 		}
 	else if (quantity == string("temperature"))
 		{
@@ -183,7 +182,7 @@ void NVTUpdater::update(unsigned int timestep)
 	// update Xi
 	Scalar g = Scalar(3*m_pdata->getN());
 	m_curr_T = Ksum / g;
-	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T - Scalar(1.0));
+	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
 	
 	// update eta
 	m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
@@ -285,7 +284,7 @@ void NVTUpdater::update(unsigned int timestep)
 void export_NVTUpdater()
 	{
 	class_<NVTUpdater, boost::shared_ptr<NVTUpdater>, bases<Integrator>, boost::noncopyable>
-		("NVTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, Scalar >())
+		("NVTUpdater", init< boost::shared_ptr<ParticleData>, Scalar, Scalar, boost::shared_ptr<Variant> >())
 		.def("setT", &NVTUpdater::setT)
 		.def("setTau", &NVTUpdater::setTau)
 		;

@@ -144,6 +144,9 @@ class NeighborList : public Compute
 
 		//! Computes the NeighborList if it needs updating
 		void compute(unsigned int timestep);
+		
+		//! Benchmark the neighbor list
+		virtual double benchmark(unsigned int num_iters);
 
 		//! Change the cuttoff radius
 		void setRCut(Scalar r_cut, Scalar r_buff);

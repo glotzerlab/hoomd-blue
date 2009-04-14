@@ -58,7 +58,7 @@ class NPTUpdaterGPU : public NPTUpdater
 	{
 	public:
 		//! Constructor
-	        NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P);
+	        NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar deltaT, Scalar tau, Scalar tauP, boost::shared_ptr<Variant> T, boost::shared_ptr<Variant> P);
 		virtual ~NPTUpdaterGPU();
 
 		//! Take one timestep forward

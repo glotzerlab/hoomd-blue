@@ -114,7 +114,7 @@ class _analyzer:
 	# Initializes the cpp_analyzer to None.
 	# Assigns a name to the analyzer in analyzer_name;
 	def __init__(self):
-		# check if initialization has occured
+		# check if initialization has occurred
 		if globals.system == None:
 			print >> sys.stderr, "\n***Error! Cannot create analyzer before initialization\n";
 			raise RuntimeError('Error creating analyzer');

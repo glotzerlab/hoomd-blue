@@ -39,18 +39,46 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $Id$
 // $URL$
 
-#include "ForceCompute.cuh"
-#include "BondData.cuh"
-#include "ParticleData.cuh"
-
-/*! \file MorseBondForceGPU.cuh
-	\brief Declares GPU kernel code for calculating the morse bond forces. Used by MorseBondForceComputeGPU.
+/*! \file BoxResizeUpdater.h
+	\brief Declares an updater that resizes the simulation box of the system
 */
 
-#ifndef __MORSEBONDFORCEGPU_CUH__
-#define __MORSEBONDFORCEGPU_CUH__
+#include <boost/shared_ptr.hpp>
 
-//! Kernel driver that computes morse bond forces for MorseBondForceComputeGPU
-cudaError_t gpu_compute_morse_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float4 *d_params, unsigned int n_bond_types, int block_size);
+#include "Updater.h"
+#include "Variant.h"
 
+#ifndef __BOXRESIZEUPDATER_H__
+#define __BOXRESIZEUPDATER_H__
+
+//! Updates the simulation box over time
+/*! This simple updater gets the box lengths from specified variants and sets those box sizes 
+	over time. As an option, particles can be rescaled with the box lengths or left where they are.
+	
+	\ingroup updaters
+*/
+class BoxResizeUpdater : public Updater
+	{
+	public:
+		//! Constructor
+		BoxResizeUpdater(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<Variant> Lx, boost::shared_ptr<Variant> Ly, boost::shared_ptr<Variant> Lz);
+		
+		//! Sets parameter flags
+		void setParams(bool scale_particles);
+		
+		//! Take one timestep forward
+		virtual void update(unsigned int timestep);
+		
+	private:
+		boost::shared_ptr<Variant> m_Lx;	//!< Box Lx vs time
+		boost::shared_ptr<Variant> m_Ly;	//!< Box Ly vs time
+		boost::shared_ptr<Variant> m_Lz;	//!< Box Lz vs time
+		bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
+
+
+	};
+	
+//! Export the BoxResizeUpdater to python
+void export_BoxResizeUpdater();
+	
 #endif

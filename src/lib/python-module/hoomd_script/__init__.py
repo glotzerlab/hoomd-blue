@@ -50,19 +50,22 @@ import util;
 
 ## \internal
 # \brief Internal python variable 
-__all__ = ["analyze", "bond", "angle", "dump", "force", "globals", "init", 
-			"integrate", "pair", "update", "wall", "run", "hoomd", "group"];
+__all__ = ["analyze", "bond", "angle", "dump", "force", "globals", "group", 
+                        "init", "integrate", "pair", "update", "wall", 
+                        "variant", "run", "tune", "hoomd"];
 
 ## \brief Runs the simulation for a given number of time steps
 #
 # \param tsteps Number of timesteps to advance the simulation by
 # \param profile Set to true to enable detailed profiling
+# \param limit_hours (if set) Limit the run to a given number of hours.
 # 
 # \b Examples:
 # \code
 # run(1000)
 # run(10e6)
 # run(10000, profile=True)
+# run(1e9, limit_hours=11)
 # \endcode
 #
 # Execute the run() command to advance the simulation forward in time. 
@@ -83,7 +86,14 @@ __all__ = ["analyze", "bond", "angle", "dump", "force", "globals", "init",
 # portion of the calculation is printed at the end of the run. Collecting this timing information
 # can slow the simulation on the GPU by ~5 percent, so only enable profiling for testing
 # and troubleshooting purposes.
-def run(tsteps, profile=False):
+#
+# If limit_hours is changed from the default of None, the run will continue until either
+# the specified number of time steps has been reached, or the given number of hours has
+# elapsed. This option can be useful in shared machines where the queuing system limits
+# job run times. A fractional value can be given to limit a run to only a few minutes,
+# if needed.
+#
+def run(tsteps, profile=False, limit_hours = None):
 	util.print_status_line();
 	# check if initialization has occured
 	if (globals.system == None):
@@ -98,9 +108,12 @@ def run(tsteps, profile=False):
 	for logger in globals.loggers:
 		logger.update_quantities();
 	globals.system.enableProfiler(profile);
+
+	if limit_hours == None:
+		limit_hours = 0.0
 	
 	print "** starting run **"
-	globals.system.run(int(tsteps));
+	globals.system.run(int(tsteps), limit_hours);
 	print "** run complete **"
 
 
