@@ -54,6 +54,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "BondData.h"
 #include "AngleData.h"
+#include "DihedralData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
@@ -63,6 +64,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConstForceCompute.h"
 #include "HarmonicBondForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
+#include "HarmonicDihedralForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
@@ -109,6 +111,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
+#include "HarmonicDihedralForceComputeGPU.h"
 #include "CGCMMAngleForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #endif
@@ -304,6 +307,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ExecutionConfiguration();
 	export_BondData();	
 	export_AngleData();	
+	export_DihedralData();	
 
 	// initializers
 	export_RandomInitializer();
@@ -318,6 +322,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ConstForceCompute();
 	export_HarmonicBondForceCompute();
 	export_HarmonicAngleForceCompute();
+	export_HarmonicDihedralForceCompute();
 	export_CGCMMAngleForceCompute();
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
@@ -337,6 +342,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	//export_YukawaForceComputeGPU();
 	export_HarmonicBondForceComputeGPU();
 	export_HarmonicAngleForceComputeGPU();
+	export_HarmonicDihedralForceComputeGPU();
 	export_CGCMMAngleForceComputeGPU();
 	export_FENEBondForceComputeGPU();
 	#endif

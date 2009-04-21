@@ -100,7 +100,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	// check that the nve updater can actually integrate particle positions and velocities correctly
 	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata(new ParticleData(2, BoxDim(1000.0), 4, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -167,7 +167,7 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
 	#endif
 	
 	// create a simple 1 particle system
-	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 1, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 1, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -233,7 +233,7 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
 	// there are way too many permutations to test here, so I will simply
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles set to move across each boundary
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.vx[0] = Scalar(-0.5);

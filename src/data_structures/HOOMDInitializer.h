@@ -47,6 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "WallData.h"
 #include "BondData.h"
 #include "AngleData.h"
+#include "DihedralData.h"
 #include "xmlParser.h"
 
 #include <string>
@@ -109,11 +110,17 @@ class HOOMDInitializer : public ParticleDataInitializer
 		//! Returns the number of angle types to be created
 		virtual unsigned int getNumAngleTypes() const;
 
+		//! Returns the number of dihedral types to be created
+		virtual unsigned int getNumDihedralTypes() const;
+
 		//! Initialize the bond data
 		virtual void initBondData(boost::shared_ptr<BondData> bond_data) const;
 		
 		//! Initialize the angle data
 		virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const;
+
+		//! Initialize the dihedral data
+		virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const;
 
 	private:
 		//! Helper function to read the input file
@@ -136,6 +143,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		void parseBondNode(const XMLNode& node);
 		//! Helper function to parse the angle node
 		void parseAngleNode(const XMLNode& node);
+		//! Helper function to parse the dihedral node
+		void parseDihedralNode(const XMLNode& node);
 		//! Parse charge node
 		void parseChargeNode(const XMLNode& node);
 		//! Parse wall node
@@ -147,6 +156,8 @@ class HOOMDInitializer : public ParticleDataInitializer
 		unsigned int getBondTypeId(const std::string& name);
 		//! Helper function for identifying the angle type id
 		unsigned int getAngleTypeId(const std::string& name);
+		//! Helper function for identifying the dihedral type id
+		unsigned int getDihedralTypeId(const std::string& name);
 
 		std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map;	//!< Map for dispatching parsers based on node type
 		 
@@ -206,11 +217,15 @@ class HOOMDInitializer : public ParticleDataInitializer
 	
 		std::vector< Angle > m_angles;	//!< Angle read in from the file
 
+		std::vector< Dihedral > m_dihedrals;//!< Dihedral read in from the file
+
 		unsigned int m_timestep;		//!< The time stamp
 		
 		std::vector<std::string> m_type_mapping;	//!< The created mapping between particle types and ids
 		std::vector<std::string> m_bond_type_mapping;	//!< The created mapping between bond types and ids
 		std::vector<std::string> m_angle_type_mapping;	//!< The created mapping between angle types and ids
+		std::vector<std::string> m_dihedral_type_mapping;//!< The created mapping between dihedral types and ids
+
 	};
 	
 //! Exports HOOMDInitializer to python

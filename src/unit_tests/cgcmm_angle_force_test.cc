@@ -49,7 +49,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
         
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 3 particles in a huge box with only one angle type !!!! NO ANGLES
-	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 1, 1, exec_conf));
+	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 1, 1, 0,  exec_conf));
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
         arrays.x[0] = Scalar(-1.23); // put atom a at (-1,0,0.1)
         arrays.y[0] = Scalar(2.0);
@@ -132,7 +132,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of angle
         unsigned int num_angles_to_test = 2;
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, exec_conf));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, exec_conf));
 
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
@@ -197,7 +197,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, exec_conf));
+	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 3, 0, exec_conf));
 	arrays = pdata_4->acquireReadWrite();
 	// make a square of particles
 	arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;

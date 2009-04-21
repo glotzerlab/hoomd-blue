@@ -65,6 +65,7 @@ using namespace boost::python;
 #include "WallData.h"
 #include "BondData.h"
 #include "AngleData.h"
+#include "DihedralData.h"
 
 #include <boost/bind.hpp>
 
@@ -141,6 +142,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	\param box Box the particles live in
 	\param n_bond_types Number of bond types to create
         \param n_angle_types Number of angles to create
+        \param n_dihedral_types Number of dihedrals to create
 	\param exec_conf ExecutionConfiguration to use when executing code on the GPU
 	
 	\post \c x,\c y,\c z,\c vx,\c vy,\c vz,\c ax,\c ay, and \c az are allocated and initialized to 0.0
@@ -155,7 +157,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 	
 	Type mappings assign particle types "A", "B", "C", ....
 */ 
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, unsigned int n_angle_types, const ExecutionConfiguration& exec_conf)	
+ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, unsigned int n_angle_types, unsigned int n_dihedral_types, const ExecutionConfiguration& exec_conf)	
 	: m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
 	{
 	// check the input for errors
@@ -217,6 +219,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 
 	// allocate angles
 	m_angleData = shared_ptr<AngleData>(new AngleData(this, n_angle_types));
+
+	// allocate dihedrals
+	m_dihedralData = shared_ptr<DihedralData>(new DihedralData(this, n_dihedral_types));
 
 	// if this is a GPU build, initialize the graphics card mirror data structures
 	#ifdef ENABLE_CUDA
@@ -321,6 +326,10 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	// allocate angles
 	m_angleData = shared_ptr<AngleData>(new AngleData(this, init.getNumAngleTypes()));
 	init.initAngleData(m_angleData);
+
+	// allocate dihedrals
+	m_dihedralData = shared_ptr<DihedralData>(new DihedralData(this, init.getNumDihedralTypes()));
+	init.initDihedralData(m_dihedralData);
 
 	// if this is a GPU build, initialize the graphics card mirror data structure
 	#ifdef ENABLE_CUDA
@@ -1308,7 +1317,7 @@ void export_ParticleData()
 	class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
 		.def(init<const ParticleDataInitializer&>())
 		.def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
-		.def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, const ExecutionConfiguration&>()) 
+		.def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, const ExecutionConfiguration&>()) 
 		.def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
 		.def("setBox", &ParticleData::setBox)
 		.def("getN", &ParticleData::getN)
@@ -1319,6 +1328,7 @@ void export_ParticleData()
 		.def("acquireReadWrite", &ParticleData::acquireReadWrite, return_value_policy<copy_const_reference>())
 		.def("getBondData", &ParticleData::getBondData)
 		.def("getAngleData", &ParticleData::getAngleData)
+		.def("getDihedralData", &ParticleData::getDihedralData)
 		.def("release", &ParticleData::release)
 		.def("setProfiler", &ParticleData::setProfiler)
 		.def("getExecConf", &ParticleData::getExecConf, return_internal_reference<>())
