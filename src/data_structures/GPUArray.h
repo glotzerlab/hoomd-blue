@@ -443,7 +443,7 @@ template<class T> void GPUArray<T>::allocate()
 	
 	#ifdef ENABLE_CUDA
 	assert(d_data == NULL);
-	// the current implementation only supports a signle GPU
+	// the current implementation only supports a single GPU
 	if (m_exec_conf.gpu.size() > 1)
 		{
 		std::cerr << std::endl << "GPUArray doesn't support multi-GPU runs yet" << std::endl << std::endl;

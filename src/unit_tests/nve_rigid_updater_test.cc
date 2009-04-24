@@ -139,6 +139,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	
 	nve->addForceCompute(fc);
 	
+	// Initialize rigid data
 	sysdef->init();
 	for (int i = 0; i < 50; i++)
 		{

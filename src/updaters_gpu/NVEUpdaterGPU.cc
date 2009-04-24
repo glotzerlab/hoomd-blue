@@ -50,6 +50,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NVEUpdaterGPU.h"
 #include "NVEUpdaterGPU.cuh"
+#include "NVERigidUpdaterGPU.cuh"
+
+#include "NVERigidUpdater.h"
+#include "RigidData.h"
 
 #include <boost/bind.hpp>
 using namespace boost;
@@ -78,9 +82,21 @@ NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar 
 	Calls gpu_nve_pre_step and gpu_nve_step to do the dirty work.
 */
 void NVEUpdaterGPU::update(unsigned int timestep)
-	{
+{
 	assert(m_pdata);
 
+	// get the rigid data from SystemDefinition
+	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+	
+	// if there is any rigid body and the flag has not yet been set
+	static bool has_rigid_bodies = false;
+	if (rigid_data->getNumBodies() > 0 && has_rigid_bodies == false) 
+	{
+		m_rigid_updater = boost::shared_ptr<NVERigidUpdater> (new NVERigidUpdater(m_sysdef, m_deltaT));
+		// set the flag
+		has_rigid_bodies = true;
+	}
+	
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
 		{
@@ -88,6 +104,9 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		// use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
 		// is calculated correctly
 		computeAccelerationsGPU(timestep, "NVE", true);
+			
+		// rigid body setup: compute initial body forces and torques: do the similar thing as to NVEUpdater?? call NVERigidUpdater::setup?
+		if (has_rigid_bodies) m_rigid_updater->setup();
 		}
 
 	if (m_prof)
@@ -96,14 +115,20 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	// access the particle data arrays
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
 	gpu_boxsize box = m_pdata->getBoxGPU();
-
+	unsigned int ngpus = exec_conf.gpu.size();
+	
 	if (m_prof) m_prof->push(exec_conf, "Half-step 1");
 	
 	// call the pre-step kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+	for (unsigned int cur_gpu = 0; cur_gpu < ngpus; cur_gpu++)
+	{
 		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_pre_step, d_pdata[cur_gpu], box, m_deltaT, m_limit, m_limit_val));
-		
+	
+		if (has_rigid_bodies) 
+			exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_rigid_body_pre_step, d_pdata[cur_gpu], rigid_data, cur_gpu, ngpus, box, m_deltaT, m_limit, m_limit_val));
+	}
+	
 	exec_conf.syncAll();
 	
 	uint64_t mem_transfer = m_pdata->getN() * (16+32+16+48);
@@ -131,9 +156,14 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	
 	// call the post-step kernel on all GPUs in parallel
 	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)	
+	for (unsigned int cur_gpu = 0; cur_gpu < ngpus; cur_gpu++)
+	{
 		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_step, d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
-		
+	
+	//	if (has_rigid_bodies) 
+	//		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_rigid_body_step, d_pdata[cur_gpu], rigid_data, cur_gpu, ngpus, m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+	}	
+	
 	exec_conf.syncAll();
 	m_pdata->release();
 	

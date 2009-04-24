@@ -98,9 +98,6 @@ class NVERigidUpdater
 		unsigned int m_n_bodies;
 		boost::shared_ptr<RigidData> m_rigid_data;
 		boost::shared_ptr<ParticleData> m_pdata;
-		
-		GPUArray<Scalar4> m_force;
-		GPUArray<Scalar4> m_torque;
 	};
 	
 	

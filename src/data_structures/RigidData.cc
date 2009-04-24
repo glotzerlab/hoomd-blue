@@ -54,13 +54,15 @@ using namespace std;
 #define EPSILON 1.0e-7
 #define MAXJACOBI 50
 
+#define MAX(A,B) ((A) > (B)) ? (A) : (B)
+
 /*! \param particle_data ParticleData this use in initializing this RigidData
 
 	\pre \a particle_data has been completeley initialized with all arrays filled out
 	\post All data members in RigidData are completely initialized from the given info in \a particle_data
 */
-RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
-	: m_pdata(particle_data), m_n_bodies(0)
+RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data, const ExecutionConfiguration& exec_conf)
+	: m_pdata(particle_data), m_exec_conf(exec_conf), m_n_bodies(0)
 	{
 	// leave arrays initialized to NULL. There are currently 0 bodies and their 
 	// initialization is delayed because we cannot reasonably determine when that initialization
@@ -156,14 +158,16 @@ void RigidData::initializeData()
 	GPUArray<Scalar4> ex_space(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> ey_space(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> ez_space(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<unsigned int> body_imagex(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<unsigned int> body_imagey(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<unsigned int> body_imagez(m_n_bodies, m_pdata->getExecConf());
+	GPUArray<int> body_imagex(m_n_bodies, m_pdata->getExecConf());
+	GPUArray<int> body_imagey(m_n_bodies, m_pdata->getExecConf());
+	GPUArray<int> body_imagez(m_n_bodies, m_pdata->getExecConf());
 		
 	GPUArray<Scalar4> com(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> vel(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<Scalar4> angvel(m_n_bodies, m_pdata->getExecConf());
+	GPUArray<Scalar4> force(m_n_bodies, m_pdata->getExecConf());
+	GPUArray<Scalar4> torque(m_n_bodies, m_pdata->getExecConf());
 		
 	m_body_mass.swap(body_mass);
 	m_body_size.swap(body_size);
@@ -180,6 +184,8 @@ void RigidData::initializeData()
 	m_vel.swap(vel);
 	m_angmom.swap(angmom);
 	m_angvel.swap(angvel);
+	m_force.swap(force);
+	m_torque.swap(torque);
 		
 	{	
 	// determine the largest size of rigid bodies (nmax)
@@ -194,11 +200,14 @@ void RigidData::initializeData()
 			body_size_handle.data[body]++;
 		}	
 	
-	unsigned int nmax = 0;
+	// determine the maximum number of particles in a rigid body
+	m_nmax = 0;
 	for (unsigned int body = 0; body < m_n_bodies; body++)
-		if (nmax < body_size_handle.data[body])
-			nmax = body_size_handle.data[body];	
+		if (m_nmax < body_size_handle.data[body])
+			m_nmax = body_size_handle.data[body];	
 	
+	m_nmax = (m_nmax + (16 - m_nmax & 15));
+		
 	// determine body_mass, inertia tensor, com and vel	
 	GPUArray<Scalar> inertia(6, m_n_bodies, m_pdata->getExecConf()); // the inertia tensor is symmetric, therefore we only need to store 6 elements
 	ArrayHandle<Scalar> inertia_handle(inertia, access_location::host, access_mode::readwrite);
@@ -209,14 +218,14 @@ void RigidData::initializeData()
 	ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::readwrite);
-	ArrayHandle<unsigned int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
-	ArrayHandle<unsigned int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
-	ArrayHandle<unsigned int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
+	ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
+	ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
+	ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::readwrite);
 	
 	for (unsigned int body = 0; body < m_n_bodies; body++)
-	{
+		{
 		body_mass_handle.data[body] = 0.0;
 		com_handle.data[body].x = 0.0;
 		com_handle.data[body].y = 0.0;
@@ -231,10 +240,10 @@ void RigidData::initializeData()
 		inertia_handle.data[6 * body + 3] = 0.0;
 		inertia_handle.data[6 * body + 4] = 0.0;
 		inertia_handle.data[6 * body + 5] = 0.0;
-	}
+		}
 		
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
-	{
+		{
 		if (arrays.body[j] == NO_BODY) continue;
 		
 		unsigned int body = arrays.body[j];
@@ -248,11 +257,11 @@ void RigidData::initializeData()
 		vel_handle.data[body].x += mass_one * arrays.vx[j];
 		vel_handle.data[body].y += mass_one * arrays.vy[j];
 		vel_handle.data[body].z += mass_one * arrays.vz[j];
-	}
+		}
 	
 	// com, vel and body images
 	for (unsigned int body = 0; body < m_n_bodies; body++)
-	{
+		{
 		Scalar mass_body = body_mass_handle.data[body];
 		com_handle.data[body].x /= mass_body;
 		com_handle.data[body].y /= mass_body;
@@ -265,11 +274,11 @@ void RigidData::initializeData()
 		body_imagex_handle.data[body] = 0;
 		body_imagey_handle.data[body] = 0;
 		body_imagez_handle.data[body] = 0;
-	}
+		}
 	
 	// determine the inertia tensor then diagonalize it
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
-	{
+		{
 		if (arrays.body[j] == NO_BODY) continue;
 			
 		unsigned int body = arrays.body[j];
@@ -285,7 +294,7 @@ void RigidData::initializeData()
 		inertia_handle.data[6 * body + 3] -= mass_one * dx * dy;
 		inertia_handle.data[6 * body + 4] -= mass_one * dy * dz;
 		inertia_handle.data[6 * body + 5] -= mass_one * dx * dz;
-	}
+		}
 	
 	// allocate temporary arrays: revision needed!
 	Scalar **matrix, *evalues, **evectors;
@@ -315,6 +324,17 @@ void RigidData::initializeData()
 		moment_inertia_handle.data[body].y = evalues[1];
 		moment_inertia_handle.data[body].z = evalues[2];
 		
+		// set tiny moment of inertia component to be zero
+		Scalar max = MAX(moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y);
+		max = MAX(max, moment_inertia_handle.data[body].z);
+			
+		if (moment_inertia_handle.data[body].x < EPSILON * max) 
+			moment_inertia_handle.data[body].x = Scalar(0.0);
+		if (moment_inertia_handle.data[body].y < EPSILON * max) 
+			moment_inertia_handle.data[body].y = Scalar(0.0);
+		if (moment_inertia_handle.data[body].z < EPSILON * max) 
+			moment_inertia_handle.data[body].z = Scalar(0.0);
+			
 		// obtain the principle axes from eigen vectors
 		ex_space_handle.data[body].x = evectors[0][0];
 		ex_space_handle.data[body].y = evectors[1][0];
@@ -347,17 +367,18 @@ void RigidData::initializeData()
 		
 		
 	// allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
-	GPUArray<unsigned int> particle_tags(nmax, m_n_bodies,  m_pdata->getExecConf());
+	GPUArray<unsigned int> particle_tags(m_nmax, m_n_bodies,  m_pdata->getExecConf());
 	m_particle_tags.swap(particle_tags);
 	ArrayHandle<unsigned int> particle_tags_handle(m_particle_tags, access_location::host, access_mode::readwrite); 
 	unsigned int particle_tags_pitch = m_particle_tags.getPitch();
 		
-	GPUArray<unsigned int> particle_indices(nmax, m_n_bodies, m_pdata->getExecConf());
+	GPUArray<unsigned int> particle_indices(m_nmax, m_n_bodies, m_pdata->getExecConf());
 	m_particle_indices.swap(particle_indices);
 	ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite); 
 	unsigned int particle_indices_pitch = m_particle_indices.getPitch();
+	for (unsigned int j = 0; j < m_nmax * m_n_bodies; j++) particle_indices_handle.data[j] = -1; // initialize with a sentinel value
 		
-	GPUArray<Scalar4> particle_pos(nmax, m_n_bodies, m_pdata->getExecConf());	
+	GPUArray<Scalar4> particle_pos(m_nmax, m_n_bodies, m_pdata->getExecConf());	
 	m_particle_pos.swap(particle_pos);
 	ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite); 
 	unsigned int particle_pos_pitch = m_particle_pos.getPitch();

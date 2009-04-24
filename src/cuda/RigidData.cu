@@ -36,39 +36,19 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: ParticleData.cu 1578 2009-04-14 ndtrung $
+// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/cuda/RigidData.cu $
 
-/*! \file NVEUpdaterGPU.h
-	\brief Declares the NVEUpdaterGPU class
-*/
+#include "RigidData.cuh"
+#include "gpu_settings.h"
 
-#include "NVEUpdater.h"
-
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NVEUPDATER_GPU_H__
-#define __NVEUPDATER_GPU_H__
-
-//! NVE via velocity verlet on the GPU
-/*!	NVEUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
-	
-	The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
-	
-	\ingroup updaters
-*/
-class NVEUpdaterGPU : public NVEUpdater
-	{
-	public:
-		//! Constructor
-		NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-		
-		//! Take one timestep forward
-		virtual void update(unsigned int timestep);
-
-	};
-	
-//! Exports the NVEUpdaterGPU class to python
-void export_NVEUpdaterGPU();
-	
+#ifdef WIN32
+#include <cassert>
+#else
+#include <assert.h>
 #endif
+
+/*! \file RigidData.cu
+
+*/
+

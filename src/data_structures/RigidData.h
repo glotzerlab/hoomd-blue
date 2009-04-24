@@ -48,6 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "GPUArray.h"
+#include "RigidData.cuh"
 
 //! Stores all per rigid body values
 /*! All rigid body data (except for the per-particle body value) is stored in RigidData
@@ -69,12 +70,14 @@ class RigidData
 	{
 	public:
 		//! Initializes all rigid body data from the given particle data
-		RigidData(boost::shared_ptr<ParticleData> particle_data);
+		RigidData(boost::shared_ptr<ParticleData> particle_data, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
 		//! Destructor
 		~RigidData();
 		
 		//! Get the number of bodies in the rigid data
 		unsigned int getNumBodies() { return m_n_bodies; }
+		//! Get the maximum number of particles in a rigid body
+		unsigned int getNmax() { return m_nmax; }
 		
 		//! \name getter methods (static data)
 		//@{
@@ -105,51 +108,62 @@ class RigidData
 		//! Get m_angvel
 		const GPUArray<Scalar4>& getAngVel() { return m_angvel; }
 		//! Get m_body_imagex
-		const GPUArray<unsigned int>& getBodyImagex() { return m_body_imagex; }
+		const GPUArray<int>& getBodyImagex() { return m_body_imagex; }
 		//! Get m_body_imagey
-		const GPUArray<unsigned int>& getBodyImagey() { return m_body_imagey; }
+		const GPUArray<int>& getBodyImagey() { return m_body_imagey; }
 		//! Get m_body_imagez
-		const GPUArray<unsigned int>& getBodyImagez() { return m_body_imagez; }
+		const GPUArray<int>& getBodyImagez() { return m_body_imagez; }
 		//! Get m_ex_space
 		const GPUArray<Scalar4>& getExSpace() { return m_ex_space; }
 		//! Get m_ey_space
 		const GPUArray<Scalar4>& getEySpace() { return m_ey_space; }
 		//! Get m_ez_space
 		const GPUArray<Scalar4>& getEzSpace() { return m_ez_space; }
+		//! Get m_force
+		const GPUArray<Scalar4>& getForce() { return m_force; }
+		//! Get m_torque
+		const GPUArray<Scalar4>& getTorque() { return m_torque; }
 		//@}
 		
 		//! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
 		void initializeData();
-
+		
 	private:
 		boost::shared_ptr<ParticleData> m_pdata;		//!< The particle data with which this RigidData is associated
 		boost::signals::connection m_sort_connection;	//!< Connection to the resort signal from ParticleData
 		
+		const ExecutionConfiguration m_exec_conf;		//!< The execution configuration
+		
 		//! \name static data members (set on initialization)
 		//@{
 		unsigned int m_n_bodies;					//!< Number of rigid bodies in the data structure
+		unsigned int m_nmax;						//!< Maximum number of particles in a rigid body
+		GPUArray<Scalar> m_body_mass;				//!< n_bodies length 1D array of body mass
 		GPUArray<Scalar4> m_moment_inertia;			//!< n_bodies length 1D array of moment of interias in the body frame
 		GPUArray<unsigned int> m_body_size;			//!< n_bodies length 1D array listing the size of each rigid body
 		GPUArray<unsigned int> m_particle_tags;		//!< n_max by n_bodies 2D array listing particle tags belonging to bodies
-		GPUArray<unsigned int> m_particle_indices;	//!< n_max by n_bodies 2D array listing particle indices belonging to bodies (updated when particles are resorted)
 		GPUArray<Scalar4> m_particle_pos;			//!< n_max by n_bodies 2D array listing particle positions relative to the COM for this body in which body-fixed frame
-		GPUArray<Scalar> m_body_mass;				//!< n_bodies length 1D array of body mass
+		GPUArray<unsigned int> m_particle_indices;	//!< n_max by n_bodies 2D array listing particle indices belonging to bodies (updated when particles are resorted)
 		//@}
 		
 		//! \name dynamic data members (updated via integration)
 		//@{ 
 		GPUArray<Scalar4> m_com;			//!< n_bodies length 1D array of center of mass positions
 		GPUArray<Scalar4> m_vel;			//!< n_bodies length 1D array of body velocities
-		GPUArray<Scalar4> m_orientation;	//!< n_bodies length 1D array of orientation quaternions
 		GPUArray<Scalar4> m_angmom;			//!< n_bodies length 1D array of angular momentum in the space frame
 		GPUArray<Scalar4> m_angvel;			//!< n_bodies length 1D array of angular velocity in the space frame
-		
-		GPUArray<unsigned int> m_body_imagex;	//!< n_bodies length 1D array of the body image in x direction
-		GPUArray<unsigned int> m_body_imagey;	//!< n_bodies length 1D array of the body image in y direction
-		GPUArray<unsigned int> m_body_imagez;	//!< n_bodies length 1D array of the body image in z direction
+		GPUArray<Scalar4> m_orientation;	//!< n_bodies length 1D array of orientation quaternions
 		GPUArray<Scalar4> m_ex_space;		//!< n_bodies length 1D array of the x axis of the body frame in the space frame
 		GPUArray<Scalar4> m_ey_space;		//!< n_bodies length 1D array of the y axis of the body frame in the space frame
-		GPUArray<Scalar4> m_ez_space;		//!< n_bodies length 1D array of the z axis of the body frame in the space frame
+		GPUArray<Scalar4> m_ez_space;		//!< n_bodies length 1D array of the z axis of the body frame in the space frame		
+		GPUArray<int> m_body_imagex;		//!< n_bodies length 1D array of the body image in x direction
+		GPUArray<int> m_body_imagey;		//!< n_bodies length 1D array of the body image in y direction
+		GPUArray<int> m_body_imagez;		//!< n_bodies length 1D array of the body image in z direction
+		
+		// Body forces and torques are stored here instead of the rigid body integrator because of GPU implementation
+		// since the body forces and torques in the shared memory of thread blocks become invalid after the kernel finishes.
+		GPUArray<Scalar4> m_force;			//!< n_bodies length 1D array of the body force 
+		GPUArray<Scalar4> m_torque;			//!< n_bodies length 1D array of the body torque
 		
 		//@}
 

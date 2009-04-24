@@ -36,39 +36,20 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: NVEUpdaterRigidGPU.cuh 1448 2008-11-07 16:45:04Z ndtrung $
+// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/cuda/NVEUpdaterRigidGPU.cuh $
 
-/*! \file NVEUpdaterGPU.h
-	\brief Declares the NVEUpdaterGPU class
+/*! \file NVEUpdaterRigidGPU.cuh
+	\brief Declares GPU kernel code for NVE rigid body integration on the GPU. Used by NVERigidUpdaterGPU.
 */
 
-#include "NVEUpdater.h"
+#ifndef __NVERIGIDUPDATER_CUH__
+#define __NVERIGIDUPDATER_CUH__
 
-#include <boost/shared_ptr.hpp>
+//! Kernel driver for the first part of the NVERigid update called by NVERigidUpdaterGPU
+cudaError_t gpu_nve_rigid_body_pre_step(const gpu_pdata_arrays& pdata, boost::shared_ptr<RigidData>& rigid_data, int cur_gpu, int ngpus, const gpu_boxsize &box, float deltaT, bool limit, float limit_val);
+										
+//! Kernel driver for the second part of the NVE update called by NVERigidUpdaterGPU
+cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata,  boost::shared_ptr<RigidData>& rigid_data, int cur_gpu, int ngpus, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
 
-#ifndef __NVEUPDATER_GPU_H__
-#define __NVEUPDATER_GPU_H__
-
-//! NVE via velocity verlet on the GPU
-/*!	NVEUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
-	
-	The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
-	
-	\ingroup updaters
-*/
-class NVEUpdaterGPU : public NVEUpdater
-	{
-	public:
-		//! Constructor
-		NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-		
-		//! Take one timestep forward
-		virtual void update(unsigned int timestep);
-
-	};
-	
-//! Exports the NVEUpdaterGPU class to python
-void export_NVEUpdaterGPU();
-	
 #endif
