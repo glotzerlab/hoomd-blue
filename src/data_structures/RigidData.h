@@ -50,6 +50,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 #include "RigidData.cuh"
 
+const unsigned int NO_INDEX = 0xffffffff;
+
 //! Stores all per rigid body values
 /*! All rigid body data (except for the per-particle body value) is stored in RigidData
 	which can be accessed from SystemDefinition. On construction, RigidData will read the body

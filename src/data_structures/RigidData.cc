@@ -376,7 +376,7 @@ void RigidData::initializeData()
 	m_particle_indices.swap(particle_indices);
 	ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite); 
 	unsigned int particle_indices_pitch = m_particle_indices.getPitch();
-	for (unsigned int j = 0; j < m_nmax * m_n_bodies; j++) particle_indices_handle.data[j] = -1; // initialize with a sentinel value
+	for (unsigned int j = 0; j < m_nmax * m_n_bodies; j++) particle_indices_handle.data[j] = NO_INDEX; // initialize with a sentinel value
 		
 	GPUArray<Scalar4> particle_pos(m_nmax, m_n_bodies, m_pdata->getExecConf());	
 	m_particle_pos.swap(particle_pos);
