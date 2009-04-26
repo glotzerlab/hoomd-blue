@@ -90,6 +90,9 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 	readFile(fname);
 	}
 
+/* XXX: shouldn't the following methods be put into 
+ * the header so that they get inlined? */
+
 /*! \returns Numer of particles parsed from the XML file
 */
 unsigned int HOOMDInitializer::getNumParticles() const
@@ -120,6 +123,11 @@ unsigned int HOOMDInitializer::getTimeStep() const
 	return m_timestep;
 	}
 
+/* change internal timestep number. */
+void HOOMDInitializer::setTimeStep(unsigned int ts) 
+   {
+       m_timestep = ts;
+   }
 
 /*! \param pdata The particle data 
 	
@@ -919,6 +927,7 @@ void export_HOOMDInitializer()
 	class_< HOOMDInitializer, bases<ParticleDataInitializer> >("HOOMDInitializer", init<const string&>())
 		// virtual methods from ParticleDataInitializer are inherited
 		.def("getTimeStep", &HOOMDInitializer::getTimeStep)
+		.def("setTimeStep", &HOOMDInitializer::setTimeStep)
 		;
 	}
 

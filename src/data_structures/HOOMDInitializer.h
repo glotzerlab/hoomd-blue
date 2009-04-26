@@ -92,6 +92,9 @@ class HOOMDInitializer : public ParticleDataInitializer
 		//! Returns the timestep of the simulation
 		virtual unsigned int getTimeStep() const;
 
+		//! Sets the timestep of the simulation
+		virtual void setTimeStep(unsigned int ts);
+
 		//! Returns the box the particles will sit in
 		virtual BoxDim getBox() const;
 		
