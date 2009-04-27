@@ -258,7 +258,7 @@ void set_gpu_error_checking(bool value)
 	}
 	
 //! Method for getting the current version of HOOMD
-/*! \param returns Current HOOMD version identification string
+/*! \returns Current HOOMD version identification string
 */
 string get_hoomd_version()
 	{
