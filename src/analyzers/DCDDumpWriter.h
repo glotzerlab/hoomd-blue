@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifndef __DCDDUMPWRITER_H__
 #define __DCDDUMPWRITER_H__

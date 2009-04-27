@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file Profiler.cc
 	\brief Defines the Profiler class

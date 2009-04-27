@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file ParticleData.h
 	\brief Defines the ParticleData class and associated utilities

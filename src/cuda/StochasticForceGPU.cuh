@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: phillicl
 
 #include "ForceCompute.cuh"
 #include "ParticleData.cuh"

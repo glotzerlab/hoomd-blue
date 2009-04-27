@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file Analyzer.h
 	\brief Declares a base class for all analyers

@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file SFCPackUpdater.cc
 	\brief Defines the SFCPackUpdater class

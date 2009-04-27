@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file DCDDumpWriter.cc
 	\brief Defines the DCDDumpWriter class and related helper functions

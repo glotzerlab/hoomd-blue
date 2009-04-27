@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file MOL2DumpWriter.cc
 	\brief Defines the MOL2DumpWriter class

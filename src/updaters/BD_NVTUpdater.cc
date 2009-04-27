@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: BD_NVTUpdater.cc 1206 2008-09-04 18:00:45Z phillicl $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters/BD_NVTUpdater.cc $
+// Maintainer: phillicl
 
 /*! \file BD_NVTUpdater.cc
 	\brief Defines the BD_NVTUpdater class

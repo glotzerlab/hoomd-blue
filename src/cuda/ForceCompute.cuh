@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifndef _FORCECOMPUTE_H_
 #define _FORCECOMPUTE_H_

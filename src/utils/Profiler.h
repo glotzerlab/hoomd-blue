@@ -38,7 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-
+// Maintainer: joaander
 
 /*! \file Profiler.h
 	\brief Declares the Profiler class

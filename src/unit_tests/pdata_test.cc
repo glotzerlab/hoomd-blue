@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file pdata_test.cc
 	\brief Unit tests for BoxDim, ParticleData, SimpleCubicInitializer, and RandomInitializer classes.

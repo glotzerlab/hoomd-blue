@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifndef __EXECUTION_CONFIGURATION__
 #define __EXECUTION_CONFIGURATION__

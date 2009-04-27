@@ -38,9 +38,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
-#ifndef _CUDA_UPDATERS_H_
-#define _CUDA_UPDATERS_H_
+#ifndef _NPT_UPDATER_GPU_CUH_
+#define _NPT_UPDATER_GPU_CUH_
 
 #include <stdio.h>
 #include <cuda_runtime.h>

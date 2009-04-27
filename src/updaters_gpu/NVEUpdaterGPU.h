@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file NVEUpdaterGPU.h
 	\brief Declares the NVEUpdaterGPU class

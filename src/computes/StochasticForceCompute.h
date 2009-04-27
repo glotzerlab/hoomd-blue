@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: StochasticForceCompute.h 1119 2008-09-22 21:01:37Z phillicl $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/computes/StochasticForceCompute.h $
+// Maintainer: phillicl
 
 /*! \file StochasticForceCompute.h
 	\brief Declares the StochasticForceCompute class

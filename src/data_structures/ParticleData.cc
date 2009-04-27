@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file ParticleData.cc
  	\brief Contains all code for BoxDim, ParticleData, and ParticleDataArrays.
