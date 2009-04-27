@@ -160,8 +160,13 @@ class linear_interp(_variant):
 # in by the user and turn it into a variant._constant if it is a number. Otherwise,
 # it will return the variant unchanged.
 def _setup_variant_input(v):
-	if type(v) == type(1) or type(v) == type(1.0):
-		return _constant(v);
-	else:
+	if isinstance(v, _variant):
 		return v;
+	else:
+		try:
+			return _constant(float(v));
+		except ValueError:
+			print >> sys.stderr, "\n***Error! Value must either be a scalar value or a the result of a variant command\n";
+			raise RuntimeError('Error creating variant');
 	
+
