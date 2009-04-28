@@ -65,7 +65,7 @@ class NVEUpdaterGPU : public NVEUpdater
 		
 		//! Take one timestep forward
 		virtual void update(unsigned int timestep);
-
+		
 	};
 	
 //! Exports the NVEUpdaterGPU class to python

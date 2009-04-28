@@ -77,6 +77,14 @@ NVERigidUpdater::NVERigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Sca
 	
 	//! Get the number of rigid bodies for frequent use
 	m_n_bodies = m_rigid_data->getNumBodies();
+	
+	//! Allocate memory for forces and torques	
+	GPUArray<Scalar4> force(m_n_bodies, m_pdata->getExecConf());
+	GPUArray<Scalar4> torque(m_n_bodies, m_pdata->getExecConf());	
+
+	// swap the allocated GPUArray with the member variables
+	m_force.swap(force);
+	m_torque.swap(torque);
 		
 	}
 
@@ -100,8 +108,8 @@ void NVERigidUpdater::setup()
 	
 	ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
 	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> force_handle(m_force, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> torque_handle(m_torque, access_location::host, access_mode::readwrite);
 		
 	// Reset all forces and torques
 	for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -196,8 +204,8 @@ void NVERigidUpdater::initialIntegrate()
 	// rigid data handles
 	ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
 	ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> force_handle(m_force, access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> torque_handle(m_torque, access_location::host, access_mode::read);
 		
 	ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);	
 	ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
@@ -205,9 +213,9 @@ void NVERigidUpdater::initialIntegrate()
 	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
 	
-	ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);	
-	ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);	
-	ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);	
+	ArrayHandle<unsigned int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);	
+	ArrayHandle<unsigned int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);	
+	ArrayHandle<unsigned int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);	
 	ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);		
@@ -285,8 +293,8 @@ void NVERigidUpdater::finalIntegrate()
 	ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
 	ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
 	
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> force_handle(m_force, access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> torque_handle(m_torque, access_location::host, access_mode::read);
 	
 	ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
@@ -336,8 +344,8 @@ void NVERigidUpdater::computeForceAndTorque()
 	ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
 	unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();	
 		
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> force_handle(m_force, access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> torque_handle(m_torque, access_location::host, access_mode::readwrite);
 		
 	// reset all forces and torques
 	for (unsigned int body = 0; body < m_n_bodies; body++)

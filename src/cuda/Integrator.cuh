@@ -47,7 +47,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __INTEGRATOR_CUH__
 
 #include "ParticleData.cuh"
-#include "RigidData.cuh"
 
 //! Sums up the net acceleration on the GPU for Integrator
 cudaError_t gpu_integrator_sum_accel(const gpu_pdata_arrays &pdata, float4** force_list, int num_forces);
