@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: dnlebard
 
 /*! \file AngleData.h
  	\brief Declares AngleData and related classes

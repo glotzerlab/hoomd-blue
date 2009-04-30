@@ -36,8 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: AngleData.cu 1514 2008-12-02 18:59:15Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8/src/cuda/AngleData.cu $
+// $Id$
+// $URL$
+// Maintainer: dnlebard
 
 #include "AngleData.cuh"
 

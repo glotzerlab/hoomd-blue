@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: blevine
 
 #ifdef WIN32
 #pragma warning( push )

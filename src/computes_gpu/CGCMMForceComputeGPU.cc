@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: blevine
 
 /*! \file CGCMMForceComputeGPU.cc
 	\brief Defines the CGCMMForceComputeGPU class

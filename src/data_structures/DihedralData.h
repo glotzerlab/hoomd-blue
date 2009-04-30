@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: dnlebard
 
 /*! \file DihedralData.h
  	\brief Declares DihedralData and related classes

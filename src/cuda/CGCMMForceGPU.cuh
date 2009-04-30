@@ -36,8 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: CGCMMForceGPU.cuh 1613 2009-01-28 16:24:30Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8/src/cuda/CGCMMForceGPU.cuh $
+// $Id$
+// $URL$
+// Maintainer: blevine
 
 #include "ForceCompute.cuh"
 #include "NeighborList.cuh"
