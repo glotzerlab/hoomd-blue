@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$ 
+// Maintainer: joaander
 
 /*! \file LJWallForceCompute.cc
 	\brief Defines the LJWallForceCompute class

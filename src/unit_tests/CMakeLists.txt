@@ -36,6 +36,7 @@
 
 # $Id$
 # $ $URL$
+# Maintainer: joaander
 
 ###############################
 # UNIX like OSes need a few settings for the unit test library

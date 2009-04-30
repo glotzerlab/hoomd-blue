@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file BoxResizeUpdater.h
 	\brief Declares an updater that resizes the simulation box of the system

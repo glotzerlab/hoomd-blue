@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifndef _NEIGHBORLISTNSQGPU_CUH_
 #define _NEIGHBORLISTNSQGPU_CUH_

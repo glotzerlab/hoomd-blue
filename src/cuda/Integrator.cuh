@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file Integrator.cuh
 	\brief Declares methods and data structures used by the Integrator class on the GPU

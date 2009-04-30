@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: FENEFENEBondForceCompute.h 1125 2008-08-31 15:20:43Z phillicl $
 // $URL: https://svn2.assembla.com/svn/hoomd/tags/hoomd-0.7.0/src/computes/FENEBondForceCompute.h $
+// Maintainer: phillicl
 
 #include <boost/shared_ptr.hpp>
 

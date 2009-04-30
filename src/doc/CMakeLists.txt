@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 if (DOXYGEN)
 

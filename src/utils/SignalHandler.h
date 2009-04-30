@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifndef __SIGNALHANDLER_H__
 #define __SIGNALHANDLER_H__

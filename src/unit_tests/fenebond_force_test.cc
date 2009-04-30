@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: fenebond_force_test.cc 1240 2008-09-19 17:19:48Z phillicl $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/fenebond_force_test.cc $
+// Maintainer: phillicl
 
 #ifdef WIN32
 #pragma warning( push )

@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file HOOMDDumpWriter.h
 	\brief Declares the HOOMDDumpWriter class
