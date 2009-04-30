@@ -110,6 +110,7 @@ def reset():
 ## Reads initial system state from an XML file
 #
 # \param filename File to read
+# \param time_step Time step number to use instead of the one stored in the XML file
 #
 # \b Examples:
 # \code

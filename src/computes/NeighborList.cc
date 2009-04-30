@@ -652,9 +652,14 @@ void NeighborList::copyExclusionsFromBonds()
 		}
 	}
 
-/*! After calling copyExclusionsFromTopology() all topologically attached particles in ParticleData will be 
-	added as exlusions.  This function assumes all bonds to be unique.
-*/
+/*! Add topologically derived exclusions for angles and dihedrals.
+ *
+ * \param doOneFour selects whether dihedrals are included or not.
+ *
+ * After calling copyExclusionsFromTopology() all topologically 
+ * attached particles in ParticleData will be added as exlusions.  
+ *  This function assumes all bonds to be unique.
+ */
 void NeighborList::copyExclusionsFromTopology(bool doOneFour)
 {
 	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
