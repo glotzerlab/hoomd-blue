@@ -109,25 +109,25 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<ParticleD
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_CGCMMangle_data->getNAngleTypes()*sizeof(float2)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_CGCMMangle_data->getNAngleTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
 
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_CGCMMsr[cur_gpu]), m_CGCMMangle_data->getNAngleTypes()*sizeof(float2)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_CGCMMsr[cur_gpu], 0, m_CGCMMangle_data->getNAngleTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_CGCMMsr[cur_gpu]), m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_CGCMMsr[cur_gpu], 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
 
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_CGCMMepow[cur_gpu]), m_CGCMMangle_data->getNAngleTypes()*sizeof(float4)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_CGCMMepow[cur_gpu], 0, m_CGCMMangle_data->getNAngleTypes()*sizeof(float4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_CGCMMepow[cur_gpu]), m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_CGCMMepow[cur_gpu], 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4)));
 
 		}
 	
-	m_host_params = new float2[m_CGCMMangle_data->getNAngleTypes()];
-	memset(m_host_params, 0, m_CGCMMangle_data->getNAngleTypes()*sizeof(float2));
+	m_host_params = new float2[m_CGCMMAngle_data->getNAngleTypes()];
+	memset(m_host_params, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
 
-        m_host_CGCMMsr = new float2[m_CGCMMangle_data->getNAngleTypes()];
-	memset(m_host_CGCMMsr, 0, m_CGCMMangle_data->getNAngleTypes()*sizeof(float2));
+        m_host_CGCMMsr = new float2[m_CGCMMAngle_data->getNAngleTypes()];
+	memset(m_host_CGCMMsr, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
 
-        m_host_CGCMMepow = new float4[m_CGCMMangle_data->getNAngleTypes()];
-	memset(m_host_CGCMMepow, 0, m_CGCMMangle_data->getNAngleTypes()*sizeof(float4));
+        m_host_CGCMMepow = new float4[m_CGCMMAngle_data->getNAngleTypes()];
+	memset(m_host_CGCMMepow, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
 
 	}
 	
@@ -191,11 +191,11 @@ void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
                 {
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_CGCMMangle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
 
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMsr[cur_gpu], m_host_CGCMMsr, m_CGCMMangle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMsr[cur_gpu], m_host_CGCMMsr, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
 
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMepow[cur_gpu], m_host_CGCMMepow, m_CGCMMangle_data->getNAngleTypes()*sizeof(float4), cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMepow[cur_gpu], m_host_CGCMMepow, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4), cudaMemcpyHostToDevice));
 
                 }
 
@@ -213,7 +213,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 	// start the profile
 	if (m_prof) m_prof->push(exec_conf, "CGCMMAngle");
 		
-	vector<gpu_angletable_array>& gpu_angletable = m_CGCMMangle_data->acquireGPU();
+	vector<gpu_angletable_array>& gpu_angletable = m_CGCMMAngle_data->acquireGPU();
 	
 	// the angle table is up to date: we are good to go. Call the kernel
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
@@ -223,7 +223,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
                 {
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_CGCMM_angle_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_angletable[cur_gpu], m_gpu_params[cur_gpu], m_gpu_CGCMMsr[cur_gpu], m_gpu_CGCMMepow[cur_gpu], m_CGCMMangle_data->getNAngleTypes(), m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_CGCMM_angle_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_angletable[cur_gpu], m_gpu_params[cur_gpu], m_gpu_CGCMMsr[cur_gpu], m_gpu_CGCMMepow[cur_gpu], m_CGCMMAngle_data->getNAngleTypes(), m_block_size));
 		}
 
 	exec_conf.syncAll();
@@ -234,8 +234,8 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 	m_pdata->release();
 	
         // UNCOMMENT BELOW FOR SOME KIND OF PERFORMANCE CHECK... but first, count all the flops + memory transfers
-	//int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_CGCMMangle_data->getNumAngles() * 2 * (8+16+8);
-	//int64_t flops = m_CGCMMangle_data->getNumAngles() * 2 * (3+12+16+3+7);
+	//int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_CGCMMAngle_data->getNumAngles() * 2 * (8+16+8);
+	//int64_t flops = m_CGCMMAngle_data->getNumAngles() * 2 * (3+12+16+3+7);
 	//if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);
 	}
 

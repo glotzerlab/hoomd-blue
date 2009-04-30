@@ -72,30 +72,30 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<ParticleData> p
 	m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
 	{
 	// access the angle data for later use
-	m_CGCMMangle_data = m_pdata->getAngleData();
+	m_CGCMMAngle_data = m_pdata->getAngleData();
 	
 	// check for some silly errors a user could make 
-	if (m_CGCMMangle_data->getNAngleTypes() == 0)
+	if (m_CGCMMAngle_data->getNAngleTypes() == 0)
 		{
-		cout << endl << "***Error! No CGCMMangle types specified" << endl << endl;
+		cout << endl << "***Error! No CGCMMAngle types specified" << endl << endl;
 		throw runtime_error("Error initializing CGCMMAngleForceCompute");
 		}
 		
 	// allocate the parameters
-	m_K = new Scalar[m_CGCMMangle_data->getNAngleTypes()];
-	m_t_0 = new Scalar[m_CGCMMangle_data->getNAngleTypes()];
-	m_eps = new Scalar[m_CGCMMangle_data->getNAngleTypes()];
-	m_sigma = new Scalar[m_CGCMMangle_data->getNAngleTypes()];
-	m_rcut = new Scalar[m_CGCMMangle_data->getNAngleTypes()];
-	m_cg_type = new unsigned int[m_CGCMMangle_data->getNAngleTypes()];
+	m_K = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+	m_t_0 = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+	m_eps = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+	m_sigma = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+	m_rcut = new Scalar[m_CGCMMAngle_data->getNAngleTypes()];
+	m_cg_type = new unsigned int[m_CGCMMAngle_data->getNAngleTypes()];
 	
 	// zero parameters
-	memset(m_K, 0, sizeof(Scalar) * m_CGCMMangle_data->getNAngleTypes());
-	memset(m_t_0, 0, sizeof(Scalar) * m_CGCMMangle_data->getNAngleTypes());
-	memset(m_eps, 0, sizeof(Scalar) * m_CGCMMangle_data->getNAngleTypes());
-	memset(m_sigma, 0, sizeof(Scalar) * m_CGCMMangle_data->getNAngleTypes());
-	memset(m_rcut, 0, sizeof(Scalar) * m_CGCMMangle_data->getNAngleTypes());
-	memset(m_cg_type, 0, sizeof(unsigned int) * m_CGCMMangle_data->getNAngleTypes());
+	memset(m_K, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
+	memset(m_t_0, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
+	memset(m_eps, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
+	memset(m_sigma, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
+	memset(m_rcut, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
+	memset(m_cg_type, 0, sizeof(unsigned int) * m_CGCMMAngle_data->getNAngleTypes());
 
         prefact[0] = 0.0;
         prefact[1] = 6.75;
@@ -133,7 +133,7 @@ CGCMMAngleForceCompute::~CGCMMAngleForceCompute()
 /*! \param type Type of the angle to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param t_0 Equilibrium angle in radians for the force computation
-        \param cg_type the type of course grained angle
+        \param cg_type the type of coarse grained angle
         \param eps the epsilon parameter for the 1-3 repulsion term
         \param sigma the sigma parameter for the 1-3 repulsion term
 	
@@ -142,9 +142,9 @@ CGCMMAngleForceCompute::~CGCMMAngleForceCompute()
 void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma)
 	{
 	// make sure the type is valid
-	if (type >= m_CGCMMangle_data->getNAngleTypes())
+	if (type >= m_CGCMMAngle_data->getNAngleTypes())
 		{
-		cout << endl << "***Error! Invalid CGCMMangle typee specified" << endl << endl;
+		cout << endl << "***Error! Invalid CGCMMAngle typee specified" << endl << endl;
 		throw runtime_error("Error setting parameters in CGCMMAngleForceCompute");
 		}
 	
@@ -162,15 +162,15 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
 
 	// check for some silly errors a user could make 
         if (cg_type < 0 || cg_type > 3)
-                cout << "***Warning! Unrecognized cg_type specified for harmonic CGCMMangle" << endl;
+                cout << "***Warning! Unrecognized cg_type specified for harmonic CGCMMAngle" << endl;
 	if (K <= 0)
-		cout << "***Warning! K <= 0 specified for harmonic CGCMMangle" << endl;
+		cout << "***Warning! K <= 0 specified for harmonic CGCMMAngle" << endl;
 	if (t_0 <= 0)
-		cout << "***Warning! t_0 <= 0 specified for harmonic CGCMMangle" << endl;
+		cout << "***Warning! t_0 <= 0 specified for harmonic CGCMMAngle" << endl;
 	if (eps <= 0)
-		cout << "***Warning! eps <= 0 specified for harmonic CGCMMangle" << endl;
+		cout << "***Warning! eps <= 0 specified for harmonic CGCMMAngle" << endl;
  	if (sigma <= 0)
-		cout << "***Warning! sigma <= 0 specified for harmonic CGCMMangle" << endl;
+		cout << "***Warning! sigma <= 0 specified for harmonic CGCMMAngle" << endl;
   
 	}
 
@@ -180,7 +180,7 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
 std::vector< std::string > CGCMMAngleForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("CGCMMangle_harmonic_energy");
+	list.push_back("CGCMMAngle_harmonic_energy");
 	return list;
 	}
 
@@ -189,7 +189,7 @@ std::vector< std::string > CGCMMAngleForceCompute::getProvidedLogQuantities()
 */
 Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("CGCMMangle_harmonic_energy"))
+	if (quantity == string("CGCMMAngle_harmonic_energy"))
 		{
 		compute(timestep);
 		return calcEnergySum();
@@ -249,11 +249,11 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 	memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
 	
 	// for each of the angles
-	const unsigned int size = (unsigned int)m_CGCMMangle_data->getNumAngles(); 
+	const unsigned int size = (unsigned int)m_CGCMMAngle_data->getNumAngles(); 
 	for (unsigned int i = 0; i < size; i++)
 		{
 		// lookup the tag of each of the particles participating in the angle
-		const Angle& angle = m_CGCMMangle_data->getAngle(i);
+		const Angle& angle = m_CGCMMAngle_data->getAngle(i);
 		assert(angle.a < m_pdata->getN());
 		assert(angle.b < m_pdata->getN());
 		assert(angle.c < m_pdata->getN());
