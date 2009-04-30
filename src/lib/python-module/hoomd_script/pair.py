@@ -348,7 +348,28 @@ class nlist:
 			
 		if check_period != None:
 			self.cpp_nlist.setEvery(check_period);
-			
+
+	## Resets all exclusions in the neighborlist
+        #
+        # \param bond boolean to tell if all bonds should be excluded
+        # \param angle boolean to tell if all 1-3 pairs of angles should be excluded
+        # \param dihedral boolean to tell if all 1-4 pairs of dihedrals should be excluded
+	def reset_exclusions(self, exclusionType):
+		util.print_status_line();
+		
+		if self.cpp_nlist == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+			raise RuntimeError('Error resetting all exclusions');
+		
+		# update the angular exclusions
+		if (exclusionType == 'oneThree') or (exclusionType == '1-3'):
+                        self.cpp_nlist.copyExclusionsFromTopology(False);
+
+		# update the angle exclusions
+		elif (exclusionType == 'oneFour') or (exclusionType == '1-4'):
+                        self.cpp_nlist.copyExclusionsFromTopology(True);
+                else:
+                     raise RuntimeError("Unknown exclusion type.  Must be either oneThree or oneFour.");
 	## Benchmarks the neighbor list computation
 	# \param n Number of iterations to average the benchmark over
 	#

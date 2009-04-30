@@ -175,6 +175,9 @@ class NeighborList : public Compute
 		//! Add an exclusion for every bond in the ParticleData
 		void copyExclusionsFromBonds();
 
+		//! Add an exclusion for every 1-3 and (optionally) 1-4 pair 
+		void copyExclusionsFromTopology(bool doOneFour);
+
 		//! Forces a full update of the list on the next call to compute()
 		void forceUpdate() { m_force_update = true; }
 		

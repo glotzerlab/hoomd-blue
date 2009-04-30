@@ -56,6 +56,8 @@ using namespace boost::python;
 
 #include "NeighborList.h"
 #include "BondData.h"
+#include "AngleData.h"
+#include "DihedralData.h"
 
 #include <sstream>
 #include <fstream>
@@ -650,6 +652,144 @@ void NeighborList::copyExclusionsFromBonds()
 		}
 	}
 
+/*! After calling copyExclusionsFromTopology() all topologically attached particles in ParticleData will be 
+	added as exlusions.  This function assumes all bonds to be unique.
+*/
+void NeighborList::copyExclusionsFromTopology(bool doOneFour)
+{
+	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
+	
+        unsigned int nBonds = bond_data->getNumBonds();
+        unsigned int nBonds1 = bond_data->getNumBonds() - 1;
+        unsigned int iExclude = 0;
+        unsigned int iExcludeFour = 0;
+
+        // 1st, clean out all old exclusions
+        for (unsigned int i = 0; i < m_exclusions.size(); i++)
+        {
+          m_exclusions[i].e1 = EXCLUDE_EMPTY;
+          m_exclusions[i].e2 = EXCLUDE_EMPTY;
+          m_exclusions[i].e3 = EXCLUDE_EMPTY;
+          m_exclusions[i].e4 = EXCLUDE_EMPTY;
+        }
+
+	// then loop over all bonds
+	for (unsigned int i = 0; i < nBonds1; i++)
+	{
+		// add an exclusion, for the bond itself
+		Bond bondi = bond_data->getBond(i);               
+		addExclusion(bondi.a, bondi.b); 
+
+        	for (unsigned int j = i+1; j < nBonds; j++)
+                {
+                  Bond bondj = bond_data->getBond(j);
+
+                  // now, add one for the 1-3 pair
+                  if(bondi.a == bondj.a)
+                  {
+                    addExclusion(bondi.b, bondj.b);                  
+                    iExclude+=1;
+                  }
+
+                  if(bondi.a == bondj.b)
+                  {
+                    addExclusion(bondi.b, bondj.a);                  
+                    iExclude+=1;
+                  }
+
+                  if(bondj.a == bondi.b)
+                  {
+                    addExclusion(bondj.b, bondi.a);                  
+                    iExclude+=1;
+                  }
+
+                  if(bondi.b == bondj.b)
+                  {
+                    addExclusion(bondi.a, bondj.a);                  
+                    iExclude+=1;
+                  }
+
+                 }
+
+                
+	}
+
+
+       if(doOneFour)
+       {
+
+	// then loop over all bonds in triplicate
+	for (unsigned int i = 0; i < nBonds1-1; i++)
+	{
+		Bond bondi = bond_data->getBond(i);               
+        	for (unsigned int j = i+1; j < nBonds1; j++)
+                {
+                  Bond bondj = bond_data->getBond(j);
+                  for (unsigned int k = j+1; k < nBonds; k++)
+                  {
+                    Bond bondk = bond_data->getBond(k);
+
+
+                    if((bondi.b == bondj.a) && (bondk.a == bondj.b))
+                    {
+                      addExclusion(bondi.a, bondk.b);
+                      iExcludeFour+=1;
+                    }
+                    if((bondi.b == bondj.b) && (bondk.a == bondj.a))
+                    {
+                      addExclusion(bondi.a, bondk.b);
+                      iExcludeFour+=1;
+                    }
+                    if((bondi.a == bondj.a) && (bondk.a == bondj.b))
+                    {
+                      addExclusion(bondi.b, bondk.b);
+                      iExcludeFour+=1;
+                    }
+                    if((bondi.a == bondj.a) && (bondk.a == bondj.b))
+                    {
+                      addExclusion(bondi.b, bondk.b);
+                      iExcludeFour+=1;
+                    }
+
+
+
+                    if((bondi.b == bondj.a) && (bondk.b == bondj.b))
+                    {
+                      addExclusion(bondi.a, bondk.a);
+                      iExcludeFour+=1;
+                    }
+                    if((bondi.b == bondj.b) && (bondk.b == bondj.a))
+                    {
+                      addExclusion(bondi.a, bondk.a);
+                      iExcludeFour+=1;
+                    }
+                    if((bondi.a == bondj.a) && (bondk.b == bondj.b))
+                    {
+                      addExclusion(bondi.b, bondk.a);
+                      iExcludeFour+=1;
+                    }
+                    if((bondi.a == bondj.a) && (bondk.b == bondj.b))
+                    {
+                      addExclusion(bondi.b, bondk.a);
+                      iExcludeFour+=1;
+                    }
+
+
+
+                  }
+
+
+                }
+
+                
+	 }
+
+       }
+        cout << endl << "!!!ADDED 1-3 EXCLUSIONS!!! iExclude =  " << iExclude << endl << endl;
+        cout << endl << "!!!ADDED 1-3 EXCLUSIONS!!! iExcludeFour =  " << iExcludeFour << endl << endl;
+}
+
+
 /*! \returns true If any of the particles have been moved more than 1/2 of the buffer distance since the last call
 		to this method that returned true.
 	\returns false If none of the particles has been moved more than 1/2 of the buffer distance since the last call to this
@@ -1013,6 +1153,7 @@ void export_NeighborList()
 		.def("setStorageMode", &NeighborList::setStorageMode)
 		.def("addExclusion", &NeighborList::addExclusion)
 		.def("copyExclusionsFromBonds", &NeighborList::copyExclusionsFromBonds)
+		.def("copyExclusionsFromTopology", &NeighborList::copyExclusionsFromTopology)
 		.def("forceUpdate", &NeighborList::forceUpdate)
 		.def("estimateNNeigh", &NeighborList::estimateNNeigh)
 		;
