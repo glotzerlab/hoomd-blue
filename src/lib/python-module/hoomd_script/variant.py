@@ -156,7 +156,7 @@ class linear_interp(_variant):
 # \brief Internal helper function to aid in setting up variants
 #
 # For backwards compatibility and convenience, anything that takes in a Variant should
-# also automatically take in a constant number. This method will take the valued passed
+# also automatically take in a constant number. This method will take the values passed
 # in by the user and turn it into a variant._constant if it is a number. Otherwise,
 # it will return the variant unchanged.
 def _setup_variant_input(v):
