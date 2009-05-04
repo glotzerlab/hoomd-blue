@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: bdnvt_updater_test.cc 1256 2008-09-12 21:51:07Z joaander $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/bdnvt_updater_test.cc $
+// Maintainer: phillicl
 
 #ifdef WIN32
 #pragma warning( push )

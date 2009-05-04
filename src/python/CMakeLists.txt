@@ -37,6 +37,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 # enable testing on this directory
 if (BUILD_TESTING)

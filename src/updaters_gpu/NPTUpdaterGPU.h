@@ -36,8 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: NVTUpdaterGPU.h 1325 2008-10-06 13:42:07Z joaander $
-// $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/updaters_gpu/NVTUpdaterGPU.h $
+// $Id$
+// $URL$
+// Maintainer: joaander
 
 /*! \file NVTUpdaterGPU.h
 	\brief Declares the NVTUpdaterGPU class

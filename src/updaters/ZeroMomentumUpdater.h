@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file ZeroMomentumUpdater.h
 	\brief Declares an updater that zeros the momentum of the system

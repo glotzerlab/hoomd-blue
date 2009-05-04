@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file NVTUpdaterGPU.cuh
 	\brief Declares GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.

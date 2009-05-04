@@ -36,6 +36,7 @@
 
 # $Id: CMakeLists.txt 1029 2008-06-03 20:30:06Z joaander $
 # $URL: http://svn2.assembla.com/svn/hoomd/branches/gpu-iface-rewrite/src/doc/CMakeLists.txt $
+# Maintainer: joaander
 
 if (DOXYGEN)
 

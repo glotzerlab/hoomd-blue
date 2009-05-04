@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file RandomGenerator.h
  	\brief Contains declarations for RandomGenerator and related classes.

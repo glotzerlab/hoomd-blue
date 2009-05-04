@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file HarmonicBondForceComputeGPU.cc
 	\brief Defines the HarmonicBondForceComputeGPU class

@@ -37,7 +37,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // $Id$
-// $UR$
+// $URL$
+// Maintainer: joaander
 
 /*! \file GaussianForceGPU.cc
 	\brief Defines the GaussianForceGPU class

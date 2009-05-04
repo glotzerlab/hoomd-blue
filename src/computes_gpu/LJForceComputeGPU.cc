@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file LJForceComputeGPU.cc
 	\brief Defines the LJForceComputeGPU class

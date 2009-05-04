@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file MSDAnalyzer.cc
 	\brief Defines the MSDAnalyzer class

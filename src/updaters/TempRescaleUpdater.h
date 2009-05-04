@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file TempRescaleUpdater.h
 	\brief Declares an updater that rescales velocities to achieve a set temperature

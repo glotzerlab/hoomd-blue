@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: FENEBondForceComputeGPU.cc 1131 2008-08-31 20:28:43Z phillicl $
 // $URL: https://svn2.assembla.com/svn/hoomd/tags/hoomd-0.7.0/src/computes_gpu/FENEBondForceComputeGPU.cc $
+// Maintainer: phillicl
 
 /*! \file FENEBondForceComputeGPU.cc
 	\brief Defines the FENEBondForceComputeGPU class
