@@ -7,7 +7,7 @@
 # 2) make a bin/ directory somewhere
 # 3) modify the variables in this script to match the desired test parameters
 # 4) set TEST_GROUP to "Experimental" and run ctest -V -S ctest_hoomd.cmake to check that the test runs
-#     the results of the test should show up at: http://my.cdash.org/index.php?project=HOOMD
+#     the results of the test should show up at: http://cdash.fourpisolutions.com/index.php?project=HOOMD
 #     (you may want to ignore the bdnvt and npt tests for this as they are quite long)
 # 5) chate TEST_GROUP back to "Nightly" and set "ctest -S ctest_hoomd.cmake"  to run every day
 
