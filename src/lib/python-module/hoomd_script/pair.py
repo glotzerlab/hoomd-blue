@@ -362,15 +362,15 @@ class nlist:
 			raise RuntimeError('Error resetting all exclusions');
 		
 		# update exclusions to 1-2 (bonds) style.
-		if (exclusion_type == 'oneTwo') or (exclusionType == '1-2'):
+		if (exclusion_type == 'oneTwo') or (exclusion_type == '1-2'):
                         self.cpp_nlist.copyExclusionsFromBonds();
 
 		# update exclusions to 1-3 (bonds and angles) style.
-		elif (exclusion_type == 'oneThree') or (exclusionType == '1-3'):
+		elif (exclusion_type == 'oneThree') or (exclusion_type == '1-3'):
                         self.cpp_nlist.copyExclusionsFromTopology(False);
 
 		# update exclusions to 1-4 (bonds, angles, and dihedrals) style.
-		elif (exclusion_type == 'oneFour') or (exclusionType == '1-4'):
+		elif (exclusion_type == 'oneFour') or (exclusion_type == '1-4'):
                         self.cpp_nlist.copyExclusionsFromTopology(True);
                 else:
                      raise RuntimeError("Unknown exclusion type.  Supported types are oneTwo, oneThree, oneFour and 1-2, 1-3, 1-4, respectively.");
