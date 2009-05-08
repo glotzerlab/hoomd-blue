@@ -352,7 +352,28 @@ class nlist:
 	## Resets all exclusions in the neighborlist
         #
         # \param exclusion_type Select which bonded interactions should be excluded from the pair interaction calculation.
+        # 
+        # reset_exclusions() will rebuild the list of excluded non-bonded interactions. This is
+        # done in a topological way, i.e. by not following the list of defined angle or dihedral
+        # interactions, but rather all combinations of angles or dihedrals that can be formed
+        # from the existing bonds. This is in keeping with what LAMMPS does, and is generally
+        # a reasonable choice. The choice of which exclusions are applied is done through a
+        # symbolical keyword (allowing for future implementation for force field specific 
+        # shortcuts notations. Currently implemented are, '1-2' or 'oneTwo' (the default
+        # setting if any bonds exist in the topology), '1-3' or 'oneThree' (for excluding
+        # non-bonded interactions between bonds and angles; eqiuvalent to 0 0 1 in LAMMPS),
+        # and '1-4' or 'oneFour' for excluding bonds, angles, and dihedrals completely.
         #
+        # \b WARNING: 
+        # 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
+        # atom and even 1-3 exclusions can reach that limit in branched molecules.
+        #
+	# \b Examples:
+	# \code 
+	# nlist.reset_exclusions(exclusion_type = '1-2')
+	# nlist.reset_exclusions(exclusion_type = 'oneThree')
+	# nlist.reset_exclusions(exclusion_type = '1-4')
+	# \endcode
         # 
 	def reset_exclusions(self, exclusion_type):
 		util.print_status_line();
