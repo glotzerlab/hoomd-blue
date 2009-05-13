@@ -114,9 +114,8 @@ HarmonicImproperForceComputeGPU::~HarmonicImproperForceComputeGPU()
 	}
 
 /*! \param type Type of the improper to set parameters for
-	\param K Stiffness parameter for the force computation
-	\param sign the sign of the cosine term
-        \param multiplicity the multiplicity of the cosine term 
+	\param K Stiffness parameter for the force computation.
+        \param chi Equilibrium value of the dihedral angle.
 	
 	Sets parameters for the potential of a particular improper type and updates the 
 	parameters on the GPU.
