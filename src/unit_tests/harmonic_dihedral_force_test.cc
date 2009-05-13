@@ -49,7 +49,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, ExecutionConfi
         
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(1000.0), 1, 0, 0, 1, exec_conf));
+	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_4->acquireReadWrite();
         arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
         arrays.y[0] = Scalar(1.0);
@@ -128,20 +128,6 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
  FORCE 4: fx = 0.195986  fy = -0.002780  fz = -0.143167 
 
 */
-/*
-        printf(" FORCE 1: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[0], force_arrays.fy[0], force_arrays.fz[0]);
-        printf(" FORCE 2: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[1], force_arrays.fy[1], force_arrays.fz[1]);      
-        printf(" FORCE 3: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[2], force_arrays.fy[2], force_arrays.fz[2]); 
-        printf(" FORCE 4: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[3], force_arrays.fy[3], force_arrays.fz[3]);    
-        printf(" Energy: 1 = %f  2 = %f  3 = %f 4 = %f \n\n", force_arrays.pe[0], force_arrays.pe[1], force_arrays.pe[2], force_arrays.pe[3]);
-        printf(" Virial: 1 = %f  2 = %f  3 = %f 4 = %f \n\n", force_arrays.virial[0], force_arrays.virial[1], force_arrays.virial[2], force_arrays.virial[3]);
-
-        printf("\n");
-*/
-    
-
-  
-
 	
 	// rearrange the two particles in memory and see if they are properly updated
 	arrays = pdata_4->acquireReadWrite();
@@ -185,7 +171,7 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 8 particle system with particles across each boundary
 	// also test more than one type of dihedral
- 	shared_ptr<ParticleData> pdata_8(new ParticleData(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, exec_conf));
+ 	shared_ptr<ParticleData> pdata_8(new ParticleData(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));
 
 	arrays = pdata_8->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;
@@ -261,7 +247,7 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_5(new ParticleData(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, exec_conf));
+	shared_ptr<ParticleData> pdata_5(new ParticleData(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
 	arrays = pdata_5->acquireReadWrite();
 
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;

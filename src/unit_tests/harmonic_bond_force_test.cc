@@ -97,7 +97,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box with only one bond type
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 1, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9);
@@ -163,7 +163,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of bond
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -224,7 +224,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
 	arrays = pdata_4->acquireReadWrite();
 	// make a square of particles
 	arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
@@ -333,7 +333,7 @@ void const_force_test(ExecutionConfiguration exec_conf)
 	#endif
 	
 	// Generate a simple test particle data
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9);

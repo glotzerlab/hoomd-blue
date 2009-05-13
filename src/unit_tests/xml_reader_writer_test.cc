@@ -95,7 +95,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	int n_types = 5;
 	int n_bond_types = 2;
 	int n_angle_types = 1;
-	shared_ptr<ParticleData> pdata(new ParticleData(3, box, n_types, n_bond_types, n_angle_types));
+        int n_improper_types = 0;
+	shared_ptr<ParticleData> pdata(new ParticleData(3, box, n_types, n_bond_types, n_angle_types,n_improper_types));
 	// set recognizable values for the particle
 	const ParticleDataArrays array = pdata->acquireReadWrite();
 	array.x[0] = Scalar(1.1);

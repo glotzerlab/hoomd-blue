@@ -83,6 +83,7 @@ set(TEST_LIST
 	harmonic_bond_force_test
 	harmonic_angle_force_test
 	harmonic_dihedral_force_test
+	harmonic_improper_force_test
 	cgcmm_angle_force_test
 	fenebond_force_test
 	lj_wall_compute_test

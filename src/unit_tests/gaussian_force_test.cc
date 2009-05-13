@@ -107,7 +107,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfig
 	// a particle and ignore a particle outside the radius
 	
 	// periodic boundary conditions will be handeled in another test
-	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
@@ -178,7 +178,7 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfig
 	// build a 6 particle system with particles across each boundary
 	// also test the ability of the force compute to use different particle types
 	
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -301,7 +301,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfigura
 	#endif
 	
 	// this 2-particle test is just to get a plot of the potential and force vs r cut
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;

@@ -50,7 +50,7 @@ import util;
 
 ## \internal
 # \brief Internal python variable 
-__all__ = ["analyze", "bond", "angle", "dihedral", "dump", "force", "globals", 
+__all__ = ["analyze", "bond", "angle", "dihedral", "improper", "dump", "force", "globals", 
                        "group", "init", "integrate", "pair", "update", "wall",
                        "variant", "run", "tune", "hoomd"];
 

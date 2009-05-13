@@ -114,6 +114,9 @@ class AngleData;
 // Forward declaration of DihedralData
 class DihedralData;
 
+// Forward declaration of ImproperData
+class ImproperData;
+
 //! Defines a simple structure to deal with complex numbers
 /*! This structure is useful to deal with complex numbers for such situations
     as Fourier transforms. Note that we do not need any to define any operations and the 
@@ -279,6 +282,9 @@ class ParticleDataInitializer
 		/*! Dihedrals are optional: the base class returns 1 */
 		virtual unsigned int getNumDihedralTypes() const { return 1; }
 
+		/*! Impropers are optional: the base class returns 1 */
+		virtual unsigned int getNumImproperTypes() const { return 1; }
+
 		//! Initialize the bond data
 		/*! \param bond_data Shared pointer to the BondData to be initialized
 			Bonds are optional: the base class does nothing
@@ -296,6 +302,12 @@ class ParticleDataInitializer
 			Dihedrals are optional: the base class does nothing
 		*/
 		virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const {}
+
+		//! Initialize the improper data
+		/*! \param improper_data Shared pointer to the ImproperData to be initialized
+			Impropers are optional: the base class does nothing
+		*/
+		virtual void initImproperData(boost::shared_ptr<ImproperData> improper_data) const {}
 
 	};
 	
@@ -335,7 +347,7 @@ class ParticleData : boost::noncopyable
 	{
 	public:
 		//! Construct with N particles in the given box
-		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, unsigned int n_bond_types=0, unsigned int n_angle_types=0, unsigned int n_dihedral_types=0, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, unsigned int n_bond_types=0, unsigned int n_angle_types=0, unsigned int n_dihedral_types=0, unsigned int n_improper_types=0, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
 		//! Construct from an initializer
 		ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
 		//! Destructor
@@ -353,6 +365,8 @@ class ParticleData : boost::noncopyable
 		boost::shared_ptr<AngleData> getAngleData() { return m_angleData; }
 		//! Access the dihedral data defined for the simulation
 		boost::shared_ptr<DihedralData> getDihedralData() { return m_dihedralData; }
+		//! Access the improper data defined for the simulation
+		boost::shared_ptr<ImproperData> getImproperData() { return m_improperData; }
 		//! Access the execution configuration
 		const ExecutionConfiguration& getExecConf() { return m_exec_conf; }
 		
@@ -442,6 +456,7 @@ class ParticleData : boost::noncopyable
 		boost::shared_ptr<BondData> m_bondData;		//!< Bonds specified for the simulation
 		boost::shared_ptr<AngleData> m_angleData;		//!< Angles specified for the simulation
 		boost::shared_ptr<DihedralData> m_dihedralData;		//!< Dihedrals specified for the simulation
+		boost::shared_ptr<ImproperData> m_improperData;		//!< Impropers specified for the simulation
 		
 		#ifdef ENABLE_CUDA
 		
