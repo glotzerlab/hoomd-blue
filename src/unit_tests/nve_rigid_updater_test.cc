@@ -84,44 +84,47 @@ const Scalar tol = 1e-3;
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT)> nveup_creator;
 
-//! Integrate 1 particle through time and compare to an analytical solution
 void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
 {
+	#ifdef ENABLE_CUDA
+	g_gpu_error_checking = true;
+	#endif
 	
-	const unsigned int N = 10;
-	const unsigned int ntypes = 1;
-	const unsigned int nbondtypes = 0;
-	// create a particle system to simulate
-	
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(40.0, 40.0, 40.0), ntypes, nbondtypes, exec_conf));
+	// check that the nve updater can actually integrate particle positions and velocities correctly
+	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
+	// don't come into play
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, BoxDim(1000.0), 1, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-		
+	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
-	arrays.x[0] = Scalar(-15.0); arrays.y[0] = 0.0; arrays.z[0] = 0.0;
+	
+	// setup a simple initial state
+	arrays.x[0] = Scalar(-1.0); arrays.y[0] = 0.0; arrays.z[0] = 0.0;
 	arrays.vx[0] = Scalar(-0.5); arrays.body[0] = 0;
-	arrays.x[1] =  Scalar(-14.0); arrays.y[1] = 0.0; arrays.z[1] = 0.0;
+	arrays.x[1] =  Scalar(-1.0); arrays.y[1] = 1.0; arrays.z[1] = 0.0;
 	arrays.vx[1] = Scalar(0.2); arrays.body[1] = 0;
-	arrays.x[2] = Scalar(-13.0); arrays.y[2] = 0.0; arrays.z[2] = 0.0;
+	arrays.x[2] = Scalar(-1.0); arrays.y[2] = 2.0; arrays.z[2] = 0.0;
 	arrays.vy[2] = Scalar(-0.1); arrays.body[2] = 0;
-	arrays.x[3] = Scalar(-12.0); arrays.y[3] = 0.0; arrays.z[3] = 0.0;
-	arrays.vy[3] = Scalar(0.3); arrays.body[3] = 0;
-	arrays.x[4] = Scalar(-11.0); arrays.y[4] = 0.0; arrays.z[4] = 0.0;
+	arrays.x[3] = Scalar(-1.0); arrays.y[3] = 3.0; arrays.z[3] = 0.0;
+	arrays.vy[3] = Scalar(0.3);  arrays.body[3] = 0;
+	arrays.x[4] = Scalar(-1.0); arrays.y[4] = 4.0; arrays.z[4] = 0.0;
 	arrays.vz[4] = Scalar(-0.2); arrays.body[4] = 0;
 	
 	arrays.x[5] = 0.0; arrays.y[5] = Scalar(0.0); arrays.z[5] = 0.0;
-	arrays.vx[5] = Scalar(0.2);  arrays.body[5] = 1;
+	arrays.vx[5] = Scalar(0.2); arrays.body[5] = 1;
 	arrays.x[6] = 0.0; arrays.y[6] = Scalar(1.0); arrays.z[6] = 0.0;
 	arrays.vy[6] = Scalar(0.8); arrays.body[6] = 1;
 	arrays.x[7] = 0.0; arrays.y[7] = Scalar(2.0); arrays.z[7] = 0.0;
 	arrays.vy[7] = Scalar(-0.6); arrays.body[7] = 1;
 	arrays.x[8] = 0.0; arrays.y[8] = Scalar(3.0); arrays.z[8] = 0.0;
 	arrays.vz[8] = Scalar(0.7); arrays.body[8] = 1;
-	arrays.x[9] = 0.0; arrays.y[5] = Scalar(4.0); arrays.z[9] = 0.0;
+	arrays.x[9] = 0.0; arrays.y[9] = Scalar(4.0); arrays.z[9] = 0.0;
 	arrays.vy[9] = Scalar(-0.5); arrays.body[9] = 1;
 	
 	pdata->release();
-
-		
+	
+	Scalar deltaT = Scalar(0.0001);
+	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
 	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
 	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
 	
@@ -134,28 +137,31 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	
 	// specify the force parameters
 	fc->setParams(0,0,lj1,lj2);
+
 	
-	shared_ptr<NVEUpdater> nve = nve_creator(sysdef, Scalar(0.005));
+	nve_up->addForceCompute(fc);
 	
-	nve->addForceCompute(fc);
 	
-	// Initialize rigid data
 	sysdef->init();
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < 500; i++)
 		{
-		if (i%10 == 0) cout << "step " << i << "\n";
-		nve->update(i);
+		if (i%100 == 0) cout << "step " << i << "\n";
+		nve_up->update(i);
 		}
+
+	shared_ptr<RigidData> rdata = sysdef->getRigidData();
+	ArrayHandle<Scalar4> com_handle(rdata->getCOM(), access_location::host, access_mode::read);
+	unsigned int n_bodies = rdata->getNumBodies();
+	for (unsigned int i = 0; i < n_bodies; i++) 
+		cout << com_handle.data[i].x << "\t" << com_handle.data[i].y << "\t" << com_handle.data[i].z << "\n";
+
 	
-	arrays = pdata->acquireReadWrite();
-	
+/*	arrays = pdata->acquireReadWrite();
 	for (unsigned int i = 0; i < arrays.nparticles; i++) 
-	{
-		cout << "N\t" << arrays.x[i] << "\t" << arrays.y[i] << "\t" << arrays.z[i] << "\n";
-	}
-	
+		cout << arrays.ax[i] << "\t" << arrays.ay[i] << "\t" << arrays.az[i] << "\n";
 	pdata->release();
-	}	
+*/
+	}
 
 //! NVEUpdater factory for the unit tests
 shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
@@ -163,12 +169,32 @@ shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<SystemDefinition> sysde
 	return shared_ptr<NVEUpdater>(new NVEUpdater(sysdef, deltaT));
 	}
 
+#ifdef ENABLE_CUDA
+//! NVEUpdaterGPU factory for the unit tests
+shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+{
+	return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(sysdef, deltaT));
+}
+#endif
+
+
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 	{
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
+
+
+#ifdef ENABLE_CUDA
+//! boost test case for base class integration tests
+BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
+{
+	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+	nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+}
+
+#endif
 
 #ifdef WIN32
 #pragma warning( pop )

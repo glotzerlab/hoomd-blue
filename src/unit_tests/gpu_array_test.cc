@@ -273,7 +273,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
 	BOOST_CHECK(!a.isNull());
 	BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned)1000);
 	}
-	
+
+
 #endif
 	
 #ifdef WIN32

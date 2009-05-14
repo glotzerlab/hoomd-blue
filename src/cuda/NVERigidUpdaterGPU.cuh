@@ -46,10 +46,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __NVERIGIDUPDATER_CUH__
 #define __NVERIGIDUPDATER_CUH__
 
+
 //! Kernel driver for the first part of the NVERigid update called by NVERigidUpdaterGPU
 cudaError_t gpu_nve_rigid_body_pre_step(const gpu_pdata_arrays& pdata, const gpu_rigid_data_arrays& rigid_data, const gpu_boxsize &box, float deltaT, bool limit, float limit_val);
 										
 //! Kernel driver for the second part of the NVE update called by NVERigidUpdaterGPU
-cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata,  const gpu_rigid_data_arrays& rigid_data, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
+cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rigid_data_arrays& rigid_data, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
+
 
 #endif

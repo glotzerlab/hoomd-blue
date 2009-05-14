@@ -84,7 +84,7 @@ NVEUpdaterGPU::NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar 
 void NVEUpdaterGPU::update(unsigned int timestep)
 {
 	assert(m_pdata);
-
+	
 	// get the rigid data from SystemDefinition
 	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 	
@@ -122,7 +122,7 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_pre_step, d_pdata[cur_gpu], box, m_deltaT, m_limit, m_limit_val));
-
+	
 	// pre-step kernel for rigid bodies
 	if (has_rigid_bodies && exec_conf.gpu.size() == 1) // only one GPU for the moment
 		{
@@ -147,26 +147,25 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		gpu_rigid_data_arrays d_rdata;
 		d_rdata.n_bodies = rigid_data->getNumBodies();
 		d_rdata.nmax = rigid_data->getNmax();
-		d_rdata.local_beg = 0;	
-		d_rdata.local_num = d_rdata.n_bodies;	
-		
-		d_rdata.body_mass = body_mass_handle.data;	
+		d_rdata.local_beg = 0;
+		d_rdata.local_num = d_rdata.n_bodies;
+		d_rdata.body_mass = body_mass_handle.data;
 		d_rdata.moment_inertia = moment_inertia_handle.data;
-		d_rdata.com = com_handle.data;	
-		d_rdata.vel = vel_handle.data;	
-		d_rdata.angvel = angvel_handle.data;	
-		d_rdata.angmom = angmom_handle.data;	
+		d_rdata.com = com_handle.data;
+		d_rdata.vel = vel_handle.data;
+		d_rdata.angvel = angvel_handle.data;
+		d_rdata.angmom = angmom_handle.data;
 		d_rdata.orientation = orientation_handle.data;
-		d_rdata.ex_space = ex_space_handle.data;	
-		d_rdata.ey_space = ey_space_handle.data;	
-		d_rdata.ez_space = ez_space_handle.data;			
+		d_rdata.ex_space = ex_space_handle.data;
+		d_rdata.ey_space = ey_space_handle.data;
+		d_rdata.ez_space = ez_space_handle.data;
 		d_rdata.body_imagex = body_imagex_handle.data;
 		d_rdata.body_imagey = body_imagey_handle.data;
-		d_rdata.body_imagez = body_imagez_handle.data;		
-		d_rdata.particle_pos = particle_pos_handle.data;	  
-		d_rdata.particle_indices = particle_indices_handle.data; 
-		d_rdata.force = force_handle.data;	
-		d_rdata.torque = torque_handle.data;	
+		d_rdata.body_imagez = body_imagez_handle.data;
+		d_rdata.particle_pos = particle_pos_handle.data;
+		d_rdata.particle_indices = particle_indices_handle.data;
+		d_rdata.force = force_handle.data;
+		d_rdata.torque = torque_handle.data;
 		
 		exec_conf.gpu[0]->call(bind(gpu_nve_rigid_body_pre_step, d_pdata[0], d_rdata, box, m_deltaT, m_limit, m_limit_val));
 		}
@@ -201,11 +200,14 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_step, d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
 	
+//	printf("num_forces = %d\n", (int)m_forces.size());
 	// post-step kernel for rigid bodies
 	if (has_rigid_bodies && exec_conf.gpu.size() == 1) // only one GPU for the moment
-		{
+	{
+			
 		ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
 		ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
 		ArrayHandle<Scalar4> ex_space_handle(rigid_data->getExSpace(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> ey_space_handle(rigid_data->getEySpace(), access_location::device, access_mode::read);
@@ -214,24 +216,24 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
 		ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
-		
+
 		gpu_rigid_data_arrays d_rdata;
 		d_rdata.n_bodies = rigid_data->getNumBodies();
 		d_rdata.nmax = rigid_data->getNmax();
-		d_rdata.local_beg = 0;	
-		d_rdata.local_num = d_rdata.n_bodies;	
-		
-		d_rdata.body_mass = body_mass_handle.data;	
-		d_rdata.vel = vel_handle.data;	
-		d_rdata.angmom = angmom_handle.data;	
-		d_rdata.ex_space = ex_space_handle.data;	
-		d_rdata.ey_space = ey_space_handle.data;	
-		d_rdata.ez_space = ez_space_handle.data;			
-		d_rdata.particle_pos = particle_pos_handle.data;	  
-		d_rdata.particle_indices = particle_indices_handle.data; 
-		d_rdata.force = force_handle.data;	
-		d_rdata.torque = torque_handle.data;	
-		
+		d_rdata.local_beg = 0;
+		d_rdata.local_num = d_rdata.n_bodies;
+		d_rdata.body_mass = body_mass_handle.data;
+		d_rdata.vel = vel_handle.data;
+		d_rdata.angvel = angvel_handle.data;
+		d_rdata.angmom = angmom_handle.data;
+		d_rdata.ex_space = ex_space_handle.data;
+		d_rdata.ey_space = ey_space_handle.data;
+		d_rdata.ez_space = ez_space_handle.data;
+		d_rdata.particle_pos = particle_pos_handle.data;
+		d_rdata.particle_indices = particle_indices_handle.data;
+		d_rdata.force = force_handle.data;
+		d_rdata.torque = torque_handle.data;
+			
 		exec_conf.gpu[0]->call(bind(gpu_nve_rigid_body_step, d_pdata[0], d_rdata, m_d_force_data_ptrs[0], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
 
 		}
