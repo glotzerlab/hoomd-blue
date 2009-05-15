@@ -642,6 +642,7 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		float4 torque2 = body_torque[0];
 				
 		float body_mass = tex1Dfetch(rigid_data_body_mass_tex, idx_body);
+		float4 moment_inertia = tex1Dfetch(rigid_data_moment_inertia_tex, idx_body);
 		float4 vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
 		float4 angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
 		float4 angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
@@ -659,11 +660,15 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		angmom2.y = angmom.y + (1.0f/2.0f) * deltaT * torque2.y;
 		angmom2.z = angmom.z + (1.0f/2.0f) * deltaT * torque2.z;
 		
+		computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel);
+		
 		// write out the results
 		rigid_data.force[idx_body] = force2;
 		rigid_data.torque[idx_body] = torque2;
 		rigid_data.vel[idx_body] = vel2;
 		rigid_data.angmom[idx_body] = angmom2;
+		rigid_data.angvel[idx_body] = angvel;
+		
 		
 		// v_particle = v_com + angvel x xr
 		float4 particle_vel;
