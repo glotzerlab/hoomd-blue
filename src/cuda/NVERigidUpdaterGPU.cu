@@ -561,13 +561,13 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 	unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
 	// Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
 	// the particle index of these empty slots is set to be 0xffffffff.
-	float4 particle_accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);	
-	float4 ex_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	float4 ey_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	float4 ez_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	float4 particle_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float body_mass;
+	float4 moment_inertia, vel, angmom, angvel, ex_space, ey_space, ez_space, particle_pos;
 	float4 ri = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float4 vel2 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float4 particle_accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	
+	// ri is used throughout the kernel
 	if (idx_body < rigid_data.n_bodies)
 		{
 		ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
@@ -578,10 +578,17 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
 		ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
 		ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
+		
+		body_mass = tex1Dfetch(rigid_data_body_mass_tex, idx_body);
+		moment_inertia = tex1Dfetch(rigid_data_moment_inertia_tex, idx_body);
+		angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
+		vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
+		angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
+
 		}
 		
 	particle_accel = gpu_integrator_sum_forces_inline(idx_particle_index, pdata.local_num, force_data_ptrs, num_forces);		
-	if (idx_body < rigid_data.local_num && idx_particle_index != INVALID_INDEX)
+	if (idx_body < rigid_data.n_bodies && idx_particle_index != INVALID_INDEX)
 		{
 		// calculate body force and torques
 		float particle_mass = tex1Dfetch(pdata_mass_tex, idx_particle_index);
@@ -607,9 +614,7 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		body_torque[threadIdx.x].x = torquei.x;
 		body_torque[threadIdx.x].y = torquei.y;
 		body_torque[threadIdx.x].z = torquei.z;
-		body_torque[threadIdx.x].w = torquei.w;
-		
-	
+		body_torque[threadIdx.x].w = torquei.w;		
 		}
 	
 	__syncthreads();
@@ -635,41 +640,41 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		__syncthreads();
 		}	
 	
-	if (idx_body < rigid_data.n_bodies && idx_particle_index != INVALID_INDEX)
+	// Update body velocity and angmom
+	if (idx_body < rigid_data.n_bodies)
 		{
 		// Every thread now has its own copy of body force and torque
 		float4 force2 = body_force[0];
 		float4 torque2 = body_torque[0];
 				
-		float body_mass = tex1Dfetch(rigid_data_body_mass_tex, idx_body);
-		float4 moment_inertia = tex1Dfetch(rigid_data_moment_inertia_tex, idx_body);
-		float4 vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-		float4 angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-		float4 angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
-		
 		// update the velocity
 		float dtfm = (1.0f/2.0f) * deltaT / body_mass;
-		float4 vel2;
 		vel2.x = vel.x + dtfm * force2.x;
 		vel2.y = vel.y + dtfm * force2.y;
 		vel2.z = vel.z + dtfm * force2.z;
 		
-		// update the angular momentum
+		// update angular momentum
 		float4 angmom2;
 		angmom2.x = angmom.x + (1.0f/2.0f) * deltaT * torque2.x;
 		angmom2.y = angmom.y + (1.0f/2.0f) * deltaT * torque2.y;
 		angmom2.z = angmom.z + (1.0f/2.0f) * deltaT * torque2.z;
 		
+		// update angular velocity
 		computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel);
 		
-		// write out the results
-		rigid_data.force[idx_body] = force2;
-		rigid_data.torque[idx_body] = torque2;
-		rigid_data.vel[idx_body] = vel2;
-		rigid_data.angmom[idx_body] = angmom2;
-		rigid_data.angvel[idx_body] = angvel;
-		
-		
+		// thread 0 writes out the results
+		if (threadIdx.x == 0)
+			{
+			rigid_data.force[idx_body] = force2;
+			rigid_data.torque[idx_body] = torque2;
+			rigid_data.vel[idx_body] = vel2;
+			rigid_data.angmom[idx_body] = angmom2;
+			rigid_data.angvel[idx_body] = angvel;
+			}	
+		}
+				
+	if (idx_body < rigid_data.n_bodies && idx_particle_index != INVALID_INDEX)
+		{
 		// v_particle = v_com + angvel x xr
 		float4 particle_vel;
 		particle_vel.x = vel2.x + angvel.y * ri.z - angvel.z * ri.y;
