@@ -143,7 +143,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	
 	
 	sysdef->init();
-	for (int i = 0; i < 500; i++)
+	for (int i = 0; i < 1000; i++)
 		{
 		if (i%100 == 0) cout << "step " << i << "\n";
 		nve_up->update(i);
