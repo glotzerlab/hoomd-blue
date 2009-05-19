@@ -255,23 +255,18 @@ extern "C" __global__ void gpu_nve_rigid_body_pre_step_kernel(gpu_pdata_arrays p
 		vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
 		angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
 		angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
+		orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
 		ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
 		ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
 		ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
-		orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
 		body_imagex = tex1Dfetch(rigid_data_body_imagex_tex, idx_body);
 		body_imagey = tex1Dfetch(rigid_data_body_imagey_tex, idx_body);
 		body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);	
+		particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
 		force = tex1Dfetch(rigid_data_force_tex, idx_body);
 		torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
 		
-		particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-		
-		ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
-		ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
-		ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
-		
-		// update the velocity
+		// update velocity
 		float dtfm = (1.0f/2.0f) * deltaT / body_mass;
 		
 		vel2.x = vel.x + dtfm * force.x;
@@ -279,14 +274,14 @@ extern "C" __global__ void gpu_nve_rigid_body_pre_step_kernel(gpu_pdata_arrays p
 		vel2.z = vel.z + dtfm * force.z;
 		vel2.w = vel.w;
 			
-		// update the position
+		// update position
 		pos2.x = com.x + vel2.x * deltaT;
 		pos2.y = com.y + vel2.y * deltaT;
 		pos2.z = com.z + vel2.z * deltaT;
 		pos2.w = com.w;
 						
-		// read in the body's image
-		// time to fix the periodic boundary conditions (FLOPS: 15)
+		// read in body's image
+		// time to fix the periodic boundary conditions
 		float x_shift = rintf(pos2.x * box.Lxinv);
 		pos2.x -= box.Lx * x_shift;
 		body_imagex += (int)x_shift;
@@ -473,7 +468,7 @@ cudaError_t gpu_nve_rigid_body_pre_step(const gpu_pdata_arrays& pdata, const gpu
 		return error;
 
 	// run the kernel for bodies
-    gpu_nve_rigid_body_pre_step_kernel<<< grid, threads >>>(pdata, rigid_data, box, deltaT, limit, limit_val);
+    gpu_nve_rigid_body_pre_step_kernel<<< grid, threads, nmax * sizeof(float4)  >>>(pdata, rigid_data, box, deltaT, limit, limit_val);
 
 		
 	if (!g_gpu_error_checking)
@@ -502,7 +497,7 @@ cudaError_t gpu_nve_rigid_body_pre_step(const gpu_pdata_arrays& pdata, const gpu
 
 extern __shared__ float4 sum[];
 
-extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata, gpu_rigid_data_arrays rigid_data, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
+extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata, gpu_rigid_data_arrays rigid_data, float4 **force_data_ptrs, int num_forces, gpu_boxsize box, float deltaT, bool limit, float limit_val)
 	{
 	int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_body = blockIdx.x + rigid_data.local_beg; 
@@ -517,35 +512,16 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 	// Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
 	// the particle index of these empty slots is set to be 0xffffffff.
 	float body_mass;
-	float4 moment_inertia, vel, angmom, angvel, ex_space, ey_space, ez_space, particle_pos;
-	float4 ri = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float4 moment_inertia, com, vel, angmom, angvel, ex_space, ey_space, ez_space, particle_pos, ri;
 	float4 vel2 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	float4 particle_accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	
-	// ri, body_mass and moment_inertia is used throughout the kernel
-	if (idx_body < rigid_data.n_bodies)
-		{
-		ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
-		ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
-		ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
-		particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-		
-		ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
-		ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
-		ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
-		
-		body_mass = tex1Dfetch(rigid_data_body_mass_tex, idx_body);
-		moment_inertia = tex1Dfetch(rigid_data_moment_inertia_tex, idx_body);
-		angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
-		vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-		angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-		}
 		
 	particle_accel = gpu_integrator_sum_forces_inline(idx_particle_index, pdata.local_num, force_data_ptrs, num_forces);		
 	if (idx_body < rigid_data.n_bodies && idx_particle_index != INVALID_INDEX)
 		{
 		// calculate body force and torques
 		float particle_mass = tex1Dfetch(pdata_mass_tex, idx_particle_index);
+		float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
 		
 		// project the position in the body frame to the space frame: ri = rotation_matrix * particle_pos
 		float4 fi, torquei;
@@ -558,8 +534,20 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		body_force[threadIdx.x].x = fi.x;
 		body_force[threadIdx.x].y = fi.y;
 		body_force[threadIdx.x].z = fi.z;
-		body_force[threadIdx.x].w = 0.0;
+		body_force[threadIdx.x].w = fi.w;
 		
+		com = tex1Dfetch(rigid_data_com_tex, idx_body);
+		ri.x = pos.x - com.x;
+		ri.y = pos.y - com.y;
+		ri.z = pos.z - com.z;
+		
+		float x_shift = rintf(ri.x * box.Lxinv);
+		ri.x -= box.Lx * x_shift;
+		float y_shift = rintf(ri.y * box.Lyinv);
+		ri.y -= box.Ly * y_shift;
+		float z_shift = rintf(ri.z * box.Lzinv);
+		ri.z -= box.Lz * z_shift;
+
 		torquei.x = ri.y * fi.z - ri.z * fi.y;
 		torquei.y = ri.z * fi.x - ri.x * fi.z;
 		torquei.z = ri.x * fi.y - ri.y * fi.x;
@@ -602,18 +590,28 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		float4 torque2 = body_torque[0];
 				
 		// update the velocity
+		body_mass = tex1Dfetch(rigid_data_body_mass_tex, idx_body);
+		vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
 		float dtfm = (1.0f/2.0f) * deltaT / body_mass;
 		vel2.x = vel.x + dtfm * force2.x;
 		vel2.y = vel.y + dtfm * force2.y;
 		vel2.z = vel.z + dtfm * force2.z;
+		vel2.w = 0.0;
 		
 		// update angular momentum
+		angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
 		float4 angmom2;
 		angmom2.x = angmom.x + (1.0f/2.0f) * deltaT * torque2.x;
 		angmom2.y = angmom.y + (1.0f/2.0f) * deltaT * torque2.y;
 		angmom2.z = angmom.z + (1.0f/2.0f) * deltaT * torque2.z;
+		angmom2.w = 0.0;
 		
 		// update angular velocity
+		moment_inertia = tex1Dfetch(rigid_data_moment_inertia_tex, idx_body);
+		ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
+		ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
+		ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
+
 		computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel);
 		
 		// thread 0 writes out the results
@@ -627,8 +625,14 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 			}	
 		
 				
-		if (idx_body < rigid_data.n_bodies && idx_particle_index != INVALID_INDEX)
+		if (idx_particle_index != INVALID_INDEX)
 			{
+			particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+		
+			ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
+			ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
+			ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
+
 			// v_particle = v_com + angvel x xr
 			float4 pvel;
 			pvel.x = vel2.x + angvel.y * ri.z - angvel.z * ri.y;
@@ -651,7 +655,7 @@ extern "C" __global__ void gpu_nve_rigid_body_step_kernel(gpu_pdata_arrays pdata
 		a distance further than \a limit_val in one step.
 	\param limit_val Length to limit particle distance movement to
 */
-cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rigid_data_arrays& rigid_data, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val)
+cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rigid_data_arrays& rigid_data, float4 **force_data_ptrs, int num_forces, const gpu_boxsize &box, float deltaT, bool limit, float limit_val)
 	{	
 	unsigned int n_bodies = rigid_data.n_bodies;
 	unsigned int nmax = rigid_data.nmax;
@@ -666,22 +670,22 @@ cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rig
 	if (error != cudaSuccess)
 		return error;
 	
-	error = cudaBindTexture(0, rigid_data_vel_tex, rigid_data.vel, sizeof(float4) * n_bodies);
-	if (error != cudaSuccess)
-		return error;
-	
-	error = cudaBindTexture(0, rigid_data_angvel_tex, rigid_data.angvel, sizeof(float4) * n_bodies);
+	error = cudaBindTexture(0, rigid_data_moment_inertia_tex, rigid_data.moment_inertia, sizeof(float4) * n_bodies);
 	if (error != cudaSuccess)
 		return error;
 		
+	error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
+	if (error != cudaSuccess)
+		return error;
+		
+	error = cudaBindTexture(0, rigid_data_vel_tex, rigid_data.vel, sizeof(float4) * n_bodies);
+	if (error != cudaSuccess)
+		return error;
+			
 	error = cudaBindTexture(0, rigid_data_angmom_tex, rigid_data.angmom, sizeof(float4) * n_bodies);
 	if (error != cudaSuccess)
 		return error;
-	
-	error = cudaBindTexture(0, rigid_data_orientation_tex, rigid_data.orientation, sizeof(float4) * n_bodies);
-	if (error != cudaSuccess)
-		return error;
-	
+		
 	error = cudaBindTexture(0, rigid_data_exspace_tex, rigid_data.ex_space, sizeof(float4) * n_bodies);
 	if (error != cudaSuccess)
 		return error;
@@ -701,18 +705,10 @@ cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rig
 	error = cudaBindTexture(0, rigid_data_particle_indices_tex, rigid_data.particle_indices, sizeof(unsigned int) * n_bodies * nmax);
 	if (error != cudaSuccess)
 		return error;
-	
-	error = cudaBindTexture(0, rigid_data_force_tex, rigid_data.force, sizeof(float4) * n_bodies);
-	if (error != cudaSuccess)
-		return error;
-	
-	error = cudaBindTexture(0, rigid_data_torque_tex, rigid_data.torque, sizeof(float4) * n_bodies);
-	if (error != cudaSuccess)
-		return error;
-	
+		
 	// bind the textures for particles
 	
-	error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
+	error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
 
@@ -721,8 +717,9 @@ cudaError_t gpu_nve_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rig
 		return error;
 	
 	
-	// run the kernel
-    gpu_nve_rigid_body_step_kernel<<< grid, threads, nmax * sizeof(float4) >>>(pdata, rigid_data, force_data_ptrs, num_forces, deltaT, limit, limit_val);
+	// run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
+	// tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
+    gpu_nve_rigid_body_step_kernel<<< grid, threads, 2 * nmax * sizeof(float4) >>>(pdata, rigid_data, force_data_ptrs, num_forces, box, deltaT, limit, limit_val);
 	
 	
 	if (!g_gpu_error_checking)

@@ -412,6 +412,10 @@ void NVERigidUpdater::set_xv()
 	// sanity check
 	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
 	
+	Scalar Lx = box.xhi - box.xlo;
+	Scalar Ly = box.yhi - box.ylo;
+	Scalar Lz = box.zhi - box.zlo;
+	
 	// handles
 	ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);	
 	ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);	
@@ -460,8 +464,39 @@ void NVERigidUpdater::set_xv()
 			arrays.y[pidx] = com.data[body].y + yr;
 			arrays.z[pidx] = com.data[body].z + zr;
 			
-			//	Let the caller (NVEUpdater) do the particle wrap-up
-			
+			if (arrays.x[pidx] >= box.xhi)
+				{
+				arrays.x[pidx] -= Lx;
+				arrays.ix[pidx]++;
+				}
+			else if (arrays.x[pidx] < box.xlo)
+				{
+				arrays.x[pidx] += Lx;
+				arrays.ix[pidx]--;
+				}
+				
+			if (arrays.y[pidx] >= box.yhi)
+				{
+				arrays.y[pidx] -= Ly;
+				arrays.iy[pidx]++;
+				}
+			else if (arrays.y[pidx] < box.ylo)
+				{
+				arrays.y[pidx] += Ly;
+				arrays.iy[pidx]--;
+				}
+				
+			if (arrays.z[pidx] >= box.zhi)
+				{
+				arrays.z[pidx] -= Lz;
+				arrays.iz[pidx]++;
+				}
+			else if (arrays.z[pidx] < box.zlo)
+				{
+				arrays.z[pidx] += Lz;
+				arrays.iz[pidx]--;
+				}
+				
 			// v_particle = v_com + angvel x xr
 			arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
 			arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;

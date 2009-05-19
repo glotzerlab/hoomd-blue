@@ -119,16 +119,15 @@ void NVEUpdater::update(unsigned int timestep)
 	// get the rigid data from SystemDefinition
 	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
-	// if there is any rigid body and the flag has not yet been set
-	static bool has_rigid_bodies = false;
-	if (rigid_data->getNumBodies() > 0 && has_rigid_bodies == false) 
-		{
+	// if there is any rigid body
+	unsigned int n_bodies = rigid_data->getNumBodies();
+	if (n_bodies > 0 && !m_rigid_updater) 
+		{			
 		// allocate the rigid updater
 		m_rigid_updater = boost::shared_ptr<NVERigidUpdater> (new NVERigidUpdater(m_sysdef, m_deltaT));
-		// set the flag
-		has_rigid_bodies = true;
+		assert(m_rigid_updater);
 		}
-	
+		
 	static bool gave_warning = false;	
 	if (m_forces.size() == 0 && !gave_warning)
 		{
@@ -142,14 +141,8 @@ void NVEUpdater::update(unsigned int timestep)
 		m_accel_set = true;
 		computeAccelerations(timestep, "NVE");
 		
-		if (has_rigid_bodies == true)
-			{
-			assert(m_rigid_updater);
-			// compute the initial net forces, torques and angular momenta 
-			// angular velocities are computed from angular momenta during integration
-			m_rigid_updater->setup();
-			}
-			
+		// compute the initial net forces, torques and angular momenta
+		if (m_rigid_updater) m_rigid_updater->setup();
 		}
 
 	if (m_prof)
@@ -196,6 +189,13 @@ void NVEUpdater::update(unsigned int timestep)
 		arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
 		arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
 		}
+	
+	// release the particle data arrays 
+	m_pdata->release();
+		
+	// rigid body 1st step integration	
+	if (m_rigid_updater) m_rigid_updater->initialIntegrate();
+		
 		
 	// We aren't done yet! Need to fix the periodic boundary conditions
 	// this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
@@ -209,8 +209,12 @@ void NVEUpdater::update(unsigned int timestep)
 	Scalar Ly = box.yhi - box.ylo;
 	Scalar Lz = box.zhi - box.zlo;
 
+	arrays = m_pdata->acquireReadWrite();
+
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
+		if (arrays.body[j] != NO_BODY) continue;
+			
 		// wrap the particle around the box
 		if (arrays.x[j] >= box.xhi)
 			{
@@ -252,11 +256,7 @@ void NVEUpdater::update(unsigned int timestep)
 	// release the particle data arrays 
 	m_pdata->release();
 		
-	// rigid body 1st step integration	
-	if (has_rigid_bodies == true)
-		m_rigid_updater->initialIntegrate();
 		
-	
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
 	if (m_prof)
@@ -304,8 +304,7 @@ void NVEUpdater::update(unsigned int timestep)
 	m_pdata->release();
 		
 	// rigid body 2nd step integration (net forces and torques are computed within)
-	if (has_rigid_bodies == true)
-		m_rigid_updater->finalIntegrate();
+	if (m_rigid_updater) m_rigid_updater->finalIntegrate();
 
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step

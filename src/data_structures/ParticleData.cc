@@ -979,43 +979,43 @@ void ParticleData::hostToDeviceCopy()
 	
 	for (unsigned int cur_gpu = 0; cur_gpu < m_exec_conf.gpu.size(); cur_gpu++)
 		{
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy position data to the staging area
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.x, m_single_xarray_bytes*4, cudaMemcpyHostToDevice));
 		// interleave the data
 		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].pos, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 	
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy velocity data to the staging area
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.vx, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 		//interleave the data
 		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].vel, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 		
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy acceleration data to the staging area
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.ax, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 		//interleave the data
 		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, m_gpu_pdata[cur_gpu].accel, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 		
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy charge
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].charge, m_arrays.charge, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 	
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy mass
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].mass, m_arrays.mass, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy diameter
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].diameter, m_arrays.diameter, m_single_xarray_bytes, cudaMemcpyHostToDevice));
 		
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy image
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_d_staging[cur_gpu], m_arrays.ix, m_single_xarray_bytes*3, cudaMemcpyHostToDevice));
 		//interleave the data
 		m_exec_conf.gpu[cur_gpu]->call(bind(gpu_interleave_float4, (float4*)m_gpu_pdata[cur_gpu].image, m_d_staging[cur_gpu], N, m_uninterleave_pitch));
 
-	//	m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
+		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		// copy the tag and rtag data
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].tag, m_arrays.tag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice)); 
 		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_pdata[cur_gpu].rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice));

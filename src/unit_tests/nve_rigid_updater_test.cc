@@ -62,7 +62,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
 #include "LJForceCompute.h"
-
+#include "saruprng.h"
 #include <math.h>
 
 using namespace std;
@@ -85,7 +85,7 @@ const Scalar tol = 1e-3;
 typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT)> nveup_creator;
 
 void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
-{
+	{
 	#ifdef ENABLE_CUDA
 	g_gpu_error_checking = true;
 	#endif
@@ -138,14 +138,16 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	// specify the force parameters
 	fc->setParams(0,0,lj1,lj2);
 
-	
 	nve_up->addForceCompute(fc);
 	
-	
+	unsigned int steps = 1000;
+	unsigned int sampling = 100;
+
 	sysdef->init();
-	for (int i = 0; i < 1000; i++)
+	for (unsigned int i = 0; i < steps; i++)
 		{
-		if (i%100 == 0) cout << "step " << i << "\n";
+		if (i % sampling == 0) cout << "step " << i << "\n";
+		
 		nve_up->update(i);
 		}
 
@@ -155,12 +157,142 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	for (unsigned int i = 0; i < n_bodies; i++) 
 		cout << com_handle.data[i].x << "\t" << com_handle.data[i].y << "\t" << com_handle.data[i].z << "\n";
 
-	
+	// Output coordinates
 /*	arrays = pdata->acquireReadWrite();
 	for (unsigned int i = 0; i < arrays.nparticles; i++) 
-		cout << arrays.ax[i] << "\t" << arrays.ay[i] << "\t" << arrays.az[i] << "\n";
+		cout << arrays.x[i] << "\t" << arrays.y[i] << "\t" << arrays.z[i] << "\n";
 	pdata->release();
 */
+	}
+
+
+void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
+{
+	#ifdef ENABLE_CUDA
+	g_gpu_error_checking = true;
+	#endif
+	
+	// check that the nve updater can actually integrate particle positions and velocities correctly
+	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
+	// don't come into play
+	unsigned int nbodies = 100;
+	unsigned int nparticlesperbody = 5;
+	unsigned int N = nbodies * nparticlesperbody;
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(50.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	BoxDim box = pdata->getBox();
+	
+	ParticleDataArrays arrays = pdata->acquireReadWrite();
+	
+	// setup a simple initial state
+	unsigned int ibody = 0;
+	unsigned int iparticle = 0;
+	Scalar x0 = box.xlo + 2.5;
+	Scalar y0 = box.ylo + 2.5;
+	Scalar z0 = box.zlo + 2.5;
+	Scalar xspacing = 6.0f;
+	Scalar yspacing = 2.0f;
+	Scalar zspacing = 2.0f;
+	
+	unsigned int seed = 10483;
+	boost::shared_ptr<Saru> random = boost::shared_ptr<Saru>(new Saru(seed));
+	Scalar temperature = 0.5;
+	Scalar v0 = sqrt(3.0 * temperature);
+	
+	// initialize bodies in a cubic lattice with some velocity profile
+	for (unsigned int i = 0; i < nbodies; i++)
+	{
+		for (unsigned int j = 0; j < nparticlesperbody; j++)
+		{
+			arrays.x[iparticle] = x0 + 1.0 * j; 
+			arrays.y[iparticle] = y0 + 0.0;
+			arrays.z[iparticle] = z0 + 0.0;
+			
+			arrays.vx[iparticle] = v0 * random->d(-1, 1); 
+			arrays.vy[iparticle] = v0 * random->d(-1, 1);  
+			arrays.vz[iparticle] = v0 * random->d(-1, 1);  
+			
+			arrays.body[iparticle] = ibody;
+						
+			iparticle++;
+		}
+		
+		x0 += xspacing;
+		if (x0 + xspacing >= box.xhi) 
+		{
+			x0 = box.xlo;
+		
+			y0 += yspacing;
+			if (y0 + yspacing >= box.yhi) 
+			{
+				y0 = box.ylo;
+				
+				z0 += zspacing;
+				if (z0 + zspacing >= box.zhi) z0 = box.zlo;
+			}
+		}
+		
+		ibody++;
+	}
+	
+	assert(iparticle == N);
+	pdata->release();
+	
+	Scalar deltaT = Scalar(0.0001);
+	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
+	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
+	
+	// setup some values for alpha and sigma
+	Scalar epsilon = Scalar(1.0);
+	Scalar sigma = Scalar(1.0);
+	Scalar alpha = Scalar(1.0);
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	
+	// specify the force parameters
+	fc->setParams(0,0,lj1,lj2);
+	
+	nve_up->addForceCompute(fc);
+	
+	Scalar KE, PE;
+	unsigned int steps = 10000;
+	unsigned int sampling = 1000;
+	
+	cout << "Time\tTotal energy\n";
+	sysdef->init();
+	for (unsigned int i = 0; i < steps; i++)
+		{
+		if (i % sampling == 0) 
+			{			
+			arrays = pdata->acquireReadWrite();
+			KE = Scalar(0.0);
+			for (unsigned int j = 0; j < N; j++) 
+				KE += Scalar(0.5) * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+			PE = fc->calcEnergySum();
+			
+			cout << i << "\t" << (PE + KE) / N << "\n";
+			
+			pdata->release();
+			}
+
+		nve_up->update(i);
+		}
+	
+	// Output coordinates
+	arrays = pdata->acquireReadWrite();
+	
+	FILE *fp = fopen("coordinates.xyz", "w");
+	Scalar Lx = box.xhi - box.xlo;
+	Scalar Ly = box.yhi - box.ylo;
+	Scalar Lz = box.zhi - box.zlo;
+	fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
+	for (unsigned int i = 0; i < arrays.nparticles; i++) 
+		fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[i], arrays.y[i], arrays.z[i]);
+	
+	fclose(fp);
+	pdata->release();
+
 	}
 
 //! NVEUpdater factory for the unit tests
@@ -177,21 +309,39 @@ shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, Scal
 }
 #endif
 
-
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 	{
+	printf("Testing integration on CPU...\n");
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
 
 
+BOOST_AUTO_TEST_CASE( NVEUpdater_energy_tests )
+{
+	printf("Testing energy on CPU...\n");
+	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+	nve_updater_energy_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+}
+
 #ifdef ENABLE_CUDA
+
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 {
+	printf("Testing integration on GPU...\n");
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+}
+
+
+//! boost test case for base class integration tests
+BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_energy_tests )
+{
+	printf("Testing energy on GPU...\n");
+	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+	nve_updater_energy_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 }
 
 #endif

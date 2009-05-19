@@ -88,14 +88,10 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	// get the rigid data from SystemDefinition
 	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 	
-	// if there is any rigid body and the flag has not yet been set
-	static bool has_rigid_bodies = false;
-	if (rigid_data->getNumBodies() > 0 && has_rigid_bodies == false) 
-		{
+	// if there is any rigid body
+	unsigned int n_bodies = rigid_data->getNumBodies();
+	if (n_bodies > 0 && !m_rigid_updater) 
 		m_rigid_updater = boost::shared_ptr<NVERigidUpdater> (new NVERigidUpdater(m_sysdef, m_deltaT));
-		// set the flag
-		has_rigid_bodies = true;
-		}
 	
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
@@ -104,9 +100,9 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		// use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
 		// is calculated correctly
 		computeAccelerationsGPU(timestep, "NVE", true);
-			
-		// rigid body setup: compute initial body forces and torques: do the similar thing as to NVEUpdater?? call NVERigidUpdater::setup?
-		if (has_rigid_bodies) m_rigid_updater->setup();
+		
+		// compute the initial net forces, torques and angular momenta 
+		if (m_rigid_updater) m_rigid_updater->setup();
 		}
 
 	if (m_prof)
@@ -124,7 +120,7 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_pre_step, d_pdata[cur_gpu], box, m_deltaT, m_limit, m_limit_val));
 	
 	// pre-step kernel for rigid bodies
-	if (has_rigid_bodies && exec_conf.gpu.size() == 1) // only one GPU for the moment
+	if (m_rigid_updater && exec_conf.gpu.size() == 1) // only one GPU for the moment
 		{
 		ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
@@ -200,12 +196,13 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_step, d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
 	
-//	printf("num_forces = %d\n", (int)m_forces.size());
 	// post-step kernel for rigid bodies
-	if (has_rigid_bodies && exec_conf.gpu.size() == 1) // only one GPU for the moment
+	if (m_rigid_updater && exec_conf.gpu.size() == 1) // only one GPU for the moment
 	{
 			
 		ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
 		ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
 		ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
@@ -214,8 +211,6 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> particle_pos_handle(rigid_data->getParticlePos(), access_location::device, access_mode::read);
 		ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
-		ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
-		ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
 
 		gpu_rigid_data_arrays d_rdata;
 		d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -223,6 +218,8 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		d_rdata.local_beg = 0;
 		d_rdata.local_num = d_rdata.n_bodies;
 		d_rdata.body_mass = body_mass_handle.data;
+		d_rdata.moment_inertia = moment_inertia_handle.data;
+		d_rdata.com = com_handle.data;
 		d_rdata.vel = vel_handle.data;
 		d_rdata.angvel = angvel_handle.data;
 		d_rdata.angmom = angmom_handle.data;
@@ -231,10 +228,8 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		d_rdata.ez_space = ez_space_handle.data;
 		d_rdata.particle_pos = particle_pos_handle.data;
 		d_rdata.particle_indices = particle_indices_handle.data;
-		d_rdata.force = force_handle.data;
-		d_rdata.torque = torque_handle.data;
-			
-		exec_conf.gpu[0]->call(bind(gpu_nve_rigid_body_step, d_pdata[0], d_rdata, m_d_force_data_ptrs[0], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+				
+		exec_conf.gpu[0]->call(bind(gpu_nve_rigid_body_step, d_pdata[0], d_rdata, m_d_force_data_ptrs[0], (int)m_forces.size(), box, m_deltaT, m_limit, m_limit_val));
 
 		}
 	
