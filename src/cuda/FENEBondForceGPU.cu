@@ -131,7 +131,7 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 		
 		// calculate 1/r^2 (FLOPS: 2)
 		float r2inv;
-		if (rsq >= 1.01944064370214f)  // comparing to the WCA limit
+		if (rsq >= 1.2599210498f)  // comparing to the WCA limit
 			r2inv = 0.0f;
 		else
 			r2inv = 1.0f / rsq;
