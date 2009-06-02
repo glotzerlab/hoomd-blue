@@ -154,7 +154,7 @@ Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, unsig
  */
 void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
  	{
-	if (m_prof) m_prof->push("Angle");
+	//if (m_prof) m_prof->push("Angle");
 
  	assert(m_pdata);
  	// access the particle data arrays

@@ -143,7 +143,7 @@ void HarmonicAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar
 void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	if (m_prof) m_prof->push(exec_conf, "Angle");
+	//if (m_prof) m_prof->push(exec_conf, "Angle");
 		
 	vector<gpu_angletable_array>& gpu_angletable = m_angle_data->acquireGPU();
 	

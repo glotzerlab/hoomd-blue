@@ -144,7 +144,7 @@ void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int
 void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	if (m_prof) m_prof->push(exec_conf, "Dihedral");
+	//if (m_prof) m_prof->push(exec_conf, "Dihedral");
 		
 	vector<gpu_dihedraltable_array>& gpu_dihedraltable = m_dihedral_data->acquireGPU();
 	

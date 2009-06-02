@@ -143,7 +143,7 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
 void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	if (m_prof) m_prof->push(exec_conf, "Improper");
+	//if (m_prof) m_prof->push(exec_conf, "Improper");
 		
 	vector<gpu_impropertable_array>& gpu_impropertable = m_improper_data->acquireGPU();
 	

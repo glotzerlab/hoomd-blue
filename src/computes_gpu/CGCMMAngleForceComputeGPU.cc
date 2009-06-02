@@ -211,7 +211,7 @@ void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_
 void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	if (m_prof) m_prof->push(exec_conf, "CGCMMAngle");
+	//if (m_prof) m_prof->push(exec_conf, "CGCMMAngle");
 		
 	vector<gpu_angletable_array>& gpu_angletable = m_CGCMMAngle_data->acquireGPU();
 	

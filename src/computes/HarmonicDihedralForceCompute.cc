@@ -160,7 +160,7 @@ Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, un
  */
 void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
  	{
-	if (m_prof) m_prof->push("Dihedral");
+	//if (m_prof) m_prof->push("Dihedral");
 
  	assert(m_pdata);
  	// access the particle data arrays

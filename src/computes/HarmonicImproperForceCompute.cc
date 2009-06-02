@@ -155,7 +155,7 @@ Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, un
  */
 void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
  	{
-	if (m_prof) m_prof->push("Improper");
+	//if (m_prof) m_prof->push("Improper");
 
  	assert(m_pdata);
  	// access the particle data arrays

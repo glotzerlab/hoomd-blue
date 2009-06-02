@@ -206,7 +206,7 @@ Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned
  */
 void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
  	{
-	if (m_prof) m_prof->push("CGCMMAngle");
+	//if (m_prof) m_prof->push("CGCMMAngle");
 
  	assert(m_pdata);
  	// access the particle data arrays
