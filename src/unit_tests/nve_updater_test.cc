@@ -423,7 +423,7 @@ BOOST_AUTO_TEST_CASE( NVEUPdaterGPU_comparison_tests)
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
 	nve_updater_compare_test(nve_creator, nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
-	
+
 //! boost test case for comkparing CPU to multi-GPU updaters
 BOOST_AUTO_TEST_CASE( NVEUPdaterMultiGPU_comparison_tests)
 	{

@@ -112,7 +112,7 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 int SystemDefinition::init()
 {
 	// initialize rigid bodies
-	if (m_rigid_data) m_rigid_data->initializeData();
+	m_rigid_data->initializeData();
 	
 	return 1;
 }

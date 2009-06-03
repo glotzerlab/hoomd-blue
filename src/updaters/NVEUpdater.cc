@@ -189,12 +189,6 @@ void NVEUpdater::update(unsigned int timestep)
 		arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
 		arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
 		}
-	
-	// release the particle data arrays 
-	m_pdata->release();
-		
-	// rigid body 1st step integration	
-	if (m_rigid_updater) m_rigid_updater->initialIntegrate();
 		
 		
 	// We aren't done yet! Need to fix the periodic boundary conditions
@@ -209,10 +203,9 @@ void NVEUpdater::update(unsigned int timestep)
 	Scalar Ly = box.yhi - box.ylo;
 	Scalar Lz = box.zhi - box.zlo;
 
-	arrays = m_pdata->acquireReadWrite();
-
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
+		// no need to update particles in rigid bodies
 		if (arrays.body[j] != NO_BODY) continue;
 			
 		// wrap the particle around the box
@@ -256,6 +249,8 @@ void NVEUpdater::update(unsigned int timestep)
 	// release the particle data arrays 
 	m_pdata->release();
 		
+	// rigid body 1st step integration	
+	if (m_rigid_updater) m_rigid_updater->initialIntegrate();
 		
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now

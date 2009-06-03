@@ -123,7 +123,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	
 	pdata->release();
 	
-	Scalar deltaT = Scalar(0.0001);
+	Scalar deltaT = Scalar(0.001);
 	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
 	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
 	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
@@ -132,8 +132,8 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(1.0);
 	Scalar alpha = Scalar(1.0);
-	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma, Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
 	
 	// specify the force parameters
 	fc->setParams(0,0,lj1,lj2);
@@ -144,25 +144,38 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	unsigned int sampling = 100;
 
 	sysdef->init();
+		
+	shared_ptr<RigidData> rdata = sysdef->getRigidData();
+	unsigned int nbodies = rdata->getNumBodies();
+	cout << "Number of particles = " << arrays.nparticles << "; Number of rigid bodies = " << nbodies << "\n";
+	
 	for (unsigned int i = 0; i < steps; i++)
 		{
-		if (i % sampling == 0) cout << "step " << i << "\n";
+		if (i % sampling == 0) cout << "Step " << i << "\n";
 		
 		nve_up->update(i);
 		}
 
-	shared_ptr<RigidData> rdata = sysdef->getRigidData();
 	ArrayHandle<Scalar4> com_handle(rdata->getCOM(), access_location::host, access_mode::read);
-	unsigned int n_bodies = rdata->getNumBodies();
-	for (unsigned int i = 0; i < n_bodies; i++) 
-		cout << com_handle.data[i].x << "\t" << com_handle.data[i].y << "\t" << com_handle.data[i].z << "\n";
+	cout << "Rigid body center of mass:\n";
+	for (unsigned int i = 0; i < nbodies; i++) 
+		cout << i << "\t " << com_handle.data[i].x << "\t" << com_handle.data[i].y << "\t" << com_handle.data[i].z << "\n";
 
 	// Output coordinates
-/*	arrays = pdata->acquireReadWrite();
+	arrays = pdata->acquireReadWrite();
+		
+	FILE *fp = fopen("test_integrate.xyz", "w");
+	BoxDim box = pdata->getBox();
+	Scalar Lx = box.xhi - box.xlo;
+	Scalar Ly = box.yhi - box.ylo;
+	Scalar Lz = box.zhi - box.zlo;
+	fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
 	for (unsigned int i = 0; i < arrays.nparticles; i++) 
-		cout << arrays.x[i] << "\t" << arrays.y[i] << "\t" << arrays.z[i] << "\n";
+		fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[i], arrays.y[i], arrays.z[i]);
+		
+	fclose(fp);
 	pdata->release();
-*/
+
 	}
 
 
@@ -182,8 +195,6 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	BoxDim box = pdata->getBox();
 	
-	ParticleDataArrays arrays = pdata->acquireReadWrite();
-	
 	// setup a simple initial state
 	unsigned int ibody = 0;
 	unsigned int iparticle = 0;
@@ -197,7 +208,9 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	unsigned int seed = 10483;
 	boost::shared_ptr<Saru> random = boost::shared_ptr<Saru>(new Saru(seed));
 	Scalar temperature = 0.5;
-	Scalar v0 = sqrt(3.0 * temperature);
+	Scalar KE = Scalar(0.0);
+	
+	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// initialize bodies in a cubic lattice with some velocity profile
 	for (unsigned int i = 0; i < nbodies; i++)
@@ -208,9 +221,11 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 			arrays.y[iparticle] = y0 + 0.0;
 			arrays.z[iparticle] = z0 + 0.0;
 			
-			arrays.vx[iparticle] = v0 * random->d(-1, 1); 
-			arrays.vy[iparticle] = v0 * random->d(-1, 1);  
-			arrays.vz[iparticle] = v0 * random->d(-1, 1);  
+			arrays.vx[iparticle] = random->d(); 
+			arrays.vy[iparticle] = random->d();  
+			arrays.vz[iparticle] = random->d();  
+			
+			KE += Scalar(0.5) * (arrays.vx[iparticle]*arrays.vx[iparticle] + arrays.vy[iparticle]*arrays.vy[iparticle] + arrays.vz[iparticle]*arrays.vz[iparticle]);
 			
 			arrays.body[iparticle] = ibody;
 						
@@ -220,15 +235,16 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 		x0 += xspacing;
 		if (x0 + xspacing >= box.xhi) 
 		{
-			x0 = box.xlo;
+			x0 = box.xlo + 2.5;
 		
 			y0 += yspacing;
 			if (y0 + yspacing >= box.yhi) 
 			{
-				y0 = box.ylo;
+				y0 = box.ylo + 2.5;
 				
 				z0 += zspacing;
-				if (z0 + zspacing >= box.zhi) z0 = box.zlo;
+				if (z0 + zspacing >= box.zhi) 
+					z0 = box.zlo + 2.5;
 			}
 		}
 		
@@ -236,33 +252,58 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	}
 	
 	assert(iparticle == N);
-	pdata->release();
 	
-	Scalar deltaT = Scalar(0.0001);
+	pdata->release();
+
+	Scalar deltaT = Scalar(0.001);
 	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
-	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
-	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
+	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
+	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
 	
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(1.0);
 	Scalar alpha = Scalar(1.0);
-	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma, Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
 	
 	// specify the force parameters
 	fc->setParams(0,0,lj1,lj2);
 	
 	nve_up->addForceCompute(fc);
 	
-	Scalar KE, PE;
+	Scalar PE;
 	unsigned int steps = 10000;
 	unsigned int sampling = 1000;
 	
-	cout << "Time\tTotal energy\n";
 	sysdef->init();
+	
+	shared_ptr<RigidData> rdata = sysdef->getRigidData();
+	unsigned int nrigid_dof = rdata->getNumDOF();
+	
+	// Rescale particle velocities to desired temperature:
+	Scalar current_temp = 2.0 * KE / nrigid_dof;
+	Scalar factor = sqrt(temperature / current_temp);
+	
+	arrays = pdata->acquireReadWrite();
+	for (unsigned int j = 0; j < N; j++) 
+	{
+		arrays.vx[j] *= factor;
+		arrays.vy[j] *= factor;
+		arrays.vz[j] *= factor;
+	}
+	
+	pdata->release();
+	
+	
+	cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
+	cout << "Step\t\tTemp\t\t\tPotEng\t\t\tKinEng\t\t\tTotalE\n";
+		
 	for (unsigned int i = 0; i < steps; i++)
 		{
+
+		nve_up->update(i);
+			
 		if (i % sampling == 0) 
 			{			
 			arrays = pdata->acquireReadWrite();
@@ -270,19 +311,18 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 			for (unsigned int j = 0; j < N; j++) 
 				KE += Scalar(0.5) * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
 			PE = fc->calcEnergySum();
-			
-			cout << i << "\t" << (PE + KE) / N << "\n";
+				
+			current_temp = 2.0 * KE / nrigid_dof;
+			printf("%8d\t%12.8g\t%12.8g\t%12.8g\t%12.8g\n", i, current_temp, PE / N, KE / N, (PE + KE) / N); 	
 			
 			pdata->release();
 			}
-
-		nve_up->update(i);
 		}
 	
 	// Output coordinates
 	arrays = pdata->acquireReadWrite();
 	
-	FILE *fp = fopen("coordinates.xyz", "w");
+	FILE *fp = fopen("test_energy.xyz", "w");
 	Scalar Lx = box.xhi - box.xlo;
 	Scalar Ly = box.yhi - box.ylo;
 	Scalar Lz = box.zhi - box.zlo;
@@ -312,7 +352,7 @@ shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, Scal
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 	{
-	printf("Testing integration on CPU...\n");
+	printf("\nTesting integration on CPU...\n");
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
@@ -320,7 +360,7 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 
 BOOST_AUTO_TEST_CASE( NVEUpdater_energy_tests )
 {
-	printf("Testing energy on CPU...\n");
+	printf("\nTesting energy conservation on CPU...\n");
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
 	nve_updater_energy_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 }
@@ -330,7 +370,7 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_energy_tests )
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 {
-	printf("Testing integration on GPU...\n");
+	printf("\nTesting integration on GPU...\n");
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 }
@@ -339,7 +379,7 @@ BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_energy_tests )
 {
-	printf("Testing energy on GPU...\n");
+	printf("\nTesting energy conservation on GPU...\n");
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
 	nve_updater_energy_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 }

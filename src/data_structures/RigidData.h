@@ -80,6 +80,8 @@ class RigidData
 		unsigned int getNumBodies() { return m_n_bodies; }
 		//! Get the maximum number of particles in a rigid body
 		unsigned int getNmax() { return m_nmax; }
+		//! Get the total degrees of freedom
+		unsigned int getNumDOF() { return m_ndof; }
 		
 		//! \name getter methods (static data)
 		//@{
@@ -140,6 +142,7 @@ class RigidData
 		//@{
 		unsigned int m_n_bodies;					//!< Number of rigid bodies in the data structure
 		unsigned int m_nmax;						//!< Maximum number of particles in a rigid body
+		unsigned int m_ndof;
 		GPUArray<Scalar> m_body_mass;				//!< n_bodies length 1D array of body mass
 		GPUArray<Scalar4> m_moment_inertia;			//!< n_bodies length 1D array of moment of interias in the body frame
 		GPUArray<unsigned int> m_body_size;			//!< n_bodies length 1D array listing the size of each rigid body

@@ -62,7 +62,7 @@ using namespace std;
 	\post All data members in RigidData are completely initialized from the given info in \a particle_data
 */
 RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data, const ExecutionConfiguration& exec_conf)
-	: m_pdata(particle_data), m_exec_conf(exec_conf), m_n_bodies(0)
+	: m_pdata(particle_data), m_exec_conf(exec_conf), m_n_bodies(0), m_ndof(0)
 	{
 	// leave arrays initialized to NULL. There are currently 0 bodies and their 
 	// initialization is delayed because we cannot reasonably determine when that initialization
@@ -148,8 +148,12 @@ void RigidData::initializeData()
 		}
 	
 	m_n_bodies = maxbody + 1;	// arrays.body[j] is numbered from 0
-	if (m_n_bodies <= 0) return;
-
+	if (m_n_bodies <= 0) 
+	{
+		m_pdata->release();
+		return;
+	}
+		
 	// allocate nbodies-size arrays
 	GPUArray<Scalar> body_mass(m_n_bodies, m_pdata->getExecConf());
 	GPUArray<unsigned int> body_size(m_n_bodies, m_pdata->getExecConf());
@@ -307,6 +311,7 @@ void RigidData::initializeData()
 		evectors[j] = new Scalar[3];
 		}
 	
+	unsigned int dof_one;
 	for (unsigned int body = 0; body < m_n_bodies; body++)
 		{
 		matrix[0][0] = inertia_handle.data[6 * body];
@@ -324,16 +329,30 @@ void RigidData::initializeData()
 		moment_inertia_handle.data[body].y = evalues[1];
 		moment_inertia_handle.data[body].z = evalues[2];
 		
-		// set tiny moment of inertia component to be zero
+		// set tiny moment of inertia component to be zero, count the number of degrees of freedom
+		dof_one = 6;
 		Scalar max = MAX(moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y);
 		max = MAX(max, moment_inertia_handle.data[body].z);
 			
 		if (moment_inertia_handle.data[body].x < EPSILON * max) 
+			{
+			dof_one--;
 			moment_inertia_handle.data[body].x = Scalar(0.0);
-		if (moment_inertia_handle.data[body].y < EPSILON * max) 
+			}
+			
+		if (moment_inertia_handle.data[body].y < EPSILON * max)
+			{
+			dof_one--;
 			moment_inertia_handle.data[body].y = Scalar(0.0);
+			}
+		
 		if (moment_inertia_handle.data[body].z < EPSILON * max) 
+			{
+			dof_one--;
 			moment_inertia_handle.data[body].z = Scalar(0.0);
+			}
+		
+		m_ndof += dof_one;
 			
 		// obtain the principle axes from eigen vectors
 		ex_space_handle.data[body].x = evectors[0][0];

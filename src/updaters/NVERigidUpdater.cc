@@ -99,7 +99,12 @@ void NVERigidUpdater::setup()
 	unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();	
 	
 	ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
 	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+	ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
 	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
 		
@@ -131,6 +136,7 @@ void NVERigidUpdater::setup()
 			{
 			// get the index of particle in the particle arrays
 			unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
+				
 			// get the particle mass 
 			Scalar mass_one = arrays.mass[pidx];
 			
@@ -147,12 +153,12 @@ void NVERigidUpdater::setup()
 			Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
 			Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
 				
-			if (rx >= box.xhi) rx -= Lx;
-			if (rx < box.xlo) rx += Lx;
-			if (ry >= box.yhi) ry -= Ly;
-			if (ry < box.ylo) ry += Ly;
-			if (rz >= box.zhi) rz -= Lz;
-			if (rz < box.zlo) rz += Lz;
+			if (rx >= Lx/2.0) rx -= Lx;
+			if (rx < -Lx/2.0) rx += Lx;
+			if (ry >= Ly/2.0) ry -= Ly;
+			if (ry < -Ly/2.0) ry += Ly;
+			if (rz >= Lz/2.0) rz -= Lz;
+			if (rz < -Lz/2.0) rz += Lz;
 				
 			torque_handle.data[body].x += ry * fz - rz * fy;
 			torque_handle.data[body].y += rz * fx - rx * fz;
@@ -165,9 +171,17 @@ void NVERigidUpdater::setup()
 			}
 		}
 	
+	for (unsigned int body = 0; body < m_n_bodies; body++) 
+		{
+		computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
+						ex_space_handle.data[body],  ey_space_handle.data[body],  ez_space_handle.data[body],  angvel_handle.data[body]);
+		}
+		
 	m_pdata->release();
 	
 	} // out of scope for handles
+	
+	
 		
 	// Set the velocities of particles in rigid bodies
 	set_v();
@@ -382,12 +396,12 @@ void NVERigidUpdater::computeForceAndTorque()
 			Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
 			Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
 			
-			if (rx >= box.xhi) rx -= Lx;
-			if (rx < box.xlo) rx += Lx;
-			if (ry >= box.yhi) ry -= Ly;
-			if (ry < box.ylo) ry += Ly;
-			if (rz >= box.zhi) rz -= Lz;
-			if (rz < box.zlo) rz += Lz;
+			if (rx >= Lx/2.0) rx -= Lx;
+			if (rx < -Lx/2.0) rx += Lx;
+			if (ry >= Ly/2.0) ry -= Ly;
+			if (ry < -Ly/2.0) ry += Ly;
+			if (rz >= Lz/2.0) rz -= Lz;
+			if (rz < -Lz/2.0) rz += Lz;
 			
 			torque_handle.data[body].x += ry * fz - rz * fy;
 			torque_handle.data[body].y += rz * fx - rx * fz;
