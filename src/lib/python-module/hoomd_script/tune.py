@@ -252,5 +252,3 @@ def find_optimal_block_sizes():
 	_save_override_file(common_optimal_db);
 	
 	
-	
-	

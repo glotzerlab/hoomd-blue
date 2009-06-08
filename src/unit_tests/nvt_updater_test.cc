@@ -1123,7 +1123,7 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 	// check that the nvt updater can actually integrate particle positions and velocities correctly
 	// start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 4, 0, exec_conf));
+	shared_ptr<ParticleData> pdata(new ParticleData(1, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state

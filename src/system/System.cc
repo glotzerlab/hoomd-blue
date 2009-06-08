@@ -357,8 +357,10 @@ boost::shared_ptr<Integrator> System::getIntegrator()
 // -------------- Methods for running the simulation
 		
 /*! \param nsteps Number of simulation steps to run
-	\param limit_hours Number of hours to run for (0.0 => infinity)
-	
+    \param limit_hours Number of hours to run for (0.0 => infinity)
+    \param cb_frequency Modulus of timestep number when to call the callback (0 = at end)
+	\param callback Python function to be called periodically during run.
+
 	During each simulation step, all added Analyzers and
 	Updaters are called, then the Integrator to move the system
 	forward one step in time. This is repeated \a nsteps times,
@@ -367,7 +369,8 @@ boost::shared_ptr<Integrator> System::getIntegrator()
 	run() can be called as many times as the user wishes:
 	each time, it will continue at the time step where it left off.
 */
-void System::run(unsigned int nsteps, double limit_hours)
+void System::run(unsigned int nsteps, unsigned int cb_frequency, 
+                 boost::python::object callback, double limit_hours)
 	{
 	m_start_tstep = m_cur_tstep;
 	m_end_tstep = m_cur_tstep + nsteps;
@@ -429,11 +432,26 @@ void System::run(unsigned int nsteps, double limit_hours)
 				break;
 				}
 			}
+        // execute python callback, if present and needed
+        // a negative return value indicates immediate end of run.
+        if ( callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0)) {
+            boost::python::object rv = callback(m_cur_tstep);
+            if (rv < 0) {
+                cout << "Notice: End of run requested by python callback at step " 
+                     << m_cur_tstep << " instead of step " << m_end_tstep << endl;
+                break;
+            }
+        }
 		}
 		
 	// generate a final status line
 	generateStatusLine();
 	m_last_status_tstep = m_cur_tstep;
+
+    // execute python callback, if present and needed
+    if (callback && (cb_frequency == 0)) {
+        callback(m_cur_tstep);
+    }
 
 	// calculate averate TPS
 	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);

@@ -98,6 +98,8 @@ class HOOMDDumpWriter : public Analyzer
 		void setOutputType(bool enable);
 		//! Enables/disables the writing of bonds
 		void setOutputBond(bool enable);
+		//! Enables/disables the writing of angles
+		void setOutputAngle(bool enable);
 		//! Enables/disables the writing of walls
 		void setOutputWall(bool enable);
 
@@ -111,7 +113,8 @@ class HOOMDDumpWriter : public Analyzer
 		bool m_output_mass;			//!< true if the particle masses should be written
 		bool m_output_diameter;		//!< true if the particle diameters should be written
 		bool m_output_type;			//!< true if the particle types should be written
-		bool m_output_bond;			//!< true if the bond should be written
+		bool m_output_bond;			//!< true if the bonds should be written
+		bool m_output_angle;			//!< true if the angles should be written
 		bool m_output_wall;			//!< true if the walls should be written
 	};
 	

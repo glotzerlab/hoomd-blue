@@ -82,12 +82,18 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 	m_parser_map["diameter"] = bind(&HOOMDInitializer::parseDiameterNode, this, _1);
 	m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
 	m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
+	m_parser_map["angle"] = bind(&HOOMDInitializer::parseAngleNode, this, _1);
+	m_parser_map["dihedral"] = bind(&HOOMDInitializer::parseDihedralNode, this, _1);
+	m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
 	m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
 	m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
 
 	// read in the file
 	readFile(fname);
 	}
+
+/* XXX: shouldn't the following methods be put into 
+ * the header so that they get inlined? */
 
 /*! \returns Numer of particles parsed from the XML file
 */
@@ -119,6 +125,11 @@ unsigned int HOOMDInitializer::getTimeStep() const
 	return m_timestep;
 	}
 
+/* change internal timestep number. */
+void HOOMDInitializer::setTimeStep(unsigned int ts) 
+   {
+       m_timestep = ts;
+   }
 
 /*! \param pdata The particle data 
 	
@@ -250,9 +261,9 @@ void HOOMDInitializer::readFile(const string &fname)
 		xml_version = string("1.0");
 		}
 		
-	// right now, the version tag doesn't do anything: just warn if it is not 1.0
-	if (xml_version != string("1.0"))
-		cout << endl << "***Warning! hoomd_xml file with version other than 1.0 specified, I don't know how to read this. Continuing anyways." << endl << endl;
+	// right now, the version tag doesn't do anything: just warn if it is not 1.0 or 1.1
+	if ((xml_version != string("1.0")) and (xml_version != string("1.1")))
+		cout << endl << "***Warning! hoomd_xml file with version other than 1.0 or 1.1 specified, I don't know how to read this. Continuing anyways." << endl << endl;
 
 	// the file was parsed successfully by the XML reader. Extract the information now
 	// start by checking the number of configurations in the file
@@ -350,6 +361,12 @@ void HOOMDInitializer::readFile(const string &fname)
 	cout << getNumParticleTypes() <<  " particle types" << endl;
 	if (m_bonds.size() > 0)
 		cout << m_bonds.size() << " bonds" << endl;
+	if (m_angles.size() > 0)
+		cout << m_angles.size() << " angles" << endl;
+	if (m_dihedrals.size() > 0)
+		cout << m_dihedrals.size() << " dihedrals" << endl;
+	if (m_impropers.size() > 0)
+		cout << m_impropers.size() << " impropers" << endl;
 	if (m_charge_array.size() > 0)
 		cout << m_charge_array.size() << " charges" << endl;
 	if (m_walls.size() > 0)
@@ -621,6 +638,92 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 		}
 	}
 
+void HOOMDInitializer::parseAngleNode(const XMLNode &node)
+	{
+	// check that this is actually a angle node
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("angle"));
+
+	// extract the data from the node
+	istringstream parser;
+	if (node.getText())
+		{
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			string type_name;
+			unsigned int a, b, c;
+			parser >> type_name >> a >> b >> c;
+			m_angles.push_back(Angle(getAngleTypeId(type_name), a, b, c));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found angle node with no text. Possible typo." << endl;
+		}
+	}
+
+/*! \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b dihedral node and fills out m_dihedrals. The number
+	of dihedrals in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseDihedralNode(const XMLNode &node)
+	{
+	// check that this is actually a dihedral node
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("dihedral"));
+
+	// extract the data from the node
+	istringstream parser;
+	if (node.getText())
+		{
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			string type_name;
+			unsigned int a, b, c, d;
+			parser >> type_name >> a >> b >> c >> d;
+			m_dihedrals.push_back(Dihedral(getDihedralTypeId(type_name), a, b, c, d));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found dihedral node with no text. Possible typo." << endl;
+		}
+	}
+
+/*! \param node XMLNode passed from the top level parser in readFile
+	This function extracts all of the data in a \b dihedral node and fills out m_dihedrals. The number
+	of dihedrals in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseImproperNode(const XMLNode &node)
+	{
+	// check that this is actually a improper node
+	string name = node.getName();
+	transform(name.begin(), name.end(), name.begin(), ::tolower);	
+	assert(name == string("improper"));
+
+	// extract the data from the node
+	istringstream parser;
+	if (node.getText())
+		{
+		parser.str(node.getText());
+		while (parser.good())
+			{
+			string type_name;
+			unsigned int a, b, c, d;
+			parser >> type_name >> a >> b >> c >> d;
+			m_impropers.push_back(Improper(getImproperTypeId(type_name), a, b, c, d));
+			}
+		}
+	else
+		{
+		cout << "***Warning! Found improper node with no text. Possible typo." << endl;
+		}
+	}
+
 /*! \param node XMLNode passed from the top level parser in readFile
 	This function extracts all of the data in a \b charge node and fills out m_charge_array. The number
 	of particles in the array is determined dynamically.
@@ -755,6 +858,58 @@ unsigned int HOOMDInitializer::getBondTypeId(const std::string& name)
 	return (unsigned int)m_bond_type_mapping.size()-1;
 	}
 
+/*! \param name Name to get type id of
+	If \a name has already been added, this returns the type index of that name.
+	If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getAngleTypeId(const std::string& name)
+	{
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_angle_type_mapping.size(); i++)
+		{
+		if (m_angle_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_angle_type_mapping.push_back(name);
+	return (unsigned int)m_angle_type_mapping.size()-1;
+	}
+
+/*! \param name Name to get type id of
+	If \a name has already been added, this returns the type index of that name.
+	If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getDihedralTypeId(const std::string& name)
+	{
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_dihedral_type_mapping.size(); i++)
+		{
+		if (m_dihedral_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_dihedral_type_mapping.push_back(name);
+	return (unsigned int)m_dihedral_type_mapping.size()-1;
+	}
+
+
+/*! \param name Name to get type id of
+	If \a name has already been added, this returns the type index of that name.
+	If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
+	{
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_improper_type_mapping.size(); i++)
+		{
+		if (m_improper_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_improper_type_mapping.push_back(name);
+	return (unsigned int)m_improper_type_mapping.size()-1;
+	}
+
 /*! \return Number of bond types determined from the XML file
 */
 unsigned int HOOMDInitializer::getNumBondTypes() const
@@ -762,6 +917,27 @@ unsigned int HOOMDInitializer::getNumBondTypes() const
 	return (unsigned int)m_bond_type_mapping.size();
 	}
 		
+/*! \return Number of angle types determined from the XML file
+*/
+unsigned int HOOMDInitializer::getNumAngleTypes() const
+	{
+	return (unsigned int)m_angle_type_mapping.size();
+	}
+
+/*! \return Number of dihedral types determined from the XML file
+*/
+unsigned int HOOMDInitializer::getNumDihedralTypes() const
+	{
+	return (unsigned int)m_dihedral_type_mapping.size();
+	}
+
+/*! \return Number of improper types determined from the XML file
+*/
+unsigned int HOOMDInitializer::getNumImproperTypes() const
+	{
+	return (unsigned int)m_improper_type_mapping.size();
+	}
+
 /*! \param bond_data Shared pointer to the BondData to be initialized
 	Adds all bonds found in the XML file to the BondData
 */
@@ -774,6 +950,42 @@ void HOOMDInitializer::initBondData(boost::shared_ptr<BondData> bond_data) const
 	bond_data->setBondTypeMapping(m_bond_type_mapping);
 	}
 	
+/*! \param angle_data Shared pointer to the AngleData to be initialized
+	Adds all angles found in the XML file to the AngleData
+*/
+void HOOMDInitializer::initAngleData(boost::shared_ptr<AngleData> angle_data) const
+	{
+	// loop through all the angles and add an angle for each
+	for (unsigned int i = 0; i < m_angles.size(); i++)	
+		angle_data->addAngle(m_angles[i]);
+	
+	angle_data->setAngleTypeMapping(m_angle_type_mapping);
+	}
+
+/*! \param dihedral_data Shared pointer to the DihedralData to be initialized
+	Adds all dihedrals found in the XML file to the DihedralData
+*/
+void HOOMDInitializer::initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const
+	{
+	// loop through all the dihedrals and add an dihedral for each
+	for (unsigned int i = 0; i < m_dihedrals.size(); i++)	
+		dihedral_data->addDihedral(m_dihedrals[i]);
+	
+	dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
+	}
+
+/*! \param improper_data Shared pointer to the ImproperData to be initialized
+	Adds all impropers found in the XML file to the ImproperData
+*/
+void HOOMDInitializer::initImproperData(boost::shared_ptr<ImproperData> improper_data) const
+	{
+	// loop through all the impropers and add an improper for each
+	for (unsigned int i = 0; i < m_impropers.size(); i++)	
+		improper_data->addImproper(m_impropers[i]);
+	
+	improper_data->setImproperTypeMapping(m_improper_type_mapping);
+	}
+
 /*! \returns A mapping of type ids to type names deteremined from the XML input file
 */
 std::vector<std::string> HOOMDInitializer::getTypeMapping() const
@@ -786,6 +998,7 @@ void export_HOOMDInitializer()
 	class_< HOOMDInitializer, bases<ParticleDataInitializer> >("HOOMDInitializer", init<const string&>())
 		// virtual methods from ParticleDataInitializer are inherited
 		.def("getTimeStep", &HOOMDInitializer::getTimeStep)
+		.def("setTimeStep", &HOOMDInitializer::setTimeStep)
 		;
 	}
 
