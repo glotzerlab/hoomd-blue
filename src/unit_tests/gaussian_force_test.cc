@@ -107,8 +107,8 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfig
 	// a particle and ignore a particle outside the radius
 	
 	// periodic boundary conditions will be handeled in another test
-	shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, exec_conf));
-	shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+	shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();	
 
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
@@ -179,11 +179,9 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfig
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
 	// also test the ability of the force compute to use different particle types
-	
-	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, exec_conf));
-	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-	
-	
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();	
+
 	ParticleDataArrays arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -308,9 +306,9 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfigura
 	#endif
 	
 	// this 2-particle test is just to get a plot of the potential and force vs r cut
-	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<ParticleData> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-	
+
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;

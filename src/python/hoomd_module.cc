@@ -55,6 +55,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "SystemDefinition.h"
 #include "BondData.h"
+#include "AngleData.h"
+#include "DihedralData.h"
+#include "ImproperData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
@@ -63,9 +66,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ConstForceCompute.h"
 #include "HarmonicBondForceCompute.h"
+#include "HarmonicAngleForceCompute.h"
+#include "HarmonicDihedralForceCompute.h"
+#include "HarmonicImproperForceCompute.h"
+#include "CGCMMAngleForceCompute.h"
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
-#include "YukawaForceCompute.h"
+//#include "YukawaForceCompute.h"
+#include "CGCMMForceCompute.h"
 #include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "TempCompute.h"
@@ -101,10 +109,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
-#include "YukawaForceComputeGPU.h"
+//#include "YukawaForceComputeGPU.h"
+#include "CGCMMForceComputeGPU.h"
 #include "GaussianForceGPU.h"
 #include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
+#include "HarmonicAngleForceComputeGPU.h"
+#include "HarmonicDihedralForceComputeGPU.h"
+#include "HarmonicImproperForceComputeGPU.h"
+#include "CGCMMAngleForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #endif
 
@@ -299,6 +312,9 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ExecutionConfiguration();
 	export_BondData();
 	export_SystemDefinition();
+	export_AngleData();	
+	export_DihedralData();	
+	export_ImproperData();	
 
 	// initializers
 	export_RandomInitializer();
@@ -312,9 +328,14 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ForceCompute();
 	export_ConstForceCompute();
 	export_HarmonicBondForceCompute();
+	export_HarmonicAngleForceCompute();
+	export_HarmonicDihedralForceCompute();
+	export_HarmonicImproperForceCompute();
+	export_CGCMMAngleForceCompute();
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
-	export_YukawaForceCompute();	
+	//export_YukawaForceCompute();	
+	export_CGCMMForceCompute();
 	export_GaussianForceCompute();
 	export_LJWallForceCompute();
 	export_TempCompute();
@@ -324,9 +345,14 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_BinnedNeighborListGPU();
 	export_NeighborListNsqGPU();
 	export_LJForceComputeGPU();
-	export_YukawaForceComputeGPU();
+//	export_YukawaForceComputeGPU();
+	export_CGCMMForceComputeGPU();
 	export_GaussianForceGPU();
 	export_HarmonicBondForceComputeGPU();
+	export_HarmonicAngleForceComputeGPU();
+	export_HarmonicDihedralForceComputeGPU();
+	export_HarmonicImproperForceComputeGPU();
+	export_CGCMMAngleForceComputeGPU();
 	export_FENEBondForceComputeGPU();
 	#endif
 	

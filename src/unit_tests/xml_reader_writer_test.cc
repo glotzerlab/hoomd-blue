@@ -55,6 +55,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDDumpWriter.h"
 #include "HOOMDInitializer.h"
 #include "BondData.h"
+#include "AngleData.h"
 
 #include <iostream>
 #include <sstream>
@@ -93,7 +94,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	BoxDim box(Scalar(2.5), Scalar(4.5), Scalar(12.1));
 	int n_types = 5;
 	int n_bond_types = 2;
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, box, n_types, n_bond_types));
+
+	int n_angle_types = 1;
+	int n_improper_types = 0;
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(3, box, n_types, n_bond_types, n_angle_types,n_improper_types));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
 	// set recognizable values for the particle
@@ -133,6 +137,24 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	array.diameter[1] = Scalar(4.8);
 	
 	array.type[1] = 0;
+
+	array.x[2] = Scalar(-1.2);
+	array.y[2] = Scalar(2.1);
+	array.z[2] = Scalar(3.4);
+	
+	array.ix[2] = 10;
+	array.iy[2] = 500;
+	array.iz[2] = 900;
+	
+	array.vx[2] = Scalar(-1.5);
+	array.vy[2] = Scalar(-10.6);
+	array.vz[2] = Scalar(5.7);
+	
+	array.mass[2] = Scalar(2.8);
+	
+	array.diameter[2] = Scalar(4.8);
+	
+	array.type[2] = 1;
 	pdata->release();
 	
 	// add a couple walls for fun
@@ -143,6 +165,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	// add a few bonds too
 	sysdef->getBondData()->addBond(Bond(0, 0, 1));
 	sysdef->getBondData()->addBond(Bond(1, 1, 0));
+
+	// and angles as well
+	pdata->getAngleData()->addAngle(Angle(0, 0, 1, 2));
+	pdata->getAngleData()->addAngle(Angle(0, 1, 2, 0));
 	
 	// create the writer
 	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
@@ -175,7 +201,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.0\">");
+		BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.1\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -219,7 +245,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"2\">");
+		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"3\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -228,6 +254,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "1.2 2.1 -3.4");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-1.2 2.1 3.4");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -259,13 +289,17 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"2\">");
+		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"3\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "-1.4567 -10.0988 56.78");
 		BOOST_REQUIRE(!f.bad());
 		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-1.5 -10.6 5.7");
+		BOOST_REQUIRE(!f.bad());
+	
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "-1.5 -10.6 5.7");
 		BOOST_REQUIRE(!f.bad());
@@ -297,7 +331,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<type num=\"2\">");
+		BOOST_CHECK_EQUAL(line, "<type num=\"3\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -306,6 +340,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "A");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "B");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -396,13 +434,55 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		f.close();
 		}
 		
-	// seventh test: test image
+	// seventh test: the angle array
 		{
 		writer->setOutputPosition(false);
 		writer->setOutputVelocity(false);
 		writer->setOutputType(false);
 		writer->setOutputWall(false);
 		writer->setOutputBond(false);
+		writer->setOutputAngle(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000060.xml");
+		BOOST_REQUIRE(!exists("test.0000000060.xml"));
+		
+		// write the file
+		writer->analyze(60);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000060.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<angle num=\"2\">");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "angleA 0 1 2");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "angleA 1 2 0");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</angle>");
+		f.close();
+		}
+		
+	// eighth test: test image
+		{
+		writer->setOutputPosition(false);
+		writer->setOutputVelocity(false);
+		writer->setOutputType(false);
+		writer->setOutputWall(false);
+		writer->setOutputBond(false);
+		writer->setOutputAngle(false);
 		writer->setOutputImage(true);
 		
 		// make sure the first output file is deleted
@@ -421,7 +501,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<image num=\"2\">");
+		BOOST_CHECK_EQUAL(line, "<image num=\"3\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -433,11 +513,15 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 	
 		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "10 500 900");
+		BOOST_REQUIRE(!f.bad());
+	
+		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</image>");
 		f.close();
 		}
 		
-	// eith test: test mass
+	// nineth test: test mass
 		{
 		writer->setOutputPosition(false);
 		writer->setOutputVelocity(false);
@@ -463,7 +547,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<mass num=\"2\">");
+		BOOST_CHECK_EQUAL(line, "<mass num=\"3\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -475,11 +559,15 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 	
 		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "2.8");
+		BOOST_REQUIRE(!f.bad());
+	
+		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</mass>");
 		f.close();
 		}
 
-	// ninth test: test diameter
+	// tenth test: test diameter
 		{
 		writer->setOutputPosition(false);
 		writer->setOutputVelocity(false);
@@ -506,13 +594,17 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<diameter units=\"sigma\" num=\"2\">");
+		BOOST_CHECK_EQUAL(line, "<diameter units=\"sigma\" num=\"3\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "3.8");
 		BOOST_REQUIRE(!f.bad());
 		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "4.8");
+		BOOST_REQUIRE(!f.bad());
+	
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "4.8");
 		BOOST_REQUIRE(!f.bad());
@@ -604,7 +696,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.0\">");
+		BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.1\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -767,7 +859,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 	// create a test input file
 	ofstream f("test_input.xml");
 f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
-<hoomd_xml version=\"1.0\">\n\
+<hoomd_xml version=\"1.1\">\n\
 <configuration time_step=\"150000000\">\n\
 <box units =\"sigma\"  lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
 <position units =\"sigma\" >\n\
@@ -836,6 +928,11 @@ bond_b 1 2\n\
 bond_a 2 3\n\
 bond_c 3 4\n\
 </bond>\n\
+<angle>\n\
+angle_a 0 1 2\n\
+angle_b 1 2 3\n\
+angle_a 2 3 4\n\
+</angle>\n\
 </configuration>\n\
 </hoomd_xml>" << endl;
 	f.close();
@@ -940,6 +1037,39 @@ bond_c 3 4\n\
 	BOOST_CHECK_EQUAL(b.a, (unsigned int)3);
 	BOOST_CHECK_EQUAL(b.b, (unsigned int)4);
 	BOOST_CHECK_EQUAL(b.type, (unsigned int)2);
+	
+	// check the angles
+	boost::shared_ptr<AngleData> angle_data = pdata->getAngleData();
+	
+	// 3 angles should have been read in
+	BOOST_REQUIRE_EQUAL(angle_data->getNumAngles(), (unsigned int)3);
+	
+	// check that the types have been named properly
+	BOOST_REQUIRE_EQUAL(angle_data->getNAngleTypes(), (unsigned int)2);
+	BOOST_CHECK_EQUAL(angle_data->getTypeByName("angle_a"), (unsigned int)0);
+	BOOST_CHECK_EQUAL(angle_data->getTypeByName("angle_b"), (unsigned int)1);
+	
+	BOOST_CHECK_EQUAL(angle_data->getNameByType(0), string("angle_a"));
+	BOOST_CHECK_EQUAL(angle_data->getNameByType(1), string("angle_b"));
+	
+	// verify each angle
+	Angle a = angle_data->getAngle(0);
+	BOOST_CHECK_EQUAL(a.a, (unsigned int)0);
+	BOOST_CHECK_EQUAL(a.b, (unsigned int)1);
+	BOOST_CHECK_EQUAL(a.c, (unsigned int)2);
+	BOOST_CHECK_EQUAL(a.type, (unsigned int)0);
+	
+	a = angle_data->getAngle(1);
+	BOOST_CHECK_EQUAL(a.a, (unsigned int)1);
+	BOOST_CHECK_EQUAL(a.b, (unsigned int)2);
+	BOOST_CHECK_EQUAL(a.c, (unsigned int)3);
+	BOOST_CHECK_EQUAL(a.type, (unsigned int)1);
+	
+	a = angle_data->getAngle(2);
+	BOOST_CHECK_EQUAL(a.a, (unsigned int)2);
+	BOOST_CHECK_EQUAL(a.b, (unsigned int)3);
+	BOOST_CHECK_EQUAL(a.c, (unsigned int)4);
+	BOOST_CHECK_EQUAL(a.type, (unsigned int)0);
 	
 	// clean up after ourselves
 	remove_all("test_input.xml");

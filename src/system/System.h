@@ -154,8 +154,9 @@ class System
 		// -------------- Methods for running the simulation
 		
 		//! Runs the simulation for a number of time steps
-		void run(unsigned int nsteps, double limit_hours=0.0f);
-		
+		void run(unsigned int nsteps, unsigned int cb_frequency, 
+                 boost::python::object callback, double limit_hours=0.0f);
+
 		//! Configures profiling of runs
 		void enableProfiler(bool enable);
 		

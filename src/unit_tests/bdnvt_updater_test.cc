@@ -103,7 +103,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 	// a correct temperature and diffuction coefficent  
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
@@ -273,7 +273,7 @@ void bd_updater_diamtests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration 
 	// a correct temperature and diffuction coefficent  
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
@@ -383,8 +383,9 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
 	// and correct average temperature when applied to a population of two different particle types 
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -464,7 +465,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 	
 	// check that a stochastic force applied on top of NVE integrator for a 1000 LJ particles stilll produces the correct average temperature
 	// Build a 1000 particle system with particles scattered on the x, y, and z axes.
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();

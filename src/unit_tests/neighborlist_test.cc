@@ -85,7 +85,7 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box
-	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 	
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
@@ -129,9 +129,10 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 	// there are way too many permutations to test here, so I will simply
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
-	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
-	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 	
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
 	arrays.x[1] =  Scalar(9.6); arrays.y[1] = 0; arrays.z[1] = 0.0;
@@ -201,7 +202,7 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConf
 	g_gpu_error_checking = true;
 	#endif
 	
-	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 	
 	// lets make this test simple: put all 6 particles on top of each other and 
