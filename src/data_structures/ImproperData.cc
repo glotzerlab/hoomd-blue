@@ -95,12 +95,12 @@ ImproperData::ImproperData(ParticleData* pdata, unsigned int n_improper_types) :
 	// init pointers
 	m_host_impropers = NULL;
 	m_host_n_impropers = NULL;
-        m_host_impropersABCD = NULL;
+	m_host_impropersABCD = NULL;
 	m_gpu_improperdata.resize(exec_conf.gpu.size());
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		m_gpu_improperdata[cur_gpu].impropers = NULL;
-                m_gpu_improperdata[cur_gpu].improperABCD = NULL;
+		m_gpu_improperdata[cur_gpu].improperABCD = NULL;
 		m_gpu_improperdata[cur_gpu].n_impropers = NULL;
 		m_gpu_improperdata[cur_gpu].height = 0;
 		m_gpu_improperdata[cur_gpu].pitch = 0;
@@ -293,28 +293,28 @@ void ImproperData::updateImproperTable()
 
 		// get the number of impropers for the b in a-b-c triplet
 		int num1 = m_host_n_impropers[idx1]; //
-                int num2 = m_host_n_impropers[idx2];
+		int num2 = m_host_n_impropers[idx2];
 		int num3 = m_host_n_impropers[idx3]; //
 		int num4 = m_host_n_impropers[idx4]; //
 		
 		// add a new improper to the table, provided each one is a "b" from an a-b-c triplet 
-                // store in the texture as .x=a=idx1, .y=c=idx2, etc. comes from the gpu
-                // or the cpu, generally from the idx2 index
-                improper_type_abcd = a_atom;
+		// store in the texture as .x=a=idx1, .y=c=idx2, etc. comes from the gpu
+		// or the cpu, generally from the idx2 index
+		improper_type_abcd = a_atom;
 		m_host_impropers[num1*pitch + idx1] = make_uint4(idx2, idx3, idx4, type); //
-                m_host_impropersABCD[num1*pitch + idx1] = make_uint1(improper_type_abcd);
+		m_host_impropersABCD[num1*pitch + idx1] = make_uint1(improper_type_abcd);
 
-                improper_type_abcd = b_atom;
+		improper_type_abcd = b_atom;
 		m_host_impropers[num2*pitch + idx2] = make_uint4(idx1, idx3, idx4, type);
-                m_host_impropersABCD[num2*pitch + idx2] = make_uint1(improper_type_abcd);
+		m_host_impropersABCD[num2*pitch + idx2] = make_uint1(improper_type_abcd);
 
-                improper_type_abcd = c_atom;
+		improper_type_abcd = c_atom;
 		m_host_impropers[num3*pitch + idx3] = make_uint4(idx1, idx2, idx4, type); //
-                m_host_impropersABCD[num3*pitch + idx3] = make_uint1(improper_type_abcd);
+		m_host_impropersABCD[num3*pitch + idx3] = make_uint1(improper_type_abcd);
 
-                improper_type_abcd = d_atom;
+		improper_type_abcd = d_atom;
 		m_host_impropers[num4*pitch + idx4] = make_uint4(idx1, idx2, idx3, type); //
-                m_host_impropersABCD[num4*pitch + idx4] = make_uint1(improper_type_abcd);
+		m_host_impropersABCD[num4*pitch + idx4] = make_uint1(improper_type_abcd);
 		
 		// increment the number of impropers
 		m_host_n_impropers[idx1]++; //

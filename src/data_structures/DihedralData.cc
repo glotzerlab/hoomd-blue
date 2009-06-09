@@ -100,7 +100,7 @@ DihedralData::DihedralData(ParticleData* pdata, unsigned int n_dihedral_types) :
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		m_gpu_dihedraldata[cur_gpu].dihedrals = NULL;
-                m_gpu_dihedraldata[cur_gpu].dihedralABCD = NULL;
+		m_gpu_dihedraldata[cur_gpu].dihedralABCD = NULL;
 		m_gpu_dihedraldata[cur_gpu].n_dihedrals = NULL;
 		m_gpu_dihedraldata[cur_gpu].height = 0;
 		m_gpu_dihedraldata[cur_gpu].pitch = 0;
@@ -299,23 +299,23 @@ void DihedralData::updateDihedralTable()
 		int num4 = m_host_n_dihedrals[idx4]; //
 		
 		// add a new dihedral to the table, provided each one is a "b" from an a-b-c triplet 
-                // store in the texture as .x=a=idx1, .y=c=idx2, and b comes from the gpu
-                // or the cpu, generally from the idx2 index
-                dihedral_type_abcd = a_atom;
+		// store in the texture as .x=a=idx1, .y=c=idx2, and b comes from the gpu
+		// or the cpu, generally from the idx2 index
+		dihedral_type_abcd = a_atom;
 		m_host_dihedrals[num1*pitch + idx1] = make_uint4(idx2, idx3, idx4, type); //
-                m_host_dihedralsABCD[num1*pitch + idx1] = make_uint1(dihedral_type_abcd);
+		m_host_dihedralsABCD[num1*pitch + idx1] = make_uint1(dihedral_type_abcd);
 
-                dihedral_type_abcd = b_atom;
+		dihedral_type_abcd = b_atom;
 		m_host_dihedrals[num2*pitch + idx2] = make_uint4(idx1, idx3, idx4, type);
-                m_host_dihedralsABCD[num2*pitch + idx2] = make_uint1(dihedral_type_abcd);
+		m_host_dihedralsABCD[num2*pitch + idx2] = make_uint1(dihedral_type_abcd);
 
-                dihedral_type_abcd = c_atom;
+		dihedral_type_abcd = c_atom;
 		m_host_dihedrals[num3*pitch + idx3] = make_uint4(idx1, idx2, idx4, type); //
-                m_host_dihedralsABCD[num3*pitch + idx3] = make_uint1(dihedral_type_abcd);
+		m_host_dihedralsABCD[num3*pitch + idx3] = make_uint1(dihedral_type_abcd);
 
-                dihedral_type_abcd = d_atom;
+		dihedral_type_abcd = d_atom;
 		m_host_dihedrals[num4*pitch + idx4] = make_uint4(idx1, idx2, idx3, type); //
-                m_host_dihedralsABCD[num4*pitch + idx4] = make_uint1(dihedral_type_abcd);
+		m_host_dihedralsABCD[num4*pitch + idx4] = make_uint1(dihedral_type_abcd);
 		
 		// increment the number of dihedrals
 		m_host_n_dihedrals[idx1]++; //
