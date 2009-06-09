@@ -172,11 +172,17 @@ class NeighborList : public Compute
 		//! Exclude a pair of particles from being added to the neighbor list
 		void addExclusion(unsigned int tag1, unsigned int tag2);
 		
+		//! Clear all existing exclusions
+		void clearExclusions();
+		
 		//! Add an exclusion for every bond in the ParticleData
-		void copyExclusionsFromBonds();
+		void addExclusionsFromBonds();
 
-		//! Add an exclusion for every 1-3 and (optionally) 1-4 pair 
-		void copyExclusionsFromTopology(bool doOneFour);
+		//! Add an exclusion for every 1,3 pair 
+		void addOneThreeExclusionsFromTopology();
+		
+		//! Add an exclusion for every 1,4 pair
+		void addOneFourExclusionsFromTopology();
 
 		//! Forces a full update of the list on the next call to compute()
 		void forceUpdate() { m_force_update = true; }

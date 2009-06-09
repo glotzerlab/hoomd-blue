@@ -636,10 +636,25 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 	forceUpdate();
 	}
 	
+/*! \post No particles are excluded from the neighbor list
+*/
+void NeighborList::clearExclusions()
+	{
+	for (unsigned int i = 0; i < m_exclusions.size(); i++)
+		{
+		m_exclusions[i].e1 = EXCLUDE_EMPTY;
+		m_exclusions[i].e2 = EXCLUDE_EMPTY;
+		m_exclusions[i].e3 = EXCLUDE_EMPTY;
+		m_exclusions[i].e4 = EXCLUDE_EMPTY;
+		}
+		
+	forceUpdate();
+	}
+	
 /*! After calling copyExclusionFromBonds() all bond specified in the attached ParticleData will be 
 	added as exlusions. Any additional bonds added after this will not be automatically added as exclusions.
 */
-void NeighborList::copyExclusionsFromBonds()
+void NeighborList::addExclusionsFromBonds()
 	{
 	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
 	
@@ -651,16 +666,14 @@ void NeighborList::copyExclusionsFromBonds()
 		addExclusion(bond.a, bond.b);
 		}
 	}
-
-/*! Add topologically derived exclusions for angles and dihedrals.
- *
- * \param doOneFour selects whether dihedrals are included or not.
+	
+/*! Add topologically derived exclusions for angles
  *
  * After calling copyExclusionsFromTopology() all topologically 
  * attached particles in ParticleData will be added as exlusions.  
- *  This function assumes all bonds to be unique.
+ * This function assumes all bonds to be unique.
  */
-void NeighborList::copyExclusionsFromTopology(bool doOneFour)
+void NeighborList::addOneThreeExclusionsFromTopology()
 	{
 	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
 	
@@ -668,19 +681,9 @@ void NeighborList::copyExclusionsFromTopology(bool doOneFour)
 	unsigned int MAXNBONDS = 5;
 	unsigned int* localBondList = (unsigned int*) malloc(sizeof(unsigned int)*MAXNBONDS*myNAtoms);
 	unsigned int nBonds = bond_data->getNumBonds();
-	unsigned int nBonds1 = nBonds - 1;
 	unsigned int tagA, tagB;
 	unsigned int iAtom;
 	unsigned int atomA, atomB, atomC, atomD, atomE;
-
-	// 1st, clean out all old exclusions
-	for (unsigned int i = 0; i < m_exclusions.size(); i++)
-		{
-		m_exclusions[i].e1 = EXCLUDE_EMPTY;
-		m_exclusions[i].e2 = EXCLUDE_EMPTY;
-		m_exclusions[i].e3 = EXCLUDE_EMPTY;
-		m_exclusions[i].e4 = EXCLUDE_EMPTY;
-		}
 
 	memset(localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
 
@@ -690,12 +693,22 @@ void NeighborList::copyExclusionsFromTopology(bool doOneFour)
 		Bond bondi = bond_data->getBond(i);
 		tagA = bondi.a;
 		tagB = bondi.b;
-		// add an exclusion for the bond itself
-		addExclusion(bondi.a, bondi.b);
 
-		// next, incrememt the number of bonds, and update the tags               
+		// next, incrememt the number of bonds, and update the tags
 		localBondList[tagA*MAXNBONDS]++;
 		localBondList[tagB*MAXNBONDS]++;
+		
+		if (localBondList[tagA*MAXNBONDS] >= 5)
+			{
+			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl << endl;
+			throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+			}
+			
+		if (localBondList[tagB*MAXNBONDS] >= 5)
+			{
+			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl << endl;
+			throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+			}
 
 		localBondList[tagA*MAXNBONDS + localBondList[tagA*MAXNBONDS]] = tagB;
 		localBondList[tagB*MAXNBONDS + localBondList[tagB*MAXNBONDS]] = tagA;
@@ -768,47 +781,58 @@ void NeighborList::copyExclusionsFromTopology(bool doOneFour)
 				} // end switch
 			} // end if
 		}
+		
+	// free temp memory
+	free(localBondList);
+	}
 
-		localBondList = NULL;
-		delete localBondList;
 
-	if(doOneFour)
-		{
-		//  loop over all bonds in triplicate
-		for (unsigned int i = 0; i < nBonds1-1; i++)
-			{
-			Bond bondi = bond_data->getBond(i);
-			for (unsigned int j = i+1; j < nBonds1; j++)
-				{
-				Bond bondj = bond_data->getBond(j);
-				for (unsigned int k = j+1; k < nBonds; k++)
-					{
-					Bond bondk = bond_data->getBond(k);
-						
-					if((bondi.b == bondj.a) && (bondk.a == bondj.b))
-						addExclusion(bondi.a, bondk.b);
+/*! Add topologically derived exclusions for angles
+ *
+ * After calling copyExclusionsFromTopology() all topologically 
+ * attached particles in ParticleData will be added as exlusions.  
+ * This function assumes all bonds to be unique.
+ */
+void NeighborList::addOneFourExclusionsFromTopology()
+	{
+	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
+	unsigned int nBonds = bond_data->getNumBonds();
+	unsigned int nBonds1 = nBonds - 1;
 	
-					if((bondi.b == bondj.b) && (bondk.a == bondj.a))
-						addExclusion(bondi.a, bondk.b);
+	//  loop over all bonds in triplicate
+	for (unsigned int i = 0; i < nBonds1-1; i++)
+		{
+		Bond bondi = bond_data->getBond(i);
+		for (unsigned int j = i+1; j < nBonds1; j++)
+			{
+			Bond bondj = bond_data->getBond(j);
+			for (unsigned int k = j+1; k < nBonds; k++)
+				{
+				Bond bondk = bond_data->getBond(k);
 					
-					if((bondi.a == bondj.a) && (bondk.a == bondj.b))
-						addExclusion(bondi.b, bondk.b);
+				if((bondi.b == bondj.a) && (bondk.a == bondj.b))
+					addExclusion(bondi.a, bondk.b);
+
+				if((bondi.b == bondj.b) && (bondk.a == bondj.a))
+					addExclusion(bondi.a, bondk.b);
+				
+				if((bondi.a == bondj.a) && (bondk.a == bondj.b))
+					addExclusion(bondi.b, bondk.b);
+				
+				if((bondi.a == bondj.a) && (bondk.a == bondj.b))
+					addExclusion(bondi.b, bondk.b);
 					
-					if((bondi.a == bondj.a) && (bondk.a == bondj.b))
-						addExclusion(bondi.b, bondk.b);
-						
-					if((bondi.b == bondj.a) && (bondk.b == bondj.b))
-						addExclusion(bondi.a, bondk.a);
-					
-					if((bondi.b == bondj.b) && (bondk.b == bondj.a))
-						addExclusion(bondi.a, bondk.a);
-					
-					if((bondi.a == bondj.a) && (bondk.b == bondj.b))
-						addExclusion(bondi.b, bondk.a);
-					
-					if((bondi.a == bondj.a) && (bondk.b == bondj.b))
-						addExclusion(bondi.b, bondk.a);
-					}
+				if((bondi.b == bondj.a) && (bondk.b == bondj.b))
+					addExclusion(bondi.a, bondk.a);
+				
+				if((bondi.b == bondj.b) && (bondk.b == bondj.a))
+					addExclusion(bondi.a, bondk.a);
+				
+				if((bondi.a == bondj.a) && (bondk.b == bondj.b))
+					addExclusion(bondi.b, bondk.a);
+				
+				if((bondi.a == bondj.a) && (bondk.b == bondj.b))
+					addExclusion(bondi.b, bondk.a);
 				}
 			}
 		}
@@ -1177,8 +1201,10 @@ void export_NeighborList()
 		.def("getList", &NeighborList::getList, return_internal_reference<>())
 		.def("setStorageMode", &NeighborList::setStorageMode)
 		.def("addExclusion", &NeighborList::addExclusion)
-		.def("copyExclusionsFromBonds", &NeighborList::copyExclusionsFromBonds)
-		.def("copyExclusionsFromTopology", &NeighborList::copyExclusionsFromTopology)
+		.def("clearExclusions", &NeighborList::clearExclusions)
+		.def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
+		.def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
+		.def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
 		.def("forceUpdate", &NeighborList::forceUpdate)
 		.def("estimateNNeigh", &NeighborList::estimateNNeigh)
 		;
