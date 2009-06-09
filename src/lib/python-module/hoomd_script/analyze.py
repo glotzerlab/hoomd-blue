@@ -421,7 +421,7 @@ class log(_analyzer):
 			self.cpp_analyzer.setDelimiter(delimiter);
 		
 	## Retrieve a cached value of a monitored quantity from the last update of the logger.
-	# \param quantity Name of the quantity to return. Defaults to 'timestep'.
+	# \param quantity Name of the quantity to return.
 	# Using query() requires that the specified logger was saved in a variable when created.
 	# i.e. 
 	# \code
@@ -438,7 +438,7 @@ class log(_analyzer):
 		util.print_status_line();
 		
 		# retrieve data from internal cache.
-                return self.cpp_analyzer.getCachedQuantity(quantity);
+		return self.cpp_analyzer.getCachedQuantity(quantity);
 		
 	## \internal
 	# \brief Re-registers all computes and updaters with the logger
