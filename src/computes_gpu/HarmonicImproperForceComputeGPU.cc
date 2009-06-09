@@ -143,7 +143,7 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
 void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	//if (m_prof) m_prof->push(exec_conf, "Improper");
+	if (m_prof) m_prof->push(exec_conf, "Harmonic Improper");
 		
 	vector<gpu_impropertable_array>& gpu_impropertable = m_improper_data->acquireGPU();
 	
@@ -162,10 +162,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 	
 	m_pdata->release();
 	
-        // UNCOMMENT BELOW FOR SOME KIND OF PERFORMANCE CHECK... but first, count all the flops + memory transfers
-	//int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_improper_data->getNumImproper() * 2 * (8+16+8);
-	//int64_t flops = m_improper_data->getNumImproper() * 2 * (3+12+16+3+7);
-	//if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);
+	if (m_prof)	m_prof->pop(exec_conf);
 	}
 
 void export_HarmonicImproperForceComputeGPU()

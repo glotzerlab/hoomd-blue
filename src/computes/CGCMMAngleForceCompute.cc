@@ -205,7 +205,7 @@ Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned
  */
 void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 	{
-	//if (m_prof) m_prof->push("CGCMMAngle");
+	if (m_prof) m_prof->push("CGCMMAngle");
 
 	assert(m_pdata);
 	// access the particle data arrays
@@ -449,10 +449,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-	// ALL TIMING STUFF HAS BEEN COMMENTED OUT... if you uncomment, re-count all memtransfers and flops
-	//int64_t flops = size*(3 + 9 + 14 + 2 + 16);
-	//int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
-	//if (m_prof) m_prof->pop(flops, mem_transfer);
+	if (m_prof) m_prof->pop();
 	}
 	
 void export_CGCMMAngleForceCompute()

@@ -154,7 +154,7 @@ Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, un
  */
 void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 	{
-	//if (m_prof) m_prof->push("Improper");
+	if (m_prof) m_prof->push("Harmonic Improper");
 
 	assert(m_pdata);
 	// access the particle data arrays
@@ -434,10 +434,7 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-        // ALL TIMING STUFF HAS BEEN COMMENTED OUT... if you uncomment, re-count all memtransfers and flops
-	//int64_t flops = size*(3 + 9 + 14 + 2 + 16);
-	//int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
-	//if (m_prof) m_prof->pop(flops, mem_transfer);
+	if (m_prof) m_prof->pop();
 	}
 	
 void export_HarmonicImproperForceCompute()
