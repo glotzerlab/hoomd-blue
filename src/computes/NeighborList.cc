@@ -661,184 +661,158 @@ void NeighborList::copyExclusionsFromBonds()
  *  This function assumes all bonds to be unique.
  */
 void NeighborList::copyExclusionsFromTopology(bool doOneFour)
-{
+	{
 	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
+	
+	unsigned int myNAtoms = m_pdata->getN();
+	unsigned int MAXNBONDS = 5;
+	unsigned int* localBondList = (unsigned int*) malloc(sizeof(unsigned int)*MAXNBONDS*myNAtoms);
+	unsigned int nBonds = bond_data->getNumBonds();
+	unsigned int nBonds1 = nBonds - 1;
+	unsigned int tagA, tagB;
+	unsigned int iAtom;
+	unsigned int atomA, atomB, atomC, atomD, atomE;
 
-        unsigned int myNAtoms = m_pdata->getN();
-        unsigned int MAXNBONDS = 5;
-        unsigned int* localBondList = (unsigned int*) malloc(sizeof(unsigned int)*MAXNBONDS*myNAtoms);
-        unsigned int nBonds = bond_data->getNumBonds();
-        unsigned int nBonds1 = nBonds - 1;
-        unsigned int tagA, tagB;
-        unsigned int iAtom;
-        unsigned int atomA, atomB, atomC, atomD, atomE;
+	// 1st, clean out all old exclusions
+	for (unsigned int i = 0; i < m_exclusions.size(); i++)
+		{
+		m_exclusions[i].e1 = EXCLUDE_EMPTY;
+		m_exclusions[i].e2 = EXCLUDE_EMPTY;
+		m_exclusions[i].e3 = EXCLUDE_EMPTY;
+		m_exclusions[i].e4 = EXCLUDE_EMPTY;
+		}
 
-        // 1st, clean out all old exclusions
-        for (unsigned int i = 0; i < m_exclusions.size(); i++)
-        {
-          m_exclusions[i].e1 = EXCLUDE_EMPTY;
-          m_exclusions[i].e2 = EXCLUDE_EMPTY;
-          m_exclusions[i].e3 = EXCLUDE_EMPTY;
-          m_exclusions[i].e4 = EXCLUDE_EMPTY;
-        }
-
-        memset(localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
+	memset(localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
 
 	for (unsigned int i = 0; i < nBonds; i++)
-	{
-	// loop over all bonds and make a 1D exlcusion map
+		{
+		// loop over all bonds and make a 1D exlcusion map
 		Bond bondi = bond_data->getBond(i);
-                tagA = bondi.a;
-                tagB = bondi.b;
-                // add an exclusion for the bond itself
-                addExclusion(bondi.a, bondi.b);
+		tagA = bondi.a;
+		tagB = bondi.b;
+		// add an exclusion for the bond itself
+		addExclusion(bondi.a, bondi.b);
 
-                // next, incrememt the number of bonds, and update the tags               
-                localBondList[tagA*MAXNBONDS]++;
-                localBondList[tagB*MAXNBONDS]++;
-       
-                localBondList[tagA*MAXNBONDS + localBondList[tagA*MAXNBONDS]] = tagB;
-                localBondList[tagB*MAXNBONDS + localBondList[tagB*MAXNBONDS]] = tagA;
-        }
+		// next, incrememt the number of bonds, and update the tags               
+		localBondList[tagA*MAXNBONDS]++;
+		localBondList[tagB*MAXNBONDS]++;
+
+		localBondList[tagA*MAXNBONDS + localBondList[tagA*MAXNBONDS]] = tagB;
+		localBondList[tagB*MAXNBONDS + localBondList[tagB*MAXNBONDS]] = tagA;
+		}
 
 	for (unsigned int i = 0; i < myNAtoms; i++)
-	{
-                // now, loop over all atoms, and find those in the middle of an angle
-                iAtom = i*MAXNBONDS;
+		{
+		// now, loop over all atoms, and find those in the middle of an angle
+		iAtom = i*MAXNBONDS;
 		if(localBondList[iAtom] > 1)
-                {
-                    atomA = localBondList[iAtom + 1];
-                    atomB = localBondList[iAtom + 2];
-                    atomC = localBondList[iAtom + 3];
-                    atomD = localBondList[iAtom + 4];
-                    atomE = localBondList[iAtom + 5];
+			{
+			atomA = localBondList[iAtom + 1];
+			atomB = localBondList[iAtom + 2];
+			atomC = localBondList[iAtom + 3];
+			atomD = localBondList[iAtom + 4];
+			atomE = localBondList[iAtom + 5];
 
-                 switch(localBondList[iAtom])
-                 {
-                   case 5:
-                   {
-                    // 10 exclusions
-                    addExclusion(atomA, atomB);
-                    addExclusion(atomB, atomC);
-                    addExclusion(atomC, atomD);
-                    addExclusion(atomD, atomE);
-                    addExclusion(atomE, atomA);
+			switch(localBondList[iAtom])
+				{
+				case 5:
+					{
+					// 10 exclusions
+					addExclusion(atomA, atomB);
+					addExclusion(atomB, atomC);
+					addExclusion(atomC, atomD);
+					addExclusion(atomD, atomE);
+					addExclusion(atomE, atomA);
+		
+					addExclusion(atomB, atomD);
+					addExclusion(atomA, atomC);
+					addExclusion(atomB, atomE);
+					addExclusion(atomC, atomE);
+					addExclusion(atomD, atomA);
+					}
+					break;
+				case 4:
+					{
+					// 6 exclusions
+					addExclusion(atomA, atomB);
+					addExclusion(atomB, atomC);
+					addExclusion(atomC, atomD);
+					addExclusion(atomD, atomA);
+		
+					addExclusion(atomB, atomD);
+					addExclusion(atomA, atomC);
+					}
+					break;
+				case 3:
+					{
+					// 3 exclusions
+					addExclusion(atomA, atomB);
+					addExclusion(atomA, atomC);
+					addExclusion(atomB, atomC);
+					
+					}
+					break;
+				case 2:
+					{ // only 1 exclusion
+					addExclusion(atomA, atomB);
+		
+					}
+					break;
+					default:
+					{
+					// this sucks, why am i here!
+					cerr << endl << "***Error! TOO MANY BONDS ON A SINGLE ATOM: " << endl << endl;
+					throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+					}
+				break;
+				} // end switch
+			} // end if
+		}
 
-                    addExclusion(atomB, atomD);
-                    addExclusion(atomA, atomC);
-                    addExclusion(atomB, atomE);
-                    addExclusion(atomC, atomE);
-                    addExclusion(atomD, atomA);
-                   }
-                    break;
-                   case 4:
-                   {
-                    // 6 exclusions
-                    addExclusion(atomA, atomB);
-                    addExclusion(atomB, atomC);
-                    addExclusion(atomC, atomD);
-                    addExclusion(atomD, atomA);
+		localBondList = NULL;
+		delete localBondList;
 
-                    addExclusion(atomB, atomD);
-                    addExclusion(atomA, atomC);
-                   }
-                    break;
-                   case 3:
-                   {
-                    // 3 exclusions
-                    addExclusion(atomA, atomB);
-                    addExclusion(atomA, atomC);
-                    addExclusion(atomB, atomC);
-                    
-                   }
-                    break;
-                   case 2:
-                   { // only 1 exclusion
-                    addExclusion(atomA, atomB);
-
-                   }
-                    break;
-                   default:
-                   {
-                     // this sucks, why am i here!
-                    cerr << endl << "***Error! TOO MANY BONDS ON A SINGLE ATOM: " << endl << endl;
-		throw runtime_error("Error setting up toplogical exclusions in NeighborList");
-                   }
-                    break;
-
-                   
-
-                 }
-
-                }
-        }
-
-       localBondList = NULL;
-       delete localBondList;
-
-       if(doOneFour)
-       {
-
-	//  loop over all bonds in triplicate
-	for (unsigned int i = 0; i < nBonds1-1; i++)
-	{
-		Bond bondi = bond_data->getBond(i);               
-        	for (unsigned int j = i+1; j < nBonds1; j++)
-                {
-                  Bond bondj = bond_data->getBond(j);
-                  for (unsigned int k = j+1; k < nBonds; k++)
-                  {
-                    Bond bondk = bond_data->getBond(k);
-
-
-                    if((bondi.b == bondj.a) && (bondk.a == bondj.b))
-                    {
-                      addExclusion(bondi.a, bondk.b);
-                    }
-                    if((bondi.b == bondj.b) && (bondk.a == bondj.a))
-                    {
-                      addExclusion(bondi.a, bondk.b);
-                    }
-                    if((bondi.a == bondj.a) && (bondk.a == bondj.b))
-                    {
-                      addExclusion(bondi.b, bondk.b);
-                    }
-                    if((bondi.a == bondj.a) && (bondk.a == bondj.b))
-                    {
-                      addExclusion(bondi.b, bondk.b);
-                    }
-
-
-
-                    if((bondi.b == bondj.a) && (bondk.b == bondj.b))
-                    {
-                      addExclusion(bondi.a, bondk.a);
-                    }
-                    if((bondi.b == bondj.b) && (bondk.b == bondj.a))
-                    {
-                      addExclusion(bondi.a, bondk.a);
-                    }
-                    if((bondi.a == bondj.a) && (bondk.b == bondj.b))
-                    {
-                      addExclusion(bondi.b, bondk.a);
-                    }
-                    if((bondi.a == bondj.a) && (bondk.b == bondj.b))
-                    {
-                      addExclusion(bondi.b, bondk.a);
-                    }
-
-
-
-                  }
-
-
-                }
-
-                
-	 }
-
-       }
-}
+	if(doOneFour)
+		{
+		//  loop over all bonds in triplicate
+		for (unsigned int i = 0; i < nBonds1-1; i++)
+			{
+			Bond bondi = bond_data->getBond(i);
+			for (unsigned int j = i+1; j < nBonds1; j++)
+				{
+				Bond bondj = bond_data->getBond(j);
+				for (unsigned int k = j+1; k < nBonds; k++)
+					{
+					Bond bondk = bond_data->getBond(k);
+						
+					if((bondi.b == bondj.a) && (bondk.a == bondj.b))
+						addExclusion(bondi.a, bondk.b);
+	
+					if((bondi.b == bondj.b) && (bondk.a == bondj.a))
+						addExclusion(bondi.a, bondk.b);
+					
+					if((bondi.a == bondj.a) && (bondk.a == bondj.b))
+						addExclusion(bondi.b, bondk.b);
+					
+					if((bondi.a == bondj.a) && (bondk.a == bondj.b))
+						addExclusion(bondi.b, bondk.b);
+						
+					if((bondi.b == bondj.a) && (bondk.b == bondj.b))
+						addExclusion(bondi.a, bondk.a);
+					
+					if((bondi.b == bondj.b) && (bondk.b == bondj.a))
+						addExclusion(bondi.a, bondk.a);
+					
+					if((bondi.a == bondj.a) && (bondk.b == bondj.b))
+						addExclusion(bondi.b, bondk.a);
+					
+					if((bondi.a == bondj.a) && (bondk.b == bondj.b))
+						addExclusion(bondi.b, bondk.a);
+					}
+				}
+			}
+		}
+	}
 
 
 /*! \returns true If any of the particles have been moved more than 1/2 of the buffer distance since the last call

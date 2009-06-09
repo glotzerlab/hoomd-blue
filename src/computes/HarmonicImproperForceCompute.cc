@@ -93,9 +93,8 @@ HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
 	{
 	delete[] m_K;
 	delete[] m_chi;
-
-        m_K = NULL;
-        m_chi = NULL;
+	m_K = NULL;
+	m_chi = NULL;
 	}
 
 /*! \param type Type of the improper to set parameters for
@@ -154,11 +153,11 @@ Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, un
 	\param timestep Current time step
  */
 void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
- 	{
+	{
 	//if (m_prof) m_prof->push("Improper");
 
- 	assert(m_pdata);
- 	// access the particle data arrays
+	assert(m_pdata);
+	// access the particle data arrays
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 	// there are enough other checks on the input data: but it doesn't hurt to be safe
 	assert(m_fx);
@@ -314,116 +313,116 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 			dzcbm += Lz;
 
 
-               Scalar ss1 = 1.0 / (dxab*dxab + dyab*dyab + dzab*dzab);
-               Scalar ss2 = 1.0 / (dxcb*dxcb + dycb*dycb + dzcb*dzcb);
-               Scalar ss3 = 1.0 / (dxdc*dxdc + dydc*dydc + dzdc*dzdc);
+		Scalar ss1 = 1.0 / (dxab*dxab + dyab*dyab + dzab*dzab);
+		Scalar ss2 = 1.0 / (dxcb*dxcb + dycb*dycb + dzcb*dzcb);
+		Scalar ss3 = 1.0 / (dxdc*dxdc + dydc*dydc + dzdc*dzdc);
 
-               Scalar r1 = sqrt(ss1);
-               Scalar r2 = sqrt(ss2);
-               Scalar r3 = sqrt(ss3);
+		Scalar r1 = sqrt(ss1);
+		Scalar r2 = sqrt(ss2);
+		Scalar r3 = sqrt(ss3);
 
-              // Cosine and Sin of the angle between the planes       
-               Scalar c0 = (dxab*dxdc + dyab*dydc + dzab*dzdc)* r1 * r3;
-               Scalar c1 = (dxab*dxcb + dyab*dycb + dzab*dzcb)* r1 * r2;
-               Scalar c2 = -(dxdc*dxcb + dydc*dycb + dzdc*dzcb)* r3 * r2;
+		// Cosine and Sin of the angle between the planes       
+		Scalar c0 = (dxab*dxdc + dyab*dydc + dzab*dzdc)* r1 * r3;
+		Scalar c1 = (dxab*dxcb + dyab*dycb + dzab*dzcb)* r1 * r2;
+		Scalar c2 = -(dxdc*dxcb + dydc*dycb + dzdc*dzcb)* r3 * r2;
 
-               Scalar s1 = 1.0 - c1*c1;
-               if (s1 < SMALL) s1 = SMALL;
-               s1 = 1.0 / s1;
+		Scalar s1 = 1.0 - c1*c1;
+		if (s1 < SMALL) s1 = SMALL;
+		s1 = 1.0 / s1;
 
-               Scalar s2 = 1.0 - c2*c2;
-               if (s2 < SMALL) s2 = SMALL;
-               s2 = 1.0 / s2;
+		Scalar s2 = 1.0 - c2*c2;
+		if (s2 < SMALL) s2 = SMALL;
+		s2 = 1.0 / s2;
 
-               Scalar s12 = sqrt(s1*s2);
-               Scalar c = (c1*c2 + c0) * s12;
+		Scalar s12 = sqrt(s1*s2);
+		Scalar c = (c1*c2 + c0) * s12;
 
-               if (c > 1.0) c = 1.0;
-               if (c < -1.0) c = -1.0;
+		if (c > 1.0) c = 1.0;
+		if (c < -1.0) c = -1.0;
 
-               Scalar s = sqrt(1.0 - c*c);
-               if (s < SMALL) s = SMALL;
+		Scalar s = sqrt(1.0 - c*c);
+		if (s < SMALL) s = SMALL;
 
-               Scalar domega = acos(c) - m_chi[improper.type];
-               Scalar a = m_K[improper.type] * domega;
+		Scalar domega = acos(c) - m_chi[improper.type];
+		Scalar a = m_K[improper.type] * domega;
 
-               // calculate the energy, 1/4th for each atom
-               Scalar improper_eng = Scalar(0.25)*a*domega;
+		// calculate the energy, 1/4th for each atom
+		Scalar improper_eng = Scalar(0.25)*a*domega;
 
-             //printf(" IN CPU: c1 = %f, c2 = %f, c0 = %f \n",c1,c2,c0);
-             //printf(" IN CPU: s1 = %f, s2 = %f, s12 = %f \n",s1,s2,s12);
-             //printf(" IN CPU: c = %f, s = %f \n",c,s);
-             //printf(" IN CPU: domega = %f, a = %f \n",domega,a);
+		//printf(" IN CPU: c1 = %f, c2 = %f, c0 = %f \n",c1,c2,c0);
+		//printf(" IN CPU: s1 = %f, s2 = %f, s12 = %f \n",s1,s2,s12);
+		//printf(" IN CPU: c = %f, s = %f \n",c,s);
+		//printf(" IN CPU: domega = %f, a = %f \n",domega,a);
 
-               a = -a * 2.0/s;
-               c = c * a;
-              //printf(" IN CPU: ...later c = %f, a = %f \n",c,a);
+		a = -a * 2.0/s;
+		c = c * a;
+		//printf(" IN CPU: ...later c = %f, a = %f \n",c,a);
 
-               s12 = s12 * a;
-               Scalar a11 = c*ss1*s1;
-               Scalar a22 = -ss2 * (2.0*c0*s12 - c*(s1+s2));
-               Scalar a33 = c*ss3*s2;
-              //printf(" IN CPU: ...later c = %f, ss3 = %f, s2 = %f \n",c,ss3,s2);
-               Scalar a12 = -r1*r2*(c1*c*s1 + c2*s12);
-               Scalar a13 = -r1*r3*s12;
-               Scalar a23 = r2*r3*(c2*c*s2 + c1*s12);
+		s12 = s12 * a;
+		Scalar a11 = c*ss1*s1;
+		Scalar a22 = -ss2 * (2.0*c0*s12 - c*(s1+s2));
+		Scalar a33 = c*ss3*s2;
+		//printf(" IN CPU: ...later c = %f, ss3 = %f, s2 = %f \n",c,ss3,s2);
+		Scalar a12 = -r1*r2*(c1*c*s1 + c2*s12);
+		Scalar a13 = -r1*r3*s12;
+		Scalar a23 = r2*r3*(c2*c*s2 + c1*s12);
 
-               Scalar sx2  = a22*dxcb + a23*dxdc + a12*dxab;
-               Scalar sy2  = a22*dycb + a23*dydc + a12*dyab;
-               Scalar sz2  = a22*dzcb + a23*dzdc + a12*dzab;
+		Scalar sx2  = a22*dxcb + a23*dxdc + a12*dxab;
+		Scalar sy2  = a22*dycb + a23*dydc + a12*dyab;
+		Scalar sz2  = a22*dzcb + a23*dzdc + a12*dzab;
 
-               // calculate the forces for each particle
-               Scalar ffax = a12*dxcb + a13*dxdc + a11*dxab;
-               Scalar ffay = a12*dycb + a13*dydc + a11*dyab;
-               Scalar ffaz = a12*dzcb + a13*dzdc + a11*dzab;
+		// calculate the forces for each particle
+		Scalar ffax = a12*dxcb + a13*dxdc + a11*dxab;
+		Scalar ffay = a12*dycb + a13*dydc + a11*dyab;
+		Scalar ffaz = a12*dzcb + a13*dzdc + a11*dzab;
 
-               Scalar ffbx = -sx2 - ffax;
-               Scalar ffby = -sy2 - ffay;
-               Scalar ffbz = -sz2 - ffaz;
+		Scalar ffbx = -sx2 - ffax;
+		Scalar ffby = -sy2 - ffay;
+		Scalar ffbz = -sz2 - ffaz;
 
-               Scalar ffdx = a23*dxcb + a33*dxdc + a13*dxab;
-               Scalar ffdy = a23*dycb + a33*dydc + a13*dyab;
-               Scalar ffdz = a23*dzcb + a33*dzdc + a13*dzab;
-               //printf("IN CPU: a23 = %f, a33 = %f, a13 = %f \n",a23,a33,a13);
-
-
-               Scalar ffcx = sx2 - ffdx;
-               Scalar ffcy = sy2 - ffdy;
-               Scalar ffcz = sz2 - ffdz;
-
-               // and calculate the virial
-               Scalar vx = dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx;
-               Scalar vy = dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy;
-               Scalar vz = dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz;
-
-               // compute 1/4 of the virial, 1/4 for each atom in the improper
-               Scalar improper_virial = Scalar(1.0/12.0)*(vx + vy + vz);
+		Scalar ffdx = a23*dxcb + a33*dxdc + a13*dxab;
+		Scalar ffdy = a23*dycb + a33*dydc + a13*dyab;
+		Scalar ffdz = a23*dzcb + a33*dzdc + a13*dzab;
+		//printf("IN CPU: a23 = %f, a33 = %f, a13 = %f \n",a23,a33,a13);
 
 
-               // accumulate the forces
-               m_fx[idx_a] += ffax;
-               m_fy[idx_a] += ffay;
-               m_fz[idx_a] += ffaz;
-               m_pe[idx_a] += improper_eng;
-               m_virial[idx_a] += improper_virial;
+		Scalar ffcx = sx2 - ffdx;
+		Scalar ffcy = sy2 - ffdy;
+		Scalar ffcz = sz2 - ffdz;
 
-               m_fx[idx_b] += ffbx;
-               m_fy[idx_b] += ffby;
-               m_fz[idx_b] += ffbz;
-               m_pe[idx_b] += improper_eng;
-               m_virial[idx_b] += improper_virial;
+		// and calculate the virial
+		Scalar vx = dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx;
+		Scalar vy = dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy;
+		Scalar vz = dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz;
 
-	       m_fx[idx_c] += ffcx;
-	       m_fy[idx_c] += ffcy;
-	       m_fz[idx_c] += ffcz;
-               m_pe[idx_c] += improper_eng;
-               m_virial[idx_c] += improper_virial;
+		// compute 1/4 of the virial, 1/4 for each atom in the improper
+		Scalar improper_virial = Scalar(1.0/12.0)*(vx + vy + vz);
 
-	       m_fx[idx_d] += ffdx;
-	       m_fy[idx_d] += ffdy;
-	       m_fz[idx_d] += ffdz;
-               m_pe[idx_d] += improper_eng;
-               m_virial[idx_d] += improper_virial;
+
+		// accumulate the forces
+		m_fx[idx_a] += ffax;
+		m_fy[idx_a] += ffay;
+		m_fz[idx_a] += ffaz;
+		m_pe[idx_a] += improper_eng;
+		m_virial[idx_a] += improper_virial;
+
+		m_fx[idx_b] += ffbx;
+		m_fy[idx_b] += ffby;
+		m_fz[idx_b] += ffbz;
+		m_pe[idx_b] += improper_eng;
+		m_virial[idx_b] += improper_virial;
+
+		m_fx[idx_c] += ffcx;
+		m_fy[idx_c] += ffcy;
+		m_fz[idx_c] += ffcz;
+		m_pe[idx_c] += improper_eng;
+		m_virial[idx_c] += improper_virial;
+
+		m_fx[idx_d] += ffdx;
+		m_fy[idx_d] += ffdy;
+		m_fz[idx_d] += ffdz;
+		m_pe[idx_d] += improper_eng;
+		m_virial[idx_d] += improper_virial;
 
 		// FLOPS: ?? / MEM TRANSFER: ?? Scalars
 		}

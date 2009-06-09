@@ -163,7 +163,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
 	
 	m_pdata->release();
 	
-        // UNCOMMENT BELOW FOR SOME KIND OF PERFORMANCE CHECK... but first, count all the flops + memory transfers
+	// UNCOMMENT BELOW FOR SOME KIND OF PERFORMANCE CHECK... but first, count all the flops + memory transfers
 	//int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_dihedral_data->getNumDihedral() * 2 * (8+16+8);
 	//int64_t flops = m_dihedral_data->getNumDihedral() * 2 * (3+12+16+3+7);
 	//if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);

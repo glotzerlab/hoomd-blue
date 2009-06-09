@@ -93,8 +93,8 @@ HarmonicAngleForceCompute::~HarmonicAngleForceCompute()
 	{
 	delete[] m_K;
 	delete[] m_t_0;
-        m_K = NULL;
-        m_t_0 = NULL;
+	m_K = NULL;
+	m_t_0 = NULL;
 	}
 
 /*! \param type Type of the angle to set parameters for
@@ -147,7 +147,7 @@ Scalar HarmonicAngleForceCompute::getLogValue(const std::string& quantity, unsig
 		cerr << endl << "***Error! " << quantity << " is not a valid log quantity for AngleForceCompute" << endl << endl;
 		throw runtime_error("Error getting log value");
 		}
-	}	
+	}
 
 /*! Actually perform the force computation
 	\param timestep Current time step
@@ -293,71 +293,69 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 
 
 		// FLOPS: 42 / MEM TRANSFER: 6 Scalars
-                Scalar rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
-                Scalar rab = sqrt(rsqab);
-                Scalar rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
-                Scalar rcb = sqrt(rsqcb);
+		Scalar rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
+		Scalar rab = sqrt(rsqab);
+		Scalar rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
+		Scalar rcb = sqrt(rsqcb);
 
-                Scalar c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
-                c_abbc /= rab*rcb;
+		Scalar c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
+		c_abbc /= rab*rcb;
 
-                if (c_abbc > 1.0) c_abbc = 1.0;
-                if (c_abbc < -1.0) c_abbc = -1.0;
+		if (c_abbc > 1.0) c_abbc = 1.0;
+		if (c_abbc < -1.0) c_abbc = -1.0;
 
-                Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);
-                if (s_abbc < SMALL) s_abbc = SMALL;
-                s_abbc = 1.0/s_abbc;
-  
-                // actually calculate the force
-                Scalar dth = acos(c_abbc) - m_t_0[angle.type];
-                Scalar tk = m_K[angle.type]*dth;
-                
-                Scalar a = -2.0 * tk * s_abbc;
-                Scalar a11 = a*c_abbc/rsqab;
-                Scalar a12 = -a / (rab*rcb);              
-                Scalar a22 = a*c_abbc / rsqcb;
+		Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);
+		if (s_abbc < SMALL) s_abbc = SMALL;
+		s_abbc = 1.0/s_abbc;
 
-                Scalar fab[3], fcb[3];
+		// actually calculate the force
+		Scalar dth = acos(c_abbc) - m_t_0[angle.type];
+		Scalar tk = m_K[angle.type]*dth;
+		
+		Scalar a = -2.0 * tk * s_abbc;
+		Scalar a11 = a*c_abbc/rsqab;
+		Scalar a12 = -a / (rab*rcb);              
+		Scalar a22 = a*c_abbc / rsqcb;
 
-                fab[0] = a11*dxab + a12*dxcb;
-                fab[1] = a11*dyab + a12*dycb;
-                fab[2] = a11*dzab + a12*dzcb; 
+		Scalar fab[3], fcb[3];
 
-                fcb[0] = a22*dxcb + a12*dxab;
-                fcb[1] = a22*dycb + a12*dyab; 
-                fcb[2] = a22*dzcb + a12*dzab; 
+		fab[0] = a11*dxab + a12*dxcb;
+		fab[1] = a11*dyab + a12*dycb;
+		fab[2] = a11*dzab + a12*dzcb; 
 
-                // compute 1/3 of the energy, 1/3 for each atom in the angle
-                Scalar angle_eng = (tk*dth)*Scalar(1.0/6.0);
+		fcb[0] = a22*dxcb + a12*dxab;
+		fcb[1] = a22*dycb + a12*dyab; 
+		fcb[2] = a22*dzcb + a12*dzab; 
 
-                // do we really need a virial here for harmonic angles?
-                // ... if not, this may be wrong...
-                Scalar vx = dxab*fab[0] + dxcb*fcb[0];
-                Scalar vy = dyab*fab[1] + dycb*fcb[1];
-                Scalar vz = dzab*fab[2] + dzcb*fcb[2];
+		// compute 1/3 of the energy, 1/3 for each atom in the angle
+		Scalar angle_eng = (tk*dth)*Scalar(1.0/6.0);
 
-                Scalar angle_virial = Scalar(1.0/6.0)*(vx + vy + vz);
+		// do we really need a virial here for harmonic angles?
+		// ... if not, this may be wrong...
+		Scalar vx = dxab*fab[0] + dxcb*fcb[0];
+		Scalar vy = dyab*fab[1] + dycb*fcb[1];
+		Scalar vz = dzab*fab[2] + dzcb*fcb[2];
 
-                // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
+		Scalar angle_virial = Scalar(1.0/6.0)*(vx + vy + vz);
+
+		// Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
 		m_fx[idx_a] += fab[0];
 		m_fy[idx_a] += fab[1];
 		m_fz[idx_a] += fab[2];
-                m_pe[idx_a] += angle_eng;
-                m_virial[idx_a] += angle_virial;
+		m_pe[idx_a] += angle_eng;
+		m_virial[idx_a] += angle_virial;
 
 		m_fx[idx_b] -= fab[0] + fcb[0];
 		m_fy[idx_b] -= fab[1] + fcb[1];
 		m_fz[idx_b] -= fab[2] + fcb[2];
-                m_pe[idx_b] += angle_eng;
-                m_virial[idx_b] += angle_virial;
+		m_pe[idx_b] += angle_eng;
+		m_virial[idx_b] += angle_virial;
 
 		m_fx[idx_c] += fcb[0];
 		m_fy[idx_c] += fcb[1];
 		m_fz[idx_c] += fcb[2];
-                m_pe[idx_c] += angle_eng;
-                m_virial[idx_c] += angle_virial;
-
-
+		m_pe[idx_c] += angle_eng;
+		m_virial[idx_c] += angle_virial;
 		}
 
 	m_pdata->release();
@@ -367,7 +365,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-        // ALL TIMING STUFF HAS BEEN COMMENTED OUT... if you uncomment, re-count all memtransfers and flops
+	// ALL TIMING STUFF HAS BEEN COMMENTED OUT... if you uncomment, re-count all memtransfers and flops
 	//int64_t flops = size*(3 + 9 + 14 + 2 + 16);
 	//int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
 	//if (m_prof) m_prof->pop(flops, mem_transfer);

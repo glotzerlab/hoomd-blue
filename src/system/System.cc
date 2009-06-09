@@ -432,27 +432,30 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 				break;
 				}
 			}
-        // execute python callback, if present and needed
-        // a negative return value indicates immediate end of run.
-        if ( callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0)) {
-            boost::python::object rv = callback(m_cur_tstep);
-            if (rv < 0) {
-                cout << "Notice: End of run requested by python callback at step " 
-                     << m_cur_tstep << " instead of step " << m_end_tstep << endl;
-                break;
-            }
-        }
+		// execute python callback, if present and needed
+		// a negative return value indicates immediate end of run.
+		if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0)) 
+			{
+			boost::python::object rv = callback(m_cur_tstep);
+			if (rv < 0)
+				{
+				cout << "Notice: End of run requested by python callback at step " 
+					<< m_cur_tstep << " instead of step " << m_end_tstep << endl;
+				break;
+				}
+			}
 		}
 		
 	// generate a final status line
 	generateStatusLine();
 	m_last_status_tstep = m_cur_tstep;
-
-    // execute python callback, if present and needed
-    if (callback && (cb_frequency == 0)) {
-        callback(m_cur_tstep);
-    }
-
+	
+	// execute python callback, if present and needed
+	if (callback && (cb_frequency == 0)) 
+		{
+		callback(m_cur_tstep);
+		}
+	
 	// calculate averate TPS
 	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
 	cout << "Average TPS: " << TPS << endl;

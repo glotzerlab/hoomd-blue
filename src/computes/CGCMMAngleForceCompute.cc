@@ -97,20 +97,20 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<ParticleData> p
 	memset(m_rcut, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
 	memset(m_cg_type, 0, sizeof(unsigned int) * m_CGCMMAngle_data->getNAngleTypes());
 
-        prefact[0] = 0.0;
-        prefact[1] = 6.75;
-        prefact[2] = 2.59807621135332;
-        prefact[3] = 4.0;
+	prefact[0] = 0.0;
+	prefact[1] = 6.75;
+	prefact[2] = 2.59807621135332;
+	prefact[3] = 4.0;
 
-        cgPow1[0]  = 0.0;
-        cgPow1[1]  = 9.0;
-        cgPow1[2]  = 12.0;
-        cgPow1[3]  = 12.0;
+	cgPow1[0]  = 0.0;
+	cgPow1[1]  = 9.0;
+	cgPow1[2]  = 12.0;
+	cgPow1[3]  = 12.0;
 
-        cgPow2[0]  = 0.0;
-        cgPow2[1]  = 6.0;
-        cgPow2[2]  = 4.0;
-        cgPow2[3]  = 6.0;
+	cgPow2[0]  = 0.0;
+	cgPow2[1]  = 6.0;
+	cgPow2[2]  = 4.0;
+	cgPow2[3]  = 6.0;
 
 	}
 	
@@ -118,24 +118,24 @@ CGCMMAngleForceCompute::~CGCMMAngleForceCompute()
 	{
 	delete[] m_K;
 	delete[] m_t_0;
-        delete[] m_cg_type;
-        delete[] m_eps;
-        delete[] m_sigma;
-        delete[] m_rcut;
-        m_K = NULL;
-        m_t_0 = NULL;
-        m_cg_type = NULL;
-        m_eps = NULL;
-        m_sigma = NULL;
-        m_rcut = NULL;
+	delete[] m_cg_type;
+	delete[] m_eps;
+	delete[] m_sigma;
+	delete[] m_rcut;
+	m_K = NULL;
+	m_t_0 = NULL;
+	m_cg_type = NULL;
+	m_eps = NULL;
+	m_sigma = NULL;
+	m_rcut = NULL;
 	}
 
 /*! \param type Type of the angle to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param t_0 Equilibrium angle in radians for the force computation
-        \param cg_type the type of coarse grained angle
-        \param eps the epsilon parameter for the 1-3 repulsion term
-        \param sigma the sigma parameter for the 1-3 repulsion term
+	\param cg_type the type of coarse grained angle
+	\param eps the epsilon parameter for the 1-3 repulsion term
+	\param sigma the sigma parameter for the 1-3 repulsion term
 	
 	Sets parameters for the potential of a particular angle type
 */
@@ -148,21 +148,21 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
 		throw runtime_error("Error setting parameters in CGCMMAngleForceCompute");
 		}
 	
-        const float myPow1 = cgPow1[cg_type];
-        const float myPow2 = cgPow2[cg_type];
+	const float myPow1 = cgPow1[cg_type];
+	const float myPow2 = cgPow2[cg_type];
 
-        Scalar my_rcut = sigma*exp(1.0f/(myPow1-myPow2)*log(myPow1/myPow2));
+	Scalar my_rcut = sigma*exp(1.0f/(myPow1-myPow2)*log(myPow1/myPow2));
 
 	m_K[type] = K;
 	m_t_0[type] = t_0;
-        m_cg_type[type] = cg_type;
-        m_eps[type] = eps;
-        m_sigma[type] = sigma;
-        m_rcut[type] = my_rcut;
+	m_cg_type[type] = cg_type;
+	m_eps[type] = eps;
+	m_sigma[type] = sigma;
+	m_rcut[type] = my_rcut;
 
 	// check for some silly errors a user could make 
-        if (cg_type < 0 || cg_type > 3)
-                cout << "***Warning! Unrecognized cg_type specified for harmonic CGCMMAngle" << endl;
+	if (cg_type < 0 || cg_type > 3)
+			cout << "***Warning! Unrecognized cg_type specified for harmonic CGCMMAngle" << endl;
 	if (K <= 0)
 		cout << "***Warning! K <= 0 specified for harmonic CGCMMAngle" << endl;
 	if (t_0 <= 0)
@@ -171,7 +171,6 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
 		cout << "***Warning! eps <= 0 specified for harmonic CGCMMAngle" << endl;
  	if (sigma <= 0)
 		cout << "***Warning! sigma <= 0 specified for harmonic CGCMMAngle" << endl;
-  
 	}
 
 /*! CGCMMAngleForceCompute provides
@@ -205,11 +204,11 @@ Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned
 	\param timestep Current time step
  */
 void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
- 	{
+	{
 	//if (m_prof) m_prof->push("CGCMMAngle");
 
- 	assert(m_pdata);
- 	// access the particle data arrays
+	assert(m_pdata);
+	// access the particle data arrays
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 	// there are enough other checks on the input data: but it doesn't hurt to be safe
 	assert(m_fx);
@@ -233,12 +232,12 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 	Scalar Ly2 = Ly / Scalar(2.0);
 	Scalar Lz2 = Lz / Scalar(2.0);
 
-        // allocate forces
-        Scalar fab[3], fcb[3];
-        Scalar fac;
+	// allocate forces
+	Scalar fab[3], fcb[3];
+	Scalar fac;
 
-        Scalar eac;
-        Scalar vacX,vacY,vacZ;
+	Scalar eac;
+	Scalar vacX,vacY,vacZ;
 	
 	// need to start from a zero force
 	// MEM TRANSFER: 5*N Scalars
@@ -352,97 +351,95 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 
 
 		// FLOPS: 42 / MEM TRANSFER: 6 Scalars
-                Scalar rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
-                Scalar rab = sqrt(rsqab);
-                Scalar rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
-                Scalar rcb = sqrt(rsqcb);
-                Scalar rsqac = dxac*dxac+dyac*dyac+dzac*dzac;
-                Scalar rac = sqrt(rsqac);
+		Scalar rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
+		Scalar rab = sqrt(rsqab);
+		Scalar rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
+		Scalar rcb = sqrt(rsqcb);
+		Scalar rsqac = dxac*dxac+dyac*dyac+dzac*dzac;
+		Scalar rac = sqrt(rsqac);
 
-                Scalar c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
-                c_abbc /= rab*rcb;
+		Scalar c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
+		c_abbc /= rab*rcb;
 
-                if (c_abbc > 1.0) c_abbc = 1.0;
-                if (c_abbc < -1.0) c_abbc = -1.0;
+		if (c_abbc > 1.0) c_abbc = 1.0;
+		if (c_abbc < -1.0) c_abbc = -1.0;
 
-                Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);
-                if (s_abbc < SMALL) s_abbc = SMALL;
-                s_abbc = 1.0/s_abbc;
+		Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);
+		if (s_abbc < SMALL) s_abbc = SMALL;
+		s_abbc = 1.0/s_abbc;
 
-                //////////////////////////////////////////
-                // THIS CODE DOES THE 1-3 LJ repulsions //
-                //////////////////////////////////////////////////////////////////////////////
-                fac = 0.0f;
-                eac = 0.0f;
-                vacX = vacY = vacZ = 0.0f;
-                if (rac < m_rcut[angle.type])
-                {
-                  const unsigned int cg_type = m_cg_type[angle.type];
-                  const float cg_pow1 = cgPow1[cg_type];
-                  const float cg_pow2 = cgPow1[cg_type];
-                  const float cg_pref = prefact[cg_type];
+		//////////////////////////////////////////
+		// THIS CODE DOES THE 1-3 LJ repulsions //
+		//////////////////////////////////////////////////////////////////////////////
+		fac = 0.0f;
+		eac = 0.0f;
+		vacX = vacY = vacZ = 0.0f;
+		if (rac < m_rcut[angle.type])
+		{
+			const unsigned int cg_type = m_cg_type[angle.type];
+			const float cg_pow1 = cgPow1[cg_type];
+			const float cg_pow2 = cgPow1[cg_type];
+			const float cg_pref = prefact[cg_type];
 
-                  const float cg_ratio = m_sigma[angle.type]/rac;
-                  const float cg_eps   = m_eps[angle.type];
+			const float cg_ratio = m_sigma[angle.type]/rac;
+			const float cg_eps   = m_eps[angle.type];
 
-                  fac = cg_pref*cg_eps / rsqac * (cg_pow1*pow(cg_ratio,cg_pow1) - cg_pow2*pow(cg_ratio,cg_pow2));
-                  eac = cg_eps + cg_pref*cg_eps * (pow(cg_ratio,cg_pow1) - pow(cg_ratio,cg_pow2));
+			fac = cg_pref*cg_eps / rsqac * (cg_pow1*pow(cg_ratio,cg_pow1) - cg_pow2*pow(cg_ratio,cg_pow2));
+			eac = cg_eps + cg_pref*cg_eps * (pow(cg_ratio,cg_pow1) - pow(cg_ratio,cg_pow2));
 
-                  vacX = fac * dxac*dxac;
-                  vacY = fac * dyac*dyac;
-                  vacZ = fac * dzac*dzac;
+			vacX = fac * dxac*dxac;
+			vacY = fac * dyac*dyac;
+			vacZ = fac * dzac*dzac;
 
-                }
-                //////////////////////////////////////////////////////////////////////////////
+		}
+		//////////////////////////////////////////////////////////////////////////////
 
-                // actually calculate the force
-                Scalar dth = acos(c_abbc) - m_t_0[angle.type];
-                Scalar tk = m_K[angle.type]*dth;
-                
-                Scalar a = -2.0 * tk * s_abbc;
-                Scalar a11 = a*c_abbc/rsqab;
-                Scalar a12 = -a / (rab*rcb);              
-                Scalar a22 = a*c_abbc / rsqcb;
+		// actually calculate the force
+		Scalar dth = acos(c_abbc) - m_t_0[angle.type];
+		Scalar tk = m_K[angle.type]*dth;
+		
+		Scalar a = -2.0 * tk * s_abbc;
+		Scalar a11 = a*c_abbc/rsqab;
+		Scalar a12 = -a / (rab*rcb);              
+		Scalar a22 = a*c_abbc / rsqcb;
 
-                fab[0] = a11*dxab + a12*dxcb;
-                fab[1] = a11*dyab + a12*dycb;
-                fab[2] = a11*dzab + a12*dzcb; 
+		fab[0] = a11*dxab + a12*dxcb;
+		fab[1] = a11*dyab + a12*dycb;
+		fab[2] = a11*dzab + a12*dzcb; 
 
-                fcb[0] = a22*dxcb + a12*dxab;
-                fcb[1] = a22*dycb + a12*dyab; 
-                fcb[2] = a22*dzcb + a12*dzab; 
+		fcb[0] = a22*dxcb + a12*dxab;
+		fcb[1] = a22*dycb + a12*dyab; 
+		fcb[2] = a22*dzcb + a12*dzab; 
 
-                // compute 1/3 of the energy, 1/3 for each atom in the angle
-                Scalar angle_eng = (tk*dth + eac)*Scalar(1.0/6.0);
+		// compute 1/3 of the energy, 1/3 for each atom in the angle
+		Scalar angle_eng = (tk*dth + eac)*Scalar(1.0/6.0);
 
-                // do we really need a virial here for harmonic angles?
-                // ... if not, this may be wrong...
-                Scalar vx = dxab*fab[0] + dxcb*fcb[0] + vacX; 
-                Scalar vy = dyab*fab[1] + dycb*fcb[1] + vacY;
-                Scalar vz = dzab*fab[2] + dzcb*fcb[2] + vacZ;
+		// do we really need a virial here for harmonic angles?
+		// ... if not, this may be wrong...
+		Scalar vx = dxab*fab[0] + dxcb*fcb[0] + vacX; 
+		Scalar vy = dyab*fab[1] + dycb*fcb[1] + vacY;
+		Scalar vz = dzab*fab[2] + dzcb*fcb[2] + vacZ;
 
-                Scalar angle_virial = Scalar(1.0/6.0)*(vx + vy + vz);
+		Scalar angle_virial = Scalar(1.0/6.0)*(vx + vy + vz);
 
                 // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
 		m_fx[idx_a] += fab[0] + fac*dxac;
 		m_fy[idx_a] += fab[1] + fac*dyac;
 		m_fz[idx_a] += fab[2] + fac*dzac;
-                m_pe[idx_a] += angle_eng;
-                m_virial[idx_a] += angle_virial;
+		m_pe[idx_a] += angle_eng;
+		m_virial[idx_a] += angle_virial;
 
 		m_fx[idx_b] -= fab[0] + fcb[0];
 		m_fy[idx_b] -= fab[1] + fcb[1];
 		m_fz[idx_b] -= fab[2] + fcb[2];
-                m_pe[idx_b] += angle_eng;
-                m_virial[idx_b] += angle_virial;
+		m_pe[idx_b] += angle_eng;
+		m_virial[idx_b] += angle_virial;
 
 		m_fx[idx_c] += fcb[0] - fac*dxac;
 		m_fy[idx_c] += fcb[1] - fac*dyac;
 		m_fz[idx_c] += fcb[2] - fac*dzac;
-                m_pe[idx_c] += angle_eng;
-                m_virial[idx_c] += angle_virial;
-
-
+		m_pe[idx_c] += angle_eng;
+		m_virial[idx_c] += angle_virial;
 		}
 
 	m_pdata->release();
@@ -452,7 +449,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-        // ALL TIMING STUFF HAS BEEN COMMENTED OUT... if you uncomment, re-count all memtransfers and flops
+	// ALL TIMING STUFF HAS BEEN COMMENTED OUT... if you uncomment, re-count all memtransfers and flops
 	//int64_t flops = size*(3 + 9 + 14 + 2 + 16);
 	//int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
 	//if (m_prof) m_prof->pop(flops, mem_transfer);

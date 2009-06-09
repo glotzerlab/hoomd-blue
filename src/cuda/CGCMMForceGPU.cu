@@ -208,9 +208,9 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data, co
 	assert(d_coeffs);
 	assert(coeff_width > 0);
 
-    // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
-    dim3 threads(block_size, 1, 1);
+	// setup the grid to run the kernel
+	dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+	dim3 threads(block_size, 1, 1);
 
 	// bind the texture
 	pdata_pos_tex.normalized = false;

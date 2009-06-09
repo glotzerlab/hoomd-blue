@@ -104,7 +104,7 @@ class harmonic(force._force):
 	# \param improper_type Improper type to set coefficients for
 	# \param k Coefficient \f$ k \f$ in the %force
 	# \param chi Coefficient \f$ chi \f$ in the %force
-        #
+	#
 	# Using set_coeff() requires that the specified %improper %force has been saved in a variable. i.e.
 	# \code
 	# harmonic = improper.harmonic()
