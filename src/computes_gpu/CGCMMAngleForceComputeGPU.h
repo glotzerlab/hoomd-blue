@@ -91,10 +91,6 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
 		vector<float2 *> m_gpu_params;	//!< k, t0 Parameters stored on the GPU
 		float2 *m_host_params;	//!<  k, t0 parameters stored on the host
 
-		float prefact[4];//!< prefact precomputed prefactors for CG-CMM angles
-		float cgPow1[4];//!< cgPow1 1st powers for CG-CMM angles
-		float cgPow2[4];//!< cgPow2 2nd powers for CG-CMM angles
-
 		// below are just for the CG-CMM angle potential
 		vector<float2 *> m_gpu_CGCMMsr;//!< GPU copy of the angle's epsilon/sigma/rcut (esr)	
 		float2 *m_host_CGCMMsr;				//!< Host copy of the angle's epsilon/sigma/rcut (esr)
