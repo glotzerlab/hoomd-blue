@@ -307,8 +307,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_
 cudaError_t gpu_compute_CGCMM_angle_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_angletable_array &atable, float2 *d_params, float2 *d_CGCMMsr, float4 *d_CGCMMepow, unsigned int n_angle_types, int block_size)
 	{
 	assert(d_params);
-        assert(d_CGCMMsr);
-        assert(d_CGCMMepow);
+	assert(d_CGCMMsr);
+	assert(d_CGCMMepow);
 
 
 	// setup the grid to run the kernel

@@ -305,7 +305,7 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 cudaError_t gpu_compute_harmonic_improper_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_impropertable_array &ttable, float2 *d_params, unsigned int n_improper_types, int block_size)
 	{
 	assert(d_params);
-	block_size /=2; // CHANGED TO 1/2 BECAUSE THE KERNEL RUNS OUT OF REGISTERS!!
+	
 	// setup the grid to run the kernel
 	dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
 	dim3 threads(block_size, 1, 1);

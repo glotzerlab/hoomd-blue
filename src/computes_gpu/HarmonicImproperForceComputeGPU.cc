@@ -74,15 +74,15 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
 	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 64;
+		m_block_size = 32;
 	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 64;
+		m_block_size = 32;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 288;
+		m_block_size = 128;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for HarmonicImproperForceComputeGPU" << endl;
-		m_block_size = 64;
+		m_block_size = 32;
 		}
 	
 	// allocate and zero device memory
