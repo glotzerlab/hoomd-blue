@@ -75,7 +75,7 @@ __all__ = [	"analyze",
 # \param profile Set to true to enable detailed profiling
 # \param limit_hours  (if set) Limit the run to a given number of hours.
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
-# \param cb_frequency (if set) Sets the frequency of calling the Python callback function.
+# \param callback_period (if set) Sets the frequency of calling the Python callback function.
 #
 # \b Examples:
 # \code
