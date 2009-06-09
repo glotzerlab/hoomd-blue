@@ -37,7 +37,7 @@ const Scalar tol = 1e-2;
 #endif
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<HarmonicDihedralForceCompute>  (shared_ptr<ParticleData> pdata)> dihedralforce_creator;
+typedef boost::function<shared_ptr<HarmonicDihedralForceCompute>  (shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void dihedral_force_basic_tests(dihedralforce_creator tf_creator, ExecutionConfiguration exec_conf)
@@ -49,7 +49,9 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, ExecutionConfi
         
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_4->acquireReadWrite();
         arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
         arrays.y[0] = Scalar(1.0);
@@ -76,7 +78,7 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	pdata_4->release();
 
 	// create the dihedral force compute to check
-	shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(pdata_4);
+	shared_ptr<HarmonicDihedralForceCompute> fc_4 = tf_creator(sysdef_4);
 	fc_4->setParams(0, Scalar(30.0), -1, 3); // type=0, K=30.0,sign=-1,multiplicity=3
 
 	// compute the force and check the results
@@ -91,7 +93,7 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 	
 	// add an dihedrals and check again
-	pdata_4->getDihedralData()->addDihedral(Dihedral(0,0,1,2,3)); // add type 0 dihedral bewtween atoms 0-1-2-3
+	sysdef_4->getDihedralData()->addDihedral(Dihedral(0,0,1,2,3)); // add type 0 dihedral bewtween atoms 0-1-2-3
 	fc_4->compute(1);
 
 	
@@ -171,7 +173,8 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 8 particle system with particles across each boundary
 	// also test more than one type of dihedral
- 	shared_ptr<ParticleData> pdata_8(new ParticleData(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));
+ 	shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));
+ 	shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
 	arrays = pdata_8->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;
@@ -184,12 +187,12 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	arrays.x[7] = 3; arrays.y[7] = 0; arrays.z[7] =  Scalar(31.0);
 	pdata_8->release();
 	
-	shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(pdata_8);
+	shared_ptr<HarmonicDihedralForceCompute> fc_8 = tf_creator(sysdef_8);
 	fc_8->setParams(0, 50.0, -1, 3);
 	fc_8->setParams(1, 30.0,  1, 4);
 	
-	pdata_8->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
-	pdata_8->getDihedralData()->addDihedral(Dihedral(1, 4,5,6,7));
+	sysdef_8->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
+	sysdef_8->getDihedralData()->addDihedral(Dihedral(1, 4,5,6,7));
 	
 	fc_8->compute(0);
 	// check that the forces are correctly computed
@@ -247,7 +250,9 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_5(new ParticleData(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 1, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
+	
 	arrays = pdata_5->acquireReadWrite();
 
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;
@@ -267,11 +272,11 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	pdata_5->release();
 
 	// build the dihedral force compute and try it out
-	shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(pdata_5);
+	shared_ptr<HarmonicDihedralForceCompute> fc_5 = tf_creator(sysdef_5);
 	fc_5->setParams(0, 15.0, -1, 4);
 
-	pdata_5->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
-	pdata_5->getDihedralData()->addDihedral(Dihedral(0, 1,2,3,4));
+	sysdef_5->getDihedralData()->addDihedral(Dihedral(0, 0,1,2,3));
+	sysdef_5->getDihedralData()->addDihedral(Dihedral(0, 1,2,3,4));
 
 	fc_5->compute(0);
 	force_arrays = fc_5->acquire();
@@ -324,17 +329,17 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1, dihedral
 	// create a particle system to sum forces on
 	// just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
 	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 	
-	shared_ptr<HarmonicDihedralForceCompute> fc1 = tf_creator1(pdata);
-	shared_ptr<HarmonicDihedralForceCompute> fc2 = tf_creator2(pdata);
+	shared_ptr<HarmonicDihedralForceCompute> fc1 = tf_creator1(sysdef);
+	shared_ptr<HarmonicDihedralForceCompute> fc2 = tf_creator2(sysdef);
 	fc1->setParams(0, Scalar(3.0), -1, 3);
 	fc2->setParams(0, Scalar(3.0), -1, 3);
 
 	// add dihedrals
 	for (unsigned int i = 0; i < N-3; i++)
 		{
-		pdata->getDihedralData()->addDihedral(Dihedral(0, i, i+1,i+2, i+3));
+		sysdef->getDihedralData()->addDihedral(Dihedral(0, i, i+1,i+2, i+3));
 		}
 		
 	// compute the forces
@@ -364,16 +369,16 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1, dihedral
 
 
 //! HarmonicDihedralForceCompute creator for dihedral_force_basic_tests()
-shared_ptr<HarmonicDihedralForceCompute> base_class_tf_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<HarmonicDihedralForceCompute> base_class_tf_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceCompute(pdata));
+	return shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceCompute(sysdef));
 	}
 
 #ifdef ENABLE_CUDA
 //! DihedralForceCompute creator for bond_force_basic_tests()
-shared_ptr<HarmonicDihedralForceCompute> gpu_tf_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<HarmonicDihedralForceCompute> gpu_tf_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceComputeGPU(pdata));
+	return shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceComputeGPU(sysdef));
 	}
 #endif
 

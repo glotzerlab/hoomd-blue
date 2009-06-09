@@ -74,7 +74,7 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicDihedralForceComputeGPU(boost::shared_ptr<ParticleData> pdata);
+		HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> system);
 		//! Destructor
 		~HarmonicDihedralForceComputeGPU();
 		

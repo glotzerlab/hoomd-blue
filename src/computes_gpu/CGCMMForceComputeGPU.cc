@@ -62,15 +62,15 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\post memory is allocated and all parameters ljX are set to 0.0
 	\note The CGCMMForceComputeGPU does not own the Neighborlist, the caller should
 		delete the neighborlist when done.
 */
-CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: CGCMMForceCompute(pdata, nlist, r_cut)
+CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
+	: CGCMMForceCompute(sysdef, nlist, r_cut)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -255,7 +255,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
 void export_CGCMMForceComputeGPU()
 	{
 	class_<CGCMMForceComputeGPU, boost::shared_ptr<CGCMMForceComputeGPU>, bases<CGCMMForceCompute>, boost::noncopyable >
-		("CGCMMForceComputeGPU", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar >())
+		("CGCMMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
 		.def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
 		;
 	}

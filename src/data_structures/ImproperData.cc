@@ -70,7 +70,7 @@ using namespace std;
 	of the various data structures. For now, be careful not to destroy the ParticleData and keep the ImproperData hanging
 	around.
 */
-ImproperData::ImproperData(ParticleData* pdata, unsigned int n_improper_types) : m_n_improper_types(n_improper_types), m_impropers_dirty(false), m_pdata(pdata)
+ImproperData::ImproperData(boost::shared_ptr<ParticleData> pdata, unsigned int n_improper_types) : m_n_improper_types(n_improper_types), m_impropers_dirty(false), m_pdata(pdata)
 	{
 	assert(pdata);
 	
@@ -426,7 +426,7 @@ exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_improperdata[cur_gpu].improp
 
 void export_ImproperData()
 	{
-	class_<ImproperData, boost::shared_ptr<ImproperData>, boost::noncopyable>("ImproperData", init<ParticleData *, unsigned int>())
+	class_<ImproperData, boost::shared_ptr<ImproperData>, boost::noncopyable>("ImproperData", init<boost::shared_ptr<ParticleData>, unsigned int>())
 		.def("getNumImpropers", &ImproperData::getNumImpropers)
 		.def("getNImproperTypes", &ImproperData::getNImproperTypes)
 		.def("getTypeByName", &ImproperData::getTypeByName)

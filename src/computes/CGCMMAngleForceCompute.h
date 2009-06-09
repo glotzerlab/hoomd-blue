@@ -64,7 +64,7 @@ class CGCMMAngleForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		CGCMMAngleForceCompute(boost::shared_ptr<ParticleData> pdata);
+		CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> pdata);
 		
 		//! Destructor
 		~CGCMMAngleForceCompute();

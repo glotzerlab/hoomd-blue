@@ -306,7 +306,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfigura
 	#endif
 	
 	// this 2-particle test is just to get a plot of the potential and force vs r cut
-	shared_ptr<ParticleData> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();

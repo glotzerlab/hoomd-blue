@@ -65,14 +65,14 @@ using namespace std;
 	\brief Contains code for the CGCMMAngleForceCompute class
 */
 
-/*! \param pdata Particle data to compute forces on
+/*! \param sysdef System to compute forces on
 	\post Memory is allocated, and forces are zeroed.
 */
-CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
+CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) :	ForceCompute(sysdef),
 	m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
 	{
 	// access the angle data for later use
-	m_CGCMMAngle_data = m_pdata->getAngleData();
+	m_CGCMMAngle_data = m_sysdef->getAngleData();
 	
 	// check for some silly errors a user could make 
 	if (m_CGCMMAngle_data->getNAngleTypes() == 0)
@@ -461,7 +461,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 void export_CGCMMAngleForceCompute()
 	{
 	class_<CGCMMAngleForceCompute, boost::shared_ptr<CGCMMAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("CGCMMAngleForceCompute", init< boost::shared_ptr<ParticleData> >())
+		("CGCMMAngleForceCompute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setParams", &CGCMMAngleForceCompute::setParams)
 		;
 	}

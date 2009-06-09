@@ -37,7 +37,7 @@ const Scalar tol = 1e-2;
 #endif
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<HarmonicAngleForceCompute>  (shared_ptr<ParticleData> pdata)> angleforce_creator;
+typedef boost::function<shared_ptr<HarmonicAngleForceCompute>  (shared_ptr<SystemDefinition> sysdef)> angleforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfiguration exec_conf)
@@ -49,7 +49,9 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
         
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 3 particles in a huge box with only one bond type !!!! NO ANGLES
-	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
         arrays.x[0] = Scalar(-1.23); // put atom a at (-1,0,0.1)
         arrays.y[0] = Scalar(2.0);
@@ -69,7 +71,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	pdata_3->release();
 
 	// create the angle force compute to check
-	shared_ptr<HarmonicAngleForceCompute> fc_3 = af_creator(pdata_3);
+	shared_ptr<HarmonicAngleForceCompute> fc_3 = af_creator(sysdef_3);
 	fc_3->setParams(0, 1.0, 0.785398); // type=0, K=1.0,theta_0=pi/4=0.785398
 
 	// compute the force and check the results
@@ -84,7 +86,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 	
 	// add an angle and check again
-	pdata_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
+	sysdef_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
 	fc_3->compute(1);
 
 	
@@ -154,7 +156,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of bond
         unsigned int num_angles_to_test = 3;
-	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
 	arrays = pdata_6->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
@@ -165,13 +168,13 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  Scalar(29.6);
 	pdata_6->release();
 	
-	shared_ptr<HarmonicAngleForceCompute> fc_6 = af_creator(pdata_6);
+	shared_ptr<HarmonicAngleForceCompute> fc_6 = af_creator(sysdef_6);
 	fc_6->setParams(0, 1.0, 0.785398);
 	fc_6->setParams(1, 2.0, 1.46);
 	//fc_6->setParams(2, 1.5, 1.68);
 	
-	pdata_6->getAngleData()->addAngle(Angle(0, 0,1,2));
-	pdata_6->getAngleData()->addAngle(Angle(1, 3,4,5));
+	sysdef_6->getAngleData()->addAngle(Angle(0, 0,1,2));
+	sysdef_6->getAngleData()->addAngle(Angle(1, 3,4,5));
 	//pdata_6->getAngleData()->addAngle(Angle(2, 3,4,5));
 	
 	fc_6->compute(0);
@@ -233,7 +236,9 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 1, 0, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 1, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+	
 	arrays = pdata_4->acquireReadWrite();
 	// make a square of particles
 	arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
@@ -252,12 +257,12 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	pdata_4->release();
 
 	// build the bond force compute and try it out
-	shared_ptr<HarmonicAngleForceCompute> fc_4 = af_creator(pdata_4);
+	shared_ptr<HarmonicAngleForceCompute> fc_4 = af_creator(sysdef_4);
 	fc_4->setParams(0, 1.5, 1.75);
 	// only add bonds on the left, top, and bottom of the square
-	pdata_4->getAngleData()->addAngle(Angle(0, 0,1,2));
-	pdata_4->getAngleData()->addAngle(Angle(0, 1,2,3));
-	pdata_4->getAngleData()->addAngle(Angle(0, 0,1,3));
+	sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,2));
+	sysdef_4->getAngleData()->addAngle(Angle(0, 1,2,3));
+	sysdef_4->getAngleData()->addAngle(Angle(0, 0,1,3));
 
 	fc_4->compute(0);
 	force_arrays = fc_4->acquire();
@@ -311,17 +316,17 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
 	// create a particle system to sum forces on
 	// just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
 	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 	
-	shared_ptr<HarmonicAngleForceCompute> fc1 = af_creator1(pdata);
-	shared_ptr<HarmonicAngleForceCompute> fc2 = af_creator2(pdata);
+	shared_ptr<HarmonicAngleForceCompute> fc1 = af_creator1(sysdef);
+	shared_ptr<HarmonicAngleForceCompute> fc2 = af_creator2(sysdef);
 	fc1->setParams(0, Scalar(1.0), Scalar(1.348));
 	fc2->setParams(0, Scalar(1.0), Scalar(1.348));
 
 	// add angles
 	for (unsigned int i = 0; i < N-2; i++)
 		{
-		pdata->getAngleData()->addAngle(Angle(0, i, i+1,i+2));
+		sysdef->getAngleData()->addAngle(Angle(0, i, i+1,i+2));
 		}
 		
 	// compute the forces
@@ -352,16 +357,16 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
 
 
 //! HarmonicAngleForceCompute creator for angle_force_basic_tests()
-shared_ptr<HarmonicAngleForceCompute> base_class_af_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<HarmonicAngleForceCompute> base_class_af_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceCompute(pdata));
+	return shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceCompute(sysdef));
 	}
 
 #ifdef ENABLE_CUDA
 //! AngleForceCompute creator for bond_force_basic_tests()
-shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceComputeGPU(pdata));
+	return shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceComputeGPU(sysdef));
 	}
 #endif
 

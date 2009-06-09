@@ -55,10 +55,10 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata ParticleData to compute angle forces on
+/*! \param sysdef System to compute angle forces on
 */
-HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: HarmonicAngleForceCompute(pdata)
+HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+	: HarmonicAngleForceCompute(sysdef)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -171,7 +171,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
 void export_HarmonicAngleForceComputeGPU()
 	{
 	class_<HarmonicAngleForceComputeGPU, boost::shared_ptr<HarmonicAngleForceComputeGPU>, bases<HarmonicAngleForceCompute>, boost::noncopyable >
-		("HarmonicAngleForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setBlockSize", &HarmonicAngleForceComputeGPU::setBlockSize)
 		;
 	}

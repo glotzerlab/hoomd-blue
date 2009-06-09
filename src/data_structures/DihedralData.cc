@@ -70,7 +70,7 @@ using namespace std;
 	of the various data structures. For now, be careful not to destroy the ParticleData and keep the DihedralData hanging
 	around.
 */
-DihedralData::DihedralData(ParticleData* pdata, unsigned int n_dihedral_types) : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata)
+DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types) : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata)
 	{
 	assert(pdata);
 	
@@ -427,7 +427,7 @@ exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_dihedraldata[cur_gpu].dihedr
 
 void export_DihedralData()
 	{
-	class_<DihedralData, boost::shared_ptr<DihedralData>, boost::noncopyable>("DihedralData", init<ParticleData *, unsigned int>())
+	class_<DihedralData, boost::shared_ptr<DihedralData>, boost::noncopyable>("DihedralData", init<boost::shared_ptr<ParticleData>, unsigned int>())
 		.def("getNumDihedrals", &DihedralData::getNumDihedrals)
 		.def("getNDihedralTypes", &DihedralData::getNDihedralTypes)
 		.def("getTypeByName", &DihedralData::getTypeByName)

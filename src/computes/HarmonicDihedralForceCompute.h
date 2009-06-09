@@ -64,7 +64,7 @@ class HarmonicDihedralForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicDihedralForceCompute(boost::shared_ptr<ParticleData> pdata);
+		HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
 		
 		//! Destructor
 		~HarmonicDihedralForceCompute();

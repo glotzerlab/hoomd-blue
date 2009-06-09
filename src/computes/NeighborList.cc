@@ -662,7 +662,7 @@ void NeighborList::copyExclusionsFromBonds()
  */
 void NeighborList::copyExclusionsFromTopology(bool doOneFour)
 {
-	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
+	boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
         unsigned int myNAtoms = m_pdata->getN();
         unsigned int MAXNBONDS = 5;

@@ -64,7 +64,7 @@ class HarmonicImproperForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicImproperForceCompute(boost::shared_ptr<ParticleData> pdata);
+		HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
 		
 		//! Destructor
 		~HarmonicImproperForceCompute();

@@ -70,7 +70,7 @@ using namespace std;
 	of the various data structures. For now, be careful not to destroy the ParticleData and keep the AngleData hanging
 	around.
 */
-AngleData::AngleData(ParticleData* pdata, unsigned int n_angle_types) : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata)
+AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types) : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata)
 	{
 	assert(pdata);
 	
@@ -399,7 +399,7 @@ void AngleData::copyAngleTable()
 
 void export_AngleData()
 	{
-	class_<AngleData, boost::shared_ptr<AngleData>, boost::noncopyable>("AngleData", init<ParticleData *, unsigned int>())
+	class_<AngleData, boost::shared_ptr<AngleData>, boost::noncopyable>("AngleData", init<boost::shared_ptr<ParticleData>, unsigned int>())
 		.def("getNumAngles", &AngleData::getNumAngles)
 		.def("getNAngleTypes", &AngleData::getNAngleTypes)
 		.def("getTypeByName", &AngleData::getTypeByName)

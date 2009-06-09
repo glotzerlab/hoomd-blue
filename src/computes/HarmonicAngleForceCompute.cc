@@ -64,14 +64,14 @@ using namespace std;
 	\brief Contains code for the HarmonicAngleForceCompute class
 */
 
-/*! \param pdata Particle data to compute forces on
+/*! \param sysdef System to compute forces on
 	\post Memory is allocated, and forces are zeroed.
 */
-HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
+HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) :	ForceCompute(sysdef),
 	m_K(NULL), m_t_0(NULL)
 	{
 	// access the angle data for later use
-	m_angle_data = m_pdata->getAngleData();
+	m_angle_data = m_sysdef->getAngleData();
 	
 	// check for some silly errors a user could make 
 	if (m_angle_data->getNAngleTypes() == 0)
@@ -376,7 +376,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 void export_HarmonicAngleForceCompute()
 	{
 	class_<HarmonicAngleForceCompute, boost::shared_ptr<HarmonicAngleForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("HarmonicAngleForceCompute", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicAngleForceCompute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setParams", &HarmonicAngleForceCompute::setParams)
 		;
 	}

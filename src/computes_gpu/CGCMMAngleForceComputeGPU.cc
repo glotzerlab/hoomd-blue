@@ -55,10 +55,10 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata ParticleData to compute angle forces on
+/*! \param sysdef System to compute angle forces on
 */
-CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: CGCMMAngleForceCompute(pdata)
+CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+	: CGCMMAngleForceCompute(sysdef)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -242,7 +242,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 void export_CGCMMAngleForceComputeGPU()
 	{
 	class_<CGCMMAngleForceComputeGPU, boost::shared_ptr<CGCMMAngleForceComputeGPU>, bases<CGCMMAngleForceCompute>, boost::noncopyable >
-		("CGCMMAngleForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
+		("CGCMMAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setBlockSize", &CGCMMAngleForceComputeGPU::setBlockSize)
 		;
 	}

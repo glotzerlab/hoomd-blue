@@ -72,7 +72,7 @@ using namespace boost;
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
-	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false)
+	: Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false)
 	{
 	}
 
@@ -317,8 +317,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 	// if the angle flag is true, output the angles to the xml file
 	if (m_output_angle)
 		{
-		f << "<angle num=\"" << m_pdata->getAngleData()->getNumAngles() << "\">" << endl;
-		shared_ptr<AngleData> angle_data = m_pdata->getAngleData();
+		f << "<angle num=\"" << m_sysdef->getAngleData()->getNumAngles() << "\">" << endl;
+		shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 		
 		// loop over all angles and write them out
 		for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)

@@ -57,8 +57,8 @@ using namespace std;
 
 /*! \param pdata ParticleData to compute dihedral forces on
 */
-HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: HarmonicDihedralForceCompute(pdata)
+HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+	: HarmonicDihedralForceCompute(sysdef)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -172,7 +172,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
 void export_HarmonicDihedralForceComputeGPU()
 	{
 	class_<HarmonicDihedralForceComputeGPU, boost::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute>, boost::noncopyable >
-		("HarmonicDihedralForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicDihedralForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setBlockSize", &HarmonicDihedralForceComputeGPU::setBlockSize)
 		;
 	}

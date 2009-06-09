@@ -74,7 +74,7 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
 	{
 	public:
 		//! Constructs the compute
-		CGCMMAngleForceComputeGPU(boost::shared_ptr<ParticleData> pdata);
+		CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
 		//! Destructor
 		~CGCMMAngleForceComputeGPU();
 		

@@ -70,7 +70,7 @@ class CGCMMForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		CGCMMForceCompute(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+		CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
 		
 		//! Destructor
 		virtual ~CGCMMForceCompute();

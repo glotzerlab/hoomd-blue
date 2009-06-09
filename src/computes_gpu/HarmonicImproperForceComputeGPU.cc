@@ -55,10 +55,10 @@ using namespace boost;
 
 using namespace std;
 
-/*! \param pdata ParticleData to compute improper forces on
+/*! \param sysdef System to compute improper forces on
 */
-HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: HarmonicImproperForceCompute(pdata)
+HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+	: HarmonicImproperForceCompute(sysdef)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -171,7 +171,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 void export_HarmonicImproperForceComputeGPU()
 	{
 	class_<HarmonicImproperForceComputeGPU, boost::shared_ptr<HarmonicImproperForceComputeGPU>, bases<HarmonicImproperForceCompute>, boost::noncopyable >
-		("HarmonicImproperForceComputeGPU", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicImproperForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setBlockSize", &HarmonicImproperForceComputeGPU::setBlockSize)
 		;
 	}

@@ -64,14 +64,14 @@ using namespace std;
 	\brief Contains code for the HarmonicImproperForceCompute class
 */
 
-/*! \param pdata Particle data to compute forces on
+/*! \param sysdef System to compute forces on
 	\post Memory is allocated, and forces are zeroed.
 */
-HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<ParticleData> pdata) :	ForceCompute(pdata),
+HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef) :	ForceCompute(sysdef),
 	m_K(NULL), m_chi(NULL)
 	{
 	// access the improper data for later use
-	m_improper_data = m_pdata->getImproperData();
+	m_improper_data = m_sysdef->getImproperData();
 	
 	// check for some silly errors a user could make 
 	if (m_improper_data->getNImproperTypes() == 0)
@@ -444,7 +444,7 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 void export_HarmonicImproperForceCompute()
 	{
 	class_<HarmonicImproperForceCompute, boost::shared_ptr<HarmonicImproperForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("HarmonicImproperForceCompute", init< boost::shared_ptr<ParticleData> >())
+		("HarmonicImproperForceCompute", init< boost::shared_ptr<SystemDefinition> >())
 		.def("setParams", &HarmonicImproperForceCompute::setParams)
 		;
 	}

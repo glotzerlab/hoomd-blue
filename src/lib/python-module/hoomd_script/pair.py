@@ -622,11 +622,11 @@ class cgcmm(force._force):
 		neighbor_list = _update_global_nlist(r_cut);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.CGCMMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating cgcmm pair force");
@@ -644,10 +644,10 @@ class cgcmm(force._force):
 			raise RuntimeError("Error updating pair coefficients");
 		
 		# set all the params
-		ntypes = globals.particle_data.getNTypes();
+		ntypes = globals.system_definition.getParticleData().getNTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getNameByType(i));
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
 		
 		for i in xrange(0,ntypes):
 			for j in xrange(i,ntypes):

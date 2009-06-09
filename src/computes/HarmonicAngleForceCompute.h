@@ -64,7 +64,7 @@ class HarmonicAngleForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicAngleForceCompute(boost::shared_ptr<ParticleData> pdata);
+		HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
 		
 		//! Destructor
 		~HarmonicAngleForceCompute();

@@ -94,7 +94,7 @@ void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionCon
 	#endif
 	
 	// this 3 particle test will check proper wall force computation among all 3 axes
-	shared_ptr<SystemDefintion> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();	
 
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();

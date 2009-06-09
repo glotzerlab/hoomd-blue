@@ -76,7 +76,7 @@ class harmonic(force._force):
 	def __init__(self):
 		util.print_status_line();
 		# check that some impropers are defined
-		if globals.particle_data.getImproperData().getNumImpropers() == 0:
+		if globals.system_definition.getImproperData().getNumImpropers() == 0:
 			print >> sys.stderr, "\n***Error! No impropers are defined.\n";
 			raise RuntimeError("Error creating improper forces");		
 		
@@ -84,10 +84,10 @@ class harmonic(force._force):
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.particle_data);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.particle_data);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.system_definition);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating improper forces");
@@ -122,7 +122,7 @@ class harmonic(force._force):
 		util.print_status_line();
 		
 		# set the parameters for the appropriate type
-		self.cpp_force.setParams(globals.particle_data.getImproperData().getTypeByName(improper_type), k, chi);
+		self.cpp_force.setParams(globals.system_definition.getImproperData().getTypeByName(improper_type), k, chi);
 		
 		# track which particle types we have set
 		if not improper_type in self.improper_types_set:
@@ -130,10 +130,10 @@ class harmonic(force._force):
 		
 	def update_coeffs(self):
 		# get a list of all improper types in the simulation
-		ntypes = globals.particle_data.getImproperData().getNImproperTypes();
+		ntypes = globals.system_definition.getImproperData().getNImproperTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getImproperData().getNameByType(i));
+			type_list.append(globals.system_definition.getImproperData().getNameByType(i));
 			
 		# check to see if all particle types have been set
 		for cur_type in type_list:

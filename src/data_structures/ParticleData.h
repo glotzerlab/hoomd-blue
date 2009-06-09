@@ -405,7 +405,7 @@ class ParticleData : boost::noncopyable
 	{
 	public:
 		//! Construct with N particles in the given box
-		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, unsigned int n_bond_types=0, unsigned int n_angle_types=0, unsigned int n_dihedral_types=0, unsigned int n_improper_types=0, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
 
 		//! Construct from an initializer
 		ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
@@ -416,12 +416,6 @@ class ParticleData : boost::noncopyable
 		const BoxDim& getBox() const;
 		//! Set the simulation box
 		void setBox(const BoxDim &box);
-		//! Access the angle data defined for the simulation
-		boost::shared_ptr<AngleData> getAngleData() { return m_angleData; }
-		//! Access the dihedral data defined for the simulation
-		boost::shared_ptr<DihedralData> getDihedralData() { return m_dihedralData; }
-		//! Access the improper data defined for the simulation
-		boost::shared_ptr<ImproperData> getImproperData() { return m_improperData; }
 		//! Access the execution configuration
 		const ExecutionConfiguration& getExecConf() { return m_exec_conf; }
 		

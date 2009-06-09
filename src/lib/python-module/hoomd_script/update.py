@@ -411,7 +411,7 @@ class box_resize(_updater):
 		Lz = variant._setup_variant_input(Lz);
 
 		# create the c++ mirror class
-		self.cpp_updater = hoomd.BoxResizeUpdater(globals.particle_data, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant);
+		self.cpp_updater = hoomd.BoxResizeUpdater(globals.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant);
 		self.setupUpdater(period);
 		
 	## Change box_resize parameters

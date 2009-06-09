@@ -57,13 +57,13 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata Particle Data to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\post memory is allocated and all parameters ljX are set to 0.0
 */
-CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: ForceCompute(pdata), m_nlist(nlist), m_r_cut(r_cut)
+CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
 	{
 	assert(m_pdata);
 	assert(m_nlist);
@@ -366,7 +366,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
 void export_CGCMMForceCompute()
 	{
 	  class_<CGCMMForceCompute, boost::shared_ptr<CGCMMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("CGCMMForceCompute", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar >())
+		("CGCMMForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
 	    .def("setParams", &CGCMMForceCompute::setParams)
 		;
 	}

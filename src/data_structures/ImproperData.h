@@ -100,7 +100,7 @@ class ImproperData : boost::noncopyable
 	{
 	public:
 		//! Constructs an empty list with no impropers
-		ImproperData(ParticleData* pdata, unsigned int n_improper_types);
+		ImproperData(boost::shared_ptr<ParticleData> pdata, unsigned int n_improper_types = 0);
 		
 		//! Destructor
 		~ImproperData();
@@ -143,7 +143,7 @@ class ImproperData : boost::noncopyable
 	private:
 		const unsigned int m_n_improper_types;				//!< Number of improper types
 		bool m_impropers_dirty;								//!< True if the improper list has been changed
-		ParticleData* m_pdata;							//!< Particle Data these impropers belong to
+		boost::shared_ptr<ParticleData> m_pdata;							//!< Particle Data these impropers belong to
 		std::vector<Improper> m_impropers;						//!< List of impropers on the CPU
 		std::vector<std::string> m_improper_type_mapping;	//!< Mapping between improper type indices and names
 		

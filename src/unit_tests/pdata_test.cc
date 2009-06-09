@@ -373,7 +373,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	// unit tests are done that compare simulation runs on the cpu to those on the GPU
 	BoxDim box(10.0,30.0,50.0);
 	int N = 500;
-	ParticleData pdata(N, box, 1, 0, 0, 0, 0, exec_conf);
+	ParticleData pdata(N, box, 1, exec_conf);
 
 	ParticleDataArrays arrays = pdata.acquireReadWrite();
 	for (int i = 0; i < N; i++)

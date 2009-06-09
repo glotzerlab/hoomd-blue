@@ -37,7 +37,7 @@ const Scalar tol = 1e-2;
 #endif
 
 //! Typedef to make using the boost::function factory easier
-typedef boost::function<shared_ptr<HarmonicImproperForceCompute>  (shared_ptr<ParticleData> pdata)> improperforce_creator;
+typedef boost::function<shared_ptr<HarmonicImproperForceCompute>  (shared_ptr<SystemDefinition> sysdef)> improperforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfiguration exec_conf)
@@ -49,7 +49,9 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
         
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 4 particles in a huge box with only one improper type !!!! NO IMPROPERS
-	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(1000.0), 1, 0, 0, 0, 1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 0, 1, exec_conf));
+	shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+	
 	ParticleDataArrays arrays = pdata_4->acquireReadWrite();
         arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
         arrays.y[0] = Scalar(1.0);
@@ -76,7 +78,7 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	pdata_4->release();
 
 	// create the improper force compute to check
-	shared_ptr<HarmonicImproperForceCompute> fc_4 = tf_creator(pdata_4);
+	shared_ptr<HarmonicImproperForceCompute> fc_4 = tf_creator(sysdef_4);
 	fc_4->setParams(0, Scalar(2.0), Scalar(1.570796)); // type=0, K=2.0,chi=pi/2
 
 	// compute the force and check the results
@@ -91,7 +93,7 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 	
 	// add an impropers and check again
-	pdata_4->getImproperData()->addImproper(Improper(0,0,1,2,3)); // add type 0 improper bewtween atoms 0-1-2-3
+	sysdef_4->getImproperData()->addImproper(Improper(0,0,1,2,3)); // add type 0 improper bewtween atoms 0-1-2-3
 	fc_4->compute(1);
 /*
  FORCE 1: fx = 0.024609  fy = -0.178418  fz = -0.221484 
@@ -169,7 +171,8 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 8 particle system with particles across each boundary
 	// also test more than one type of impropers
- 	shared_ptr<ParticleData> pdata_8(new ParticleData(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 0, 2, exec_conf));
+ 	shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 0, 2, exec_conf));
+ 	shared_ptr<ParticleData> pdata_8 = sysdef_8->getParticleData();
 
 	arrays = pdata_8->acquireReadWrite();
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;
@@ -182,12 +185,12 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	arrays.x[7] = 3; arrays.y[7] = 0; arrays.z[7] =  Scalar(31.0);
 	pdata_8->release();
 	
-	shared_ptr<HarmonicImproperForceCompute> fc_8 = tf_creator(pdata_8);
+	shared_ptr<HarmonicImproperForceCompute> fc_8 = tf_creator(sysdef_8);
 	fc_8->setParams(0, 2.0, 1.578);
 	fc_8->setParams(1, 4.0, 1.444);
 	
-	pdata_8->getImproperData()->addImproper(Improper(0, 0,1,2,3));
-	pdata_8->getImproperData()->addImproper(Improper(1, 4,5,6,7));
+	sysdef_8->getImproperData()->addImproper(Improper(0, 0,1,2,3));
+	sysdef_8->getImproperData()->addImproper(Improper(1, 4,5,6,7));
 	
 	fc_8->compute(0);
 	// check that the forces are correctly computed
@@ -267,7 +270,9 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<ParticleData> pdata_5(new ParticleData(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 0, 1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(100.0, 100.0, 100.0), 1, 0, 0, 0, 1, exec_conf));
+	shared_ptr<ParticleData> pdata_5 = sysdef_5->getParticleData();
+	
 	arrays = pdata_5->acquireReadWrite();
 
 	arrays.x[0] = Scalar(-9.6); arrays.y[0] = -9.0; arrays.z[0] = 0.0;
@@ -287,11 +292,11 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	pdata_5->release();
 
 	// build the improper force compute and try it out
-	shared_ptr<HarmonicImproperForceCompute> fc_5 = tf_creator(pdata_5);
+	shared_ptr<HarmonicImproperForceCompute> fc_5 = tf_creator(sysdef_5);
 	fc_5->setParams(0, 5.0, 1.33333);
 
-	pdata_5->getImproperData()->addImproper(Improper(0, 0,1,2,3));
-	pdata_5->getImproperData()->addImproper(Improper(0, 1,2,3,4));
+	sysdef_5->getImproperData()->addImproper(Improper(0, 0,1,2,3));
+	sysdef_5->getImproperData()->addImproper(Improper(0, 1,2,3,4));
 
 	fc_5->compute(0);
 	force_arrays = fc_5->acquire();
@@ -358,17 +363,17 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1, improper
 	// create a particle system to sum forces on
 	// just randomly place particles. We don't really care how huge the bond forces get: this is just a unit test
 	RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-	shared_ptr<ParticleData> pdata(new ParticleData(rand_init, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
 	
-	shared_ptr<HarmonicImproperForceCompute> fc1 = tf_creator1(pdata);
-	shared_ptr<HarmonicImproperForceCompute> fc2 = tf_creator2(pdata);
+	shared_ptr<HarmonicImproperForceCompute> fc1 = tf_creator1(sysdef);
+	shared_ptr<HarmonicImproperForceCompute> fc2 = tf_creator2(sysdef);
 	fc1->setParams(0, Scalar(2.0), Scalar(3.0));
 	fc2->setParams(0, Scalar(2.0), Scalar(3.0));
 
 	// add improperrs
 	for (unsigned int i = 0; i < N-3; i++)
 		{
-		pdata->getImproperData()->addImproper(Improper(0, i, i+1,i+2, i+3));
+		sysdef->getImproperData()->addImproper(Improper(0, i, i+1,i+2, i+3));
 		}
 		
 	// compute the forces
@@ -398,16 +403,16 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1, improper
 
 
 //! HarmonicImproperForceCompute creator for improper_force_basic_tests()
-shared_ptr<HarmonicImproperForceCompute> base_class_tf_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<HarmonicImproperForceCompute> base_class_tf_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceCompute(pdata));
+	return shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceCompute(sysdef));
 	}
 
 #ifdef ENABLE_CUDA
 //! ImproperForceCompute creator for bond_force_basic_tests()
-shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(shared_ptr<ParticleData> pdata)
+shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(shared_ptr<SystemDefinition> sysdef)
 	{
-	return shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceComputeGPU(pdata));
+	return shared_ptr<HarmonicImproperForceCompute>(new HarmonicImproperForceComputeGPU(sysdef));
 	}
 #endif
 

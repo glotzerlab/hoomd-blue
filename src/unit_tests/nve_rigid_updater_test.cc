@@ -93,7 +93,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	const unsigned int nbondtypes = 0;
 	// create a particle system to simulate
 	
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(40.0, 40.0, 40.0), ntypes, nbondtypes, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(40.0, 40.0, 40.0), ntypes, nbondtypes, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 		
 	ParticleDataArrays arrays = pdata->acquireReadWrite();

@@ -167,8 +167,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	sysdef->getBondData()->addBond(Bond(1, 1, 0));
 
 	// and angles as well
-	pdata->getAngleData()->addAngle(Angle(0, 0, 1, 2));
-	pdata->getAngleData()->addAngle(Angle(0, 1, 2, 0));
+	sysdef->getAngleData()->addAngle(Angle(0, 0, 1, 2));
+	sysdef->getAngleData()->addAngle(Angle(0, 1, 2, 0));
 	
 	// create the writer
 	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, "test"));
@@ -1039,7 +1039,7 @@ angle_a 2 3 4\n\
 	BOOST_CHECK_EQUAL(b.type, (unsigned int)2);
 	
 	// check the angles
-	boost::shared_ptr<AngleData> angle_data = pdata->getAngleData();
+	boost::shared_ptr<AngleData> angle_data = sysdef->getAngleData();
 	
 	// 3 angles should have been read in
 	BOOST_REQUIRE_EQUAL(angle_data->getNumAngles(), (unsigned int)3);

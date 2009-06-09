@@ -76,7 +76,7 @@ class harmonic(force._force):
 	def __init__(self):
 		util.print_status_line();
 		# check that some angles are defined
-		if globals.particle_data.getAngleData().getNumAngles() == 0:
+		if globals.system_definition.getAngleData().getNumAngles() == 0:
 			print >> sys.stderr, "\n***Error! No angles are defined.\n";
 			raise RuntimeError("Error creating angle forces");		
 		
@@ -84,10 +84,10 @@ class harmonic(force._force):
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.HarmonicAngleForceCompute(globals.particle_data);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_force = hoomd.HarmonicAngleForceComputeGPU(globals.particle_data);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.HarmonicAngleForceCompute(globals.system_definition);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_force = hoomd.HarmonicAngleForceComputeGPU(globals.system_definition);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating angle forces");
@@ -122,7 +122,7 @@ class harmonic(force._force):
 		util.print_status_line();
 		
 		# set the parameters for the appropriate type
-		self.cpp_force.setParams(globals.particle_data.getAngleData().getTypeByName(angle_type), k, t0);
+		self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0);
 		
 		# track which particle types we have set
 		if not angle_type in self.angle_types_set:
@@ -130,10 +130,10 @@ class harmonic(force._force):
 		
 	def update_coeffs(self):
 		# get a list of all angle types in the simulation
-		ntypes = globals.particle_data.getAngleData().getNAngleTypes();
+		ntypes = globals.system_definition.getAngleData().getNAngleTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getAngleData().getNameByType(i));
+			type_list.append(globals.system_definition.getAngleData().getNameByType(i));
 			
 		# check to see if all particle types have been set
 		for cur_type in type_list:
@@ -162,7 +162,7 @@ class cgcmm(force._force):
 	def __init__(self):
 		util.print_status_line();
 		# check that some angles are defined
-		if globals.particle_data.getAngleData().getNumAngles() == 0:
+		if globals.system_definition.getAngleData().getNumAngles() == 0:
 			print >> sys.stderr, "\n***Error! No angles are defined.\n";
 			raise RuntimeError("Error creating CGCMM angle forces");		
 		
@@ -170,10 +170,10 @@ class cgcmm(force._force):
 		force._force.__init__(self);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.CGCMMAngleForceCompute(globals.particle_data);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			self.cpp_force = hoomd.CGCMMAngleForceComputeGPU(globals.particle_data);
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.CGCMMAngleForceCompute(globals.system_definition);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_force = hoomd.CGCMMAngleForceComputeGPU(globals.system_definition);
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating CGCMM angle forces");
@@ -216,17 +216,17 @@ class cgcmm(force._force):
                 if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
                      cg_type=2;
 
-                     self.cpp_force.setParams(globals.particle_data.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
+                     self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
 					
                 elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
                      cg_type=1;
 
-                     self.cpp_force.setParams(globals.particle_data.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
+                     self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
 
                 elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
                      cg_type=3;
 
-                     self.cpp_force.setParams(globals.particle_data.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
+                     self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
                 else:
                      raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
 		
@@ -236,10 +236,10 @@ class cgcmm(force._force):
 		
 	def update_coeffs(self):
 		# get a list of all angle types in the simulation
-		ntypes = globals.particle_data.getAngleData().getNAngleTypes();
+		ntypes = globals.system_definition.getAngleData().getNAngleTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
-			type_list.append(globals.particle_data.getAngleData().getNameByType(i));
+			type_list.append(globals.system_definition.getAngleData().getNameByType(i));
 			
 		# check to see if all particle types have been set
 		for cur_type in type_list:

@@ -63,7 +63,7 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
 	{
 	public:
 		//! Constructs the compute
-		CGCMMForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+		CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
 		
 		//! Destructor
 		virtual ~CGCMMForceComputeGPU();

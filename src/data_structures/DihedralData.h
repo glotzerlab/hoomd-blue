@@ -100,7 +100,7 @@ class DihedralData : boost::noncopyable
 	{
 	public:
 		//! Constructs an empty list with no dihedrals
-		DihedralData(ParticleData* pdata, unsigned int n_dihedral_types);
+		DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types = 0);
 		
 		//! Destructor
 		~DihedralData();
@@ -143,7 +143,7 @@ class DihedralData : boost::noncopyable
 	private:
 		const unsigned int m_n_dihedral_types;				//!< Number of dihedral types
 		bool m_dihedrals_dirty;								//!< True if the dihedral list has been changed
-		ParticleData* m_pdata;							//!< Particle Data these dihedrals belong to
+		boost::shared_ptr<ParticleData> m_pdata;							//!< Particle Data these dihedrals belong to
 		std::vector<Dihedral> m_dihedrals;						//!< List of dihedrals on the CPU
 		std::vector<std::string> m_dihedral_type_mapping;	//!< Mapping between dihedral type indices and names
 		

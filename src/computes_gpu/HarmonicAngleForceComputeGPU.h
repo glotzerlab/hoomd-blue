@@ -74,7 +74,7 @@ class HarmonicAngleForceComputeGPU : public HarmonicAngleForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicAngleForceComputeGPU(boost::shared_ptr<ParticleData> pdata);
+		HarmonicAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
 		//! Destructor
 		~HarmonicAngleForceComputeGPU();
 		

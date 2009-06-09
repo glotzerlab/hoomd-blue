@@ -74,7 +74,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
 	{
 	public:
 		//! Constructs the compute
-		HarmonicImproperForceComputeGPU(boost::shared_ptr<ParticleData> pdata);
+		HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
 		//! Destructor
 		~HarmonicImproperForceComputeGPU();
 		

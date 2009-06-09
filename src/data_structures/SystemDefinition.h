@@ -47,6 +47,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "WallData.h"
 #include "RigidData.h"
+#include "AngleData.h"
+#include "DihedralData.h"
+#include "ImproperData.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -96,7 +99,7 @@ class SystemDefinition
 		//! Constructs a NULL SystemDefinition
 		SystemDefinition();
 		//! Conctructs a SystemDefinition with a simply initialized ParticleData
-		SystemDefinition(unsigned int N, const BoxDim &box, unsigned int n_types=1, unsigned int n_bond_types=0, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+		SystemDefinition(unsigned int N, const BoxDim &box, unsigned int n_types=1, unsigned int n_bond_types=0, unsigned int n_angle_types=0, unsigned int n_dihedral_types=0, unsigned int n_improper_types=0, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
 		//! Construct from an initializer (temporary measure until the initializer setup is rewritten)
 		SystemDefinition(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
 		
@@ -111,12 +114,21 @@ class SystemDefinition
 		boost::shared_ptr<WallData> getWallData() const { return m_wall_data; }
 		//! Get the rigid body data
 		boost::shared_ptr<RigidData> getRigidData() const { return m_rigid_data; }
+		//! Access the angle data defined for the simulation
+		boost::shared_ptr<AngleData> getAngleData() { return m_angle_data; }
+		//! Access the dihedral data defined for the simulation
+		boost::shared_ptr<DihedralData> getDihedralData() { return m_dihedral_data; }
+		//! Access the improper data defined for the simulation
+		boost::shared_ptr<ImproperData> getImproperData() { return m_improper_data; }
 		
 	private:
 		boost::shared_ptr<ParticleData> m_particle_data;	//!< Particle data for the system
 		boost::shared_ptr<BondData> m_bond_data;			//!< Bond data for the system
 		boost::shared_ptr<WallData> m_wall_data;			//!< Wall data for the system
 		boost::shared_ptr<RigidData> m_rigid_data;			//!< Rigid bodies data for the system
+		boost::shared_ptr<AngleData> m_angle_data;			//!< Angle data for the system
+		boost::shared_ptr<DihedralData> m_dihedral_data;	//!< Dihedral data for the system
+		boost::shared_ptr<ImproperData> m_improper_data;	//!< Improper data for the system
 	};
 
 //! Exports SystemDefinition to python
