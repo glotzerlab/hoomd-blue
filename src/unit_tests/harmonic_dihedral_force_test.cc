@@ -46,32 +46,31 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, ExecutionConfi
 	g_gpu_error_checking = true;
 	#endif
 	
-        
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
 	shared_ptr<ParticleData> pdata_4(new ParticleData(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_4->acquireReadWrite();
-        arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
-        arrays.y[0] = Scalar(1.0);
-        arrays.z[0] = Scalar(2.0);
+	arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
+	arrays.y[0] = Scalar(1.0);
+	arrays.z[0] = Scalar(2.0);
 
 	arrays.x[1] = arrays.y[1] = arrays.z[1] = Scalar(1.0); // put atom b at (1,1,1)
 
 
-        arrays.x[2] = Scalar(6.0); // put atom c at (6,-7,8)
-        arrays.y[2] = Scalar(-7.0);
-        arrays.z[2] = Scalar(8.0);
-  
-        arrays.x[3] = Scalar(9.0); // put atom d at (9,50,11)
-        arrays.y[3] = Scalar(50.0);
-        arrays.z[3] = Scalar(11.0);
+	arrays.x[2] = Scalar(6.0); // put atom c at (6,-7,8)
+	arrays.y[2] = Scalar(-7.0);
+	arrays.z[2] = Scalar(8.0);
+
+	arrays.x[3] = Scalar(9.0); // put atom d at (9,50,11)
+	arrays.y[3] = Scalar(50.0);
+	arrays.z[3] = Scalar(11.0);
 
 /*
-        printf(" Particle 1: x = %f  y = %f  z = %f \n", arrays.x[0], arrays.y[0], arrays.z[0]);
-        printf(" Particle 2: x = %f  y = %f  z = %f \n", arrays.x[1], arrays.y[1], arrays.z[1]);      
-        printf(" Particle 3: x = %f  y = %f  z = %f \n", arrays.x[2], arrays.y[2], arrays.z[2]);   
-printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], arrays.z[3]);            
-        printf("\n");
+	printf(" Particle 1: x = %f  y = %f  z = %f \n", arrays.x[0], arrays.y[0], arrays.z[0]);
+	printf(" Particle 2: x = %f  y = %f  z = %f \n", arrays.x[1], arrays.y[1], arrays.z[1]);
+	printf(" Particle 3: x = %f  y = %f  z = %f \n", arrays.x[2], arrays.y[2], arrays.z[2]);
+	printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], arrays.z[3]);
+	printf("\n");
 */
 	pdata_4->release();
 
@@ -100,26 +99,26 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.118121, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0.856380, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 1.063092, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 14.945559, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 14.945559, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.522868, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.525225, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.226780, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 14.945559, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 14.945559, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 0.445003, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -0.328375, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], -0.693145, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 14.945559, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 14.945559, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 0.195986, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.002780, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], -0.143167, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 14.945559, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 14.945559, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
 
 /*
  FORCE 1: fx = -0.118121  fy = 0.856380  fz = 1.063092 
@@ -132,9 +131,9 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	// rearrange the two particles in memory and see if they are properly updated
 	arrays = pdata_4->acquireReadWrite();
 
-        arrays.x[1] = Scalar(10.0); // put atom b at (10,1,2)
-        arrays.y[1] = Scalar(1.0);
-        arrays.z[1] = Scalar(2.0);
+	arrays.x[1] = Scalar(10.0); // put atom b at (10,1,2)
+	arrays.y[1] = Scalar(1.0);
+	arrays.z[1] = Scalar(2.0);
 
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = Scalar(1.0); // put atom a at (1,1,1)
 
@@ -154,14 +153,14 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.118121, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0.856380, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], 1.063092, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 14.945559, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 14.945559, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.522868, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.525225, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.226780, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 14.945559, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 14.945559, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
  
 
@@ -380,7 +379,7 @@ shared_ptr<HarmonicDihedralForceCompute> gpu_tf_creator(shared_ptr<ParticleData>
 //! boost test case for dihedral forces on the CPU
 BOOST_AUTO_TEST_CASE( HarmonicDihedralForceCompute_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
 	dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);
 	dihedral_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
@@ -389,7 +388,7 @@ BOOST_AUTO_TEST_CASE( HarmonicDihedralForceCompute_basic )
 //! boost test case for dihedral forces on the GPU
 BOOST_AUTO_TEST_CASE( HarmonicDihedralForceComputeGPU_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
 	dihedralforce_creator tf_creator = bind(gpu_tf_creator, _1);
 	dihedral_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}

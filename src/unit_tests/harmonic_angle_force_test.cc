@@ -46,25 +46,24 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	g_gpu_error_checking = true;
 	#endif
 	
-        
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 3 particles in a huge box with only one bond type !!!! NO ANGLES
 	shared_ptr<ParticleData> pdata_3(new ParticleData(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-        arrays.x[0] = Scalar(-1.23); // put atom a at (-1,0,0.1)
-        arrays.y[0] = Scalar(2.0);
-        arrays.z[0] = Scalar(0.1);
+	arrays.x[0] = Scalar(-1.23); // put atom a at (-1,0,0.1)
+	arrays.y[0] = Scalar(2.0);
+	arrays.z[0] = Scalar(0.1);
 
 	arrays.x[1] = arrays.y[1] = arrays.z[1] = Scalar(1.0); // put atom b at (0,0,0)
 
-        arrays.x[2] = Scalar(1.0); // put atom c at (1,0,0.5)
-        arrays.y[2] = 0.0;
-        arrays.z[2] = Scalar(0.500);
-  
-        //printf(" Particle 1: x = %f  y = %f  z = %f \n", arrays.x[0], arrays.y[0], arrays.z[0]);
-        //printf(" Particle 2: x = %f  y = %f  z = %f \n", arrays.x[1], arrays.y[1], arrays.z[1]);      
-        //printf(" Particle 3: x = %f  y = %f  z = %f \n", arrays.x[2], arrays.y[2], arrays.z[2]);            
-        //printf("\n");
+	arrays.x[2] = Scalar(1.0); // put atom c at (1,0,0.5)
+	arrays.y[2] = 0.0;
+	arrays.z[2] = Scalar(0.500);
+
+	//printf(" Particle 1: x = %f  y = %f  z = %f \n", arrays.x[0], arrays.y[0], arrays.z[0]);
+	//printf(" Particle 2: x = %f  y = %f  z = %f \n", arrays.x[1], arrays.y[1], arrays.z[1]);      
+	//printf(" Particle 3: x = %f  y = %f  z = %f \n", arrays.x[2], arrays.y[2], arrays.z[2]);            
+	//printf("\n");
 
 	pdata_3->release();
 
@@ -86,15 +85,14 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	// add an angle and check again
 	pdata_3->getAngleData()->addAngle(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
 	fc_3->compute(1);
-
 	
 	// this time there should be a force
 	force_arrays = fc_3->acquire();
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.123368, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.626939, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.390920, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158576, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158576, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
 	//MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	//MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0.564651,tol);	
@@ -102,24 +100,19 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	//MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], 0.0000001, tol);
 
 /*
-        printf(" Particle 1: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[0], force_arrays.fy[0], force_arrays.fz[0]);
-        printf(" Particle 2: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[1], force_arrays.fy[1], force_arrays.fz[1]);      
-        printf(" Particle 3: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[2], force_arrays.fy[2], force_arrays.fz[2]);    
-        printf(" Energy: 1 = %f  2 = %f  3 = %f \n\n", force_arrays.pe[0], force_arrays.pe[1], force_arrays.pe[2]);
-        printf("\n");
+	printf(" Particle 1: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[0], force_arrays.fy[0], force_arrays.fz[0]);
+	printf(" Particle 2: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[1], force_arrays.fy[1], force_arrays.fz[1]);      
+	printf(" Particle 3: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[2], force_arrays.fy[2], force_arrays.fz[2]);    
+	printf(" Energy: 1 = %f  2 = %f  3 = %f \n\n", force_arrays.pe[0], force_arrays.pe[1], force_arrays.pe[2]);
+	printf("\n");
 */
 
-//        arrays = pdata_3->acquireReadWrite();
-
-
-	
 	// rearrange the two particles in memory and see if they are properly updated
 	arrays = pdata_3->acquireReadWrite();
 
-
-        arrays.x[1] = Scalar(-1.23); // put atom a at (-1,0,0.1)
-        arrays.y[1] = Scalar(2.0);
-        arrays.z[1] = Scalar(0.1);
+	arrays.x[1] = Scalar(-1.23); // put atom a at (-1,0,0.1)
+	arrays.y[1] = Scalar(2.0);
+	arrays.z[1] = Scalar(0.1);
 
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = Scalar(1.0); // put atom b at (0,0,0)
 
@@ -135,17 +128,12 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	fc_3->compute(1);
 
 	force_arrays = fc_3->acquire();
-  
+
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.123368, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.626939, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.390920, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158576, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
-        //pdata_3->release();	
-
- 
-
-
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158576, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
@@ -153,7 +141,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of bond
-        unsigned int num_angles_to_test = 3;
+	unsigned int num_angles_to_test = 3;
 	shared_ptr<ParticleData> pdata_6(new ParticleData(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
 
 	arrays = pdata_6->acquireReadWrite();
@@ -178,18 +166,18 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	// check that the forces are correctly computed
 	force_arrays = fc_6->acquire();
 
-        //printf(" \nParticle 1: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[0], force_arrays.fy[0], force_arrays.fz[0]);
-        //printf(" Particle 2: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[1], force_arrays.fy[1], force_arrays.fz[1]);      
-        //printf(" Particle 3: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[2], force_arrays.fy[2], force_arrays.fz[2]);    
-        //printf(" Energy: 1 = %f  2 = %f  3 = %f \n", force_arrays.pe[0], force_arrays.pe[1], force_arrays.pe[2]);
-        //printf(" Virial: 1 = %f  2 = %f  3 = %f \n", force_arrays.virial[0], force_arrays.virial[1], force_arrays.virial[2]);
-        //printf(" \nParticle 4: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[3], force_arrays.fy[3], force_arrays.fz[3]);
-        //printf(" Particle 5: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[4], force_arrays.fy[4], force_arrays.fz[4]);      
-        //printf(" Particle 6: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[5], force_arrays.fy[5], force_arrays.fz[5]);    
-        //printf(" Energy: 4 = %f  5 = %f  6 = %f \n", force_arrays.pe[3], force_arrays.pe[4], force_arrays.pe[5]);
-        //printf(" Virial: 4 = %f  5 = %f  6 = %f \n", force_arrays.virial[3], force_arrays.virial[4], force_arrays.virial[5]);
+	//printf(" \nParticle 1: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[0], force_arrays.fy[0], force_arrays.fz[0]);
+	//printf(" Particle 2: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[1], force_arrays.fy[1], force_arrays.fz[1]);      
+	//printf(" Particle 3: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[2], force_arrays.fy[2], force_arrays.fz[2]);    
+	//printf(" Energy: 1 = %f  2 = %f  3 = %f \n", force_arrays.pe[0], force_arrays.pe[1], force_arrays.pe[2]);
+	//printf(" Virial: 1 = %f  2 = %f  3 = %f \n", force_arrays.virial[0], force_arrays.virial[1], force_arrays.virial[2]);
+	//printf(" \nParticle 4: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[3], force_arrays.fy[3], force_arrays.fz[3]);
+	//printf(" Particle 5: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[4], force_arrays.fy[4], force_arrays.fz[4]);      
+	//printf(" Particle 6: fx = %f  fy = %f  fz = %f \n", force_arrays.fx[5], force_arrays.fy[5], force_arrays.fz[5]);    
+	//printf(" Energy: 4 = %f  5 = %f  6 = %f \n", force_arrays.pe[3], force_arrays.pe[4], force_arrays.pe[5]);
+	//printf(" Virial: 4 = %f  5 = %f  6 = %f \n", force_arrays.virial[3], force_arrays.virial[4], force_arrays.virial[5]);
 
-        //printf("\n");
+	//printf("\n");
 
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
@@ -290,9 +278,6 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.473257, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
-
-
-
 	}
 
 
@@ -332,7 +317,6 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
 	ForceDataArrays arrays1 = fc1->acquire();
 	ForceDataArrays arrays2 = fc2->acquire();
 
-        
 	Scalar rough_tol = Scalar(3.0);
 
 	for (unsigned int i = 0; i < N; i++)
@@ -344,12 +328,7 @@ void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_cre
 		BOOST_CHECK_SMALL(arrays1.virial[i], rough_tol);
 		BOOST_CHECK_SMALL(arrays2.virial[i], rough_tol);
 		}
-        
 	}
-
-
-	
-
 
 //! HarmonicAngleForceCompute creator for angle_force_basic_tests()
 shared_ptr<HarmonicAngleForceCompute> base_class_af_creator(shared_ptr<ParticleData> pdata)
@@ -368,7 +347,7 @@ shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(shared_ptr<ParticleData> pd
 //! boost test case for angle forces on the CPU
 BOOST_AUTO_TEST_CASE( HarmonicAngleForceCompute_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
 	angleforce_creator af_creator = bind(base_class_af_creator, _1);
 	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
@@ -377,7 +356,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceCompute_basic )
 //! boost test case for angle forces on the GPU
 BOOST_AUTO_TEST_CASE( HarmonicAngleForceComputeGPU_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
 	angleforce_creator af_creator = bind(gpu_af_creator, _1);
 	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}
