@@ -46,34 +46,33 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
 	g_gpu_error_checking = true;
 	#endif
 	
-        
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 4 particles in a huge box with only one improper type !!!! NO IMPROPERS
 	shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 0, 1, exec_conf));
 	shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
 	
 	ParticleDataArrays arrays = pdata_4->acquireReadWrite();
-        arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
-        arrays.y[0] = Scalar(1.0);
-        arrays.z[0] = Scalar(2.0);
+	arrays.x[0] = Scalar(10.0); // put atom a at (10,1,2)
+	arrays.y[0] = Scalar(1.0);
+	arrays.z[0] = Scalar(2.0);
 
 	arrays.x[1] = arrays.y[1] = arrays.z[1] = Scalar(1.0); // put atom b at (1,1,1)
 
 
-        arrays.x[2] = Scalar(6.0); // put atom c at (6,-7,8)
-        arrays.y[2] = Scalar(-7.0);
-        arrays.z[2] = Scalar(8.0);
-  
-        arrays.x[3] = Scalar(9.0); // put atom d at (9,50,11)
-        arrays.y[3] = Scalar(50.0);
-        arrays.z[3] = Scalar(11.0);
+	arrays.x[2] = Scalar(6.0); // put atom c at (6,-7,8)
+	arrays.y[2] = Scalar(-7.0);
+	arrays.z[2] = Scalar(8.0);
+
+	arrays.x[3] = Scalar(9.0); // put atom d at (9,50,11)
+	arrays.y[3] = Scalar(50.0);
+	arrays.z[3] = Scalar(11.0);
 
 /*
-        printf(" Particle 1: x = %f  y = %f  z = %f \n", arrays.x[0], arrays.y[0], arrays.z[0]);
-        printf(" Particle 2: x = %f  y = %f  z = %f \n", arrays.x[1], arrays.y[1], arrays.z[1]);      
-        printf(" Particle 3: x = %f  y = %f  z = %f \n", arrays.x[2], arrays.y[2], arrays.z[2]);   
-printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], arrays.z[3]);            
-        printf("\n");
+	printf(" Particle 1: x = %f  y = %f  z = %f \n", arrays.x[0], arrays.y[0], arrays.z[0]);
+	printf(" Particle 2: x = %f  y = %f  z = %f \n", arrays.x[1], arrays.y[1], arrays.z[1]);      
+	printf(" Particle 3: x = %f  y = %f  z = %f \n", arrays.x[2], arrays.y[2], arrays.z[2]);   
+	printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], arrays.z[3]);            
+	printf("\n");
 */
 	pdata_4->release();
 
@@ -109,33 +108,33 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.024609, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.178418, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.221484, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158927, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158927, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.108934, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0.109425 , tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], 0.047247, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158927, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158927, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -0.092712, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 0.068413, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0.144409, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 0.158927, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 0.158927, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -0.040832, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0.000579, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0.029827, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.158927, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);    
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.158927, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
 	
 	// rearrange the two particles in memory and see if they are properly updated
 	arrays = pdata_4->acquireReadWrite();
 
-        arrays.x[1] = Scalar(10.0); // put atom b at (10,1,2)
-        arrays.y[1] = Scalar(1.0);
-        arrays.z[1] = Scalar(2.0);
+	arrays.x[1] = Scalar(10.0); // put atom b at (10,1,2)
+	arrays.y[1] = Scalar(1.0);
+	arrays.z[1] = Scalar(2.0);
 
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = Scalar(1.0); // put atom a at (1,1,1)
 
@@ -155,14 +154,14 @@ printf(" Particle 4: x = %f  y = %f  z = %f \n", arrays.x[3], arrays.y[3], array
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.024609, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.178418, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.221484, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158927, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158927, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.108934, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0.109425 , tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], 0.047247, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158927, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158927, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
  
 
 	////////////////////////////////////////////////////////////////////
@@ -356,8 +355,8 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1, improper
 	g_gpu_error_checking = true;
 	#endif
 	
-        // INTERESTING NOTE: the code will depending on the number of ramdom particles
-        // even 1000 will make the code blow up, 500 is used for safety... hope it works!
+	// INTERESTING NOTE: the code will depending on the number of ramdom particles
+	// even 1000 will make the code blow up, 500 is used for safety... hope it works!
 	const unsigned int N = 500;
 	
 	// create a particle system to sum forces on
@@ -395,12 +394,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1, improper
 		BOOST_CHECK_SMALL(arrays1.virial[i], rough_tol);
 		BOOST_CHECK_SMALL(arrays2.virial[i], rough_tol); 
 		}
-
 	}
-
-
-	
-
 
 //! HarmonicImproperForceCompute creator for improper_force_basic_tests()
 shared_ptr<HarmonicImproperForceCompute> base_class_tf_creator(shared_ptr<SystemDefinition> sysdef)
@@ -419,7 +413,7 @@ shared_ptr<HarmonicImproperForceCompute> gpu_tf_creator(shared_ptr<SystemDefinit
 //! boost test case for improper forces on the CPU
 BOOST_AUTO_TEST_CASE( HarmonicImproperForceCompute_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
 	improperforce_creator tf_creator = bind(base_class_tf_creator, _1);
 	improper_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
@@ -428,7 +422,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceCompute_basic )
 //! boost test case for improper forces on the GPU
 BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
 	improperforce_creator tf_creator = bind(gpu_tf_creator, _1);
 	improper_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}

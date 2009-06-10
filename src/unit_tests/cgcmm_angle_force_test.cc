@@ -46,23 +46,22 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 	g_gpu_error_checking = true;
 	#endif
 	
-        
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 3 particles in a huge box with only one angle type !!!! NO ANGLES
 	shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0,  exec_conf));
 	shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 	
 	ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-        arrays.x[0] = Scalar(-1.23); // put atom a at (-1,0,0.1)
-        arrays.y[0] = Scalar(2.0);
-        arrays.z[0] = Scalar(0.1);
+	arrays.x[0] = Scalar(-1.23); // put atom a at (-1,0,0.1)
+	arrays.y[0] = Scalar(2.0);
+	arrays.z[0] = Scalar(0.1);
 
 	arrays.x[1] = arrays.y[1] = arrays.z[1] = Scalar(1.0); // put atom b at (0,0,0)
 
-        arrays.x[2] = Scalar(1.0); // put atom c at (1,0,0.5)
-        arrays.y[2] = 0.0;
-        arrays.z[2] = Scalar(0.500);
-  
+	arrays.x[2] = Scalar(1.0); // put atom c at (1,0,0.5)
+	arrays.y[2] = 0.0;
+	arrays.z[2] = Scalar(0.500);
+
 	pdata_3->release();
 
 	// create the angle force compute to check
@@ -90,17 +89,17 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.123368, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.626939, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.390920, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158576, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158576, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
 
 	// rearrange the two particles in memory and see if they are properly updated
 	arrays = pdata_3->acquireReadWrite();
 
 
-        arrays.x[1] = Scalar(-1.23); // put atom a at (-1,0,0.1)
-        arrays.y[1] = Scalar(2.0);
-        arrays.z[1] = Scalar(0.1);
+	arrays.x[1] = Scalar(-1.23); // put atom a at (-1,0,0.1)
+	arrays.y[1] = Scalar(2.0);
+	arrays.z[1] = Scalar(0.1);
 
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = Scalar(1.0); // put atom b at (0,0,0)
 
@@ -120,12 +119,9 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.123368, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.626939, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.390920, tol);
-        MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158576, tol);
-        MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
-        //pdata_3->release();	
-
- 
-
+	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158576, tol);
+	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
+	//pdata_3->release();
 
 	////////////////////////////////////////////////////////////////////
 	// now, lets do a more thorough test and include boundary conditions
@@ -133,7 +129,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of angle
-        unsigned int num_angles_to_test = 2;
+	unsigned int num_angles_to_test = 2;
 	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 1, num_angles_to_test, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 
@@ -194,9 +190,9 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[5], 0.400928, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[5], tol);
 
-        //////////////////////////////////////////////////////////////////////
-        // THE DREADED 4 PARTICLE TEST -- see CGCMMAngleForceGPU.cu //
-        //////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	// THE DREADED 4 PARTICLE TEST -- see CGCMMAngleForceGPU.cu //
+	//////////////////////////////////////////////////////////////////////
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
@@ -299,7 +295,6 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
 	ForceDataArrays arrays1 = fc1->acquire();
 	ForceDataArrays arrays2 = fc2->acquire();
 
-        
 	Scalar rough_tol = Scalar(3.0);
 
 	for (unsigned int i = 0; i < N; i++)
@@ -311,11 +306,7 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
 		BOOST_CHECK_SMALL(arrays1.virial[i], rough_tol);
 		BOOST_CHECK_SMALL(arrays2.virial[i], rough_tol);
 		}
-        
 	}
-
-
-	
 
 
 //! CGCMMAngleForceCompute creator for angle_force_basic_tests()
@@ -335,7 +326,7 @@ shared_ptr<CGCMMAngleForceCompute> gpu_af_creator(shared_ptr<SystemDefinition> s
 //! boost test case for angle forces on the CPU
 BOOST_AUTO_TEST_CASE( CGCMMAngleForceCompute_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
 	cgcmm_angleforce_creator af_creator = bind(base_class_af_creator, _1);
 	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
@@ -344,7 +335,7 @@ BOOST_AUTO_TEST_CASE( CGCMMAngleForceCompute_basic )
 //! boost test case for angle forces on the GPU
 BOOST_AUTO_TEST_CASE( CGCMMAngleForceComputeGPU_basic )
 	{
-        printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
 	cgcmm_angleforce_creator af_creator = bind(gpu_af_creator, _1);
 	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
 	}

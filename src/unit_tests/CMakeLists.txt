@@ -72,6 +72,10 @@ if (VALGRIND)
 	mark_as_advanced(VALGRIND)
 endif (VALGRIND)
 
+if (ENABLE_VALGRIND)
+	set(DART_TESTING_TIMEOUT 4500 CACHE STRING "Testing timeout" FORCE)
+endif (ENABLE_VALGRIND)
+
 enable_testing()
 
 ###################################

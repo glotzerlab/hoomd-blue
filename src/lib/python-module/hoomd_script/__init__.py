@@ -50,9 +50,24 @@ import util;
 
 ## \internal
 # \brief Internal python variable 
-__all__ = ["analyze", "bond", "angle", "dihedral", "improper", "dump", "force", "globals", 
-                       "group", "init", "integrate", "pair", "update", "wall",
-                       "variant", "run", "tune", "hoomd"];
+__all__ = [	"analyze", 
+			"bond", 
+			"angle", 
+			"dihedral", 
+			"improper", 
+			"dump", 
+			"force", 
+			"globals", 
+			"group", 
+			"init", 
+			"integrate", 
+			"pair", 
+			"update", 
+			"wall",
+			"variant", 
+			"run", 
+			"tune", 
+			"hoomd"];
 
 ## \brief Runs the simulation for a given number of time steps
 #
@@ -60,7 +75,7 @@ __all__ = ["analyze", "bond", "angle", "dihedral", "improper", "dump", "force", 
 # \param profile Set to true to enable detailed profiling
 # \param limit_hours  (if set) Limit the run to a given number of hours.
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
-# \param cb_frequency (if set) Sets the frequency of calling the Python callback function.
+# \param callback_period (if set) Sets the frequency of calling the Python callback function.
 #
 # \b Examples:
 # \code
@@ -100,17 +115,17 @@ __all__ = ["analyze", "bond", "angle", "dihedral", "improper", "dump", "force", 
 # job run times. A fractional value can be given to limit a run to only a few minutes,
 # if needed.
 #
-# If callback is set to a Python function then this function will be called regularly
-# at cb_frequency intervals. This callback function has to receive one integer as argument
-# and can pass an integer as return value. The argument is the current timestep number
-# and if the callback function returns a negative number, then the run is immediately aborted.
+# If \a callback is set to a Python function then this function will be called regularly
+# at \a callback_period intervals. The callback function must receive one integer as argument
+# and can return an integer. The argument is the current timestep number,
+# and if the callback function returns a negative number then the run is immediately aborted.
 # all other return values are currently ignored.
 #
-# If callback frequency is set to 0 (the default) then the callback is only called
-# once at the end of the run. Otherwise the callback is executed, if the current
-# timestep number is a multiple of the cb_frequency value.
+# If \a callback_period is set to 0 (the default) then the callback is only called
+# once at the end of the run. Otherwise the callback is executed whenever the current
+# timestep number is a multiple of \a callback_period.
 #
-def run(tsteps, profile=False, limit_hours=None, cb_frequency=0, callback=None):
+def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None):
 	util.print_status_line();
 	# check if initialization has occured
 	if (globals.system == None):
@@ -130,5 +145,5 @@ def run(tsteps, profile=False, limit_hours=None, cb_frequency=0, callback=None):
 		limit_hours = 0.0
 	
 	print "** starting run **"
-	globals.system.run(int(tsteps), cb_frequency, callback, limit_hours);
+	globals.system.run(int(tsteps), callback_period, callback, limit_hours);
 	print "** run complete **"

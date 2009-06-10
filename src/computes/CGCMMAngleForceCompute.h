@@ -82,15 +82,15 @@ class CGCMMAngleForceCompute : public ForceCompute
 		Scalar *m_K;	//!< K parameter for multiple angle tyes
 		Scalar *m_t_0;	//!< t_0 parameter for multiple angle types
 
-                // THESE ARE NEW FOR GC ANGLES
+		// THESE ARE NEW FOR GC ANGLES
 		Scalar *m_eps;	//!< epsilon parameter for 1-3 repulsion of multiple angle tyes
 		Scalar *m_sigma;//!< sigma parameter for 1-3 repulsion of multiple angle types
 		Scalar *m_rcut;//!< cutoff parameter for 1-3 repulsion of multiple angle types
-                unsigned int *m_cg_type;//!< coarse grain angle type (0-3)
+		unsigned int *m_cg_type;//!< coarse grain angle type (0-3)
 
-                float prefact[4];//!< prefact precomputed prefactors for CG-CMM angles
-                float cgPow1[4];//!< cgPow1 1st powers for CG-CMM angles
-                float cgPow2[4];//!< cgPow2 2nd powers for CG-CMM angles
+		float prefact[4];//!< prefact precomputed prefactors for CG-CMM angles
+		float cgPow1[4];//!< cgPow1 1st powers for CG-CMM angles
+		float cgPow2[4];//!< cgPow2 2nd powers for CG-CMM angles
 		
 		boost::shared_ptr<AngleData> m_CGCMMAngle_data; //!< Angle data to use in computing angles
 		

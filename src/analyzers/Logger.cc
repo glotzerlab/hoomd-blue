@@ -151,9 +151,9 @@ void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
 	{
 	m_logged_quantities = quantities;
 
-        // prepare or adjust storage for caching the logger properties.
-        cached_timestep = -1;
-        cached_quantities.resize(quantities.size());
+	// prepare or adjust storage for caching the logger properties.
+	cached_timestep = -1;
+	cached_quantities.resize(quantities.size());
 	
 	// only write the header if this is a new file
 	if (!m_appending)
@@ -205,7 +205,7 @@ void Logger::analyze(unsigned int timestep)
 	
 	// The timestep is always output
 	m_file << setprecision(10) << timestep;
-        cached_timestep = timestep;
+	cached_timestep = timestep;
 	
 	// quit now if there is nothing to log
 	if (m_logged_quantities.size() == 0)
@@ -218,7 +218,7 @@ void Logger::analyze(unsigned int timestep)
 
 	// update info in cache for later use and for immediate output.
 	for (unsigned int i = 0; i < m_logged_quantities.size(); i++) 
-	        cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
+		cached_quantities[i] = getValue(m_logged_quantities[i], timestep);
 
 	// write all but the last of the quantities separated by the delimiter
 	for (unsigned int i = 0; i < m_logged_quantities.size()-1; i++)

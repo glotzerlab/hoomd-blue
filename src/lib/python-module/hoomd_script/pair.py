@@ -350,51 +350,78 @@ class nlist:
 			self.cpp_nlist.setEvery(check_period);
 
 	## Resets all exclusions in the neighborlist
-        #
-        # \param exclusion_type Select which bonded interactions should be excluded from the pair interaction calculation.
-        # 
-        # reset_exclusions() will rebuild the list of excluded non-bonded interactions. This is
-        # done in a topological way, i.e. by not following the list of defined angle or dihedral
-        # interactions, but rather all combinations of angles or dihedrals that can be formed
-        # from the existing bonds. This is in keeping with what LAMMPS does, and is generally
-        # a reasonable choice. The choice of which exclusions are applied is done through a
-        # symbolical keyword (allowing for future implementation for force field specific 
-        # shortcuts notations. Currently implemented are, '1-2' or 'oneTwo' (the default
-        # setting if any bonds exist in the topology), '1-3' or 'oneThree' (for excluding
-        # non-bonded interactions between bonds and angles; eqiuvalent to 0 0 1 in LAMMPS),
-        # and '1-4' or 'oneFour' for excluding bonds, angles, and dihedrals completely.
-        #
-        # \b WARNING: 
-        # 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
-        # atom and even 1-3 exclusions can reach that limit in branched molecules.
-        #
+	#
+	# \param exclusions Select which bonded interactions should be excluded from the pair interaction calculation.
+	#
+	# By default, only directly bonded particles are excluded from short range pair interactions. 
+	# reset_exclusions allows that setting to be overridden to add other exclusions or to remove
+	# the exlusion for bonded particles. 
+	#
+	# Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
+	# 
+	# Valid types are:
+	# - \b bond - Exclude particles that are directly bonded together
+	# - \b 1-2 - The same as bond
+	# - \b 1-3 - Exclude particles connected with a sequence of two bonds. In other words this 
+	#	option exludes any particles in an angle as deteremined by the topology of the \b bonds,
+	#	regardless of whether or not an angle has been defined explicitly.
+	# - \b 1-4 - Exclude particles connected with a sequence of three bonds. In other words this 
+	#	option exludes any particles in dihedral/improper as deteremined by the topology of the \b bonds,
+	#	regardless of whether or not a dihedral or improper has been defined explicitly.
+	#
+	# The \b 1-3 and \b 1-4 options operate based on the bond topology only because "that is
+	# what LAMMPS does". Future versions of HOOMD may allow the addition of exclusions only for
+	# defined angles and dihedrals if it were requested as a useful feature. 
+	#
+	# \b WARNING: 
+	# 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
+	# atom and even 1-3 exclusions can reach that limit in branched molecules.
+	#
 	# \b Examples:
 	# \code 
-	# nlist.reset_exclusions(exclusion_type = '1-2')
+	# nlist.reset_exclusions(exclusions = '1-2')
 	# nlist.reset_exclusions(exclusion_type = 'oneThree')
 	# nlist.reset_exclusions(exclusion_type = '1-4')
 	# \endcode
-        # 
-	def reset_exclusions(self, exclusion_type):
+	# 
+	def reset_exclusions(self, exclusions = None):
 		util.print_status_line();
 		
 		if self.cpp_nlist == None:
 			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
-			raise RuntimeError('Error resetting all exclusions');
+			raise RuntimeError('Error resetting exclusions');
 		
-		# update exclusions to 1-2 (bonds) style.
-		if (exclusion_type == 'oneTwo') or (exclusion_type == '1-2'):
-                        self.cpp_nlist.copyExclusionsFromBonds();
+		# clear all of the existing exclusions
+		self.cpp_nlist.clearExclusions();
+		
+		if exclusions == None:
+			return
+		
+		# exclusions given directly in bonds/angles/dihedrals
+		if 'bond' in exclusions:
+			self.cpp_nlist.addExclusionsFromBonds();
+			exclusions.remove('bond');
+		
+		# topology based exclusions
+		# add exclusions from bonds
+		if '1-2' in exclusions:
+			self.cpp_nlist.addExclusionsFromBonds();
+			exclusions.remove('1-2');
 
-		# update exclusions to 1-3 (bonds and angles) style.
-		elif (exclusion_type == 'oneThree') or (exclusion_type == '1-3'):
-                        self.cpp_nlist.copyExclusionsFromTopology(False);
+		# add 1-3 exclusions
+		if '1-3' in exclusions:
+			self.cpp_nlist.addOneThreeExclusionsFromTopology();
+			exclusions.remove('1-3');
+			
+		# add 1-3 exclusions
+		if '1-4' in exclusions:
+			self.cpp_nlist.addOneFourExclusionsFromTopology();
+			exclusions.remove('1-4');
 
-		# update exclusions to 1-4 (bonds, angles, and dihedrals) style.
-		elif (exclusion_type == 'oneFour') or (exclusion_type == '1-4'):
-                        self.cpp_nlist.copyExclusionsFromTopology(True);
-                else:
-                     raise RuntimeError("Unknown exclusion type.  Supported types are oneTwo, oneThree, oneFour and 1-2, 1-3, 1-4, respectively.");
+		if len(exclusions > 0):
+			print >> sys.stderr, "\nExclusion types:", exclusions, "are not supported\n";
+			raise RuntimeError('Error resetting exclusions');
+
 	## Benchmarks the neighbor list computation
 	# \param n Number of iterations to average the benchmark over
 	#

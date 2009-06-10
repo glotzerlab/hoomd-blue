@@ -74,7 +74,6 @@ cudaError_t gpu_impropertable_array::allocate(unsigned int num_local, unsigned i
 	if (error != cudaSuccess)
 		return error;
 
-        
 	// cudaMallocPitch fails to work for coalesced reads here (dunno why), need to calculate pitch ourselves
 	// round up to the nearest multiple of 32
 	height = alloc_height;

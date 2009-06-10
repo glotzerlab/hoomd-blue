@@ -81,10 +81,10 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 	
 	// load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
 	int n_dihedrals = tlist.n_dihedrals[idx_local];
-        
+
 	// read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-        float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx_global);  // we can be either a, b, or c in the a-b-c-d quartet
-        float4 a_pos,b_pos,c_pos, d_pos; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
+	float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx_global);  // we can be either a, b, or c in the a-b-c-d quartet
+	float4 a_pos,b_pos,c_pos, d_pos; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
 
 	// initialize the force to 0
 	float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -109,7 +109,7 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		int cur_dihedral_y_idx = cur_dihedral.y;
 		int cur_dihedral_z_idx = cur_dihedral.z;
 		int cur_dihedral_type = cur_dihedral.w;
-                int cur_dihedral_abcd = cur_ABCD.x;
+		int cur_dihedral_abcd = cur_ABCD.x;
 		
 		// get the a-particle's position (MEM TRANSFER: 16 bytes)
 		float4 x_pos = tex1Dfetch(pdata_pos_tex, cur_dihedral_x_idx);
@@ -118,47 +118,47 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		// get the c-particle's position (MEM TRANSFER: 16 bytes)
 		float4 z_pos = tex1Dfetch(pdata_pos_tex, cur_dihedral_z_idx);
 
-                if(cur_dihedral_abcd == 0)
-                {
-                a_pos = idx_pos;
-                b_pos = x_pos;
-                c_pos = y_pos;
-                d_pos = z_pos;
-                }
-                if(cur_dihedral_abcd == 1)
-                {
-                b_pos = idx_pos;
-                a_pos = x_pos;
-                c_pos = y_pos;
-                d_pos = z_pos;
-                }
-                if(cur_dihedral_abcd == 2)
-                {
-                c_pos = idx_pos;
-                a_pos = x_pos;
-                b_pos = y_pos;
-                d_pos = z_pos;
-                }
-                if(cur_dihedral_abcd == 3)
-                {
-                d_pos = idx_pos;
-                a_pos = x_pos;
-                b_pos = y_pos;
-                c_pos = z_pos;
-                }
+		if(cur_dihedral_abcd == 0)
+			{
+			a_pos = idx_pos;
+			b_pos = x_pos;
+			c_pos = y_pos;
+			d_pos = z_pos;
+			}
+		if(cur_dihedral_abcd == 1)
+			{
+			b_pos = idx_pos;
+			a_pos = x_pos;
+			c_pos = y_pos;
+			d_pos = z_pos;
+			}
+		if(cur_dihedral_abcd == 2)
+			{
+			c_pos = idx_pos;
+			a_pos = x_pos;
+			b_pos = y_pos;
+			d_pos = z_pos;
+			}
+		if(cur_dihedral_abcd == 3)
+			{
+			d_pos = idx_pos;
+			a_pos = x_pos;
+			b_pos = y_pos;
+			c_pos = z_pos;
+			}
 
 		// calculate dr for a-b,c-b,and a-c(FLOPS: 9)
-                float dxab = a_pos.x - b_pos.x;
-                float dyab = a_pos.y - b_pos.y;
-                float dzab = a_pos.z - b_pos.z;
+		float dxab = a_pos.x - b_pos.x;
+		float dyab = a_pos.y - b_pos.y;
+		float dzab = a_pos.z - b_pos.z;
 
-                float dxcb = c_pos.x - b_pos.x;
-                float dycb = c_pos.y - b_pos.y;
-                float dzcb = c_pos.z - b_pos.z;
+		float dxcb = c_pos.x - b_pos.x;
+		float dycb = c_pos.y - b_pos.y;
+		float dzcb = c_pos.z - b_pos.z;
 
-                float dxdc = d_pos.x - c_pos.x;
-                float dydc = d_pos.y - c_pos.y;
-                float dzdc = d_pos.z - c_pos.z;
+		float dxdc = d_pos.x - c_pos.x;
+		float dydc = d_pos.y - c_pos.y;
+		float dzdc = d_pos.z - c_pos.z;
 
 		dxab -= box.Lx * rintf(dxab * box.Lxinv);
 		dxcb -= box.Lx * rintf(dxcb * box.Lxinv);
@@ -186,188 +186,182 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		float sign = params.y;
 		float multi = params.z;
 
-                // printf("IN CUDA CODE: k = %f sign = %f multi = %f \n",K,sign,multi);
+		// printf("IN CUDA CODE: k = %f sign = %f multi = %f \n",K,sign,multi);
 
-                float aax = dyab*dzcbm - dzab*dycbm;
-                float aay = dzab*dxcbm - dxab*dzcbm;
-                float aaz = dxab*dycbm - dyab*dxcbm;
+		float aax = dyab*dzcbm - dzab*dycbm;
+		float aay = dzab*dxcbm - dxab*dzcbm;
+		float aaz = dxab*dycbm - dyab*dxcbm;
 
-                float bbx = dydc*dzcbm - dzdc*dycbm;
-                float bby = dzdc*dxcbm - dxdc*dzcbm;
-                float bbz = dxdc*dycbm - dydc*dxcbm;
+		float bbx = dydc*dzcbm - dzdc*dycbm;
+		float bby = dzdc*dxcbm - dxdc*dzcbm;
+		float bbz = dxdc*dycbm - dydc*dxcbm;
 
-                //printf("IN CUDA CODE: aax = %f aay = %f aaz = %f \n", aax,aay,aaz);
-                //printf("IN CUDA CODE: dxab = %f dyab = %f dzab = %f \n", dxab,dyab,dzab);
-                //printf("IN CUDA CODE: dxcbm = %f dycbm = %f dzcbm = %f \n", dxcbm,dycbm,dzcbm);
-                //printf("IN CUDA CODE: bbx = %f bby = %f bbz = %f \n", bbx,bby,bbz);
-                //printf("IN CUDA CODE: dxdc = %f dydc = %f dzdc = %f \n", dxdc,dydc,dzdc);
+		//printf("IN CUDA CODE: aax = %f aay = %f aaz = %f \n", aax,aay,aaz);
+		//printf("IN CUDA CODE: dxab = %f dyab = %f dzab = %f \n", dxab,dyab,dzab);
+		//printf("IN CUDA CODE: dxcbm = %f dycbm = %f dzcbm = %f \n", dxcbm,dycbm,dzcbm);
+		//printf("IN CUDA CODE: bbx = %f bby = %f bbz = %f \n", bbx,bby,bbz);
+		//printf("IN CUDA CODE: dxdc = %f dydc = %f dzdc = %f \n", dxdc,dydc,dzdc);
 
-                float raasq = aax*aax + aay*aay + aaz*aaz;
-                float rbbsq = bbx*bbx + bby*bby + bbz*bbz;
-                float rgsq = dxcbm*dxcbm + dycbm*dycbm + dzcbm*dzcbm;
-                float rg = sqrtf(rgsq);
+		float raasq = aax*aax + aay*aay + aaz*aaz;
+		float rbbsq = bbx*bbx + bby*bby + bbz*bbz;
+		float rgsq = dxcbm*dxcbm + dycbm*dycbm + dzcbm*dzcbm;
+		float rg = sqrtf(rgsq);
 
-                float rginv, raa2inv, rbb2inv;
-                rginv = raa2inv = rbb2inv = 0.0f;
-                if (rg > 0.0f) rginv = 1.0f/rg;
-                if (raasq > 0.0f) raa2inv = 1.0f/raasq;
-                if (rbbsq > 0.0f) rbb2inv = 1.0f/rbbsq;
-                float rabinv = sqrtf(raa2inv*rbb2inv);
+		float rginv, raa2inv, rbb2inv;
+		rginv = raa2inv = rbb2inv = 0.0f;
+		if (rg > 0.0f) rginv = 1.0f/rg;
+		if (raasq > 0.0f) raa2inv = 1.0f/raasq;
+		if (rbbsq > 0.0f) rbb2inv = 1.0f/rbbsq;
+		float rabinv = sqrtf(raa2inv*rbb2inv);
 
-                float c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
-                float s_abcd = rg*rabinv*(aax*dxdc + aay*dydc + aaz*dzdc); 
+		float c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
+		float s_abcd = rg*rabinv*(aax*dxdc + aay*dydc + aaz*dzdc); 
 
-                if (c_abcd > 1.0) c_abcd = 1.0;
-                if (c_abcd < -1.0) c_abcd = -1.0;
+		if (c_abcd > 1.0) c_abcd = 1.0;
+		if (c_abcd < -1.0) c_abcd = -1.0;
 
 
-                //printf("IN CUDA CODE: rg = %f rabinv = %f \n", rg,rabinv);
-                //printf("IN CUDA CODE: dxdc = %f dydc = %f dzdc = %f \n", dxdc,dydc,dzdc);
-                //printf("IN CUDA CODE: c_abcd = %f s_abcd = %f \n", c_abcd, s_abcd);
-                float p = 1.0f;
-                float ddfab;
-                float dfab = 0.0f;
-                int m = __float2int_rn(multi);
+		//printf("IN CUDA CODE: rg = %f rabinv = %f \n", rg,rabinv);
+		//printf("IN CUDA CODE: dxdc = %f dydc = %f dzdc = %f \n", dxdc,dydc,dzdc);
+		//printf("IN CUDA CODE: c_abcd = %f s_abcd = %f \n", c_abcd, s_abcd);
+		float p = 1.0f;
+		float ddfab;
+		float dfab = 0.0f;
+		int m = __float2int_rn(multi);
 
-                for(int jj = 0; jj < m; jj++)
-                {
-                 ddfab = p*c_abcd - dfab*s_abcd;
-                 dfab = p*s_abcd + dfab*c_abcd;
-                 p = ddfab;     
-                }     
+		for(int jj = 0; jj < m; jj++)
+			{
+			ddfab = p*c_abcd - dfab*s_abcd;
+			dfab = p*s_abcd + dfab*c_abcd;
+			p = ddfab;
+			}
 
 /////////////////////////
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
 /////////////////////////
-                p *= sign;
-                dfab *= sign;
-                dfab *= -multi;
-                p += 1.0;
+		p *= sign;
+		dfab *= sign;
+		dfab *= -multi;
+		p += 1.0;
 
-                if (multi < 1.0)
-                {
-                 p =  1.0 + sign;
-                 dfab = 0.0f;
-                }
+		if (multi < 1.0)
+			{
+			p =  1.0 + sign;
+			dfab = 0.0f;
+			}
 
-                float fg = dxab*dxcbm + dyab*dycbm + dzab*dzcbm;
-                float hg = dxdc*dxcbm + dydc*dycbm + dzdc*dzcbm;
+		float fg = dxab*dxcbm + dyab*dycbm + dzab*dzcbm;
+		float hg = dxdc*dxcbm + dydc*dycbm + dzdc*dzcbm;
 
-                float fga = fg*raa2inv*rginv;
-                float hgb = hg*rbb2inv*rginv;
-                float gaa = -raa2inv*rg;
-                float gbb = rbb2inv*rg;
+		float fga = fg*raa2inv*rginv;
+		float hgb = hg*rbb2inv*rginv;
+		float gaa = -raa2inv*rg;
+		float gbb = rbb2inv*rg;
 
-                float dtfx = gaa*aax;
-                float dtfy = gaa*aay;
-                float dtfz = gaa*aaz;
-                float dtgx = fga*aax - hgb*bbx;
-                float dtgy = fga*aay - hgb*bby;
-                float dtgz = fga*aaz - hgb*bbz;
-                float dthx = gbb*bbx;
-                float dthy = gbb*bby;
-                float dthz = gbb*bbz;
-    
-                float df = -K * dfab;
-    
-                float sx2 = df*dtgx;
-                float sy2 = df*dtgy;
-                float sz2 = df*dtgz;
-       
-                float ffax = df*dtfx;
-                float ffay = df*dtfy;
-                float ffaz = df*dtfz;
+		float dtfx = gaa*aax;
+		float dtfy = gaa*aay;
+		float dtfz = gaa*aaz;
+		float dtgx = fga*aax - hgb*bbx;
+		float dtgy = fga*aay - hgb*bby;
+		float dtgz = fga*aaz - hgb*bbz;
+		float dthx = gbb*bbx;
+		float dthy = gbb*bby;
+		float dthz = gbb*bbz;
 
-                float ffbx = sx2 - ffax;
-                float ffby = sy2 - ffay;
-                float ffbz = sz2 - ffaz;
+		float df = -K * dfab;
 
-                float ffdx = df*dthx;
-                float ffdy = df*dthy;
-                float ffdz = df*dthz;
+		float sx2 = df*dtgx;
+		float sy2 = df*dtgy;
+		float sz2 = df*dtgz;
 
-                float ffcx = -sx2 - ffdx;
-                float ffcy = -sy2 - ffdy;
-                float ffcz = -sz2 - ffdz;
+		float ffax = df*dtfx;
+		float ffay = df*dtfy;
+		float ffaz = df*dtfz;
 
-               // Now, apply the force to each individual atom a,b,c,d
-               // and accumlate the energy/virial
-               // compute 1/4 of the energy, 1/4 for each atom in the dihedral
-                float dihedral_eng = p*K*float(1.0/4.0);
+		float ffbx = sx2 - ffax;
+		float ffby = sy2 - ffay;
+		float ffbz = sz2 - ffaz;
+
+		float ffdx = df*dthx;
+		float ffdy = df*dthy;
+		float ffdz = df*dthz;
+
+		float ffcx = -sx2 - ffdx;
+		float ffcy = -sy2 - ffdy;
+		float ffcz = -sz2 - ffdz;
+
+		// Now, apply the force to each individual atom a,b,c,d
+		// and accumlate the energy/virial
+		// compute 1/4 of the energy, 1/4 for each atom in the dihedral
+		float dihedral_eng = p*K*float(1.0/4.0);
 
 /*
-                float term1,term2,term3;
-                term1 = dxab*ffax;
-                term2 = dxcb*ffcx;
-                printf(" IN CUDA: vx(term2) =  %f %f \n",dxcb,ffcx);
-                term3 = (dxdc+dxcb)*ffdx;
-                printf(" IN CUDA: vx(term3) =  %f %f %f \n",dxdc,dxcb,ffdx);
-                printf(" IN CUDA: vx = %f %f %f \n",term1,term2,term3);
+		float term1,term2,term3;
+		term1 = dxab*ffax;
+		term2 = dxcb*ffcx;
+		printf(" IN CUDA: vx(term2) =  %f %f \n",dxcb,ffcx);
+		term3 = (dxdc+dxcb)*ffdx;
+		printf(" IN CUDA: vx(term3) =  %f %f %f \n",dxdc,dxcb,ffdx);
+		printf(" IN CUDA: vx = %f %f %f \n",term1,term2,term3);
 
-                float vx = term1 + term2 + term3;
-                term1 = dyab*ffay;
-                term2 = dycb*ffcy;
-                printf(" IN CUDA: vy(term2) =  %f %f \n",dycb,ffcy);
-                term3 = (dydc+dycb)*ffdy;
-                printf(" IN CUDA: vy(term3) =  %f %f %f \n",dydc,dycb,ffdy);
-                printf(" IN CUDA: vy = %f %f %f \n",term1,term2,term3);
+		float vx = term1 + term2 + term3;
+		term1 = dyab*ffay;
+		term2 = dycb*ffcy;
+		printf(" IN CUDA: vy(term2) =  %f %f \n",dycb,ffcy);
+		term3 = (dydc+dycb)*ffdy;
+		printf(" IN CUDA: vy(term3) =  %f %f %f \n",dydc,dycb,ffdy);
+		printf(" IN CUDA: vy = %f %f %f \n",term1,term2,term3);
 
-                float vy = term1 + term2 + term3;
-                term1 = dzab*ffaz;
-                term2 = dzcb*ffcz;
-                printf(" IN CUDA: vz(term2) =  %f %f \n",dzcb,ffcz);
-                term3 = (dzdc+dzcb)*ffdz;
-                printf(" IN CUDA: vz(term3) =  %f %f %f \n",dzdc,dzcb,ffdz);
-                printf(" IN CUDA: vz = %f %f %f \n",term1,term2,term3);
+		float vy = term1 + term2 + term3;
+		term1 = dzab*ffaz;
+		term2 = dzcb*ffcz;
+		printf(" IN CUDA: vz(term2) =  %f %f \n",dzcb,ffcz);
+		term3 = (dzdc+dzcb)*ffdz;
+		printf(" IN CUDA: vz(term3) =  %f %f %f \n",dzdc,dzcb,ffdz);
+		printf(" IN CUDA: vz = %f %f %f \n",term1,term2,term3);
 
-                float vz = term1 + term2 + term3;
+		float vz = term1 + term2 + term3;
 */
 
-                float vx = (dxab*ffax) + (dxcb*ffcx) + (dxdc+dxcb)*ffdx;
-                float vy = (dyab*ffay) + (dycb*ffcy) + (dydc+dycb)*ffdy;
-                float vz = (dzab*ffaz) + (dzcb*ffcz) + (dzdc+dzcb)*ffdz;
+		float vx = (dxab*ffax) + (dxcb*ffcx) + (dxdc+dxcb)*ffdx;
+		float vy = (dyab*ffay) + (dycb*ffcy) + (dydc+dycb)*ffdy;
+		float vz = (dzab*ffaz) + (dzcb*ffcz) + (dzdc+dzcb)*ffdz;
 
-               // compute 1/4 of the virial, 1/4 for each atom in the dihedral
-                float dihedral_virial = float(1.0/12.0)*(vx + vy + vz);
+		// compute 1/4 of the virial, 1/4 for each atom in the dihedral
+		float dihedral_virial = float(1.0/12.0)*(vx + vy + vz);
 
-                if(cur_dihedral_abcd == 0)
-                {
-                  force_idx.x += ffax;
-                  force_idx.y += ffay;
-                  force_idx.z += ffaz;
+		if(cur_dihedral_abcd == 0)
+			{
+			force_idx.x += ffax;
+			force_idx.y += ffay;
+			force_idx.z += ffaz;
+			}
+		if(cur_dihedral_abcd == 1)
+			{
+			force_idx.x += ffbx;
+			force_idx.y += ffby;
+			force_idx.z += ffbz;
+			}
+		if(cur_dihedral_abcd == 2)
+			{
+			force_idx.x += ffcx;
+			force_idx.y += ffcy;
+			force_idx.z += ffcz;
+			}
+		if(cur_dihedral_abcd == 3)
+			{
+			force_idx.x += ffdx;
+			force_idx.y += ffdy;
+			force_idx.z += ffdz;
+			}
 
-                }
-                if(cur_dihedral_abcd == 1)
-                {
-                  force_idx.x += ffbx;
-                  force_idx.y += ffby;
-                  force_idx.z += ffbz;
-
-                }
-                if(cur_dihedral_abcd == 2)
-                {
-                  force_idx.x += ffcx;
-                  force_idx.y += ffcy;
-                  force_idx.z += ffcz;
-
-                }
-                if(cur_dihedral_abcd == 3)
-                {
-                  force_idx.x += ffdx;
-                  force_idx.y += ffdy;
-                  force_idx.z += ffdz;
-
-                }
-
-                 force_idx.w += dihedral_eng;
-                 virial_idx += dihedral_virial;
+		force_idx.w += dihedral_eng;
+		virial_idx += dihedral_virial;
 		}
 			
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
 	force_data.force[idx_local] = force_idx;
 	force_data.virial[idx_local] = virial_idx;
-
-
 	}
 
 /*! \param force_data Force data on GPU to write forces to
@@ -387,7 +381,7 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 cudaError_t gpu_compute_harmonic_dihedral_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_dihedraltable_array &ttable, float4 *d_params, unsigned int n_dihedral_types, int block_size)
 	{
 	assert(d_params);
-        block_size /=2; // CHANGED TO 1/2 BECAUSE THE KERNEL RUNS OUT OF REGISTERS!!
+	
 	// setup the grid to run the kernel
 	dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
 	dim3 threads(block_size, 1, 1);

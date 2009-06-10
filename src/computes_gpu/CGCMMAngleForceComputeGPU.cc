@@ -67,20 +67,20 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
 		throw std::runtime_error("Error initializing CGCMMAngleForceComputeGPU");
 		}
 
-        prefact[0] = 0.0;
-        prefact[1] = 6.75;
-        prefact[2] = 2.59807621135332;
-        prefact[3] = 4.0;
+	prefact[0] = 0.0;
+	prefact[1] = 6.75;
+	prefact[2] = 2.59807621135332;
+	prefact[3] = 4.0;
 
-        cgPow1[0]  = 0.0;
-        cgPow1[1]  = 9.0;
-        cgPow1[2]  = 12.0;
-        cgPow1[3]  = 12.0;
+	cgPow1[0]  = 0.0;
+	cgPow1[1]  = 9.0;
+	cgPow1[2]  = 12.0;
+	cgPow1[3]  = 12.0;
 
-        cgPow2[0]  = 0.0;
-        cgPow2[1]  = 6.0;
-        cgPow2[2]  = 4.0;
-        cgPow2[3]  = 6.0;
+	cgPow2[0]  = 0.0;
+	cgPow2[1]  = 6.0;
+	cgPow2[2]  = 4.0;
+	cgPow2[3]  = 6.0;
 
 
 		
@@ -123,19 +123,16 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
 	m_host_params = new float2[m_CGCMMAngle_data->getNAngleTypes()];
 	memset(m_host_params, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
 
-        m_host_CGCMMsr = new float2[m_CGCMMAngle_data->getNAngleTypes()];
+	m_host_CGCMMsr = new float2[m_CGCMMAngle_data->getNAngleTypes()];
 	memset(m_host_CGCMMsr, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
 
-        m_host_CGCMMepow = new float4[m_CGCMMAngle_data->getNAngleTypes()];
+	m_host_CGCMMepow = new float4[m_CGCMMAngle_data->getNAngleTypes()];
 	memset(m_host_CGCMMepow, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
-
 	}
 	
 CGCMMAngleForceComputeGPU::~CGCMMAngleForceComputeGPU()
 	{
 	// free memory on the GPU
-
-
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{	
@@ -148,56 +145,53 @@ CGCMMAngleForceComputeGPU::~CGCMMAngleForceComputeGPU()
 
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_CGCMMepow[cur_gpu]));
 		m_gpu_CGCMMepow[cur_gpu] = NULL;
-
 		}
 	
 	// free memory on the CPU
 	delete[] m_host_params;
-        delete[] m_host_CGCMMsr;
-        delete[] m_host_CGCMMepow;
+	delete[] m_host_CGCMMsr;
+	delete[] m_host_CGCMMepow;
 	m_host_params = NULL;
-        m_host_CGCMMsr = NULL;
-        m_host_CGCMMepow = NULL;
-
+	m_host_CGCMMsr = NULL;
+	m_host_CGCMMepow = NULL;
 	}
 
 /*! \param type Type of the angle to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param t_0 Equilibrium angle (in radians) for the force computation
-        \param cg_type the type of course grained angle we are using
-        \param eps the well depth
-        \param sigma the particle radius
+	\param cg_type the type of course grained angle we are using
+	\param eps the well depth
+	\param sigma the particle radius
 	
 	Sets parameters for the potential of a particular angle type and updates the 
 	parameters on the GPU.
 */
-
 void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma)
 	{
 	CGCMMAngleForceCompute::setParams(type, K, t_0, cg_type, eps, sigma);
 
-        const float myPow1 = cgPow1[cg_type];
-        const float myPow2 = cgPow2[cg_type];
-        const float myPref = prefact[cg_type];
+	const float myPow1 = cgPow1[cg_type];
+	const float myPow2 = cgPow2[cg_type];
+	const float myPref = prefact[cg_type];
 
-        Scalar my_rcut = sigma*exp(1.0f/(myPow1-myPow2)*log(myPow1/myPow2));
+	Scalar my_rcut = sigma*exp(1.0f/(myPow1-myPow2)*log(myPow1/myPow2));
 	
 	// update the local copy of the memory
 	m_host_params[type] = make_float2(K, t_0);
 	m_host_CGCMMsr[type] = make_float2(sigma, my_rcut);
-        m_host_CGCMMepow[type] = make_float4(eps, myPow1, myPow2, myPref);
+	m_host_CGCMMepow[type] = make_float4(eps, myPow1, myPow2, myPref);
 
 	// copy the parameters to the GPU
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-                {
+		{
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
 
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMsr[cur_gpu], m_host_CGCMMsr, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
 
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMepow[cur_gpu], m_host_CGCMMepow, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4), cudaMemcpyHostToDevice));
 
-                }
+		}
 
 	}
 
@@ -211,7 +205,7 @@ void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_
 void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	//if (m_prof) m_prof->push(exec_conf, "CGCMMAngle");
+	if (m_prof) m_prof->push(exec_conf, "CGCMM Angle");
 		
 	vector<gpu_angletable_array>& gpu_angletable = m_CGCMMAngle_data->acquireGPU();
 	
@@ -233,10 +227,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
 	
 	m_pdata->release();
 	
-        // UNCOMMENT BELOW FOR SOME KIND OF PERFORMANCE CHECK... but first, count all the flops + memory transfers
-	//int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_CGCMMAngle_data->getNumAngles() * 2 * (8+16+8);
-	//int64_t flops = m_CGCMMAngle_data->getNumAngles() * 2 * (3+12+16+3+7);
-	//if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);
+	if (m_prof)	m_prof->pop(exec_conf);
 	}
 
 void export_CGCMMAngleForceComputeGPU()

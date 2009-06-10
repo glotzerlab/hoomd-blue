@@ -110,7 +110,7 @@ def reset():
 ## Reads initial system state from an XML file
 #
 # \param filename File to read
-# \param time_step Time step number to use instead of the one stored in the XML file
+# \param time_step (if specified) Time step number to use instead of the one stored in the XML file
 #
 # \b Examples:
 # \code
@@ -125,11 +125,10 @@ def reset():
 # other commands in hoomd_script to be run. For more details
 # on the file format read by this command, see \ref page_xml_file_format.
 #
-# The optional argument time_step allows to reset the internal
-# time step number to a value different from what is in the restart file.
-# A negative number (default) indicates to use the time step number
-# that is stored in the XML file.
-def read_xml(filename, time_step=-1):
+# If \a time_step is specified, it's value will be used as the initial time 
+# step of the simulation instead of the one read from the XML file.
+#
+def read_xml(filename, time_step = None):
 	util.print_status_line();
 	
 	# parse command line
@@ -145,7 +144,7 @@ def read_xml(filename, time_step=-1):
 	globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
 	
 	# initialize the system
-	if (time_step < 0):
+	if time_step != None:
 		globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
 	else:
 		initializer.setTimeStep(time_step)

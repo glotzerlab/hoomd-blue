@@ -122,9 +122,9 @@ class Logger : public Analyzer
 		//! Clock for the time log quantity
 		ClockSource m_clk;
 		//! The number of the last timestep when the logger was run.
-                int cached_timestep;
+		int cached_timestep;
 		//! The values of the logged quantities at the last logger update.
-                std::vector< Scalar > cached_quantities;
+		std::vector< Scalar > cached_quantities;
 		
 		//! Helper function to get a value for a given quantity
 		Scalar getValue(const std::string &quantity, int timestep);

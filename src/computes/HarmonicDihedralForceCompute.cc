@@ -96,15 +96,15 @@ HarmonicDihedralForceCompute::~HarmonicDihedralForceCompute()
 	delete[] m_K;
 	delete[] m_sign;
 	delete[] m_multi;
-        m_K = NULL;
-        m_sign = NULL;
-        m_multi = NULL;
+	m_K = NULL;
+	m_sign = NULL;
+	m_multi = NULL;
 	}
 
 /*! \param type Type of the dihedral to set parameters for
 	\param K Stiffness parameter for the force computation
 	\param sign the sign of the cosign term
-        \param multiplicity of the dihedral itself
+	\param multiplicity of the dihedral itself
 	
 	Sets parameters for the potential of a particular dihedral type
 */
@@ -159,11 +159,11 @@ Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, un
 	\param timestep Current time step
  */
 void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
- 	{
-	//if (m_prof) m_prof->push("Dihedral");
+	{
+	if (m_prof) m_prof->push("Harmonic Dihedral");
 
- 	assert(m_pdata);
- 	// access the particle data arrays
+	assert(m_pdata);
+	// access the particle data arrays
 	ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
 	// there are enough other checks on the input data: but it doesn't hurt to be safe
 	assert(m_fx);
@@ -317,137 +317,137 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 		else
 		if (dzcbm < -Lz2)
 			dzcbm += Lz;
-	    
-               Scalar aax = dyab*dzcbm - dzab*dycbm;
-               Scalar aay = dzab*dxcbm - dxab*dzcbm;
-               Scalar aaz = dxab*dycbm - dyab*dxcbm;
+		
+		Scalar aax = dyab*dzcbm - dzab*dycbm;
+		Scalar aay = dzab*dxcbm - dxab*dzcbm;
+		Scalar aaz = dxab*dycbm - dyab*dxcbm;
 
-               Scalar bbx = dydc*dzcbm - dzdc*dycbm;
-               Scalar bby = dzdc*dxcbm - dxdc*dzcbm;
-               Scalar bbz = dxdc*dycbm - dydc*dxcbm;
+		Scalar bbx = dydc*dzcbm - dzdc*dycbm;
+		Scalar bby = dzdc*dxcbm - dxdc*dzcbm;
+		Scalar bbz = dxdc*dycbm - dydc*dxcbm;
 
-               Scalar raasq = aax*aax + aay*aay + aaz*aaz;
-               Scalar rbbsq = bbx*bbx + bby*bby + bbz*bbz;
-               Scalar rgsq = dxcbm*dxcbm + dycbm*dycbm + dzcbm*dzcbm;
-               Scalar rg = sqrt(rgsq);
+		Scalar raasq = aax*aax + aay*aay + aaz*aaz;
+		Scalar rbbsq = bbx*bbx + bby*bby + bbz*bbz;
+		Scalar rgsq = dxcbm*dxcbm + dycbm*dycbm + dzcbm*dzcbm;
+		Scalar rg = sqrt(rgsq);
 
-               Scalar rginv, raa2inv, rbb2inv;
-               rginv = raa2inv = rbb2inv = 0.0f;
-               if (rg > 0.0f) rginv = 1.0f/rg;
-               if (raasq > 0.0f) raa2inv = 1.0f/raasq;
-               if (rbbsq > 0.0f) rbb2inv = 1.0f/rbbsq;
-               Scalar rabinv = sqrt(raa2inv*rbb2inv);
+		Scalar rginv, raa2inv, rbb2inv;
+		rginv = raa2inv = rbb2inv = 0.0f;
+		if (rg > 0.0f) rginv = 1.0f/rg;
+		if (raasq > 0.0f) raa2inv = 1.0f/raasq;
+		if (rbbsq > 0.0f) rbb2inv = 1.0f/rbbsq;
+		Scalar rabinv = sqrt(raa2inv*rbb2inv);
 
-               Scalar c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
-               Scalar s_abcd = rg*rabinv*(aax*dxdc + aay*dydc + aaz*dzdc); 
+		Scalar c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
+		Scalar s_abcd = rg*rabinv*(aax*dxdc + aay*dydc + aaz*dzdc); 
 
-               if (c_abcd > 1.0) c_abcd = 1.0;
-               if (c_abcd < -1.0) c_abcd = -1.0;
+		if (c_abcd > 1.0) c_abcd = 1.0;
+		if (c_abcd < -1.0) c_abcd = -1.0;
 
-               int multi = (int)m_multi[dihedral.type];
-               Scalar p = 1.0f;
-               Scalar dfab = 0.0f;
-               Scalar ddfab;
+		int multi = (int)m_multi[dihedral.type];
+		Scalar p = 1.0f;
+		Scalar dfab = 0.0f;
+		Scalar ddfab;
 
-               for(int j = 0; j < multi; j++)
-               {
-                 ddfab = p*c_abcd - dfab*s_abcd;
-                 dfab = p*s_abcd + dfab*c_abcd; 
-                 p = ddfab;             
-               }
-              
+		for(int j = 0; j < multi; j++)
+		{
+			ddfab = p*c_abcd - dfab*s_abcd;
+			dfab = p*s_abcd + dfab*c_abcd; 
+			p = ddfab;
+		}
+
 /////////////////////////
 // FROM LAMMPS: sin_shift is always 0... so dropping all sin_shift terms!!!!
 /////////////////////////
 
-               Scalar sign = m_sign[dihedral.type];
-               p = p*sign;
-               dfab = dfab*sign;
-               dfab *= (Scalar)-multi;
-               p += 1.0f;
+		Scalar sign = m_sign[dihedral.type];
+		p = p*sign;
+		dfab = dfab*sign;
+		dfab *= (Scalar)-multi;
+		p += 1.0f;
 
-               if (multi == 0)
-               {
-                 p =  1.0f + sign;
-                 dfab = 0.0f;
-               }
+		if (multi == 0)
+		{
+			p =  1.0f + sign;
+			dfab = 0.0f;
+		}
 
 
-               Scalar fg = dxab*dxcbm + dyab*dycbm + dzab*dzcbm;
-               Scalar hg = dxdc*dxcbm + dydc*dycbm + dzdc*dzcbm;
+		Scalar fg = dxab*dxcbm + dyab*dycbm + dzab*dzcbm;
+		Scalar hg = dxdc*dxcbm + dydc*dycbm + dzdc*dzcbm;
 
-               Scalar fga = fg*raa2inv*rginv;
-               Scalar hgb = hg*rbb2inv*rginv;
-               Scalar gaa = -raa2inv*rg;
-               Scalar gbb = rbb2inv*rg;
+		Scalar fga = fg*raa2inv*rginv;
+		Scalar hgb = hg*rbb2inv*rginv;
+		Scalar gaa = -raa2inv*rg;
+		Scalar gbb = rbb2inv*rg;
 
-               Scalar dtfx = gaa*aax;
-               Scalar dtfy = gaa*aay;
-               Scalar dtfz = gaa*aaz;
-               Scalar dtgx = fga*aax - hgb*bbx;
-               Scalar dtgy = fga*aay - hgb*bby;
-               Scalar dtgz = fga*aaz - hgb*bbz;
-               Scalar dthx = gbb*bbx;
-               Scalar dthy = gbb*bby;
-               Scalar dthz = gbb*bbz;
-    
-               Scalar df = -m_K[dihedral.type] * dfab;
-    
-               Scalar sx2 = df*dtgx;
-               Scalar sy2 = df*dtgy;
-               Scalar sz2 = df*dtgz;
-       
-               Scalar ffax = df*dtfx;
-               Scalar ffay= df*dtfy;
-               Scalar ffaz = df*dtfz;
+		Scalar dtfx = gaa*aax;
+		Scalar dtfy = gaa*aay;
+		Scalar dtfz = gaa*aaz;
+		Scalar dtgx = fga*aax - hgb*bbx;
+		Scalar dtgy = fga*aay - hgb*bby;
+		Scalar dtgz = fga*aaz - hgb*bbz;
+		Scalar dthx = gbb*bbx;
+		Scalar dthy = gbb*bby;
+		Scalar dthz = gbb*bbz;
 
-               Scalar ffbx = sx2 - ffax;
-               Scalar ffby = sy2 - ffay;
-               Scalar ffbz = sz2 - ffaz;
+		Scalar df = -m_K[dihedral.type] * dfab;
 
-               Scalar ffdx = df*dthx;
-               Scalar ffdy = df*dthy;
-               Scalar ffdz = df*dthz;
+		Scalar sx2 = df*dtgx;
+		Scalar sy2 = df*dtgy;
+		Scalar sz2 = df*dtgz;
 
-               Scalar ffcx = -sx2 - ffdx;
-               Scalar ffcy = -sy2 - ffdy;
-               Scalar ffcz = -sz2 - ffdz;
+		Scalar ffax = df*dtfx;
+		Scalar ffay= df*dtfy;
+		Scalar ffaz = df*dtfz;
 
-               // Now, apply the force to each individual atom a,b,c,d
-               // and accumlate the energy/virial
-               // compute 1/4 of the energy, 1/4 for each atom in the dihedral
-               Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
+		Scalar ffbx = sx2 - ffax;
+		Scalar ffby = sy2 - ffay;
+		Scalar ffbz = sz2 - ffaz;
 
-               Scalar vx = dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx;
-               Scalar vy = dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy;
-               Scalar vz = dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz;
+		Scalar ffdx = df*dthx;
+		Scalar ffdy = df*dthy;
+		Scalar ffdz = df*dthz;
 
-               // compute 1/4 of the virial, 1/4 for each atom in the dihedral
-               Scalar dihedral_virial = Scalar(1.0/12.0)*(vx + vy + vz);
+		Scalar ffcx = -sx2 - ffdx;
+		Scalar ffcy = -sy2 - ffdy;
+		Scalar ffcz = -sz2 - ffdz;
 
-               m_fx[idx_a] += ffax;
-               m_fy[idx_a] += ffay;
-               m_fz[idx_a] += ffaz;
-               m_pe[idx_a] += dihedral_eng;
-               m_virial[idx_a] += dihedral_virial;
+		// Now, apply the force to each individual atom a,b,c,d
+		// and accumlate the energy/virial
+		// compute 1/4 of the energy, 1/4 for each atom in the dihedral
+		Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
 
-               m_fx[idx_b] += ffbx;
-               m_fy[idx_b] += ffby;
-               m_fz[idx_b] += ffbz;
-               m_pe[idx_b] += dihedral_eng;
-               m_virial[idx_b] += dihedral_virial;
+		Scalar vx = dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx;
+		Scalar vy = dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy;
+		Scalar vz = dzab*ffaz + dzcb*ffcz + (dzdc+dzcb)*ffdz;
 
-	       m_fx[idx_c] += ffcx;
-	       m_fy[idx_c] += ffcy;
-	       m_fz[idx_c] += ffcz;
-               m_pe[idx_c] += dihedral_eng;
-               m_virial[idx_c] += dihedral_virial;
+		// compute 1/4 of the virial, 1/4 for each atom in the dihedral
+		Scalar dihedral_virial = Scalar(1.0/12.0)*(vx + vy + vz);
 
-	       m_fx[idx_d] += ffdx;
-	       m_fy[idx_d] += ffdy;
-	       m_fz[idx_d] += ffdz;
-               m_pe[idx_d] += dihedral_eng;
-               m_virial[idx_d] += dihedral_virial;
+		m_fx[idx_a] += ffax;
+		m_fy[idx_a] += ffay;
+		m_fz[idx_a] += ffaz;
+		m_pe[idx_a] += dihedral_eng;
+		m_virial[idx_a] += dihedral_virial;
+
+		m_fx[idx_b] += ffbx;
+		m_fy[idx_b] += ffby;
+		m_fz[idx_b] += ffbz;
+		m_pe[idx_b] += dihedral_eng;
+		m_virial[idx_b] += dihedral_virial;
+
+		m_fx[idx_c] += ffcx;
+		m_fy[idx_c] += ffcy;
+		m_fz[idx_c] += ffcz;
+		m_pe[idx_c] += dihedral_eng;
+		m_virial[idx_c] += dihedral_virial;
+
+		m_fx[idx_d] += ffdx;
+		m_fy[idx_d] += ffdy;
+		m_fz[idx_d] += ffdz;
+		m_pe[idx_d] += dihedral_eng;
+		m_virial[idx_d] += dihedral_virial;
 
 		// FLOPS: ?? / MEM TRANSFER: ?? Scalars
 		}
@@ -459,10 +459,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 	m_data_location = cpu;
 	#endif
 
-        // ALL TIMING STUFF HAS BEEN COMMENTED OUT... if you uncomment, re-count all memtransfers and flops
-	//int64_t flops = size*(3 + 9 + 14 + 2 + 16);
-	//int64_t mem_transfer = m_pdata->getN() * 5 * sizeof(Scalar) + size * ( (4)*sizeof(unsigned int) + (6+2+20)*sizeof(Scalar) );
-	//if (m_prof) m_prof->pop(flops, mem_transfer);
+	if (m_prof) m_prof->pop();
 	}
 	
 void export_HarmonicDihedralForceCompute()

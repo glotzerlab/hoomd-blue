@@ -74,15 +74,15 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
 	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 64;
+		m_block_size = 32;
 	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 64;
+		m_block_size = 32;
 	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 288;
+		m_block_size = 128;
 	else
 		{
 		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for HarmonicImproperForceComputeGPU" << endl;
-		m_block_size = 64;
+		m_block_size = 32;
 		}
 	
 	// allocate and zero device memory
@@ -143,7 +143,7 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
 void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 	{
 	// start the profile
-	//if (m_prof) m_prof->push(exec_conf, "Improper");
+	if (m_prof) m_prof->push(exec_conf, "Harmonic Improper");
 		
 	vector<gpu_impropertable_array>& gpu_impropertable = m_improper_data->acquireGPU();
 	
@@ -162,10 +162,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 	
 	m_pdata->release();
 	
-        // UNCOMMENT BELOW FOR SOME KIND OF PERFORMANCE CHECK... but first, count all the flops + memory transfers
-	//int64_t mem_transfer = m_pdata->getN() * 4+16+20 + m_improper_data->getNumImproper() * 2 * (8+16+8);
-	//int64_t flops = m_improper_data->getNumImproper() * 2 * (3+12+16+3+7);
-	//if (m_prof)	m_prof->pop(exec_conf, flops, mem_transfer);
+	if (m_prof)	m_prof->pop(exec_conf);
 	}
 
 void export_HarmonicImproperForceComputeGPU()

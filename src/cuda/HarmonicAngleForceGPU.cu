@@ -82,17 +82,14 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(gpu_force_da
 	// load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
 	int n_angles = alist.n_angles[idx_local];
 
-        // 
-        
 	// read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-        float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx_global);  // we can be either a, b, or c in the a-b-c triplet
-        float4 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
+	float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx_global);  // we can be either a, b, or c in the a-b-c triplet
+	float4 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
 
 	// initialize the force to 0
 	float4 force_idx = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-        float fab[3], fcb[3];
-
+	float fab[3], fcb[3];
 
 	// initialize the virial to 0
 	float virial_idx = 0.0f;	
@@ -118,37 +115,37 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(gpu_force_da
 		// get the c-particle's position (MEM TRANSFER: 16 bytes)
 		float4 y_pos = tex1Dfetch(pdata_pos_tex, cur_angle_y_idx);
 
-                if(cur_angle_abc == 0)
-                {
-                a_pos = idx_pos;
-                b_pos = x_pos;
-                c_pos = y_pos;
-                }
-                if(cur_angle_abc == 1)
-                {
-                b_pos = idx_pos;
-                a_pos = x_pos;
-                c_pos = y_pos;
-                }
-                if(cur_angle_abc == 2)
-                {
-                c_pos = idx_pos;
-                a_pos = x_pos;
-                b_pos = y_pos;
-                }
+		if(cur_angle_abc == 0)
+			{
+			a_pos = idx_pos;
+			b_pos = x_pos;
+			c_pos = y_pos;
+			}
+		if(cur_angle_abc == 1)
+			{
+			b_pos = idx_pos;
+			a_pos = x_pos;
+			c_pos = y_pos;
+			}
+		if(cur_angle_abc == 2)
+			{
+			c_pos = idx_pos;
+			a_pos = x_pos;
+			b_pos = y_pos;
+			}
 
 		// calculate dr for a-b,c-b,and a-c(FLOPS: 9)
-                float dxab = a_pos.x - b_pos.x;
-                float dyab = a_pos.y - b_pos.y;
-                float dzab = a_pos.z - b_pos.z;
+		float dxab = a_pos.x - b_pos.x;
+		float dyab = a_pos.y - b_pos.y;
+		float dzab = a_pos.z - b_pos.z;
 
-                float dxcb = c_pos.x - b_pos.x;
-                float dycb = c_pos.y - b_pos.y;
-                float dzcb = c_pos.z - b_pos.z;
+		float dxcb = c_pos.x - b_pos.x;
+		float dycb = c_pos.y - b_pos.y;
+		float dzcb = c_pos.z - b_pos.z;
 
-                float dxac = a_pos.x - c_pos.x;
-                float dyac = a_pos.y - c_pos.y;
-                float dzac = a_pos.z - c_pos.z;
+		float dxac = a_pos.x - c_pos.x;
+		float dyac = a_pos.y - c_pos.y;
+		float dzac = a_pos.z - c_pos.z;
 
 		// apply periodic boundary conditions (FLOPS: 36)
 		dxab -= box.Lx * rintf(dxab * box.Lxinv);
@@ -170,84 +167,77 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(gpu_force_da
 
 		
 		// FLOPS: was 16, now... ?
-                float rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
-                float rab = sqrtf(rsqab);
-                float rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
-                float rcb = sqrtf(rsqcb);
+		float rsqab = dxab*dxab+dyab*dyab+dzab*dzab;
+		float rab = sqrtf(rsqab);
+		float rsqcb = dxcb*dxcb+dycb*dycb+dzcb*dzcb;
+		float rcb = sqrtf(rsqcb);
 
-                float c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
-                c_abbc /= rab*rcb;
-
-
-                if (c_abbc > 1.0f) c_abbc = 1.0f;
-                if (c_abbc < -1.0f) c_abbc = -1.0f;
-
-                float s_abbc = sqrtf(1.0f - c_abbc*c_abbc);
-                if (s_abbc < SMALL) s_abbc = SMALL;
-                s_abbc = 1.0f/s_abbc;
+		float c_abbc = dxab*dxcb+dyab*dycb+dzab*dzcb;
+		c_abbc /= rab*rcb;
 
 
-                // actually calculate the force
-                float dth = acosf(c_abbc) - t_0;
-                float tk = K*dth;
+		if (c_abbc > 1.0f) c_abbc = 1.0f;
+		if (c_abbc < -1.0f) c_abbc = -1.0f;
 
-                float a = -2.0f * tk * s_abbc;
-                float a11 = a*c_abbc/rsqab;
-                float a12 = -a / (rab*rcb);              
-                float a22 = a*c_abbc / rsqcb;
-  
-                fab[0] = a11*dxab + a12*dxcb;
-                fab[1] = a11*dyab + a12*dycb;
-                fab[2] = a11*dzab + a12*dzcb; 
-
-                fcb[0] = a22*dxcb + a12*dxab;
-                fcb[1] = a22*dycb + a12*dyab; 
-                fcb[2] = a22*dzcb + a12*dzab;              
-
-                // compute 1/3 of the energy, 1/3 for each atom in the angle
-                float angle_eng = tk*dth*float(1.0f/6.0f);
-
-                // do we really need a virial here for harmonic angles?
-                // ... if not, this may be wrong...
-                float vx = dxab*fab[0] + dxcb*fcb[0];
-                float vy = dyab*fab[1] + dycb*fcb[1];
-                float vz = dzab*fab[2] + dzcb*fcb[2];
-
-                float angle_virial = float(1.0f/6.0f)*(vx + vy + vz);
-
-                if(cur_angle_abc == 0)
-                {
-                  force_idx.x += fab[0];
-                  force_idx.y += fab[1];
-                  force_idx.z += fab[2];
+		float s_abbc = sqrtf(1.0f - c_abbc*c_abbc);
+		if (s_abbc < SMALL) s_abbc = SMALL;
+		s_abbc = 1.0f/s_abbc;
 
 
-                }
-                if(cur_angle_abc == 1)
-                {
-                  force_idx.x -= fab[0] + fcb[0];
-                  force_idx.y -= fab[1] + fcb[1];
-                  force_idx.z -= fab[2] + fcb[2];
+		// actually calculate the force
+		float dth = acosf(c_abbc) - t_0;
+		float tk = K*dth;
 
-                }
-                if(cur_angle_abc == 2)
-                {
-                  force_idx.x += fcb[0];
-                  force_idx.y += fcb[1];
-                  force_idx.z += fcb[2];
+		float a = -2.0f * tk * s_abbc;
+		float a11 = a*c_abbc/rsqab;
+		float a12 = -a / (rab*rcb);
+		float a22 = a*c_abbc / rsqcb;
 
-                }
+		fab[0] = a11*dxab + a12*dxcb;
+		fab[1] = a11*dyab + a12*dycb;
+		fab[2] = a11*dzab + a12*dzcb;
 
-                  force_idx.w += angle_eng;
-                  virial_idx += angle_virial;
+		fcb[0] = a22*dxcb + a12*dxab;
+		fcb[1] = a22*dycb + a12*dyab;
+		fcb[2] = a22*dzcb + a12*dzab;
 
+		// compute 1/3 of the energy, 1/3 for each atom in the angle
+		float angle_eng = tk*dth*float(1.0f/6.0f);
+
+		// do we really need a virial here for harmonic angles?
+		// ... if not, this may be wrong...
+		float vx = dxab*fab[0] + dxcb*fcb[0];
+		float vy = dyab*fab[1] + dycb*fcb[1];
+		float vz = dzab*fab[2] + dzcb*fcb[2];
+
+		float angle_virial = float(1.0f/6.0f)*(vx + vy + vz);
+
+		if(cur_angle_abc == 0)
+			{
+			force_idx.x += fab[0];
+			force_idx.y += fab[1];
+			force_idx.z += fab[2];
+			}
+		if(cur_angle_abc == 1)
+			{
+			force_idx.x -= fab[0] + fcb[0];
+			force_idx.y -= fab[1] + fcb[1];
+			force_idx.z -= fab[2] + fcb[2];
+			}
+		if(cur_angle_abc == 2)
+			{
+			force_idx.x += fcb[0];
+			force_idx.y += fcb[1];
+			force_idx.z += fcb[2];
+			}
+
+		force_idx.w += angle_eng;
+		virial_idx += angle_virial;
 		}
 			
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
 	force_data.force[idx_local] = force_idx;
 	force_data.virial[idx_local] = virial_idx;
-
-
 	}
 
 /*! \param force_data Force data on GPU to write forces to

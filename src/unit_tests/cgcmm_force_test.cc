@@ -125,7 +125,7 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, ExecutionCon
 	//Scalar lj1 = Scalar(0.0);
 	//Scalar lj2 = alpha * Scalar(6.75) * epsilon * pow(sigma,Scalar(6.0));	  
 	//Scalar lj3 = Scalar(6.75) * epsilon * pow(sigma,Scalar(9.0));
-        //Scalar lj4 = Scalar(0.0);
+	//Scalar lj4 = Scalar(0.0);
 
 	fc_3->setParams(0,0,lj1,lj2,lj3,lj4);
 	
@@ -236,7 +236,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConf
 	Scalar lj1 = Scalar(0.0);
 	Scalar lj2 = alpha * Scalar(6.75) * epsilon * pow(sigma,Scalar(6.0));	  
 	Scalar lj3 = Scalar(6.75) * epsilon * pow(sigma,Scalar(9.0));
-        Scalar lj4 = Scalar(0.0);
+	Scalar lj4 = Scalar(0.0);
 
 	fc_3->setParams(0,0,lj1,lj2,lj3,lj4);
 	
@@ -268,7 +268,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConf
 	lj1 = Scalar(0.0);
 	lj2 = alpha * Scalar(6.75) * epsilon * pow(sigma,Scalar(6.0));	  
 	lj3 = Scalar(6.75) * epsilon * pow(sigma,Scalar(9.0));
-        lj4 = Scalar(0.0);
+	lj4 = Scalar(0.0);
 	fc_3->setParams(0,0,lj1,lj2,lj3,lj4);
 	fc_3->compute(1);
 	
