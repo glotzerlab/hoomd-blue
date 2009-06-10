@@ -43,14 +43,67 @@ import pair
 import init
 import hoomd_script
 import hoomd
-import math
 import util
+
+import math
 import os
 import pickle
+import sys
 
 ##
 # \package hoomd_script.tune
 # \brief Commands for tuning the performance of HOOMD
+
+###########################################################################
+# Code for storing and retrieving the optimal block size for a specific command
+
+## \internal
+# \brief Default database of optimal block sizes
+#
+# Defaults are saved per compute capability and per command
+_default_block_size_db = {};
+_default_block_size_db['1.1'] = {'pair.gauss': 320, 'bond.fene': 256, 'pair.lj': 320, 'nlist': 320, 'bond.harmonic': 64};
+
+## \internal
+# \brief Optimal block size database user can load to override the defaults
+_override_block_size_db = None;
+
+## \internal
+# \brief Retrieves the optimal block size saved in the database
+#
+# \param name Name of the command to get the optimal block size for
+#
+# First, the user override db will be checked: if the value is present there
+# it will be returned.
+#
+# If no override is specified, the optimal block size will be retrieved from
+# the default database above
+def _get_optimal_block_size(name):
+	
+	if _override_block_size_db != None:
+		# check for the override first
+		if name in _override_block_size_db:
+			return _override_block_size_db[name];
+		else:
+			print >> sys.stderr, "\n***Error! Block size override db does not contain a value for", name, ".\n";
+			raise RuntimeError("Error retrieving optimal block size");
+	else:
+		# check in the default db
+		compute_cap = globals.particle_data.getExecConf().getComputeCapability();
+		if compute_cap in _default_block_size_db:
+			if name in _default_block_size_db[compute_cap]:
+				return _default_block_size_db[compute_cap][name];
+			else:
+				print >> sys.stderr, "\n***Error! Default block size db does not contain a value for", name, ".\n";
+				raise RuntimeError("Error retrieving optimal block size");
+		else:
+			print >> sys.stderr, "\n***Error! No default optimal block sizes specified for compute capability", compute_cap, ".\n";
+			raise RuntimeError("Error retrieving optimal block size");
+
+
+
+###########################################################################
+# Code for tuning and saving the optimal block size
 
 ## \internal
 # \brief Finds the optimal block size for a given force compute
@@ -185,15 +238,16 @@ def _save_override_file(common_optimal_db):
 	
 ## Determine optimal block size tuning parameters
 #
-# 
-def find_optimal_block_sizes():
+# \param prompt Set to False to disable user prompts when running as a batch job
+#
+def find_optimal_block_sizes(prompt = True):
 	util._disable_status_lines = True;
 	
 	# list of force computes to tune
 	fc_list = [	('pair.lj', '(r_cut=3.0)', 500),
 		     	('pair.gauss', '(r_cut=3.0)', 500),
 				('bond.harmonic', '()', 10000),
-				('bond.fene', '()', 10000)
+				('bond.fene', '()', 5000)
 				];
 	
 	# setup the particle system to benchmark
@@ -249,6 +303,5 @@ def find_optimal_block_sizes():
 		
 	print '*****************'
 	print
-	_save_override_file(common_optimal_db);
-	
-	
+	if prompt:
+		_save_override_file(common_optimal_db);

@@ -46,6 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUWorker.h"
 
 #include <vector>
+#include <string>
 #include <boost/shared_ptr.hpp>
 
 /*! \file ExecutionConfiguration.h
@@ -112,6 +113,9 @@ struct ExecutionConfiguration
 
 	//! Checks all GPUs in the execution configuration to see if they meet the CUDA_ARCH min req.
 	void checkCudaArch();
+	
+	//! Get the compute capability of the GPU that we are running on
+	std::string getComputeCapability();
 	#endif
 	};
 
