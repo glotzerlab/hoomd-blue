@@ -795,7 +795,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
  */
 void NeighborList::addOneFourExclusionsFromTopology()
 	{
-	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
+	boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 	unsigned int nBonds = bond_data->getNumBonds();
 	unsigned int nBonds1 = nBonds - 1;
 	
