@@ -63,10 +63,12 @@ import sys
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
 _default_block_size_db['1.1'] = {'pair.gauss': 320, 'bond.fene': 256, 'pair.lj': 320, 'nlist': 320, 'bond.harmonic': 64};
+_default_block_size_db['1.3'] = {'pair.gauss': 224, 'bond.fene': 288, 'pair.lj': 384, 'nlist': 128, 'bond.harmonic': 352}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
 _override_block_size_db = None;
+_override_block_size_compute_cap = None;
 
 ## \internal
 # \brief Retrieves the optimal block size saved in the database
@@ -79,27 +81,38 @@ _override_block_size_db = None;
 # If no override is specified, the optimal block size will be retrieved from
 # the default database above
 def _get_optimal_block_size(name):
+	compute_cap = globals.particle_data.getExecConf().getComputeCapability();
 	
+	# check for the override first
 	if _override_block_size_db != None:
-		# check for the override first
-		if name in _override_block_size_db:
-			return _override_block_size_db[name];
-		else:
-			print >> sys.stderr, "\n***Error! Block size override db does not contain a value for", name, ".\n";
-			raise RuntimeError("Error retrieving optimal block size");
-	else:
-		# check in the default db
-		compute_cap = globals.particle_data.getExecConf().getComputeCapability();
-		if compute_cap in _default_block_size_db:
-			if name in _default_block_size_db[compute_cap]:
-				return _default_block_size_db[compute_cap][name];
+		# first verify the compute capability
+		if compute_cap == _override_block_size_compute_cap:		
+			if name in _override_block_size_db:
+				return _override_block_size_db[name];
 			else:
-				print >> sys.stderr, "\n***Error! Default block size db does not contain a value for", name, ".\n";
+				print >> sys.stderr, "\n***Error! Block size override db does not contain a value for", name, ".\n";
 				raise RuntimeError("Error retrieving optimal block size");
 		else:
-			print >> sys.stderr, "\n***Error! No default optimal block sizes specified for compute capability", compute_cap, ".\n";
-			raise RuntimeError("Error retrieving optimal block size");
+			print "\n***Warning! The compute capability of the current GPU is", compute_cap, "while the override was tuned on a", _override_block_size_compute_cap, "GPU"
+			print "              Ignoring the saved override in ~/.hoomd_block_tuning and reverting to the default.\n"
 
+
+	# check in the default db
+	if compute_cap in _default_block_size_db:
+		if name in _default_block_size_db[compute_cap]:
+			return _default_block_size_db[compute_cap][name];
+		else:
+			print >> sys.stderr, "\n***Error! Default block size db does not contain a value for", name, ".\n";
+			raise RuntimeError("Error retrieving optimal block size");
+	else:
+		print "\n***Warning! Optimal block size tuning values are not present for your hardware with compute capability", compute_cap;
+		print "              To obtain better performance, execute the following hoomd script to determine the optimal"
+		print "              settings and save them in your home directory. Future invocations of hoomd will use these"
+		print "              saved values\n"
+		print "              # block size tuning script"
+		print "              from hoomd_script import *"
+		print "              tune.find_optimal_block_sizes()\n"
+		return 64
 
 
 ###########################################################################
@@ -206,23 +219,12 @@ def _choose_optimal_block_sizes(optimal_dbs):
 # \param common_optimal_db Dictionary of the common optimal block sizes identified
 # 
 def _save_override_file(common_optimal_db):
-	# ask if the user wants to save
-	save_response = raw_input("Save the determined optimal settings (y/n)? ");
-	if not (save_response == "y" or save_response == "Y"):
-		return;
-	
-	# get the filename from the user
-	default_fname = os.getenv('HOME') + '/.hoomd_block_tuning';
-	fname = raw_input("Enter filename (press enter for " + default_fname + "): ");
-	if fname == '':
-		fname = default_fname;
+	fname = os.getenv('HOME') + '/.hoomd_block_tuning';
 	
 	# see if the user really wants to overwrite the file
 	if os.path.isfile(fname):
-		overwrite_response = raw_input("File exists, do you want to overwrite it (y/n)? ");
-		if not (overwrite_response == "y" or overwrite_response == "Y"):
-			return;
-	
+		print "\nWarning!", fname, "exists. This file is being overwritten with new settings\n";	
+
 	# save the file
 	f = file(fname, 'w');
 	print 'Writing optimal block sizes to', fname
@@ -231,6 +233,8 @@ def _save_override_file(common_optimal_db):
 	pickle.dump(0, f);
 	# write out the version this was tuned on
 	pickle.dump(hoomd.get_hoomd_version(), f);
+	# write out the compute capability of the GPU this was tuned on
+	pickle.dump(globals.particle_data.getExecConf().getComputeCapability());
 	# write out the dictionary
 	pickle.dump(common_optimal_db, f);
 	
@@ -240,7 +244,7 @@ def _save_override_file(common_optimal_db):
 #
 # \param prompt Set to False to disable user prompts when running as a batch job
 #
-def find_optimal_block_sizes(prompt = True):
+def find_optimal_block_sizes(save = True):
 	util._disable_status_lines = True;
 	
 	# list of force computes to tune
@@ -287,9 +291,6 @@ def find_optimal_block_sizes(prompt = True):
 		# add it to the list
 		optimal_dbs.append(optimal_db);
 	
-	init.reset();
-	util._disable_status_lines = False;
-	
 	# print out all the optimal block sizes
 	print '*****************'
 	print 'Optimal block sizes found: '
@@ -303,5 +304,8 @@ def find_optimal_block_sizes(prompt = True):
 		
 	print '*****************'
 	print
-	if prompt:
+	if save:
 		_save_override_file(common_optimal_db);
+	
+	init.reset();
+	util._disable_status_lines = False;
