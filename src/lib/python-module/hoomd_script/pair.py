@@ -269,7 +269,13 @@ class nlist:
 		box = globals.particle_data.getBox();
 		min_width_for_bin = (default_r_buff + r_cut)*3.0;
 		if (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin or (box.zhi - box.zlo) < min_width_for_bin:
-			print "Notice: Forcing use of O(N^2) neighbor list due to small box dimensions";
+			if globals.particle_data.getN() >= 2000:
+				print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
+				print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list. If your simulation is confined to a 2D"
+				print "             plane, you can increase the smallest box dimension to enable the more efficient O(N) calculation.\n"
+			else:
+				print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
+				
 			mode = "nsq";
 		
 		# create the C++ mirror class
