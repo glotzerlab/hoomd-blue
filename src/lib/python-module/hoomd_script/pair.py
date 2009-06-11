@@ -67,9 +67,11 @@
 import globals;
 import force;
 import hoomd;
+import util;
+import tune;
+
 import math;
 import sys;
-import util;
 
 ## Defines %pair coefficients
 # 
@@ -282,6 +284,7 @@ class nlist:
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			if mode == "binned":
 				self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.particle_data, r_cut, default_r_buff)
+				self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
 			elif mode == "nsq":
 				self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.particle_data, r_cut, default_r_buff)
 			else:
@@ -547,6 +550,7 @@ class lj(force._force):
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 			self.cpp_force = hoomd.LJForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating lj pair force");
@@ -748,6 +752,7 @@ class gauss(force._force):
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 			self.cpp_force = hoomd.GaussianForceGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating gauss pair force");

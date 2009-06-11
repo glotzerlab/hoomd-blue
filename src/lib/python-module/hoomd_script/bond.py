@@ -39,10 +39,12 @@
 
 import force;
 import globals;
-import math;
 import hoomd;
-import sys;
 import util;
+import tune;
+
+import math;
+import sys;
 
 ## \package hoomd_script.bond
 # \brief Commands that specify %bond forces
@@ -89,6 +91,7 @@ class harmonic(force._force):
 			self.cpp_force = hoomd.HarmonicBondForceCompute(globals.particle_data);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.HarmonicBondForceComputeGPU(globals.particle_data);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.harmonic'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");
@@ -180,6 +183,7 @@ class fene(force._force):
 			self.cpp_force = hoomd.FENEBondForceCompute(globals.particle_data);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.FENEBondForceComputeGPU(globals.particle_data);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.fene'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating bond forces");

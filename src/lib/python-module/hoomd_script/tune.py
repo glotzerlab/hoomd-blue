@@ -123,7 +123,7 @@ def _load_override_file():
 		# read and verify the version this was tuned on
 		hoomd_version = pickle.load(f);
 		if hoomd_version != hoomd.get_hoomd_version():
-			print >> sys.stderr, "\n***Warning! .hoomd_block_tuning was created with", hoomd_version, \
+			print >> sys.stderr, "\n***Warning! ~/.hoomd_block_tuning was created with", hoomd_version, \
 								", but this is", hoomd.get_hoomd_version(), ". Reverting to default performance tuning.\n";
 			return;
 		
@@ -133,7 +133,7 @@ def _load_override_file():
 		_override_block_size_db = pickle.load(f);
 		
 	else:
-		print >> sys.stderr, "\n***Error! Unknown .hoomd_block_tuning format", ver, ".\n";
+		print >> sys.stderr, "\n***Error! Unknown ~/.hoomd_block_tuning format", ver, ".\n";
 		raise RuntimeError("Error loading .hoomd_block_tuning");
 	
 	f.close();

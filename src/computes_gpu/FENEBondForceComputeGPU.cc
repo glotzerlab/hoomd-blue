@@ -62,7 +62,7 @@ using namespace std;
 /*! \param pdata ParticleData to compute bond forces on
 */
 FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: FENEBondForceCompute(pdata)
+	: FENEBondForceCompute(pdata), m_block_size(64)
 	{
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
@@ -91,24 +91,6 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<ParticleData>
 		{
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_checkr[cur_gpu]), sizeof(int)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_checkr[cur_gpu], 0, sizeof(int)));
-		}
-		
-	// default block size is the highest performance in testing on different hardware
-	// choose based on compute capability of the device
-	cudaDeviceProp deviceProp;
-	int dev;
-	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 256;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 192;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 288;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for FENEBondForceComputeGPU" << endl;
-		m_block_size = 64;
 		}
 	}
 	
