@@ -390,7 +390,7 @@ BOOST_AUTO_TEST_CASE( HarmonicDihedralForceComputeGPU_basic )
 	{
 	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
 	dihedralforce_creator tf_creator = bind(gpu_tf_creator, _1);
-	dihedral_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	dihedral_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -398,17 +398,17 @@ BOOST_AUTO_TEST_CASE( HarmonicDihedralForceComputeGPU_compare )
 	{
 	dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
 	dihedralforce_creator tf_creator = bind(base_class_tf_creator, _1);
-	dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 	
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
 BOOST_AUTO_TEST_CASE( HarmonicDihedralForce_MultiGPU_compare)
 	{
 	vector<unsigned int> gpu_list;
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
 	
 	dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);

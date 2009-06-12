@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
 BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_basic )
 	{
 	bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
-	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 	
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -405,17 +405,17 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
 	{
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-	bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 	
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
 BOOST_AUTO_TEST_CASE( HarmonicBondForce_MultiGPU_compare)
 	{
 	vector<unsigned int> gpu_list;
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
 	
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);

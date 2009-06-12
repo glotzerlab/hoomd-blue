@@ -395,10 +395,10 @@ BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_compare )
 BOOST_AUTO_TEST_CASE( FENEBondForce_MultiGPU_compare)
 	{
 	vector<unsigned int> gpu_list;
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
 	
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
