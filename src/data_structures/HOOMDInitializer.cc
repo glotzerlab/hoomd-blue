@@ -262,7 +262,7 @@ void HOOMDInitializer::readFile(const string &fname)
 		}
 		
 	// right now, the version tag doesn't do anything: just warn if it is not 1.0 or 1.1
-	if ((xml_version != string("1.0")) and (xml_version != string("1.1")))
+	if ((xml_version != string("1.0")) && (xml_version != string("1.1")))
 		cout << endl << "***Warning! hoomd_xml file with version other than 1.0 or 1.1 specified, I don't know how to read this. Continuing anyways." << endl << endl;
 
 	// the file was parsed successfully by the XML reader. Extract the information now

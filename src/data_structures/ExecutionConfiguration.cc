@@ -56,6 +56,7 @@ using namespace boost::python;
 
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 using namespace boost;
@@ -369,6 +370,28 @@ void ExecutionConfiguration::checkCudaArch()
 			}
 		}
 	}
+	
+/*! \returns Compute capability of GPU 0 as a string
+	\note Silently returns an emtpy string if no GPUs are specified
+*/
+std::string ExecutionConfiguration::getComputeCapability()
+	{
+	ostringstream s;
+	
+	if (gpu.size() > 0)
+		{
+		cudaDeviceProp dev_prop;
+		int dev;
+			
+		// get the device and poperties
+		gpu[0]->call(bind(cudaGetDevice, &dev));
+		gpu[0]->call(bind(cudaGetDeviceProperties, &dev_prop, dev));
+		
+		s << dev_prop.major << "." << dev_prop.minor;
+		}
+	
+	return s.str();
+	}
 #endif
 
 void export_ExecutionConfiguration()
@@ -378,6 +401,7 @@ void export_ExecutionConfiguration()
 		.def(init<ExecutionConfiguration::executionMode, unsigned int>())
 		.def(init<ExecutionConfiguration::executionMode, vector<unsigned int> >())
 		.def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
+		.def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
 		;
 		
 	enum_<ExecutionConfiguration::executionMode>("executionMode")
