@@ -57,7 +57,7 @@ hoomd some_script.hoomd --ngpu=N
 \endcode
 , where N is an integer
 
-Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA application to run on that GPU. If you have
+Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA application to run on each GPU. If you have
 4 compute-exclusive GPUs available in the system, executing a fifth instace of HOOMD with "hoomd some_script.hoomd"
 will result in the error: ***Error! no CUDA-capable device is available ... 
 <hr>
