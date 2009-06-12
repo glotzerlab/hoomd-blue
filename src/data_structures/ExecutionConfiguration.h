@@ -89,10 +89,10 @@ struct ExecutionConfiguration
 	ExecutionConfiguration();
 	
 	//! Single GPU selection constructor
-	ExecutionConfiguration(executionMode mode, unsigned int gpu_id);
+	ExecutionConfiguration(executionMode mode, int gpu_id);
 	
 	//! Multi GPU selection constructor
-	ExecutionConfiguration(executionMode mode, const std::vector<unsigned int>& gpu_ids);
+	ExecutionConfiguration(executionMode mode, const std::vector<int>& gpu_ids);
 	
 	executionMode exec_mode;	//!< Execution mode specified in the constructor
 	

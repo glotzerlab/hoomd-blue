@@ -60,13 +60,18 @@ using namespace std;
 	
 	Constructing a GPUWorker creates the worker thread and immeadiately assigns it to 
 	a device with cudaSetDevice().
+	
+	\note: Pass \a dev = -1 in order to skip the cudaSetDevice call. This is intended for use
+		with CUDA 2.2 automatic GPU assignment on linux with compute exclusive GPUs.
 */
 GPUWorker::GPUWorker(int dev) : m_exit(false), m_work_to_do(false), m_last_error(cudaSuccess)
 	{
-	m_tagged_file = "n/a";
-	m_tagged_line = 0;
+	m_tagged_file = __FILE__;
+	m_tagged_line = __LINE__;
 	m_thread.reset(new thread(bind(&GPUWorker::performWorkLoop, this)));
-	call(bind(cudaSetDevice, dev));
+	
+	if (dev != -1)
+		call(bind(cudaSetDevice, dev));
 	}
 	
 /*! Shuts down the worker thread

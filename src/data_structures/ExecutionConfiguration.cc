@@ -107,7 +107,7 @@ ExecutionConfiguration::ExecutionConfiguration()
 			
 			exec_mode = GPU;
 			#else
-			gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(0)));
+			gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(-1)));
 			exec_mode = GPU;
 			#endif
 			}
@@ -125,7 +125,7 @@ ExecutionConfiguration::ExecutionConfiguration()
 	
 	No GPU is initialized if mode==cpu
 */
-ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int gpu_id)
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id)
 	{
 	exec_mode = mode;
 	
@@ -142,11 +142,18 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int 
 			}
 		else
 			{
-			if ((unsigned int)dev_count > gpu_id)
+			if (dev_count > gpu_id)
 				gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id)));
 			else
 				{
-				cerr << endl << "***Error! GPU " << gpu_id << " was requested, but only " << dev_count << " was/were found" << endl << endl;
+				cerr << endl << "***Error! GPU " << gpu_id << " was requested, but ";
+				if (dev_count == 0)
+					cerr << "none were found" << endl << endl;
+				else if (dev_count == 1)
+					cerr << "only 1 was found" << endl << endl;
+				else if (dev_count > 1)
+					cerr << "only" <<  dev_count << " were found" << endl << endl;
+					
 				throw runtime_error("Error initializing execution configuration");
 				}
 			}
@@ -161,7 +168,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, unsigned int 
 	
 	No GPU is initialized if mode==cpu
 */
-ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::vector<unsigned int>& gpu_ids)
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::vector<int>& gpu_ids)
 	{
 	exec_mode = mode;
 	
@@ -187,11 +194,18 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::ve
 				
 			for (unsigned int i = 0; i < gpu_ids.size(); i++)
 				{
-				if ((unsigned int)dev_count > gpu_ids[i])
+				if (dev_count > gpu_ids[i])
 					gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_ids[i])));
 				else
 					{
-					cerr << endl << "***Error! GPU " << gpu_ids[i] << " was requested, but only " << dev_count << " was/were found" << endl << endl;
+					cerr << endl << "***Error! GPU " << gpu_ids[i] << " was requested, but ";
+					if (dev_count == 0)
+						cerr << "none were found" << endl << endl;
+					else if (dev_count == 1)
+						cerr << "only 1 was found" << endl << endl;
+					else if (dev_count > 1)
+						cerr << "only " << dev_count << " were found" << endl << endl;
+						
 					throw runtime_error("Error initializing execution configuration");
 					}
 				}
@@ -398,8 +412,8 @@ void export_ExecutionConfiguration()
 	{
 	scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
 		("ExecutionConfiguration", init< >())
-		.def(init<ExecutionConfiguration::executionMode, unsigned int>())
-		.def(init<ExecutionConfiguration::executionMode, vector<unsigned int> >())
+		.def(init<ExecutionConfiguration::executionMode, int>())
+		.def(init<ExecutionConfiguration::executionMode, vector<int> >())
 		.def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
 		.def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
 		;

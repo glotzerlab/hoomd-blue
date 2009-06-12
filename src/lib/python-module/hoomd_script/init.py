@@ -439,6 +439,7 @@ def _parse_command_line():
 	parser = OptionParser();
 	parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
 	parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
+	parser.add_option("--ngpu", dest="ngpu", help="Number of GPUs to execute on (requires that CUDA 2.2 compute-exclusive mode be enabled on all GPUs)");
 	parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
 	
 	(_options, args) = parser.parse_args();
@@ -453,8 +454,11 @@ def _parse_command_line():
 		parser.error("It doesn't make sense to specify --mode=cpu and a value for --gpu")
 
 	# set the mode to gpu if the gpu # was set
-	if _options.gpu and not _options.mode:
+	if (_options.gpu and not _options.mode) or (_options.ngpu and not _options.mode):
 		_options.mode = "gpu"
+		
+	if _options.gpu and _options.ngpu:
+		parser.error("--gpu and --ngpu are mutually exclusive options")
 		
 	# if gpu_error_checking is set, enable it on the GPU
 	if _options.gpu_error_checking:
@@ -472,15 +476,18 @@ def _create_exec_conf():
 		exec_conf = hoomd.ExecutionConfiguration();
 	else:
 		# create a list of GPUs to execute on
-		gpu_ids = hoomd.std_vector_uint();
+		gpu_ids = hoomd.std_vector_int();
 		if _options.gpu:
 			# parse the list of gpus
 			string_gpu_list = _options.gpu.split(",")
 			for gpu in string_gpu_list:
-				gpu_ids.push_back(int(gpu));
+				gpu_ids.append(int(gpu));
+		elif _options.ngpu:
+			for i in xrange(0, int(_options.ngpu)):
+				gpu_ids.append(-1);
 		else:
-			# otherwise, assume GPU 0
-			gpu_ids.push_back(0);
+			# otherwise, assume the default GPU
+			gpu_ids.append(-1);
 		
 		# create the specified configuration
 		if _options.mode == "cpu":

@@ -384,7 +384,7 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborListMultiGPU_tests )
 	nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
 	nlist_creator_typ gpu_creator = bind(gpu_binned_nlist_creator, _1, _2, _3);
 	
-	vector<unsigned int> gpu_list;
+	vector<int> gpu_list;
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
