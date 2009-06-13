@@ -144,7 +144,7 @@ def read_xml(filename, time_step = None):
 	globals.particle_data = hoomd.ParticleData(initializer, _create_exec_conf());
 	
 	# initialize the system
-	if time_step != None:
+	if time_step == None:
 		globals.system = hoomd.System(globals.particle_data, initializer.getTimeStep());
 	else:
 		initializer.setTimeStep(time_step)
