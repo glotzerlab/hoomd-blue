@@ -126,6 +126,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDVersion.h"
 
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 
@@ -298,6 +299,10 @@ BOOST_PYTHON_MODULE(hoomd)
 	def("find_vmd", &find_vmd);
 	def("set_gpu_error_checking", &set_gpu_error_checking);
 	def("get_hoomd_version", &get_hoomd_version);
+
+	// data structures
+	class_<std::vector<int> >("std_vector_int")
+		.def(vector_indexing_suite<std::vector<int> >());
 
 	InstallSIGINTHandler();
 

@@ -527,7 +527,7 @@ BOOST_AUTO_TEST_CASE( CGCMMForceGPU_compare )
 //! boost test case for comparing multi-GPU output to base class output
 BOOST_AUTO_TEST_CASE( CGCMMForceMultiGPU_compare )
 	{
-	vector<unsigned int> gpu_list;
+	vector<int> gpu_list;
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());

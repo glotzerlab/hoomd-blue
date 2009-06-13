@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForce_periodic )
 BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_particle )
 	{
 	shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);
-	shiftedlj_force_particle_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	shiftedlj_force_particle_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 
 
@@ -405,7 +405,7 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_particle )
 BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_periodic )
 	{
 	shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);
-	shiftedlj_force_periodic_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	shiftedlj_force_periodic_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 
 //! boost test case for comparing GPU output to base class output
@@ -413,17 +413,17 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_compare )
 	{
 	shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);
 	shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
-	shiftedlj_force_comparison_test(shiftedlj_creator_base, shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, 0));
+	shiftedlj_force_comparison_test(shiftedlj_creator_base, shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 	}
 	
 //! boost test case for comparing multi-GPU output to base class output
 BOOST_AUTO_TEST_CASE( ShiftedLJForceMultiGPU_compare )
 	{
-	vector<unsigned int> gpu_list;
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
+	vector<int> gpu_list;
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
 
 	shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);

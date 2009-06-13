@@ -1261,7 +1261,7 @@ BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
 //! boost test case for comparing the CPU and multi-GPU updaters
 BOOST_AUTO_TEST_CASE( NVTUpdaterMultiGPU_comparison_tests)
 	{
-	vector<unsigned int> gpu_list;
+	vector<int> gpu_list;
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());

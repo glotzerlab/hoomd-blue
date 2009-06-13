@@ -31,8 +31,35 @@ If you run a script without any options
 hoomd some_script.hoomd
 \endcode
 HOOMD first checks if there are any GPUs in the system. If it finds one or more,
-it runs on GPU 0. If none are found, it runs on the CPU.
+it runs on the default GPU (usually GPU 0). If none are found, it runs on the CPU.
 
+<hr>
+<h2>Automatic determiniation of the GPU on which to run</h2>
+If CUDA 2.2 or newer is installed on a Linux OS, free GPUs can be determined automatically. To utilize this
+capability, the system administrator (root) must first use the \c nvidia-smi utility to enable 
+the compute-exclusive mode on all GPUs in the system (for an example, see http://forums.nvidia.com/index.php?showtopic=96638&hl=nvidia-smi).
+Then the following command line forms for HOOMD will automatically choose the first free GPU(s) on the system:
+
+To run on the first free GPU:
+\code
+hoomd some_script.hoomd
+\endcode
+or:
+\code
+hoomd some_script.hoomd --mode=gpu
+\endcode
+The first example will revert to running on the CPU if no GPUs are installed in the system. The 2nd form forces
+HOOMD to run on a GPU or quit with an error.
+
+To run on the first \a N free GPUs:
+\code
+hoomd some_script.hoomd --ngpu=N
+\endcode
+, where N is an integer
+
+Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA application to run on each GPU. If you have
+4 compute-exclusive GPUs available in the system, executing a fifth instace of HOOMD with "hoomd some_script.hoomd"
+will result in the error: ***Error! no CUDA-capable device is available ... 
 <hr>
 
 <h2>Controlling error checking on the GPU</h2>

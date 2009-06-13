@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	Scalar tol = Scalar(1e-6);
 	
 	// setup an execution configuration with 4 GPUs all with id 0 for testing purposes
-	vector<unsigned int> gpu_list;
+	vector<int> gpu_list;
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
