@@ -764,7 +764,7 @@ void ParticleData::allocate(unsigned int N)
 	m_exec_conf.tagAll(__FILE__, __LINE__);
 	if (!m_exec_conf.gpu.empty())
 		{
-		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, &m_data, m_nbytes));
+		m_exec_conf.gpu[0]->call(bind(cudaHostAlloc, &m_data, m_nbytes, cudaHostAllocPortable));
 		}
 	else
 		{
@@ -832,7 +832,7 @@ void ParticleData::allocate(unsigned int N)
 		
 	// allocate host staging location
 	if (!m_exec_conf.gpu.empty())
-		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_h_staging), sizeof(float4)*N));
+		m_exec_conf.gpu[0]->call(bind(cudaHostAlloc, (void **)((void *)&m_h_staging), sizeof(float4)*N, cudaHostAllocPortable));
 		
 	// assign which particles are local to which GPU
 	if (!m_exec_conf.gpu.empty())

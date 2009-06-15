@@ -175,7 +175,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		}
 	
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
+	exec_conf.gpu[0]->call(bind(cudaHostAlloc, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz, cudaHostAllocPortable) );
 	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
 	
 	// allocate the host bin adj array
