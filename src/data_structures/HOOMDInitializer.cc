@@ -715,7 +715,7 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
 			string type_name;
 			unsigned int a, b, c, d;
 			parser >> type_name >> a >> b >> c >> d;
-			m_impropers.push_back(Improper(getImproperTypeId(type_name), a, b, c, d));
+			m_impropers.push_back(Dihedral(getImproperTypeId(type_name), a, b, c, d));
 			}
 		}
 	else
@@ -977,13 +977,13 @@ void HOOMDInitializer::initDihedralData(boost::shared_ptr<DihedralData> dihedral
 /*! \param improper_data Shared pointer to the ImproperData to be initialized
 	Adds all impropers found in the XML file to the ImproperData
 */
-void HOOMDInitializer::initImproperData(boost::shared_ptr<ImproperData> improper_data) const
+void HOOMDInitializer::initImproperData(boost::shared_ptr<DihedralData> improper_data) const
 	{
 	// loop through all the impropers and add an improper for each
 	for (unsigned int i = 0; i < m_impropers.size(); i++)	
-		improper_data->addImproper(m_impropers[i]);
+		improper_data->addDihedral(m_impropers[i]);
 	
-	improper_data->setImproperTypeMapping(m_improper_type_mapping);
+	improper_data->setDihedralTypeMapping(m_improper_type_mapping);
 	}
 
 /*! \returns A mapping of type ids to type names deteremined from the XML input file

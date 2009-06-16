@@ -49,7 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
-#include "ImproperData.h"
 #include "xmlParser.h"
 
 #include <string>
@@ -131,7 +130,7 @@ class HOOMDInitializer : public ParticleDataInitializer
 		virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const;
 
 		//! Initialize the improper data
-		virtual void initImproperData(boost::shared_ptr<ImproperData> improper_data) const;
+		virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
 
 	private:
 		//! Helper function to read the input file
@@ -234,7 +233,7 @@ class HOOMDInitializer : public ParticleDataInitializer
 
 		std::vector< Dihedral > m_dihedrals;//!< Dihedral read in from the file
 
-		std::vector< Improper > m_impropers;//!< Improper read in from the file
+		std::vector< Dihedral > m_impropers;//!< Improper read in from the file
 
 		unsigned int m_timestep;		//!< The time stamp
 		

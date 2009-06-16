@@ -67,7 +67,6 @@ using namespace boost::python;
 #include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
-#include "ImproperData.h"
 
 #include <boost/bind.hpp>
 
@@ -227,7 +226,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
 	m_dihedralData = shared_ptr<DihedralData>(new DihedralData(this, n_dihedral_types));
 
 	// allocate impropers
-	m_improperData = shared_ptr<ImproperData>(new ImproperData(this, n_improper_types));
+	m_improperData = shared_ptr<DihedralData>(new DihedralData(this, n_improper_types));
 
 	// if this is a GPU build, initialize the graphics card mirror data structures
 	#ifdef ENABLE_CUDA
@@ -338,7 +337,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
 	init.initDihedralData(m_dihedralData);
 
 	// allocate impropers
-	m_improperData = shared_ptr<ImproperData>(new ImproperData(this, init.getNumImproperTypes()));
+	m_improperData = shared_ptr<DihedralData>(new DihedralData(this, init.getNumImproperTypes()));
 	init.initImproperData(m_improperData);
 
 	// if this is a GPU build, initialize the graphics card mirror data structure

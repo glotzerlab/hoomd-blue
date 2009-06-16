@@ -307,7 +307,7 @@ class ParticleDataInitializer
 		/*! \param improper_data Shared pointer to the ImproperData to be initialized
 			Impropers are optional: the base class does nothing
 		*/
-		virtual void initImproperData(boost::shared_ptr<ImproperData> improper_data) const {}
+		virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const {}
 
 	};
 	
@@ -366,7 +366,7 @@ class ParticleData : boost::noncopyable
 		//! Access the dihedral data defined for the simulation
 		boost::shared_ptr<DihedralData> getDihedralData() { return m_dihedralData; }
 		//! Access the improper data defined for the simulation
-		boost::shared_ptr<ImproperData> getImproperData() { return m_improperData; }
+		boost::shared_ptr<DihedralData> getImproperData() { return m_improperData; }
 		//! Access the execution configuration
 		const ExecutionConfiguration& getExecConf() { return m_exec_conf; }
 		
@@ -456,7 +456,7 @@ class ParticleData : boost::noncopyable
 		boost::shared_ptr<BondData> m_bondData;		//!< Bonds specified for the simulation
 		boost::shared_ptr<AngleData> m_angleData;		//!< Angles specified for the simulation
 		boost::shared_ptr<DihedralData> m_dihedralData;		//!< Dihedrals specified for the simulation
-		boost::shared_ptr<ImproperData> m_improperData;		//!< Impropers specified for the simulation
+		boost::shared_ptr<DihedralData> m_improperData;		//!< Impropers specified for the simulation
 		
 		#ifdef ENABLE_CUDA
 		
