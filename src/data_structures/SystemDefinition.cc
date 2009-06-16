@@ -81,7 +81,7 @@ SystemDefinition::SystemDefinition(unsigned int N, const BoxDim &box, unsigned i
 		
 	m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
 	m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
-	m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_angle_types));
+	m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_improper_types));
 	}
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
