@@ -114,9 +114,6 @@ class AngleData;
 // Forward declaration of DihedralData
 class DihedralData;
 
-// Forward declaration of ImproperData
-class ImproperData;
-
 //! Defines a simple structure to deal with complex numbers
 /*! This structure is useful to deal with complex numbers for such situations
     as Fourier transforms. Note that we do not need any to define any operations and the 
