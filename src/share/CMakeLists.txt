@@ -40,7 +40,7 @@
 if (NOT ENABLE_MINIMAL_INSTALL)
 
 ## install the share directory
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/benchmarks ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/demos
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/benchmarks
 		DESTINATION ${DATA_INSTALL_DIR}
 		CONFIGURATIONS Release
 		PATTERN "*.hoomd"

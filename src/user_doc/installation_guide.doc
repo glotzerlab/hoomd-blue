@@ -91,9 +91,7 @@ HOOMD should now show up on your <b>Start menu</b> and the \a .hoomd file type
 is registered to execute the script when you double click on one.
 The command \b hoomd can also be run on the <b>command line</b> to start the HOOMD python interpreter.
 
-The start menu includes links to benchmark scripts for checking the performance of your setup as well
-as some live demos that are fun to watch. In order to visualize the demos, you must have VMD 1.8.6 
-installed: http://www.ks.uiuc.edu/Research/vmd/
+The start menu also includes links to benchmark scripts for checking the performance of your system.
 
 Check out the \ref page_quick_start to learn how to use HOOMD.
 
@@ -141,15 +139,12 @@ Type "help", "copyright", "credits" or "license" for more information.
 \endcode
 Press CTRL-D to exit.
 
-To test your installation further, you can execute benchmark scripts th check the performance of your setup
-or run some live demos that are fun to watch. You will find them in EXTRACTED_LOCATION/share/hoomd
-For example, to run the polymer benchmark on the GPU:
+To test your installation further, you can execute benchmark scripts and check the performance of your system.
+You will find them in EXTRACTED_LOCATION/share/hoomd. For example, to run the polymer benchmark on the GPU:
 \code
 cd EXTRACTED_LOCATION/share/hoomd/benchmarks/
 ./polymer_bmark.hoomd --mode=gpu
 \endcode
-
-Note: to visualize the live demos, you need to have VMD 1.8.6 installed: http://www.ks.uiuc.edu/Research/vmd/
 
 Check out the \ref page_quick_start to learn how to use HOOMD.
 
@@ -191,15 +186,12 @@ Type "help", "copyright", "credits" or "license" for more information.
 \endcode
 Press CTRL-D to exit.
 
-To test your installation further, you can execute benchmark scripts to check the performance of your setup
-or run some live demos that are fun to watch. You will find them in EXTRACTED_LOCATION/share/hoomd
-For example, to run the polymer benchmark on the GPU:
+To test your installation further, you can execute benchmark scripts and check the performance of your system.
+You will find them in EXTRACTED_LOCATION/share/hoomd. For example, to run the polymer benchmark on the GPU:
 \code
 cd EXTRACTED_LOCATION/share/hoomd/benchmarks/
 ./polymer_bmark.hoomd --mode=gpu
 \endcode
-
-Note: to visualize the live demos, you need to have VMD 1.8.6 installed: http://www.ks.uiuc.edu/Research/vmd/
 
 Check out the \ref page_quick_start to learn how to use HOOMD.
 */

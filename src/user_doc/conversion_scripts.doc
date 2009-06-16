@@ -11,7 +11,7 @@ velocities, and bonds (if present in the XML file). To run, execute the script o
 hoomd2lammps_input.py input_file.xml output_file.data
 \endcode
 
-Here is the output of the above command when run on share/hoomd/demos/micelle.xml:
+Here is the output of the above command when run on micelle.xml from the demo package:
 \code
 Found 9500  particles
 Mapped particle types:
