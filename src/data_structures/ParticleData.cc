@@ -65,7 +65,6 @@ using namespace boost::python;
 #include "Profiler.h"
 #include "AngleData.h"
 #include "DihedralData.h"
-#include "ImproperData.h"
 
 #include <boost/bind.hpp>
 

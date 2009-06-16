@@ -43,7 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "ForceCompute.h"
-#include "ImproperData.h"
+#include "DihedralData.h"
 
 #include <vector>
 
@@ -82,7 +82,7 @@ class HarmonicImproperForceCompute : public ForceCompute
 		Scalar *m_K;	//!< K parameter for multiple improper tyes
 		Scalar *m_chi;	//!< Chi parameter for multiple impropers
 		
-		boost::shared_ptr<ImproperData> m_improper_data;	//!< Improper data to use in computing impropers
+		boost::shared_ptr<DihedralData> m_improper_data;	//!< Improper data to use in computing impropers
 		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);

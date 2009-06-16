@@ -92,7 +92,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 	
 	// add an impropers and check again
-	sysdef_4->getImproperData()->addImproper(Improper(0,0,1,2,3)); // add type 0 improper bewtween atoms 0-1-2-3
+	sysdef_4->getImproperData()->addDihedral(Dihedral(0,0,1,2,3)); // add type 0 improper bewtween atoms 0-1-2-3
 	fc_4->compute(1);
 /*
  FORCE 1: fx = 0.024609  fy = -0.178418  fz = -0.221484 
@@ -188,8 +188,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
 	fc_8->setParams(0, 2.0, 1.578);
 	fc_8->setParams(1, 4.0, 1.444);
 	
-	sysdef_8->getImproperData()->addImproper(Improper(0, 0,1,2,3));
-	sysdef_8->getImproperData()->addImproper(Improper(1, 4,5,6,7));
+	sysdef_8->getImproperData()->addDihedral(Dihedral(0, 0,1,2,3));
+	sysdef_8->getImproperData()->addDihedral(Dihedral(1, 4,5,6,7));
 	
 	fc_8->compute(0);
 	// check that the forces are correctly computed
@@ -294,8 +294,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
 	shared_ptr<HarmonicImproperForceCompute> fc_5 = tf_creator(sysdef_5);
 	fc_5->setParams(0, 5.0, 1.33333);
 
-	sysdef_5->getImproperData()->addImproper(Improper(0, 0,1,2,3));
-	sysdef_5->getImproperData()->addImproper(Improper(0, 1,2,3,4));
+	sysdef_5->getImproperData()->addDihedral(Dihedral(0, 0,1,2,3));
+	sysdef_5->getImproperData()->addDihedral(Dihedral(0, 1,2,3,4));
 
 	fc_5->compute(0);
 	force_arrays = fc_5->acquire();
@@ -372,7 +372,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1, improper
 	// add improperrs
 	for (unsigned int i = 0; i < N-3; i++)
 		{
-		sysdef->getImproperData()->addImproper(Improper(0, i, i+1,i+2, i+3));
+		sysdef->getImproperData()->addDihedral(Dihedral(0, i, i+1,i+2, i+3));
 		}
 		
 	// compute the forces

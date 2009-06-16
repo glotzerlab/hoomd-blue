@@ -74,19 +74,19 @@ HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<Sys
 	m_improper_data = m_sysdef->getImproperData();
 	
 	// check for some silly errors a user could make 
-	if (m_improper_data->getNImproperTypes() == 0)
+	if (m_improper_data->getNDihedralTypes() == 0)
 		{
 		cout << endl << "***Error! No improper types specified" << endl << endl;
 		throw runtime_error("Error initializing HarmonicImproperForceCompute");
 		}
 		
 	// allocate the parameters
-	m_K = new Scalar[m_improper_data->getNImproperTypes()];
-	m_chi = new Scalar[m_improper_data->getNImproperTypes()];
+	m_K = new Scalar[m_improper_data->getNDihedralTypes()];
+	m_chi = new Scalar[m_improper_data->getNDihedralTypes()];
 	
 	// zero parameters
-	memset(m_K, 0, sizeof(Scalar) * m_improper_data->getNImproperTypes());
-	memset(m_chi, 0, sizeof(Scalar) * m_improper_data->getNImproperTypes());
+	memset(m_K, 0, sizeof(Scalar) * m_improper_data->getNDihedralTypes());
+	memset(m_chi, 0, sizeof(Scalar) * m_improper_data->getNDihedralTypes());
 	}
 	
 HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
@@ -106,7 +106,7 @@ HarmonicImproperForceCompute::~HarmonicImproperForceCompute()
 void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar chi)
 	{
 	// make sure the type is valid
-	if (type >= m_improper_data->getNImproperTypes())
+	if (type >= m_improper_data->getNDihedralTypes())
 		{
 		cout << endl << "***Error! Invalid improper type specified" << endl << endl;
 		throw runtime_error("Error setting parameters in HarmonicImproperForceCompute");
@@ -190,11 +190,11 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 	memset((void*)m_virial, 0, sizeof(Scalar) * m_pdata->getN());
 	
 	// for each of the impropers
-	const unsigned int size = (unsigned int)m_improper_data->getNumImpropers(); 
+	const unsigned int size = (unsigned int)m_improper_data->getNumDihedrals(); 
 	for (unsigned int i = 0; i < size; i++)
 		{
 		// lookup the tag of each of the particles participating in the improper
-		const Improper& improper = m_improper_data->getImproper(i);
+		const Dihedral& improper = m_improper_data->getDihedral(i);
 		assert(improper.a < m_pdata->getN());
 		assert(improper.b < m_pdata->getN());
 		assert(improper.c < m_pdata->getN());

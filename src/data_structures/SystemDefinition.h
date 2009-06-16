@@ -49,7 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
-#include "ImproperData.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -119,7 +118,7 @@ class SystemDefinition
 		//! Access the dihedral data defined for the simulation
 		boost::shared_ptr<DihedralData> getDihedralData() { return m_dihedral_data; }
 		//! Access the improper data defined for the simulation
-		boost::shared_ptr<ImproperData> getImproperData() { return m_improper_data; }
+		boost::shared_ptr<DihedralData> getImproperData() { return m_improper_data; }
 		
 	private:
 		boost::shared_ptr<ParticleData> m_particle_data;	//!< Particle data for the system
@@ -128,7 +127,7 @@ class SystemDefinition
 		boost::shared_ptr<RigidData> m_rigid_data;			//!< Rigid bodies data for the system
 		boost::shared_ptr<AngleData> m_angle_data;			//!< Angle data for the system
 		boost::shared_ptr<DihedralData> m_dihedral_data;	//!< Dihedral data for the system
-		boost::shared_ptr<ImproperData> m_improper_data;	//!< Improper data for the system
+		boost::shared_ptr<DihedralData> m_improper_data;	//!< Improper data for the system
 	};
 
 //! Exports SystemDefinition to python

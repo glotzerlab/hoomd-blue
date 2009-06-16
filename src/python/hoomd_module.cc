@@ -57,7 +57,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
-#include "ImproperData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
@@ -318,8 +317,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_BondData();
 	export_SystemDefinition();
 	export_AngleData();	
-	export_DihedralData();	
-	export_ImproperData();	
+	export_DihedralData();
 
 	// initializers
 	export_RandomInitializer();

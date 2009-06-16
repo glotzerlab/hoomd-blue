@@ -365,7 +365,7 @@ class ParticleDataInitializer
 		/*! \param improper_data Shared pointer to the ImproperData to be initialized
 			Impropers are optional: the base class does nothing
 		*/
-		virtual void initImproperData(boost::shared_ptr<ImproperData> improper_data) const {}
+		virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const {}
 
 	};
 	

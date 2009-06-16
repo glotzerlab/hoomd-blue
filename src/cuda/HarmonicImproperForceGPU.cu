@@ -42,7 +42,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gpu_settings.h"
 #include "HarmonicImproperForceGPU.cuh"
-#include "ImproperData.cuh" // SERIOUSLY, DO I NEED THIS HERE??
 
 #ifdef WIN32
 #include <cassert>
@@ -69,7 +68,7 @@ texture<float2, 1, cudaReadModeElementType> improper_params_tex;
 	\param box Box dimensions for periodic boundary condition handling
 	\param tlist Improper data to use in calculating the forces
 */
-extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_impropertable_array tlist)
+extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_dihedraltable_array tlist)
 	{
 	// start by identifying which particle we are to handle
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -80,7 +79,7 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 		return;
 	
 	// load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-	int n_impropers = tlist.n_impropers[idx_local];
+	int n_impropers = tlist.n_dihedrals[idx_local];
 
 	// read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
 	float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx_global);  // we can be either a, b, or c in the a-b-c-d quartet
@@ -97,12 +96,12 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 		{
 		// the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
 		#ifdef _DEVICEEMU
-		uint4 cur_improper = tlist.impropers[tlist.pitch*improper_idx + idx_local];
-		uint1 cur_ABCD = tlist.improperABCD[tlist.pitch*improper_idx + idx_local];
+		uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx_local];
+		uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx_local];
 		#else
 		// the volatile is needed to force the compiler to load the uint2 coalesced
-		volatile uint4 cur_improper = tlist.impropers[tlist.pitch*improper_idx + idx_local];
-		volatile uint1 cur_ABCD = tlist.improperABCD[tlist.pitch*improper_idx + idx_local];
+		volatile uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx_local];
+		volatile uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx_local];
 		#endif
 		
 		int cur_improper_x_idx = cur_improper.x;
@@ -302,7 +301,7 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 	\a d_params should include one float4 element per improper type. The x component contains K the spring constant
 	and the y component contains sign, and the z component the multiplicity.
 */
-cudaError_t gpu_compute_harmonic_improper_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_impropertable_array &ttable, float2 *d_params, unsigned int n_improper_types, int block_size)
+cudaError_t gpu_compute_harmonic_improper_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_dihedraltable_array &ttable, float2 *d_params, unsigned int n_improper_types, int block_size)
 	{
 	assert(d_params);
 	
