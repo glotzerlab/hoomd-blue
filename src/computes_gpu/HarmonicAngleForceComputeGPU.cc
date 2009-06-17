@@ -58,7 +58,7 @@ using namespace std;
 /*! \param pdata ParticleData to compute angle forces on
 */
 HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: HarmonicAngleForceCompute(pdata)
+	: HarmonicAngleForceCompute(pdata), m_block_size(64)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -67,24 +67,6 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Par
 		throw std::runtime_error("Error initializing AngleForceComputeGPU");
 		}
 		
-	// default block size is the highest performance in testing on different hardware
-	// choose based on compute capability of the device
-	cudaDeviceProp deviceProp;
-	int dev;
-	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 64;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 64;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 288;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for HarmonicAngleForceComputeGPU" << endl;
-		m_block_size = 64;
-		}
-	
 	// allocate and zero device memory
 	m_gpu_params.resize(exec_conf.gpu.size());
 	exec_conf.tagAll(__FILE__, __LINE__);
