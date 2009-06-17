@@ -76,7 +76,7 @@ class harmonic(force._force):
 	def __init__(self):
 		util.print_status_line();
 		# check that some dihedrals are defined
-		if globals.syste_definition.getDihedralData().getNumDihedrals() == 0:
+		if globals.system_definition.getDihedralData().getNumDihedrals() == 0:
 			print >> sys.stderr, "\n***Error! No dihedrals are defined.\n";
 			raise RuntimeError("Error creating dihedral forces");		
 		

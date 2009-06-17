@@ -75,7 +75,7 @@ __all__ = [	"analyze",
 # \param profile Set to true to enable detailed profiling
 # \param limit_hours  (if set) Limit the run to a given number of hours.
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
-# \param callback_period (if set) Sets the frequency of calling the Python callback function.
+# \param callback_period Sets the period, in time steps, between calls made to \a callback
 #
 # \b Examples:
 # \code
@@ -87,13 +87,13 @@ __all__ = [	"analyze",
 # def py_cb(cur_tstep):
 #     print "callback called at step: ", str(cur_tstep)
 #
-# run(10000, cb_frequency=100, callback=py_cb)
+# run(10000, callback_period=100, callback=py_cb)
 # \endcode
 #
 # Execute the run() command to advance the simulation forward in time. 
 # During the run, all previously specified \ref analyze "analyzers", 
 # \ref dump "dumps", \ref update "updaters" and the \ref integrate "integrators"
-# are executed every so many time steps as specified by their individual periods.
+# are executed at the specified regular periods.
 # 
 # After run() completes, you may change parameters of the simulation (i.e. temperature)
 # and continue the simulation by executing run() again. Time steps are added
@@ -106,10 +106,10 @@ __all__ = [	"analyze",
 #
 # When \a profile is \em True, a detailed breakdown of how much time was spent in each
 # portion of the calculation is printed at the end of the run. Collecting this timing information
-# can slow the simulation on the GPU by ~5 percent, so only enable profiling for testing
+# can slow the simulation on the GPU significantly, so only enable profiling for testing
 # and troubleshooting purposes.
 #
-# If limit_hours is changed from the default of None, the run will continue until either
+# If \a limit_hours is changed from the default of None, the run will continue until either
 # the specified number of time steps has been reached, or the given number of hours has
 # elapsed. This option can be useful in shared machines where the queuing system limits
 # job run times. A fractional value can be given to limit a run to only a few minutes,

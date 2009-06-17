@@ -436,6 +436,8 @@ void export_HOOMDDumpWriter()
 		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
 		.def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
 		.def("setOutputAngle", &HOOMDDumpWriter::setOutputAngle)
+		.def("setOutputDihedral", &HOOMDDumpWriter::setOutputDihedral)
+		.def("setOutputImproper", &HOOMDDumpWriter::setOutputImproper)
 		.def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
 		.def("writeFile", &HOOMDDumpWriter::writeFile)
 		;

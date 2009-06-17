@@ -94,7 +94,7 @@ def reset():
 	globals._clear();
 	
 	gc.collect();
-	count = sys.getrefcount(pdata)
+	count = sys.getrefcount(sysdef)
 
 	# note: the check should be against 2, getrefcount counts the temporary reference 
 	# passed to it in the argument
@@ -104,7 +104,7 @@ def reset():
 		print count-expected_count, "references to the particle data still exist somewhere\n"
 		raise RuntimeError('Error resetting');
 
-	del pdata
+	del sysdef
 	gc.collect();
 
 ## Reads initial system state from an XML file
@@ -292,7 +292,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # to be placed closer together. Then setup integrate.nve with the \a limit option set to a 
 # relatively small value. A few thousand time steps should relax the system so that the simulation can be
 # continued without the limit or with a different integrator. For extremely troublesome systems,
-# generate it at a very low density and shrink the box with the command ___ (which isn't written yet)
+# generate it at a very low density and shrink the box with the command update.box_resize
 # to the desired final size.
 #
 # \note 2. The polymer generator always generates polymers as if there were linear chains. If you 
@@ -414,7 +414,6 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	
 	_perform_common_init_tasks();
 	return globals.system_definition;
-
 
 ## Performs common initialization tasks
 #

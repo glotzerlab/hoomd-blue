@@ -76,7 +76,7 @@ _override_block_size_compute_cap = None;
 # \param common_optimal_db Dictionary of the common optimal block sizes identified
 # 
 def _save_override_file(common_optimal_db):
-	fname = os.getenv('HOME') + '/.hoomd_block_tuning';
+	fname = os.path.expanduser("~") + '/.hoomd_block_tuning';
 	
 	# see if the user really wants to overwrite the file
 	if os.path.isfile(fname):
@@ -105,7 +105,7 @@ def _save_override_file(common_optimal_db):
 def _load_override_file():
 	global _override_block_size_db, _override_block_size_compute_cap;
 	
-	fname = os.getenv('HOME') + '/.hoomd_block_tuning';
+	fname = os.path.expanduser("~") + '/.hoomd_block_tuning';
 	
 	# only load if the file exists
 	if not os.path.isfile(fname):

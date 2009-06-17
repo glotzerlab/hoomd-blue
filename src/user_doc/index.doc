@@ -18,58 +18,109 @@ The latest version of this documentation can be built from the source code by fo
 
 /*! \page page_command_list Index of Script Commands
 
-Click on an individual command in the list to go to its documentation. Click on the package link at the beginning of each list 
-to get a general overview of all commands in that package.
+Click on an individual command in the list to go to its documentation. Click on the package link at the 
+beginning of each list to get a general overview of all commands in that package.
 
-Commands controlling the running of simulations:
+Table of contents:
+ - \ref sec_index_run
+ - \ref sec_index_init
+ - \ref sec_index_integration
+ - \ref sec_index_update
+ - \ref sec_index_analyze
+ - \ref sec_index_dump
+ - Commands that specify forces
+   - \ref sec_index_pair
+   - \ref sec_index_bond
+   - \ref sec_index_angle
+   - \ref sec_index_dihedral
+   - \ref sec_index_improper
+   - \ref sec_index_wall
+   - \ref sec_index_other
+ - Commands used to pass data to other commands
+   - \ref sec_index_group
+   - \ref sec_index_variant
+
+\section sec_index_run Control the running of simulations
  - \link hoomd_script.run() run\endlink - <i>\copybrief hoomd_script::run() </i>
 
-Initialization commands (\link hoomd_script.init init\endlink):
+\section sec_index_init Initialization commands 
+\link hoomd_script.init init\endlink:
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>\copybrief hoomd_script::init::create_random_polymers() </i>
  - \link hoomd_script.init.reset() init.reset\endlink - <i>\copybrief hoomd_script::init::reset() </i>
 
-Pair forces (\link hoomd_script.pair pair\endlink):
- - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
- - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
- - \link hoomd_script.pair.nlist nlist\endlink - <i>\copybrief hoomd_script::pair::nlist </i>
-
-Bond forces (\link hoomd_script.bond bond\endlink):
- - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>\copybrief hoomd_script::bond::harmonic </i>
- - \link hoomd_script.bond.fene bond.fene\endlink - <i>\copybrief hoomd_script::bond::fene </i>
-
-Wall forces (\link hoomd_script.wall wall\endlink):
- - \link hoomd_script.wall.lj wall.lj\endlink - <i>\copybrief hoomd_script::wall::lj </i>
-
-Other forces (\link hoomd_script.force force\endlink):
- - \link hoomd_script.force.constant force.constant\endlink - <i>\copybrief hoomd_script::force::constant </i>
-
-Integration methods (\link hoomd_script.integrate integrate\endlink): 
+\section sec_index_integration Integration methods
+\link hoomd_script.integrate integrate\endlink: 
+ - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>\copybrief hoomd_script::integrate::bdnvt </i> 
+ - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>\copybrief hoomd_script::integrate::npt </i> 
  - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
  - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
- - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>\copybrief hoomd_script::integrate::bdnvt </i>
- - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>\copybrief hoomd_script::integrate::npt </i>
-
-Change particle or system properties during each time step (\link hoomd_script.update update\endlink):
+ 
+\section sec_index_update Update particle properties during the simulation
+\link hoomd_script.update update\endlink:
+ - \link hoomd_script.update.box_resize update.box_resize\endlink - <i>\copybrief hoomd_script::update::box_resize </i>
  - \link hoomd_script.update.rescale_temp update.rescale_temp\endlink - <i>\copybrief hoomd_script::update::rescale_temp </i>
- - \link hoomd_script.update.zero_momentum update.zero_momentum\endlink - <i>\copybrief hoomd_script::update::zero_momentum </i>
  - \link hoomd_script.update.sort update.sort\endlink - <i>\copybrief hoomd_script::update::sort </i>
+ - \link hoomd_script.update.zero_momentum update.zero_momentum\endlink - <i>\copybrief hoomd_script::update::zero_momentum </i>
 
-Real time analysis of data (\link hoomd_script.analyze analyze\endlink):
+\section sec_index_analyze Analyze simulation data while it runs
+\link hoomd_script.analyze analyze\endlink:
  - \link hoomd_script.analyze.imd analyze.imd\endlink - <i>\copybrief hoomd_script::analyze::imd </i>
  - \link hoomd_script.analyze.log analyze.log\endlink - <i>\copybrief hoomd_script::analyze::log </i>
  - \link hoomd_script.analyze.msd analyze.msd\endlink - <i>\copybrief hoomd_script::analyze::msd </i>
 
-File output for offline analysis (\link hoomd_script.dump dump\endlink):
+\section sec_index_dump File output for offline analysis
+\link hoomd_script.dump dump\endlink:
  - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>\copybrief hoomd_script::dump::dcd </i>
  - \link hoomd_script.dump.mol2 dump.mol2\endlink - <i>\copybrief hoomd_script::dump::mol2 </i>
  - \link hoomd_script.dump.pdb dump.pdb\endlink - <i>\copybrief hoomd_script::dump::pdb </i>
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>\copybrief hoomd_script::dump::xml </i>
 
-Define groups of particles (group):
+<h2>Commands that specify forces</h2>
+
+\section sec_index_pair Pair forces
+\link hoomd_script.pair pair\endlink:
+ - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
+ - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
+ - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>\copybrief hoomd_script::pair::cgcmm </i>
+ - \link hoomd_script.pair.nlist nlist\endlink - <i>\copybrief hoomd_script::pair::nlist </i>
+
+\section sec_index_bond Bond forces
+\link hoomd_script.bond bond\endlink:
+ - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>\copybrief hoomd_script::bond::harmonic </i>
+ - \link hoomd_script.bond.fene bond.fene\endlink - <i>\copybrief hoomd_script::bond::fene </i>
+
+\section sec_index_angle Angle forces
+\link hoomd_script.angle angle\endlink:
+ - \link hoomd_script.angle.harmonic angle.harmonic\endlink - <i>\copybrief hoomd_script::angle::harmonic </i>
+ - \link hoomd_script.angle.cgcmm angle.cgcmm\endlink - <i>\copybrief hoomd_script::angle::cgcmm </i>
+
+\section sec_index_dihedral Dihedral forces
+\link hoomd_script.dihedral dihedral\endlink:
+ - \link hoomd_script.dihedral.harmonic dihedral.harmonic\endlink - <i>\copybrief hoomd_script::dihedral::harmonic </i>
+
+\section sec_index_improper Improper forces
+\link hoomd_script.improper improper\endlink:
+ - \link hoomd_script.improper.harmonic improper.harmonic\endlink - <i>\copybrief hoomd_script::improper::harmonic </i>
+
+\section sec_index_wall Wall forces
+\link hoomd_script.wall wall\endlink:
+ - \link hoomd_script.wall.lj wall.lj\endlink - <i>\copybrief hoomd_script::wall::lj </i>
+
+\section sec_index_other Other forces
+\link hoomd_script.force force\endlink:
+ - \link hoomd_script.force.constant force.constant\endlink - <i>\copybrief hoomd_script::force::constant </i>
+
+<h2>Commands used to pass data to other commands</h2>
+
+\section sec_index_group Define groups of particles
+\link hoomd_script.group group\endlink:
  - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
  - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
  - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
 
+\section sec_index_variant Define quantities that vary over time
+\link hoomd_script.variant variant\endlink:
+ - \link hoomd_script.variant.linear_interp variant.linear_interp\endlink - <i>\copybrief hoomd_script::variant::linear_interp</i>
 */
