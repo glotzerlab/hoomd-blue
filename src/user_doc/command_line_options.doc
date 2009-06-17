@@ -62,6 +62,18 @@ Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA ap
 will result in the error: ***Error! no CUDA-capable device is available ... 
 <hr>
 
+<h2>Minimizing the CPU usage of HOOMD</h2>
+When HOOMD is running on a GPU, it still uses 100% of one CPU core by default. This CPU usage can be
+decreased significantly by specifying the \c --minimize-cpu-usage command line option:
+\code
+hoomd some_script.hoomd --minimize-cpu-usage
+\endcode
+The cost of enabling this option is roughly a 10% overall performance reduction, but the CPU usage of hoomd
+is reduced to only 10% of a single CPU core.
+
+\note For the --minimize-cpu-usage option to work, HOOMD must be compiled and used on a system with CUDA 
+version 2.2 or newer.
+
 <h2>Controlling error checking on the GPU</h2>
 Detailed error checking is off by default to enable the best performance. If you have trouble
 that appears to be caused by the failure of a calculation to run on the GPU, you 

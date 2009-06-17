@@ -86,13 +86,13 @@ struct ExecutionConfiguration
 		};
 	
 	//! Default constructor
-	ExecutionConfiguration();
+	ExecutionConfiguration(bool min_cpu=false);
 	
 	//! Single GPU selection constructor
-	ExecutionConfiguration(executionMode mode, int gpu_id);
+	ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu=false);
 	
 	//! Multi GPU selection constructor
-	ExecutionConfiguration(executionMode mode, const std::vector<int>& gpu_ids);
+	ExecutionConfiguration(executionMode mode, const std::vector<int>& gpu_ids, bool min_cpu=false);
 	
 	executionMode exec_mode;	//!< Execution mode specified in the constructor
 	
@@ -116,6 +116,9 @@ struct ExecutionConfiguration
 	
 	//! Get the compute capability of the GPU that we are running on
 	std::string getComputeCapability();
+
+	//! Get whether the system is enabled for compute-exclusive use or not
+	static bool isSystemComputeExclusive();
 	#endif
 	};
 

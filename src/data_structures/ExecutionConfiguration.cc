@@ -49,6 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
+#include "gpu_settings.h"
 #endif
 
 #include <boost/python.hpp>
@@ -65,13 +66,27 @@ using namespace boost;
 	\brief Defines ExecutionConfiguration and related classes
 */
 
-/*! Code previous to the creation of ExecutionConfiguration always used
-	CUDA device 0 by default. To maintain continuity, a default constructed
-	ExecutionConfiguration will do the same.
+/*! \param min_cpu If set to true, cudaDeviceBlockingSync is passed to GPUWorker to keep the CPU usage of HOOMD to a minimum
+    
+    Code previous to the creation of ExecutionConfiguration always used
+    CUDA device 0 by default. To maintain continuity, a default constructed
+    ExecutionConfiguration will do the same.
 */
-ExecutionConfiguration::ExecutionConfiguration()
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu)
 	{
 	#ifdef ENABLE_CUDA
+	// setup the flags
+	int flags = 0;
+	if (min_cpu)
+		{
+		if (CUDART_VERSION < 2020)
+			cout << endl << "***Warning! --minimize-cpu-usage will have no effect because this hoomd was built "
+			     << "against a version of CUDA prior to 2.2" << endl << endl;
+
+		flags = cudaDeviceBlockingSync;
+		}
+
+	// continue with initializing the device
 	int dev_count;
 	cudaError_t error = cudaGetDeviceCount(&dev_count);
 	if (error != cudaSuccess)
@@ -97,7 +112,7 @@ ExecutionConfiguration::ExecutionConfiguration()
 			for (unsigned int i = 0; i < gpu_ids.size(); i++)
 				{
 				if ((unsigned int)dev_count > gpu_ids[i])
-					gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_ids[i])));
+					gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_ids[i], flags)));
 				else
 					{
 					cerr << endl << "***Error! GPU " << gpu_ids[i] << " was requested, but only " << dev_count << " was/were found" << endl << endl;
@@ -107,7 +122,7 @@ ExecutionConfiguration::ExecutionConfiguration()
 			
 			exec_mode = GPU;
 			#else
-			gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(-1)));
+			gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(-1, flags)));
 			exec_mode = GPU;
 			#endif
 			}
@@ -122,14 +137,27 @@ ExecutionConfiguration::ExecutionConfiguration()
 
 /*! \param mode Execution mode to set (cpu or gpu)
 	\param gpu_id GPU to execute on
+    \param min_cpu If set to true, cudaDeviceBlockingSync is passed to GPUWorker to keep the CPU usage of HOOMD to a minimum
 	
 	No GPU is initialized if mode==cpu
 */
-ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id)
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu)
 	{
 	exec_mode = mode;
 	
 	#ifdef ENABLE_CUDA
+	// setup the flags
+	int flags = 0;
+	if (min_cpu)
+		{
+		if (CUDART_VERSION < 2020)
+			cout << endl << "***Warning! --minimize-cpu-usage will have no effect because this hoomd was built"
+			     << "against a too-old version of CUDA" << endl << endl;
+
+		flags = cudaDeviceBlockingSync;
+		}
+
+	// continue with initializing the device
 	if (exec_mode == GPU)
 		{
 		int dev_count;
@@ -143,7 +171,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id)
 		else
 			{
 			if (dev_count > gpu_id)
-				gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id)));
+				gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id, flags)));
 			else
 				{
 				cerr << endl << "***Error! GPU " << gpu_id << " was requested, but ";
@@ -165,14 +193,27 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id)
 	
 /*! \param mode Execution mode to set (cpu or gpu)
 	\param gpu_ids List of GPUs to execute on
+    \param min_cpu If set to true, cudaDeviceBlockingSync is passed to GPUWorker to keep the CPU usage of HOOMD to a minimum
 	
 	No GPU is initialized if mode==cpu
 */
-ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::vector<int>& gpu_ids)
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::vector<int>& gpu_ids, bool min_cpu)
 	{
 	exec_mode = mode;
 	
 	#ifdef ENABLE_CUDA
+	// setup the flags
+	int flags = 0;
+	if (min_cpu)
+		{
+		if (CUDART_VERSION < 2020)
+			cout << endl << "***Warning! --minimize-cpu-usage will have no effect because this hoomd was built"
+			     << "against a too-old version of CUDA" << endl << endl;
+
+		flags = cudaDeviceBlockingSync;
+		}
+
+	// continue with initializing the device
 	if (exec_mode == GPU)
 		{
 		int dev_count;
@@ -195,7 +236,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, const std::ve
 			for (unsigned int i = 0; i < gpu_ids.size(); i++)
 				{
 				if (dev_count > gpu_ids[i])
-					gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_ids[i])));
+					gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_ids[i], flags)));
 				else
 					{
 					cerr << endl << "***Error! GPU " << gpu_ids[i] << " was requested, but ";
@@ -406,14 +447,15 @@ std::string ExecutionConfiguration::getComputeCapability()
 	
 	return s.str();
 	}
+
 #endif
 
 void export_ExecutionConfiguration()
 	{
 	scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-		("ExecutionConfiguration", init< >())
-		.def(init<ExecutionConfiguration::executionMode, int>())
-		.def(init<ExecutionConfiguration::executionMode, vector<int> >())
+		("ExecutionConfiguration", init< bool >())
+		.def(init<ExecutionConfiguration::executionMode, int, bool>())
+		.def(init<ExecutionConfiguration::executionMode, vector<int>, bool >())
 		.def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
 		.def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
 		;
