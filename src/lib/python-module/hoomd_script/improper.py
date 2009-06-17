@@ -76,7 +76,7 @@ class harmonic(force._force):
 	def __init__(self):
 		util.print_status_line();
 		# check that some impropers are defined
-		if globals.particle_data.getImproperData().getNumImpropers() == 0:
+		if globals.particle_data.getImproperData().getNumDihedrals() == 0:
 			print >> sys.stderr, "\n***Error! No impropers are defined.\n";
 			raise RuntimeError("Error creating improper forces");		
 		
@@ -130,7 +130,7 @@ class harmonic(force._force):
 		
 	def update_coeffs(self):
 		# get a list of all improper types in the simulation
-		ntypes = globals.particle_data.getImproperData().getNImproperTypes();
+		ntypes = globals.particle_data.getImproperData().getNDihedralTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
 			type_list.append(globals.particle_data.getImproperData().getNameByType(i));

@@ -415,36 +415,6 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	_perform_common_init_tasks();
 	return globals.particle_data;
 
-## \internal
-# \brief Creates an unintialized particle data
-#
-# \details
-# 
-#
-# This method is intended only for use in unit tests in order to initialize angles, dihedrals, and impropers
-#
-def _empty(N, box, n_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
-	util.print_status_line();
-	
-	# parse command line
-	_parse_command_line();
-
-	# check if initialization has already occured
-	if (globals.particle_data != None):
-		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
-		raise RuntimeError('Error initializing');
-
-	# init the data
-	globals.particle_data = hoomd.ParticleData(N, box, n_types, n_bond_types, n_angle_types, n_dihedral_types,
-	                                           n_improper_types, _create_exec_conf());
-	
-	# initialize the system
-	globals.system = hoomd.System(globals.particle_data, 0);
-
-	_perform_common_init_tasks();
-	return globals.particle_data;
-
-
 ## Performs common initialization tasks
 #
 # \internal
