@@ -163,7 +163,7 @@ class xml(analyze._analyzer):
 			self.cpp_analyzer.setOutputAngle(angle);
 			
 		if dihedral != None:
-			self.cpp_ananlzer.setOutputDihedral(dihedral);
+			self.cpp_analyzer.setOutputDihedral(dihedral);
 			
 		if improper != None:
 			self.cpp_analyzer.setOutputImproper(improper);

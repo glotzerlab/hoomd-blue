@@ -428,12 +428,20 @@ exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_dihedraldata[cur_gpu].dihedr
 void export_DihedralData()
 	{
 	class_<DihedralData, boost::shared_ptr<DihedralData>, boost::noncopyable>("DihedralData", init<ParticleData *, unsigned int>())
-		.def("getNumDihedrals", &DihedralData::getNumDihedrals)
-		.def("getNDihedralTypes", &DihedralData::getNDihedralTypes)
-		.def("getTypeByName", &DihedralData::getTypeByName)
-		.def("getNameByType", &DihedralData::getNameByType)
-		;
+	       .def("addDihedral", &DihedralData::addDihedral)
+	       .def("getNumDihedrals", &DihedralData::getNumDihedrals)
+	       .def("getNDihedralTypes", &DihedralData::getNDihedralTypes)
+	       .def("getTypeByName", &DihedralData::getTypeByName)
+	       .def("getNameByType", &DihedralData::getNameByType)
+	       ;
 	
+	class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+	                 .def_readwrite("a", &Dihedral::a)
+	                 .def_readwrite("b", &Dihedral::b)
+	                 .def_readwrite("c", &Dihedral::c)
+	                 .def_readwrite("d", &Dihedral::d)
+	                 .def_readwrite("type", &Dihedral::type)
+	                 ;
 	}
 
 #ifdef WIN32

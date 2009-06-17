@@ -510,21 +510,20 @@ class bond_harmonic_tests (unittest.TestCase):
 class angle_harmonic_tests (unittest.TestCase):
 	def setUp(self):
 		print
-		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
-		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
-		self.polymers = [self.polymer1, self.polymer2]
-		self.box = hoomd.BoxDim(35);
-		self.separation=dict(A=0.35, B=0.35)
-		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+		# create an empty system and add a few angles to it
+		init._empty(N=1000, box=hoomd.BoxDim(20), n_types=1, n_bond_types=0, n_angle_types=1, n_dihedral_types=0,
+		            n_improper_types=0)
+		angle_data = globals.particle_data.getAngleData();
+		angle_data.addAngle(hoomd.Angle(0, 0, 1, 2));
 	
-	# test to see that se can create a force.constant
+	# test to see that se can create an angle.harmonic
 	def test_create(self):
 		angle.harmonic();
 		
 	# test setting coefficients
 	def test_set_coeff(self):
 		harmonic = angle.harmonic();
-		harmonic.set_coeff('polymer', k=1.0, t0=0.78125)
+		harmonic.set_coeff('angleA', k=1.0, t0=0.78125)
 		integrate.nve(dt=0.005);
 		run(100);
 		
