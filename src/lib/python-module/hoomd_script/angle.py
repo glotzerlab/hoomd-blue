@@ -39,10 +39,12 @@
 
 import force;
 import globals;
-import math;
 import hoomd;
-import sys;
 import util;
+import tune;
+
+import math;
+import sys;
 
 ## \package hoomd_script.angle
 # \brief Commands that specify %angle forces
@@ -78,7 +80,7 @@ class harmonic(force._force):
 		# check that some angles are defined
 		if globals.particle_data.getAngleData().getNumAngles() == 0:
 			print >> sys.stderr, "\n***Error! No angles are defined.\n";
-			raise RuntimeError("Error creating angle forces");		
+			raise RuntimeError("Error creating angle forces");
 		
 		# initialize the base class
 		force._force.__init__(self);
@@ -88,6 +90,7 @@ class harmonic(force._force):
 			self.cpp_force = hoomd.HarmonicAngleForceCompute(globals.particle_data);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.HarmonicAngleForceComputeGPU(globals.particle_data);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.harmonic'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating angle forces");
@@ -174,6 +177,7 @@ class cgcmm(force._force):
 			self.cpp_force = hoomd.CGCMMAngleForceCompute(globals.particle_data);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.CGCMMAngleForceComputeGPU(globals.particle_data);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('angle.cgcmm'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating CGCMM angle forces");

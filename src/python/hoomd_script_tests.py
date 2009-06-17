@@ -29,6 +29,51 @@ class init_create_random_tests (unittest.TestCase):
 	
 	def tearDown(self):
 		globals._clear();
+		
+# unit tests for init.read_xml
+class init_read_xml_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		f = open("test.xml", "w");
+		f.write('''<?xml version="1.0" encoding="UTF-8"?>
+<hoomd_xml version="1.0">
+<configuration time_step="0">
+<box units="sigma"  lx="8" ly="8" lz="8"/>
+<position units="sigma">
+-1 2 3
+2 1 -3
+3 -2 1
+</position>
+<type>
+A B C
+</type>
+</configuration>
+</hoomd_xml>
+''');
+		
+
+	# tests basic creation of the random initializer
+	def test(self):
+		init.read_xml('test.xml');
+		self.assert_(globals.particle_data);
+		self.assert_(globals.system);
+		self.assertEqual(globals.particle_data.getN(), 3);
+	
+	# tests creation with a few more arugments specified
+	def test_moreargs(self):
+		init.read_xml('test.xml', time_step=100);
+		self.assert_(globals.particle_data);
+		self.assert_(globals.system);
+		self.assertEqual(globals.particle_data.getN(), 3);
+		
+	# checks for an error if initialized twice
+	def test_inittwice(self):
+		init.read_xml('test.xml');
+		self.assertRaises(RuntimeError, init.read_xml, 'test.xml');
+	
+	def tearDown(self):
+		os.remove("test.xml");
+		globals._clear();
 
 # unit tests for init.create_random_polymers
 class init_create_random_polymer_tests (unittest.TestCase):
@@ -78,6 +123,22 @@ class init_create_random_polymer_tests (unittest.TestCase):
 	def tearDown(self):
 		globals._clear();
 
+# unit tests for init.reset
+class init_reset_tests (unittest.TestCase):
+	def setUp(self):
+		print
+	
+	# tests basic creation of the random initializer
+	def test_works(self):
+		init.create_random(N=100, phi_p=0.05);
+		init.reset()
+	
+	# tests creation with a few more arugments specified
+	def test_error(self):
+		init.create_random(N=100, phi_p=0.05);
+		lj = pair.lj(r_cut=3.0)
+		self.assertRaises(RuntimeError, init.reset);
+		
 # unit tests for analyze.imd
 #class analyze_imd_tests (unittest.TestCase):
 #	def setUp(self):
@@ -213,14 +274,40 @@ class dmp_mol2_tests (unittest.TestCase):
 	# tests basic creation of the dump
 	def test(self):
 		dump.mol2(filename="dump_mol2", period=100);
+		run(101)
+		os.remove("dump_mol2.0000000000.mol2")
 	
 	# tests variable periods
 	def test_variable(self):
 		dump.mol2(filename="dump_mol2", period=lambda n: n*100);
+		run(100);
+		os.remove("dump_mol2.0000000000.mol2")
 	
 	def tearDown(self):
 		globals._clear();
 		
+# unit tests for dump.pdb
+class dmp_pdb_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=100, phi_p=0.05);
+
+	# tests basic creation of the dump
+	def test(self):
+		dump.pdb(filename="dump_pdb", period=100);
+		run(101)
+		os.remove("dump_pdb.0000000000.pdb")
+	
+	# tests variable periods
+	def test_variable(self):
+		dump.pdb(filename="dump_pdb", period=lambda n: n*100);
+		run(101);
+		os.remove("dump_pdb.0000000000.pdb")
+	
+	def tearDown(self):
+		globals._clear();
+
+
 # unit tests for dump.dcd
 class dmp_dcd_tests (unittest.TestCase):
 	def setUp(self):
@@ -230,11 +317,15 @@ class dmp_dcd_tests (unittest.TestCase):
 	# tests basic creation of the dump
 	def test(self):
 		dump.dcd(filename="dump_dcd", period=100);
-	
+		run(100)
+		os.remove('dump_dcd')
+			
 	# tests variable periods
 	def test_variable(self):
 		dump.dcd(filename="dump_dcd", period=lambda n: n*100);
-	
+		run(100)
+		os.remove('dump_dcd')
+			
 	# test disable/enable
 	def test_enable_disable(self):
 		dcd = dump.dcd(filename="dump_dcd", period=100);
@@ -412,7 +503,7 @@ class pair_gauss_tests (unittest.TestCase):
 
 	# test missing coefficients
 	def test_set_missing_epsilon(self):
-		gauss = pair.lj(r_cut=3.0);
+		gauss = pair.gauss(r_cut=3.0);
 		gauss.pair_coeff.set('A', 'A', sigma=1.0);
 		self.assertRaises(RuntimeError, gauss.update_coeffs);
 		
@@ -427,6 +518,32 @@ class pair_gauss_tests (unittest.TestCase):
 		gauss.set_params(mode="no_shift");
 		gauss.set_params(mode="shift");
 		self.assertRaises(RuntimeError, gauss.set_params, mode="blah");
+	
+	def tearDown(self):
+		globals._clear();
+
+# pair.cgcmm
+class pair_cgcmm_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=1000, phi_p=0.05);
+		
+	# basic test of creation
+	def test(self):
+		cgcmm = pair.cgcmm(r_cut=3.0);
+		cgcmm.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='lj12_4');
+		cgcmm.update_coeffs();
+
+	# test missing coefficients
+	def test_set_missing_epsilon(self):
+		cgcmm = pair.cgcmm(r_cut=3.0);
+		cgcmm.pair_coeff.set('A', 'A', sigma=1.0, alpha=1.0);
+		self.assertRaises(RuntimeError, cgcmm.update_coeffs);
+		
+	# test missing coefficients
+	def test_missing_AA(self):
+		cgcmm = pair.cgcmm(r_cut=3.0);
+		self.assertRaises(RuntimeError, cgcmm.update_coeffs);
 	
 	def tearDown(self):
 		globals._clear();
@@ -510,27 +627,137 @@ class bond_harmonic_tests (unittest.TestCase):
 class angle_harmonic_tests (unittest.TestCase):
 	def setUp(self):
 		print
+		# create a polymer system and add a few angles to it
 		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
 		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
 		self.polymers = [self.polymer1, self.polymer2]
 		self.box = hoomd.BoxDim(35);
 		self.separation=dict(A=0.35, B=0.35)
 		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+		
+		angle_data = globals.particle_data.getAngleData();
+		angle_data.addAngle(hoomd.Angle(0, 0, 1, 2));
 	
-	# test to see that se can create a force.constant
+	# test to see that se can create an angle.harmonic
 	def test_create(self):
 		angle.harmonic();
 		
 	# test setting coefficients
 	def test_set_coeff(self):
 		harmonic = angle.harmonic();
-		harmonic.set_coeff('polymer', k=1.0, t0=0.78125)
+		harmonic.set_coeff('angleA', k=1.0, t0=0.78125)
 		integrate.nve(dt=0.005);
 		run(100);
 		
 	# test coefficient not set checking
 	def test_set_coeff_fail(self):
 		harmonic = angle.harmonic();
+		integrate.nve(dt=0.005);
+		self.assertRaises(RuntimeError, run, 100);
+	
+	def tearDown(self):
+		globals._clear();
+		
+# tests angle.cgcmm
+class angle_cgcmm_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		# create a polymer system and add a few angles to it
+		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
+		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
+		self.polymers = [self.polymer1, self.polymer2]
+		self.box = hoomd.BoxDim(35);
+		self.separation=dict(A=0.35, B=0.35)
+		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+		
+		angle_data = globals.particle_data.getAngleData();
+		angle_data.addAngle(hoomd.Angle(0, 0, 1, 2));
+	
+	# test to see that se can create an angle.cgcmm
+	def test_create(self):
+		angle.cgcmm();
+		
+	# test setting coefficients
+	def test_set_coeff(self):
+		cgcmm = angle.cgcmm();
+		cgcmm.set_coeff('angleA', k=3.0, t0=0.7851, exponents=126, epsilon=1.0, sigma=0.53)
+		integrate.nve(dt=0.005);
+		run(100);
+		
+	# test coefficient not set checking
+	def test_set_coeff_fail(self):
+		cgcmm = angle.cgcmm();
+		integrate.nve(dt=0.005);
+		self.assertRaises(RuntimeError, run, 100);
+	
+	def tearDown(self):
+		globals._clear();
+
+		
+# tests dihedral.harmonic
+class dihedral_harmonic_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		# create a polymer system and add a dihedral to it
+		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
+		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
+		self.polymers = [self.polymer1, self.polymer2]
+		self.box = hoomd.BoxDim(35);
+		self.separation=dict(A=0.35, B=0.35)
+		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+		
+		dihedral_data = globals.particle_data.getDihedralData();
+		dihedral_data.addDihedral(hoomd.Dihedral(0, 0, 1, 2, 3));
+	
+	# test to see that se can create an angle.harmonic
+	def test_create(self):
+		dihedral.harmonic();
+		
+	# test setting coefficients
+	def test_set_coeff(self):
+		harmonic = dihedral.harmonic();
+		harmonic.set_coeff('dihedralA', k=1.0, d=1, n=4)
+		integrate.nve(dt=0.005);
+		run(100);
+		
+	# test coefficient not set checking
+	def test_set_coeff_fail(self):
+		harmonic = dihedral.harmonic();
+		integrate.nve(dt=0.005);
+		self.assertRaises(RuntimeError, run, 100);
+	
+	def tearDown(self):
+		globals._clear();
+		
+# tests improper.harmonic
+class improper_harmonic_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		# create a polymer system and add a dihedral to it
+		self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
+		self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
+		self.polymers = [self.polymer1, self.polymer2]
+		self.box = hoomd.BoxDim(35);
+		self.separation=dict(A=0.35, B=0.35)
+		init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+		
+		improper_data = globals.particle_data.getImproperData();
+		improper_data.addDihedral(hoomd.Dihedral(0, 0, 1, 2, 3));
+	
+	# test to see that se can create an angle.harmonic
+	def test_create(self):
+		improper.harmonic();
+		
+	# test setting coefficients
+	def test_set_coeff(self):
+		harmonic = improper.harmonic();
+		harmonic.set_coeff('dihedralA', k=30.0, chi=1.57)
+		integrate.nve(dt=0.005);
+		run(100);
+		
+	# test coefficient not set checking
+	def test_set_coeff_fail(self):
+		harmonic = improper.harmonic();
 		integrate.nve(dt=0.005);
 		self.assertRaises(RuntimeError, run, 100);
 	
@@ -567,6 +794,40 @@ class bond_fene_tests (unittest.TestCase):
 	
 	def tearDown(self):
 		globals._clear();
+		
+# tests for update.box_resize
+class update_box_resize_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=100, phi_p=0.05);
+
+	# tests basic creation of the updater
+	def test(self):
+		update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
+		run(100);
+
+	# test the setting of more args
+	def test_moreargs(self):
+		update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]),
+		                  Ly = variant.linear_interp([(0, 40), (1e6, 80)]))
+		run(100);
+	
+	# test the setting of more args
+	def test_evenmoreargs(self):
+		update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]),
+		                  Ly = variant.linear_interp([(0, 40), (1e6, 80)]),
+		                  Lz = variant.linear_interp([(0, 40), (1e6, 80)]),
+		                  period=10);
+		run(100);
+	
+	# test set_params
+	def test_set_params(self):
+		upd = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
+		upd.set_params(scale_particles = False);
+	
+	def tearDown(self):
+		globals._clear();
+
 
 # tests for update.rescale_temp
 class update_rescale_temp_tests (unittest.TestCase):

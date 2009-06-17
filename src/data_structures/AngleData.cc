@@ -400,12 +400,19 @@ void AngleData::copyAngleTable()
 void export_AngleData()
 	{
 	class_<AngleData, boost::shared_ptr<AngleData>, boost::noncopyable>("AngleData", init<ParticleData *, unsigned int>())
-		.def("getNumAngles", &AngleData::getNumAngles)
-		.def("getNAngleTypes", &AngleData::getNAngleTypes)
-		.def("getTypeByName", &AngleData::getTypeByName)
-		.def("getNameByType", &AngleData::getNameByType)
-		;
+	      .def("addAngle", &AngleData::addAngle)
+	      .def("getNumAngles", &AngleData::getNumAngles)
+	      .def("getNAngleTypes", &AngleData::getNAngleTypes)
+	      .def("getTypeByName", &AngleData::getTypeByName)
+	      .def("getNameByType", &AngleData::getNameByType)
+	      ;
 	
+	class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
+	                 .def_readwrite("a", &Angle::a)
+	                 .def_readwrite("b", &Angle::b)
+	                 .def_readwrite("c", &Angle::c)
+	                 .def_readwrite("type", &Angle::type)
+	                 ;
 	}
 
 #ifdef WIN32

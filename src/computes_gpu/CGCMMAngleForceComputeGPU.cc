@@ -58,7 +58,7 @@ using namespace std;
 /*! \param pdata ParticleData to compute angle forces on
 */
 CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: CGCMMAngleForceCompute(pdata)
+	: CGCMMAngleForceCompute(pdata), m_block_size(64)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -81,26 +81,6 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<ParticleD
 	cgPow2[1]  = 6.0;
 	cgPow2[2]  = 4.0;
 	cgPow2[3]  = 6.0;
-
-
-		
-	// default block size is the highest performance in testing on different hardware
-	// choose based on compute capability of the device
-	cudaDeviceProp deviceProp;
-	int dev;
-	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 64;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 64;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 288;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for HarmonicAngleForceComputeGPU" << endl;
-		m_block_size = 64;
-		}
 
 	// allocate and zero device memory
 	m_gpu_params.resize(exec_conf.gpu.size());        

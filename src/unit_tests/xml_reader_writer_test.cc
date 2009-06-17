@@ -95,8 +95,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	int n_types = 5;
 	int n_bond_types = 2;
 	int n_angle_types = 1;
-        int n_improper_types = 0;
-	shared_ptr<ParticleData> pdata(new ParticleData(3, box, n_types, n_bond_types, n_angle_types,n_improper_types));
+	int n_dihedral_types = 1;
+	int n_improper_types = 1;
+	shared_ptr<ParticleData> pdata(new ParticleData(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
 	// set recognizable values for the particle
 	const ParticleDataArrays array = pdata->acquireReadWrite();
 	array.x[0] = Scalar(1.1);
@@ -152,6 +153,25 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	array.diameter[2] = Scalar(4.8);
 	
 	array.type[2] = 1;
+	
+	array.x[3] = Scalar(-1.25);
+	array.y[3] = Scalar(2.15);
+	array.z[3] = Scalar(3.45);
+	
+	array.ix[3] = 105;
+	array.iy[3] = 5005;
+	array.iz[3] = 9005;
+	
+	array.vx[3] = Scalar(-1.55);
+	array.vy[3] = Scalar(-10.65);
+	array.vz[3] = Scalar(5.75);
+	
+	array.mass[3] = Scalar(2.85);
+	
+	array.diameter[3] = Scalar(4.85);
+	
+	array.type[3] = 1;
+	
 	pdata->release();
 	
 	// add a couple walls for fun
@@ -167,17 +187,17 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	pdata->getAngleData()->addAngle(Angle(0, 0, 1, 2));
 	pdata->getAngleData()->addAngle(Angle(0, 1, 2, 0));
 	
+	// and a dihedral
+	pdata->getDihedralData()->addDihedral(Dihedral(0, 0, 1, 2, 3));
+	
+	// and an improper
+	pdata->getImproperData()->addDihedral(Dihedral(0, 3, 2, 1, 0));
+	
 	// create the writer
 	shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(pdata, "test"));
 	
-	// first file written will have all outputs disabled
 	writer->setOutputPosition(false);
-	writer->setOutputImage(false);
-	writer->setOutputVelocity(false);
-	writer->setOutputMass(false);
-	writer->setOutputDiameter(false);	
-	writer->setOutputType(false);
-
+	
 	// first test
 		{
 		// make sure the first output file is deleted
@@ -242,7 +262,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"3\">");
+		BOOST_CHECK_EQUAL(line, "<position units=\"sigma\" num=\"4\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -255,6 +275,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "-1.2 2.1 3.4");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-1.25 2.15 3.45");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -286,7 +310,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"3\">");
+		BOOST_CHECK_EQUAL(line, "<velocity units=\"sigma/tau\" num=\"4\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -302,13 +326,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 	
 		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "-1.55 -10.65 5.75");
+		BOOST_REQUIRE(!f.bad());	
+	
+		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</velocity>");
 		f.close();
 		}
 		
 	// fourth test: the type array
 		{
-		writer->setOutputPosition(false);
 		writer->setOutputVelocity(false);
 		writer->setOutputType(true);
 		
@@ -328,7 +355,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<type num=\"3\">");
+		BOOST_CHECK_EQUAL(line, "<type num=\"4\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -344,14 +371,16 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "B");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</type>");
 		f.close();
 		}
 
 	// fifth test: the wall array
 		{
-		writer->setOutputPosition(false);
-		writer->setOutputVelocity(false);
 		writer->setOutputType(false);
 		writer->setOutputWall(true);
 		
@@ -393,9 +422,6 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
 	// sixth test: the bond array
 		{
-		writer->setOutputPosition(false);
-		writer->setOutputVelocity(false);
-		writer->setOutputType(false);
 		writer->setOutputWall(false);
 		writer->setOutputBond(true);
 		
@@ -433,10 +459,6 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		
 	// seventh test: the angle array
 		{
-		writer->setOutputPosition(false);
-		writer->setOutputVelocity(false);
-		writer->setOutputType(false);
-		writer->setOutputWall(false);
 		writer->setOutputBond(false);
 		writer->setOutputAngle(true);
 		
@@ -474,11 +496,6 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		
 	// eighth test: test image
 		{
-		writer->setOutputPosition(false);
-		writer->setOutputVelocity(false);
-		writer->setOutputType(false);
-		writer->setOutputWall(false);
-		writer->setOutputBond(false);
 		writer->setOutputAngle(false);
 		writer->setOutputImage(true);
 		
@@ -498,7 +515,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<image num=\"3\">");
+		BOOST_CHECK_EQUAL(line, "<image num=\"4\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -512,7 +529,11 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "10 500 900");
 		BOOST_REQUIRE(!f.bad());
-	
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "105 5005 9005");
+		BOOST_REQUIRE(!f.bad());
+
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</image>");
 		f.close();
@@ -520,11 +541,6 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		
 	// nineth test: test mass
 		{
-		writer->setOutputPosition(false);
-		writer->setOutputVelocity(false);
-		writer->setOutputType(false);
-		writer->setOutputWall(false);
-		writer->setOutputBond(false);
 		writer->setOutputImage(false);
 		writer->setOutputMass(true);
 		
@@ -544,7 +560,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<mass num=\"3\">");
+		BOOST_CHECK_EQUAL(line, "<mass num=\"4\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -558,6 +574,10 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "2.8");
 		BOOST_REQUIRE(!f.bad());
+
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "2.85");
+		BOOST_REQUIRE(!f.bad());
 	
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</mass>");
@@ -566,12 +586,6 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 
 	// tenth test: test diameter
 		{
-		writer->setOutputPosition(false);
-		writer->setOutputVelocity(false);
-		writer->setOutputType(false);
-		writer->setOutputWall(false);
-		writer->setOutputBond(false);
-		writer->setOutputImage(false);
 		writer->setOutputMass(false);
 		writer->setOutputDiameter(true);
 		
@@ -591,7 +605,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line); // <Box
 		
 		getline(f, line);
-		BOOST_CHECK_EQUAL(line, "<diameter units=\"sigma\" num=\"3\">");
+		BOOST_CHECK_EQUAL(line, "<diameter units=\"sigma\" num=\"4\">");
 		BOOST_REQUIRE(!f.bad());
 		
 		getline(f, line);
@@ -605,9 +619,80 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "4.8");
 		BOOST_REQUIRE(!f.bad());
-	
+
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "4.85");
+		BOOST_REQUIRE(!f.bad());
+
 		getline(f, line);
 		BOOST_CHECK_EQUAL(line, "</diameter>");
+		f.close();
+		}
+		
+	// eleventh test: the dihedral array
+		{
+		writer->setOutputDiameter(false);
+		writer->setOutputDihedral(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000100.xml");
+		BOOST_REQUIRE(!exists("test.0000000100.xml"));
+		
+		// write the file
+		writer->analyze(100);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000100.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<dihedral num=\"1\">");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "dihedralA 0 1 2 3");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</dihedral>");
+		f.close();
+		}
+		
+		
+	// twelfth test: the improper array
+		{
+		writer->setOutputDihedral(false);
+		writer->setOutputImproper(true);
+		
+		// make sure the first output file is deleted
+		remove_all("test.0000000110.xml");
+		BOOST_REQUIRE(!exists("test.0000000110.xml"));
+		
+		// write the file
+		writer->analyze(110);
+		
+		// assume that the first lines tested in the first case are still OK and skip them
+		ifstream f("test.0000000110.xml");
+		string line;
+		getline(f, line); // <?xml
+		getline(f, line); // <HOOMD_xml
+		getline(f, line); // <Configuration
+		getline(f, line); // <Box
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "<improper num=\"1\">");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "dihedralA 3 2 1 0");
+		BOOST_REQUIRE(!f.bad());
+		
+		getline(f, line);
+		BOOST_CHECK_EQUAL(line, "</improper>");
 		f.close();
 		}
 
@@ -621,6 +706,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 	remove_all("test.0000000070.xml");
 	remove_all("test.0000000080.xml");
 	remove_all("test.0000000090.xml");
+	remove_all("test.0000000100.xml");
+	remove_all("test.0000000110.xml");
 	}
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
@@ -929,6 +1016,14 @@ angle_a 0 1 2\n\
 angle_b 1 2 3\n\
 angle_a 2 3 4\n\
 </angle>\n\
+<dihedral>\n\
+di_a 0 1 2 3\n\
+di_b 1 2 3 4\n\
+</dihedral>\n\
+<improper>\n\
+im_a 3 2 1 0\n\
+im_b 5 4 3 2\n\
+</improper>\n\
 </configuration>\n\
 </hoomd_xml>" << endl;
 	f.close();
@@ -1066,6 +1161,65 @@ angle_a 2 3 4\n\
 	BOOST_CHECK_EQUAL(a.c, (unsigned int)4);
 	BOOST_CHECK_EQUAL(a.type, (unsigned int)0);
 	
+	// check the dihedrals
+	boost::shared_ptr<DihedralData> dihedral_data = pdata->getDihedralData();
+	
+	// 2 dihedrals should have been read in
+	BOOST_REQUIRE_EQUAL(dihedral_data->getNumDihedrals(), (unsigned int)2);
+
+	// check that the types have been named properly
+	BOOST_REQUIRE_EQUAL(dihedral_data->getNDihedralTypes(), (unsigned int)2);
+	BOOST_CHECK_EQUAL(dihedral_data->getTypeByName("di_a"), (unsigned int)0);
+	BOOST_CHECK_EQUAL(dihedral_data->getTypeByName("di_b"), (unsigned int)1);
+	
+	BOOST_CHECK_EQUAL(dihedral_data->getNameByType(0), string("di_a"));
+	BOOST_CHECK_EQUAL(dihedral_data->getNameByType(1), string("di_b"));
+	
+	// verify each dihedral
+	Dihedral d = dihedral_data->getDihedral(0);
+	BOOST_CHECK_EQUAL(d.a, (unsigned int)0);
+	BOOST_CHECK_EQUAL(d.b, (unsigned int)1);
+	BOOST_CHECK_EQUAL(d.c, (unsigned int)2);
+	BOOST_CHECK_EQUAL(d.d, (unsigned int)3);
+	BOOST_CHECK_EQUAL(d.type, (unsigned int)0);
+
+	d = dihedral_data->getDihedral(1);
+	BOOST_CHECK_EQUAL(d.a, (unsigned int)1);
+	BOOST_CHECK_EQUAL(d.b, (unsigned int)2);
+	BOOST_CHECK_EQUAL(d.c, (unsigned int)3);
+	BOOST_CHECK_EQUAL(d.d, (unsigned int)4);
+	BOOST_CHECK_EQUAL(d.type, (unsigned int)1);
+	
+	
+	// check the impropers
+	boost::shared_ptr<DihedralData> improper_data = pdata->getImproperData();
+	
+	// 2 dihedrals should have been read in
+	BOOST_REQUIRE_EQUAL(improper_data->getNumDihedrals(), (unsigned int)2);
+
+	// check that the types have been named properly
+	BOOST_REQUIRE_EQUAL(improper_data->getNDihedralTypes(), (unsigned int)2);
+	BOOST_CHECK_EQUAL(improper_data->getTypeByName("im_a"), (unsigned int)0);
+	BOOST_CHECK_EQUAL(improper_data->getTypeByName("im_b"), (unsigned int)1);
+	
+	BOOST_CHECK_EQUAL(improper_data->getNameByType(0), string("im_a"));
+	BOOST_CHECK_EQUAL(improper_data->getNameByType(1), string("im_b"));
+	
+	// verify each dihedral
+	d = improper_data->getDihedral(0);
+	BOOST_CHECK_EQUAL(d.a, (unsigned int)3);
+	BOOST_CHECK_EQUAL(d.b, (unsigned int)2);
+	BOOST_CHECK_EQUAL(d.c, (unsigned int)1);
+	BOOST_CHECK_EQUAL(d.d, (unsigned int)0);
+	BOOST_CHECK_EQUAL(d.type, (unsigned int)0);
+
+	d = improper_data->getDihedral(1);
+	BOOST_CHECK_EQUAL(d.a, (unsigned int)5);
+	BOOST_CHECK_EQUAL(d.b, (unsigned int)4);
+	BOOST_CHECK_EQUAL(d.c, (unsigned int)3);
+	BOOST_CHECK_EQUAL(d.d, (unsigned int)2);
+	BOOST_CHECK_EQUAL(d.type, (unsigned int)1);
+
 	// clean up after ourselves
 	remove_all("test_input.xml");
 	}

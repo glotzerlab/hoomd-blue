@@ -39,10 +39,12 @@
 
 import force;
 import globals;
-import math;
 import hoomd;
-import sys;
 import util;
+import tune;
+
+import math;
+import sys;
 
 ## \package hoomd_script.dihedral
 # \brief Commands that specify %dihedral forces
@@ -88,6 +90,7 @@ class harmonic(force._force):
 			self.cpp_force = hoomd.HarmonicDihedralForceCompute(globals.particle_data);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.HarmonicDihedralForceComputeGPU(globals.particle_data);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('dihedral.harmonic'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating dihedral forces");

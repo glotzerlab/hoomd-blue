@@ -61,6 +61,7 @@ using namespace boost::python;
 #include "HOOMDDumpWriter.h"
 #include "BondData.h"
 #include "AngleData.h"
+#include "DihedralData.h"
 #include "WallData.h"
 
 using namespace std;
@@ -72,7 +73,10 @@ using namespace boost;
 	\note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<ParticleData> pdata, std::string base_fname)
-	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false)
+	: Analyzer(pdata), m_base_fname(base_fname), m_output_position(true), m_output_image(false),
+	  m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false),
+	  m_output_bond(false), m_output_angle(false), m_output_wall(false), m_output_dihedral(false),
+	  m_output_improper(false)
 	{
 	}
 
@@ -135,7 +139,20 @@ void HOOMDDumpWriter::setOutputWall(bool enable)
 	{
 	m_output_wall = enable;
 	}
-	
+/*! \param enable Set to true to output dihedrals to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputDihedral(bool enable)
+	{
+	m_output_dihedral = enable;
+	}
+/*! \param enable Set to true to output impropers to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputImproper(bool enable)
+	{
+	m_output_improper = enable;
+	}
+
+
 /*! \param fname File name to write
 	\param timestep Current time step of the simulation
 */
@@ -329,6 +346,40 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
 		
 		f << "</angle>" << endl;
 		}
+	
+	// if dihedral is true, write out dihedrals to the xml file
+	if (m_output_dihedral)
+		{
+		f << "<dihedral num=\"" << m_pdata->getDihedralData()->getNumDihedrals() << "\">" << endl;
+		shared_ptr<DihedralData> dihedral_data = m_pdata->getDihedralData();
+		
+		// loop over all angles and write them out
+		for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
+			{
+			Dihedral dihedral = dihedral_data->getDihedral(i);
+			f << dihedral_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
+			  << dihedral.c << " " << dihedral.d << endl;
+			}
+		
+		f << "</dihedral>" << endl;
+		}
+		
+	// if improper is true, write out impropers to the xml file
+	if (m_output_improper)
+		{
+		f << "<improper num=\"" << m_pdata->getImproperData()->getNumDihedrals() << "\">" << endl;
+		shared_ptr<DihedralData> improper_data = m_pdata->getImproperData();
+		
+		// loop over all angles and write them out
+		for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
+			{
+			Dihedral dihedral = improper_data->getDihedral(i);
+			f << improper_data->getNameByType(dihedral.type) << " " << dihedral.a  << " " << dihedral.b << " "
+			  << dihedral.c << " " << dihedral.d << endl;
+			}
+		
+		f << "</improper>" << endl;
+		}
 		
 	// if the wall flag is true, output the walls to the xml file
 	if (m_output_wall)
@@ -385,6 +436,8 @@ void export_HOOMDDumpWriter()
 		.def("setOutputType", &HOOMDDumpWriter::setOutputType)
 		.def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
 		.def("setOutputAngle", &HOOMDDumpWriter::setOutputAngle)
+		.def("setOutputDihedral", &HOOMDDumpWriter::setOutputDihedral)
+		.def("setOutputImproper", &HOOMDDumpWriter::setOutputImproper)
 		.def("setOutputWall", &HOOMDDumpWriter::setOutputWall)
 		.def("writeFile", &HOOMDDumpWriter::writeFile)
 		;

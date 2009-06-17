@@ -58,7 +58,7 @@ using namespace std;
 /*! \param pdata ParticleData to compute improper forces on
 */
 HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
-	: HarmonicImproperForceCompute(pdata)
+	: HarmonicImproperForceCompute(pdata), m_block_size(64)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -67,35 +67,17 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
 		throw std::runtime_error("Error initializing ImproperForceComputeGPU");
 		}
 		
-	// default block size is the highest performance in testing on different hardware
-	// choose based on compute capability of the device
-	cudaDeviceProp deviceProp;
-	int dev;
-	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 32;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 32;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 128;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for HarmonicImproperForceComputeGPU" << endl;
-		m_block_size = 32;
-		}
-	
 	// allocate and zero device memory
 	m_gpu_params.resize(exec_conf.gpu.size());
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_improper_data->getNImproperTypes()*sizeof(float2)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_improper_data->getNImproperTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_improper_data->getNDihedralTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_improper_data->getNDihedralTypes()*sizeof(float2)));
 		}
 	
-	m_host_params = new float2[m_improper_data->getNImproperTypes()];
-	memset(m_host_params, 0, m_improper_data->getNImproperTypes()*sizeof(float2));
+	m_host_params = new float2[m_improper_data->getNDihedralTypes()];
+	memset(m_host_params, 0, m_improper_data->getNDihedralTypes()*sizeof(float2));
 	}
 	
 HarmonicImproperForceComputeGPU::~HarmonicImproperForceComputeGPU()
@@ -130,7 +112,7 @@ void HarmonicImproperForceComputeGPU::setParams(unsigned int type, Scalar K, Sca
 	// copy the parameters to the GPU
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_improper_data->getNImproperTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_improper_data->getNDihedralTypes()*sizeof(float2), cudaMemcpyHostToDevice));
 	}
 
 /*! Internal method for computing the forces on the GPU. 
@@ -145,7 +127,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 	// start the profile
 	if (m_prof) m_prof->push(exec_conf, "Harmonic Improper");
 		
-	vector<gpu_impropertable_array>& gpu_impropertable = m_improper_data->acquireGPU();
+	vector<gpu_dihedraltable_array>& gpu_impropertable = m_improper_data->acquireGPU();
 	
 	// the improper table is up to date: we are good to go. Call the kernel
 	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
@@ -154,7 +136,7 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
 	// run the kernel in parallel on all GPUs
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_harmonic_improper_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_impropertable[cur_gpu], m_gpu_params[cur_gpu], m_improper_data->getNImproperTypes(), m_block_size));
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_harmonic_improper_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_impropertable[cur_gpu], m_gpu_params[cur_gpu], m_improper_data->getNDihedralTypes(), m_block_size));
 	exec_conf.syncAll();
 		
 	// the force data is now only up to date on the gpu

@@ -545,11 +545,6 @@ Section "Installer Section" InstSection
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks"
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\lj_liquid_bmark.lnk" "$INSTDIR\benchmarks\lj_liquid_bmark.hoomd"
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\benchmarks\polymer_bmark.lnk" "$INSTDIR\benchmarks\polymer_bmark.hoomd"
-  ; demo start menu links
-  CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER\demos"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Micelle Demo.lnk" "$INSTDIR\demos\micelle\micelle_demo.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Oil water Demo.lnk" "$INSTDIR\demos\oil_water\oil_water_demo.hoomd"
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\demos\Self assembly Demo.lnk" "$INSTDIR\demos\self_assembly\self_assembly_demo.hoomd"
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
@@ -666,10 +661,6 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\benchmarks\polymer_bmark.lnk"
   RMDir "$SMPROGRAMS\$MUI_TEMP\benchmarks"
 
-  ; remove the demos from the start menu
-  Delete "$SMPROGRAMS\$MUI_TEMP\demos\Micelle Demo.lnk"
-  RMDir "$SMPROGRAMS\$MUI_TEMP\demos"
-  
   ;Delete empty start menu parent diretories
   StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"
  

@@ -39,10 +39,12 @@
 
 import force;
 import globals;
-import math;
 import hoomd;
-import sys;
 import util;
+import tune;
+
+import math;
+import sys;
 
 ## \package hoomd_script.improper
 # \brief Commands that specify %improper forces
@@ -76,7 +78,7 @@ class harmonic(force._force):
 	def __init__(self):
 		util.print_status_line();
 		# check that some impropers are defined
-		if globals.particle_data.getImproperData().getNumImpropers() == 0:
+		if globals.particle_data.getImproperData().getNumDihedrals() == 0:
 			print >> sys.stderr, "\n***Error! No impropers are defined.\n";
 			raise RuntimeError("Error creating improper forces");		
 		
@@ -88,6 +90,7 @@ class harmonic(force._force):
 			self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.particle_data);
 		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.particle_data);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('improper.harmonic'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating improper forces");
@@ -130,7 +133,7 @@ class harmonic(force._force):
 		
 	def update_coeffs(self):
 		# get a list of all improper types in the simulation
-		ntypes = globals.particle_data.getImproperData().getNImproperTypes();
+		ntypes = globals.particle_data.getImproperData().getNDihedralTypes();
 		type_list = [];
 		for i in xrange(0,ntypes):
 			type_list.append(globals.particle_data.getImproperData().getNameByType(i));
