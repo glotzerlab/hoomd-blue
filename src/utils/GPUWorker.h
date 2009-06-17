@@ -114,7 +114,7 @@ class GPUWorker
 	{
 	public:
 		//! Creates a worker thread and ties it to a particular gpu \a dev
-		GPUWorker(int dev);
+		GPUWorker(int dev, int flags=0);
 		
 		//! Destructor
 		~GPUWorker();

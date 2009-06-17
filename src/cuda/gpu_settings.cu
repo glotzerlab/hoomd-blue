@@ -42,4 +42,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 bool g_gpu_error_checking = false;
 
+#if (CUDA_VERSION < 2020)
+cudaError_t cudaHostAlloc(void **pHost, size_t bytes, unsigned int flags)
+	{
+	cudaMallocHost(pHost, bytes);
+	}
+#endif
+
 // vim:syntax=cpp
