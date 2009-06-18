@@ -352,14 +352,14 @@ shared_ptr<ShiftedLJForceCompute> gpu_shiftedlj_creator(shared_ptr<ParticleData>
 BOOST_AUTO_TEST_CASE( ShiftedLJForce_particle )
 	{
 	shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
-	shiftedlj_force_particle_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	shiftedlj_force_particle_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 	
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( ShiftedLJForce_periodic )
 	{
 	shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
-	shiftedlj_force_periodic_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	shiftedlj_force_periodic_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 /*	

@@ -86,13 +86,13 @@ struct ExecutionConfiguration
 		};
 	
 	//! Default constructor
-	ExecutionConfiguration(bool min_cpu=false);
+	ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false);
 	
 	//! Single GPU selection constructor
-	ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu=false);
+	ExecutionConfiguration(executionMode mode, bool min_cpu=false, bool ignore_display=false);
 	
-	//! Multi GPU selection constructor
-	ExecutionConfiguration(executionMode mode, const std::vector<int>& gpu_ids, bool min_cpu=false);
+	//! Excplicit GPU selection constructor
+	ExecutionConfiguration(const std::vector<int>& gpu_ids, bool min_cpu=false, bool ignore_display=false);
 	
 	executionMode exec_mode;	//!< Execution mode specified in the constructor
 	
@@ -108,17 +108,33 @@ struct ExecutionConfiguration
 	
 	std::vector< boost::shared_ptr<GPUWorker> > gpu;	//!< GPUs to execute on
 	
-	static unsigned int getDefaultGPU();	//!< returns the default GPU to run on
-	static std::vector< unsigned int > getDefaultGPUList();	//!< returns the list of default GPUs to run on
+	static int getDefaultGPU();	//!< returns the default GPU to run on
+	static std::vector< int > getDefaultGPUList();	//!< returns the list of default GPUs to run on
 
 	//! Checks all GPUs in the execution configuration to see if they meet the CUDA_ARCH min req.
 	void checkCudaArch();
 	
 	//! Get the compute capability of the GPU that we are running on
 	std::string getComputeCapability();
-
-	//! Get whether the system is enabled for compute-exclusive use or not
-	static bool isSystemComputeExclusive();
+	
+	private:
+		//! Actually initializes the workers with the given list of GPUs
+		void initializeGPUs(const std::vector<int>& gpu_ids, bool min_cpu);
+		
+		//! Scans through all GPUs reported by CUDA and marks if they are available
+		void scanGPUs(bool ignore_display);
+		
+		//! Returns true if the given GPU is available for computation
+		bool isGPUAvailable(int gpu_id);
+		
+		//! Returns the count of capable GPUs
+		int getNumCapableGPUs();
+		
+		//! Return the number of GPUs that can be checked for availability
+		unsigned int getNumTotalGPUs() { return m_gpu_available.size(); }
+		
+		std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
+		bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
 	#endif
 	};
 

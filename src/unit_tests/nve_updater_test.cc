@@ -370,21 +370,21 @@ shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<ParticleData> pdata, Scalar de
 BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 	{
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-	nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 	
 //! boost test case for base class limit tests
 BOOST_AUTO_TEST_CASE( NVEUpdater_limit_tests )
 	{
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-	nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}	
 	
 //! boost test case for base class boundary tests
 BOOST_AUTO_TEST_CASE( NVEUpdater_boundary_tests )
 	{
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-	nve_updater_boundary_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	nve_updater_boundary_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 	
 #ifdef ENABLE_CUDA
@@ -392,21 +392,21 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_boundary_tests )
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 	{
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-	nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for base class limit tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_limit_tests )
 	{
 	nveup_creator nve_creator = bind(gpu_nve_creator, _1, _2);
-	nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}		
 	
 //! boost test case for base class boundary tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_boundary_tests )
 	{
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-	nve_updater_boundary_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nve_updater_boundary_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for comparing the GPU and CPU NVEUpdaters
@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_CASE( NVEUPdaterGPU_comparison_tests)
 	{
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-	nve_updater_compare_test(nve_creator, nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nve_updater_compare_test(nve_creator, nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comkparing CPU to multi-GPU updaters
@@ -425,7 +425,7 @@ BOOST_AUTO_TEST_CASE( NVEUPdaterMultiGPU_comparison_tests)
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 	
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);

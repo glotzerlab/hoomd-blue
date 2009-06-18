@@ -46,9 +46,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
  
 <hr>
 
-\section sec_system_req System Requirements for executing HOOMD on a GPU
+\section sec_system_req System Requirements (to run on a GPU)
  - \b OS: Linux, Mac OS X, Windows Vista, or Windows XP
- 	- \b Note: Mac OS X versions older than 10.5.4 are not supported
  - \b CPU: Any x86 or x86_64 processor
  - \b RAM: At least 1GB is recommended
  - \b GPU: Any CUDA capable card: http://www.nvidia.com/object/cuda_home.html
@@ -79,7 +78,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 \section sec_install_hoomd_windows Installing HOOMD in Windows
 
  -# Download the HOOMD installer from http://www.ameslab.gov/hoomd
- -# Install Python 2.5 using the installer at http://www.python.org/download/
+ -# Install Python 2.5.x using the installer at http://www.python.org/download/
  -# Install the corresponding drivers for your GPU. Go to http://www.nvidia.com and select \b download \b drivers.
  	- Note: The HOOMD download page lists compatible driver version(s).
  	- Laptop users, see<br>

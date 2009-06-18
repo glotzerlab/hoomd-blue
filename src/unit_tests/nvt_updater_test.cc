@@ -1235,7 +1235,7 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 //! Compares the output of NVTUpdater to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 	{
-	nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 
@@ -1243,7 +1243,7 @@ BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 //! Compares the output of NVTUpdaterGPU to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_mathematica_compare )
 	{
-	nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters
@@ -1251,7 +1251,7 @@ BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
 	{
 	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
-	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing the CPU and multi-GPU updaters
@@ -1262,7 +1262,7 @@ BOOST_AUTO_TEST_CASE( NVTUpdaterMultiGPU_comparison_tests)
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 	
 	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);

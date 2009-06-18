@@ -187,7 +187,7 @@ shared_ptr<LJWallForceCompute> base_class_ljwall_creator(shared_ptr<ParticleData
 BOOST_AUTO_TEST_CASE( LJWallForce_particle )
 	{
 	ljwallforce_creator ljwall_creator_base = bind(base_class_ljwall_creator, _1, _2);
-	ljwall_force_particle_test(ljwall_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	ljwall_force_particle_test(ljwall_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 #ifdef WIN32
