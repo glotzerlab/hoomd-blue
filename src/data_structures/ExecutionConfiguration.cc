@@ -457,7 +457,9 @@ void export_ExecutionConfiguration()
 		.def(init<ExecutionConfiguration::executionMode, int, bool>())
 		.def(init<ExecutionConfiguration::executionMode, vector<int>, bool >())
 		.def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
-		.def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
+#ifdef ENABLE_CUDA
+	    .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
+#endif
 		;
 		
 	enum_<ExecutionConfiguration::executionMode>("executionMode")
