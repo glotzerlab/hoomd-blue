@@ -135,6 +135,7 @@ struct ExecutionConfiguration
 		
 		std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
 		bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
+		std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
 	#endif
 	};
 

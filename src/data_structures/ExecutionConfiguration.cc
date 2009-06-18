@@ -58,6 +58,7 @@ using namespace boost::python;
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 using namespace std;
 using namespace boost;
@@ -383,7 +384,7 @@ void ExecutionConfiguration::initializeGPUs(const std::vector<int>& gpu_ids, boo
 			}
 			
 		// if we get here, everything checked out and the GPU can be initialized and added
-		gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id, flags)));
+		gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id, flags, &m_gpu_list[0], m_gpu_list.size())));
 		}
 		
 	if (automatic_gpu_count > 1 && !m_system_compute_exclusive)
@@ -394,9 +395,32 @@ void ExecutionConfiguration::initializeGPUs(const std::vector<int>& gpu_ids, boo
 		}
 	}
 
+//! Element in a priority sort of GPUs
+struct gpu_elem
+	{
+	//! Constructor
+	gpu_elem(float p=0.0f, int g=0) : priority(p), gpu_id(g) {}
+	float priority;    //!< determined priority of the GPU
+	int gpu_id;        //!< ID of the GPU
+	};
+	
+//! less than operator for sorting gpu_elem
+/*! \param a first element in the comparison
+    \param b second element in the comparison
+*/
+bool operator<(const gpu_elem& a, const gpu_elem& b)
+	{
+	if (a.priority == b.priority)
+		return a.gpu_id < b.gpu_id;
+	else
+		return a.priority > b.priority;
+	}
+
 /*! \param ignore_display If set to true, try to ignore GPUs attached to the display
     Each GPU that CUDA reports to exist is scrutinized to determine if it is actually capable of running HOOMD
     When one is found to be lacking, it is marked as unavailable and a short notice is printed as to why.
+
+    \post m_gpu_list, m_gpu_available and m_system_compute_exclusive are all filled out
 */
 void ExecutionConfiguration::scanGPUs(bool ignore_display)
 	{
@@ -474,6 +498,37 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 		if (m_gpu_available[dev] && dev_prop.computeMode == cudaComputeModeExclusive)
 			n_exclusive_gpus++;
 		#endif
+		}
+		
+	std::vector<gpu_elem> gpu_priorities;
+	for (int dev = 0; dev < dev_count; dev++)
+		{
+		if (m_gpu_available[dev])
+			{
+			cudaDeviceProp dev_prop;
+			cudaError_t error = cudaGetDeviceProperties(&dev_prop, dev);
+			if (error != cudaSuccess)
+				{
+				cout << endl << "***Error! Error calling cudaGetDeviceProperties()." << endl << endl;
+				throw runtime_error("Error initializing execution configuration");
+				}
+				
+			// calculate a simple priority: multiprocessors * clock = speed, then subtract a bit if the device is
+			// attached to a display
+			float priority = float(dev_prop.clockRate * dev_prop.multiProcessorCount) / float(1e7);
+			if (dev_prop.kernelExecTimeoutEnabled)
+				priority -= 0.1f;
+				
+			gpu_priorities.push_back(gpu_elem(priority, dev));
+			}
+		}
+			
+	// sort the GPUs based on priority
+	sort(gpu_priorities.begin(), gpu_priorities.end());
+	// add the prioritized GPUs to the list
+	for (unsigned int i = 0; i < gpu_priorities.size(); i++)
+		{
+		m_gpu_list.push_back(gpu_priorities[i].gpu_id);
 		}
 	
 	// the system is fully compute-exclusive if all capable GPUs are compute-exclusive

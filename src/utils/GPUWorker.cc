@@ -59,14 +59,18 @@ using namespace std;
 
 /*! \param dev GPU device number to be passed to cudaSetDevice()
     \param flags Will be passed directly to cudaSetDeviceFlags()
+    \param device_arr List of valid devices to be passed to cudaSetValidDevices
+    \param len Length of the \a device_arr list to be passed to cudaSetValidDevices
 	
 	Constructing a GPUWorker creates the worker thread and immeadiately assigns it to 
 	a device with cudaSetDevice().
 	
 	\note: Pass \a dev = -1 in order to skip the cudaSetDevice call. This is intended for use
 		with CUDA 2.2 automatic GPU assignment on linux with compute exclusive GPUs.
+	\note If \a device_arr is left at the default of NULL, cudaSetValidDevices will not be called
 */
-GPUWorker::GPUWorker(int dev, int flags) : m_exit(false), m_work_to_do(false), m_last_error(cudaSuccess)
+GPUWorker::GPUWorker(int dev, int flags, int *device_arr, int len) 
+	: m_exit(false), m_work_to_do(false), m_last_error(cudaSuccess)
 	{
 	m_tagged_file = __FILE__;
 	m_tagged_line = __LINE__;
@@ -74,6 +78,7 @@ GPUWorker::GPUWorker(int dev, int flags) : m_exit(false), m_work_to_do(false), m
 	
 	#if (CUDA_VERSION >= 2020)
 	call(bind(cudaSetDeviceFlags, flags));
+	call(bind(cudaSetValidDevices, device_arr, len));
 	#endif
 
 	if (dev != -1)
