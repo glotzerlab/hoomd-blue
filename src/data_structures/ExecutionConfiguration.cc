@@ -445,7 +445,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 		cudaError_t error = cudaGetDeviceProperties(&dev_prop, dev);
 		if (error != cudaSuccess)
 			{
-			cout << endl << "***Error! Error calling cudaGetDeviceProperties()." << endl << endl;
+			cerr << endl << "***Error! Error calling cudaGetDeviceProperties()." << endl << endl;
 			throw runtime_error("Error initializing execution configuration");
 			}
 			
@@ -477,6 +477,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 			<< min_minor << " but the GPU is only " << dev_prop.major << "." << dev_prop.minor << endl;
 			}
 		
+		#if CUDART_VERSION >= 2010
 		// ignore the display gpu if that was requested
 		if (m_gpu_available[dev] && ignore_display && dev_prop.kernelExecTimeoutEnabled)
 			{
@@ -484,6 +485,13 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 			cout << "Notice: GPU id " << dev << " is not available for computation because "
 			     << "it appears to be attached to a display" << endl;
 			}
+		#else
+		if (ignore_display)
+			{
+			cout << endl << "***Warning! --ignore-dispaly-gpu is innefective because this build of HOOMD was compiled"
+			<< " against a CUDA version older than 2.1" << endl << endl;
+			}
+		#endif
 		
 		#if CUDART_VERSION >= 2020
 		// exclude a gpu if it is compute-prohibited
@@ -516,8 +524,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 			// calculate a simple priority: multiprocessors * clock = speed, then subtract a bit if the device is
 			// attached to a display
 			float priority = float(dev_prop.clockRate * dev_prop.multiProcessorCount) / float(1e7);
+			#if CUDART_VERSION >= 2010
 			if (dev_prop.kernelExecTimeoutEnabled)
 				priority -= 0.1f;
+			#endif
 				
 			gpu_priorities.push_back(gpu_elem(priority, dev));
 			}
