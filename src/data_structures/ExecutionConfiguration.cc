@@ -58,6 +58,7 @@ using namespace boost::python;
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 #include <algorithm>
 
 using namespace std;
@@ -393,6 +394,55 @@ void ExecutionConfiguration::initializeGPUs(const std::vector<int>& gpu_ids, boo
 		<< endl << "        set to compute-exclusive mode. This will likely result in strange behavior."
 		<< endl;
 		}
+		
+	printGPUStats();
+	}
+
+/*! Simply loops through all of the chosen GPUs and prints out a line of stats on them
+	\pre gpu[] must be initialized and all worker threads created
+*/
+void ExecutionConfiguration::printGPUStats()
+	{
+	cout << "HOOMD is running on the following GPUs:" << endl;
+	
+	tagAll(__FILE__, __LINE__);
+	for (unsigned int i = 0; i < gpu.size(); i++)
+		{
+		// get the properties for this device
+		int dev;
+		gpu[i]->call(bind(cudaGetDevice, &dev));
+		cudaDeviceProp dev_prop;
+		gpu[i]->call(bind(cudaGetDeviceProperties, &dev_prop, dev));
+		
+		// build a status line
+		ostringstream s;
+		
+		// start with the device ID and name
+		s << " [" << dev << "]";
+		s << setw(22) << dev_prop.name;
+		
+		// then print the SM count and version
+		s << setw(4) << dev_prop.multiProcessorCount << " SM_" << dev_prop.major << "." << dev_prop.minor;
+		
+		// and the clock rate
+		float ghz = float(dev_prop.clockRate)/1e6;
+		s.precision(3);
+		s.fill('0');
+		s << " @ " << setw(4) << ghz << " GHz";
+		s.fill(' ');
+		
+		// and the total amount of memory
+		int mib = int(float(dev_prop.totalGlobalMem) / float(1024*1024));
+		s << ", " << setw(4) << mib << " MiB DRAM";
+		
+		// follow up with some flags to signify device features
+		#if CUDART_VERSION > 2010
+		if (dev_prop.kernelExecTimeoutEnabled)
+			s << ", DIS";
+		#endif
+		
+		cout << s.str() << endl;
+		}
 	}
 
 //! Element in a priority sort of GPUs
@@ -424,12 +474,40 @@ bool operator<(const gpu_elem& a, const gpu_elem& b)
 */
 void ExecutionConfiguration::scanGPUs(bool ignore_display)
 	{
+	#if CUDART_VERSION >= 2020
+	// check the CUDA driver version
+	int driverVersion = 0;
+	cudaDriverGetVersion(&driverVersion);
+	
+	// first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
+	if (driverVersion == 0)
+		{
+		cout << endl << "***Warning! NVIDIA driver not installed or is too old, ignoring any GPUs in the system." 
+		     << endl << endl;
+		return;
+		}
+		
+	// next, check to see if the driver is capable of running the version of CUDART that HOOMD was compiled against
+	if (driverVersion < CUDART_VERSION)
+		{
+		int driver_major = driverVersion / 1000;
+		int driver_minor = (driverVersion - driver_major * 1000) / 10;
+		int cudart_major = CUDART_VERSION / 1000;
+		int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
+		
+		cout << endl << "***Warning! The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
+		<< driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
+		cout << "            Ignoring any GPUs in the system." << endl;
+		return;
+		}
+	#endif
+	
 	// determine the number of GPUs that CUDA thinks there is
 	int dev_count;
 	cudaError_t error = cudaGetDeviceCount(&dev_count);
 	if (error != cudaSuccess)
 		{
-		cout << endl << "***Error! Error calling cudaGetDeviceCount()." << endl << endl;
+		cerr << endl << "***Error! Error calling cudaGetDeviceCount()." << endl << endl;
 		throw runtime_error("Error initializing execution configuration");
 		}
 	

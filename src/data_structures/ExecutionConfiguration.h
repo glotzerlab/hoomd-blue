@@ -121,6 +121,9 @@ struct ExecutionConfiguration
 		//! Actually initializes the workers with the given list of GPUs
 		void initializeGPUs(const std::vector<int>& gpu_ids, bool min_cpu);
 		
+		//! Print out stats on the chosen GPUs
+		void printGPUStats();
+		
 		//! Scans through all GPUs reported by CUDA and marks if they are available
 		void scanGPUs(bool ignore_display);
 		
