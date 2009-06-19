@@ -328,7 +328,7 @@ BOOST_AUTO_TEST_CASE( CGCMMAngleForceCompute_basic )
 	{
 	printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
 	cgcmm_angleforce_creator af_creator = bind(base_class_af_creator, _1);
-	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 #ifdef ENABLE_CUDA
@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE( CGCMMAngleForceComputeGPU_basic )
 	{
 	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
 	cgcmm_angleforce_creator af_creator = bind(gpu_af_creator, _1);
-	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 	
@@ -346,7 +346,7 @@ BOOST_AUTO_TEST_CASE( CGCMMAngleForceComputeGPU_compare )
 	{
 	cgcmm_angleforce_creator af_creator_gpu = bind(gpu_af_creator, _1);
 	cgcmm_angleforce_creator af_creator = bind(base_class_af_creator, _1);
-	angle_force_comparison_tests(af_creator, af_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	angle_force_comparison_tests(af_creator, af_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForce_MultiGPU_compare)
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 	
 	cgcmm_angleforce_creator af_creator_gpu = bind(gpu_af_creator, _1);
 	cgcmm_angleforce_creator af_creator = bind(base_class_af_creator, _1);

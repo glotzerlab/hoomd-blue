@@ -390,21 +390,21 @@ shared_ptr<GaussianForceCompute> gpu_gauss_creator(shared_ptr<SystemDefinition> 
 BOOST_AUTO_TEST_CASE( GaussForce_particle )
 	{
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
-	gauss_force_particle_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	gauss_force_particle_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 	
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_periodic )
 	{
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
-	gauss_force_periodic_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	gauss_force_periodic_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_shift )
 	{
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
-	gauss_force_shift_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	gauss_force_shift_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 	
 # ifdef ENABLE_CUDA
@@ -412,21 +412,21 @@ BOOST_AUTO_TEST_CASE( GaussForce_shift )
 BOOST_AUTO_TEST_CASE( GaussForceGPU_particle )
 	{
 	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
-	gauss_force_particle_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	gauss_force_particle_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_periodic )
 	{
 	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
-	gauss_force_periodic_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	gauss_force_periodic_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for shift test on GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_shift )
 	{
 	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
-	gauss_force_shift_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	gauss_force_shift_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for comparing GPU output to base class output
@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE( GaussForceGPU_compare )
 	{
 	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
-	gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing multi-GPU output to base class output
@@ -445,7 +445,7 @@ BOOST_AUTO_TEST_CASE( GaussForceMultiGPU_compare )
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 
 	gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
 	gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);

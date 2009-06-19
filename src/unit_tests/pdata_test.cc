@@ -364,7 +364,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 		
 	// This set of tests will actually check that the ParticleData class is working
 	// It would be a pain in the ass to test every possible state change in going from

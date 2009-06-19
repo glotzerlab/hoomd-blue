@@ -577,7 +577,7 @@ shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	bd_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 //! Diameter test for the base class
@@ -591,14 +591,14 @@ BOOST_AUTO_TEST_CASE( BDUpdater_diamtests )
 BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_twoparticles_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	bd_twoparticles_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 //! extended LJ-liquid test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 #ifdef ENABLE_CUDA
@@ -606,7 +606,7 @@ BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bd_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! Diameter Setting test for the GPU class
@@ -620,14 +620,14 @@ BOOST_AUTO_TEST_CASE( BDUpdaterGPU_diamtests )
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_twoparticles_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bd_twoparticles_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! extended LJ-liquid test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 #endif
 

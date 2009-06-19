@@ -664,6 +664,7 @@ class cgcmm(force._force):
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 			self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating cgcmm pair force");

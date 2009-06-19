@@ -415,7 +415,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceCompute_basic )
 	{
 	printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
 	improperforce_creator tf_creator = bind(base_class_tf_creator, _1);
-	improper_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	improper_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 #ifdef ENABLE_CUDA
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_basic )
 	{
 	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
 	improperforce_creator tf_creator = bind(gpu_tf_creator, _1);
-	improper_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	improper_force_basic_tests(tf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -432,7 +432,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_compare )
 	{
 	improperforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
 	improperforce_creator tf_creator = bind(base_class_tf_creator, _1);
-	improper_force_comparison_tests(tf_creator, tf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	improper_force_comparison_tests(tf_creator, tf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
@@ -443,7 +443,7 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForce_MultiGPU_compare)
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 	
 	improperforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
 	improperforce_creator tf_creator = bind(base_class_tf_creator, _1);

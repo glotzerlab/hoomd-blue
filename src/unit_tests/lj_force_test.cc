@@ -483,21 +483,21 @@ shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<SystemDefinition> sysdef, s
 BOOST_AUTO_TEST_CASE( LJForce_particle )
 	{
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_particle_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	lj_force_particle_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 	
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( LJForce_periodic )
 	{
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_periodic_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	lj_force_periodic_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( LJForce_shift )
 	{
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_shift_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	lj_force_shift_test(lj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 	
 # ifdef ENABLE_CUDA
@@ -505,21 +505,21 @@ BOOST_AUTO_TEST_CASE( LJForce_shift )
 BOOST_AUTO_TEST_CASE( LJForceGPU_particle )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
-	lj_force_particle_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	lj_force_particle_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( LJForceGPU_periodic )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
-	lj_force_periodic_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	lj_force_periodic_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for shift test on GPU
 BOOST_AUTO_TEST_CASE( LJForceGPU_shift )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
-	lj_force_shift_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	lj_force_shift_test(lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for comparing GPU output to base class output
@@ -527,7 +527,7 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_compare )
 	{
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-	lj_force_comparison_test(lj_creator_base, lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	lj_force_comparison_test(lj_creator_base, lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing multi-GPU output to base class output
@@ -538,7 +538,7 @@ BOOST_AUTO_TEST_CASE( LJForceMultiGPU_compare )
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 
 	ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
 	ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);

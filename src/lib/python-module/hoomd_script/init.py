@@ -440,6 +440,8 @@ def _parse_command_line():
 	parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
 	parser.add_option("--ngpu", dest="ngpu", help="Number of GPUs to execute on (requires that CUDA 2.2 compute-exclusive mode be enabled on all GPUs)");
 	parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
+	parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
+	parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
 	
 	(_options, args) = parser.parse_args();
 	
@@ -449,7 +451,7 @@ def _parse_command_line():
 			parser.error("--mode must be either cpu or gpu");
 	
 	# check for sane options
-	if _options.mode == "cpu" and _options.gpu:
+	if _options.mode == "cpu" and (_options.gpu or _options.ngpu):
 		parser.error("It doesn't make sense to specify --mode=cpu and a value for --gpu")
 
 	# set the mode to gpu if the gpu # was set
@@ -472,7 +474,7 @@ def _create_exec_conf():
 	
 	# if no command line options were specified, create a default ExecutionConfiguration
 	if not _options.mode:
-		exec_conf = hoomd.ExecutionConfiguration();
+		exec_conf = hoomd.ExecutionConfiguration(_options.min_cpu, _options.ignore_display);
 	else:
 		# create a list of GPUs to execute on
 		gpu_ids = hoomd.std_vector_int();
@@ -490,11 +492,11 @@ def _create_exec_conf():
 		
 		# create the specified configuration
 		if _options.mode == "cpu":
-			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, 0);
+			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, _options.min_cpu, _options.ignore_display);
 		elif _options.mode == "gpu":
-			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_ids);
+			exec_conf = hoomd.ExecutionConfiguration(gpu_ids, _options.min_cpu, _options.ignore_display);
 		else:
-			raise RuntimeError("Invalid value for _options.exec in initialization");
+			raise RuntimeError("Error initializing");
 		
 	return exec_conf;
 		

@@ -39,10 +39,12 @@
 
 import force;
 import globals;
-import math;
 import hoomd;
-import sys;
 import util;
+import tune;
+
+import math;
+import sys;
 
 ## \package hoomd_script.improper
 # \brief Commands that specify %improper forces
@@ -88,6 +90,7 @@ class harmonic(force._force):
 			self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.system_definition);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('improper.harmonic'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating improper forces");

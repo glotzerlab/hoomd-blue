@@ -38,8 +38,11 @@
 # $URL$
 
 import globals
-import bond
 import pair
+import bond
+import angle
+import dihedral
+import improper
 import init
 import hoomd_script
 import hoomd
@@ -62,8 +65,12 @@ import sys
 #
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
-_default_block_size_db['1.1'] = {'pair.gauss': 320, 'bond.fene': 256, 'pair.lj': 320, 'nlist': 320, 'bond.harmonic': 64};
-_default_block_size_db['1.3'] = {'pair.gauss': 224, 'bond.fene': 288, 'pair.lj': 384, 'nlist': 128, 'bond.harmonic': 352}
+_default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 128, 'angle.cgcmm': 64,
+                                 'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 64, 'bond.fene': 256, 
+                                 'angle.harmonic': 192, 'pair.gauss': 64};
+_default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.cgcmm': 352, 'dihedral.harmonic': 128, 
+                                 'angle.cgcmm': 320, 'pair.lj': 352, 'nlist': 160, 'bond.harmonic': 352, 
+                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 160}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -294,11 +301,16 @@ def find_optimal_block_sizes(save = True):
 	util._disable_status_lines = True;
 	
 	# list of force computes to tune
-	fc_list = [	('pair.lj', '(r_cut=3.0)', 500),
-		     	('pair.gauss', '(r_cut=3.0)', 500),
-				('bond.harmonic', '()', 10000),
-				('bond.fene', '()', 5000)
-				];
+	fc_list = [ ('pair.lj', '(r_cut=3.0)', 500),
+	            ('pair.cgcmm', '(r_cut=3.0)', 500),
+	            ('pair.gauss', '(r_cut=3.0)', 500),
+	            ('bond.harmonic', '()', 10000),
+	            ('angle.harmonic', '()', 3000),
+	            ('angle.cgcmm', '()', 2000),
+	            ('dihedral.harmonic', '()', 1000),
+	            ('improper.harmonic', '()', 1000),
+	            ('bond.fene', '()', 2000)
+	          ];
 	
 	# setup the particle system to benchmark
 	polymer = dict(bond_len=1.2, type=['A']*50, bond="linear", count=2000);
@@ -306,7 +318,27 @@ def find_optimal_block_sizes(save = True):
 	phi_p = 0.2;
 	L = math.pow(math.pi * N / (6.0 * phi_p), 1.0/3.0);
 
-	init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
+	sysdef = init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
+	
+	# need some angles, dihedrals, and impropers to benchmark
+	angle_data = sysdef.getAngleData();
+	dihedral_data = sysdef.getDihedralData();
+	improper_data = sysdef.getImproperData();
+	num_particles = len(polymer['type']) * polymer['count'];
+	
+	for i in xrange(1,num_particles-3):
+		angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
+	
+	for i in xrange(1,num_particles-4):
+		dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
+		improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
+	
+	del angle_data
+	del dihedral_data
+	del improper_data
+	del sysdef
+	
+	# run one time step to resort the particles for optimal memory access patterns
 	hoomd_script.run(1);
 	
 	# list of optimal databases
@@ -353,5 +385,6 @@ def find_optimal_block_sizes(save = True):
 	if save:
 		_save_override_file(common_optimal_db);
 	
-	init.reset();
+	## Currently not working for some reason.....
+	# init.reset();
 	util._disable_status_lines = False;
