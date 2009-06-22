@@ -300,6 +300,26 @@ def _choose_optimal_block_sizes(optimal_dbs):
 #
 # \param save Set to False to disable the saving of ~/.hoomd_block_tuning
 #
+# A number of parameters related to running the GPU code in HOOMD can be tuned for optimal performance.
+# Unfortunately, the optimal values are impossible to predict and must be benchmarked. Additionally,
+# the optimal values can vary due to different hardware and even compiler versions! HOOMD includes
+# a balanced default set of tuning parameters benchmarked on various hardware configurations,
+# all with the latest version of CUDA. 
+#
+# You might be able to boost the performance of your simulations over the default by a small amount
+# if you run the tuning benchmark on your own machine. find_optimal_block_sizes() is the command
+# that does this. In order to use it, run the following hooomd script:
+#\code
+#from hoomd_script import *
+#tune.find_optimal_block_sizes()
+#\endcode
+#
+# Be prepared to wait a while when running it. After it completes successfully, it will save the
+# determined optimal tuning parameters in a file ~/.hoomd_block_tuning. This file will be 
+# automatically read by any future invocations of HOOMD. 
+#
+# \note HOOMD ignores .hoomd_block_tuning files from older versions. You must rerun the tuning
+# script after upgrading HOOMD. 
 def find_optimal_block_sizes(save = True):
 	util._disable_status_lines = True;
 	
