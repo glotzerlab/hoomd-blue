@@ -22,7 +22,7 @@ specify explicitly which GPU(s) on which hoomd will execute. Implies --mode=gpu.
 
 <b>--ngpu</b>=#
 \par
-specify the number of GPUs to use in parallel. The specific GPUs will be determined automatically. Imples --mode=gpu and
+specify the number of GPUs to use in parallel. The specific GPUs will be determined automatically. Implies --mode=gpu and
 cannot be used with --gpu.
 
 <b>--ignore-display-gpu</b>
@@ -76,7 +76,7 @@ HOOMD first checks if there are any GPUs in the system. If it finds one or more,
 it makes the same automatic choice described previously. If none are found, it runs on the CPU.
 
 <hr>
-<h3>Automatic determiniation of the GPU on which to run</h3>
+<h3>Automatic determination of the GPU on which to run</h3>
 If CUDA 2.2 or newer is installed on a Linux OS, free GPUs can be determined automatically. To utilize this
 capability, the system administrator (root) must first use the \c nvidia-smi utility to enable 
 the compute-exclusive mode on all GPUs in the system (for an example, see http://forums.nvidia.com/index.php?showtopic=96638&hl=nvidia-smi).
@@ -90,7 +90,7 @@ hoomd some_script.hoomd --ngpu=N
 , where N is an integer
 
 Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA application to run on each GPU. If you have
-4 compute-exclusive GPUs available in the system, executing a fifth instace of HOOMD with "hoomd some_script.hoomd"
+4 compute-exclusive GPUs available in the system, executing a fifth instance of HOOMD with "hoomd some_script.hoomd"
 will result in the error: ***Error! no CUDA-capable device is available.
 <hr>
 

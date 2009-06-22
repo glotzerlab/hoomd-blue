@@ -6,7 +6,7 @@
 <hr>
 <h1>HOOMD Developers:</h1>
 <hr>
-Joshua Anderson, University of Michigan (original devlopement as a student at Iowa State University and Ames Laboratory) - <b>primary developer</b>
+Joshua Anderson, University of Michigan (original development as a student at Iowa State University and Ames Laboratory) - <b>primary developer</b>
  - Initial code architecture design
  - Neighbor list generation
  - Lennard-Jones forces
@@ -49,7 +49,7 @@ Axel Kohlmeyer, David LeBard, Ben Levine, all from the CMM group at University o
   - numerous other small contributions enhancing the usability of HOOMD
 
 While not having contributed a significant amount of code to HOOMD, David Tarjan at the University of Virginia is 
-repsonsible for numerous performance tweaks to the neighbor list and pair force code.
+responsible for numerous performance tweaks to the neighbor list and pair force code.
 
 <hr>
 <h1>Source code</h1>

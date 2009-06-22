@@ -49,7 +49,7 @@ import sys;
 ## \package hoomd_script.improper
 # \brief Commands that specify %improper forces
 #
-# Impropers add forces between specified quaduplets of particles and are typically used to 
+# Impropers add forces between specified quadruplets of particles and are typically used to 
 # model rotation about chemical bonds without having bonds to connect the atoms. Impropers between particles are set when an input XML file is read
 # (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
 #
@@ -59,7 +59,7 @@ import sys;
 
 ## Harmonic %improper forces
 #
-# The command improper.harmonic specifies a %harmonic improper potential energy between every qudruplet of particles
+# The command improper.harmonic specifies a %harmonic improper potential energy between every quadruplet of particles
 # in the simulation. 
 # \f[ V(r) = k \left( \chi - \chi_{0}(r)  \right )^2 \f]
 # where \f$ \chi \f$ is angle between two sides of the improper

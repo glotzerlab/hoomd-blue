@@ -49,7 +49,7 @@ import sys;
 ## \package hoomd_script.dihedral
 # \brief Commands that specify %dihedral forces
 #
-# Dihedrals add forces between specified quaduplets of particles and are typically used to 
+# Dihedrals add forces between specified quadruplets of particles and are typically used to 
 # model rotation about chemical bonds. Dihedrals between particles are set when an input XML file is read
 # (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
 #
@@ -59,7 +59,7 @@ import sys;
 
 ## Harmonic %dihedral forces
 #
-# The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every qudruplet of particles
+# The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every quadruplet of particles
 # in the simulation. 
 # \f[ V(r) = k \left( 1 + d cos\left(n * \phi(r) \right) \right) \f]
 # where \f$ \phi \f$ is angle between two sides of the dihedral

@@ -141,9 +141,9 @@ class _force:
 	#
 	# \note
 	# There is, however, one subtle side effect. If the benchmark() command is run 
-	# directly after the particle data is intialized with an init command, then the 
+	# directly after the particle data is initialized with an init command, then the 
 	# results of the benchmark will not be typical of the time needed during the actual
-	# simulation. Particles are not reorederd to improve cache performance until at least
+	# simulation. Particles are not reordered to improve cache performance until at least
 	# one time step is performed. Executing run(1) before the benchmark will solve this problem.
 	#
 	# To use this command, you must have saved the force in a variable, as

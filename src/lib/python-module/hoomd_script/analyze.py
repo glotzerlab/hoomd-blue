@@ -161,7 +161,7 @@ class _analyzer:
 
 	## \var prev_period
 	# \internal
-	# \brief Saved period retrived when an analyzer is disabled: used to set the period when re-enabled
+	# \brief Saved period retrieved when an analyzer is disabled: used to set the period when re-enabled
 
 	## Disables the analyzer
 	#
@@ -459,7 +459,7 @@ class log(_analyzer):
 # The mean squared displacement (MSD) for each group is calculated as:
 # \f[ \langle |\vec{r} - \vec{r}_0|^2 \rangle \f]
 #
-# The file format is the same convient delimited format used by analyze.log 
+# The file format is the same convenient delimited format used by analyze.log 
 class msd(_analyzer):
 	## Initialize the msd calculator
 	#

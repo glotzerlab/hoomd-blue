@@ -71,7 +71,7 @@ __all__ = [	"analyze",
 
 ## \brief Runs the simulation for a given number of time steps
 #
-# \param tsteps Number of timesteps to advance the simulation by
+# \param tsteps Number of time steps to advance the simulation by
 # \param profile Set to true to enable detailed profiling
 # \param limit_hours  (if set) Limit the run to a given number of hours.
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
@@ -117,13 +117,13 @@ __all__ = [	"analyze",
 #
 # If \a callback is set to a Python function then this function will be called regularly
 # at \a callback_period intervals. The callback function must receive one integer as argument
-# and can return an integer. The argument is the current timestep number,
+# and can return an integer. The argument is the current time step number,
 # and if the callback function returns a negative number then the run is immediately aborted.
 # all other return values are currently ignored.
 #
 # If \a callback_period is set to 0 (the default) then the callback is only called
 # once at the end of the run. Otherwise the callback is executed whenever the current
-# timestep number is a multiple of \a callback_period.
+# time step number is a multiple of \a callback_period.
 #
 def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None):
 	util.print_status_line();
