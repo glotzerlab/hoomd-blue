@@ -555,7 +555,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 			<< min_minor << " but the GPU is only " << dev_prop.major << "." << dev_prop.minor << endl;
 			}
 		
-		#if CUDART_VERSION >= 2010
+		#if CUDART_VERSION > 2010
 		// ignore the display gpu if that was requested
 		if (m_gpu_available[dev] && ignore_display && dev_prop.kernelExecTimeoutEnabled)
 			{
