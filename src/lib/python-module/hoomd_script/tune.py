@@ -65,6 +65,9 @@ import sys
 #
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
+_default_block_size_db['1.0'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 64, 
+                                 'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 320, 'bond.fene': 224, 'angle.harmonic': 192, 
+                                 'pair.gauss': 64}
 _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 128, 'angle.cgcmm': 64,
                                  'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 64, 'bond.fene': 256, 
                                  'angle.harmonic': 192, 'pair.gauss': 64};
