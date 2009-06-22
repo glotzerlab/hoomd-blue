@@ -378,7 +378,7 @@ class nlist:
 	#	option exludes any particles in dihedral/improper as deteremined by the topology of the \b bonds,
 	#	regardless of whether or not a dihedral or improper has been defined explicitly.
 	#
-	# The \b 1-3 and \b 1-4 options operate based on the bond topology only because "that is
+	# The \b 1-3 and \b 1-4 options operate based on the bond topology because "that is
 	# what LAMMPS does". Future versions of HOOMD may allow the addition of exclusions only for
 	# defined angles and dihedrals if it were requested as a useful feature. 
 	#
@@ -388,9 +388,10 @@ class nlist:
 	#
 	# \b Examples:
 	# \code 
-	# nlist.reset_exclusions(exclusions = '1-2')
-	# nlist.reset_exclusions(exclusion_type = 'oneThree')
-	# nlist.reset_exclusions(exclusion_type = '1-4')
+	# nlist.reset_exclusions(exclusions = ['1-2'])
+	# nlist.reset_exclusions(exclusion_type = ['1-2', '1-3'])
+	# nlist.reset_exclusions(exclusion_type = ['1-4'])
+	# nlist.reset_exclusions(exclusion_type = [])
 	# \endcode
 	# 
 	def reset_exclusions(self, exclusions = None):

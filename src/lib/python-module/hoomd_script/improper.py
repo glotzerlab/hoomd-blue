@@ -61,10 +61,10 @@ import sys;
 #
 # The command improper.harmonic specifies a %harmonic improper potential energy between every qudruplet of particles
 # in the simulation. 
-# \f[ V(r) = k \left( chi - chi_{0}(r)  \right )^2 \f]
-# where \f$ chi \f$ is angle between two sides of the improper
+# \f[ V(r) = k \left( \chi - \chi_{0}(r)  \right )^2 \f]
+# where \f$ \chi \f$ is angle between two sides of the improper
 #
-# Coefficients \f$ k \f$ and \f$ chi_0 \f$ must be set for each type of %improper in the simulation using
+# Coefficients \f$ k \f$ and \f$ \chi_0 \f$ must be set for each type of %improper in the simulation using
 # set_coeff().
 #
 # \note Specifying the improper.harmonic command when no impropers are defined in the simulation results in an error.
@@ -106,7 +106,7 @@ class harmonic(force._force):
 	#
 	# \param improper_type Improper type to set coefficients for
 	# \param k Coefficient \f$ k \f$ in the %force
-	# \param chi Coefficient \f$ chi \f$ in the %force
+	# \param chi Coefficient \f$ \chi \f$ in the %force
 	#
 	# Using set_coeff() requires that the specified %improper %force has been saved in a variable. i.e.
 	# \code
@@ -116,7 +116,7 @@ class harmonic(force._force):
 	# \b Examples:
 	# \code
 	# harmonic.set_coeff('heme-ang', k=30.0, chi=1.57)
-	# harmonic.set_coeff(hdyro-bond', k=20.0, chi=1.57)
+	# harmonic.set_coeff('hdyro-bond', k=20.0, chi=1.57)
 	# \endcode
 	#
 	# The coefficients for every %improper type in the simulation must be set 

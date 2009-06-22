@@ -52,30 +52,22 @@ Table of contents:
 
 \section sec_software_req Software Prerequisites
 
-HOOMD requires a number of prerequisite software packages and libraries to be compiled. 
+HOOMD requires a number of prerequisite software packages and libraries
 
-- Python >= 2.3 
-- boost >= 1.32.0
-- CMake >= 2.6.0
-	- >= 2.6.2 is recommended because of numerous bug fixes
-- Compiler to build source
-	- gcc on Linux
-	- Visual Studio Express 2005 on Windows XP
-	- all code is standard c++ and should work on nearly any other (recent) compiler
-	- \b note: Visual Studio 9 (aka 2008) should work with CUDA 2.1 and boost 1.37, but this configuration has not yet been tested
-- CUDA Toolkit and the appropriate NVIDIA display driver:
-	- <em>optional</em>, but needed to enable GPU support
-- Subversion
-- Doxygen  >= 1.5.6
-	- <em>optional</em> but needed if you wish to build the detailed developer documentation
+- Required to compile:
+  - Python >= 2.3 and < 2.6  (http://www.python.org/)
+  - boost >= 1.32.0 (http://www.boost.org/)
+  - CMake >= 2.6.0 (http://www.cmake.org/)
+  - C++ Compiler (must be compatible with CUDA)
+  - CUDA Toolkit (http://developer.nvidia.com/object/cuda.html)
+- Developer only tools
+  - Subversion >= 1.5.4 (http://subversion.tigris.org/)
+  - Doxygen  >= 1.5.6 (http://www.stack.nl/~dimitri/doxygen/manual.html)
 
-\b Links: <br>
-Python - http://www.python.org/ <br>
-Boost - http://www.boost.org/ <br>
-CMake - http://www.cmake.org/ <br>
-CUDA - http://developer.nvidia.com/object/cuda.html <br>
-Subversion - http://subversion.tigris.org/ <br>
-Doxygen - http://www.stack.nl/~dimitri/doxygen/manual.html <br>
+Instructions for installing these on various architectures:
+ - \ref page_software_req_install_windows
+ - \ref page_software_req_install_linux
+ - \ref page_software_req_install_mac
 
 \section sec_building_windows Building on Windows
 <b>1. Install prerequisite software</b><br>
@@ -83,8 +75,8 @@ Click for detailed instructions: \subpage page_software_req_install_windows
 
 <b>2. Get source code</b>
  - Option 1) download and unpack source code from: http://www.ameslab.gov/hoomd/
- - Option 2) Get the latest development source with subversion 
-This command (assuming you've installed the command line svn tools)
+ - Option 2) Get the latest development source with subversion.
+This command: (assuming you've installed the command line svn tools)
 \code
  $ svn co https://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8 hoomd
 \endcode
@@ -143,8 +135,8 @@ Click for detailed instructions: \subpage page_software_req_install_linux
 
 <b>2. Get source code</b>
  - Option 1) download and unpack source code from: http://www.ameslab.gov/hoomd/
- - Option 2) Get the latest development source with subversion 
-This command
+ - Option 2) Get the latest development source with subversion.
+This command:
 \code
  $ svn co https://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8 hoomd
 \endcode
@@ -239,8 +231,8 @@ Click for detailed instructions: \subpage page_software_req_install_mac
 
 <b>2. Get source code</b>
  - Option 1) download and unpack source code from: http://www.ameslab.gov/hoomd/
- - Option 2) Get the latest development source with subversion 
-This command
+ - Option 2) Get the latest development source with subversion.
+This command:
 \code
  $ svn co https://svn2.assembla.com/svn/hoomd/branches/hoomd-0.8 hoomd
 \endcode

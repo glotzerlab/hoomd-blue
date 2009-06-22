@@ -268,7 +268,7 @@ size_array = range(1000,2000,100)
 
 # loop over the system sizes in the array
 for size in size_array:
-	# create 1000 random particles of name A
+	# create size random particles of name A
 	init.create_random(N=size, phi_p=0.01, name='A')
 	
 	# specify Lennard-Jones interactions between particle pairs

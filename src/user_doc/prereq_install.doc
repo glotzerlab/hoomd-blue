@@ -416,7 +416,8 @@ on user's machines.
 Download and install python binaries from http://www.python.org. If you choose to 
 download the boost binaries (below), you \e must install python version \b 2.5.x. 
 If you plan to build boost from source, you can install any version of python
-you like, as long as it is newer than \b 2.3. 
+you like, as long as it is newer than \b 2.3 and older than \b 2.6 (boost is not currently 
+compatible. with 2.6)
 
 If you are going to be building a \b 64-bit hoomd, make sure you download and install the
 64-bit python.
@@ -471,8 +472,9 @@ variable \b BOOST_ROOT to c:\\opt (or wherever you installed boost).
 \section software_req_install_windows_cuda CUDA
 Download and install the latest toolkit from http://www.nvidia.com/object/cuda_get.html. There
 is no need to install the SDK. If you have a CUDA capable graphics card, you will also need
-the driver listed on that page in order to execute HOOMD on the GPU. If you do not have
-a CUDA capable graphics card, you can still install the toolkit and compile HOOMD in
+the latest driver in order to execute HOOMD on the GPU (get from http://www.nvidia.com). 
+
+If you do not have a CUDA capable graphics card, you can still install the toolkit and compile HOOMD in
 CPU emulation mode. It is quite slow, but developers can use it to test any code they 
 work on that touches GPU classes.
 
@@ -487,7 +489,7 @@ windows explorer. Download from here: http://tortoisesvn.net/
 If you prefer a command line, you can download one from here: 
 http://www.sliksvn.com/en/download
 
-There is nothing against installing both. One useful reason to do this
-is to enable HOOMD executables to report the svnversion they were 
-compiled from. This can only be done if the command line tool is installed.
+Even if you only plan on using the GUI, there is a good reason to install both. It 
+allows HOOMD executables to report the svnversion which can only be done if the command line tool 
+is installed.
 */

@@ -6,7 +6,7 @@
 <hr>
 <h1>HOOMD Developers:</h1>
 <hr>
-Joshua Anderson, ISU and Ames Lab - <b>primary developer</b>
+Joshua Anderson, University of Michigan (original devlopement as a student at Iowa State University and Ames Laboratory) - <b>primary developer</b>
  - Initial code architecture design
  - Neighbor list generation
  - Lennard-Jones forces
@@ -22,19 +22,34 @@ Joshua Anderson, ISU and Ames Lab - <b>primary developer</b>
  - Documentation
  - analyze.log design and implementation
  - analyze.msd implementation
+ - integrate.nve implementation
+ - integrate.nvt implementation
+ - variant data type design and implementation
+ - update.box_resize implementation
+ - particle group commands design and implementation
 
-Alex Travesset, ISU and Ames Lab - <b>his advisor</b>
+Alex Travesset, Iowa State University and Ames Laboratory - <b>Joshua's PhD advisor</b>
  - Electrostatic forces
 
-Rastko Sknepnek, ISU and Ames Lab - additional development
- - NPT integration
+Rastko Sknepnek, Iowa State University and Ames Laboratory
+ - integrate.npt implementation
 
-Carolyn Phillips, University of Michigan - additional development
- - FENE bond forces
+Carolyn Phillips, University of Michigan
+ - integrate.bdnvt implementation
+ - bond.fene implementation
  - Shifted LJ forces
  - Initial testing and debugging of HOOMD on Mac OS X systems
+ 
+Axel Kohlmeyer, David LeBard, Ben Levine, all from the CMM group at University of Pennsylvania
+  - pair.cgcmm implementation
+  - angle.harmonic implementation
+  - angle.cgcmm implementation
+  - dihedral.harmonic implementation
+  - improper.harmonic implementation
+  - numerous other small contributions enhancing the usability of HOOMD
 
-While not having contributed a significant amount of code to HOOMD, David Tarjan at the University of Virginia is repsonsible for numerous performance tweaks to the neighbor list and Lennard-Jones force code.
+While not having contributed a significant amount of code to HOOMD, David Tarjan at the University of Virginia is 
+repsonsible for numerous performance tweaks to the neighbor list and pair force code.
 
 <hr>
 <h1>Source code</h1>

@@ -33,6 +33,9 @@ prevent hoomd from running on the GPU that is attached to the display
 \par
 minimize the CPU usage of hoomd when it runs on a GPU
 
+<b>--gpu_error_checking</b>
+\par
+enable error checks after every GPU kernel call
 <hr>
 
 <h2>Detailed description</h2>
@@ -51,7 +54,7 @@ whether it is attached to a display. Unless you take steps to configure your sys
 as the first. HOOMD will run correctly with more than one simulation on a GPU as 
 long as there is enough memory, but the performance penalty is severe.
 
-You can select which GPU to run on using the \c --gpu command line option.
+You can select the GPU on which to run using the \c --gpu command line option.
 \code
 hoomd some_script.hoomd --gpu=1
 \endcode
@@ -59,7 +62,7 @@ Note that specifying \c --gpu implies \c --mode=gpu. To find out which id
 is assigned to each GPU in your system, download the CUDA SDK for your system
 from http://www.nvidia.com/object/cuda_get.html and run the \c deviceQuery sample.
 
-Multiple GPUs can be selected to run on by specifying a comma separated list:
+Multiple GPUs can be selected for a parallel run by specifying a comma separated list:
 \code
 hoomd some_script.hoomd --gpu=0,1
 \endcode
@@ -77,9 +80,10 @@ it makes the same automatic choice described previously. If none are found, it r
 If CUDA 2.2 or newer is installed on a Linux OS, free GPUs can be determined automatically. To utilize this
 capability, the system administrator (root) must first use the \c nvidia-smi utility to enable 
 the compute-exclusive mode on all GPUs in the system (for an example, see http://forums.nvidia.com/index.php?showtopic=96638&hl=nvidia-smi).
-Then the following command line forms for HOOMD will automatically choose the first free GPU(s) on the system:
+With this mode enabled, running hoomd with no options or with the \c --mode=gpu option will result in an automatic
+choice of the first free GPU from the prioritized list.
 
-To run on the first \a N free GPUs:
+To run in parallel on the first \a N free GPUs:
 \code
 hoomd some_script.hoomd --ngpu=N
 \endcode
@@ -96,7 +100,7 @@ decreased significantly by specifying the \c --minimize-cpu-usage command line o
 \code
 hoomd some_script.hoomd --minimize-cpu-usage
 \endcode
-Tests performed indicate that the cost of enabling this option incurs a 10% overall performance reduction, 
+Tests performed indicate that enabling this option incurs a 10% overall performance reduction, 
 but the CPU usage of hoomd is reduced to only 10% of a single CPU core.
 
 \note For the --minimize-cpu-usage option to work, HOOMD must be compiled and used on a system with CUDA 
