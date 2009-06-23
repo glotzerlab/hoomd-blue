@@ -19,6 +19,8 @@
 #include "HarmonicAngleForceComputeGPU.h"
 #endif
 
+#include <stdio.h>
+
 #include "Initializers.h"
 
 using namespace std;
@@ -348,6 +350,7 @@ shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(shared_ptr<ParticleData> pd
 BOOST_AUTO_TEST_CASE( HarmonicAngleForceCompute_basic )
 	{
 	printf(" IN BOOST_AUTO_TEST_CASE: CPU \n");
+        //cout << " IN BOOST_AUTO_TEST_CASE: CPU \n";
 	angleforce_creator af_creator = bind(base_class_af_creator, _1);
 	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
@@ -357,6 +360,7 @@ BOOST_AUTO_TEST_CASE( HarmonicAngleForceCompute_basic )
 BOOST_AUTO_TEST_CASE( HarmonicAngleForceComputeGPU_basic )
 	{
 	printf(" IN BOOST_AUTO_TEST_CASE: GPU \n");
+	cout << " IN BOOST_AUTO_TEST_CASE: GPU \n";
 	angleforce_creator af_creator = bind(gpu_af_creator, _1);
 	angle_force_basic_tests(af_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}

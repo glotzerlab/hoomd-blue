@@ -19,6 +19,8 @@
 #include "HarmonicDihedralForceComputeGPU.h"
 #endif
 
+#include <stdio.h>
+
 #include "Initializers.h"
 
 using namespace std;
