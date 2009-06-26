@@ -714,7 +714,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
 			neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);
 		
 		unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
-		
+	
 		// now, we are set to loop through the array
 		for (int cur_offset = 0; cur_offset < size; cur_offset++)
 			{
@@ -731,36 +731,28 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
 			neigh_pos.z = cur_neigh_blob.z;
 			int cur_neigh = __float_as_int(cur_neigh_blob.w);
 			
-			//if (cur_neigh != EMPTY_BIN)
-			//	{
-				// FLOPS: 15
-				float dx = my_pos.x - neigh_pos.x;
-				dx = dx - Lx * rintf(dx * Lxinv);
+			// FLOPS: 15
+			float dx = my_pos.x - neigh_pos.x;
+			dx = dx - Lx * rintf(dx * Lxinv);
 				
-				float dy = my_pos.y - neigh_pos.y;
-				dy = dy - Ly * rintf(dy * Lyinv);
+			float dy = my_pos.y - neigh_pos.y;
+			dy = dy - Ly * rintf(dy * Lyinv);
 				
-				float dz = my_pos.z - neigh_pos.z;
-				dz = dz - Lz * rintf(dz * Lzinv);
+			float dz = my_pos.z - neigh_pos.z;
+			dz = dz - Lz * rintf(dz * Lzinv);
 
-				// FLOPS: 5
-				float dr = dx*dx + dy*dy + dz*dz;
+			// FLOPS: 5
+			float dr = dx*dx + dy*dy + dz*dz;
 				
-				// FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
-				if (dr < r_maxsq && (my_pidx != cur_neigh))
+			// FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
+			if (dr <= r_maxsq && my_pidx != cur_neigh)
+				{
+				if (n_neigh < neigh_max)
 					{
-					// check for overflow
-					if (n_neigh < neigh_max)
-						{
-						d_nlist[my_pidx + n_neigh*nlist_pitch] = cur_neigh;
-						n_neigh++;
-						}
+					d_nlist[my_pidx + n_neigh*nlist_pitch] = cur_neigh;
+					n_neigh++;
 					}
-			//	}
-			//else
-				//{
-				//break;
-				//}
+				}
 			}
 		}
 	
@@ -769,7 +761,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
 
 template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_nlist_binned(unsigned int *nlist, unsigned int *n_neigh, unsigned int nlist_pitch, float r_cut_sq, unsigned int neigh_max, cudaArray *idxlist_coord, unsigned int *bin_size, uint4 *bin_coords, cudaArray *bin_adj, float4 *pos, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
 	{
-	const int block_size = 256;
+	const int block_size = 64;
 
 	// setup the grid to run the kernel
 	int nblocks = (int)ceil((double)N/ (double)block_size);
@@ -863,6 +855,7 @@ int main(int argc, char **argv)
 	else
 		cudaSetDevice(atoi(getenv("CAC_GPU_ID")));
 	#endif
+	cudaSetDevice(1);
 	
 	// choose defaults if no args specified
 	if (argc == 1)

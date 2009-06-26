@@ -1040,6 +1040,7 @@ int main(int argc, char **argv)
 	else
 		cudaSetDevice(atoi(getenv("CAC_GPU_ID")));
 	#endif
+	cudaSetDevice(1);
 	
 	// choose defaults if no args specified
 	if (argc == 1)
