@@ -134,7 +134,7 @@ def read_xml(filename, time_step = None):
 	# parse command line
 	_parse_command_line();
 
-	# check if initialization has already occured
+	# check if initialization has already occurred
 	if (globals.system_definition != None):
 		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');
@@ -181,7 +181,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 	_parse_command_line();
 	my_exec_conf = _create_exec_conf();
 	
-	# check if initialization has already occured
+	# check if initialization has already occurred
 	if (globals.system_definition != None):
 		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');

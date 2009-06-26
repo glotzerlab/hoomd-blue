@@ -39,6 +39,8 @@ Table of contents:
  - Commands used to pass data to other commands
    - \ref sec_index_group
    - \ref sec_index_variant
+ - Miscellaneous commands
+  - \ref sec_index_tuning
 
 \section sec_index_run Control the running of simulations
  - \link hoomd_script.run() run\endlink - <i>\copybrief hoomd_script::run() </i>
@@ -123,4 +125,9 @@ Table of contents:
 \section sec_index_variant Define quantities that vary over time
 \link hoomd_script.variant variant\endlink:
  - \link hoomd_script.variant.linear_interp variant.linear_interp\endlink - <i>\copybrief hoomd_script::variant::linear_interp</i>
+
+<h2>Miscellaneous commands</h2>
+\section sec_index_tuning Commands for tuning HOOMD's performance
+ - \link hoomd_script.tune.find_optimal_block_sizes() tune.find_optimal_block_sizes\endlink - <i>\copybrief hoomd_script::tune::find_optimal_block_sizes </i>
+
 */

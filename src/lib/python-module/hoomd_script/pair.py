@@ -364,7 +364,7 @@ class nlist:
 	#
 	# By default, only directly bonded particles are excluded from short range pair interactions. 
 	# reset_exclusions allows that setting to be overridden to add other exclusions or to remove
-	# the exlusion for bonded particles. 
+	# the exclusion for bonded particles. 
 	#
 	# Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
 	# 
@@ -372,13 +372,13 @@ class nlist:
 	# - \b bond - Exclude particles that are directly bonded together
 	# - \b 1-2 - The same as bond
 	# - \b 1-3 - Exclude particles connected with a sequence of two bonds. In other words this 
-	#	option exludes any particles in an angle as deteremined by the topology of the \b bonds,
+	#	option excludes any particles in an angle as determined by the topology of the \b bonds,
 	#	regardless of whether or not an angle has been defined explicitly.
 	# - \b 1-4 - Exclude particles connected with a sequence of three bonds. In other words this 
-	#	option exludes any particles in dihedral/improper as deteremined by the topology of the \b bonds,
+	#	option excludes any particles in dihedral/improper as determined by the topology of the \b bonds,
 	#	regardless of whether or not a dihedral or improper has been defined explicitly.
 	#
-	# The \b 1-3 and \b 1-4 options operate based on the bond topology only because "that is
+	# The \b 1-3 and \b 1-4 options operate based on the bond topology because "that is
 	# what LAMMPS does". Future versions of HOOMD may allow the addition of exclusions only for
 	# defined angles and dihedrals if it were requested as a useful feature. 
 	#
@@ -388,9 +388,10 @@ class nlist:
 	#
 	# \b Examples:
 	# \code 
-	# nlist.reset_exclusions(exclusions = '1-2')
-	# nlist.reset_exclusions(exclusion_type = 'oneThree')
-	# nlist.reset_exclusions(exclusion_type = '1-4')
+	# nlist.reset_exclusions(exclusions = ['1-2'])
+	# nlist.reset_exclusions(exclusion_type = ['1-2', '1-3'])
+	# nlist.reset_exclusions(exclusion_type = ['1-4'])
+	# nlist.reset_exclusions(exclusion_type = [])
 	# \endcode
 	# 
 	def reset_exclusions(self, exclusions = None):
@@ -447,9 +448,9 @@ class nlist:
 	#
 	# \note
 	# There is, however, one subtle side effect. If the benchmark() command is run 
-	# directly after the particle data is intialized with an init command, then the 
+	# directly after the particle data is initialized with an init command, then the 
 	# results of the benchmark will not be typical of the time needed during the actual
-	# simulation. Particles are not reorederd to improve cache performance until at least
+	# simulation. Particles are not reordered to improve cache performance until at least
 	# one time step is performed. Executing run(1) before the benchmark will solve this problem.
 	#
 	def benchmark(self, n):

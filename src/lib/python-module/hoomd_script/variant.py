@@ -87,7 +87,7 @@ class _constant(_variant):
 		
 ## Linearly interpolated variant
 #
-# variant.linear_interp creates a time-varying quantity where the value at each timestep
+# variant.linear_interp creates a time-varying quantity where the value at each time step
 # is determined by linear interpolation between a given set of points. 
 
 # At time steps before the
@@ -95,7 +95,7 @@ class _constant(_variant):
 # after the final point, the value is identical to the value at the last given point. All points
 # between are determined by linear interpolation.
 #
-# A timestep for a given point is referenced to the current timestep of the simulation.
+# A time step for a given point is referenced to the current time step of the simulation.
 # For example,
 # \code
 # init.create_random(N=1000, phi_p=0.2)
@@ -104,7 +104,7 @@ class _constant(_variant):
 # variant.linear_interp(...)
 # run(1000)
 # \endcode
-# A value specified at time 0 in the shown linear_interp is set at the actual \b absolute timestep
+# A value specified at time 0 in the shown linear_interp is set at the actual \b absolute time step
 # 1000. To say it another way, time for validate.linear_interp starts counting from 0 right
 # at the time of creation.
 #
