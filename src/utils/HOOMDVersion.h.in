@@ -50,8 +50,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define COMPILE_DATE "${COMPILE_DATE}"
 //! Set to 1 if this is built from a subversion checkout
 #define HOOMD_SUBVERSION_BUILD ${HOOMD_SUBVERSION_BUILD}
-//! Set to Device or Emulation indicicating the CUDA build type
-#define CUDA_BUILD_TYPE "${CUDA_BUILD_TYPE}"
 //! Set to the src dir to be used as the root to read data files from
 #define HOOMD_SOURCE_DIR "${HOOMD_SOURCE_DIR}"
 

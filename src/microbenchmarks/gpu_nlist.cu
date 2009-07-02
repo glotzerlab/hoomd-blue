@@ -41,6 +41,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <sys/time.h>
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
 
 // safe call macros
 #define CUDA_SAFE_CALL( call) do {                                         \
@@ -387,6 +391,17 @@ void sort_data()
 	
 void sort_bin_adj()
 	{
+	// print out some bins
+	unsigned int start_bin = 200;
+	unsigned int end_bin = start_bin+32;
+	for (int i = 0; i < 27; i++)
+		{
+		for (int cur_bin = start_bin; cur_bin < end_bin; cur_bin++)
+			cout << setw(4) << gh_bin_adj[27*cur_bin + i] << " ";
+		cout << endl;
+		}
+	cout << endl;
+
 	// sort the bin_adj lists
 	for (unsigned int cur_bin = 0; cur_bin < g_Mx*g_My*g_Mz; cur_bin++)
 		{
@@ -406,6 +421,13 @@ void sort_bin_adj()
 				}
 			} while (swapped);
 			
+		}
+	
+	for (int i = 0; i < 27; i++)
+		{
+		for (int cur_bin = start_bin; cur_bin < end_bin; cur_bin++)
+			cout << setw(4) << gh_bin_adj[27*cur_bin + i] << " ";
+		cout << endl;
 		}
 		
 	unsigned int nbins = g_Mx*g_My*g_Mz;
@@ -881,11 +903,11 @@ int main(int argc, char **argv)
 	printf("Running gpu_nlist microbenchmark: %d %f\n", g_N, g_rcut);
 	allocate_data();
 	initialize_data();
-	sort_data();
+	//sort_data();
 	
 	// normally, data in HOOMD is not perfectly sorted:
-	for (unsigned int i = 0; i < 100; i++)
-		tweak_data();
+	//for (unsigned int i = 0; i < 100; i++)
+	//	tweak_data();
 	
 	// prepare the binned data
 	rebin_particles_host(gh_idxlist_coord, gh_idxlist_coord_trans, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
@@ -898,7 +920,7 @@ int main(int argc, char **argv)
 	neighbor_particles_host<false, false>(gh_nlist_ref, gh_n_neigh_ref, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, gh_idxlist_coord, gh_bin_size, gh_bin_coords, gh_bin_adj, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
 	
 	// run the benchmarks
-	bmark_host_nlist<false, false>();
+	/*bmark_host_nlist<false, false>();
 	bmark_host_nlist<false, true>();
 	bmark_host_nlist<true, false>();
 	bmark_host_nlist<true, true>();
@@ -906,12 +928,12 @@ int main(int argc, char **argv)
 	bmark_device_nlist<false, false>();
 	bmark_device_nlist<false, true>();
 	bmark_device_nlist<true, false>();
-	bmark_device_nlist<true, true>();
+	bmark_device_nlist<true, true>();*/
 	
 	printf("sorting bin_adj:\n");
 	sort_bin_adj();
 	
-	bmark_host_nlist<false, false>();
+	/*bmark_host_nlist<false, false>();
 	bmark_host_nlist<false, true>();
 	bmark_host_nlist<true, false>();
 	bmark_host_nlist<true, true>();
@@ -919,7 +941,7 @@ int main(int argc, char **argv)
 	bmark_device_nlist<false, false>();
 	bmark_device_nlist<false, true>();
 	bmark_device_nlist<true, false>();
-	bmark_device_nlist<true, true>();
+	bmark_device_nlist<true, true>();*/
 		
 	free_data();
 	

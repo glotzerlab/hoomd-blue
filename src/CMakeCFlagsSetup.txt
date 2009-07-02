@@ -63,8 +63,8 @@ if(NOT PASSED_FIRST_CONFIGURE)
 
 		set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
 		set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os -Wall -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
-		set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -ffast-math -DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds." FORCE)
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O -funroll-loops -ffast-math -DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+		set(CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops -DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds." FORCE)
+		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O -funroll-loops -DNDEBUG -Wall" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 	
 		endif (HONOR_GENTOO_FLAGS)
 	elseif(MSVC80)
