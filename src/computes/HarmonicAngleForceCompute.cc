@@ -108,7 +108,7 @@ void HarmonicAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_
 	// make sure the type is valid
 	if (type >= m_angle_data->getNAngleTypes())
 		{
-		cout << endl << "***Error! Invalid angle typee specified" << endl << endl;
+		cout << endl << "***Error! Invalid angle type specified" << endl << endl;
 		throw runtime_error("Error setting parameters in HarmonicAngleForceCompute");
 		}
 	
@@ -312,7 +312,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
 		Scalar dth = acos(c_abbc) - m_t_0[angle.type];
 		Scalar tk = m_K[angle.type]*dth;
 		
-		Scalar a = -2.0 * tk * s_abbc;
+		Scalar a = -1.0 * tk * s_abbc;
 		Scalar a11 = a*c_abbc/rsqab;
 		Scalar a12 = -a / (rab*rcb);              
 		Scalar a22 = a*c_abbc / rsqcb;
