@@ -450,6 +450,20 @@ class pair_nlist_tests (unittest.TestCase):
 		globals.neighbor_list.set_params(r_buff=0.6);
 		globals.neighbor_list.set_params(check_period = 20);
 	
+	# test reset_exclusions
+	def test_reset_exclusions_works(self):
+		globals.neighbor_list.reset_exclusions(exclusions = ['1-2']);
+		globals.neighbor_list.reset_exclusions(exclusions = ['1-3']);
+		globals.neighbor_list.reset_exclusions(exclusions = ['1-4']);
+		globals.neighbor_list.reset_exclusions(exclusions = ['bond']);
+		globals.neighbor_list.reset_exclusions(exclusions = ['angle']);
+		globals.neighbor_list.reset_exclusions(exclusions = ['dihedral']);
+		globals.neighbor_list.reset_exclusions(exclusions = ['bond', 'angle']);
+	
+	# test reset_exclusions error messages
+	def test_reset_exclusions_nowork(self):
+		self.assertRaises(RuntimeError, globals.neighbor_list.reset_exclusions, exclusions = ['bond', 'angle', 'invalid']);
+	
 	def tearDown(self):
 		globals._clear();
 	

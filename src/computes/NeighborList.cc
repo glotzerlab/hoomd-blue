@@ -651,7 +651,7 @@ void NeighborList::clearExclusions()
 	forceUpdate();
 	}
 	
-/*! After calling copyExclusionFromBonds() all bond specified in the attached ParticleData will be 
+/*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be 
 	added as exlusions. Any additional bonds added after this will not be automatically added as exclusions.
 */
 void NeighborList::addExclusionsFromBonds()
@@ -665,6 +665,62 @@ void NeighborList::addExclusionsFromBonds()
 		Bond bond = bond_data->getBond(i);
 		addExclusion(bond.a, bond.b);
 		}
+	}
+	
+/*! After calling addExclusionsFromAngles(), all angles specified in the attached ParticleData will be added to the
+    exclusion list. Only the two end particles in the angle are excluded from interacting.
+*/
+void NeighborList::addExclusionsFromAngles()
+	{
+	boost::shared_ptr<AngleData> angle_data = m_pdata->getAngleData();
+	
+	// for each bond
+	for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+		{
+		// add an exclusion only if it has not already been added
+		Angle angle = angle_data->getAngle(i);
+		if (!isExcluded(angle.a, angle.c))
+			addExclusion(angle.a, angle.c);
+		}
+	}
+		
+/*! After calling addExclusionsFromAngles(), all dihedrals specified in the attached ParticleData will be added to the
+    exclusion list. Only the two end particles in the dihedral are excluded from interacting.
+*/
+void NeighborList::addExclusionsFromDihedrals()
+	{
+	boost::shared_ptr<DihedralData> dihedral_data = m_pdata->getDihedralData();
+	
+	// for each bond
+	for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
+		{
+		// add an exclusion only if it has not already been added
+		Dihedral dihedral = dihedral_data->getDihedral(i);
+		if (!isExcluded(dihedral.a, dihedral.d))
+			addExclusion(dihedral.a, dihedral.d);
+		}
+	}
+
+/*! \param tag1 First particle tag in the pair
+    \param tag2 Second particle tag in the pair
+    \return true if the particles \a tag1 and \a tag2 have been excluded from the neighbor list
+*/
+bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
+	{
+	if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
+		{
+		cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
+		throw runtime_error("Error setting exclusion in NeighborList");
+		}
+	
+	if (m_exclusions[tag1].e1 == tag2)
+		return true;
+	if (m_exclusions[tag1].e2 == tag2)
+		return true;
+	if (m_exclusions[tag1].e3 == tag2)
+		return true;
+	if (m_exclusions[tag1].e4 == tag2)
+		return true;
 	}
 	
 /*! Add topologically derived exclusions for angles
@@ -797,6 +853,13 @@ void NeighborList::addOneFourExclusionsFromTopology()
 	{
 	boost::shared_ptr<BondData> bond_data = m_pdata->getBondData();
 	unsigned int nBonds = bond_data->getNumBonds();
+	
+	if (nBonds == 0)
+		{
+		cout << "***Warning! No bonds set while trying to add 1-4 exclusions" << endl;
+		return;
+		}
+	
 	unsigned int nBonds1 = nBonds - 1;
 	
 	//  loop over all bonds in triplicate
@@ -1203,6 +1266,8 @@ void export_NeighborList()
 		.def("addExclusion", &NeighborList::addExclusion)
 		.def("clearExclusions", &NeighborList::clearExclusions)
 		.def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
+		.def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
+		.def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
 		.def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
 		.def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
 		.def("forceUpdate", &NeighborList::forceUpdate)
