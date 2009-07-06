@@ -721,6 +721,8 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
 		return true;
 	if (m_exclusions[tag1].e4 == tag2)
 		return true;
+	
+	return false;
 	}
 	
 /*! Add topologically derived exclusions for angles

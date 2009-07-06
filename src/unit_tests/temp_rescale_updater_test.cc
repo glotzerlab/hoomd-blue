@@ -100,6 +100,7 @@ BOOST_AUTO_TEST_CASE( TempCompute_basic )
 	shared_ptr<TempCompute> tc(new TempCompute(pdata));
 		
 	// check that we can actually compute temperature
+	tc->setDOF(3*pdata->getN());
 	tc->compute(0);
 	MY_BOOST_CHECK_CLOSE(tc->getTemp(), 15.1666666666666666666667, tol);
 	}

@@ -93,12 +93,6 @@ class NPTUpdater : public Integrator
 		//! Calculates the requested log value and returns it
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
-		//! Computes current pressure
-		virtual Scalar computePressure(unsigned int timestep);
-		
-		//! Computes current temperature
-		virtual Scalar computeTemperature(unsigned int timestep);
-
 	protected:
 		Scalar m_tau;					//!< tau value for Nose-Hoover
 		Scalar m_tauP;					//!< tauP value for the barostat
