@@ -489,7 +489,6 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 		     << endl << endl;
 		return;
 		}
-	#endif
 		
 	// next, check to see if the driver is capable of running the version of CUDART that HOOMD was compiled against
 	if (driverVersion < CUDART_VERSION)
@@ -504,6 +503,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 		cout << "            Ignoring any GPUs in the system." << endl;
 		return;
 		}
+	#endif
 	#endif
 	
 	// determine the number of GPUs that CUDA thinks there is
