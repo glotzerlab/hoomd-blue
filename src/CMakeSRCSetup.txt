@@ -46,7 +46,6 @@ include_directories(${HOOMD_SOURCE_DIR}/utils ${HOOMD_SOURCE_DIR}/data_structure
 					${HOOMD_SOURCE_DIR}/system
 					${HOOMD_SOURCE_DIR}/extern
 					${CUDA_INCLUDE}
-					${Boost_INCLUDE_DIR}
 					${HOOMD_BINARY_DIR}/utils)
 
 # list of all sources in various source directories
