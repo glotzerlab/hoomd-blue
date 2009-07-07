@@ -24,7 +24,7 @@ echo ""
 ###################
 # run the job
 
-directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj pair_gaussian )
+directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj pair_gaussian pair_cgcmm angle_harmonic )
 echo "Running hoomd validation test ${directory_list[${PBS_ARRAYID}]} on gpu ${CAC_GPU_ID} with args ${HOOMD_ARGS}"
 cd ${directory_list[${PBS_ARRAYID}]}
 hoomd run.hoomd ${HOOMD_ARGS} --gpu_error_checking --mode=gpu --gpu=${CAC_GPU_ID}

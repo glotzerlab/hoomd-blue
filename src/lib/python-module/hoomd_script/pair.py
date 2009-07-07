@@ -360,27 +360,26 @@ class nlist:
 
 	## Resets all exclusions in the neighborlist
 	#
-	# \param exclusions Select which bonded interactions should be excluded from the pair interaction calculation.
+	# \param exclusions Select which interactions should be excluded from the pair interaction calculation.
 	#
 	# By default, only directly bonded particles are excluded from short range pair interactions. 
 	# reset_exclusions allows that setting to be overridden to add other exclusions or to remove
-	# the exclusion for bonded particles. 
+	# the exclusion for bonded particles.
 	#
 	# Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
+	# All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
 	# 
 	# Valid types are:
-	# - \b bond - Exclude particles that are directly bonded together
-	# - \b 1-2 - The same as bond
-	# - \b 1-3 - Exclude particles connected with a sequence of two bonds. In other words this 
-	#	option excludes any particles in an angle as determined by the topology of the \b bonds,
-	#	regardless of whether or not an angle has been defined explicitly.
-	# - \b 1-4 - Exclude particles connected with a sequence of three bonds. In other words this 
-	#	option excludes any particles in dihedral/improper as determined by the topology of the \b bonds,
-	#	regardless of whether or not a dihedral or improper has been defined explicitly.
+	# - \b %bond - Exclude particles that are directly bonded together
+	# - \b %angle - Exclude the two outside particles in all defined angles.
+	# - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
 	#
-	# The \b 1-3 and \b 1-4 options operate based on the bond topology because "that is
-	# what LAMMPS does". Future versions of HOOMD may allow the addition of exclusions only for
-	# defined angles and dihedrals if it were requested as a useful feature. 
+	# The following types are determined soley by the bond topology. Every chain of particles in the simulation 
+	# connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
+	# angles or dihedrals are defined.
+	# - \b 1-2  - Same as bond
+	# - \b 1-3  - Exclude particles connected with a sequence of two bonds.
+	# - \b 1-4  - Exclude particles connected with a sequence of three bonds.
 	#
 	# \b WARNING: 
 	# 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
@@ -389,9 +388,9 @@ class nlist:
 	# \b Examples:
 	# \code 
 	# nlist.reset_exclusions(exclusions = ['1-2'])
-	# nlist.reset_exclusions(exclusion_type = ['1-2', '1-3'])
-	# nlist.reset_exclusions(exclusion_type = ['1-4'])
-	# nlist.reset_exclusions(exclusion_type = [])
+	# nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
+	# nlist.reset_exclusions(exclusions = ['bond', 'angle'])
+	# nlist.reset_exclusions(exclusions = [])
 	# \endcode
 	# 
 	def reset_exclusions(self, exclusions = None):
@@ -407,29 +406,35 @@ class nlist:
 		if exclusions == None:
 			return
 		
-		# exclusions given directly in bonds/angles/dihedrals
+		# exclusions given directly in bond/angle/dihedral notation
 		if 'bond' in exclusions:
 			self.cpp_nlist.addExclusionsFromBonds();
 			exclusions.remove('bond');
 		
-		# topology based exclusions
-		# add exclusions from bonds
+		if 'angle' in exclusions:
+			self.cpp_nlist.addExclusionsFromAngles();
+			exclusions.remove('angle');
+		
+		if 'dihedral' in exclusions:
+			self.cpp_nlist.addExclusionsFromDihedrals();
+			exclusions.remove('dihedral');
+		
+		# exclusions given in 1-2/1-3/1-4 notation.
 		if '1-2' in exclusions:
 			self.cpp_nlist.addExclusionsFromBonds();
 			exclusions.remove('1-2');
 
-		# add 1-3 exclusions
 		if '1-3' in exclusions:
 			self.cpp_nlist.addOneThreeExclusionsFromTopology();
 			exclusions.remove('1-3');
 			
-		# add 1-3 exclusions
 		if '1-4' in exclusions:
 			self.cpp_nlist.addOneFourExclusionsFromTopology();
 			exclusions.remove('1-4');
 
-		if len(exclusions > 0):
-			print >> sys.stderr, "\nExclusion types:", exclusions, "are not supported\n";
+		# if there are any items left in the exclusion list, we have an error.
+		if len(exclusions) > 0:
+			print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
 			raise RuntimeError('Error resetting exclusions');
 
 	## Benchmarks the neighbor list computation

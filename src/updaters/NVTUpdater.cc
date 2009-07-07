@@ -70,6 +70,7 @@ NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT
 	m_Xi = 1.0;
 	m_eta = 1.0;
 	m_curr_T = computeTemperature(0);
+	m_dof = Scalar(3*m_pdata->getN() - 3);
 	}
 	
 /*! In addition to what Integrator provides, NVTUpdater adds:
@@ -181,8 +182,7 @@ void NVTUpdater::update(unsigned int timestep)
 	Scalar xi_prev = m_Xi;
 	
 	// update Xi
-	Scalar g = Scalar(3*m_pdata->getN());
-	m_curr_T = Ksum / g;
+	m_curr_T = Ksum / m_dof;
 	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
 	
 	// update eta

@@ -1143,6 +1143,7 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 	Scalar T = Scalar(1.5/3.0);
 	Scalar tau = sqrt(Q / (Scalar(3.0) * T));
 	shared_ptr<NVTUpdater> nvt_up = nvt_creator(sysdef, deltaT, tau, T);
+	nvt_up->setDOF(3.0f);
 	
 	// see what happens with a constant force
 	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));

@@ -436,10 +436,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 		if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0)) 
 			{
 			boost::python::object rv = callback(m_cur_tstep);
-			if (rv < 0)
+			extract<int> extracted_rv(rv);
+			if (extracted_rv.check() && extracted_rv() < 0)
 				{
 				cout << "Notice: End of run requested by python callback at step " 
-					<< m_cur_tstep << " instead of step " << m_end_tstep << endl;
+					<< m_cur_tstep << " / " << m_end_tstep << endl;
 				break;
 				}
 			}

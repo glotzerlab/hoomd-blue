@@ -325,7 +325,7 @@ Scalar NPTUpdaterGPU::computeTemperature(unsigned int timestep)
 	{
         // acquire the particle data on the GPU
 	vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-	float g = 3.0f*m_pdata->getN(); // Number of degrees of freedom g = 3*N
+	float g = float(3*m_pdata->getN()-3); // Number of degrees of freedom g = 3*N-3
 	
 	if (m_prof) m_prof->push(exec_conf, "Compute Temp");
 		

@@ -188,7 +188,7 @@ extern "C" __global__ void gpu_compute_harmonic_angle_forces_kernel(gpu_force_da
 		float dth = acosf(c_abbc) - t_0;
 		float tk = K*dth;
 
-		float a = -2.0f * tk * s_abbc;
+		float a = -1.0f * tk * s_abbc;
 		float a11 = a*c_abbc/rsqab;
 		float a12 = -a / (rab*rcb);
 		float a22 = a*c_abbc / rsqcb;

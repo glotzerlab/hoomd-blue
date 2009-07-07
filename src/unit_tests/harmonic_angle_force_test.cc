@@ -92,9 +92,9 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 	
 	// this time there should be a force
 	force_arrays = fc_3->acquire();
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.123368, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.626939, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.390920, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.061684, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.313469, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.195460, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.158576, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
@@ -133,9 +133,9 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 
 	force_arrays = fc_3->acquire();
 
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.123368, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.626939, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.390920, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.061684, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.3134695, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.195460, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.158576, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
@@ -186,37 +186,37 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -3.102127,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -1.55106342,tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.256618, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.102119, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 3.152144,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.0510595, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 1.5760721,tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.256618, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 0.102119,tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -0.050017, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], 0.0510595,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -0.0250087, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 0.256618, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[3], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0.103030, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], -0.068223,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0.05151510, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], -0.03411135,tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.400928, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[4], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[4], -5.586610,tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 0.068222, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[4], -2.79330492,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 0.034110874, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[4], 0.400928, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[4], tol);
 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[5], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[5], 5.483580,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[5], 2.74179,tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[5], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[5], 0.400928, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[5], tol);
@@ -259,29 +259,29 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 
 
 	// the first particles shoul only have a force pulling them right
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 2.893805, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 1.446903, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.465228, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
 
 	// and the bottom left particle should have a force pulling up and to the right
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.537611, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -2.893805,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.2688054, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -1.446902,tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.240643, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
 
 	// the bottom left particle should have a force pulling down 
 	MY_BOOST_CHECK_SMALL(force_arrays.fx[2], tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 3.431415, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 1.715708, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 0.240643,tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
 
 	// and the top left particle should have a force pulling up and to the left
-	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -3.431415, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.537611, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -1.715708, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.268805, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.fz[3], tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.473257, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);

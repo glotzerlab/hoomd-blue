@@ -175,6 +175,15 @@ class NeighborList : public Compute
 		//! Add an exclusion for every bond in the ParticleData
 		void addExclusionsFromBonds();
 
+		//! Add exclusions from angles
+		void addExclusionsFromAngles();
+		
+		//! Add exclusions from dihedrals
+		void addExclusionsFromDihedrals();
+		
+		//! Test if an exclusion has been made
+		bool isExcluded(unsigned int tag1, unsigned int tag2);
+		
 		//! Add an exclusion for every 1,3 pair 
 		void addOneThreeExclusionsFromTopology();
 		

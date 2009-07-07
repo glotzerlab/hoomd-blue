@@ -44,3 +44,13 @@ cd ../pair_gaussian
 echo "****************"
 echo "Running pair_gaussian"
 hoomd run.hoomd "$@" --gpu_error_checking 2>&1
+
+cd ../pair_cgcmm
+echo "****************"
+echo "Running pair_cgcmm"
+hoomd run.hoomd "$@" --gpu_error_checking 2>&1
+
+cd ../angle_harmonic
+echo "****************"
+echo "Running angle_harmonic"
+hoomd run.hoomd "$@" --gpu_error_checking 2>&1
