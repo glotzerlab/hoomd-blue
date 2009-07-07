@@ -38,19 +38,168 @@
 # $URL$
 
 import globals
-import bond
 import pair
+import bond
+import angle
+import dihedral
+import improper
 import init
 import hoomd_script
 import hoomd
-import math
 import util
+
+import math
 import os
 import pickle
+import sys
 
 ##
 # \package hoomd_script.tune
 # \brief Commands for tuning the performance of HOOMD
+
+###########################################################################
+# Code for storing and retrieving the optimal block size for a specific command
+
+## \internal
+# \brief Default database of optimal block sizes
+#
+# Defaults are saved per compute capability and per command
+_default_block_size_db = {};
+_default_block_size_db['1.0'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 64, 
+                                 'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 320, 'bond.fene': 224, 'angle.harmonic': 192, 
+                                 'pair.gauss': 64}
+_default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 128, 'angle.cgcmm': 64,
+                                 'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 64, 'bond.fene': 256, 
+                                 'angle.harmonic': 192, 'pair.gauss': 64};
+_default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.cgcmm': 352, 'dihedral.harmonic': 128, 
+                                 'angle.cgcmm': 320, 'pair.lj': 352, 'nlist': 160, 'bond.harmonic': 352, 
+                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 160}
+
+## \internal
+# \brief Optimal block size database user can load to override the defaults
+_override_block_size_db = None;
+_override_block_size_compute_cap = None;
+
+## \internal
+# \brief Saves the block size tuning override file
+# 
+# \param common_optimal_db Dictionary of the common optimal block sizes identified
+# 
+def _save_override_file(common_optimal_db):
+	fname = os.path.expanduser("~") + '/.hoomd_block_tuning';
+	
+	# see if the user really wants to overwrite the file
+	if os.path.isfile(fname):
+		print "\n***Warning!", fname, "exists. This file is being overwritten with new settings\n";	
+
+	# save the file
+	f = file(fname, 'w');
+	print 'Writing optimal block sizes to', fname
+	
+	# write the version of the file
+	pickle.dump(0, f);
+	# write out the version this was tuned on
+	pickle.dump(hoomd.get_hoomd_version(), f);
+	# write out the compute capability of the GPU this was tuned on
+	pickle.dump(globals.system_definition.getParticleData().getExecConf().getComputeCapability(), f);
+	# write out the dictionary
+	pickle.dump(common_optimal_db, f);
+	
+	f.close();
+	
+## \internal
+# \brief Loads in the override block size tuning db
+# 
+# unpickles the file ~/.hoomd_block_tuning and fills out _override_block_size_db and _override_block_size_compute_cap
+#
+def _load_override_file():
+	global _override_block_size_db, _override_block_size_compute_cap;
+	
+	fname = os.path.expanduser("~") + '/.hoomd_block_tuning';
+	
+	# only load if the file exists
+	if not os.path.isfile(fname):
+		return
+
+	# save the file
+	f = file(fname, 'r');
+	print 'Notice: Reading optimal block sizes from', fname
+	
+	# read the version of the file
+	ver = pickle.load(f);
+	
+	# handle the different file versions
+	if ver == 0:
+		# read and verify the version this was tuned on
+		hoomd_version = pickle.load(f);
+		if hoomd_version != hoomd.get_hoomd_version():
+			print >> sys.stderr, "\n***Warning! ~/.hoomd_block_tuning was created with", hoomd_version, \
+								", but this is", hoomd.get_hoomd_version(), ". Reverting to default performance tuning.\n";
+			return;
+		
+		# read the compute capability of the GPU this was tuned on
+		_override_block_size_compute_cap = pickle.load(f);
+		# read the dictionary
+		_override_block_size_db = pickle.load(f);
+		
+	else:
+		print >> sys.stderr, "\n***Error! Unknown ~/.hoomd_block_tuning format", ver, ".\n";
+		raise RuntimeError("Error loading .hoomd_block_tuning");
+	
+	f.close();
+
+# load the override file on startup
+_load_override_file();
+
+## \internal
+# \brief Retrieves the optimal block size saved in the database
+#
+# \param name Name of the command to get the optimal block size for
+#
+# First, the user override db will be checked: if the value is present there
+# it will be returned.
+#
+# If no override is specified, the optimal block size will be retrieved from
+# the default database above
+def _get_optimal_block_size(name):
+	global _override_block_size_db, _override_block_size_compute_cap;
+	
+	compute_cap = globals.system_definition.getParticleData().getExecConf().getComputeCapability();
+	
+	# check for the override first
+	if _override_block_size_db != None:
+		# first verify the compute capability
+		if compute_cap == _override_block_size_compute_cap:		
+			if name in _override_block_size_db:
+				return _override_block_size_db[name];
+			else:
+				print >> sys.stderr, "\n***Error! Block size override db does not contain a value for", name, ".\n";
+				raise RuntimeError("Error retrieving optimal block size");
+		else:
+			print "\n***Warning! The compute capability of the current GPU is", compute_cap, "while the override was tuned on a", _override_block_size_compute_cap, "GPU"
+			print "            Ignoring the saved override in ~/.hoomd_block_tuning and reverting to the default.\n"
+
+
+	# check in the default db
+	if compute_cap in _default_block_size_db:
+		if name in _default_block_size_db[compute_cap]:
+			return _default_block_size_db[compute_cap][name];
+		else:
+			print >> sys.stderr, "\n***Error! Default block size db does not contain a value for", name, ".\n";
+			raise RuntimeError("Error retrieving optimal block size");
+	else:
+		print "\n***Warning! Optimal block size tuning values are not present for your hardware with compute capability", compute_cap;
+		print "            To obtain better performance, execute the following hoomd script to determine the optimal"
+		print "            settings and save them in your home directory. Future invocations of hoomd will use these"
+		print "            saved values\n"
+		print "            # block size tuning script"
+		print "            from hoomd_script import *"
+		print "            tune.find_optimal_block_sizes()\n"
+		return 64
+
+
+###########################################################################
+# Code for tuning and saving the optimal block size
 
 ## \internal
 # \brief Finds the optimal block size for a given force compute
@@ -146,55 +295,45 @@ def _choose_optimal_block_sizes(optimal_dbs):
 			print "Notice: more than one common optimal block size found for", entry, ", using", common_optimal;
 	
 	return common_optimal_db;
-
-## \internal
-# \brief Promps th user and saves the override file if requested
-# 
-# \param common_optimal_db Dictionary of the common optimal block sizes identified
-# 
-def _save_override_file(common_optimal_db):
-	# ask if the user wants to save
-	save_response = raw_input("Save the determined optimal settings (y/n)? ");
-	if not (save_response == "y" or save_response == "Y"):
-		return;
-	
-	# get the filename from the user
-	default_fname = os.getenv('HOME') + '/.hoomd_block_tuning';
-	fname = raw_input("Enter filename (press enter for " + default_fname + "): ");
-	if fname == '':
-		fname = default_fname;
-	
-	# see if the user really wants to overwrite the file
-	if os.path.isfile(fname):
-		overwrite_response = raw_input("File exists, do you want to overwrite it (y/n)? ");
-		if not (overwrite_response == "y" or overwrite_response == "Y"):
-			return;
-	
-	# save the file
-	f = file(fname, 'w');
-	print 'Writing optimal block sizes to', fname
-	
-	# write the version of the file
-	pickle.dump(0, f);
-	# write out the version this was tuned on
-	pickle.dump(hoomd.get_hoomd_version(), f);
-	# write out the dictionary
-	pickle.dump(common_optimal_db, f);
-	
-	f.close();
 	
 ## Determine optimal block size tuning parameters
 #
-# 
-def find_optimal_block_sizes():
+# \param save Set to False to disable the saving of ~/.hoomd_block_tuning
+#
+# A number of parameters related to running the GPU code in HOOMD can be tuned for optimal performance.
+# Unfortunately, the optimal values are impossible to predict and must be benchmarked. Additionally,
+# the optimal values can vary due to different hardware and even compiler versions! HOOMD includes
+# a balanced default set of tuning parameters benchmarked on various hardware configurations,
+# all with the latest version of CUDA. 
+#
+# You might be able to boost the performance of your simulations over the default by a small amount
+# if you run the tuning benchmark on your own machine. find_optimal_block_sizes() is the command
+# that does this. In order to use it, run the following hooomd script:
+#\code
+#from hoomd_script import *
+#tune.find_optimal_block_sizes()
+#\endcode
+#
+# Be prepared to wait a while when running it. After it completes successfully, it will save the
+# determined optimal tuning parameters in a file ~/.hoomd_block_tuning. This file will be 
+# automatically read by any future invocations of HOOMD. 
+#
+# \note HOOMD ignores .hoomd_block_tuning files from older versions. You must rerun the tuning
+# script after upgrading HOOMD. 
+def find_optimal_block_sizes(save = True):
 	util._disable_status_lines = True;
 	
 	# list of force computes to tune
-	fc_list = [	('pair.lj', '(r_cut=3.0)', 500),
-		     	('pair.gauss', '(r_cut=3.0)', 500),
-				('bond.harmonic', '()', 10000),
-				('bond.fene', '()', 10000)
-				];
+	fc_list = [ ('pair.lj', '(r_cut=3.0)', 500),
+	            ('pair.cgcmm', '(r_cut=3.0)', 500),
+	            ('pair.gauss', '(r_cut=3.0)', 500),
+	            ('bond.harmonic', '()', 10000),
+	            ('angle.harmonic', '()', 3000),
+	            ('angle.cgcmm', '()', 2000),
+	            ('dihedral.harmonic', '()', 1000),
+	            ('improper.harmonic', '()', 1000),
+	            ('bond.fene', '()', 2000)
+	          ];
 	
 	# setup the particle system to benchmark
 	polymer = dict(bond_len=1.2, type=['A']*50, bond="linear", count=2000);
@@ -202,7 +341,27 @@ def find_optimal_block_sizes():
 	phi_p = 0.2;
 	L = math.pow(math.pi * N / (6.0 * phi_p), 1.0/3.0);
 
-	init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
+	sysdef = init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
+	
+	# need some angles, dihedrals, and impropers to benchmark
+	angle_data = sysdef.getAngleData();
+	dihedral_data = sysdef.getDihedralData();
+	improper_data = sysdef.getImproperData();
+	num_particles = len(polymer['type']) * polymer['count'];
+	
+	for i in xrange(1,num_particles-3):
+		angle_data.addAngle(hoomd.Angle(0, i, i+1, i+2));
+	
+	for i in xrange(1,num_particles-4):
+		dihedral_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
+		improper_data.addDihedral(hoomd.Dihedral(0, i, i+1, i+2, i+3));
+	
+	del angle_data
+	del dihedral_data
+	del improper_data
+	del sysdef
+	
+	# run one time step to resort the particles for optimal memory access patterns
 	hoomd_script.run(1);
 	
 	# list of optimal databases
@@ -233,9 +392,6 @@ def find_optimal_block_sizes():
 		# add it to the list
 		optimal_dbs.append(optimal_db);
 	
-	init.reset();
-	util._disable_status_lines = False;
-	
 	# print out all the optimal block sizes
 	print '*****************'
 	print 'Optimal block sizes found: '
@@ -249,8 +405,9 @@ def find_optimal_block_sizes():
 		
 	print '*****************'
 	print
-	_save_override_file(common_optimal_db);
+	if save:
+		_save_override_file(common_optimal_db);
 	
-	
-	
-	
+	## Currently not working for some reason.....
+	# init.reset();
+	util._disable_status_lines = False;

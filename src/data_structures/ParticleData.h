@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file ParticleData.h
 	\brief Defines the ParticleData class and associated utilities
@@ -159,6 +160,12 @@ class Profiler;
 class BondData;
 
 class WallData;
+
+// Forward declaration of AngleData
+class AngleData;
+
+// Forward declaration of DihedralData
+class DihedralData;
 
 //! Defines a simple structure to deal with complex numbers
 /*! This structure is useful to deal with complex numbers for such situations
@@ -323,12 +330,40 @@ class ParticleDataInitializer
 		//! Returns the number of bond types to be created
 		/*! Bonds are optional: the base class returns 1 */
 		virtual unsigned int getNumBondTypes() const { return 1; }
-		
+
+		/*! Angles are optional: the base class returns 1 */
+		virtual unsigned int getNumAngleTypes() const { return 1; }
+
+		/*! Dihedrals are optional: the base class returns 1 */
+		virtual unsigned int getNumDihedralTypes() const { return 1; }
+
+		/*! Impropers are optional: the base class returns 1 */
+		virtual unsigned int getNumImproperTypes() const { return 1; }
+
 		//! Initialize the bond data
 		/*! \param bond_data Shared pointer to the BondData to be initialized
 			Bonds are optional: the base class does nothing
 		*/
 		virtual void initBondData(boost::shared_ptr<BondData> bond_data) const {}
+
+		//! Initialize the angle data
+		/*! \param angle_data Shared pointer to the AngleData to be initialized
+			Angles are optional: the base class does nothing
+		*/
+		virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const {}
+
+		//! Initialize the dihedral data
+		/*! \param dihedral_data Shared pointer to the DihedralData to be initialized
+			Dihedrals are optional: the base class does nothing
+		*/
+		virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const {}
+
+		//! Initialize the improper data
+		/*! \param improper_data Shared pointer to the ImproperData to be initialized
+			Impropers are optional: the base class does nothing
+		*/
+		virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const {}
+
 	};
 	
 //! Manages all of the data arrays for the particles
@@ -368,6 +403,7 @@ class ParticleData : boost::noncopyable
 	public:
 		//! Construct with N particles in the given box
 		ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+
 		//! Construct from an initializer
 		ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
 		//! Destructor

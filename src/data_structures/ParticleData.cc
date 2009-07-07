@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file ParticleData.cc
  	\brief Contains all code for BoxDim, ParticleData, and ParticleDataArrays.
@@ -62,6 +63,8 @@ using namespace boost::python;
 
 #include "ParticleData.h"
 #include "Profiler.h"
+#include "AngleData.h"
+#include "DihedralData.h"
 
 #include <boost/bind.hpp>
 
@@ -136,6 +139,9 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 /*! \param N Number of particles to allocate memory for
 	\param n_types Number of particle types that will exist in the data arrays
 	\param box Box the particles live in
+        \param n_angle_types Number of angles to create
+        \param n_dihedral_types Number of dihedrals to create
+        \param n_improper_types Number of impropers to create
 	\param exec_conf ExecutionConfiguration to use when executing code on the GPU
 	
 	\post \c x,\c y,\c z,\c vx,\c vy,\c vz,\c ax,\c ay, and \c az are allocated and initialized to 0.0
@@ -724,7 +730,7 @@ void ParticleData::allocate(unsigned int N)
 	m_exec_conf.tagAll(__FILE__, __LINE__);
 	if (!m_exec_conf.gpu.empty())
 		{
-		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, &m_data, m_nbytes));
+		m_exec_conf.gpu[0]->call(bind(cudaHostAlloc, &m_data, m_nbytes, cudaHostAllocPortable));
 		}
 	else
 		{
@@ -794,7 +800,7 @@ void ParticleData::allocate(unsigned int N)
 		
 	// allocate host staging location
 	if (!m_exec_conf.gpu.empty())
-		m_exec_conf.gpu[0]->call(bind(cudaMallocHost, (void **)((void *)&m_h_staging), sizeof(float4)*N));
+		m_exec_conf.gpu[0]->call(bind(cudaHostAlloc, (void **)((void *)&m_h_staging), sizeof(float4)*N, cudaHostAllocPortable));
 		
 	// assign which particles are local to which GPU
 	if (!m_exec_conf.gpu.empty())
@@ -1294,7 +1300,7 @@ void export_ParticleData()
 	class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
 		.def(init<const ParticleDataInitializer&>())
 		.def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
-		.def(init<unsigned int, const BoxDim&, unsigned int, const ExecutionConfiguration&>())
+		.def(init<unsigned int, const BoxDim&, unsigned int, const ExecutionConfiguration&>()) 
 		.def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
 		.def("setBox", &ParticleData::setBox)
 		.def("getN", &ParticleData::getN)

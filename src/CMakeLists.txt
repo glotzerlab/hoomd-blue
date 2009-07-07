@@ -36,8 +36,9 @@
 
 ## $Id$
 ## $URL$
+# Maintainer: joaander
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6.2 FATAL_ERROR)
 if(COMMAND cmake_policy)
 	cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
@@ -107,10 +108,10 @@ endif (WIN32)
 
 # setup the library compile mode
 if(ENABLE_STATIC)
-	set(HOOMD_LIB_MODE STATIC)
+	set(BUILD_SHARED_LIBS OFF)
 	add_definitions(-DBOOST_PYTHON_STATIC_LIB)
 else(ENABLE_STATIC)
-	set(HOOMD_LIB_MODE SHARED)
+	set(BUILD_SHARED_LIBS ON)
 endif(ENABLE_STATIC)
 
 ################################

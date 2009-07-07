@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file Integrator.cc
 	\brief Defines the Integrator base class
@@ -310,7 +311,7 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 */
 Scalar Integrator::computeTemperature(unsigned int timestep)
 	{
-	Scalar g = Scalar(3*m_pdata->getN());
+	Scalar g = Scalar(3*m_pdata->getN()-3);
 	return 2.0 * computeKineticEnergy(timestep) / g;
 	}
 		
@@ -357,12 +358,12 @@ Scalar Integrator::computeKineticEnergy(unsigned int timestep)
 	double ke_total = 0.0;
 	for (unsigned int i=0; i < m_pdata->getN(); i++)
 		{
-		ke_total += 0.5 * (double)arrays.mass[i]*((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
+		ke_total += (double)arrays.mass[i]*((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
 		}
 	
 	// done!
 	m_pdata->release();	
-	return Scalar(ke_total);
+	return Scalar(0.5 * ke_total);
 	}
 		
 /*! \param timestep Current time step of the simulation

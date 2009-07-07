@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifdef WIN32
 #pragma warning( push )
@@ -168,8 +169,26 @@ class NeighborList : public Compute
 		//! Exclude a pair of particles from being added to the neighbor list
 		void addExclusion(unsigned int tag1, unsigned int tag2);
 		
+		//! Clear all existing exclusions
+		void clearExclusions();
+		
 		//! Add an exclusion for every bond in the ParticleData
-		void copyExclusionsFromBonds();
+		void addExclusionsFromBonds();
+
+		//! Add exclusions from angles
+		void addExclusionsFromAngles();
+		
+		//! Add exclusions from dihedrals
+		void addExclusionsFromDihedrals();
+		
+		//! Test if an exclusion has been made
+		bool isExcluded(unsigned int tag1, unsigned int tag2);
+		
+		//! Add an exclusion for every 1,3 pair 
+		void addOneThreeExclusionsFromTopology();
+		
+		//! Add an exclusion for every 1,4 pair
+		void addOneFourExclusionsFromTopology();
 
 		//! Forces a full update of the list on the next call to compute()
 		void forceUpdate() { m_force_update = true; }

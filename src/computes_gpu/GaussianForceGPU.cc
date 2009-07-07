@@ -37,7 +37,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // $Id$
-// $UR$
+// $URL$
+// Maintainer: joaander
 
 /*! \file GaussianForceGPU.cc
 	\brief Defines the GaussianForceGPU class
@@ -67,7 +68,7 @@ using namespace std;
 	\post memory is allocated and all parameters epsilon and sigma are set to 0.0
 */
 GaussianForceGPU::GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
-	: GaussianForceCompute(sysdef, nlist, r_cut)
+	: GaussianForceCompute(sysdef, nlist, r_cut), m_block_size(64)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -82,26 +83,13 @@ GaussianForceGPU::GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef, b
 		throw runtime_error("Error initializing GaussianForceGPU");
 		}
 		
-	// default block size is the highest performance in testing on different hardware
-	// choose based on compute capability of the device
+	// ulf workaround setup
+	#ifndef DISABLE_ULF_WORKAROUND
 	cudaDeviceProp deviceProp;
 	int dev;
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));	
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 320;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 256;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 352;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for GaussianForceGPU" << endl;
-		m_block_size = 64;
-		}
-		
-	// ulf workaround setup
-	#ifndef DISABLE_ULF_WORKAROUND
+	
 	// the ULF workaround is needed on GTX280 and older GPUS
 	// it is not needed on C1060, S1070, GTX285, GTX295, and (hopefully) newer ones
 	m_ulf_workaround = true;

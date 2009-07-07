@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file NVTUpdater.h
 	\brief Declares the NVTUpdater class
@@ -83,7 +84,14 @@ class NVTUpdater : public Integrator
 		virtual std::vector< std::string > getProvidedLogQuantities();
 		
 		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);		
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+		
+		//! Sets the number of degrees of freedom
+		/*! One unit test is in a non-periodic box with a small number of particles and needs to 
+		    control the number of degress of freedom.
+		    \param dof Number of degrees of freedom to set.
+		*/
+		void setDOF(Scalar dof) { m_dof = dof; }
 	protected:
 		Scalar m_tau;					//!< tau value for Nose-Hoover
 		boost::shared_ptr<Variant> m_T;	//!< Temperature set point
@@ -91,6 +99,7 @@ class NVTUpdater : public Integrator
 		Scalar m_eta;					//!< Added degree of freedom
 		bool m_accel_set;				//!< Flag to tell if we have set the accelleration yet
 		Scalar m_curr_T;				//!< Current calculated temperature of the system
+		Scalar m_dof;					//!< Number of degrees of freedom
 	};
 	
 //! Exports the NVTUpdater class to python

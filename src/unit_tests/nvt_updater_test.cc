@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifdef WIN32
 #pragma warning( push )
@@ -1122,7 +1123,7 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 	// check that the nvt updater can actually integrate particle positions and velocities correctly
 	// start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
@@ -1142,6 +1143,7 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
 	Scalar T = Scalar(1.5/3.0);
 	Scalar tau = sqrt(Q / (Scalar(3.0) * T));
 	shared_ptr<NVTUpdater> nvt_up = nvt_creator(sysdef, deltaT, tau, T);
+	nvt_up->setDOF(3.0f);
 	
 	// see what happens with a constant force
 	shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
@@ -1238,7 +1240,7 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
 //! Compares the output of NVTUpdater to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 	{
-	nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 
@@ -1246,7 +1248,7 @@ BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 //! Compares the output of NVTUpdaterGPU to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_mathematica_compare )
 	{
-	nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters
@@ -1254,18 +1256,18 @@ BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
 	{
 	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
-	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing the CPU and multi-GPU updaters
 BOOST_AUTO_TEST_CASE( NVTUpdaterMultiGPU_comparison_tests)
 	{
-	vector<unsigned int> gpu_list;
+	vector<int> gpu_list;
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 	
 	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);

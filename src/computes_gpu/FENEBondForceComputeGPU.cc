@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: FENEBondForceComputeGPU.cc 1131 2008-08-31 20:28:43Z phillicl $
 // $URL: https://svn2.assembla.com/svn/hoomd/tags/hoomd-0.7.0/src/computes_gpu/FENEBondForceComputeGPU.cc $
+// Maintainer: phillicl
 
 /*! \file FENEBondForceComputeGPU.cc
 	\brief Defines the FENEBondForceComputeGPU class
@@ -61,7 +62,7 @@ using namespace std;
 /*! \param sysdef System to compute bond forces on
 */
 FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-	: FENEBondForceCompute(sysdef)
+	: FENEBondForceCompute(sysdef), m_block_size(64)
 	{
 	// only one GPU is currently supported
 	if (exec_conf.gpu.size() == 0)
@@ -90,24 +91,6 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
 		{
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_checkr[cur_gpu]), sizeof(int)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_checkr[cur_gpu], 0, sizeof(int)));
-		}
-		
-	// default block size is the highest performance in testing on different hardware
-	// choose based on compute capability of the device
-	cudaDeviceProp deviceProp;
-	int dev;
-	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 256;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 192;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 288;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for FENEBondForceComputeGPU" << endl;
-		m_block_size = 64;
 		}
 	}
 	

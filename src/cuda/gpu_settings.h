@@ -36,6 +36,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Maintainer: joaander
+
+#include <cuda.h>
+
 #ifndef __GPU_SETTINGS_H__
 #define __GPU_SETTINGS_H__
 
@@ -43,6 +47,12 @@ extern "C" {
 
 extern bool g_gpu_error_checking;
 
+// this is a bit of a hack, but it is a simple way to support calling cudaHostAlloc in CUDA 2.2 and previous builds
+#if (CUDA_VERSION < 2020)
+const int cudaDeviceBlockingSync = 0;
+const int cudaHostAllocPortable = 0;
+cudaError_t cudaHostAlloc(void **pHost, size_t bytes, unsigned int flags);
+#endif
 }
 
 #endif

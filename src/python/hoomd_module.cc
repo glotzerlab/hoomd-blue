@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifdef WIN32
 #pragma warning( push )
@@ -54,6 +55,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.h"
 #include "SystemDefinition.h"
 #include "BondData.h"
+#include "AngleData.h"
+#include "DihedralData.h"
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
@@ -62,9 +65,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "ConstForceCompute.h"
 #include "HarmonicBondForceCompute.h"
+#include "HarmonicAngleForceCompute.h"
+#include "HarmonicDihedralForceCompute.h"
+#include "HarmonicImproperForceCompute.h"
+#include "CGCMMAngleForceCompute.h"
 #include "FENEBondForceCompute.h"
 #include "LJForceCompute.h"
-#include "YukawaForceCompute.h"
+//#include "YukawaForceCompute.h"
+#include "CGCMMForceCompute.h"
 #include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "TempCompute.h"
@@ -100,10 +108,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
-#include "YukawaForceComputeGPU.h"
+//#include "YukawaForceComputeGPU.h"
+#include "CGCMMForceComputeGPU.h"
 #include "GaussianForceGPU.h"
 #include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
+#include "HarmonicAngleForceComputeGPU.h"
+#include "HarmonicDihedralForceComputeGPU.h"
+#include "HarmonicImproperForceComputeGPU.h"
+#include "CGCMMAngleForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #endif
 
@@ -112,6 +125,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDVersion.h"
 
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
 
@@ -258,7 +272,7 @@ void set_gpu_error_checking(bool value)
 	}
 	
 //! Method for getting the current version of HOOMD
-/*! \param returns Current HOOMD version identification string
+/*! \returns Current HOOMD version identification string
 */
 string get_hoomd_version()
 	{
@@ -285,6 +299,10 @@ BOOST_PYTHON_MODULE(hoomd)
 	def("set_gpu_error_checking", &set_gpu_error_checking);
 	def("get_hoomd_version", &get_hoomd_version);
 
+	// data structures
+	class_<std::vector<int> >("std_vector_int")
+		.def(vector_indexing_suite<std::vector<int> >());
+
 	InstallSIGINTHandler();
 
 	// utils
@@ -298,6 +316,8 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ExecutionConfiguration();
 	export_BondData();
 	export_SystemDefinition();
+	export_AngleData();	
+	export_DihedralData();
 
 	// initializers
 	export_RandomInitializer();
@@ -311,9 +331,14 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_ForceCompute();
 	export_ConstForceCompute();
 	export_HarmonicBondForceCompute();
+	export_HarmonicAngleForceCompute();
+	export_HarmonicDihedralForceCompute();
+	export_HarmonicImproperForceCompute();
+	export_CGCMMAngleForceCompute();
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
-	export_YukawaForceCompute();	
+	//export_YukawaForceCompute();	
+	export_CGCMMForceCompute();
 	export_GaussianForceCompute();
 	export_LJWallForceCompute();
 	export_TempCompute();
@@ -323,9 +348,14 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_BinnedNeighborListGPU();
 	export_NeighborListNsqGPU();
 	export_LJForceComputeGPU();
-	export_YukawaForceComputeGPU();
+//	export_YukawaForceComputeGPU();
+	export_CGCMMForceComputeGPU();
 	export_GaussianForceGPU();
 	export_HarmonicBondForceComputeGPU();
+	export_HarmonicAngleForceComputeGPU();
+	export_HarmonicDihedralForceComputeGPU();
+	export_HarmonicImproperForceComputeGPU();
+	export_CGCMMAngleForceComputeGPU();
 	export_FENEBondForceComputeGPU();
 	#endif
 	

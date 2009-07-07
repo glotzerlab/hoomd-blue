@@ -50,28 +50,50 @@ import util;
 
 ## \internal
 # \brief Internal python variable 
-__all__ = ["analyze", "bond", "dump", "force", "globals", "group", "init", 
-			"integrate", "pair", "update", "wall", "variant", "run", 
-			"tune", "hoomd"];
+__all__ = [	"analyze", 
+			"bond", 
+			"angle", 
+			"dihedral", 
+			"improper", 
+			"dump", 
+			"force", 
+			"globals", 
+			"group", 
+			"init", 
+			"integrate", 
+			"pair", 
+			"update", 
+			"wall",
+			"variant", 
+			"run", 
+			"tune", 
+			"hoomd"];
 
 ## \brief Runs the simulation for a given number of time steps
 #
-# \param tsteps Number of timesteps to advance the simulation by
+# \param tsteps Number of time steps to advance the simulation by
 # \param profile Set to true to enable detailed profiling
-# \param limit_hours (if set) Limit the run to a given number of hours.
-# 
+# \param limit_hours  (if set) Limit the run to a given number of hours.
+# \param callback     (if set) Sets a Python function to be called regularly during a run.
+# \param callback_period Sets the period, in time steps, between calls made to \a callback
+#
 # \b Examples:
 # \code
 # run(1000)
 # run(10e6)
 # run(10000, profile=True)
 # run(1e9, limit_hours=11)
+#
+# def py_cb(cur_tstep):
+#     print "callback called at step: ", str(cur_tstep)
+#
+# run(10000, callback_period=100, callback=py_cb)
 # \endcode
 #
 # Execute the run() command to advance the simulation forward in time. 
 # During the run, all previously specified \ref analyze "analyzers", 
 # \ref dump "dumps", \ref update "updaters" and the \ref integrate "integrators"
-# are executed every so many time steps as specified by their individual periods.
+# are executed at the specified regular periods.
 # 
 # After run() completes, you may change parameters of the simulation (i.e. temperature)
 # and continue the simulation by executing run() again. Time steps are added
@@ -84,16 +106,26 @@ __all__ = ["analyze", "bond", "dump", "force", "globals", "group", "init",
 #
 # When \a profile is \em True, a detailed breakdown of how much time was spent in each
 # portion of the calculation is printed at the end of the run. Collecting this timing information
-# can slow the simulation on the GPU by ~5 percent, so only enable profiling for testing
+# can slow the simulation on the GPU significantly, so only enable profiling for testing
 # and troubleshooting purposes.
 #
-# If limit_hours is changed from the default of None, the run will continue until either
+# If \a limit_hours is changed from the default of None, the run will continue until either
 # the specified number of time steps has been reached, or the given number of hours has
 # elapsed. This option can be useful in shared machines where the queuing system limits
 # job run times. A fractional value can be given to limit a run to only a few minutes,
 # if needed.
 #
-def run(tsteps, profile=False, limit_hours = None):
+# If \a callback is set to a Python function then this function will be called regularly
+# at \a callback_period intervals. The callback function must receive one integer as argument
+# and can return an integer. The argument is the current time step number,
+# and if the callback function returns a negative number then the run is immediately aborted.
+# all other return values are currently ignored.
+#
+# If \a callback_period is set to 0 (the default) then the callback is only called
+# once at the end of the run. Otherwise the callback is executed whenever the current
+# time step number is a multiple of \a callback_period.
+#
+def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None):
 	util.print_status_line();
 	# check if initialization has occured
 	if (globals.system == None):
@@ -113,5 +145,5 @@ def run(tsteps, profile=False, limit_hours = None):
 		limit_hours = 0.0
 	
 	print "** starting run **"
-	globals.system.run(int(tsteps), limit_hours);
+	globals.system.run(int(tsteps), callback_period, callback, limit_hours);
 	print "** run complete **"

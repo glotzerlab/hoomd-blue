@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file NVTUpdaterGPU.cc
 	\brief Defines the NVTUpdaterGPU class
@@ -186,7 +187,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	Scalar xi_prev = m_Xi;	
 	
 	// update Xi
-	m_curr_T = Ksum_total / (3.0f * float(m_pdata->getN()));
+	m_curr_T = Ksum_total / m_dof;
 	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T / m_T->getValue(timestep) - 1.0f);
 
 	// update eta

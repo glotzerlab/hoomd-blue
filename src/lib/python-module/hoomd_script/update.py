@@ -371,12 +371,14 @@ class zero_momentum(_updater):
 class box_resize(_updater):
 	## Initialize box size resizer
 	#
-	# \param Lx Variant specifying the value of the box length in the x direction as a function of time
-	# \param Ly (if set) Variant specifying the value of the box length in the y direction as a function of time
-	# \param Lz (if set) Variant specifying the value of the box length in the z direction as a function of time
+	# \param Lx the value of the box length in the x direction as a function of time
+	# \param Ly (if set) the value of the box length in the y direction as a function of time
+	# \param Lz (if set) the value of the box length in the z direction as a function of time
 	# \param period The box size will be updated every \a period time steps
 	# 
-	# If Ly or Lz (or both) are left as None, then they will be set to Lx as a convenience for 
+	# \a Lx, \a Ly, \a Lz can either be set to a constant number or a variant may be provided.
+	#
+	# \note If Ly or Lz (or both) are left as None, then they will be set to Lx as a convenience for 
 	# defining cubes.
 	#
 	# \note
@@ -411,7 +413,7 @@ class box_resize(_updater):
 		Lz = variant._setup_variant_input(Lz);
 
 		# create the c++ mirror class
-		self.cpp_updater = hoomd.BoxResizeUpdater(globals.particle_data, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant);
+		self.cpp_updater = hoomd.BoxResizeUpdater(globals.system_definition, Lx.cpp_variant, Ly.cpp_variant, Lz.cpp_variant);
 		self.setupUpdater(period);
 		
 	## Change box_resize parameters

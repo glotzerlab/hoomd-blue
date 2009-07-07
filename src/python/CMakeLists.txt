@@ -37,6 +37,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 # enable testing on this directory
 if (BUILD_TESTING)
@@ -46,10 +47,10 @@ endif (BUILD_TESTING)
 
 # here is where we actually compile the python module version of the library
 if (ENABLE_CUDA)
-cuda_add_library (hoomd_python_module ${HOOMD_LIB_MODE} ${HOOMD_CPU_SRCS}
+cuda_add_library (hoomd_python_module ${HOOMD_CPU_SRCS}
 ${HOOMD_GPU_SRCS} ${PYTHON_SRCS})
 else (ENABLE_CUDA)
-add_library (hoomd_python_module ${HOOMD_LIB_MODE} ${HOOMD_CPU_SRCS}
+add_library (hoomd_python_module ${HOOMD_CPU_SRCS}
 ${PYTHON_SRCS})
 endif (ENABLE_CUDA)
 

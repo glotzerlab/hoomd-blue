@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file TempCompute.cc
 	\brief Contains code for the TempCompute class
@@ -58,11 +59,15 @@ using namespace std;
 
 
 /*! \param sysdef System to compute temperature of
-*/
+ *
+ * Note: we have periodic boundary conditions, so we have
+ * translational invariance, i.e. the number of degrees of
+ * freedom is 3N-3 (minus constraints when implemented).
+ */
 TempCompute::TempCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_temp(0.0)
 	{
 	assert(m_pdata);
-	m_dof = m_pdata->getN() * 3;
+	m_dof = m_pdata->getN() * 3 - 3;
 	}
 
 /*! Calls computeTemp if the temperature needs updating
@@ -92,14 +97,16 @@ void TempCompute::computeTemp()
 
 	// total up kinetic energy
 	Scalar K = 0.0;
+	// K = Sum(m * v**2)
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
-		K += Scalar(1.0/2.0) * arrays.mass[i] * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
+		K += arrays.mass[i] * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
 		}
 		
 	// K = 1/2 * k_b * T * dof
 	// => T = K * 2 / dof / k_b
-	m_temp = K * Scalar(2.0) / Scalar(m_dof);
+	// but the variable K is already K*2
+	m_temp = K / Scalar(m_dof);
 	
 	m_pdata->release();
 	

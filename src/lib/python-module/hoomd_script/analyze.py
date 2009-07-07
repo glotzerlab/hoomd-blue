@@ -161,7 +161,7 @@ class _analyzer:
 
 	## \var prev_period
 	# \internal
-	# \brief Saved period retrived when an analyzer is disabled: used to set the period when re-enabled
+	# \brief Saved period retrieved when an analyzer is disabled: used to set the period when re-enabled
 
 	## Disables the analyzer
 	#
@@ -420,6 +420,26 @@ class log(_analyzer):
 		if delimiter:
 			self.cpp_analyzer.setDelimiter(delimiter);
 		
+	## Retrieve a cached value of a monitored quantity from the last update of the logger.
+	# \param quantity Name of the quantity to return.
+	# Using query() requires that the specified logger was saved in a variable when created.
+	# i.e. 
+	# \code
+	# logger = analyze.log(quantities=['pair_lj_energy', 
+	#                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
+	#                      period=1000, filename="'full.log')
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# logdata = logger.query('timestep')
+	# \endcode
+	def query(self, quantity):
+		util.print_status_line();
+		
+		# retrieve data from internal cache.
+		return self.cpp_analyzer.getCachedQuantity(quantity);
+		
 	## \internal
 	# \brief Re-registers all computes and updaters with the logger
 	def update_quantities(self):
@@ -439,7 +459,7 @@ class log(_analyzer):
 # The mean squared displacement (MSD) for each group is calculated as:
 # \f[ \langle |\vec{r} - \vec{r}_0|^2 \rangle \f]
 #
-# The file format is the same convient delimited format used by analyze.log 
+# The file format is the same convenient delimited format used by analyze.log 
 class msd(_analyzer):
 	## Initialize the msd calculator
 	#

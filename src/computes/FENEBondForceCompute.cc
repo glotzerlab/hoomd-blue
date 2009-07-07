@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: FENEBondForceCompute.cc 1127 2008-08-31 19:54:39Z phillicl $
 // $URL: https://svn2.assembla.com/svn/hoomd/tags/hoomd-0.7.0/src/computes/FENEBondForceCompute.cc $
+// Maintainer: phillicl
 
 #ifdef WIN32
 #pragma warning( push )
@@ -262,7 +263,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 
 		Scalar WCAforcemag_divr;
 		Scalar pair_eng;
-		if (rsq < 1.01944064370214) {   //wcalimit squared (2^(1/6))^2
+		if (rsq < 1.2599210498) {   //wcalimit squared (2^(1/6))^2
 			WCAforcemag_divr = r2inv * r6inv * (Scalar(12.0)*m_lj1[bond.type]*r6inv - Scalar(6.0)*m_lj2[bond.type]);
 			pair_eng = Scalar(0.5) * (r6inv * (m_lj1[bond.type]*r6inv - m_lj2[bond.type]) + m_epsilon[bond.type]);
 			}

@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: bdnvt_updater_test.cc 1256 2008-09-12 21:51:07Z joaander $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/bdnvt_updater_test.cc $
+// Maintainer: phillicl
 
 #ifdef WIN32
 #pragma warning( push )
@@ -102,7 +103,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
 	// a correct temperature and diffuction coefficent  
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
@@ -272,7 +273,7 @@ void bd_updater_diamtests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration 
 	// a correct temperature and diffuction coefficent  
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
@@ -382,8 +383,9 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
 	// and correct average temperature when applied to a population of two different particle types 
 	// Build a 1000 particle system with all the particles started at the origin, but with no interaction: 
 	//also put everything in a huge box so boundary conditions don't come into play
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
 	
 	// setup a simple initial state
@@ -463,7 +465,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 	
 	// check that a stochastic force applied on top of NVE integrator for a 1000 LJ particles stilll produces the correct average temperature
 	// Build a 1000 particle system with particles scattered on the x, y, and z axes.
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
@@ -575,7 +577,7 @@ shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	bd_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 //! Diameter test for the base class
@@ -589,14 +591,14 @@ BOOST_AUTO_TEST_CASE( BDUpdater_diamtests )
 BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_twoparticles_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	bd_twoparticles_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 //! extended LJ-liquid test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 #ifdef ENABLE_CUDA
@@ -604,7 +606,7 @@ BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bd_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 
 //! Diameter Setting test for the GPU class
@@ -618,14 +620,14 @@ BOOST_AUTO_TEST_CASE( BDUpdaterGPU_diamtests )
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_twoparticles_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_twoparticles_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bd_twoparticles_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! extended LJ-liquid test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 	{
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 #endif
 

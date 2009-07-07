@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file NeighborListNsqGPU.cc
 	\brief Defines the NeighborListNsqGPU class

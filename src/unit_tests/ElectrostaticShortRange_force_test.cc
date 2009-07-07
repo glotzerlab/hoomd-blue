@@ -93,7 +93,7 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 	{
 	cout << "Testing the accuracy of the look up table in ElectrostaticShortRange" << endl;
 	// Simple test to check the accuracy of the look up table
-	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0; arrays.charge[0]=1.0;
@@ -177,7 +177,7 @@ void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator
 	// periodic boudnary conditions work as expected
 	// simuilar test as in lj_force_test
 	
-	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6,BoxDim(20.0,40.0,60.0),1, 0, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6,BoxDim(20.0,40.0,60.0),1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 	ParticleDataArrays arrays=pdata_6->acquireReadWrite();
 	

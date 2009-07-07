@@ -66,7 +66,7 @@ mol2.write(filename="dump.mol2");
 dump.dcd(filename="dump.dcd", period=200000);
 
 # log lj energy
-analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'pair_lj_energy'], period=1000)
+analyze.log(filename="log.txt", quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'pair_lj_energy', 'bond_harmonic_energy'], period=1000)
 
 # calculate and log msd
 groupA = group.type('A')

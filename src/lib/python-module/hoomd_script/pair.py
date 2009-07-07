@@ -67,9 +67,11 @@
 import globals;
 import force;
 import hoomd;
+import util;
+import tune;
+
 import math;
 import sys;
-import util;
 
 ## Defines %pair coefficients
 # 
@@ -267,7 +269,13 @@ class nlist:
 		box = globals.system_definition.getParticleData().getBox();
 		min_width_for_bin = (default_r_buff + r_cut)*3.0;
 		if (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin or (box.zhi - box.zlo) < min_width_for_bin:
-			print "Notice: Forcing use of O(N^2) neighbor list due to small box dimensions";
+			if globals.system_definition.getParticleData().getN() >= 2000:
+				print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
+				print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list. If your simulation is confined to a 2D"
+				print "             plane, you can increase the smallest box dimension to enable the more efficient O(N) calculation.\n"
+			else:
+				print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
+				
 			mode = "nsq";
 		
 		# create the C++ mirror class
@@ -282,6 +290,7 @@ class nlist:
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			if mode == "binned":
 				self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
+				self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
 			elif mode == "nsq":
 				self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.system_definition, r_cut, default_r_buff)
 			else:
@@ -292,7 +301,7 @@ class nlist:
 			raise RuntimeError("Error creating neighbor list");
 			
 		self.cpp_nlist.setEvery(1);
-		self.cpp_nlist.copyExclusionsFromBonds();
+		self.cpp_nlist.addExclusionsFromBonds();
 		
 		globals.system.addCompute(self.cpp_nlist, "auto_nlist");
 		
@@ -348,7 +357,86 @@ class nlist:
 			
 		if check_period != None:
 			self.cpp_nlist.setEvery(check_period);
+
+	## Resets all exclusions in the neighborlist
+	#
+	# \param exclusions Select which interactions should be excluded from the pair interaction calculation.
+	#
+	# By default, only directly bonded particles are excluded from short range pair interactions. 
+	# reset_exclusions allows that setting to be overridden to add other exclusions or to remove
+	# the exclusion for bonded particles.
+	#
+	# Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
+	# All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
+	# 
+	# Valid types are:
+	# - \b %bond - Exclude particles that are directly bonded together
+	# - \b %angle - Exclude the two outside particles in all defined angles.
+	# - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
+	#
+	# The following types are determined soley by the bond topology. Every chain of particles in the simulation 
+	# connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
+	# angles or dihedrals are defined.
+	# - \b 1-2  - Same as bond
+	# - \b 1-3  - Exclude particles connected with a sequence of two bonds.
+	# - \b 1-4  - Exclude particles connected with a sequence of three bonds.
+	#
+	# \b WARNING: 
+	# 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
+	# atom and even 1-3 exclusions can reach that limit in branched molecules.
+	#
+	# \b Examples:
+	# \code 
+	# nlist.reset_exclusions(exclusions = ['1-2'])
+	# nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
+	# nlist.reset_exclusions(exclusions = ['bond', 'angle'])
+	# nlist.reset_exclusions(exclusions = [])
+	# \endcode
+	# 
+	def reset_exclusions(self, exclusions = None):
+		util.print_status_line();
+		
+		if self.cpp_nlist == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+			raise RuntimeError('Error resetting exclusions');
+		
+		# clear all of the existing exclusions
+		self.cpp_nlist.clearExclusions();
+		
+		if exclusions == None:
+			return
+		
+		# exclusions given directly in bond/angle/dihedral notation
+		if 'bond' in exclusions:
+			self.cpp_nlist.addExclusionsFromBonds();
+			exclusions.remove('bond');
+		
+		if 'angle' in exclusions:
+			self.cpp_nlist.addExclusionsFromAngles();
+			exclusions.remove('angle');
+		
+		if 'dihedral' in exclusions:
+			self.cpp_nlist.addExclusionsFromDihedrals();
+			exclusions.remove('dihedral');
+		
+		# exclusions given in 1-2/1-3/1-4 notation.
+		if '1-2' in exclusions:
+			self.cpp_nlist.addExclusionsFromBonds();
+			exclusions.remove('1-2');
+
+		if '1-3' in exclusions:
+			self.cpp_nlist.addOneThreeExclusionsFromTopology();
+			exclusions.remove('1-3');
 			
+		if '1-4' in exclusions:
+			self.cpp_nlist.addOneFourExclusionsFromTopology();
+			exclusions.remove('1-4');
+
+		# if there are any items left in the exclusion list, we have an error.
+		if len(exclusions) > 0:
+			print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
+			raise RuntimeError('Error resetting exclusions');
+
 	## Benchmarks the neighbor list computation
 	# \param n Number of iterations to average the benchmark over
 	#
@@ -365,9 +453,9 @@ class nlist:
 	#
 	# \note
 	# There is, however, one subtle side effect. If the benchmark() command is run 
-	# directly after the particle data is intialized with an init command, then the 
+	# directly after the particle data is initialized with an init command, then the 
 	# results of the benchmark will not be typical of the time needed during the actual
-	# simulation. Particles are not reorederd to improve cache performance until at least
+	# simulation. Particles are not reordered to improve cache performance until at least
 	# one time step is performed. Executing run(1) before the benchmark will solve this problem.
 	#
 	def benchmark(self, n):
@@ -481,6 +569,7 @@ class lj(force._force):
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 			self.cpp_force = hoomd.LJForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating lj pair force");
@@ -552,6 +641,79 @@ class lj(force._force):
 		if fraction != None:
 			self.cpp_force.setXplorFraction(fraction);
 			
+## cgcmm pair potential
+class cgcmm(force._force):
+	## Specify the CG-CMM Lennard-Jones %pair %force
+	#
+	# \param r_cut Cuttoff radius (see documentation above)
+	#
+	# \b Example:
+	# \code
+	# cg1 = pair.cgcmm(r_cut=3.0)
+	# cg1.pair_coeff.set('A', 'A', epsilon=0.5, sigma=1.0, alpha=1.0, exponents='lj12_4')
+	# \endcode
+	#
+	# \note Pair coefficients for all type pairs in the simulation must be
+	# set before it can be started with run()
+	def __init__(self, r_cut):
+		util.print_status_line();
+		
+		# initialize the base class
+		force._force.__init__(self);
+		
+		# update the neighbor list
+		neighbor_list = _update_global_nlist(r_cut);
+		
+		# create the c++ mirror class
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+			self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating cgcmm pair force");
+			
+			
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		
+		# setup the coefficent matrix
+		self.pair_coeff = coeff();
+		
+	def update_coeffs(self):
+		# check that the pair coefficents are valid
+		if not self.pair_coeff.verify("epsilon", "sigma", "alpha", "exponents"):
+			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.cgcmm\n";
+			raise RuntimeError("Error updating pair coefficients");
+		
+		# set all the params
+		ntypes = globals.system_definition.getParticleData().getNTypes();
+		type_list = [];
+		for i in xrange(0,ntypes):
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+		
+		for i in xrange(0,ntypes):
+			for j in xrange(i,ntypes):
+				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
+				sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
+				alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
+				exponents = self.pair_coeff.get(type_list[i], type_list[j], "exponents");
+				# we support three variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
+				if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
+					lj1 = 2.598076 * epsilon * math.pow(sigma, 12.0);
+					lj2 = alpha * 2.598076 * epsilon * math.pow(sigma, 4.0);
+					self.cpp_force.setParams(i, j, lj1, 0.0, 0.0, lj2);
+				elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
+					lj1 = 6.75 * epsilon * math.pow(sigma, 9.0);
+					lj2 = alpha * 6.75 * epsilon * math.pow(sigma, 6.0);
+					self.cpp_force.setParams(i, j, 0.0, lj1, lj2, 0.0);
+				elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
+					lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+					lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+					self.cpp_force.setParams(i, j, lj1, 0.0, lj2, 0.0);
+				else:
+					raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
 ## Gaussian %pair %force
 #
 # The command pair.gauss specifies that a Gaussian type %pair %force should be added to every
@@ -614,6 +776,7 @@ class gauss(force._force):
 		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
 			self.cpp_force = hoomd.GaussianForceGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating gauss pair force");

@@ -106,6 +106,9 @@ class xml(analyze._analyzer):
 	# \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
 	# \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
 	# \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
+	# \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
+	# \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
+	# \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
 	#
 	# Using set_params() requires that the %dump was saved in a variable when it was specified.
 	# \code
@@ -121,7 +124,7 @@ class xml(analyze._analyzer):
 	# xml.set_params(bond=True)
 	# xml.set_params(all=True)
 	# \endcode
-	def set_params(self, all=None, position=None, image=None, velocity=None, mass=None, diameter=None, type=None, wall=None, bond=None):
+	def set_params(self, all=None, position=None, image=None, velocity=None, mass=None, diameter=None, type=None, wall=None, bond=None, angle=None, dihedral=None, improper=None):
 		util.print_status_line();
 	
 		# check that proper initialization has occurred
@@ -130,7 +133,7 @@ class xml(analyze._analyzer):
 			raise RuntimeError('Error setting xml parameters');
 			
 		if all:
-			position = image = velocity = mass = diameter = type = wall = bond = True;
+			position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
 
 		if position != None:
 			self.cpp_analyzer.setOutputPosition(position);
@@ -155,6 +158,15 @@ class xml(analyze._analyzer):
 			
 		if bond != None:
 			self.cpp_analyzer.setOutputBond(bond);
+
+		if angle != None:
+			self.cpp_analyzer.setOutputAngle(angle);
+			
+		if dihedral != None:
+			self.cpp_analyzer.setOutputDihedral(dihedral);
+			
+		if improper != None:
+			self.cpp_analyzer.setOutputImproper(improper);
 			
 	## Write a file at the current time step
 	#
@@ -178,7 +190,7 @@ class xml(analyze._analyzer):
 		# check that proper initialization has occured
 		if self.cpp_analyzer == None:
 			print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
-			raise RuntimeError('Error writing pdb');
+			raise RuntimeError('Error writing xml');
 		
 		self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
 

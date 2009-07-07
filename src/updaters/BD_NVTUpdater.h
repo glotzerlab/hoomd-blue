@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: BD_NVTUpdater.h 1085 2008-07-30 20:22:24Z joaander $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters/BD_NVTUpdater.h $
+// Maintainer: phillicl
 
 /*! \file BD_NVTUpdater.h
 	\brief Declares an updater that implements BD_NVT dynamics

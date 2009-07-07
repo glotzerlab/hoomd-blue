@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file pdata_test.cc
 	\brief Unit tests for BoxDim, ParticleData, SimpleCubicInitializer, and RandomInitializer classes.
@@ -358,12 +359,12 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	Scalar tol = Scalar(1e-6);
 	
 	// setup an execution configuration with 4 GPUs all with id 0 for testing purposes
-	vector<unsigned int> gpu_list;
+	vector<int> gpu_list;
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
 	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	ExecutionConfiguration exec_conf(gpu_list);
 		
 	// This set of tests will actually check that the ParticleData class is working
 	// It would be a pain in the ass to test every possible state change in going from
@@ -373,6 +374,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_multigpu_tests )
 	BoxDim box(10.0,30.0,50.0);
 	int N = 500;
 	ParticleData pdata(N, box, 1, exec_conf);
+
 	ParticleDataArrays arrays = pdata.acquireReadWrite();
 	for (int i = 0; i < N; i++)
 		{

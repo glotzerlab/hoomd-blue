@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file NVEUpdaterGPU.cuh
 	\brief Declares GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.

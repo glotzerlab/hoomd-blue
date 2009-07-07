@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifndef _PARTICLEDATA_CUH_
 #define _PARTICLEDATA_CUH_

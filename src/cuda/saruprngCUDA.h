@@ -79,10 +79,10 @@ Saru n=s.fork<123>();
 class SaruGPU {
  public:
 
-   SaruGPU() {state.x=0x12345678; state.y=12345678;}
-   SaruGPU(unsigned int seed);
-   SaruGPU(unsigned int seed1, unsigned int seed2);
-   SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3);
+   inline __device__ SaruGPU() {state.x=0x12345678; state.y=12345678;}
+   inline __device__ SaruGPU(unsigned int seed);
+   inline __device__ SaruGPU(unsigned int seed1, unsigned int seed2);
+   inline __device__ SaruGPU(unsigned int seed1, unsigned int seed2, unsigned int seed3);
 
   /* Efficient compile-time computed advancements */
    template <unsigned int steps> __device__ inline  void advance() 

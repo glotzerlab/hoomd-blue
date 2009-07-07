@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: fenebond_force_test.cc 1240 2008-09-19 17:19:48Z phillicl $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/fenebond_force_test.cc $
+// Maintainer: phillicl
 
 #ifdef WIN32
 #pragma warning( push )
@@ -96,8 +97,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	
 	/////////////////////////////////////////////////////////
 	// start with the simplest possible test: 2 particles in a huge box with only one bond type
-	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0,  exec_conf));
 	shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9);
@@ -163,7 +165,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	// test +x, -x, +y, -y, +z, and -z independantly
 	// build a 6 particle system with particles across each boundary
 	// also test more than one type of bond
-	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, exec_conf));
+	shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
 	
 	arrays = pdata_6->acquireReadWrite();
@@ -226,8 +228,9 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 	// one more test: this one will test two things:
 	// 1) That the forces are computed correctly even if the particles are rearranged in memory
 	// and 2) That two forces can add to the same particle
-	shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, exec_conf));
-	shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();
+	shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(100.0, 100.0, 100.0), 1, 1, 0, 0, 0, exec_conf));
+	shared_ptr<ParticleData> pdata_4 = sysdef_4->getParticleData();	
+
 	arrays = pdata_4->acquireReadWrite();
 	// make a square of particles
 	arrays.x[0] = 0.0; arrays.y[0] = 0.0; arrays.z[0] = 0.0;
@@ -376,7 +379,7 @@ shared_ptr<FENEBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition> sys
 BOOST_AUTO_TEST_CASE( FENEBondForceCompute_basic )
 	{
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 	}
 
 #ifdef ENABLE_CUDA
@@ -384,7 +387,7 @@ BOOST_AUTO_TEST_CASE( FENEBondForceCompute_basic )
 BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_basic )
 	{
 	bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
-	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -392,18 +395,18 @@ BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_compare )
 	{
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-	bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
 	}
 	
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
 BOOST_AUTO_TEST_CASE( FENEBondForce_MultiGPU_compare)
 	{
-	vector<unsigned int> gpu_list;
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	gpu_list.push_back(0);
-	ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU, gpu_list);
+	vector<int> gpu_list;
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
+	ExecutionConfiguration exec_conf(gpu_list);
 	
 	bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
 	bondforce_creator bf_creator = bind(base_class_bf_creator, _1);

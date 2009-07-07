@@ -36,6 +36,7 @@
 
 # $Id$
 # $ $URL$
+# Maintainer: joaander
 
 ###############################
 # UNIX like OSes need a few settings for the unit test library
@@ -71,7 +72,6 @@ if (VALGRIND)
 	mark_as_advanced(VALGRIND)
 endif (VALGRIND)
 
-# bump up the test timeout when valgrind is enabled
 if (ENABLE_VALGRIND)
 	set(DART_TESTING_TIMEOUT 4500 CACHE STRING "Testing timeout" FORCE)
 endif (ENABLE_VALGRIND)
@@ -86,12 +86,17 @@ set(TEST_LIST
 	particle_group_test
 	utils_test
 	harmonic_bond_force_test
+	harmonic_angle_force_test
+	harmonic_dihedral_force_test
+	harmonic_improper_force_test
+	cgcmm_angle_force_test
 	fenebond_force_test
 	lj_wall_compute_test
 	neighborlist_test
 	lj_force_test
 	shiftedlj_force_test
 	gaussian_force_test
+	cgcmm_force_test
 	nve_updater_test
 	nvt_updater_test
 	zero_momentum_updater_test

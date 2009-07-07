@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file TempRescaleUpdater.cc
 	\brief Defines the TempRescaleUpdater class

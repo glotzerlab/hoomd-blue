@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #include <iostream>
 #include <string>
@@ -78,7 +79,8 @@ void output_version_info(bool verbose)
 	#endif
 	
 	#ifdef ENABLE_CUDA
-	if (string(CUDA_BUILD_TYPE) != string("Device"))
-		cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
+	#ifdef _DEVICEEMU
+	cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
+	#endif
 	#endif
 	}

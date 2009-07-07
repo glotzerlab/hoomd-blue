@@ -66,8 +66,7 @@ SystemDefinition::SystemDefinition()
 	 - BondData constructed with the arguments \a n_bond_types
 	 - All other data structures are default constructed.
 */
-SystemDefinition::SystemDefinition(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, 
-	const ExecutionConfiguration& exec_conf)
+SystemDefinition::SystemDefinition(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, unsigned int n_angle_types, unsigned int n_dihedral_types, unsigned int n_improper_types, const ExecutionConfiguration& exec_conf)
 	{
 	m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf));
 	m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
@@ -79,6 +78,10 @@ SystemDefinition::SystemDefinition(unsigned int N, const BoxDim &box, unsigned i
 	if (exec_conf.gpu.size() <= 1)
 	#endif
 		m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
+		
+	m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
+	m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
+	m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_improper_types));
 	}
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
@@ -104,7 +107,16 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 	if (exec_conf.gpu.size() <= 1)
 	#endif
 		m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
-	}	
+		
+	m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
+	init.initAngleData(m_angle_data);
+	
+	m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumDihedralTypes()));
+	init.initDihedralData(m_dihedral_data);
+	
+	m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumImproperTypes()));
+	init.initImproperData(m_improper_data);
+	}
 
 /*! Initialize required data before runs
  
@@ -120,11 +132,14 @@ int SystemDefinition::init()
 void export_SystemDefinition()
 	{
 	class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
-		.def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, const ExecutionConfiguration&>())
+		.def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const ExecutionConfiguration&>())
 		.def(init<unsigned int, const BoxDim&, unsigned int>())
 		.def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
 		.def("getParticleData", &SystemDefinition::getParticleData)
 		.def("getBondData", &SystemDefinition::getBondData)
+		.def("getAngleData", &SystemDefinition::getAngleData)
+		.def("getDihedralData", &SystemDefinition::getDihedralData)
+		.def("getImproperData", &SystemDefinition::getImproperData)
 		.def("getWallData", &SystemDefinition::getWallData)
 		.def("getRigidData", &SystemDefinition::getRigidData)
 		;

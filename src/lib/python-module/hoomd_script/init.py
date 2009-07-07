@@ -94,7 +94,7 @@ def reset():
 	globals._clear();
 	
 	gc.collect();
-	count = sys.getrefcount(pdata)
+	count = sys.getrefcount(sysdef)
 
 	# note: the check should be against 2, getrefcount counts the temporary reference 
 	# passed to it in the argument
@@ -104,17 +104,19 @@ def reset():
 		print count-expected_count, "references to the particle data still exist somewhere\n"
 		raise RuntimeError('Error resetting');
 
-	del pdata
+	del sysdef
 	gc.collect();
 
 ## Reads initial system state from an XML file
 #
 # \param filename File to read
+# \param time_step (if specified) Time step number to use instead of the one stored in the XML file
 #
 # \b Examples:
 # \code
 # init.read_xml(filename="data.xml")
 # init.read_xml(filename="directory/data.xml")
+# init.read_xml(filename="restart.xml", time_step=0)
 # \endcode
 #
 # All particles, bonds, etc...  are read from the XML file given, 
@@ -122,13 +124,17 @@ def reset():
 # After this command completes, the system is initialized allowing 
 # other commands in hoomd_script to be run. For more details
 # on the file format read by this command, see \ref page_xml_file_format.
-def read_xml(filename):
+#
+# If \a time_step is specified, it's value will be used as the initial time 
+# step of the simulation instead of the one read from the XML file.
+#
+def read_xml(filename, time_step = None):
 	util.print_status_line();
 	
 	# parse command line
 	_parse_command_line();
 
-	# check if initialization has already occured
+	# check if initialization has already occurred
 	if (globals.system_definition != None):
 		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');
@@ -138,7 +144,11 @@ def read_xml(filename):
 	globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
 	
 	# initialize the system
-	globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
+	if time_step == None:
+		globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
+	else:
+		initializer.setTimeStep(time_step)
+		globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
 	
 	_perform_common_init_tasks();
 	return globals.system_definition;
@@ -171,7 +181,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 	_parse_command_line();
 	my_exec_conf = _create_exec_conf();
 	
-	# check if initialization has already occured
+	# check if initialization has already occurred
 	if (globals.system_definition != None):
 		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
 		raise RuntimeError('Error initializing');
@@ -282,7 +292,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # to be placed closer together. Then setup integrate.nve with the \a limit option set to a 
 # relatively small value. A few thousand time steps should relax the system so that the simulation can be
 # continued without the limit or with a different integrator. For extremely troublesome systems,
-# generate it at a very low density and shrink the box with the command ___ (which isn't written yet)
+# generate it at a very low density and shrink the box with the command update.box_resize
 # to the desired final size.
 #
 # \note 2. The polymer generator always generates polymers as if there were linear chains. If you 
@@ -405,7 +415,6 @@ def create_random_polymers(box, polymers, separation, seed=1):
 	_perform_common_init_tasks();
 	return globals.system_definition;
 
-
 ## Performs common initialization tasks
 #
 # \internal
@@ -429,7 +438,10 @@ def _parse_command_line():
 	parser = OptionParser();
 	parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
 	parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
+	parser.add_option("--ngpu", dest="ngpu", help="Number of GPUs to execute on (requires that CUDA 2.2 compute-exclusive mode be enabled on all GPUs)");
 	parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
+	parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
+	parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
 	
 	(_options, args) = parser.parse_args();
 	
@@ -439,12 +451,15 @@ def _parse_command_line():
 			parser.error("--mode must be either cpu or gpu");
 	
 	# check for sane options
-	if _options.mode == "cpu" and _options.gpu:
+	if _options.mode == "cpu" and (_options.gpu or _options.ngpu):
 		parser.error("It doesn't make sense to specify --mode=cpu and a value for --gpu")
 
 	# set the mode to gpu if the gpu # was set
-	if _options.gpu and not _options.mode:
+	if (_options.gpu and not _options.mode) or (_options.ngpu and not _options.mode):
 		_options.mode = "gpu"
+		
+	if _options.gpu and _options.ngpu:
+		parser.error("--gpu and --ngpu are mutually exclusive options")
 		
 	# if gpu_error_checking is set, enable it on the GPU
 	if _options.gpu_error_checking:
@@ -459,26 +474,29 @@ def _create_exec_conf():
 	
 	# if no command line options were specified, create a default ExecutionConfiguration
 	if not _options.mode:
-		exec_conf = hoomd.ExecutionConfiguration();
+		exec_conf = hoomd.ExecutionConfiguration(_options.min_cpu, _options.ignore_display);
 	else:
 		# create a list of GPUs to execute on
-		gpu_ids = hoomd.std_vector_uint();
+		gpu_ids = hoomd.std_vector_int();
 		if _options.gpu:
 			# parse the list of gpus
 			string_gpu_list = _options.gpu.split(",")
 			for gpu in string_gpu_list:
-				gpu_ids.push_back(int(gpu));
+				gpu_ids.append(int(gpu));
+		elif _options.ngpu:
+			for i in xrange(0, int(_options.ngpu)):
+				gpu_ids.append(-1);
 		else:
-			# otherwise, assume GPU 0
-			gpu_ids.push_back(0);
+			# otherwise, assume the default GPU
+			gpu_ids.append(-1);
 		
 		# create the specified configuration
 		if _options.mode == "cpu":
-			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, 0);
+			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, _options.min_cpu, _options.ignore_display);
 		elif _options.mode == "gpu":
-			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_ids);
+			exec_conf = hoomd.ExecutionConfiguration(gpu_ids, _options.min_cpu, _options.ignore_display);
 		else:
-			raise RuntimeError("Invalid value for _options.exec in initialization");
+			raise RuntimeError("Error initializing");
 		
 	return exec_conf;
 		

@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 #ifndef _NEIGHBORLIST_CUH_
 #define _NEIGHBORLIST_CUH_

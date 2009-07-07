@@ -7,7 +7,7 @@
 # 2) make a bin/ directory somewhere
 # 3) modify the variables in this script to match the desired test parameters
 # 4) set TEST_GROUP to "Experimental" and run ctest -V -S ctest_hoomd.cmake to check that the test runs
-#     the results of the test should show up at: http://my.cdash.org/index.php?project=HOOMD
+#     the results of the test should show up at: http://cdash.fourpisolutions.com/index.php?project=HOOMD
 #     (you may want to ignore the bdnvt and npt tests for this as they are quite long)
 # 5) chate TEST_GROUP back to "Nightly" and set "ctest -S ctest_hoomd.cmake"  to run every day
 
@@ -44,8 +44,8 @@ SET (IGNORE_TESTS "-E \"bdnvt|npt\"")
 SET (MEMORYCHECK_COMMAND "")
 #SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
 # (change to emulation if you want to compile and test a GPU emulation build)
-SET (CUDA_BUILD_TYPE "Device")
-#SET (CUDA_BUILD_TYPE "Emulation")
+SET (CUDA_BUILD_EMULATION "OFF")
+#SET (CUDA_BUILD_EMULATION "ON")
 # (architecture to compile CUDA for 10=compute 1.0 11=compute 1.1, ...)
 SET (CUDA_ARCH "10")
 # (set to ON to enable coverage tests: these extensive tests don't really need to be done on every single build)
@@ -83,9 +83,9 @@ endif (SINGLE_PRECISION MATCHES "ON")
 
 if (ENABLE_CUDA MATCHES "ON")
 	SET (BUILDNAME "${BUILDNAME}-cuda")
-	if (CUDA_BUILD_TYPE MATCHES "Emulation")
+	if (CUDA_BUILD_EMULATION MATCHES "ON")
 		SET (BUILDNAME "${BUILDNAME}-emu")
-	endif (CUDA_BUILD_TYPE MATCHES "Emulation")
+	endif (CUDA_BUILD_EMULATION MATCHES "ON")
 endif (ENABLE_CUDA MATCHES "ON")
 
 if (ENABLE_COVERAGE)
@@ -106,6 +106,6 @@ CMAKE_C_FLAGS:STRING=${COVERAGE_FLAGS}
 CMAKE_CXX_FLAGS:STRING=${COVERAGE_FLAGS}
 MEMORYCHECK_COMMAND:FILEPATH=${MEMORYCHECK_COMMAND}
 MEMORYCHECK_SUPPRESSIONS_FILE:FILEPATH=${CTEST_CHECKOUT_DIR}/src/unit_tests/combined_valgrind.supp
-CUDA_BUILD_TYPE:STRING=${CUDA_BUILD_TYPE}
+CUDA_BUILD_EMULATION:STRING=${CUDA_BUILD_EMULATION}
 CUDA_ARCH:STRING=${CUDA_ARCH}
 ")

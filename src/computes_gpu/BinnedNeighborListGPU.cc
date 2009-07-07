@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file BinnedNeighborListGPU.cc
 	\brief Defines the BinnedNeighborListGPU class
@@ -76,7 +77,7 @@ using namespace std;
 	\post The storage mode defaults to full
 	\sa NeighborList
 */
-BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) : NeighborList(sysdef, r_cut, r_buff)
+BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) : NeighborList(sysdef, r_cut, r_buff), m_block_size(64)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -98,26 +99,13 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
 	m_curNmax = 0;
 	m_avgNmax = Scalar(0.0);
 
-	// default block size is the highest performance in testing on different hardware
-	// choose based on compute capability of the device
+	// ulf workaround setup
+	#ifndef DISABLE_ULF_WORKAROUND
 	cudaDeviceProp deviceProp;
 	int dev;
 	exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
 	exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-	if (deviceProp.major == 1 && deviceProp.minor == 0)
-		m_block_size = 64;
-	else if (deviceProp.major == 1 && deviceProp.minor == 1)
-		m_block_size = 64;
-	else if (deviceProp.major == 1 && deviceProp.minor < 4)
-		m_block_size = 96;
-	else
-		{
-		cout << "***Warning! Unknown compute " << deviceProp.major << "." << deviceProp.minor << " when tuning block size for BinnedNeighborListGPU" << endl;
-		m_block_size = 64;
-		}
 	
-	// ulf workaround setup
-	#ifndef DISABLE_ULF_WORKAROUND
 	m_ulf_workaround = false;
 	
 	// the ULF workaround is needed on all compute 1.1 GPUs
@@ -187,7 +175,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		}
 	
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz) );
+	exec_conf.gpu[0]->call(bind(cudaHostAlloc, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz, cudaHostAllocPortable) );
 	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
 	
 	// allocate the host bin adj array

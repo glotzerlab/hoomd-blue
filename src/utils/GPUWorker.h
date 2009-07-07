@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file GPUWorker.h
 	\brief Defines the GPUWorker class
@@ -51,6 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <deque>
 #include <stdexcept>
+#include <vector>
 
 #include <boost/function.hpp>
 #include <boost/thread/thread.hpp>
@@ -113,7 +115,7 @@ class GPUWorker
 	{
 	public:
 		//! Creates a worker thread and ties it to a particular gpu \a dev
-		GPUWorker(int dev);
+		GPUWorker(int dev, int flags=0, int *device_arr=NULL, int len=0);
 		
 		//! Destructor
 		~GPUWorker();

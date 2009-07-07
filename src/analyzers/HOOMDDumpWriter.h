@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file HOOMDDumpWriter.h
 	\brief Declares the HOOMDDumpWriter class
@@ -97,21 +98,30 @@ class HOOMDDumpWriter : public Analyzer
 		void setOutputType(bool enable);
 		//! Enables/disables the writing of bonds
 		void setOutputBond(bool enable);
+		//! Enables/disables the writing of angles
+		void setOutputAngle(bool enable);
+		//! Enables/disables the writing of dihedrals
+		void setOutputDihedral(bool enable);
+		//! Enables/disables the writing of impropers
+		void setOutputImproper(bool enable);
 		//! Enables/disables the writing of walls
 		void setOutputWall(bool enable);
 
 		//! Writes a file at the current time step
 		void writeFile(std::string fname, unsigned int timestep);
 	private:
-		std::string m_base_fname;	//!< String used to store the file name of the XML file
-		bool m_output_position;		//!< true if the particle positions should be written
-		bool m_output_image;		//!< true if the particle positions should be written
-		bool m_output_velocity;		//!< true if the particle velocities should be written
-		bool m_output_mass;			//!< true if the particle masses should be written
-		bool m_output_diameter;		//!< true if the particle diameters should be written
-		bool m_output_type;			//!< true if the particle types should be written
-		bool m_output_bond;			//!< true if the bond should be written
-		bool m_output_wall;			//!< true if the walls should be written
+		std::string m_base_fname;   //!< String used to store the file name of the XML file
+		bool m_output_position;     //!< true if the particle positions should be written
+		bool m_output_image;        //!< true if the particle positions should be written
+		bool m_output_velocity;     //!< true if the particle velocities should be written
+		bool m_output_mass;         //!< true if the particle masses should be written
+		bool m_output_diameter;     //!< true if the particle diameters should be written
+		bool m_output_type;         //!< true if the particle types should be written
+		bool m_output_bond;         //!< true if the bonds should be written
+		bool m_output_angle;        //!< true if the angles should be written
+		bool m_output_wall;         //!< true if the walls should be written
+		bool m_output_dihedral;     //!< true if dihedrals should be written
+		bool m_output_improper;     //!< true if impropers should be written
 	};
 	
 //! Exports the HOOMDDumpWriter class to python

@@ -211,6 +211,8 @@ class npt(_integrator):
 	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
 	# \param tauP Coupling constant for the barostat
 	#
+	# Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
+	#
 	# \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
 	# \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
 	# and \f$ T_0 \f$ is the temperature set point (\a T above).

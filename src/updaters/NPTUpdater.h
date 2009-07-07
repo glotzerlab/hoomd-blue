@@ -36,7 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
+// $Id$
+// $URL$
+// Maintainer: joaander
 
 /*! \file NPTUpdater.h
 	\brief Declares the NPTUpdater class
@@ -90,12 +92,6 @@ class NPTUpdater : public Integrator
 		
 		//! Calculates the requested log value and returns it
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-
-		//! Computes current pressure
-		virtual Scalar computePressure(unsigned int timestep);
-		
-		//! Computes current temperature
-		virtual Scalar computeTemperature(unsigned int timestep);
 
 	protected:
 		Scalar m_tau;					//!< tau value for Nose-Hoover

@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id: BD_NVTUpdaterGPU.h 1045 2008-07-07 21:35:57Z phillicl $
 // $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters_gpu/BD_NVTUpdaterGPU.h $
+// Maintainer: phillicl
 
 /*! \file BD_NVTUpdaterGPU.h
 	\brief Declares the BD_NVTUpdaterGPU class
