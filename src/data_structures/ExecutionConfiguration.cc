@@ -478,7 +478,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 	// check the CUDA driver version
 	int driverVersion = 0;
 	cudaDriverGetVersion(&driverVersion);
-	
+
+	#ifndef _DEVICEEMU
+	// device emulation mode doesn't need a driver
+
 	// first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
 	if (driverVersion == 0)
 		{
@@ -486,6 +489,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
 		     << endl << endl;
 		return;
 		}
+	#endif
 		
 	// next, check to see if the driver is capable of running the version of CUDART that HOOMD was compiled against
 	if (driverVersion < CUDART_VERSION)
