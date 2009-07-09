@@ -196,12 +196,6 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		float bby = dzdc*dxcbm - dxdc*dzcbm;
 		float bbz = dxdc*dycbm - dydc*dxcbm;
 
-		//printf("IN CUDA CODE: aax = %f aay = %f aaz = %f \n", aax,aay,aaz);
-		//printf("IN CUDA CODE: dxab = %f dyab = %f dzab = %f \n", dxab,dyab,dzab);
-		//printf("IN CUDA CODE: dxcbm = %f dycbm = %f dzcbm = %f \n", dxcbm,dycbm,dzcbm);
-		//printf("IN CUDA CODE: bbx = %f bby = %f bbz = %f \n", bbx,bby,bbz);
-		//printf("IN CUDA CODE: dxdc = %f dydc = %f dzdc = %f \n", dxdc,dydc,dzdc);
-
 		float raasq = aax*aax + aay*aay + aaz*aaz;
 		float rbbsq = bbx*bbx + bby*bby + bbz*bbz;
 		float rgsq = dxcbm*dxcbm + dycbm*dycbm + dzcbm*dzcbm;
@@ -221,9 +215,6 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		if (c_abcd < -1.0) c_abcd = -1.0;
 
 
-		//printf("IN CUDA CODE: rg = %f rabinv = %f \n", rg,rabinv);
-		//printf("IN CUDA CODE: dxdc = %f dydc = %f dzdc = %f \n", dxdc,dydc,dzdc);
-		//printf("IN CUDA CODE: c_abcd = %f s_abcd = %f \n", c_abcd, s_abcd);
 		float p = 1.0f;
 		float ddfab;
 		float dfab = 0.0f;
@@ -268,7 +259,8 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		float dthy = gbb*bby;
 		float dthz = gbb*bbz;
 
-		float df = -K * dfab;
+		//float df = -K * dfab;
+		float df = -K * dfab * float(0.500); // the 0.5 term is for 1/2K in the forces
 
 		float sx2 = df*dtgx;
 		float sy2 = df*dtgy;
@@ -293,35 +285,8 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		// Now, apply the force to each individual atom a,b,c,d
 		// and accumlate the energy/virial
 		// compute 1/4 of the energy, 1/4 for each atom in the dihedral
-		float dihedral_eng = p*K*float(1.0/4.0);
-
-/*
-		float term1,term2,term3;
-		term1 = dxab*ffax;
-		term2 = dxcb*ffcx;
-		printf(" IN CUDA: vx(term2) =  %f %f \n",dxcb,ffcx);
-		term3 = (dxdc+dxcb)*ffdx;
-		printf(" IN CUDA: vx(term3) =  %f %f %f \n",dxdc,dxcb,ffdx);
-		printf(" IN CUDA: vx = %f %f %f \n",term1,term2,term3);
-
-		float vx = term1 + term2 + term3;
-		term1 = dyab*ffay;
-		term2 = dycb*ffcy;
-		printf(" IN CUDA: vy(term2) =  %f %f \n",dycb,ffcy);
-		term3 = (dydc+dycb)*ffdy;
-		printf(" IN CUDA: vy(term3) =  %f %f %f \n",dydc,dycb,ffdy);
-		printf(" IN CUDA: vy = %f %f %f \n",term1,term2,term3);
-
-		float vy = term1 + term2 + term3;
-		term1 = dzab*ffaz;
-		term2 = dzcb*ffcz;
-		printf(" IN CUDA: vz(term2) =  %f %f \n",dzcb,ffcz);
-		term3 = (dzdc+dzcb)*ffdz;
-		printf(" IN CUDA: vz(term3) =  %f %f %f \n",dzdc,dzcb,ffdz);
-		printf(" IN CUDA: vz = %f %f %f \n",term1,term2,term3);
-
-		float vz = term1 + term2 + term3;
-*/
+		//float dihedral_eng = p*K*float(1.0/4.0);
+		float dihedral_eng = p*K*float(1.0/8.0); // the 1/8th term is (1/2)K * 1/4
 
 		float vx = (dxab*ffax) + (dxcb*ffcx) + (dxdc+dxcb)*ffdx;
 		float vy = (dyab*ffay) + (dycb*ffcy) + (dydc+dycb)*ffdy;

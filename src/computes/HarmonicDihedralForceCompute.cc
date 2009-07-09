@@ -391,7 +391,8 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 		Scalar dthy = gbb*bby;
 		Scalar dthz = gbb*bbz;
 
-		Scalar df = -m_K[dihedral.type] * dfab;
+//		Scalar df = -m_K[dihedral.type] * dfab;
+                Scalar df = -m_K[dihedral.type] * dfab * Scalar(0.500); // the 0.5 term is for 1/2K in the forces
 
 		Scalar sx2 = df*dtgx;
 		Scalar sy2 = df*dtgy;
@@ -416,7 +417,8 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
 		// Now, apply the force to each individual atom a,b,c,d
 		// and accumlate the energy/virial
 		// compute 1/4 of the energy, 1/4 for each atom in the dihedral
-		Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
+		//Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
+		Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(0.125);  // the .125 term is (1/2)K * 1/4
 
 		Scalar vx = dxab*ffax + dxcb*ffcx + (dxdc+dxcb)*ffdx;
 		Scalar vy = dyab*ffay + dycb*ffcy + (dydc+dycb)*ffdy;

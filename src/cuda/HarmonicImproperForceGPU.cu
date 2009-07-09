@@ -211,9 +211,11 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 		float a = K * domega;
 
 		// calculate the energy, 1/4th for each atom
-		float improper_eng = 0.25*a*domega;
+		//float improper_eng = 0.25*a*domega;
+		float improper_eng = 0.125*a*domega;  // the .125 term is 1/2 * 1/4
 
-		a = -a * 2.0/s;
+		//a = -a * 2.0/s;
+		a = -a /s; // the missing 2.0 factor is to ensure K/2 is factored in for the forces
 		c = c * a;
 		s12 = s12 * a;
 		float a11 = c*ss1*s1;
