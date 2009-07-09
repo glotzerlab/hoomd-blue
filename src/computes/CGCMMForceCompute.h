@@ -76,7 +76,7 @@ class CGCMMForceCompute : public ForceCompute
 		virtual ~CGCMMForceCompute();
 		
 		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar lj3, Scalar lj4);
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4);
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
@@ -86,15 +86,15 @@ class CGCMMForceCompute : public ForceCompute
 		
 	protected:
 		boost::shared_ptr<NeighborList> m_nlist;	//!< The neighborlist to use for the computation
-		Scalar m_r_cut;	//!< Cuttoff radius beyond which the force is set to 0
-		unsigned int m_ntypes;	//!< Store the width and height of lj1, lj2, lj3, and lj4  here
+		Scalar m_r_cut;         //!< Cutoff radius beyond which the force is set to 0
+		unsigned int m_ntypes;  //!< Rank of the lj12, lj9, lj6, and lj4 parameter matrices.
 		
 		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
 		// level concepts like mixing. That is for the caller to handle. So, I only store 
-		// lj1, lj2, lj3, and lj4 here
-		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
-		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
-		Scalar * __restrict__ m_lj3;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		// lj12, lj9, lj6, and lj4 here
+		Scalar * __restrict__ m_lj12;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		Scalar * __restrict__ m_lj9;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
+		Scalar * __restrict__ m_lj6;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 		Scalar * __restrict__ m_lj4;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
 		
 		//! Actually compute the forces

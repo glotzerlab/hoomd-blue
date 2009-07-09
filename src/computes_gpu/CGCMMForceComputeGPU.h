@@ -69,7 +69,7 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
 		virtual ~CGCMMForceComputeGPU();
 		
 		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar lj3, Scalar lj4);
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4);
 		
 		//! Sets the block size to run at
 		void setBlockSize(int block_size);
