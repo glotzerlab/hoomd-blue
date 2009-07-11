@@ -80,7 +80,7 @@ struct gpu_rigid_data_arrays
 	float4 *ey_space;		//!< Body frame y axis in the world space in \c x, \c y, \c z, nothing in \c w
 	float4 *ez_space;		//!< Body frame z axis in the world space in \c x, \c y, \c z, nothing in \c w
 	int    *body_imagex;	//!< Body box image location in \c x.
-	int	   *body_imagey;	//!< Body box image location in \c y.
+	int    *body_imagey;	//!< Body box image location in \c y.
 	int    *body_imagez;	//!< Body box image location in \c z.
 	float4 *force;			//!< Body force in \c x, \c y, \c z, nothing in \c w
 	float4 *torque;			//!< Body torque in \c x, \c y, \c z, nothing in \c w
