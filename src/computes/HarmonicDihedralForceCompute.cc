@@ -129,7 +129,7 @@ void HarmonicDihedralForceCompute::setParams(unsigned int type, Scalar K, int si
 	}
 
 /*! DihedralForceCompute provides
-	- \c harmonic_energy
+	- \c dihedral_harmonic_energy
 */
 std::vector< std::string > HarmonicDihedralForceCompute::getProvidedLogQuantities()
 	{

@@ -123,7 +123,7 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
 	}
 
 /*! ImproperForceCompute provides
-	- \c harmonic_energy
+	- \c improper_harmonic_energy
 */
 std::vector< std::string > HarmonicImproperForceCompute::getProvidedLogQuantities()
 	{

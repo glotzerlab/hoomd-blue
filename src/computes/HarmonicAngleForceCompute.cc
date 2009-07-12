@@ -123,7 +123,7 @@ void HarmonicAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_
 	}
 
 /*! AngleForceCompute provides
-	- \c harmonic_energy
+	- \c angle_harmonic_energy
 */
 std::vector< std::string > HarmonicAngleForceCompute::getProvidedLogQuantities()
 	{
