@@ -62,8 +62,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
 #include "LJForceCompute.h"
+
+#ifdef ENABLE_CUDA
+#include "BinnedNeighborListGPU.h"
+#include "LJForceComputeGPU.h"
+#endif
+
 #include "saruprng.h"
 #include <math.h>
+#include <time.h>
 
 using namespace std;
 using namespace boost;
@@ -188,19 +195,20 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	// check that the nve updater can actually integrate particle positions and velocities correctly
 	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	unsigned int nbodies = 100;
+	unsigned int nbodies = 60000;
 	unsigned int nparticlesperbody = 5;
 	unsigned int N = nbodies * nparticlesperbody;
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(50.0), 1, 0, exec_conf));
+	Scalar box_length = 150.0;
+	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	BoxDim box = pdata->getBox();
 	
 	// setup a simple initial state
 	unsigned int ibody = 0;
 	unsigned int iparticle = 0;
-	Scalar x0 = box.xlo + 2.5;
-	Scalar y0 = box.ylo + 2.5;
-	Scalar z0 = box.zlo + 2.5;
+	Scalar x0 = box.xlo + 0.01;
+	Scalar y0 = box.ylo + 0.01;
+	Scalar z0 = box.zlo + 0.01;
 	Scalar xspacing = 6.0f;
 	Scalar yspacing = 2.0f;
 	Scalar zspacing = 2.0f;
@@ -257,8 +265,8 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 
 	Scalar deltaT = Scalar(0.001);
 	shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
-	shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
-	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
+	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
+	shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
 	
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
@@ -273,7 +281,7 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	nve_up->addForceCompute(fc);
 	
 	Scalar PE;
-	unsigned int steps = 10000;
+	unsigned int steps = 1000;
 	unsigned int sampling = 1000;
 	
 	sysdef->init();
@@ -297,9 +305,11 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	
 	
 	cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
-	cout << "Step\t\tTemp\t\t\tPotEng\t\t\tKinEng\t\t\tTotalE\n";
+	cout << "Step\tTemp\tPotEng\tKinEng\tTotalE\n";
 		
-	for (unsigned int i = 0; i < steps; i++)
+	clock_t start = clock();
+
+	for (unsigned int i = 0; i <= steps; i++)
 		{
 
 		nve_up->update(i);
@@ -319,6 +329,10 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 			}
 		}
 	
+	clock_t end = clock();
+	double elapsed = (double)(end - start) / (double)CLOCKS_PER_SEC;	
+	printf("Elapased time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
+
 	// Output coordinates
 	arrays = pdata->acquireReadWrite();
 	
@@ -348,7 +362,7 @@ shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, Scal
 	return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(sysdef, deltaT));
 }
 #endif
-
+/*
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 	{
@@ -364,9 +378,9 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_energy_tests )
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
 	nve_updater_energy_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 }
-
+*/
 #ifdef ENABLE_CUDA
-
+/*
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 {
@@ -374,7 +388,7 @@ BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 }
-
+*/
 
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_energy_tests )
