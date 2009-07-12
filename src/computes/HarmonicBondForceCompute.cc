@@ -103,7 +103,7 @@ void HarmonicBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0
 	// make sure the type is valid
 	if (type >= m_bond_data->getNBondTypes())
 		{
-		cout << endl << "***Error! Invalid bond typee specified" << endl << endl;
+		cout << endl << "***Error! Invalid bond type specified" << endl << endl;
 		throw runtime_error("Error setting parameters in HarmonicBondForceCompute");
 		}
 	
