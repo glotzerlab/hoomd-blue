@@ -64,6 +64,19 @@ using namespace boost::python;
 
 using namespace boost;
 
+/** helper function. tests if 'num' attribute is present and zero.
+ * \param node the XML node to check.
+ */
+static bool num_attr_zero(const XMLNode &node)
+{
+	if (node.isAttributeSet("num")) 
+	{
+		if (atoi(node.getAttribute("num")) == 0)
+			return true;
+	}
+	return false;
+}
+
 /*! \param fname File name with the data to load
 	The file will be read and parsed fully during the constructor call.
 */
@@ -449,7 +462,8 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found position node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found position node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -477,7 +491,8 @@ void HOOMDInitializer::parseImageNode(const XMLNode& node)
 		}
 	else
 		{
-		cout << "***Warning! Found image node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found image node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -509,7 +524,8 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found velocity node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found velocity node with no text. Possible typo." << endl;
 		}
 	}
 	
@@ -541,7 +557,8 @@ void HOOMDInitializer::parseMassNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found mass node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found mass node with no text. Possible typo." << endl;
 		}
 	}
 	
@@ -573,7 +590,8 @@ void HOOMDInitializer::parseDiameterNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found diameter node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found diameter node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -604,7 +622,8 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found type node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found type node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -634,7 +653,8 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found bond node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found bond node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -660,7 +680,8 @@ void HOOMDInitializer::parseAngleNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found angle node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found angle node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -690,7 +711,8 @@ void HOOMDInitializer::parseDihedralNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found dihedral node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found dihedral node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -720,7 +742,8 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found improper node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found improper node with no text. Possible typo." << endl;
 		}
 	}
 
@@ -750,7 +773,8 @@ void HOOMDInitializer::parseChargeNode(const XMLNode &node)
 		}
 	else
 		{
-		cout << "***Warning! Found charge node with no text. Possible typo." << endl;
+		if (!num_attr_zero(node))
+			cout << "***Warning! Found charge node with no text. Possible typo." << endl;
 		}
 	}
 
