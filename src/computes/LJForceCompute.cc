@@ -134,7 +134,7 @@ void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1,
 	}
 	
 /*! LJForceCompute provides
-	- \c lj_energy
+	- \c pair_lj_energy
 */
 std::vector< std::string > LJForceCompute::getProvidedLogQuantities()
 	{

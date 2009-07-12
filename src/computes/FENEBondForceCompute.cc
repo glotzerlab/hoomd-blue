@@ -139,7 +139,7 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
 			}
 
 /*! BondForceCompute provides
-	- \c fene_energy
+	- \c bond_fene_energy
 */
 std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 	{

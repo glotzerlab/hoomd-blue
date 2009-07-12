@@ -133,18 +133,18 @@ void ShiftedLJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scal
 	}
 	
 /*! ShiftedLJForceCompute provides
-	- \c slj_energy
+	- \c pair_slj_energy
 */
 std::vector< std::string > ShiftedLJForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("slj_energy");
+	list.push_back("pair_slj_energy");
 	return list;
 	}
 	
 Scalar ShiftedLJForceCompute::getLogValue(const std::string& quantity)
 	{
-	if (quantity == string("slj_energy"))
+	if (quantity == string("pair_slj_energy"))
 		{
 		return calcEnergySum();
 		}
