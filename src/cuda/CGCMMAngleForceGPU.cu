@@ -246,7 +246,7 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_
 		fcb[2] = a22*dzcb + a12*dzab;
 	
 		// compute 1/3 of the energy, 1/3 for each atom in the angle
-		float angle_eng = (tk*dth + eac)*float(1.0f/6.0f);
+		float angle_eng = (0.5f*tk*dth + eac)*float(1.0f/3.0f);
 	
 		// do we really need a virial here for harmonic angles?
 		// ... if not, this may be wrong...

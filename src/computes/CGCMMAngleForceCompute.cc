@@ -148,10 +148,10 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
 		throw runtime_error("Error setting parameters in CGCMMAngleForceCompute");
 		}
 	
-	const float myPow1 = cgPow1[cg_type];
-	const float myPow2 = cgPow2[cg_type];
+	const double myPow1 = cgPow1[cg_type];
+	const double myPow2 = cgPow2[cg_type];
 
-	Scalar my_rcut = sigma*exp(1.0f/(myPow1-myPow2)*log(myPow1/myPow2));
+	Scalar my_rcut = sigma * ((Scalar) exp(1.0/(myPow1-myPow2)*log(myPow1/myPow2)));
 
 	m_K[type] = K;
 	m_t_0[type] = t_0;
@@ -162,24 +162,24 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
 
 	// check for some silly errors a user could make 
 	if (cg_type < 0 || cg_type > 3)
-			cout << "***Warning! Unrecognized cg_type specified for harmonic CGCMMAngle" << endl;
+			cout << "***Warning! Unrecognized exponents specified for CGCMM Angle" << endl;
 	if (K <= 0)
-		cout << "***Warning! K <= 0 specified for harmonic CGCMMAngle" << endl;
+		cout << "***Warning! K <= 0 specified for CGCMM Angle" << endl;
 	if (t_0 <= 0)
-		cout << "***Warning! t_0 <= 0 specified for harmonic CGCMMAngle" << endl;
+		cout << "***Warning! t_0 <= 0 specified for CGCMM Angle" << endl;
 	if (eps <= 0)
-		cout << "***Warning! eps <= 0 specified for harmonic CGCMMAngle" << endl;
+		cout << "***Warning! eps <= 0 specified for CGCMM Angle" << endl;
  	if (sigma <= 0)
-		cout << "***Warning! sigma <= 0 specified for harmonic CGCMMAngle" << endl;
+		cout << "***Warning! sigma <= 0 specified for CGCMM Angle" << endl;
 	}
 
 /*! CGCMMAngleForceCompute provides
-	- \c harmonic_energy
+	- \c angle_cgcmm_energy
 */
 std::vector< std::string > CGCMMAngleForceCompute::getProvidedLogQuantities()
 	{
 	vector<string> list;
-	list.push_back("CGCMMAngle_harmonic_energy");
+	list.push_back("angle_cgcmm_energy");
 	return list;
 	}
 
@@ -188,7 +188,7 @@ std::vector< std::string > CGCMMAngleForceCompute::getProvidedLogQuantities()
 */
 Scalar CGCMMAngleForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
-	if (quantity == string("CGCMMAngle_harmonic_energy"))
+	if (quantity == string("angle_cgcmm_energy"))
 		{
 		compute(timestep);
 		return calcEnergySum();
@@ -377,12 +377,12 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 		if (rac < m_rcut[angle.type])
 		{
 			const unsigned int cg_type = m_cg_type[angle.type];
-			const float cg_pow1 = cgPow1[cg_type];
-			const float cg_pow2 = cgPow1[cg_type];
-			const float cg_pref = prefact[cg_type];
+			const Scalar cg_pow1 = cgPow1[cg_type];
+			const Scalar cg_pow2 = cgPow2[cg_type];
+			const Scalar cg_pref = prefact[cg_type];
 
-			const float cg_ratio = m_sigma[angle.type]/rac;
-			const float cg_eps   = m_eps[angle.type];
+			const Scalar cg_ratio = m_sigma[angle.type]/rac;
+			const Scalar cg_eps   = m_eps[angle.type];
 
 			fac = cg_pref*cg_eps / rsqac * (cg_pow1*pow(cg_ratio,cg_pow1) - cg_pow2*pow(cg_ratio,cg_pow2));
 			eac = cg_eps + cg_pref*cg_eps * (pow(cg_ratio,cg_pow1) - pow(cg_ratio,cg_pow2));
@@ -412,7 +412,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
 		fcb[2] = a22*dzcb + a12*dzab; 
 
 		// compute 1/3 of the energy, 1/3 for each atom in the angle
-		Scalar angle_eng = (tk*dth + eac)*Scalar(1.0/6.0);
+		Scalar angle_eng = (0.5*tk*dth + eac)*Scalar(1.0/3.0);
 
 		// do we really need a virial here for harmonic angles?
 		// ... if not, this may be wrong...
