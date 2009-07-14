@@ -82,7 +82,7 @@ using namespace boost;
 #ifdef SINGLE_PRECISION
 const Scalar tol = Scalar(4);
 #else
-const Scalar tol = 1e-6;
+const Scalar tol = 1e-4;
 #endif
 
 //! Typedef'd CGCMMForceCompute factory

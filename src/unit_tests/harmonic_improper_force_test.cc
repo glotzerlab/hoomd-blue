@@ -124,7 +124,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -0.5*0.040832, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0.5*0.000579, tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0.5*0.000579173, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0.5*0.029827, tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.5*0.158927, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
@@ -298,7 +298,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
 	force_arrays = fc_5->acquire();
 
 	MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.5*0.304428, tol);
-	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0.5*0.014121,tol);
+	MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0.5*0.01411824,tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.5*0.504956,tol);
 	MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.5*1.285859, tol);
 	MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
