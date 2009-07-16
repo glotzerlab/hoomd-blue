@@ -212,7 +212,9 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> particle_pos_handle(rigid_data->getParticlePos(), access_location::device, access_mode::read);
 		ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
-
+		ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
+		
 		gpu_rigid_data_arrays d_rdata;
 		d_rdata.n_bodies = rigid_data->getNumBodies();
 		d_rdata.nmax = rigid_data->getNmax();
@@ -229,7 +231,9 @@ void NVEUpdaterGPU::update(unsigned int timestep)
 		d_rdata.ez_space = ez_space_handle.data;
 		d_rdata.particle_pos = particle_pos_handle.data;
 		d_rdata.particle_indices = particle_indices_handle.data;
-				
+		d_rdata.force = force_handle.data;
+		d_rdata.torque = torque_handle.data;
+		
 		exec_conf.gpu[0]->call(bind(gpu_nve_rigid_body_step, d_pdata[0], d_rdata, m_d_force_data_ptrs[0], (int)m_forces.size(), box, m_deltaT, m_limit, m_limit_val));
 
 		}
