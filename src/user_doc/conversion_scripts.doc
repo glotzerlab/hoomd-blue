@@ -77,6 +77,40 @@ manipulations of systems and their topologies can be performed with the \c topot
 that could then be written out as HOOMD XML files, for instance. Other conversions will be added
 in the future.
 
+\subsection sec_hoomd_vmd_input The equivalent of hoomd2lammps_input.py in VMD using Tcl
+
+\code
+  package require topotools 1.0
+  mol new file.xml type hoomd waitfor all
+  topo writelammpsdata file.data molecular
+\endcode
+
+\subsection sec_hoomd_vmd_data The equivalent of hoomd2lammps_dump.py in VMD using Tcl
+
+\code
+  set first 1
+  foreach f [glob file*.xml] {
+     if {$first} { 
+         mol new $f type hoomd waitfor all
+         set first 0
+     } else {
+         mol addfile $f type hoomd waitfor all
+     }
+  }
+  animate write lammpstrj file.dump waitfor all
+\endcode
+
+This conversion can also be done into all other formats that have write support in VMD, e.g. psf, pdb, dcd.
+Since pymol also uses the VMD molfile library, it will eventually also have native support for HOOMD xml files added.
+
+\subsection sec_hoomd_vmd_inverse The inverse of hoomd2lammps_input.py in VMD using Tcl
+
+\code
+  package require topotools 1.0
+  topo readlammpsdata file.data molecular
+  animate write hoomd file.xml waitfor all
+\endcode
+
 \section sec_other Other formats
 
 If you need to convert to a different format, open one of the existing scripts and see if it can be modified for your needs.
