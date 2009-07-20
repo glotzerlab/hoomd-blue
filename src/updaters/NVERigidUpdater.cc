@@ -94,11 +94,13 @@ void NVERigidUpdater::setup()
 	
 	{
 	// rigid data handles
+	ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
 	ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
 	ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
 	unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();	
 	
 	ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+	ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
 	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
@@ -111,6 +113,10 @@ void NVERigidUpdater::setup()
 	// Reset all forces and torques
 	for (unsigned int body = 0; body < m_n_bodies; body++)
 		{
+		vel_handle.data[body].x = 0.0;
+		vel_handle.data[body].y = 0.0;
+		vel_handle.data[body].z = 0.0;
+
 		force_handle.data[body].x = 0.0;
 		force_handle.data[body].y = 0.0;
 		force_handle.data[body].z = 0.0;
@@ -140,10 +146,14 @@ void NVERigidUpdater::setup()
 			// get the particle mass 
 			Scalar mass_one = arrays.mass[pidx];
 			
+			vel_handle.data[body].x += mass_one * arrays.vx[pidx];
+			vel_handle.data[body].y += mass_one * arrays.vy[pidx];
+			vel_handle.data[body].z += mass_one * arrays.vz[pidx];
+
 			Scalar fx = mass_one * arrays.ax[pidx];
 			Scalar fy = mass_one * arrays.ay[pidx];
 			Scalar fz = mass_one * arrays.az[pidx];
-				
+							
 			force_handle.data[body].x += fx;
 			force_handle.data[body].y += fy;
 			force_handle.data[body].z += fz;
@@ -173,8 +183,13 @@ void NVERigidUpdater::setup()
 	
 	for (unsigned int body = 0; body < m_n_bodies; body++) 
 		{
+
+		vel_handle.data[body].x /= body_mass_handle.data[body];
+		vel_handle.data[body].y /= body_mass_handle.data[body];
+		vel_handle.data[body].z /= body_mass_handle.data[body];
+
 		computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
-						ex_space_handle.data[body],  ey_space_handle.data[body],  ez_space_handle.data[body],  angvel_handle.data[body]);
+						ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
 		}
 		
 	m_pdata->release();
