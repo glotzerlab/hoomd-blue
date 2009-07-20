@@ -226,7 +226,6 @@ void RigidData::initializeData()
 	ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
 	ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
 	ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::readwrite);
 	
 	for (unsigned int body = 0; body < m_n_bodies; body++)
 		{
@@ -234,9 +233,6 @@ void RigidData::initializeData()
 		com_handle.data[body].x = 0.0;
 		com_handle.data[body].y = 0.0;
 		com_handle.data[body].z = 0.0;
-		vel_handle.data[body].x = 0.0;
-		vel_handle.data[body].y = 0.0;
-		vel_handle.data[body].z = 0.0;
 		
 		inertia_handle.data[6 * body] = 0.0;
 		inertia_handle.data[6 * body + 1] = 0.0;
@@ -257,10 +253,6 @@ void RigidData::initializeData()
 		com_handle.data[body].x += mass_one * arrays.x[j];
 		com_handle.data[body].y += mass_one * arrays.y[j];
 		com_handle.data[body].z += mass_one * arrays.z[j];
-		
-		vel_handle.data[body].x += mass_one * arrays.vx[j];
-		vel_handle.data[body].y += mass_one * arrays.vy[j];
-		vel_handle.data[body].z += mass_one * arrays.vz[j];
 		}
 	
 	// com, vel and body images
@@ -270,10 +262,6 @@ void RigidData::initializeData()
 		com_handle.data[body].x /= mass_body;
 		com_handle.data[body].y /= mass_body;
 		com_handle.data[body].z /= mass_body;
-		
-		vel_handle.data[body].x /= mass_body;
-		vel_handle.data[body].y /= mass_body;
-		vel_handle.data[body].z /= mass_body;
 		
 		body_imagex_handle.data[body] = 0;
 		body_imagey_handle.data[body] = 0;
