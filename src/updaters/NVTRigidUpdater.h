@@ -43,14 +43,15 @@ THE POSSIBILITY OF SUCH DAMAGE.
 	\brief Declares an updater that implements NVE dynamics
 */
 
+#include "Variant.h"
+#include "NVERigidUpdater.h"
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
-#ifndef __NVERIGIDUPDATER_H__
-#define __NVERIGIDUPDATER_H__
+#ifndef __NVTRIGIDUPDATER_H__
+#define __NVTRIGIDUPDATER_H__
 
-#include "RigidData.h"
-#include "GPUArray.h"
+
 
 class SystemDefinition;
 
@@ -62,11 +63,12 @@ class SystemDefinition;
 	
 	\ingroup updaters
 */
-class NVERigidUpdater
+
+class NVTRigidUpdater : public NVERigidUpdater
 	{
 	public:
 		//! Constructor
-		NVERigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+		NVTRigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> temperature);
 
 		//! Setup the initial net forces, torques and angular momenta
 		void setup();
@@ -74,30 +76,41 @@ class NVERigidUpdater
 		//! First step of velocit Verlet integration
 		void initialIntegrate(unsigned int timestep);
 		
-		//! Summing the net forces and torques
-		void computeForceAndTorque();
-		
 		//! Second step of velocit Verlet integration
 		void finalIntegrate(unsigned int timestep);
 			
 	protected:
-		void set_xv();
-		void set_v();
-		
 		//! Private member functions using parameters to avoid duplicate array handles declaration
-		void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
-		void computeAngularVelocity(Scalar4 &angmom, Scalar4 &moment_inertia, 
-									Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space,
-									Scalar4 &angvel);
-		void advanceQuaternion(Scalar4 &angmom, Scalar4 &moment_inertia, Scalar4 &angvel, 
-							   Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
-		void multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c);
-		void normalize(Scalar4 &q);
+		void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
+		void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt);
+		void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
+		void inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
+		void matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
+		void transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
+		inline Scalar maclaurin_series(Scalar x);
+
+		boost::shared_ptr<Variant> m_temperature;
+		Scalar boltz, t_freq;
+		Scalar nf_t, nf_r;
+		unsigned int chain, iter, order;
+
+		GPUArray<Scalar>	q_t;
+		GPUArray<Scalar>	q_r;
+		GPUArray<Scalar>	eta_t;
+		GPUArray<Scalar>	eta_r;
+		GPUArray<Scalar>	eta_dot_t;
+		GPUArray<Scalar>	eta_dot_r;
+		GPUArray<Scalar>	f_eta_t;
+		GPUArray<Scalar>	f_eta_r;
+
+		GPUArray<Scalar>	w;
+		GPUArray<Scalar>	wdti1;
+		GPUArray<Scalar>	wdti2;
+		GPUArray<Scalar>	wdti4;
+		GPUArray<Scalar4>	conjqm;
 		
-		Scalar m_deltaT;
-		unsigned int m_n_bodies;
-		boost::shared_ptr<RigidData> m_rigid_data;
-		boost::shared_ptr<ParticleData> m_pdata;
+		
+
 	};
 	
 	

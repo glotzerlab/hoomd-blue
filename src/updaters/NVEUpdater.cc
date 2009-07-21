@@ -251,7 +251,7 @@ void NVEUpdater::update(unsigned int timestep)
 	m_pdata->release();
 		
 	// rigid body 1st step integration	
-	if (m_rigid_updater) m_rigid_updater->initialIntegrate();
+	if (m_rigid_updater) m_rigid_updater->initialIntegrate(timestep);
 		
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
@@ -300,7 +300,7 @@ void NVEUpdater::update(unsigned int timestep)
 	m_pdata->release();
 		
 	// rigid body 2nd step integration (net forces and torques are computed within)
-	if (m_rigid_updater) m_rigid_updater->finalIntegrate();
+	if (m_rigid_updater) m_rigid_updater->finalIntegrate(timestep);
 
 	
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step

@@ -53,6 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "NVTUpdater.h"
+#include "NVTRigidUpdater.h"
 #include <math.h>
 
 using namespace std;
@@ -133,6 +134,18 @@ void NVTUpdater::update(unsigned int timestep)
 	assert(m_pdata);
 	static bool gave_warning = false;
 
+	// get the rigid data from SystemDefinition
+	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+
+	// if there is any rigid body
+	unsigned int n_bodies = rigid_data->getNumBodies();
+	if (n_bodies > 0 && !m_rigid_updater) 
+		{			
+		// allocate the rigid updater
+		m_rigid_updater = boost::shared_ptr<NVTRigidUpdater> (new NVTRigidUpdater(m_sysdef, m_deltaT, m_T));
+		assert(m_rigid_updater);
+		}
+
 	if (m_forces.size() == 0 && !gave_warning)
 		{
 		cout << "***Warning! No forces defined in NVTUpdater, continuing anyways" << endl;
@@ -144,6 +157,9 @@ void NVTUpdater::update(unsigned int timestep)
 		{
 		m_accel_set = true;
 		computeAccelerations(timestep, "NVT");
+
+		// compute the initial net forces, torques and angular momenta
+		if (m_rigid_updater) m_rigid_updater->setup();
 		}
 
 	if (m_prof)
@@ -164,6 +180,9 @@ void NVTUpdater::update(unsigned int timestep)
 	Scalar Ksum = 0.0;
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
+		// no need to update particles in rigid bodies
+		if (arrays.body[j] != NO_BODY) continue;
+
 		Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * m_Xi);
 	
 		arrays.vx[j] = (arrays.vx[j] + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT) * denominv;	
@@ -202,6 +221,9 @@ void NVTUpdater::update(unsigned int timestep)
 
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
+		// no need to update particles in rigid bodies
+		if (arrays.body[j] != NO_BODY) continue;
+
 		// wrap the particle around the box
 		if (arrays.x[j] >= box.xhi)
 			{
@@ -244,6 +266,9 @@ void NVTUpdater::update(unsigned int timestep)
 	// release the particle data arrays so that they can be accessed to add up the accelerations
 	m_pdata->release();
 	
+	// rigid body 1st step integration	
+	if (m_rigid_updater) m_rigid_updater->initialIntegrate(timestep);
+
 	// functions that computeAccelerations calls profile themselves, so suspend
 	// the profiling for now
 	if (m_prof)
@@ -274,6 +299,9 @@ void NVTUpdater::update(unsigned int timestep)
 
 	m_pdata->release();
 	
+	// rigid body 2nd step integration (net forces and torques are computed within)
+	if (m_rigid_updater) m_rigid_updater->finalIntegrate(timestep);
+
 	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
 	if (m_prof)
 		{

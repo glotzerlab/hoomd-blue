@@ -205,7 +205,7 @@ void NVERigidUpdater::setup()
 /*! Velocity verlet: adapted from LAMMPS (Large-scale Atomistic/Molecular Massively Parallel Simulator)
 
 */
-void NVERigidUpdater::initialIntegrate()
+void NVERigidUpdater::initialIntegrate(unsigned int timestep)
 	{	
 	// get box
 	const BoxDim& box = m_pdata->getBox();
@@ -301,7 +301,7 @@ void NVERigidUpdater::initialIntegrate()
 
 	}
 
-void NVERigidUpdater::finalIntegrate()
+void NVERigidUpdater::finalIntegrate(unsigned int timestep)
 {			
 	// compute net forces and torques on rigid bodies from particle forces 
 	computeForceAndTorque();
