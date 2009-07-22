@@ -60,6 +60,9 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! Texture for reading bond parameters
 texture<float4, 1, cudaReadModeElementType> bond_params_tex;
 
+//! Texture for reading particle diameters
+texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
+
 //! Kernel for caculating FENE bond forces on the GPU
 /*! \param force_data Data to write the compute forces to
 	\param pdata Particle data arrays to calculate forces on
@@ -81,6 +84,9 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 
 	// read in the position of our particle. (MEM TRANSFER: 16 bytes)
 	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+	
+	// read in the diameter of our particle. 	
+	float diam = tex1Dfetch(pdata_diam_tex, idx_global);
 
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -104,7 +110,10 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 		
 		// get the bonded particle's position (MEM_TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_bond_idx);
-	
+
+		// get the bonded particle's diameter
+		float neigh_diam = tex1Dfetch(pdata_diam_tex, cur_bond_idx);
+
 		// calculate dr (FLOPS: 3)
 		float dx = pos.x - neigh_pos.x;
 		float dy = pos.y - neigh_pos.y;
@@ -129,6 +138,11 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
 		// FLOPS: 5
 		float rsq = dx*dx + dy*dy + dz*dz;
 		//float r = sqrtf(rsq);
+        // if particles have diameters that are not 1.0 need to correct this value by alpha
+		float r = sqrtf(rsq);
+		float radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0);
+		rsq = radj*radj;  // This is now a diameter adjusted potential distance for diameter shifted potentials
+
 		
 		// calculate 1/r^2 (FLOPS: 2)
 		float r2inv;
