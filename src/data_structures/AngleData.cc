@@ -58,6 +58,10 @@ using namespace boost;
 #include <stdexcept>
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \file AngleData.cc
  	\brief Defines AngleData.
  */
@@ -346,10 +350,10 @@ void AngleData::allocateAngleTable(int height)
 	
 	
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_n_angles), N*sizeof(int)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_angles), N*sizeof(int), cudaHostAllocPortable));
 	memset((void*)m_host_n_angles, 0, N*sizeof(int));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_angles), N * height * sizeof(uint4)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_angles), N * height * sizeof(uint4), cudaHostAllocPortable));
 	memset((void*)m_host_angles, 0, N*height*sizeof(uint4));
 	}
 

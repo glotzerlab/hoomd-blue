@@ -78,83 +78,89 @@ CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
 	m_ntypes = m_pdata->getNTypes();
 	assert(m_ntypes > 0);
 	
-	// allocate data for lj1 and lj2
-	m_lj1 = new Scalar[m_ntypes*m_ntypes];
-	m_lj2 = new Scalar[m_ntypes*m_ntypes];
-	m_lj3 = new Scalar[m_ntypes*m_ntypes];
+	// allocate storage for lj12, lj9, lj6, and lj4 parameters
+	m_lj12 = new Scalar[m_ntypes*m_ntypes];
+	m_lj9 = new Scalar[m_ntypes*m_ntypes];
+	m_lj6 = new Scalar[m_ntypes*m_ntypes];
 	m_lj4 = new Scalar[m_ntypes*m_ntypes];
 	
 	// sanity check
-	assert(m_lj1 != NULL && m_lj2 != NULL && m_lj3 != NULL && m_lj4 != NULL);
+	assert(m_lj12 != NULL && m_lj9 != NULL && m_lj6 != NULL && m_lj4 != NULL);
 	
 	// initialize the parameters to 0;
-	memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-	memset((void*)m_lj2, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-	memset((void*)m_lj3, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-	memset((void*)m_lj4, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_lj12, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_lj9,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_lj6,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_lj4,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
 	}
 	
 
 CGCMMForceCompute::~CGCMMForceCompute()
 	{
 	// deallocate our memory
-	delete[] m_lj1;
-	delete[] m_lj2;
-	delete[] m_lj3;
+	delete[] m_lj12;
+	delete[] m_lj9;
+	delete[] m_lj6;
 	delete[] m_lj4;
-	m_lj1 = NULL;
-	m_lj2 = NULL;
-	m_lj3 = NULL;
+	m_lj12 = NULL;
+	m_lj9 = NULL;
+	m_lj6 = NULL;
 	m_lj4 = NULL;
 	}
 		
 
-/*! \post The parameters \a lj1 through \a lj4 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
+/*! \post The parameters \a lj12 through \a lj4 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
 	\note \a lj? are low level parameters used in the calculation. In order to specify
 	these for a 12-4 and 9-6 lennard jones formula (with alpha), they should be set to the following.
 
         12-4
-	- \a lj1 = 2.598076 * epsilon * pow(sigma,12.0)
-	- \a lj2 = 0.0
-	- \a lj3 = 0.0
-	- \a lj4 = alpha * 2.598076 * epsilon * pow(sigma,4.0)
+	- \a lj12 = 2.598076 * epsilon * pow(sigma,12.0)
+	- \a lj9 = 0.0
+	- \a lj6 = 0.0
+	- \a lj4 = -alpha * 2.598076 * epsilon * pow(sigma,4.0)
 
         9-6
-	- \a lj1 = 0.0
-	- \a lj2 = alpha * 6.75 * epsilon * pow(sigma,6.0)
-	- \a lj3 = 6.75 * epsilon * pow(sigma,9.0);
+	- \a lj12 = 0.0
+	- \a lj9 = 6.75 * epsilon * pow(sigma,9.0);
+	- \a lj6 = -alpha * 6.75 * epsilon * pow(sigma,6.0)
 	- \a lj4 = 0.0
 	
+       12-6
+	- \a lj12 = 4.0 * epsilon * pow(sigma,12.0)
+	- \a lj9 = 0.0
+	- \a lj6 = -alpha * 4.0 * epsilon * pow(sigma,4.0)
+	- \a lj4 = 0.0
+
 	Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
 	is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
-	for will have lj1 through lj4 set to 0.0.
+	for will have lj12 through lj4 set to 0.0.
 	
 	\param typ1 Specifies one type of the pair
 	\param typ2 Specifies the second type of the pair
-	\param lj1 First parameter used to calcluate forces
-	\param lj2 Second parameter used to calculate forces
-	\param lj3 Third parameter used to calcluate forces
-	\param lj4 Fourth parameter used to calculate forces
+	\param lj12 1/r^12 term
+	\param lj9  1/r^9 term
+	\param lj6  1/r^6 term
+	\param lj4  1/r^4 term
 */
-void CGCMMForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar lj3, Scalar lj4)
+void CGCMMForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4)
 	{
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
 		{
 		cerr << endl << "***Error! Trying to set CGCMM params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
 		throw runtime_error("Error setting parameters in CGCMMForceCompute");
 		}
-	
-	// set lj1 in both symmetric positions in the matrix	
-	m_lj1[typ1*m_ntypes + typ2] = lj1;
-	m_lj1[typ2*m_ntypes + typ1] = lj1;
-	
-	// set lj2 in both symmetric positions in the matrix
-	m_lj2[typ1*m_ntypes + typ2] = lj2;
-	m_lj2[typ2*m_ntypes + typ1] = lj2;
 
-	// set lj3 in both symmetric positions in the matrix	
-	m_lj3[typ1*m_ntypes + typ2] = lj3;
-	m_lj3[typ2*m_ntypes + typ1] = lj3;
+	// set lj12 in both symmetric positions in the matrix	
+	m_lj12[typ1*m_ntypes + typ2] = lj12;
+	m_lj12[typ2*m_ntypes + typ1] = lj12;
+	
+	// set lj9 in both symmetric positions in the matrix
+	m_lj9[typ1*m_ntypes + typ2] = lj9;
+	m_lj9[typ2*m_ntypes + typ1] = lj9;
+
+	// set lj6 in both symmetric positions in the matrix	
+	m_lj6[typ1*m_ntypes + typ2] = lj6;
+	m_lj6[typ2*m_ntypes + typ1] = lj6;
 	
 	// set lj4 in both symmetric positions in the matrix
 	m_lj4[typ1*m_ntypes + typ2] = lj4;
@@ -245,10 +251,10 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
 		// sanity check
 		assert(typei < m_pdata->getNTypes());
 		
-		// access the lj1 and lj2 rows for the current particle type
-		Scalar * __restrict__ lj1_row = &(m_lj1[typei*m_ntypes]);
-		Scalar * __restrict__ lj2_row = &(m_lj2[typei*m_ntypes]);
-		Scalar * __restrict__ lj3_row = &(m_lj3[typei*m_ntypes]);
+		// access the lj12 and lj9 rows for the current particle type
+		Scalar * __restrict__ lj12_row = &(m_lj12[typei*m_ntypes]);
+		Scalar * __restrict__ lj9_row = &(m_lj9[typei*m_ntypes]);
+		Scalar * __restrict__ lj6_row = &(m_lj6[typei*m_ntypes]);
 		Scalar * __restrict__ lj4_row = &(m_lj4[typei*m_ntypes]);
 
 		// initialize current particle force, potential energy, and virial to 0
@@ -311,13 +317,14 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
 				Scalar r2inv = Scalar(1.0)/rsq;
 				Scalar r3inv = r2inv / sqrt(rsq);
 				Scalar r6inv = r3inv * r3inv;
-				Scalar forcemag_divr = r6inv * (r2inv * (Scalar(12.0)*lj1_row[typej]*r6inv - Scalar(6.0)*lj2_row[typej] + Scalar(9.0)*r3inv*lj3_row[typej]) - Scalar(4.0) * lj4_row[typej]);
+				Scalar forcemag_divr = r6inv * (r2inv * (Scalar(12.0)*lj12_row[typej]*r6inv + Scalar(9.0)*r3inv*lj9_row[typej]
+                                                         + Scalar(6.0)*lj6_row[typej]) + Scalar(4.0) * lj4_row[typej]);
 				
 				// compute the pair energy and virial (FLOPS: 6)
 				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
 				// there is no - in the 1/6 to compensate				
 				Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
-				Scalar pair_eng = Scalar(0.5) * (r6inv * (lj1_row[typej] * r6inv - lj2_row[typej] + lj3_row[typej] * r3inv) - lj4_row[typej] * r2inv * r2inv);
+				Scalar pair_eng = Scalar(0.5) * (r6inv * (lj12_row[typej] * r6inv + lj9_row[typej] * r3inv + lj6_row[typej]) + lj4_row[typej] * r2inv * r2inv);
 				
 				// add the force, potential energy and virial to the particle i
 				// (FLOPS: 8)

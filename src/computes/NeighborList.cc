@@ -68,6 +68,10 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \file NeighborList.cc
 	\brief Defines the NeighborList class
 */
@@ -166,33 +170,33 @@ void NeighborList::allocateGPUData(int height)
 		// allocate and zero device memory
 		// alloate one extra row so that compute kernels can safely prefetch "past" the end
 		// without causing memory errors
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_nlist[cur_gpu].list), &pitch, N*sizeof(unsigned int), height + 1));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitchHack, (void**)((void*)&m_gpu_nlist[cur_gpu].list), &pitch, N*sizeof(unsigned int), height + 1));
 		// want pitch in elements, not bytes
 		m_gpu_nlist[cur_gpu].pitch = (int)pitch / sizeof(int);
 		m_gpu_nlist[cur_gpu].height = height;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].list, 0, pitch * height));
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].n_neigh), pitch));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].n_neigh), pitch));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].n_neigh, 0, pitch));
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].last_updated_pos), m_gpu_nlist[cur_gpu].pitch*sizeof(float4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].last_updated_pos), m_gpu_nlist[cur_gpu].pitch*sizeof(float4)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].last_updated_pos, 0, m_gpu_nlist[cur_gpu].pitch * sizeof(float4)));
 	
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].needs_update), sizeof(int)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].overflow), sizeof(int)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].needs_update), sizeof(int)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].overflow), sizeof(int)));
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
 		}
 
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_nlist), pitch * height));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_nlist), pitch * height, cudaHostAllocPortable));
 	memset((void*)m_host_nlist, 0, pitch*height);
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_n_neigh), N * sizeof(unsigned int)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_neigh), N * sizeof(unsigned int), cudaHostAllocPortable));
 	memset((void*)m_host_n_neigh, 0, N * sizeof(unsigned int));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_exclusions), N * sizeof(uint4)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions), N * sizeof(uint4), cudaHostAllocPortable));
 	memset((void*)m_host_exclusions, 0xff, N * sizeof(uint4));
 	}
 	

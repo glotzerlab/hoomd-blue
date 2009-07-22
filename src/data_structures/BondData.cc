@@ -58,6 +58,10 @@ using namespace boost;
 #include <stdexcept>
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \file BondData.cc
  	\brief Defines BondData.
  */
@@ -324,10 +328,10 @@ void BondData::allocateBondTable(int height)
 	
 	
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_n_bonds), N*sizeof(int)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_bonds), (size_t)N*sizeof(int), (unsigned int)cudaHostAllocPortable));
 	memset((void*)m_host_n_bonds, 0, N*sizeof(int));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_bonds), N * height * sizeof(uint2)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_bonds), (size_t)N * height * sizeof(uint2), (unsigned int)cudaHostAllocPortable));
 	memset((void*)m_host_bonds, 0, N*height*sizeof(uint2));
 	}
 

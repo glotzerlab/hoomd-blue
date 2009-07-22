@@ -49,6 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // for vector types
 #ifdef ENABLE_CUDA
 #include <cuda_runtime_api.h>
+#include "gpu_settings.h"
 #else
 
 // GPUArray is likely to be used with various vector types defined in cuda (float4, etc...)
@@ -455,8 +456,8 @@ template<class T> void GPUArray<T>::allocate()
 	#ifdef ENABLE_CUDA
 	if (m_exec_conf.gpu.size() > 0)
 		{
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHost, (void**)((void*)&h_data), m_num_elements*sizeof(T)));
-		m_exec_conf.gpu[0]->call(boost::bind(cudaMalloc, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
+		m_exec_conf.gpu[0]->call(boost::bind(cudaHostAllocHack, (void**)((void*)&h_data), m_num_elements*sizeof(T), cudaHostAllocPortable));
+		m_exec_conf.gpu[0]->call(boost::bind(cudaMallocHack, (void **)((void *)&d_data), m_num_elements*sizeof(T)));
 		}
 	else
 		{

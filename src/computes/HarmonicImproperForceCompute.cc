@@ -123,7 +123,7 @@ void HarmonicImproperForceCompute::setParams(unsigned int type, Scalar K, Scalar
 	}
 
 /*! ImproperForceCompute provides
-	- \c harmonic_energy
+	- \c improper_harmonic_energy
 */
 std::vector< std::string > HarmonicImproperForceCompute::getProvidedLogQuantities()
 	{
@@ -347,22 +347,17 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 		Scalar a = m_K[improper.type] * domega;
 
 		// calculate the energy, 1/4th for each atom
-		Scalar improper_eng = Scalar(0.25)*a*domega;
-
-		//printf(" IN CPU: c1 = %f, c2 = %f, c0 = %f \n",c1,c2,c0);
-		//printf(" IN CPU: s1 = %f, s2 = %f, s12 = %f \n",s1,s2,s12);
-		//printf(" IN CPU: c = %f, s = %f \n",c,s);
-		//printf(" IN CPU: domega = %f, a = %f \n",domega,a);
-
-		a = -a * 2.0/s;
+		//Scalar improper_eng = Scalar(0.25)*a*domega;
+		Scalar improper_eng = Scalar(0.125)*a*domega; // the .125 term is 1/2 * 1/4
+		//a = -a * 2.0/s;
+		a = -a / s; // the missing 2.0 factor is to ensure K/2 is factored in for the forces
 		c = c * a;
-		//printf(" IN CPU: ...later c = %f, a = %f \n",c,a);
 
 		s12 = s12 * a;
 		Scalar a11 = c*ss1*s1;
 		Scalar a22 = -ss2 * (2.0*c0*s12 - c*(s1+s2));
 		Scalar a33 = c*ss3*s2;
-		//printf(" IN CPU: ...later c = %f, ss3 = %f, s2 = %f \n",c,ss3,s2);
+
 		Scalar a12 = -r1*r2*(c1*c*s1 + c2*s12);
 		Scalar a13 = -r1*r3*s12;
 		Scalar a23 = r2*r3*(c2*c*s2 + c1*s12);
@@ -383,8 +378,6 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
 		Scalar ffdx = a23*dxcb + a33*dxdc + a13*dxab;
 		Scalar ffdy = a23*dycb + a33*dydc + a13*dyab;
 		Scalar ffdz = a23*dzcb + a33*dzdc + a13*dzab;
-		//printf("IN CPU: a23 = %f, a33 = %f, a13 = %f \n",a23,a33,a13);
-
 
 		Scalar ffcx = sx2 - ffdx;
 		Scalar ffcy = sy2 - ffdy;

@@ -641,7 +641,47 @@ class lj(force._force):
 		if fraction != None:
 			self.cpp_force.setXplorFraction(fraction);
 			
-## cgcmm pair potential
+## CMM coarse-grain model %pair %force
+#
+# The command pair.cgcmm specifies that a special version of Lennard-Jones type %pair %force
+# should be added to every non-bonded particle %pair in the simulation. This potential
+# version is used in the CMM coarse grain model and uses a combination of Lennard-Jones
+# potentials with different exponent pairs between different atom pairs.
+#
+# The %force \f$ \vec{F}\f$ is
+# \f{eqnarray*}
+#	\vec{F}  = & -\nabla V_{\mathrm{LJ}}(r) & r < r_{\mathrm{cut}}		\\
+#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
+#	\f}
+# with being either
+# \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
+# or
+# \f[ V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
+# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
+# or
+# \f[ V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+# 									\alpha \left( \frac{\sigma}{r} \right)^{4} \right] \f],
+# and \f$ \vec{r} \f$ being the vector pointing from one particle to the other in the %pair.
+#
+# The following coefficients must be set per unique %pair of particle types. See pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon
+# - \f$ \sigma \f$ - \c sigma
+# - \f$ \alpha \f$ - \c alpha
+# - exponents, the choice of LJ-exponents, currently supported are 12-6, 9-6, and 12-4.
+# 
+# We support three keyword variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
+#
+# \b Example:
+# \code
+# cg.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6')
+# cg.pair_coeff.set('W', 'W', epsilon=3.7605, sigma=1.285588, alpha=1.0, exponents='lj12_4')
+# cg.pair_coeff.set('OA', 'OA', epsilon=1.88697479, sigma=1.09205882, alpha=1.0, exponents='96')
+# \endcode
+#
+# The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
+
 class cgcmm(force._force):
 	## Specify the CG-CMM Lennard-Jones %pair %force
 	#
@@ -701,17 +741,20 @@ class cgcmm(force._force):
 				exponents = self.pair_coeff.get(type_list[i], type_list[j], "exponents");
 				# we support three variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
 				if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
-					lj1 = 2.598076 * epsilon * math.pow(sigma, 12.0);
-					lj2 = alpha * 2.598076 * epsilon * math.pow(sigma, 4.0);
-					self.cpp_force.setParams(i, j, lj1, 0.0, 0.0, lj2);
+                                        prefactor = 2.59807621135332
+					lja = prefactor * epsilon * math.pow(sigma, 12.0);
+					ljb = -alpha * prefactor * epsilon * math.pow(sigma, 4.0);
+					self.cpp_force.setParams(i, j, lja, 0.0, 0.0, ljb);
 				elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
-					lj1 = 6.75 * epsilon * math.pow(sigma, 9.0);
-					lj2 = alpha * 6.75 * epsilon * math.pow(sigma, 6.0);
-					self.cpp_force.setParams(i, j, 0.0, lj1, lj2, 0.0);
+					prefactor = 6.75
+					lja = prefactor * epsilon * math.pow(sigma, 9.0);
+					ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
+					self.cpp_force.setParams(i, j, 0.0, lja, ljb, 0.0);
 				elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
-					lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-					lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-					self.cpp_force.setParams(i, j, lj1, 0.0, lj2, 0.0);
+					prefactor = 4.0
+					lja = prefactor * epsilon * math.pow(sigma, 12.0);
+					ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
+					self.cpp_force.setParams(i, j, lja, 0.0, ljb, 0.0);
 				else:
 					raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
 ## Gaussian %pair %force

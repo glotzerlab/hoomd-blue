@@ -2,10 +2,28 @@
 
 A number of file conversion scripts for converting between HOOMD's XML format and other formats are provided
 in the hoomd/bin directory. These scripts should already be in your PATH and executable from the command line.
+As of version 1.8.7 the VMD molecular visualization software supports the HOOMD XML format natively with read
+and write support through its molfile plugin library and can be used to build systems and convert between
+MD and visualization codes as well. For details on how to use VMD for HOOMD see below.
 
-\section sec_hoomd2lammps_input HOOMD XML -> LAMMPS input
+\section sec_hoomd_vs_lammps_input HOOMD and LAMMPS compatibility
+While HOOMD in many ways follows the conventions of LAMMPS, there are a few notable differences
+that need to be considered when converting simulations from LAMMPS to HOOMD or vice versa.
 
-\c hoomd2lammps_input.py converts a HOOMD XML file to the LAMMPS input format. It handles positions,
+- HOOMD currently only supports reduced units. The equivalent setting in LAMMPS is: \c units \c lj
+- Bonded force constants (i.e. bonds, angles, dihedrals, impropers) do \b not include the factor 1/2
+  like in LAMMPS. So to convert \b to \b LAMMPS force constants need to be multiplied by 0.5 and 
+  to convert \b from \b LAMMPS force constants need to be multiplied by by 2.0. Parameters for 
+  pairwise interactions, e.g., \f$ \varepsilon \f$ and \f$ \sigma \f$ are \b not affected by this.
+- When using \c units \c lj, LAMMPS defaults to printing total energies per atom. Use the script command
+  \c thermo_modify \c norm \c no in the LAMMPS input script to get an output comparable to that of HOOMD.
+- When using the \c NVT ensemble, the total energy of LAMMPS does not contain the contribution from
+  the degrees of freedom of the Nose-Hoover thermostat, while they are included in the 
+  \c conserved_quantity log file component.
+
+\section sec_hoomd2lammps_input HOOMD XML -> LAMMPS data script
+
+\c hoomd2lammps_input.py converts a HOOMD XML file to the LAMMPS data file format. It handles positions,
 velocities, and bonds (if present in the XML file). To run, execute the script on the command line:
 \code
 hoomd2lammps_input.py input_file.xml output_file.data
@@ -32,7 +50,7 @@ Mapped particle types:
 is telling you that type A is labeled 1 in the LAMMPS file and type B is labeled 2. The bond type name to integer id
 conversion is performed in the same manner as the particle types.
 
-\section sec_hoomd2lammps_dump HOOMD XML -> LAMMPS dump
+\section sec_hoomd2lammps_dump HOOMD XML -> LAMMPS dump script.
 
 \c hoomd2lammps_dump.py converts a series of HOOMD XML files into the LAMMPS dump format. The output file will
 be formatted as if generated from the LAMMPS command <i>dump 1 all atom</i>. The use of scaled coordinates in the output
@@ -48,6 +66,50 @@ zero-padded in the file name, so *.xml will list all dump files in time step ord
 specified on the command line.
 
 The particle type name to type id handling is the same as in \c hoomd2lammps_input.py: \ref sec_hoomd2lammps_input
+
+\section sec_hoomd_vmd Using VMD for converting files to and from HOOMD
+
+As of version 1.8.7 the molecular visualization and analysis package VMD (http://www.ks.uiuc.edu/Research/vmd/) has
+full support for HOOMD XML files and they can be written out in all supported formats. On top of that, multiple
+manipulations of systems and their topologies can be performed with the \c topotools plugin, 
+(http://www.ks.uiuc.edu/Research/vmd/plugins/topotools/), which is also new with VMD version 1.8.7.
+\c topotools also supports writing \b and reading of many variants of the LAMMPS data file format
+that could then be written out as HOOMD XML files, for instance. Other conversions will be added
+in the future.
+
+\subsection sec_hoomd_vmd_input The equivalent of hoomd2lammps_input.py in VMD using Tcl
+
+\code
+  package require topotools 1.0
+  mol new file.xml type hoomd waitfor all
+  topo writelammpsdata file.data molecular
+\endcode
+
+\subsection sec_hoomd_vmd_data The equivalent of hoomd2lammps_dump.py in VMD using Tcl
+
+\code
+  set first 1
+  foreach f [glob file*.xml] {
+     if {$first} { 
+         mol new $f type hoomd waitfor all
+         set first 0
+     } else {
+         mol addfile $f type hoomd waitfor all
+     }
+  }
+  animate write lammpstrj file.dump waitfor all
+\endcode
+
+This conversion can also be done into all other formats that have write support in VMD, e.g. psf, pdb, dcd.
+Since pymol also uses the VMD molfile library, it will eventually also have native support for HOOMD xml files added.
+
+\subsection sec_hoomd_vmd_inverse The inverse of hoomd2lammps_input.py in VMD using Tcl
+
+\code
+  package require topotools 1.0
+  topo readlammpsdata file.data molecular
+  animate write hoomd file.xml waitfor all
+\endcode
 
 \section sec_other Other formats
 

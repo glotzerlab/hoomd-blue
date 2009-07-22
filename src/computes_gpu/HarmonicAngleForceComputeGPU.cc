@@ -55,6 +55,10 @@ using namespace boost;
 
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param sysdef System to compute angle forces on
 */
 HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
@@ -72,7 +76,7 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_angle_data->getNAngleTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_params[cur_gpu]), m_angle_data->getNAngleTypes()*sizeof(float2)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_angle_data->getNAngleTypes()*sizeof(float2)));
 		}
 	
