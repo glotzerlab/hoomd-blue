@@ -407,6 +407,41 @@
    obj:/usr/lib64/libpython2.5.so.1.0
 }
 
+# more python supressions for ld-2.9
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   fun:dlopen
+   fun:_PyImport_GetDynLoadFunc
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   fun:dlopen
+   fun:_PyImport_GetDynLoadFunc
+   fun:_PyImport_LoadDynamicModule
+   obj:/usr/lib64/libpython2.5.so.1.0
+   obj:/usr/lib64/libpython2.5.so.1.0
+}
+
 
 # Python supressions file follows
 #
