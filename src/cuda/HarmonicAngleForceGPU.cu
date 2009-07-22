@@ -51,7 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! SMALL a relatively small number
-#define SMALL 0.001
+#define SMALL 0.001f
 
 /*! \file HarmonicAngleForceGPU.cu
 	\brief Defines GPU kernel code for calculating the harmonic angle forces. Used by HarmonicAngleForceComputeGPU.

@@ -51,7 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! SMALL a relatively small number
-#define SMALL 0.001
+#define SMALL 0.001f
 
 /*! \file HarmonicDihedralForceGPU.cu
 	\brief Defines GPU kernel code for calculating the harmonic dihedral forces. Used by HarmonicDihedralForceComputeGPU.
@@ -211,8 +211,8 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		float c_abcd = (aax*bbx + aay*bby + aaz*bbz)*rabinv;
 		float s_abcd = rg*rabinv*(aax*dxdc + aay*dydc + aaz*dzdc); 
 
-		if (c_abcd > 1.0) c_abcd = 1.0;
-		if (c_abcd < -1.0) c_abcd = -1.0;
+		if (c_abcd > 1.0f) c_abcd = 1.0f;
+		if (c_abcd < -1.0f) c_abcd = -1.0f;
 
 
 		float p = 1.0f;
@@ -233,11 +233,11 @@ extern "C" __global__ void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force
 		p *= sign;
 		dfab *= sign;
 		dfab *= -multi;
-		p += 1.0;
+		p += 1.0f;
 
-		if (multi < 1.0)
+		if (multi < 1.0f)
 			{
-			p =  1.0 + sign;
+			p =  1.0f + sign;
 			dfab = 0.0f;
 			}
 

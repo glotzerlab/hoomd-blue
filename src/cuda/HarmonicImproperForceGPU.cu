@@ -50,7 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! SMALL a relatively small number
-#define SMALL 0.001
+#define SMALL 0.001f
 
 /*! \file HarmonicImproperForceGPU.cu
 	\brief Defines GPU kernel code for calculating the harmonic improper forces. Used by HarmonicImproperForceComputeGPU.
@@ -190,21 +190,21 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 		float c1 = (dxab*dxcb + dyab*dycb + dzab*dzcb)* r1 * r2;
 		float c2 = -(dxdc*dxcb + dydc*dycb + dzdc*dzcb)* r3 * r2;
 
-		float s1 = 1.0 - c1*c1;
+		float s1 = 1.0f - c1*c1;
 		if (s1 < SMALL) s1 = SMALL;
-		s1 = 1.0 / s1;
+		s1 = 1.0f / s1;
 
-		float s2 = 1.0 - c2*c2;
+		float s2 = 1.0f - c2*c2;
 		if (s2 < SMALL) s2 = SMALL;
-		s2 = 1.0 / s2;
+		s2 = 1.0f / s2;
 
 		float s12 = sqrt(s1*s2);
 		float c = (c1*c2 + c0) * s12;
 
-		if (c > 1.0) c = 1.0;
-		if (c < -1.0) c = -1.0;
+		if (c > 1.0f) c = 1.0f;
+		if (c < -1.0f) c = -1.0f;
 
-		float s = sqrt(1.0 - c*c);
+		float s = sqrt(1.0f - c*c);
 		if (s < SMALL) s = SMALL;
 
 		float domega = acos(c) - chi;
@@ -212,14 +212,14 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 
 		// calculate the energy, 1/4th for each atom
 		//float improper_eng = 0.25*a*domega;
-		float improper_eng = 0.125*a*domega;  // the .125 term is 1/2 * 1/4
+		float improper_eng = 0.125f*a*domega;  // the .125 term is 1/2 * 1/4
 
 		//a = -a * 2.0/s;
 		a = -a /s; // the missing 2.0 factor is to ensure K/2 is factored in for the forces
 		c = c * a;
 		s12 = s12 * a;
 		float a11 = c*ss1*s1;
-		float a22 = -ss2 * (2.0*c0*s12 - c*(s1+s2));
+		float a22 = -ss2 * (2.0f*c0*s12 - c*(s1+s2));
 		float a33 = c*ss3*s2;
 
 		float a12 = -r1*r2*(c1*c*s1 + c2*s12);
