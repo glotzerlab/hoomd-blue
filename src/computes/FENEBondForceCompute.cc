@@ -262,7 +262,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 
 		//If appropriate, correct the rsq for particles that are not unit in size.
 		if (diameter_a != 1.0 || diameter_b != 1.0) {
-			Scalar rtemp = sqrt(rsq) - diameter_a/2 - diameter_b/2 - 1.0; 
+			Scalar rtemp = sqrt(rsq) - diameter_a/2 - diameter_b/2 + 1.0; 
 			rsq = rtemp*rtemp;
 			}
 			
