@@ -62,6 +62,10 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param pdata Particle Data to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
@@ -114,7 +118,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<ParticleData> pdata
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
 		assert(d_coeffs[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
 		}

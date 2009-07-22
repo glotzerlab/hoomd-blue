@@ -69,6 +69,10 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param pdata Particle data the neighborlist is to compute neighbors for
 	\param r_cut Cuttoff radius under which particles are considered neighbors
 	\param r_buff Buffer distance to include around the cutoff
@@ -159,12 +163,12 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		m_gpu_bin_data[cur_gpu].Mz = Mz;
 		
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data[cur_gpu].idxlist), &pitch, Nmax*sizeof(unsigned int), Mx*My*Mz));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitchHack, (void**)((void*)&m_gpu_bin_data[cur_gpu].idxlist), &pitch, Nmax*sizeof(unsigned int), Mx*My*Mz));
 		// want pitch in elements, not bytes
 		Nmax = (int)pitch / sizeof(unsigned int);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_bin_data[cur_gpu].idxlist, 0, pitch * Mx*My*Mz));
 
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_bin_data[cur_gpu].bin_size), Mx*My*Mz*sizeof(unsigned int)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_bin_data[cur_gpu].bin_size), Mx*My*Mz*sizeof(unsigned int)));
 	
 		cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< unsigned int >();
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
@@ -175,7 +179,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		}
 	
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaHostAlloc, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz, cudaHostAllocPortable) );
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_idxlist), pitch * Mx*My*Mz, cudaHostAllocPortable) );
 	memset((void*)m_host_idxlist, 0, pitch*Mx*My*Mz);
 	
 	// allocate the host bin adj array
@@ -255,7 +259,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 		size_t pitch_coord;
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_bin_data[cur_gpu].coord_idxlist), &pitch_coord, Mx*My*Mz*sizeof(float4), Nmax));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitchHack, (void**)((void*)&m_gpu_bin_data[cur_gpu].coord_idxlist), &pitch_coord, Mx*My*Mz*sizeof(float4), Nmax));
 		// want width in elements, not bytes
 		m_gpu_bin_data[cur_gpu].coord_idxlist_width = (int)pitch_coord / sizeof(float4);
 		

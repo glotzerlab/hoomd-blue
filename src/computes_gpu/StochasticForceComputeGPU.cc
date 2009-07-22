@@ -64,6 +64,10 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param pdata ParticleData to compute forces on
 	\param Temp Temperature of the bath of random particles
 	\param deltaT Length of the computation timestep
@@ -104,7 +108,7 @@ StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<ParticleD
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_gammas[cur_gpu]), nbytes));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_gammas[cur_gpu]), nbytes));
 		assert(d_gammas[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void **)(void *) d_gammas[cur_gpu], h_gammas, nbytes, cudaMemcpyHostToDevice));
 		}

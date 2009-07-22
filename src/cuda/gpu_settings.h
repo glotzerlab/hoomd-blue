@@ -51,8 +51,11 @@ extern bool g_gpu_error_checking;
 #if (CUDA_VERSION < 2020)
 const int cudaDeviceBlockingSync = 0;
 const int cudaHostAllocPortable = 0;
-cudaError_t cudaHostAlloc(void **pHost, size_t bytes, unsigned int flags);
 #endif
+cudaError_t cudaHostAllocHack(void **pHost, size_t bytes, unsigned int flags);
+cudaError_t cudaMallocHack(void **pDevice, size_t bytes);
+cudaError_t cudaMallocPitchHack(void **devPtr, size_t  *pitch, size_t   width, size_t   height);
+
 }
 
 #endif

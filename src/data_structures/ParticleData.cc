@@ -763,7 +763,7 @@ void ParticleData::allocate(unsigned int N)
 	m_exec_conf.tagAll(__FILE__, __LINE__);
 	if (!m_exec_conf.gpu.empty())
 		{
-		m_exec_conf.gpu[0]->call(bind(cudaHostAlloc, &m_data, m_nbytes, cudaHostAllocPortable));
+		m_exec_conf.gpu[0]->call(bind(cudaHostAllocHack, &m_data, m_nbytes, cudaHostAllocPortable));
 		}
 	else
 		{
@@ -815,23 +815,23 @@ void ParticleData::allocate(unsigned int N)
 		m_gpu_pdata[cur_gpu].N = N;
 		m_exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
 	
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].pos), single_xarray_bytes * 4));
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].vel), single_xarray_bytes * 4) );
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].accel), single_xarray_bytes * 4) );
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].charge), single_xarray_bytes) );
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].mass), single_xarray_bytes) );
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].diameter), single_xarray_bytes) );
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].image), single_xarray_bytes * 4) );
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].tag), sizeof(unsigned int)*N) );
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_gpu_pdata[cur_gpu].rtag), sizeof(unsigned int)*N));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].pos), single_xarray_bytes * 4));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].vel), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].accel), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].charge), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].mass), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].diameter), single_xarray_bytes) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].image), single_xarray_bytes * 4) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].tag), sizeof(unsigned int)*N) );
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_gpu_pdata[cur_gpu].rtag), sizeof(unsigned int)*N));
 		
 		// allocate temporary holding area for uninterleaved data
-		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_d_staging[cur_gpu]), single_xarray_bytes*4));
+		m_exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_d_staging[cur_gpu]), single_xarray_bytes*4));
 		}
 		
 	// allocate host staging location
 	if (!m_exec_conf.gpu.empty())
-		m_exec_conf.gpu[0]->call(bind(cudaHostAlloc, (void **)((void *)&m_h_staging), sizeof(float4)*N, cudaHostAllocPortable));
+		m_exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void **)((void *)&m_h_staging), sizeof(float4)*N, cudaHostAllocPortable));
 		
 	// assign which particles are local to which GPU
 	if (!m_exec_conf.gpu.empty())

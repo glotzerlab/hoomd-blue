@@ -55,6 +55,10 @@ using namespace boost;
 
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param pdata ParticleData to compute improper forces on
 */
 HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_ptr<ParticleData> pdata)
@@ -72,7 +76,7 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_params[cur_gpu]), m_improper_data->getNDihedralTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_params[cur_gpu]), m_improper_data->getNDihedralTypes()*sizeof(float2)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_improper_data->getNDihedralTypes()*sizeof(float2)));
 		}
 	

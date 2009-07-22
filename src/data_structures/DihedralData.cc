@@ -58,6 +58,10 @@ using namespace boost;
 #include <stdexcept>
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \file DihedralData.cc
  	\brief Defines DihedralData.
  */
@@ -363,13 +367,13 @@ void DihedralData::allocateDihedralTable(int height)
 	
 	
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_n_dihedrals), N*sizeof(int)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_dihedrals), N*sizeof(int), cudaHostAllocPortable));
 	memset((void*)m_host_n_dihedrals, 0, N*sizeof(int));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_dihedrals), N * height * sizeof(uint4)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_dihedrals), N * height * sizeof(uint4), cudaHostAllocPortable));
 	memset((void*)m_host_dihedrals, 0, N*height*sizeof(uint4));
 
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_dihedralsABCD), N * height * sizeof(uint1)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_dihedralsABCD), N * height * sizeof(uint1), cudaHostAllocPortable));
 	memset((void*)m_host_dihedralsABCD, 0, N*height*sizeof(uint1));
 
 	}

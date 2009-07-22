@@ -59,6 +59,10 @@ using namespace boost;
 
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param pdata Particle data to update
 	\param deltaT Time step to use
 	\param tau Nose-Hoover period
@@ -77,7 +81,7 @@ NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<ParticleData> pdata, Scalar delta
 		for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 			{
 			exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-			exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&m_d_virial_data_ptrs[cur_gpu]), sizeof(float*)*32));
+			exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_d_virial_data_ptrs[cur_gpu]), sizeof(float*)*32));
 			exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_d_virial_data_ptrs[cur_gpu], 0, sizeof(float*)*32));
 			}
 		}
@@ -112,12 +116,12 @@ void NPTUpdaterGPU::allocateNPTData(int block_size)
 		d_npt_data[cur_gpu].NBlocks = m_pdata->getLocalNum(cur_gpu) / block_size + 1;
 		
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].partial_Ksum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].Ksum), sizeof(float)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].partial_Wsum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].Wsum), sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].partial_Ksum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].Ksum), sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].partial_Wsum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].Wsum), sizeof(float)));
 		local_num = d_pdata[cur_gpu].local_num;
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_npt_data[cur_gpu].virial), local_num * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].virial), local_num * sizeof(float)));
 
 		}
 	m_pdata->release();
