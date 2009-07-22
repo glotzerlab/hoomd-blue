@@ -226,12 +226,14 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
 	write_int(file, 2);
 	
 	char title_string[81];
+	memset(title_string, 0, 81);
 	char remarks[] = "Created by HOOMD";
 	strncpy(title_string, remarks, 80);
 	title_string[79] = '\0';
 	file.write(title_string, 80);
 	
 	char time_str[81];
+	memset(time_str, 0, 81);
 	time_t cur_time = time(NULL);
 	tm *tmbuf=localtime(&cur_time);
 	strftime(time_str, 80, "REMARKS Created  %d %B, %Y at %H:%M", tmbuf);
