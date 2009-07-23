@@ -292,6 +292,8 @@ void NVTUpdater::update(unsigned int timestep)
 	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
 	for (unsigned int j = 0; j < arrays.nparticles; j++)
 		{
+		if (arrays.body[j] != NO_BODY) continue;
+
 		arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - m_Xi * arrays.vx[j]);
 		arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - m_Xi * arrays.vy[j]);
 		arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - m_Xi * arrays.vz[j]);

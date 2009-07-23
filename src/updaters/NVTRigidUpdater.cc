@@ -77,7 +77,7 @@ NVTRigidUpdater::NVTRigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Sca
 	chain = 10;
 	order = 3;
 	iter = 1;
-	t_freq = 1.0;
+	t_freq = 10.0;
 	}
 
 void NVTRigidUpdater::setup() 
@@ -103,9 +103,9 @@ void NVTRigidUpdater::setup()
 	q_t.swap(q_t_alloc);
 	q_r.swap(q_r_alloc);
 	eta_t.swap(eta_t_alloc);
-	eta_r.swap(eta_t_alloc);
+	eta_r.swap(eta_r_alloc);
 	eta_dot_t.swap(eta_dot_t_alloc);
-	eta_dot_r.swap(eta_dot_t_alloc);
+	eta_dot_r.swap(eta_dot_r_alloc);
 	f_eta_t.swap(f_eta_t_alloc);
 	f_eta_r.swap(f_eta_r_alloc);
 	w.swap(w_alloc);
@@ -151,18 +151,6 @@ void NVTRigidUpdater::setup()
 		if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;  	
 	}
   
-	Scalar4 mbody;
-	for (unsigned int body = 0; body < m_n_bodies; body++) 
-		{
-		matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angmom_handle.data[body], mbody);
-		quat_multiply(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
-
-		conjqm_handle.data[body].x *= 2.0;
-		conjqm_handle.data[body].y *= 2.0;
-		conjqm_handle.data[body].z *= 2.0;
-		conjqm_handle.data[body].w *= 2.0;
-		}
-	
 	if (order == 3) 
 		{
 		w_handle.data[0] = 1.0 / (2.0 - pow(2.0, 1.0/3.0));
@@ -177,6 +165,18 @@ void NVTRigidUpdater::setup()
 		w_handle.data[3] = w_handle.data[0];
 		w_handle.data[4] = w_handle.data[0];
 		}	 
+
+	Scalar4 mbody;
+	for (unsigned int body = 0; body < m_n_bodies; body++) 
+		{
+		matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angmom_handle.data[body], mbody);
+		quat_multiply(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
+
+		conjqm_handle.data[body].x *= 2.0;
+		conjqm_handle.data[body].y *= 2.0;
+		conjqm_handle.data[body].z *= 2.0;
+		conjqm_handle.data[body].w *= 2.0;
+		}
 
 	Scalar kt = boltz * m_temperature->getValue(0);
   	Scalar t_mass = kt / (t_freq * t_freq);
@@ -206,7 +206,7 @@ void NVTRigidUpdater::setup()
 
 */
 void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
-	{	
+	{
 	// get box
 	const BoxDim& box = m_pdata->getBox();
 	// sanity check
@@ -273,8 +273,8 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 		vel_handle.data[body].y *= scale_t;
 		vel_handle.data[body].z *= scale_t;
 
-		tmp = vel_handle.data[body].x*vel_handle.data[body].x + vel_handle.data[body].y*vel_handle.data[body].y +
-			vel_handle.data[body].z*vel_handle.data[body].z;
+		tmp = vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y +
+			vel_handle.data[body].z * vel_handle.data[body].z;
 		akin_t += body_mass_handle.data[body] * tmp;
 			
 		com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
@@ -351,7 +351,9 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 		computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
 				   ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
 							       
-		akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x + angmom_handle.data[body].y * angvel_handle.data[body].y + angmom_handle.data[body].z * angvel_handle.data[body].z;
+		akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x 
+					+ angmom_handle.data[body].y * angvel_handle.data[body].y 
+					+ angmom_handle.data[body].z * angvel_handle.data[body].z;
 		
 		}
 
@@ -417,10 +419,6 @@ void NVTRigidUpdater::finalIntegrate(unsigned int timestep)
 		vel_handle.data[body].y = scale_t * vel_handle.data[body].y + dtfm * force_handle.data[body].y;
 		vel_handle.data[body].z = scale_t * vel_handle.data[body].z + dtfm * force_handle.data[body].z;
 			
-		angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
-		angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
-		angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
-		
 		// update conjqm, then transform to angmom, set velocity again
 		// virial is already setup from initial_integrate
     
@@ -453,7 +451,7 @@ void NVTRigidUpdater::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
 	Scalar kt, gfkt_t, gfkt_r, tmp, ms, s, s2;
 	Scalar dtv;
 
-	dtv = 0.5 * m_deltaT;
+	dtv = m_deltaT;
 	kt = boltz * m_temperature->getValue(timestep);
 	gfkt_t = nf_t * kt;
 	gfkt_r = nf_r * kt;
@@ -574,7 +572,7 @@ void NVTRigidUpdater::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
 
 void NVTRigidUpdater::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt)
 {
-	Scalar phi,c_phi,s_phi;
+	Scalar phi, c_phi, s_phi;
 	Scalar4 kp, kq;
   
 	// apply permuation operator on p and q, get kp and kq
@@ -609,7 +607,7 @@ void NVTRigidUpdater::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, S
 	else if (k == 2) inertia_t = inertia.y;
 	else if (k == 3) inertia_t = inertia.z;
 	else inertia_t = Scalar(0.0);
-	if (fabs(inertia_t) < 1e-6) phi *= 0.0;
+	if (fabs(inertia_t) < EPSILON) phi *= 0.0;
 	else phi /= 4.0 * inertia_t;
 
 	c_phi = cos(dt * phi);
