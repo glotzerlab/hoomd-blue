@@ -217,6 +217,10 @@ cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data
 	if (error != cudaSuccess)
 		return error;
 		
+	error = cudaBindTexture(0, pdata_diam_tex, pdata.diameter, sizeof(float) * pdata.N);
+	if (error != cudaSuccess)
+		return error;
+		
 	error = cudaBindTexture(0, bond_params_tex, d_params, sizeof(float4) * n_bond_types);
 	if (error != cudaSuccess)
 		return error;
