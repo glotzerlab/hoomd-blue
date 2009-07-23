@@ -39,7 +39,7 @@ set(generated_file_internal "@generated_file@")
 set(generated_cubin_file_internal "@generated_cubin_file@")
 
 set(CUDA_NVCC_EXECUTABLE "@CUDA_NVCC_EXECUTABLE@")
-set(CUDA_NVCC_FLAGS "@CUDA_NVCC_FLAGS@;@CUDA_WRAP_OPTION_NVCC_FLAGS@")
+set(CUDA_NVCC_FLAGS "@CUDA_NVCC_FLAGS@;;@CUDA_WRAP_OPTION_NVCC_FLAGS@")
 @CUDA_NVCC_FLAGS_CONFIG@
 set(nvcc_flags "@nvcc_flags@")
 set(CUDA_NVCC_INCLUDE_ARGS "@CUDA_NVCC_INCLUDE_ARGS@")
@@ -196,7 +196,9 @@ if(CUDA_result)
     )
   message(FATAL_ERROR "Error generating file ${generated_file}")
 else()
-  message("Generated ${generated_file} successfully.")
+  if(verbose)
+    message("Generated ${generated_file} successfully.")
+  endif()
 endif()
 
 # Cubin resource report commands.

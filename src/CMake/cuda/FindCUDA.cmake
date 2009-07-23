@@ -51,7 +51,7 @@
 #
 # Set CUDA_BUILD_CUBIN to "ON" or "OFF" to enable and extra compilation pass
 # with the -cubin option in Device mode. The output is parsed and register,
-# shared memory usage is printed during build. Default ON.
+# shared memory usage is printed during build. Default OFF.
 #
 # Set CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE to ON if you want the custom build
 # rule to be attached to the source file in Visual Studio.  Defaults to ON.
@@ -331,7 +331,7 @@ else()
 endif()
 option(CUDA_64_BIT_DEVICE_CODE "Compile device code in 64 bit mode" ${CUDA_64_BIT_DEVICE_CODE_DEFAULT})
 # Prints out extra information about the cuda file during compilation
-option(CUDA_BUILD_CUBIN "Generate and parse .cubin files in Device mode." ON)
+option(CUDA_BUILD_CUBIN "Generate and parse .cubin files in Device mode." OFF)
 # Extra user settable flags
 set(CUDA_NVCC_FLAGS "" CACHE STRING "Semi-colon delimit multiple arguments.")
 # Attach the build rule to the source file in VS.  This option
@@ -422,7 +422,8 @@ endif (NOT CUDA_TOOLKIT_ROOT_DIR)
 # CUDA_NVCC_EXECUTABLE
 find_program(CUDA_NVCC_EXECUTABLE
   NAMES nvcc
-  PATHS "${CUDA_TOOLKIT_ROOT_DIR}/bin"
+  PATHS "${CUDA_TOOLKIT_ROOT_DIR}/bin64"
+        "${CUDA_TOOLKIT_ROOT_DIR}/bin"
   ENV CUDA_BIN_PATH
   NO_DEFAULT_PATH
   )
@@ -483,7 +484,8 @@ set (CUDA_INCLUDE_DIRS ${CUDA_TOOLKIT_INCLUDE})
 macro(FIND_LIBRARY_LOCAL_FIRST _var _names _doc)
   find_library(${_var}
     NAMES ${_names}
-    PATHS "${CUDA_TOOLKIT_ROOT_DIR}/lib"
+    PATHS "${CUDA_TOOLKIT_ROOT_DIR}/lib64"
+          "${CUDA_TOOLKIT_ROOT_DIR}/lib"
     ENV CUDA_LIB_PATH
     DOC ${_doc}
     NO_DEFAULT_PATH
@@ -951,6 +953,7 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
       if(NOT compile_to_ptx AND CMAKE_GENERATOR MATCHES "Visual Studio" AND CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE)
         # Visual Studio 8 crashes when you close the solution when you don't add the object file.
         if(NOT CMAKE_GENERATOR MATCHES "Visual Studio 8")
+          #message("Not adding ${generated_file}")
           set(cuda_add_generated_file FALSE)
         endif()
       endif()
