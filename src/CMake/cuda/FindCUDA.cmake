@@ -764,7 +764,7 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
   endif()
 
   # Initialize our list of includes with the user ones followed by the CUDA system ones.
-  set(CUDA_NVCC_INCLUDE_ARGS ${CUDA_NVCC_INCLUDE_ARGS_USER} "-I${CUDA_INCLUDE_DIRS}")
+  set(CUDA_NVCC_INCLUDE_ARGS ${CUDA_NVCC_INCLUDE_ARGS_USER} "--system-include;${CUDA_INCLUDE_DIRS}")
   # Get the include directories for this directory and use them for our nvcc command.
   get_directory_property(CUDA_NVCC_INCLUDE_DIRECTORIES INCLUDE_DIRECTORIES)
   if(CUDA_NVCC_INCLUDE_DIRECTORIES)
