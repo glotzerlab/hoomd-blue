@@ -195,10 +195,10 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	// check that the nve updater can actually integrate particle positions and velocities correctly
 	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	unsigned int nbodies = 60000;
+	unsigned int nbodies = 12000;
 	unsigned int nparticlesperbody = 5;
 	unsigned int N = nbodies * nparticlesperbody;
-	Scalar box_length = 150.0;
+	Scalar box_length = 80.0;
 	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	BoxDim box = pdata->getBox();
@@ -215,7 +215,7 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	
 	unsigned int seed = 10483;
 	boost::shared_ptr<Saru> random = boost::shared_ptr<Saru>(new Saru(seed));
-	Scalar temperature = 0.5;
+	Scalar temperature = 1.0;
 	Scalar KE = Scalar(0.0);
 	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
@@ -225,10 +225,46 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	{
 		for (unsigned int j = 0; j < nparticlesperbody; j++)
 		{
-			arrays.x[iparticle] = x0 + 1.0 * j; 
-			arrays.y[iparticle] = y0 + 0.0;
-			arrays.z[iparticle] = z0 + 0.0;
-			
+			arrays.x[iparticle] = x0 + 1.0 * j;
+                        arrays.y[iparticle] = y0 + 0.0;
+                        arrays.z[iparticle] = z0 + 0.0;
+
+			/*
+			if (j == 0)
+			{
+				arrays.x[iparticle] = x0 + 0.0; 
+				arrays.y[iparticle] = y0 + 0.0;
+				arrays.z[iparticle] = z0 + 0.0;
+			}
+			else if (j == 1)
+			{
+				arrays.x[iparticle] = x0 + 1.0;
+                                arrays.y[iparticle] = y0 + 0.0;
+                                arrays.z[iparticle] = z0 + 0.0;
+
+			}
+			else if (j == 2)
+			{
+				arrays.x[iparticle] = x0 + 2.0;
+                                arrays.y[iparticle] = y0 + 0.0;
+                                arrays.z[iparticle] = z0 + 0.0;
+
+			}
+			else if (j == 3)
+			{
+				arrays.x[iparticle] = x0 + 2.76;
+                                arrays.y[iparticle] = y0 + 0.642;
+                                arrays.z[iparticle] = z0 + 0.0;
+
+			}
+			else if (j == 4)
+			{
+				arrays.x[iparticle] = x0 + 3.52;
+                                arrays.y[iparticle] = y0 + 1.284;
+                                arrays.z[iparticle] = z0 + 0.0;
+
+			}
+			*/
 			arrays.vx[iparticle] = random->d(); 
 			arrays.vy[iparticle] = random->d();  
 			arrays.vz[iparticle] = random->d();  
@@ -280,11 +316,11 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	
 	nve_up->addForceCompute(fc);
 	
-	Scalar PE;
-	unsigned int steps = 1000;
-	unsigned int sampling = 1000;
-	
 	sysdef->init();
+
+	Scalar PE;
+	unsigned int steps = 100000;
+	unsigned int sampling = 10000;
 	
 	shared_ptr<RigidData> rdata = sysdef->getRigidData();
 	unsigned int nrigid_dof = rdata->getNumDOF();
@@ -302,7 +338,6 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	}
 	
 	pdata->release();
-	
 	
 	cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
 	cout << "Step\tTemp\tPotEng\tKinEng\tTotalE\n";
@@ -370,8 +405,8 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 	nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
 	nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 	}
-
-
+*/
+/*
 BOOST_AUTO_TEST_CASE( NVEUpdater_energy_tests )
 {
 	printf("\nTesting energy conservation on CPU...\n");
