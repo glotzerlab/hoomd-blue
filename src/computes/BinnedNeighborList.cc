@@ -272,6 +272,11 @@ void BinnedNeighborList::updateListFromBins()
 		Scalar yn = arrays.y[n];
 		Scalar zn = arrays.z[n]; 
 		const ExcludeList &excludes = m_exclusions[arrays.tag[n]];
+#if defined(LARGE_EXCLUSION_LIST)
+		const ExcludeList &excludes2 = m_exclusions2[arrays.tag[n]];
+		const ExcludeList &excludes3 = m_exclusions3[arrays.tag[n]];
+		const ExcludeList &excludes4 = m_exclusions4[arrays.tag[n]];
+#endif
 		
 		// find the bin each particle belongs in
 		int ib = int((xn-box.xlo)*scalex);
@@ -358,6 +363,7 @@ void BinnedNeighborList::updateListFromBins()
 						Scalar rsq = dx*dx + dy*dy + dz*dz;
 						if (rsq < rmaxsq)
 							{
+#if !defined(LARGE_EXCLUSION_LIST)
 							// if not excluded
 							if (!(excludes.e1 == bin_list_tag[k] || excludes.e2 == bin_list_tag[k] || 
 							excludes.e3 == bin_list_tag[k] || excludes.e4 == bin_list_tag[k]))
@@ -366,6 +372,22 @@ void BinnedNeighborList::updateListFromBins()
 								if (m_storage_mode == full || n < m)
 									m_list[n].push_back(m);
 								}
+#else
+							// if not excluded
+							if (!(excludes.e1 == bin_list_tag[k] || excludes.e2 == bin_list_tag[k] || 
+							excludes.e3 == bin_list_tag[k] || excludes.e4 == bin_list_tag[k] ||
+							excludes2.e1 == bin_list_tag[k] || excludes2.e2 == bin_list_tag[k] || 
+							excludes2.e3 == bin_list_tag[k] || excludes2.e4 == bin_list_tag[k] ||
+							excludes3.e1 == bin_list_tag[k] || excludes3.e2 == bin_list_tag[k] || 
+							excludes3.e3 == bin_list_tag[k] || excludes3.e4 == bin_list_tag[k] ||
+							excludes4.e1 == bin_list_tag[k] || excludes4.e2 == bin_list_tag[k] || 
+							excludes4.e3 == bin_list_tag[k] || excludes4.e4 == bin_list_tag[k]))
+								{
+								// add the particle
+								if (m_storage_mode == full || n < m)
+									m_list[n].push_back(m);
+								}
+#endif
 							}
 						}
 					}

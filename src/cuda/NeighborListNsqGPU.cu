@@ -95,6 +95,17 @@ extern "C" __global__ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, g
 	uint4 exclude = make_uint4(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
 	if (pidx < pdata.N)
 		exclude = nlist.exclusions[pidx];
+#if defined(LARGE_EXCLUSION_LIST)
+	uint4 exclude2 = make_uint4(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+	uint4 exclude3 = make_uint4(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+	uint4 exclude4 = make_uint4(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+	if (pidx < pdata.N)
+		{
+		exclude2 = nlist.exclusions2[pidx];
+		exclude3 = nlist.exclusions3[pidx];
+		exclude4 = nlist.exclusions4[pidx];
+		}
+#endif
 	
 	// each block is going to loop over all N particles (this assumes memory is padded to a multiple of blockDim.x)
 	// in blocks of blockDim.x
@@ -140,7 +151,8 @@ extern "C" __global__ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, g
 						dz = dz - box.Lz * rintf(dz * box.Lzinv);
 				
 						float drsq = dx*dx + dy*dy + dz*dz;
-	
+
+#if !defined(LARGE_EXCLUSION_LIST)
 						// we don't add if we are comparing to ourselves, and we don't add if we are above the cut
 						if ((drsq < r_maxsq) && ((start + cur_offset) != pidx) && exclude.x != (start + cur_offset) && exclude.y != (start + cur_offset) && exclude.z != (start + cur_offset) && exclude.w != (start + cur_offset))
 							{
@@ -152,7 +164,23 @@ extern "C" __global__ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, g
 							else
 								*nlist.overflow = 1;
 							}
-					
+#else					
+						if ((drsq < r_maxsq) && ((start + cur_offset) != pidx) && exclude.x != (start + cur_offset) && exclude.y != (start + cur_offset) 
+							&& exclude.z != (start + cur_offset) && exclude.w != (start + cur_offset) && exclude2.x != (start + cur_offset) 
+							&& exclude2.y != (start + cur_offset) && exclude2.z != (start + cur_offset) && exclude2.w != (start + cur_offset)
+							&& exclude3.x != (start + cur_offset) && exclude3.y != (start + cur_offset) && exclude3.z != (start + cur_offset) 
+							&& exclude3.w != (start + cur_offset) && exclude4.x != (start + cur_offset) && exclude4.y != (start + cur_offset) 
+							&& exclude4.z != (start + cur_offset) && exclude4.w != (start + cur_offset))
+							{
+							if (n_neigh < nlist.height)
+								{
+								nlist.list[pidx + n_neigh*nlist.pitch] = start+cur_offset;
+								n_neigh++;
+								}
+							else
+								*nlist.overflow = 1;
+							}
+#endif
 						}
 					}
 				}

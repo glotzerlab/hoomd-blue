@@ -185,6 +185,11 @@ template <bool ulf_workaround> __global__ void gpu_compute_nlist_binned_kernel(g
 	// MEM TRANSFER: 32 bytes
 	float4 my_pos = d_pos[my_pidx];
 	uint4 exclude = nlist.exclusions[my_pidx];
+#if defined(LARGE_EXCLUSION_LIST)
+	uint4 exclude2 = nlist.exclusions2[my_pidx];
+	uint4 exclude3 = nlist.exclusions3[my_pidx];
+	uint4 exclude4 = nlist.exclusions4[my_pidx];
+#endif
 	
 	// FLOPS: 9
 	unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
@@ -248,6 +253,11 @@ template <bool ulf_workaround> __global__ void gpu_compute_nlist_binned_kernel(g
 			// FLOPS: 5
 			float dr = dx*dx + dy*dy + dz*dz;
 			int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
+#if defined(LARGE_EXCLUSION_LIST)
+			not_excluded &= (exclude2.x != cur_neigh) & (exclude2.y != cur_neigh) & (exclude2.z != cur_neigh) & (exclude2.w != cur_neigh);
+			not_excluded &= (exclude3.x != cur_neigh) & (exclude3.y != cur_neigh) & (exclude3.z != cur_neigh) & (exclude3.w != cur_neigh);
+			not_excluded &= (exclude4.x != cur_neigh) & (exclude4.y != cur_neigh) & (exclude4.z != cur_neigh) & (exclude4.w != cur_neigh);
+#endif
 			
 			// FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
 			if (dr < r_maxsq && (my_pidx != cur_neigh) && not_excluded)

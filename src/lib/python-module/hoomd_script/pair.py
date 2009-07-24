@@ -404,6 +404,8 @@ class nlist:
 		self.cpp_nlist.clearExclusions();
 		
 		if exclusions == None:
+			# confirm that no exclusions are left.
+			self.cpp_nlist.countExclusions();
 			return
 		
 		# exclusions given directly in bond/angle/dihedral notation
@@ -436,6 +438,9 @@ class nlist:
 		if len(exclusions) > 0:
 			print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
 			raise RuntimeError('Error resetting exclusions');
+
+		# collect and print statistics about the number of exclusions.
+		self.cpp_nlist.countExclusions();
 
 	## Benchmarks the neighbor list computation
 	# \param n Number of iterations to average the benchmark over
