@@ -207,7 +207,7 @@ extern "C" __global__ void gpu_compute_harmonic_improper_forces_kernel(gpu_force
 		float s = sqrt(1.0f - c*c);
 		if (s < SMALL) s = SMALL;
 
-		float domega = acos(c) - chi;
+		float domega = acosf(c) - chi;
 		float a = K * domega;
 
 		// calculate the energy, 1/4th for each atom
