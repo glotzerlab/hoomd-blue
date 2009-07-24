@@ -135,8 +135,8 @@ void BinnedNeighborList::updateBins()
 
 	// make even bin dimensions
 	Scalar binx = (box.xhi - box.xlo) / Scalar(m_Mx);
-	Scalar biny = (box.yhi - box.ylo) / Scalar(m_Mx);
-	Scalar binz = (box.zhi - box.zlo) / Scalar(m_Mx);
+	Scalar biny = (box.yhi - box.ylo) / Scalar(m_My);
+	Scalar binz = (box.zhi - box.zlo) / Scalar(m_Mz);
 
 	// precompute scale factors to eliminate division in inner loop
 	Scalar scalex = Scalar(1.0) / binx;
@@ -252,8 +252,8 @@ void BinnedNeighborList::updateListFromBins()
 	
 	// make even bin dimensions
 	Scalar binx = (box.xhi - box.xlo) / Scalar(m_Mx);
-	Scalar biny = (box.yhi - box.ylo) / Scalar(m_Mx);
-	Scalar binz = (box.zhi - box.zlo) / Scalar(m_Mx);
+	Scalar biny = (box.yhi - box.ylo) / Scalar(m_My);
+	Scalar binz = (box.zhi - box.zlo) / Scalar(m_Mz);
 
 	// precompute scale factors to eliminate division in inner loop
 	Scalar scalex = Scalar(1.0) / binx;
