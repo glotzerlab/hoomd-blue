@@ -318,7 +318,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
 				Scalar r3inv = r2inv / sqrt(rsq);
 				Scalar r6inv = r3inv * r3inv;
 				Scalar forcemag_divr = r6inv * (r2inv * (Scalar(12.0)*lj12_row[typej]*r6inv + Scalar(9.0)*r3inv*lj9_row[typej]
-                                                         + Scalar(6.0)*lj6_row[typej]) + Scalar(4.0) * lj4_row[typej]);
+                                                         + Scalar(6.0)*lj6_row[typej]) + Scalar(4.0)*lj4_row[typej]);
 				
 				// compute the pair energy and virial (FLOPS: 6)
 				// note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus

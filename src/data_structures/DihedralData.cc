@@ -146,21 +146,21 @@ void DihedralData::addDihedral(const Dihedral& dihedral)
 	// check for some silly errors a user could make 	
 	if (dihedral.a >= m_pdata->getN() || dihedral.b >= m_pdata->getN() || dihedral.c >= m_pdata->getN()  || dihedral.d >= m_pdata->getN())
 		{
-		cerr << endl << "***Error! Particle tag out of bounds when attempting to add dihedral: " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl << endl;
-		throw runtime_error("Error adding dihedral");
+		cerr << endl << "***Error! Particle tag out of bounds when attempting to add dihedral/improper: " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl << endl;
+		throw runtime_error("Error adding dihedral/improper");
 		}
 	
 	if (dihedral.a == dihedral.b || dihedral.a == dihedral.c || dihedral.b == dihedral.c || dihedral.a == dihedral.d || dihedral.b == dihedral.d || dihedral.c == dihedral.d )
 		{
-		cerr << endl << "***Error! Particle cannot included in an dihedral twice! " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl << endl;
-		throw runtime_error("Error adding dihedral");
+		cerr << endl << "***Error! Particle cannot included in an dihedral/improper twice! " << dihedral.a << "," << dihedral.b << "," << dihedral.c << endl << endl;
+		throw runtime_error("Error adding dihedral/improper");
 		}
 	
 	// check that the type is within bouds
 	if (dihedral.type+1 > m_n_dihedral_types)
 		{
-		cerr << endl << "***Error! Invalid dihedral type! " << dihedral.type << ", the number of types is " << m_n_dihedral_types << endl << endl;
-		throw runtime_error("Error adding dihedral");
+		cerr << endl << "***Error! Invalid dihedral/improper type! " << dihedral.type << ", the number of types is " << m_n_dihedral_types << endl << endl;
+		throw runtime_error("Error adding dihedral/improper");
 		}
 
 	m_dihedrals.push_back(dihedral);
@@ -191,7 +191,7 @@ unsigned int DihedralData::getTypeByName(const std::string &name)
 			return i;
 		}
 		
-	cerr << endl << "***Error! Dihedral type " << name << " not found!" << endl;
+	cerr << endl << "***Error! Dihedral/Improper type " << name << " not found!" << endl;
 	throw runtime_error("Error mapping type name");	
 	return 0;
 	}

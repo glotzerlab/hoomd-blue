@@ -83,6 +83,11 @@ struct gpu_nlist_array
 	int *overflow;			//!< Flag set to 1 when the neighbor list overflows and needs to be expanded
 	
 	uint4 *exclusions;		//!< exclusions[i] lists all the particles that are to be excluded from being neighbors with [i] by index
+#if defined(LARGE_EXCLUSION_LIST)
+	uint4 *exclusions2;		//!< exclusions2[i] lists more the particles that are to be excluded from being neighbors with [i] by index
+	uint4 *exclusions3;		//!< exclusions3[i] lists more the particles that are to be excluded from being neighbors with [i] by index
+	uint4 *exclusions4;		//!< exclusions4[i] lists more the particles that are to be excluded from being neighbors with [i] by index
+#endif
 	};
 
 //! Check if the neighborlist needs updating

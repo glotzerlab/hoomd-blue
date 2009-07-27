@@ -111,10 +111,17 @@ class NeighborList : public Compute
 			half,	//!< Only neighbors i,j are stored where i < j
 			full	//!< All neighbors are stored
 			};
-
+#if !defined(LARGE_EXCLUSION_LIST)
+		static const unsigned int MAX_NUM_EXCLUDED = 4;  //!< Maximum number of allowed exclusions per atom
+#else
+		static const unsigned int MAX_NUM_EXCLUDED = 16; //!< Maximum number of allowed exclusions per atom
+#endif
 		static const unsigned int EXCLUDE_EMPTY = 0xffffffff; //!< Signifies this element of the exclude list is empty
 		//! Simple data structure for storing excluded tags
-		/*! Per the requirements, we only need to exclude up to 4 beads
+		/*! We only need to exclude up to 4 beads for typical molecular systems with bonds only, or bonds 
+			and angles, if the molecules are linear. For regular systems with angles, dihedrals and/or impropers,
+			HOOMD needs to be recompiled with -DLARGE_EXCLUSION_LIST. NOTE: this is a temporary hack until
+			neighbor lists and exclusions are re-implemented to handle this in a better way.
 			Initialized to empty for all elements. Empty is defined to be the maximum sized unsigned int.
 			Since it isn't likely we will be performing 4 billion pariticle sims anytime soon, this is OK.
 			
@@ -172,6 +179,9 @@ class NeighborList : public Compute
 		//! Clear all existing exclusions
 		void clearExclusions();
 		
+		//! Collect some statistics on exclusions.
+		void countExclusions();
+		
 		//! Add an exclusion for every bond in the ParticleData
 		void addExclusionsFromBonds();
 
@@ -206,7 +216,11 @@ class NeighborList : public Compute
 		boost::signals::connection m_sort_connection;	//!< Connection to the ParticleData sort signal
 		
 		std::vector< ExcludeList > m_exclusions; //!< Stores particle exclusion lists BY TAG
-
+#if defined(LARGE_EXCLUSION_LIST)
+		std::vector< ExcludeList > m_exclusions2; //!< Stores particle exclusion lists BY TAG
+		std::vector< ExcludeList > m_exclusions3; //!< Stores particle exclusion lists BY TAG
+		std::vector< ExcludeList > m_exclusions4; //!< Stores particle exclusion lists BY TAG
+#endif
 		#ifdef ENABLE_CUDA
 		//! Simple type for identifying where the most up to date particle data is
 		enum DataLocation
@@ -221,6 +235,11 @@ class NeighborList : public Compute
 		unsigned int *m_host_nlist;				//!< Stores a temporary copy of the neighbor list on the host
 		unsigned int *m_host_n_neigh;			//!< Stores a temporary count of the number of neighbors on the host
 		uint4 *m_host_exclusions;				//!< Stores a translated copy of the excluded particles on the host
+#if defined(LARGE_EXCLUSION_LIST)
+		uint4 *m_host_exclusions2;				//!< Stores a translated copy of the excluded particles on the host
+		uint4 *m_host_exclusions3;				//!< Stores a translated copy of the excluded particles on the host
+		uint4 *m_host_exclusions4;				//!< Stores a translated copy of the excluded particles on the host
+#endif
 		
 		//! Helper function to move data from the host to the device
 		void hostToDeviceCopy();
