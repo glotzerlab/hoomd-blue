@@ -225,10 +225,11 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	{
 		for (unsigned int j = 0; j < nparticlesperbody; j++)
 		{
+			/*
 			arrays.x[iparticle] = x0 + 1.0 * j;
                         arrays.y[iparticle] = y0 + 0.0;
                         arrays.z[iparticle] = z0 + 0.0;
-
+			*/
 			/*
 			if (j == 0)
 			{
@@ -265,6 +266,43 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 
 			}
 			*/
+
+			
+			if (j == 0)
+                        {
+                                arrays.x[iparticle] = x0 + 0.577;
+                                arrays.y[iparticle] = y0 + 0.577;
+                                arrays.z[iparticle] = z0 + 0.577;
+                        }               
+                        else if (j == 1)
+                        {
+                                arrays.x[iparticle] = x0 + 1.154;  
+                                arrays.y[iparticle] = y0 + 1.154;
+                                arrays.z[iparticle] = z0 + 1.154;
+
+                        } 
+                        else if (j == 2)
+                        {
+                                arrays.x[iparticle] = x0 + 0.0;
+                                arrays.y[iparticle] = y0 + 0.0;
+                                arrays.z[iparticle] = z0 + 1.154;
+
+                        }
+                        else if (j == 3)
+                        {
+                                arrays.x[iparticle] = x0 + 0.0;
+                                arrays.y[iparticle] = y0 + 1.154;
+                                arrays.z[iparticle] = z0 + 0.0;
+
+                        }           
+                        else if (j == 4)
+                        {
+                                arrays.x[iparticle] = x0 + 1.154;
+                                arrays.y[iparticle] = y0 + 0.0;
+				arrays.z[iparticle] = z0 + 0.0;
+			}
+
+
 			arrays.vx[iparticle] = random->d(); 
 			arrays.vy[iparticle] = random->d();  
 			arrays.vz[iparticle] = random->d();  
