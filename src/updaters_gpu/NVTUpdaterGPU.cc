@@ -50,6 +50,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "NVTUpdaterGPU.h"
+#include "NVTRigidUpdaterGPU.cuh"
+#include "NVTRigidUpdater.h"
+#include "RigidData.h"
 
 #include <boost/python.hpp>
 using namespace boost::python;
@@ -74,6 +77,7 @@ NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar 
 		}
 	
 	d_nvt_data.resize(exec_conf.gpu.size());
+	d_nvt_rigid_data.resize(1);		// Rigid bodies now available on one GPU
 	allocateNVTData(128);
 	}
 
@@ -86,6 +90,7 @@ NVTUpdaterGPU::~NVTUpdaterGPU()
 */
 void NVTUpdaterGPU::allocateNVTData(int block_size)
 	{
+
 	// allocate the memory for the partial m*v^2 sums on each GPU	
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
@@ -96,6 +101,8 @@ void NVTUpdaterGPU::allocateNVTData(int block_size)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].partial_Ksum), d_nvt_data[cur_gpu].NBlocks * sizeof(float)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].Ksum), sizeof(float)));
 		}
+
+
 	}
 
 void NVTUpdaterGPU::freeNVTData()
@@ -109,6 +116,15 @@ void NVTUpdaterGPU::freeNVTData()
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_nvt_data[cur_gpu].Ksum));
 		d_nvt_data[cur_gpu].Ksum = NULL;
 		}
+
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].partial_Ksum_t));
+	d_nvt_rigid_data[0].partial_Ksum_t = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].partial_Ksum_r));
+	d_nvt_rigid_data[0].partial_Ksum_r = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].Ksum_t));
+	d_nvt_rigid_data[0].Ksum_t = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].Ksum_r));
+	d_nvt_rigid_data[0].Ksum_r = NULL;
 	}
 
 /*! \param timestep Current time step of the simulation
@@ -119,6 +135,14 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	{
 	assert(m_pdata);
 	
+	// get the rigid data from SystemDefinition
+	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+	
+	// if there is any rigid body
+	unsigned int n_bodies = rigid_data->getNumBodies();
+	if (n_bodies > 0 && !m_rigid_updater) 
+		m_rigid_updater = boost::shared_ptr<NVTRigidUpdater> (new NVTRigidUpdater(m_sysdef, m_deltaT, m_T));
+
 	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
 	if (!m_accel_set)
 		{
@@ -126,6 +150,18 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		// use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
 		// is calculated correctly
 		computeAccelerationsGPU(timestep, "NVT", true);
+
+		// compute the initial net forces, torques and angular momenta 
+		if (m_rigid_updater) m_rigid_updater->setup();
+			
+		// Only one GPU
+		d_nvt_rigid_data[0].n_bodies = n_bodies;
+			
+		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_t), n_bodies * sizeof(float)));
+		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_r), n_bodies * sizeof(float)));
+		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_t), sizeof(float)));
+		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_r), sizeof(float)));
+			
 		}
 
 	if (m_prof) m_prof->push(exec_conf, "NVT");
@@ -140,6 +176,61 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_pre_step, d_pdata[cur_gpu], box, d_nvt_data[cur_gpu], m_Xi, m_deltaT));
+
+	// pre-step kernel for rigid bodies
+	if (m_rigid_updater && exec_conf.gpu.size() == 1) // only one GPU for the moment
+		{
+		ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> orientation_handle(rigid_data->getOrientation(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> ex_space_handle(rigid_data->getExSpace(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> ey_space_handle(rigid_data->getEySpace(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::readwrite);
+		ArrayHandle<int> body_imagex_handle(rigid_data->getBodyImagex(), access_location::device, access_mode::readwrite);
+		ArrayHandle<int> body_imagey_handle(rigid_data->getBodyImagey(), access_location::device, access_mode::readwrite);
+		ArrayHandle<int> body_imagez_handle(rigid_data->getBodyImagez(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> particle_pos_handle(rigid_data->getParticlePos(), access_location::device, access_mode::read);
+		ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::read);
+		
+		gpu_rigid_data_arrays d_rdata;
+		d_rdata.n_bodies = rigid_data->getNumBodies();
+		d_rdata.nmax = rigid_data->getNmax();
+		d_rdata.local_beg = 0;
+		d_rdata.local_num = d_rdata.n_bodies;
+		d_rdata.body_mass = body_mass_handle.data;
+		d_rdata.moment_inertia = moment_inertia_handle.data;
+		d_rdata.com = com_handle.data;
+		d_rdata.vel = vel_handle.data;
+		d_rdata.angvel = angvel_handle.data;
+		d_rdata.angmom = angmom_handle.data;
+		d_rdata.orientation = orientation_handle.data;
+		d_rdata.ex_space = ex_space_handle.data;
+		d_rdata.ey_space = ey_space_handle.data;
+		d_rdata.ez_space = ez_space_handle.data;
+		d_rdata.body_imagex = body_imagex_handle.data;
+		d_rdata.body_imagey = body_imagey_handle.data;
+		d_rdata.body_imagez = body_imagez_handle.data;
+		d_rdata.particle_pos = particle_pos_handle.data;
+		d_rdata.particle_indices = particle_indices_handle.data;
+		d_rdata.force = force_handle.data;
+		d_rdata.torque = torque_handle.data;
+		
+		ArrayHandle<Scalar> eta_dot_t_handle(m_rigid_updater->getEtaDotT(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar> eta_dot_r_handle(m_rigid_updater->getEtaDotR(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> conjqm_handle(m_rigid_updater->getConjqm(), access_location::device, access_mode::readwrite);
+	
+		d_nvt_rigid_data[0].eta_dot_t = eta_dot_t_handle.data;
+		d_nvt_rigid_data[0].eta_dot_r = eta_dot_r_handle.data;
+		d_nvt_rigid_data[0].conjqm = conjqm_handle.data;
+
+		exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_body_pre_step, d_pdata[0], d_rdata, box, d_nvt_rigid_data[0], m_deltaT));
+		}
 
 	exec_conf.syncAll();
 	
@@ -170,6 +261,9 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_reduce_ksum, d_nvt_data[cur_gpu]));
 
 	exec_conf.syncAll();
+
+	// reduce the Ksum values for rigid bodies
+	exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rigid_data[0]));
 		
 	// copy the values from the GPUs to the CPU and complete the sum
 	float Ksum_total = 0.0f;
@@ -179,7 +273,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, &Ksum_tmp, d_nvt_data[cur_gpu].Ksum, sizeof(float), cudaMemcpyDeviceToHost));
 		Ksum_total += Ksum_tmp;
 		}
-		
+	
 	if (m_prof) m_prof->pop(exec_conf);
 	if (m_prof) m_prof->push(exec_conf, "Half-step 2");
 	
@@ -193,12 +287,72 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	// update eta
 	m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
 	
+	// Update rigid body thermostats here
+	float Ksum_t, Ksum_r;
+	exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rigid_data[0]));
+		
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_t, d_nvt_rigid_data[0].Ksum_t, sizeof(float), cudaMemcpyDeviceToHost));
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_r, d_nvt_rigid_data[0].Ksum_r, sizeof(float), cudaMemcpyDeviceToHost));
+	
+	printf("Ksumt = %f; Ksumr = %f\n", Ksum_t, Ksum_r);
+	m_rigid_updater->updateThermostats(Ksum_t, Ksum_r, timestep);
+
 	// get the particle data arrays again so we can update the 2nd half of the step
 	d_pdata = m_pdata->acquireReadWriteGPU();
-	
+		
+
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_step, d_pdata[cur_gpu], d_nvt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_deltaT));
+
+	// post-step kernel for rigid bodies
+	if (m_rigid_updater && exec_conf.gpu.size() == 1) // only one GPU for the moment
+		{
+			
+		ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> ex_space_handle(rigid_data->getExSpace(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> ey_space_handle(rigid_data->getEySpace(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> particle_pos_handle(rigid_data->getParticlePos(), access_location::device, access_mode::read);
+		ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
+		
+		gpu_rigid_data_arrays d_rdata;
+		d_rdata.n_bodies = rigid_data->getNumBodies();
+		d_rdata.nmax = rigid_data->getNmax();
+		d_rdata.local_beg = 0;
+		d_rdata.local_num = d_rdata.n_bodies;
+		d_rdata.body_mass = body_mass_handle.data;
+		d_rdata.moment_inertia = moment_inertia_handle.data;
+		d_rdata.com = com_handle.data;
+		d_rdata.vel = vel_handle.data;
+		d_rdata.angvel = angvel_handle.data;
+		d_rdata.angmom = angmom_handle.data;
+		d_rdata.ex_space = ex_space_handle.data;
+		d_rdata.ey_space = ey_space_handle.data;
+		d_rdata.ez_space = ez_space_handle.data;
+		d_rdata.particle_pos = particle_pos_handle.data;
+		d_rdata.particle_indices = particle_indices_handle.data;
+		d_rdata.force = force_handle.data;
+		d_rdata.torque = torque_handle.data;
+
+		ArrayHandle<Scalar> eta_dot_t_handle(m_rigid_updater->getEtaDotT(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar> eta_dot_r_handle(m_rigid_updater->getEtaDotR(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar4> conjqm_handle(m_rigid_updater->getConjqm(), access_location::device, access_mode::readwrite);
+
+		d_nvt_rigid_data[0].eta_dot_t = eta_dot_t_handle.data;
+		d_nvt_rigid_data[0].eta_dot_r = eta_dot_r_handle.data;
+		d_nvt_rigid_data[0].conjqm = conjqm_handle.data;
+
+		exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_body_step, d_pdata[0], d_rdata, m_d_force_data_ptrs[0], (int)m_forces.size(), box, d_nvt_rigid_data[0], m_deltaT));
+		}
+
 	exec_conf.syncAll();
 	
 	m_pdata->release();

@@ -47,6 +47,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NVTUpdater.h"
 #include "NVTUpdaterGPU.cuh"
 
+#include "NVTRigidUpdater.h"
+#include "NVTRigidUpdaterGPU.cuh"
+
 #include <boost/shared_ptr.hpp>
 
 #ifndef __NVTUPDATER_GPU_H__
@@ -72,6 +75,8 @@ class NVTUpdaterGPU : public NVTUpdater
 		
 	private:
 		std::vector<gpu_nvt_data> d_nvt_data;	//!< Temp data on the device needed to implement NVT
+
+		std::vector<gpu_nvt_rigid_data>	d_nvt_rigid_data;
 
 		//! Helper function to allocate data
 		void allocateNVTData(int block_size);

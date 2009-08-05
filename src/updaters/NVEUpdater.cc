@@ -142,8 +142,9 @@ void NVEUpdater::update(unsigned int timestep)
 		m_accel_set = true;
 		computeAccelerations(timestep, "NVE");
 		
-		// compute the initial net forces, torques and angular momenta
+		// compute the initial body velocities, forces, torques and angular momenta
 		if (m_rigid_updater) m_rigid_updater->setup();
+			
 		}
 
 	if (m_prof)
@@ -157,7 +158,8 @@ void NVEUpdater::update(unsigned int timestep)
 	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
 	assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
 	assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
-	
+
+		
 	// now we can get on with the velocity verlet
 	// r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
 	// v(t+deltaT/2) = v(t) + (1/2)a*deltaT

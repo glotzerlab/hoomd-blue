@@ -357,7 +357,7 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 	sysdef->init();
 
 	Scalar PE;
-	unsigned int steps = 100000;
+	unsigned int steps = 10000;
 	unsigned int sampling = 10000;
 	
 	shared_ptr<RigidData> rdata = sysdef->getRigidData();

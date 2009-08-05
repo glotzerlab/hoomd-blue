@@ -74,7 +74,7 @@ NVTRigidUpdater::NVTRigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Sca
 	m_temperature = temperature;	
 	
 	boltz = 1.0;
-	chain = 10;
+	chain = 5;
 	order = 3;
 	iter = 1;
 	t_freq = 10.0;
@@ -222,9 +222,7 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 	Scalar dtfm, dtq, dtv, dt_half;
 
 	dt_half = 0.5 * m_deltaT;
-	dtq = 0.5 * m_deltaT;
-	dtv = m_deltaT;
-
+	
 	akin_t = akin_r = 0.0;
 
 	// now we can get on with the velocity verlet: initial integration
@@ -256,9 +254,9 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 
 	// intialize velocity scale for translation and rotation
 	
-	tmp = -1.0 * dtq * eta_dot_t_handle.data[0];
+	tmp = -1.0 * dt_half * eta_dot_t_handle.data[0];
 	scale_t = exp(tmp);
-	tmp = -1.0 * dtq * eta_dot_r_handle.data[0];
+	tmp = -1.0 * dt_half * eta_dot_r_handle.data[0];
 	scale_r = exp(tmp);
 
 	// for each body
@@ -318,10 +316,10 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 		matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
 		quat_multiply(orientation_handle.data[body], tbody, fquat);
     
-		conjqm_handle.data[body].x += dtv * fquat.x;
-		conjqm_handle.data[body].y += dtv * fquat.y;
-		conjqm_handle.data[body].z += dtv * fquat.z;
-		conjqm_handle.data[body].w += dtv * fquat.w;
+		conjqm_handle.data[body].x += m_deltaT * fquat.x;
+		conjqm_handle.data[body].y += m_deltaT * fquat.y;
+		conjqm_handle.data[body].z += m_deltaT * fquat.z;
+		conjqm_handle.data[body].w += m_deltaT * fquat.w;
 
 		conjqm_handle.data[body].x *= scale_r;
 		conjqm_handle.data[body].y *= scale_r;
@@ -330,11 +328,11 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
   
 		// step 1.4 to 1.13 - use no_squish rotate to update p and q
   
-		no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dtq);
-		no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dtq);
-		no_squish_rotate(1, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dtv);
-		no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dtq);
-		no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dtq);
+		no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
+		no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
+		no_squish_rotate(1, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], m_deltaT);
+		no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
+		no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
   
 		// update the exyz_space
 		// transform p back to angmom
@@ -347,7 +345,7 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 		angmom_handle.data[body].x *= 0.5;
 		angmom_handle.data[body].y *= 0.5;
 		angmom_handle.data[body].z *= 0.5;
-    
+		    
 		computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
 				   ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
 							       
@@ -360,7 +358,7 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 	} // out of scope for handles
 
 	// update thermostat chain
-  
+  printf("Ksumt = %f; Ksumr = %f\n", akin_t, akin_r);
 	update_nhcp(akin_t, akin_r, timestep);
 
 	
@@ -379,9 +377,7 @@ void NVTRigidUpdater::finalIntegrate(unsigned int timestep)
 	Scalar dtq, dtv, dt_half;
 	
 	dt_half = 0.5 * m_deltaT;
-	dtq = dt_half;
-	dtv = m_deltaT;
-
+	
 	{
 
 	// rigid data handes
@@ -405,9 +401,9 @@ void NVTRigidUpdater::finalIntegrate(unsigned int timestep)
 	
 	// intialize velocity scale for translation and rotation
 	
-	tmp = -1.0 * dtq * eta_dot_t_handle.data[0];
+	tmp = -1.0 * dt_half * eta_dot_t_handle.data[0];
 	scale_t = exp(tmp);
-	tmp = -1.0 * dtq * eta_dot_r_handle.data[0];
+	tmp = -1.0 * dt_half * eta_dot_r_handle.data[0];
 	scale_r = exp(tmp);
 
 
@@ -425,10 +421,10 @@ void NVTRigidUpdater::finalIntegrate(unsigned int timestep)
 		matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
 		quat_multiply(orientation_handle.data[body], tbody, fquat);
     
-		conjqm_handle.data[body].x = scale_r * conjqm_handle.data[body].x + dtv * fquat.x;
-		conjqm_handle.data[body].y = scale_r * conjqm_handle.data[body].y + dtv * fquat.y;
-		conjqm_handle.data[body].z = scale_r * conjqm_handle.data[body].z + dtv * fquat.z;
-		conjqm_handle.data[body].w = scale_r * conjqm_handle.data[body].w + dtv * fquat.w;
+		conjqm_handle.data[body].x = scale_r * conjqm_handle.data[body].x + m_deltaT * fquat.x;
+		conjqm_handle.data[body].y = scale_r * conjqm_handle.data[body].y + m_deltaT * fquat.y;
+		conjqm_handle.data[body].z = scale_r * conjqm_handle.data[body].z + m_deltaT * fquat.z;
+		conjqm_handle.data[body].w = scale_r * conjqm_handle.data[body].w + m_deltaT * fquat.w;
     
 		inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
 		transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);

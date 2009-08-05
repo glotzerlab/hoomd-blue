@@ -90,4 +90,26 @@ struct gpu_rigid_data_arrays
 	unsigned int *particle_tags;	//!< Particle tags
 };
 
+struct gpu_nvt_rigid_data_arrays 
+{
+	unsigned int n_bodies;	
+	
+	float  *q_t;
+	float  *q_r;
+	float  *eta_t;
+	float  *eta_r;
+	float  *eta_dot_t;
+	float  *eta_dot_r;
+	float  *f_eta_t;
+	float  *f_eta_r;
+	float  *w;
+	float  *wdti1;
+	float  *wdti2;
+	float  *wdti4;
+	float4 *conjqm;
+	
+	float	*partial_ke;
+	float	*ke;
+};
+
 #endif	

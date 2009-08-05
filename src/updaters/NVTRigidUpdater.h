@@ -78,7 +78,14 @@ class NVTRigidUpdater : public NVERigidUpdater
 		
 		//! Second step of velocit Verlet integration
 		void finalIntegrate(unsigned int timestep);
-			
+	
+	
+		const GPUArray<Scalar>& getEtaDotT() { return eta_dot_t; }
+		const GPUArray<Scalar>& getEtaDotR() { return eta_dot_r; }
+		const GPUArray<Scalar4>& getConjqm() { return conjqm; }
+
+		void updateThermostats(Scalar akin_t, Scalar akin_r, unsigned int timestep) { update_nhcp(akin_t, akin_r, timestep); }
+
 	protected:
 		//! Private member functions using parameters to avoid duplicate array handles declaration
 		void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);

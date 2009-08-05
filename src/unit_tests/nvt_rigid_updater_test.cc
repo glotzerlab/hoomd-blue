@@ -189,8 +189,10 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, ExecutionConfiguration 
 	Scalar tau = sqrt(Q / (Scalar(3.0) * temperature));
 
 	shared_ptr<NVTUpdater> nvt_up = nvt_creator(sysdef, deltaT, tau, temperature);
-	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
-	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
+	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
+	shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
+//	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
+//	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
 	
 	// setup some values for alpha and sigma
 	Scalar epsilon = Scalar(1.0);
@@ -207,8 +209,8 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, ExecutionConfiguration 
 	sysdef->init();
 
 	Scalar PE;
-	unsigned int steps = 1000;
-	unsigned int sampling = 1000;
+	unsigned int steps = 100;
+	unsigned int sampling = 10;
 	
 	shared_ptr<RigidData> rdata = sysdef->getRigidData();
 	unsigned int nrigid_dof = rdata->getNumDOF();
@@ -272,24 +274,24 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, ExecutionConfiguration 
 
 	}
 
-
+/*
 BOOST_AUTO_TEST_CASE( NVTUpdater_energy_tests )
 {
 	printf("\nTesting energy conservation on CPU...\n");
 	nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
 	nvt_updater_energy_tests(nvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
 }
-
+*/
 #ifdef ENABLE_CUDA
-/*
+
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_energy_tests )
 {
 	printf("\nTesting energy conservation on GPU...\n");
-	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2 _3, _4);
+	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
 	nvt_updater_energy_tests(nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
 }
-*/
+
 #endif
 
 #ifdef WIN32
