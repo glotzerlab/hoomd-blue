@@ -147,7 +147,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, bool min_cpu,
 ExecutionConfiguration::ExecutionConfiguration(const std::vector<int>& gpu_ids, bool min_cpu, bool ignore_display)
 	{
 	exec_mode = GPU;
-	
+
+	#ifdef ENABLE_CAC_GPU_ID
+	cerr << endl << "***Error! Do not specify --mode=gpu when running on CAC, it triggers a nasty bug" << endl;
+	throw runtime_error("Error initializing execution configuration");
+	#endif
+
 	#ifdef ENABLE_CUDA
 	// scan the available GPUs
 	scanGPUs(ignore_display);
