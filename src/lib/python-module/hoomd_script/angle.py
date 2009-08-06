@@ -95,8 +95,6 @@ class harmonic(force._force):
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating angle forces");
 
-		globals.angle_compute = self.cpp_force;
-
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
 		# variable for tracking which angle type coefficients have been set
@@ -194,8 +192,6 @@ class cgcmm(force._force):
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating CGCMM angle forces");
-
-		globals.angle_compute = self.cpp_force;
 
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		
