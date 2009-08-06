@@ -152,16 +152,18 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		computeAccelerationsGPU(timestep, "NVT", true);
 
 		// compute the initial net forces, torques and angular momenta 
-		if (m_rigid_updater) m_rigid_updater->setup();
+		if (m_rigid_updater) 
+			{
+			m_rigid_updater->setup();
 			
-		// Only one GPU
-		d_nvt_rigid_data[0].n_bodies = n_bodies;
+			// Only one GPU
+			d_nvt_rigid_data[0].n_bodies = n_bodies;
 			
-		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_t), n_bodies * sizeof(float)));
-		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_r), n_bodies * sizeof(float)));
-		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_t), sizeof(float)));
-		exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_r), sizeof(float)));
-			
+			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_t), n_bodies * sizeof(float)));
+			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_r), n_bodies * sizeof(float)));
+			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_t), sizeof(float)));
+			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_r), sizeof(float)));
+			}
 		}
 
 	if (m_prof) m_prof->push(exec_conf, "NVT");
@@ -261,9 +263,6 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_reduce_ksum, d_nvt_data[cur_gpu]));
 
 	exec_conf.syncAll();
-
-	// reduce the Ksum values for rigid bodies
-	exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rigid_data[0]));
 		
 	// copy the values from the GPUs to the CPU and complete the sum
 	float Ksum_total = 0.0f;
@@ -294,7 +293,6 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_t, d_nvt_rigid_data[0].Ksum_t, sizeof(float), cudaMemcpyDeviceToHost));
 	exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_r, d_nvt_rigid_data[0].Ksum_r, sizeof(float), cudaMemcpyDeviceToHost));
 	
-	printf("Ksumt = %f; Ksumr = %f\n", Ksum_t, Ksum_r);
 	m_rigid_updater->updateThermostats(Ksum_t, Ksum_r, timestep);
 
 	// get the particle data arrays again so we can update the 2nd half of the step
@@ -315,6 +313,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
 		ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
 		ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
+		ArrayHandle<Scalar4> orientation_handle(rigid_data->getOrientation(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> ex_space_handle(rigid_data->getExSpace(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> ey_space_handle(rigid_data->getEySpace(), access_location::device, access_mode::read);
 		ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::read);
@@ -337,6 +336,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		d_rdata.ex_space = ex_space_handle.data;
 		d_rdata.ey_space = ey_space_handle.data;
 		d_rdata.ez_space = ez_space_handle.data;
+		d_rdata.orientation = orientation_handle.data;
 		d_rdata.particle_pos = particle_pos_handle.data;
 		d_rdata.particle_indices = particle_indices_handle.data;
 		d_rdata.force = force_handle.data;

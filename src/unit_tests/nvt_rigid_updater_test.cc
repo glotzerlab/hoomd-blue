@@ -124,6 +124,10 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, ExecutionConfiguration 
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	BoxDim box = pdata->getBox();
 	
+	Scalar temperature = 2.5;
+	unsigned int steps = 10000;
+	unsigned int sampling = 1000;
+	
 	// setup a simple initial state
 	unsigned int ibody = 0;
 	unsigned int iparticle = 0;
@@ -136,7 +140,6 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, ExecutionConfiguration 
 	
 	unsigned int seed = 10483;
 	boost::shared_ptr<Saru> random = boost::shared_ptr<Saru>(new Saru(seed));
-	Scalar temperature = 2.5;
 	Scalar KE = Scalar(0.0);
 	
 	ParticleDataArrays arrays = pdata->acquireReadWrite();
@@ -209,8 +212,6 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, ExecutionConfiguration 
 	sysdef->init();
 
 	Scalar PE;
-	unsigned int steps = 100;
-	unsigned int sampling = 10;
 	
 	shared_ptr<RigidData> rdata = sysdef->getRigidData();
 	unsigned int nrigid_dof = rdata->getNumDOF();
