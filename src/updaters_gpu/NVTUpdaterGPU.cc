@@ -116,15 +116,18 @@ void NVTUpdaterGPU::freeNVTData()
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_nvt_data[cur_gpu].Ksum));
 		d_nvt_data[cur_gpu].Ksum = NULL;
 		}
-
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].partial_Ksum_t));
-	d_nvt_rigid_data[0].partial_Ksum_t = NULL;
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].partial_Ksum_r));
-	d_nvt_rigid_data[0].partial_Ksum_r = NULL;
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].Ksum_t));
-	d_nvt_rigid_data[0].Ksum_t = NULL;
-	exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].Ksum_r));
-	d_nvt_rigid_data[0].Ksum_r = NULL;
+	
+	if (m_rigid_updater)
+		{
+		exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].partial_Ksum_t));
+		d_nvt_rigid_data[0].partial_Ksum_t = NULL;
+		exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].partial_Ksum_r));
+		d_nvt_rigid_data[0].partial_Ksum_r = NULL;
+		exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].Ksum_t));
+		d_nvt_rigid_data[0].Ksum_t = NULL;
+		exec_conf.gpu[0]->call(bind(cudaFree, d_nvt_rigid_data[0].Ksum_r));
+		d_nvt_rigid_data[0].Ksum_r = NULL;
+		}
 	}
 
 /*! \param timestep Current time step of the simulation
