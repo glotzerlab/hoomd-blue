@@ -358,7 +358,6 @@ void NVTRigidUpdater::initialIntegrate(unsigned int timestep)
 	} // out of scope for handles
 
 	// update thermostat chain
-  printf("Ksumt = %f; Ksumr = %f\n", akin_t, akin_r);
 	update_nhcp(akin_t, akin_r, timestep);
 
 	
