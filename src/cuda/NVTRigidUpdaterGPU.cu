@@ -809,7 +809,11 @@ cudaError_t gpu_nvt_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rig
 	error = cudaBindTexture(0, rigid_data_vel_tex, rigid_data.vel, sizeof(float4) * n_bodies);
 	if (error != cudaSuccess)
 		return error;
-			
+	
+	error = cudaBindTexture(0, rigid_data_angvel_tex, rigid_data.angvel, sizeof(float4) * n_bodies);
+	if (error != cudaSuccess)
+		return error;
+				
 	error = cudaBindTexture(0, rigid_data_angmom_tex, rigid_data.angmom, sizeof(float4) * n_bodies);
 	if (error != cudaSuccess)
 		return error;
