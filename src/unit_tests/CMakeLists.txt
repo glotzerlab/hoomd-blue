@@ -125,7 +125,9 @@ endif(ENABLE_CUDA)
 foreach (CUR_TEST ${TEST_LIST})
 	# add and link the unit test executable
 	if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
-	cuda_add_executable(${CUR_TEST} ${CUR_TEST}.cc ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+	cuda_add_executable(${CUR_TEST} ${CUR_TEST}.cc
+			${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu OPTIONS
+			${CUDA_ADDITIONAL_OPTIONS})
 	else(ENABLEC_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
 	add_executable(${CUR_TEST} ${CUR_TEST}.cc)
 	endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)

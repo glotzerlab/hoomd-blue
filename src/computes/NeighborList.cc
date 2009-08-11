@@ -68,6 +68,10 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \file NeighborList.cc
 	\brief Defines the NeighborList class
 */
@@ -99,6 +103,11 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
 	// allocate the list memory
 	m_list.resize(m_pdata->getN());
 	m_exclusions.resize(m_pdata->getN());
+#if defined(LARGE_EXCLUSION_LIST)
+	m_exclusions2.resize(m_pdata->getN());
+	m_exclusions3.resize(m_pdata->getN());
+	m_exclusions4.resize(m_pdata->getN());
+#endif
 
 	// allocate memory for storing the last particle positions
 	m_last_x = new Scalar[m_pdata->getN()];
@@ -166,34 +175,50 @@ void NeighborList::allocateGPUData(int height)
 		// allocate and zero device memory
 		// alloate one extra row so that compute kernels can safely prefetch "past" the end
 		// without causing memory errors
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitch, (void**)((void*)&m_gpu_nlist[cur_gpu].list), &pitch, N*sizeof(unsigned int), height + 1));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitchHack, (void**)((void*)&m_gpu_nlist[cur_gpu].list), &pitch, N*sizeof(unsigned int), height + 1));
 		// want pitch in elements, not bytes
 		m_gpu_nlist[cur_gpu].pitch = (int)pitch / sizeof(int);
 		m_gpu_nlist[cur_gpu].height = height;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].list, 0, pitch * height));
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].n_neigh), pitch));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].n_neigh), pitch));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].n_neigh, 0, pitch));
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].last_updated_pos), m_gpu_nlist[cur_gpu].pitch*sizeof(float4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].last_updated_pos), m_gpu_nlist[cur_gpu].pitch*sizeof(float4)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].last_updated_pos, 0, m_gpu_nlist[cur_gpu].pitch * sizeof(float4)));
 	
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].needs_update), sizeof(int)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].overflow), sizeof(int)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].needs_update), sizeof(int)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].overflow), sizeof(int)));
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
+#if defined(LARGE_EXCLUSION_LIST)
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions2), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions2, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions3), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions3, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions4), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions4, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
+#endif
 		}
 
 	// allocate and zero host memory
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_nlist), pitch * height));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_nlist), pitch * height, cudaHostAllocPortable));
 	memset((void*)m_host_nlist, 0, pitch*height);
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_n_neigh), N * sizeof(unsigned int)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_neigh), N * sizeof(unsigned int), cudaHostAllocPortable));
 	memset((void*)m_host_n_neigh, 0, N * sizeof(unsigned int));
 	
-	exec_conf.gpu[0]->call(bind(cudaMallocHost, (void**)((void*)&m_host_exclusions), N * sizeof(uint4)));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions), N * sizeof(uint4), cudaHostAllocPortable));
 	memset((void*)m_host_exclusions, 0xff, N * sizeof(uint4));
+#if defined(LARGE_EXCLUSION_LIST)
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions2), N * sizeof(uint4), cudaHostAllocPortable));
+	memset((void*)m_host_exclusions2, 0xff, N * sizeof(uint4));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions3), N * sizeof(uint4), cudaHostAllocPortable));
+	memset((void*)m_host_exclusions3, 0xff, N * sizeof(uint4));
+	exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions4), N * sizeof(uint4), cudaHostAllocPortable));
+	memset((void*)m_host_exclusions4, 0xff, N * sizeof(uint4));
+#endif
 	}
 	
 void NeighborList::freeGPUData()
@@ -202,6 +227,11 @@ void NeighborList::freeGPUData()
 	
 	assert(m_host_nlist);
 	assert(m_host_exclusions);
+#if defined(LARGE_EXCLUSION_LIST)
+	assert(m_host_exclusions2);
+	assert(m_host_exclusions3);
+	assert(m_host_exclusions4);
+#endif
 	assert(m_host_n_neigh);
 	
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_nlist));
@@ -210,6 +240,14 @@ void NeighborList::freeGPUData()
 	m_host_n_neigh = NULL;
 	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions));
 	m_host_exclusions = NULL;
+#if defined(LARGE_EXCLUSION_LIST)
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions2));
+	m_host_exclusions2 = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions3));
+	m_host_exclusions3 = NULL;
+	exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions4));
+	m_host_exclusions4 = NULL;
+#endif
 
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
@@ -217,6 +255,11 @@ void NeighborList::freeGPUData()
 		assert(m_gpu_nlist[cur_gpu].list);
 		assert(m_gpu_nlist[cur_gpu].n_neigh);
 		assert(m_gpu_nlist[cur_gpu].exclusions);
+#if defined(LARGE_EXCLUSION_LIST)
+		assert(m_gpu_nlist[cur_gpu].exclusions2);
+		assert(m_gpu_nlist[cur_gpu].exclusions3);
+		assert(m_gpu_nlist[cur_gpu].exclusions4);
+#endif
 		assert(m_gpu_nlist[cur_gpu].last_updated_pos);
 		assert(m_gpu_nlist[cur_gpu].needs_update);
 	
@@ -226,6 +269,14 @@ void NeighborList::freeGPUData()
 		m_gpu_nlist[cur_gpu].list = NULL;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions));
 		m_gpu_nlist[cur_gpu].exclusions = NULL;
+#if defined(LARGE_EXCLUSION_LIST)
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions2));
+		m_gpu_nlist[cur_gpu].exclusions2 = NULL;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions3));
+		m_gpu_nlist[cur_gpu].exclusions3 = NULL;
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions4));
+		m_gpu_nlist[cur_gpu].exclusions4 = NULL;
+#endif
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].last_updated_pos));
 		m_gpu_nlist[cur_gpu].last_updated_pos = NULL;
 		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].needs_update));
@@ -559,6 +610,68 @@ void NeighborList::updateExclusionData()
 			m_host_exclusions[i].w = EXCLUDE_EMPTY;
 		else
 			m_host_exclusions[i].w = arrays.rtag[m_exclusions[tag_i].e4];
+
+#if defined(LARGE_EXCLUSION_LIST)
+		if (m_exclusions2[tag_i].e1 == EXCLUDE_EMPTY)
+			m_host_exclusions2[i].x = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions2[i].x = arrays.rtag[m_exclusions2[tag_i].e1];
+			
+		if (m_exclusions2[tag_i].e2 == EXCLUDE_EMPTY)
+			m_host_exclusions2[i].y = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions2[i].y = arrays.rtag[m_exclusions2[tag_i].e2];
+
+		if (m_exclusions2[tag_i].e3 == EXCLUDE_EMPTY)
+			m_host_exclusions2[i].z = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions2[i].z = arrays.rtag[m_exclusions2[tag_i].e3];
+
+		if (m_exclusions2[tag_i].e4 == EXCLUDE_EMPTY)
+			m_host_exclusions2[i].w = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions2[i].w = arrays.rtag[m_exclusions2[tag_i].e4];
+
+		if (m_exclusions3[tag_i].e1 == EXCLUDE_EMPTY)
+			m_host_exclusions3[i].x = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions3[i].x = arrays.rtag[m_exclusions3[tag_i].e1];
+			
+		if (m_exclusions3[tag_i].e2 == EXCLUDE_EMPTY)
+			m_host_exclusions3[i].y = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions3[i].y = arrays.rtag[m_exclusions3[tag_i].e2];
+
+		if (m_exclusions3[tag_i].e3 == EXCLUDE_EMPTY)
+			m_host_exclusions3[i].z = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions3[i].z = arrays.rtag[m_exclusions3[tag_i].e3];
+
+		if (m_exclusions3[tag_i].e4 == EXCLUDE_EMPTY)
+			m_host_exclusions3[i].w = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions3[i].w = arrays.rtag[m_exclusions3[tag_i].e4];
+
+		if (m_exclusions4[tag_i].e1 == EXCLUDE_EMPTY)
+			m_host_exclusions4[i].x = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions4[i].x = arrays.rtag[m_exclusions4[tag_i].e1];
+			
+		if (m_exclusions4[tag_i].e2 == EXCLUDE_EMPTY)
+			m_host_exclusions4[i].y = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions4[i].y = arrays.rtag[m_exclusions4[tag_i].e2];
+
+		if (m_exclusions4[tag_i].e3 == EXCLUDE_EMPTY)
+			m_host_exclusions4[i].z = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions4[i].z = arrays.rtag[m_exclusions4[tag_i].e3];
+
+		if (m_exclusions4[tag_i].e4 == EXCLUDE_EMPTY)
+			m_host_exclusions4[i].w = EXCLUDE_EMPTY;
+		else
+			m_host_exclusions4[i].w = arrays.rtag[m_exclusions4[tag_i].e4];
+#endif
 		}
 	
 	exec_conf.tagAll(__FILE__, __LINE__);
@@ -567,6 +680,17 @@ void NeighborList::updateExclusionData()
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions, m_host_exclusions,
 			sizeof(uint4) * m_pdata->getN(),
 			cudaMemcpyHostToDevice));
+#if defined(LARGE_EXCLUSION_LIST)
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions2, m_host_exclusions2,
+			sizeof(uint4) * m_pdata->getN(),
+			cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions3, m_host_exclusions3,
+			sizeof(uint4) * m_pdata->getN(),
+			cudaMemcpyHostToDevice));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions4, m_host_exclusions4,
+			sizeof(uint4) * m_pdata->getN(),
+			cudaMemcpyHostToDevice));
+#endif
 		}
 	
 	m_pdata->release();
@@ -611,6 +735,32 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 		m_exclusions[tag1].e3 = tag2;
 	else if (m_exclusions[tag1].e4 == EXCLUDE_EMPTY)
 		m_exclusions[tag1].e4 = tag2;
+#if defined(LARGE_EXCLUSION_LIST)
+	else if (m_exclusions2[tag1].e1 == EXCLUDE_EMPTY)
+		m_exclusions2[tag1].e1 = tag2;
+	else if (m_exclusions2[tag1].e2 == EXCLUDE_EMPTY)
+		m_exclusions2[tag1].e2 = tag2;
+	else if (m_exclusions2[tag1].e3 == EXCLUDE_EMPTY)
+		m_exclusions2[tag1].e3 = tag2;
+	else if (m_exclusions2[tag1].e4 == EXCLUDE_EMPTY)
+		m_exclusions2[tag1].e4 = tag2;
+	else if (m_exclusions3[tag1].e1 == EXCLUDE_EMPTY)
+		m_exclusions3[tag1].e1 = tag2;
+	else if (m_exclusions3[tag1].e2 == EXCLUDE_EMPTY)
+		m_exclusions3[tag1].e2 = tag2;
+	else if (m_exclusions3[tag1].e3 == EXCLUDE_EMPTY)
+		m_exclusions3[tag1].e3 = tag2;
+	else if (m_exclusions3[tag1].e4 == EXCLUDE_EMPTY)
+		m_exclusions3[tag1].e4 = tag2;
+	else if (m_exclusions4[tag1].e1 == EXCLUDE_EMPTY)
+		m_exclusions4[tag1].e1 = tag2;
+	else if (m_exclusions4[tag1].e2 == EXCLUDE_EMPTY)
+		m_exclusions4[tag1].e2 = tag2;
+	else if (m_exclusions4[tag1].e3 == EXCLUDE_EMPTY)
+		m_exclusions4[tag1].e3 = tag2;
+	else if (m_exclusions4[tag1].e4 == EXCLUDE_EMPTY)
+		m_exclusions4[tag1].e4 = tag2;
+#endif
 	else
 		{
 		// error: exclusion list full
@@ -627,6 +777,32 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 		m_exclusions[tag2].e3 = tag1;
 	else if (m_exclusions[tag2].e4 == EXCLUDE_EMPTY)
 		m_exclusions[tag2].e4 = tag1;
+#if defined(LARGE_EXCLUSION_LIST)
+	else if (m_exclusions2[tag2].e1 == EXCLUDE_EMPTY)
+		m_exclusions2[tag2].e1 = tag1;
+	else if (m_exclusions2[tag2].e2 == EXCLUDE_EMPTY)
+		m_exclusions2[tag2].e2 = tag1;
+	else if (m_exclusions2[tag2].e3 == EXCLUDE_EMPTY)
+		m_exclusions2[tag2].e3 = tag1;
+	else if (m_exclusions2[tag2].e4 == EXCLUDE_EMPTY)
+		m_exclusions2[tag2].e4 = tag1;
+	else if (m_exclusions3[tag2].e1 == EXCLUDE_EMPTY)
+		m_exclusions3[tag2].e1 = tag1;
+	else if (m_exclusions3[tag2].e2 == EXCLUDE_EMPTY)
+		m_exclusions3[tag2].e2 = tag1;
+	else if (m_exclusions3[tag2].e3 == EXCLUDE_EMPTY)
+		m_exclusions3[tag2].e3 = tag1;
+	else if (m_exclusions3[tag2].e4 == EXCLUDE_EMPTY)
+		m_exclusions3[tag2].e4 = tag1;
+	else if (m_exclusions4[tag2].e1 == EXCLUDE_EMPTY)
+		m_exclusions4[tag2].e1 = tag1;
+	else if (m_exclusions4[tag2].e2 == EXCLUDE_EMPTY)
+		m_exclusions4[tag2].e2 = tag1;
+	else if (m_exclusions4[tag2].e3 == EXCLUDE_EMPTY)
+		m_exclusions4[tag2].e3 = tag1;
+	else if (m_exclusions4[tag2].e4 == EXCLUDE_EMPTY)
+		m_exclusions4[tag2].e4 = tag1;
+#endif
 	else
 		{
 		// error: exclusion list full
@@ -647,8 +823,82 @@ void NeighborList::clearExclusions()
 		m_exclusions[i].e3 = EXCLUDE_EMPTY;
 		m_exclusions[i].e4 = EXCLUDE_EMPTY;
 		}
-		
+#if defined(LARGE_EXCLUSION_LIST)
+	for (unsigned int i = 0; i < m_exclusions2.size(); i++)
+		{
+		m_exclusions2[i].e1 = EXCLUDE_EMPTY;
+		m_exclusions2[i].e2 = EXCLUDE_EMPTY;
+		m_exclusions2[i].e3 = EXCLUDE_EMPTY;
+		m_exclusions2[i].e4 = EXCLUDE_EMPTY;
+		}
+	for (unsigned int i = 0; i < m_exclusions3.size(); i++)
+		{
+		m_exclusions3[i].e1 = EXCLUDE_EMPTY;
+		m_exclusions3[i].e2 = EXCLUDE_EMPTY;
+		m_exclusions3[i].e3 = EXCLUDE_EMPTY;
+		m_exclusions3[i].e4 = EXCLUDE_EMPTY;
+		}
+	for (unsigned int i = 0; i < m_exclusions4.size(); i++)
+		{
+		m_exclusions4[i].e1 = EXCLUDE_EMPTY;
+		m_exclusions4[i].e2 = EXCLUDE_EMPTY;
+		m_exclusions4[i].e3 = EXCLUDE_EMPTY;
+		m_exclusions4[i].e4 = EXCLUDE_EMPTY;
+		}
+#endif
 	forceUpdate();
+	}
+	
+/*! \post Gather some statistics about exclusions usage.
+*/
+void NeighborList::countExclusions()
+	{
+	unsigned int excluded_count[MAX_NUM_EXCLUDED+1];
+	unsigned int num_excluded, max_num_excluded;
+
+	max_num_excluded = 0;
+	for (unsigned int c=0; c <= MAX_NUM_EXCLUDED; ++c)
+		excluded_count[c] = 0;
+
+#if !defined(LARGE_EXCLUSION_LIST)
+	for (unsigned int i = 0; i < m_exclusions.size(); i++)
+		{
+		num_excluded = 0;
+		if (m_exclusions[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
+		if (num_excluded > max_num_excluded) max_num_excluded = num_excluded;
+		excluded_count[num_excluded] += 1;
+		}
+#else
+	for (unsigned int i = 0; i < m_exclusions.size(); i++)
+		{
+		num_excluded = 0;
+		if (m_exclusions[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions2[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions2[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions2[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions2[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions3[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions3[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions3[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions3[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions4[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions4[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions4[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
+		if (m_exclusions4[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
+		if (num_excluded > max_num_excluded) max_num_excluded = num_excluded;
+		excluded_count[num_excluded] += 1;
+		}
+#endif
+	cout << "-- Exclusion statistics:" << endl;
+	cout << "Max. number of exclusions: " << max_num_excluded << endl;
+	for (unsigned int i=0; i <= max_num_excluded; ++i)
+		cout << "Atoms with " << i << " exclusions: " << excluded_count[i] << endl;
 	}
 	
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be 
@@ -721,7 +971,32 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
 		return true;
 	if (m_exclusions[tag1].e4 == tag2)
 		return true;
-	
+#if defined(LARGE_EXCLUSION_LIST)
+	if (m_exclusions2[tag1].e1 == tag2)
+		return true;
+	if (m_exclusions2[tag1].e2 == tag2)
+		return true;
+	if (m_exclusions2[tag1].e3 == tag2)
+		return true;
+	if (m_exclusions2[tag1].e4 == tag2)
+		return true;
+	if (m_exclusions3[tag1].e1 == tag2)
+		return true;
+	if (m_exclusions3[tag1].e2 == tag2)
+		return true;
+	if (m_exclusions3[tag1].e3 == tag2)
+		return true;
+	if (m_exclusions3[tag1].e4 == tag2)
+		return true;
+	if (m_exclusions4[tag1].e1 == tag2)
+		return true;
+	if (m_exclusions4[tag1].e2 == tag2)
+		return true;
+	if (m_exclusions4[tag1].e3 == tag2)
+		return true;
+	if (m_exclusions4[tag1].e4 == tag2)
+		return true;
+#endif
 	return false;
 	}
 	
@@ -1171,6 +1446,11 @@ void NeighborList::buildNlist()
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i]; 
 		const ExcludeList &excludes = m_exclusions[arrays.tag[i]];		
+#if defined(LARGE_EXCLUSION_LIST)
+		const ExcludeList &excludes2 = m_exclusions2[arrays.tag[i]];
+		const ExcludeList &excludes3 = m_exclusions3[arrays.tag[i]];
+		const ExcludeList &excludes4 = m_exclusions4[arrays.tag[i]];
+#endif
 		
 		// for each other particle with i < j
 		for (unsigned int j = i + 1; j < arrays.nparticles; j++)
@@ -1179,6 +1459,15 @@ void NeighborList::buildNlist()
 			if (excludes.e1 == arrays.tag[j] || excludes.e2 == arrays.tag[j] || 
 				excludes.e3 == arrays.tag[j] || excludes.e4 == arrays.tag[j])
 				continue;
+#if defined(LARGE_EXCLUSION_LIST)
+			if (excludes2.e1 == arrays.tag[j] || excludes2.e2 == arrays.tag[j] || 
+				excludes2.e3 == arrays.tag[j] || excludes2.e4 == arrays.tag[j] ||
+				excludes3.e1 == arrays.tag[j] || excludes3.e2 == arrays.tag[j] || 
+				excludes3.e3 == arrays.tag[j] || excludes3.e4 == arrays.tag[j] ||
+				excludes4.e1 == arrays.tag[j] || excludes4.e2 == arrays.tag[j] || 
+				excludes4.e3 == arrays.tag[j] || excludes4.e4 == arrays.tag[j])
+				continue;
+#endif
 
 			// calculate dr
 			Scalar dx = arrays.x[j] - xi;
@@ -1284,6 +1573,7 @@ void export_NeighborList()
 		.def("setStorageMode", &NeighborList::setStorageMode)
 		.def("addExclusion", &NeighborList::addExclusion)
 		.def("clearExclusions", &NeighborList::clearExclusions)
+		.def("countExclusions", &NeighborList::countExclusions)
 		.def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
 		.def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
 		.def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)

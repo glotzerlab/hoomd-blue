@@ -43,10 +43,25 @@ THE POSSIBILITY OF SUCH DAMAGE.
 bool g_gpu_error_checking = false;
 
 #if (CUDA_VERSION < 2020)
-cudaError_t cudaHostAlloc(void **pHost, size_t bytes, unsigned int flags)
+cudaError_t cudaHostAllocHack(void **pHost, size_t bytes, unsigned int flags)
 	{
-	cudaMallocHost(pHost, bytes);
+	return cudaMallocHost(pHost, bytes);
+	}
+#else
+cudaError_t cudaHostAllocHack(void **pHost, size_t bytes, unsigned int flags)
+	{
+	return cudaHostAlloc(pHost, bytes, flags);
 	}
 #endif
+
+cudaError_t cudaMallocHack(void **pDevice, size_t bytes)
+	{
+	return cudaMalloc(pDevice, bytes);
+	}
+
+cudaError_t cudaMallocPitchHack(void **devPtr, size_t  *pitch, size_t   width, size_t   height)
+	{
+	return cudaMallocPitch(devPtr, pitch, width, height);
+	}
 
 // vim:syntax=cpp

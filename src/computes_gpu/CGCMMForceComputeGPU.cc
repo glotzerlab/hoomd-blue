@@ -62,6 +62,10 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
@@ -114,7 +118,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
 		assert(d_coeffs[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
 		}
@@ -144,34 +148,40 @@ void CGCMMForceComputeGPU::setBlockSize(int block_size)
 	m_block_size = block_size;
 	}
 
-/*! \post The parameters \a lj1 through \a lj4 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
+/*! \post The parameters \a lj12 through \a lj4 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
 	\note \a lj? are low level parameters used in the calculation. In order to specify
 	these for a 12-4 and 9-6 lennard jones formula (with alpha), they should be set to the following.
 
         12-4
-	- \a lj1 = 2.598076 * epsilon * pow(sigma,12.0)
-	- \a lj2 = 0.0
-	- \a lj3 = 0.0
-	- \a lj4 = alpha * 2.598076 * epsilon * pow(sigma,4.0)
+	- \a lj12 = 2.598076 * epsilon * pow(sigma,12.0)
+	- \a lj9 = 0.0
+	- \a lj6 = 0.0
+	- \a lj4 = -alpha * 2.598076 * epsilon * pow(sigma,4.0)
 
         9-6
-	- \a lj1 = 0.0
-	- \a lj2 = alpha * 6.75 * epsilon * pow(sigma,6.0)
-	- \a lj3 = 6.75 * epsilon * pow(sigma,9.0);
+	- \a lj12 = 0.0
+	- \a lj9 = 6.75 * epsilon * pow(sigma,9.0);
+	- \a lj6 = -alpha * 6.75 * epsilon * pow(sigma,6.0)
 	- \a lj4 = 0.0
-	
+
+       12-6
+	- \a lj12 = 4.0 * epsilon * pow(sigma,12.0)
+	- \a lj9 = 0.0
+	- \a lj6 = -alpha * 4.0 * epsilon * pow(sigma,4.0)
+	- \a lj4 = 0.0
+
 	Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
 	is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
-	for will have lj1 through lj4 set to 0.0.
+	for will have lj12 through lj4 set to 0.0.
 	
 	\param typ1 Specifies one type of the pair
 	\param typ2 Specifies the second type of the pair
-	\param lj1 First parameter used to calcluate forces
-	\param lj2 Second parameter used to calculate forces
-	\param lj3 Third parameter used to calcluate forces
-	\param lj4 Fourth parameter used to calculate forces
+	\param lj12 1/r^12 term
+	\param lj9  1/r^9 term
+	\param lj6  1/r^6 term
+	\param lj4  1/r^4 term
 */
-void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar lj3, Scalar lj4)
+void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4)
 	{
 	assert(h_coeffs);
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
@@ -181,8 +191,8 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
 		}
 	
 	// set coeffs in both symmetric positions in the matrix
-	h_coeffs[typ1*m_pdata->getNTypes() + typ2] = make_float4(lj1, lj2, lj3, lj4);
-	h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float4(lj1, lj2, lj3, lj4);
+	h_coeffs[typ1*m_pdata->getNTypes() + typ2] = make_float4(lj12, lj9, lj6, lj4);
+	h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float4(lj12, lj9, lj6, lj4);
 	
 	int nbytes = sizeof(float4)*m_pdata->getNTypes()*m_pdata->getNTypes();
 	exec_conf.tagAll(__FILE__, __LINE__);

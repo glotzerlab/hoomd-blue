@@ -57,7 +57,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
 //! Kernel for calculating gaussian forces
-/*! This kerenel is called to calculate the gaussian forces on all N particles
+/*! This kernel is called to calculate the gaussian forces on all N particles
 
 	\param force_data Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on

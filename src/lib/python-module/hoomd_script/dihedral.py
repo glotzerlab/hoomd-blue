@@ -59,9 +59,9 @@ import sys;
 
 ## Harmonic %dihedral forces
 #
-# The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every quadruplet of particles
-# in the simulation. 
-# \f[ V(r) = k \left( 1 + d cos\left(n * \phi(r) \right) \right) \f]
+# The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every defined 
+# quadruplet of particles in the simulation. 
+# \f[ V(r) = \frac{1}{2}k \left( 1 + d cos\left(n * \phi(r) \right) \right) \f]
 # where \f$ \phi \f$ is angle between two sides of the dihedral
 #
 # Coefficients \f$ k \f$, \f$ d \f$, \f$ n \f$ and  must be set for each type of %dihedral in the simulation using
@@ -94,8 +94,6 @@ class harmonic(force._force):
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating dihedral forces");
-
-		globals.dihedral_compute = self.cpp_force;
 
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		

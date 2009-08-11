@@ -56,21 +56,22 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 
-//! Kernel for calculating lj forces
-/*! This kerenel is called to calculate the lennard-jones forces on all N particles
+//! Kernel for calculating CG-CMM Lennard-Jones forces
+/*! This kernel is called to calculate the Lennard-Jones forces on all N particles for the CG-CMM model potential.
 
 	\param force_data Device memory array to write calculated forces to
 	\param pdata Particle data on the GPU to calculate forces on
 	\param nlist Neigbhor list data on the GPU to use to calculate the forces
-	\param d_coeffs Coefficients to the lennard jones force (12, 6, 9, 4).
+	\param d_coeffs Coefficients to the lennard jones force (lj12, lj9, lj6, lj4).
 	\param coeff_width Width of the coefficient matrix
 	\param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
 		set to 0
 	\param box Box dimensions used to implement periodic boundary conditions
 	
-	\a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a lj1 for the type pair \a i, \a j.
-	Similarly, .y is the \a lj2 parameter. The values in d_coeffs are read into shared memory, so 
-	\c coeff_width*coeff_width*sizeof(float4) bytes of extern shared memory must be allocated for the kernel call.
+	\a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a lj12 for the type pair \a i, \a j.
+	Similarly, .y, .z, and .w are the \a lj9, \a lj6, and \a lj4 parameters, respectively. The values in d_coeffs are 
+        read into shared memory, so \c coeff_width*coeff_width*sizeof(float4) bytes of extern shared memory must be allocated 
+        for the kernel call.
 	
 	Developer information:
 	Each block will calculate the forces on a block of particles.
@@ -156,20 +157,20 @@ template<bool ulf_workaround> __global__ void gpu_compute_cgcmm_forces_kernel(gp
 
 		// lookup the coefficients between this combination of particle types
 		int typ_pair = __float_as_int(neigh_pos.w) * coeff_width + __float_as_int(pos.w);
-		float lj1 = s_coeffs[typ_pair].x;
-		float lj2 = s_coeffs[typ_pair].y;
-		float lj3 = s_coeffs[typ_pair].z;
+		float lj12 = s_coeffs[typ_pair].x;
+		float lj9 = s_coeffs[typ_pair].y;
+		float lj6 = s_coeffs[typ_pair].z;
 		float lj4 = s_coeffs[typ_pair].w;
 	
 		// calculate 1/r^3 and 1/r^6 (FLOPS: 3)
 		float r3inv = r2inv * rsqrtf(rsq);
 		float r6inv = r3inv * r3inv;
 		// calculate the force magnitude / r (FLOPS: 11)
-		float forcemag_divr = r6inv * (r2inv * (12.0f * lj1  * r6inv - 6.0f * lj2 + 9.0f * r3inv * lj3 ) - 4.0f * lj4);
+		float forcemag_divr = r6inv * (r2inv * (12.0f * lj12  * r6inv + 9.0f * r3inv * lj9 + 6.0f * lj6 ) + 4.0f * lj4);
 		// calculate the virial (FLOPS: 3)
 		virial += float(1.0/6.0) * rsq * forcemag_divr;
 		// calculate the pair energy (FLOPS: 8)
-		float pair_eng = r6inv * (lj1 * r6inv - lj2 + lj3 * r3inv) - lj4 * r2inv * r2inv;
+		float pair_eng = r6inv * (lj12 * r6inv + lj9 * r3inv + lj6) + lj4 * r2inv * r2inv;
 
 		// add up the force vector components (FLOPS: 7)
 		force.x += dx * forcemag_divr;
@@ -192,7 +193,8 @@ template<bool ulf_workaround> __global__ void gpu_compute_cgcmm_forces_kernel(gp
 	\param box Box dimensions (in GPU format) to use for periodic boundary conditions
 	\param nlist Neighbor list stored on the gpu
 	\param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
-		pair i,j. The x-component is lj1 and the y-component is lj2.
+		pair i,j. The x-component is the lj12 coefficient and the y-, z-, and w-components 
+                are the lj9, lj6, and lj4 coefficients, respectively.
 	\param coeff_width Width of the \a d_coeffs matrix.
 	\param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the 
 		force is set to 0

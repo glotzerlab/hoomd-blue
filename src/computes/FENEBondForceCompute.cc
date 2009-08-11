@@ -139,7 +139,7 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
 			}
 
 /*! BondForceCompute provides
-	- \c fene_energy
+	- \c bond_fene_energy
 */
 std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 	{
@@ -183,6 +183,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 	assert(arrays.x);
 	assert(arrays.y);
 	assert(arrays.z);
+	assert(arrays.diameter);
 
 	// get a local copy of the simulation box too
 	const BoxDim& box = m_pdata->getBox();
@@ -226,6 +227,8 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		Scalar dx = arrays.x[idx_b] - arrays.x[idx_a];
 		Scalar dy = arrays.y[idx_b] - arrays.y[idx_a];
 		Scalar dz = arrays.z[idx_b] - arrays.z[idx_a];
+		Scalar diameter_a = arrays.diameter[idx_a];
+		Scalar diameter_b = arrays.diameter[idx_b];
 
 		// if the vector crosses the box, pull it back
 		// (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done))
@@ -256,7 +259,13 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 		// on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * \vec{r} + (12*lj1/r^12 - 6*lj2/r^6) *\vec{r}
 		// FLOPS: 5
 		Scalar rsq = dx*dx+dy*dy+dz*dz;
-		
+
+		//If appropriate, correct the rsq for particles that are not unit in size.
+		if (diameter_a != 1.0 || diameter_b != 1.0) {
+			Scalar rtemp = sqrt(rsq) - diameter_a/2 - diameter_b/2 + 1.0; 
+			rsq = rtemp*rtemp;
+			}
+			
 		// compute the force magnitude/r in forcemag_divr (FLOPS: 9)
 		Scalar r2inv = Scalar(1.0)/rsq;
 		Scalar r6inv = r2inv * r2inv * r2inv;

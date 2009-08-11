@@ -86,7 +86,7 @@ struct ExecutionConfiguration
 		};
 	
 	//! Default constructor
-	ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false);
+	ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, bool empty=false);
 	
 	//! Single GPU selection constructor
 	ExecutionConfiguration(executionMode mode, bool min_cpu=false, bool ignore_display=false);

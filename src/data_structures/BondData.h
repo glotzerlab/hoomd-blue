@@ -53,7 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/utility.hpp>
 
 #ifdef ENABLE_CUDA
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 #include "BondData.cuh"
 #endif
 

@@ -50,7 +50,10 @@ import sys;
 # \brief Commands that specify %improper forces
 #
 # Impropers add forces between specified quadruplets of particles and are typically used to 
-# model rotation about chemical bonds without having bonds to connect the atoms. Impropers between particles are set when an input XML file is read
+# model rotation about chemical bonds without having bonds to connect the atoms. Their most
+# common use is to keep structural elements flat, i.e. model the effect of conjugated
+# double bonds, like in benzene rings and its derivatives.
+# Impropers between particles are set when an input XML file is read
 # (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
 #
 # By themselves, impropers that have been specified in an input file do nothing. Only when you 
@@ -61,7 +64,7 @@ import sys;
 #
 # The command improper.harmonic specifies a %harmonic improper potential energy between every quadruplet of particles
 # in the simulation. 
-# \f[ V(r) = k \left( \chi - \chi_{0}(r)  \right )^2 \f]
+# \f[ V(r) = \frac{1}{2}k \left( \chi - \chi_{0}(r)  \right )^2 \f]
 # where \f$ \chi \f$ is angle between two sides of the improper
 #
 # Coefficients \f$ k \f$ and \f$ \chi_0 \f$ must be set for each type of %improper in the simulation using
@@ -94,8 +97,6 @@ class harmonic(force._force):
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
 			raise RuntimeError("Error creating improper forces");
-
-		globals.improper_compute = self.cpp_force;
 
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		

@@ -1,5 +1,15 @@
 # Supressions for cudart
 {
+   latest ld-2.9 supression for cudart loading
+   Memcheck:Cond
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+}
+
+{
    <insert a suppression name here>
    Memcheck:Addr8
    obj:/lib64/ld-2.8.so
@@ -201,6 +211,15 @@
    fun:_ZN5boost10filesystemdvISsNS0_11path_traitsEEENS0_10basic_pathIT_T0_EERKS6_PKNS4_10value_typeE
 }
 
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   fun:__tcf_1
+   fun:exit
+   fun:(below main)
+}
+
+
 # python is not capable of freeing memory allocated by the boost python module init, ignore it all here
 {
    ignoring python module init
@@ -384,6 +403,41 @@
    obj:/usr/lib64/libpython2.5.so.1.0
    fun:PyMarshal_ReadObjectFromString
    fun:PyMarshal_ReadLastObjectFromFile
+   obj:/usr/lib64/libpython2.5.so.1.0
+   obj:/usr/lib64/libpython2.5.so.1.0
+}
+
+# more python supressions for ld-2.9
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   fun:dlopen
+   fun:_PyImport_GetDynLoadFunc
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   obj:/lib64/ld-2.9.so
+   obj:/lib64/libdl-2.9.so
+   fun:dlopen
+   fun:_PyImport_GetDynLoadFunc
+   fun:_PyImport_LoadDynamicModule
    obj:/usr/lib64/libpython2.5.so.1.0
    obj:/usr/lib64/libpython2.5.so.1.0
 }

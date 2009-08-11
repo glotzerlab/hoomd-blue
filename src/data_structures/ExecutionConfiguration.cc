@@ -71,13 +71,17 @@ using namespace boost;
 /*! \param min_cpu If set to true, cudaDeviceBlockingSync is passed to GPUWorker to keep the CPU usage of HOOMD to a
                    minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
+	\param empty If set to true, construct an empty ExecutionConfiguration
 
     If there are capable GPUs present in the system, the default chosen by CUDA will be used. Specifically, 
     cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
     If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
 */
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display)
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display, bool empty)
 	{
+	if (empty)
+		return;
+
 	#ifdef ENABLE_CUDA
 	// scan the available GPUs
 	scanGPUs(ignore_display);
@@ -147,7 +151,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, bool min_cpu,
 ExecutionConfiguration::ExecutionConfiguration(const std::vector<int>& gpu_ids, bool min_cpu, bool ignore_display)
 	{
 	exec_mode = GPU;
-	
+
+	#ifdef ENABLE_CAC_GPU_ID
+	cerr << endl << "***Error! Do not specify --mode=gpu when running on CAC, it triggers a nasty bug" << endl;
+	throw runtime_error("Error initializing execution configuration");
+	#endif
+
 	#ifdef ENABLE_CUDA
 	// scan the available GPUs
 	scanGPUs(ignore_display);

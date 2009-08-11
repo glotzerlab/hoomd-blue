@@ -62,6 +62,10 @@ using namespace boost;
 
 using namespace std;
 
+#ifdef ENABLE_CUDA
+#include "gpu_settings.h"
+#endif
+
 /*! \param sysdef System data to update
 	\param deltaT Time step to use
 	\param tau NVT period
@@ -98,8 +102,8 @@ void NVTUpdaterGPU::allocateNVTData(int block_size)
 		d_nvt_data[cur_gpu].block_size = block_size;
 		d_nvt_data[cur_gpu].NBlocks = m_pdata->getLocalNum(cur_gpu) / block_size + 1;
 		
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].partial_Ksum), d_nvt_data[cur_gpu].NBlocks * sizeof(float)));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_data[cur_gpu].Ksum), sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_nvt_data[cur_gpu].partial_Ksum), d_nvt_data[cur_gpu].NBlocks * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_nvt_data[cur_gpu].Ksum), sizeof(float)));
 		}
 
 
@@ -162,10 +166,10 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 			// Only one GPU
 			d_nvt_rigid_data[0].n_bodies = n_bodies;
 			
-			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_t), n_bodies * sizeof(float)));
-			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_r), n_bodies * sizeof(float)));
-			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_t), sizeof(float)));
-			exec_conf.gpu[0]->call(bind(cudaMalloc, (void**)((void*)&d_nvt_rigid_data[0].Ksum_r), sizeof(float)));
+			exec_conf.gpu[0]->call(bind(cudaMallocHack, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_t), n_bodies * sizeof(float)));
+			exec_conf.gpu[0]->call(bind(cudaMallocHack, (void**)((void*)&d_nvt_rigid_data[0].partial_Ksum_r), n_bodies * sizeof(float)));
+			exec_conf.gpu[0]->call(bind(cudaMallocHack, (void**)((void*)&d_nvt_rigid_data[0].Ksum_t), sizeof(float)));
+			exec_conf.gpu[0]->call(bind(cudaMallocHack, (void**)((void*)&d_nvt_rigid_data[0].Ksum_r), sizeof(float)));
 			}
 		}
 

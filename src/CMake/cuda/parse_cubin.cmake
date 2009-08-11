@@ -68,26 +68,26 @@ if (${file_text} MATCHES ".+")
         if(NOT skip)
 
           # Registers
-          if (${entry} MATCHES "reg = ([^ ]+)")
-            string(REGEX REPLACE ".* = ([^ ]+)" "\\1" entry ${entry})
+          if (${entry} MATCHES "reg([ ]+)=([ ]+)([^ ]+)")
+            string(REGEX REPLACE ".*([ ]+)=([ ]+)([^ ]+)" "\\3" entry ${entry})
             message("Registers: ${entry}")
-          endif(${entry} MATCHES "reg = ([^ ]+)")
+          endif()
 
           # Local memory
-          if (${entry} MATCHES "lmem = ([^ ]+)")
-            string(REGEX REPLACE ".* = ([^ ]+)" "\\1" entry ${entry})
+          if (${entry} MATCHES "lmem([ ]+)=([ ]+)([^ ]+)")
+            string(REGEX REPLACE ".*([ ]+)=([ ]+)([^ ]+)" "\\3" entry ${entry})
             message("Local:     ${entry}")
-          endif(${entry} MATCHES "lmem = ([^ ]+)")
+          endif()
 
           # Shared memory
-          if (${entry} MATCHES "smem = ([^ ]+)")
-            string(REGEX REPLACE ".* = ([^ ]+)" "\\1" entry ${entry})
+          if (${entry} MATCHES "smem([ ]+)=([ ]+)([^ ]+)")
+            string(REGEX REPLACE ".*([ ]+)=([ ]+)([^ ]+)" "\\3" entry ${entry})
             message("Shared:    ${entry}")
-          endif(${entry} MATCHES "smem = ([^ ]+)")
+          endif()
 
           if (${entry} MATCHES "^}")
             message("")
-          endif(${entry} MATCHES "^}")
+          endif()
 
         endif(NOT skip)
 

@@ -44,11 +44,10 @@ if (BUILD_TESTING)
 	enable_testing()
 endif (BUILD_TESTING)
 
-
 # here is where we actually compile the python module version of the library
 if (ENABLE_CUDA)
 cuda_add_library (hoomd_python_module ${HOOMD_CPU_SRCS}
-${HOOMD_GPU_SRCS} ${PYTHON_SRCS})
+${HOOMD_GPU_SRCS} ${PYTHON_SRCS} OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
 else (ENABLE_CUDA)
 add_library (hoomd_python_module ${HOOMD_CPU_SRCS}
 ${PYTHON_SRCS})
