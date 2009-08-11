@@ -317,16 +317,16 @@ void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration 
 		x0 += xspacing;
 		if (x0 + xspacing >= box.xhi) 
 		{
-			x0 = box.xlo + 2.5;
+			x0 = box.xlo + 0.01;
 		
 			y0 += yspacing;
 			if (y0 + yspacing >= box.yhi) 
 			{
-				y0 = box.ylo + 2.5;
+				y0 = box.ylo + 0.01;
 				
 				z0 += zspacing;
 				if (z0 + zspacing >= box.zhi) 
-					z0 = box.zlo + 2.5;
+					z0 = box.zlo + 0.01;
 			}
 		}
 		
