@@ -60,8 +60,8 @@ struct gpu_nvt_rigid_data
 	{
 	unsigned int n_bodies;	
 		
-	float  *eta_dot_t;
-	float  *eta_dot_r;
+	float  eta_dot_t0;
+	float  eta_dot_r0;
 	float4 *conjqm;
 
 	float *partial_Ksum_t; //!< NBlocks elements, each is a partial sum of m*v^2

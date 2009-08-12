@@ -230,12 +230,12 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		d_rdata.force = force_handle.data;
 		d_rdata.torque = torque_handle.data;
 		
-		ArrayHandle<Scalar> eta_dot_t_handle(m_rigid_updater->getEtaDotT(), access_location::device, access_mode::read);
-		ArrayHandle<Scalar> eta_dot_r_handle(m_rigid_updater->getEtaDotR(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar> eta_dot_t_handle(m_rigid_updater->getEtaDotT(), access_location::host, access_mode::read);
+		ArrayHandle<Scalar> eta_dot_r_handle(m_rigid_updater->getEtaDotR(), access_location::host, access_mode::read);
 		ArrayHandle<Scalar4> conjqm_handle(m_rigid_updater->getConjqm(), access_location::device, access_mode::readwrite);
 	
-		d_nvt_rigid_data[0].eta_dot_t = eta_dot_t_handle.data;
-		d_nvt_rigid_data[0].eta_dot_r = eta_dot_r_handle.data;
+		d_nvt_rigid_data[0].eta_dot_t0 = eta_dot_t_handle.data[0];
+		d_nvt_rigid_data[0].eta_dot_r0 = eta_dot_r_handle.data[0];
 		d_nvt_rigid_data[0].conjqm = conjqm_handle.data;
 
 		exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_body_pre_step, d_pdata[0], d_rdata, box, d_nvt_rigid_data[0], m_deltaT));
@@ -349,12 +349,12 @@ void NVTUpdaterGPU::update(unsigned int timestep)
 		d_rdata.force = force_handle.data;
 		d_rdata.torque = torque_handle.data;
 
-		ArrayHandle<Scalar> eta_dot_t_handle(m_rigid_updater->getEtaDotT(), access_location::device, access_mode::read);
-		ArrayHandle<Scalar> eta_dot_r_handle(m_rigid_updater->getEtaDotR(), access_location::device, access_mode::read);
+		ArrayHandle<Scalar> eta_dot_t_handle(m_rigid_updater->getEtaDotT(), access_location::host, access_mode::read);
+		ArrayHandle<Scalar> eta_dot_r_handle(m_rigid_updater->getEtaDotR(), access_location::host, access_mode::read);
 		ArrayHandle<Scalar4> conjqm_handle(m_rigid_updater->getConjqm(), access_location::device, access_mode::readwrite);
 
-		d_nvt_rigid_data[0].eta_dot_t = eta_dot_t_handle.data;
-		d_nvt_rigid_data[0].eta_dot_r = eta_dot_r_handle.data;
+		d_nvt_rigid_data[0].eta_dot_t0 = eta_dot_t_handle.data[0];
+		d_nvt_rigid_data[0].eta_dot_r0 = eta_dot_r_handle.data[0];
 		d_nvt_rigid_data[0].conjqm = conjqm_handle.data;
 
 		exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_body_step, d_pdata[0], d_rdata, m_d_force_data_ptrs[0], (int)m_forces.size(), box, d_nvt_rigid_data[0], m_deltaT));

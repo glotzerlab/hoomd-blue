@@ -265,7 +265,7 @@ __device__ float taylor_exp(float x)
 
 extern "C" __global__ void gpu_nvt_rigid_body_pre_step_kernel(gpu_pdata_arrays pdata, float4* rdata_com, float4* rdata_vel, float4* rdata_angmom, float4* rdata_angvel, 
 				float4* rdata_orientation, float4* rdata_ex_space, float4* rdata_ey_space, float4* rdata_ez_space, int* rdata_body_imagex, int* rdata_body_imagey, int* rdata_body_imagez, unsigned int n_bodies, unsigned int local_beg,
-				float* eta_dot_t, float* eta_dot_r, float4* nvt_rdata_conjqm, float* nvt_rdata_partial_Ksum_t, float* nvt_rdata_partial_Ksum_r, gpu_boxsize box, float deltaT)
+				float nvt_rdata_eta_dot_t0, float nvt_rdata_eta_dot_r0, float4* nvt_rdata_conjqm, float* nvt_rdata_partial_Ksum_t, float* nvt_rdata_partial_Ksum_r, gpu_boxsize box, float deltaT)
 	{
 	unsigned int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;	
 	unsigned int idx_body = blockIdx.x + local_beg; 
@@ -284,9 +284,9 @@ extern "C" __global__ void gpu_nvt_rigid_body_pre_step_kernel(gpu_pdata_arrays p
 	
 	float dt_half = 0.5 * deltaT;
 	float	tmp, scale_t, scale_r, akin_t, akin_r;
-	tmp = -1.0 * dt_half * eta_dot_t[0];
+	tmp = -1.0 * dt_half * nvt_rdata_eta_dot_t0;
 	scale_t = __expf(tmp);
-	tmp = -1.0 * dt_half * eta_dot_r[0];
+	tmp = -1.0 * dt_half * nvt_rdata_eta_dot_r0;
 	scale_r = __expf(tmp);	
 
 	// ri, body_mass and moment_inertia is used throughout the kernel
@@ -565,7 +565,7 @@ cudaError_t gpu_nvt_rigid_body_pre_step(const gpu_pdata_arrays& pdata, const gpu
     
 	gpu_nvt_rigid_body_pre_step_kernel<<< grid, threads, nmax * sizeof(float4)  >>>(pdata, rigid_data.com, rigid_data.vel, rigid_data.angmom, rigid_data.angvel, 
 			rigid_data.orientation, rigid_data.ex_space, rigid_data.ey_space, rigid_data.ez_space, rigid_data.body_imagex, rigid_data.body_imagey, rigid_data.body_imagez, 
-			n_bodies, local_beg, nvt_rigid_data.eta_dot_t, nvt_rigid_data.eta_dot_r, nvt_rigid_data.conjqm, nvt_rigid_data.partial_Ksum_t, nvt_rigid_data.partial_Ksum_r, box, deltaT);
+			n_bodies, local_beg, nvt_rigid_data.eta_dot_t0, nvt_rigid_data.eta_dot_r0, nvt_rigid_data.conjqm, nvt_rigid_data.partial_Ksum_t, nvt_rigid_data.partial_Ksum_r, box, deltaT);
 
 					
 	if (!g_gpu_error_checking)
@@ -596,7 +596,7 @@ extern __shared__ float4 sum[];
 
 extern "C" __global__ void gpu_nvt_rigid_body_step_kernel(gpu_pdata_arrays pdata, float4* rdata_vel, float4* rdata_angmom, float4* rdata_angvel, 
 			float4* rdata_force, float4* rdata_torque, unsigned int n_bodies, unsigned int local_beg, float4 **force_data_ptrs, int num_forces, 
-			float* eta_dot_t, float* eta_dot_r, float4* nvt_rdata_conjqm, gpu_boxsize box, float deltaT)
+			float nvt_rdata_eta_dot_t0, float nvt_rdata_eta_dot_r0, float4* nvt_rdata_conjqm, gpu_boxsize box, float deltaT)
 	{
 	int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
 	int idx_body = blockIdx.x + local_beg; 
@@ -618,9 +618,9 @@ extern "C" __global__ void gpu_nvt_rigid_body_step_kernel(gpu_pdata_arrays pdata
 
 	float dt_half = 0.5 * deltaT;
 	float	tmp, scale_t, scale_r;
-	tmp = -1.0 * dt_half * eta_dot_t[0];
+	tmp = -1.0 * dt_half * nvt_rdata_eta_dot_t0;
 	scale_t = __expf(tmp);
-	tmp = -1.0 * dt_half * eta_dot_r[0];
+	tmp = -1.0 * dt_half * nvt_rdata_eta_dot_r0;
 	scale_r = __expf(tmp);
 		
 	particle_accel = gpu_integrator_sum_forces_inline(idx_particle_index, pdata.local_num, force_data_ptrs, num_forces);		
@@ -861,7 +861,7 @@ cudaError_t gpu_nvt_rigid_body_step(const gpu_pdata_arrays &pdata, const gpu_rig
 	// tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
     gpu_nvt_rigid_body_step_kernel<<< grid, threads, 2 * nmax * sizeof(float4) >>>(pdata, rigid_data.vel, rigid_data.angmom, rigid_data.angvel, 
 			rigid_data.force, rigid_data.torque, n_bodies, local_beg, force_data_ptrs, num_forces, 
-			nvt_rigid_data.eta_dot_t, nvt_rigid_data.eta_dot_r, nvt_rigid_data.conjqm, box, deltaT);
+			nvt_rigid_data.eta_dot_t0, nvt_rigid_data.eta_dot_r0, nvt_rigid_data.conjqm, box, deltaT);
 	
 	
 	if (!g_gpu_error_checking)
