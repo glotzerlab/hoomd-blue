@@ -715,8 +715,9 @@ void NeighborList::setStorageMode(storageMode mode)
 	\param tag2 TAG (not index) of the second particle in the pair
 	\post The pair \a tag1, \a tag2 will not appear in the neighborlist
 	\note This only takes effect on the next call to compute() that updates the list
-	\note Only 4 particles can be excluded from a single particle's neighbor list
-	\note It is the caller's responsibility to not add duplicate entries
+	\note Only 4 particles can be excluded from a single particle's neighbor list,
+	\note unless the code is compiled with the option LARGE_EXCLUSION_LIST, in which
+	\note case the maximum is 16 exclusions. Duplicates are checked for and not added.
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 	{
@@ -725,7 +726,10 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 		cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
 		throw runtime_error("Error setting exclusion in NeighborList");
 		}
-		
+	// don't add an exclusion twice and waste space in the memory restricted exclusion lists.
+	if (isExcluded(tag1, tag2))
+		return;
+	
 	// add tag2 to tag1's exculsion list
 	if (m_exclusions[tag1].e1 == EXCLUDE_EMPTY)
 		m_exclusions[tag1].e1 = tag2;
@@ -927,10 +931,8 @@ void NeighborList::addExclusionsFromAngles()
 	// for each bond
 	for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
 		{
-		// add an exclusion only if it has not already been added
 		Angle angle = angle_data->getAngle(i);
-		if (!isExcluded(angle.a, angle.c))
-			addExclusion(angle.a, angle.c);
+		addExclusion(angle.a, angle.c);
 		}
 	}
 		
@@ -944,10 +946,8 @@ void NeighborList::addExclusionsFromDihedrals()
 	// for each bond
 	for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
 		{
-		// add an exclusion only if it has not already been added
 		Dihedral dihedral = dihedral_data->getDihedral(i);
-		if (!isExcluded(dihedral.a, dihedral.d))
-			addExclusion(dihedral.a, dihedral.d);
+		addExclusion(dihedral.a, dihedral.d);
 		}
 	}
 
@@ -1002,180 +1002,161 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
 	
 /*! Add topologically derived exclusions for angles
  *
- * After calling copyExclusionsFromTopology() all topologically 
- * attached particles in ParticleData will be added as exlusions.  
- * This function assumes all bonds to be unique.
+ * This excludes all non-bonded interactions between all pairs particles
+ * that are bonded to the same atom.
+ * To make the process quasi-linear scaling with system size we first
+ * create a 1-d array the collects the number and index of bond partners.
  */
 void NeighborList::addOneThreeExclusionsFromTopology()
 	{
 	boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-	
-	unsigned int myNAtoms = m_pdata->getN();
-	unsigned int MAXNBONDS = 5;
-	unsigned int* localBondList = (unsigned int*) malloc(sizeof(unsigned int)*MAXNBONDS*myNAtoms);
-	unsigned int nBonds = bond_data->getNumBonds();
-	unsigned int tagA, tagB;
-	unsigned int iAtom;
-	unsigned int atomA, atomB, atomC, atomD, atomE;
+	const unsigned int myNAtoms = m_pdata->getN();
+	const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
+	const unsigned int nBonds = bond_data->getNumBonds();
 
-	memset(localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
+	if (nBonds == 0)
+		{
+		cout << "***Warning! No bonds defined while trying to add topology derived 1-3 exclusions" << endl;
+		return;
+		}
+	
+	// build a per atom list with all bonding partners from the list of bonds.
+	unsigned int *localBondList = new unsigned int[MAXNBONDS*myNAtoms];
+	memset((void *)localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
 
 	for (unsigned int i = 0; i < nBonds; i++)
 		{
 		// loop over all bonds and make a 1D exlcusion map
 		Bond bondi = bond_data->getBond(i);
-		tagA = bondi.a;
-		tagB = bondi.b;
+		const unsigned int tagA = bondi.a;
+		const unsigned int tagB = bondi.b;
 
 		// next, incrememt the number of bonds, and update the tags
-		localBondList[tagA*MAXNBONDS]++;
-		localBondList[tagB*MAXNBONDS]++;
+		const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
+		const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
 		
-		if (localBondList[tagA*MAXNBONDS] >= 5)
+		if (nBondsA >= MAXNBONDS)
 			{
-			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl << endl;
+			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl
+				 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
 			throw runtime_error("Error setting up toplogical exclusions in NeighborList");
 			}
 			
-		if (localBondList[tagB*MAXNBONDS] >= 5)
+		if (nBondsB >= MAXNBONDS)
 			{
-			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl << endl;
+			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl
+				 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
 			throw runtime_error("Error setting up toplogical exclusions in NeighborList");
 			}
 
-		localBondList[tagA*MAXNBONDS + localBondList[tagA*MAXNBONDS]] = tagB;
-		localBondList[tagB*MAXNBONDS + localBondList[tagB*MAXNBONDS]] = tagA;
+		localBondList[tagA*MAXNBONDS + nBondsA] = tagB;
+		localBondList[tagB*MAXNBONDS + nBondsB] = tagA;
 		}
 
+	// now loop over the atoms and build exclusions if we have more than 
+	// one bonding partner, i.e. we are in the center of an angle.
 	for (unsigned int i = 0; i < myNAtoms; i++)
 		{
 		// now, loop over all atoms, and find those in the middle of an angle
-		iAtom = i*MAXNBONDS;
-		if(localBondList[iAtom] > 1)
+		const unsigned int iAtom = i*MAXNBONDS;
+		const unsigned int nBonds = localBondList[iAtom];
+		
+		if(nBonds > 1) // need at least two bonds
 			{
-			atomA = localBondList[iAtom + 1];
-			atomB = localBondList[iAtom + 2];
-			atomC = localBondList[iAtom + 3];
-			atomD = localBondList[iAtom + 4];
-			atomE = localBondList[iAtom + 5];
-
-			switch(localBondList[iAtom])
+			for (unsigned int j = 1; j < nBonds; ++j)
 				{
-				case 5:
-					{
-					// 10 exclusions
-					addExclusion(atomA, atomB);
-					addExclusion(atomB, atomC);
-					addExclusion(atomC, atomD);
-					addExclusion(atomD, atomE);
-					addExclusion(atomE, atomA);
-		
-					addExclusion(atomB, atomD);
-					addExclusion(atomA, atomC);
-					addExclusion(atomB, atomE);
-					addExclusion(atomC, atomE);
-					addExclusion(atomD, atomA);
-					}
-					break;
-				case 4:
-					{
-					// 6 exclusions
-					addExclusion(atomA, atomB);
-					addExclusion(atomB, atomC);
-					addExclusion(atomC, atomD);
-					addExclusion(atomD, atomA);
-		
-					addExclusion(atomB, atomD);
-					addExclusion(atomA, atomC);
-					}
-					break;
-				case 3:
-					{
-					// 3 exclusions
-					addExclusion(atomA, atomB);
-					addExclusion(atomA, atomC);
-					addExclusion(atomB, atomC);
-					
-					}
-					break;
-				case 2:
-					{ // only 1 exclusion
-					addExclusion(atomA, atomB);
-		
-					}
-					break;
-					default:
-					{
-					// this sucks, why am i here!
-					cerr << endl << "***Error! TOO MANY BONDS ON A SINGLE ATOM: " << endl << endl;
-					throw runtime_error("Error setting up toplogical exclusions in NeighborList");
-					}
-				break;
-				} // end switch
-			} // end if
+				for (unsigned int k = j+1; k <= nBonds; ++k)
+					addExclusion(localBondList[iAtom+j],localBondList[iAtom+k]);
+				}
+			}
 		}
-		
 	// free temp memory
-	free(localBondList);
+	delete[] localBondList;
 	}
 
-
-/*! Add topologically derived exclusions for angles
+/*! Add topologically derived exclusions for dihedrals
  *
- * After calling copyExclusionsFromTopology() all topologically 
- * attached particles in ParticleData will be added as exlusions.  
- * This function assumes all bonds to be unique.
+ * This excludes all non-bonded interactions between all pairs particles
+ * that are connected to a common bond.
+ *
+ * To make the process quasi-linear scaling with system size we first
+ * create a 1-d array the collects the number and index of bond partners.
+ * and then loop over bonded partners.
  */
 void NeighborList::addOneFourExclusionsFromTopology()
 	{
 	boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-	unsigned int nBonds = bond_data->getNumBonds();
-	
+	const unsigned int myNAtoms = m_pdata->getN();
+	const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
+	const unsigned int nBonds = bond_data->getNumBonds();
+
 	if (nBonds == 0)
 		{
-		cout << "***Warning! No bonds set while trying to add 1-4 exclusions" << endl;
+		cout << "***Warning! No bonds defined while trying to add topology derived 1-4 exclusions" << endl;
 		return;
 		}
 	
-	unsigned int nBonds1 = nBonds - 1;
-	
-	//  loop over all bonds in triplicate
-	for (unsigned int i = 0; i < nBonds1-1; i++)
+	// allocate and clear data.
+	unsigned int *localBondList = new unsigned int[MAXNBONDS*myNAtoms];
+	memset((void *)localBondList,0,sizeof(unsigned int)*MAXNBONDS*myNAtoms);
+
+	for (unsigned int i = 0; i < nBonds; i++)
+		{
+		// loop over all bonds and make a 1D exlcusion map
+		Bond bondi = bond_data->getBond(i);
+		const unsigned int tagA = bondi.a;
+		const unsigned int tagB = bondi.b;
+
+		// next, incrememt the number of bonds, and update the tags
+		const unsigned int nBondsA = ++localBondList[tagA*MAXNBONDS];
+		const unsigned int nBondsB = ++localBondList[tagB*MAXNBONDS];
+		
+		if (nBondsA >= MAXNBONDS)
+			{
+			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagA << endl
+				 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+			throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+			}
+			
+		if (nBondsB >= MAXNBONDS)
+			{
+			cerr << endl << "***Error! Too many bonds to process exclusions for particle with tag: " << tagB << endl
+				 << "***Error! Maximum allowed is currently: " << MAXNBONDS-1 << endl;
+			throw runtime_error("Error setting up toplogical exclusions in NeighborList");
+			}
+
+		localBondList[tagA*MAXNBONDS + nBondsA] = tagB;
+		localBondList[tagB*MAXNBONDS + nBondsB] = tagA;
+		}
+
+	//  loop over all bonds
+	for (unsigned int i = 0; i < nBonds; i++)
 		{
 		Bond bondi = bond_data->getBond(i);
-		for (unsigned int j = i+1; j < nBonds1; j++)
-			{
-			Bond bondj = bond_data->getBond(j);
-			for (unsigned int k = j+1; k < nBonds; k++)
-				{
-				Bond bondk = bond_data->getBond(k);
-					
-				if((bondi.b == bondj.a) && (bondk.a == bondj.b))
-					addExclusion(bondi.a, bondk.b);
+		const unsigned int tagA = bondi.a;
+		const unsigned int tagB = bondi.b;
 
-				if((bondi.b == bondj.b) && (bondk.a == bondj.a))
-					addExclusion(bondi.a, bondk.b);
-				
-				if((bondi.a == bondj.a) && (bondk.a == bondj.b))
-					addExclusion(bondi.b, bondk.b);
-				
-				if((bondi.a == bondj.a) && (bondk.a == bondj.b))
-					addExclusion(bondi.b, bondk.b);
-					
-				if((bondi.b == bondj.a) && (bondk.b == bondj.b))
-					addExclusion(bondi.a, bondk.a);
-				
-				if((bondi.b == bondj.b) && (bondk.b == bondj.a))
-					addExclusion(bondi.a, bondk.a);
-				
-				if((bondi.a == bondj.a) && (bondk.b == bondj.b))
-					addExclusion(bondi.b, bondk.a);
-				
-				if((bondi.a == bondj.a) && (bondk.b == bondj.b))
-					addExclusion(bondi.b, bondk.a);
+		const unsigned int nBondsA = localBondList[tagA*MAXNBONDS];
+		const unsigned int nBondsB = localBondList[tagB*MAXNBONDS];
+		
+		for (unsigned int j = 1; j <= nBondsA; j++)
+			{
+            const unsigned int tagJ = localBondList[tagA*MAXNBONDS+j];
+			if (tagJ == tagB) // skip the bond in the middle of the dihedral
+				continue;
+			
+			for (unsigned int k = 1; k <= nBondsB; k++)
+				{
+				const unsigned int tagK = localBondList[tagB*MAXNBONDS+k];
+				if (tagK == tagA) // skip the bond in the middle of the dihedral
+					continue;
+
+				addExclusion(tagJ,tagK);
 				}
 			}
 		}
+	// free temp memory
+	delete[] localBondList;
 	}
 
 
