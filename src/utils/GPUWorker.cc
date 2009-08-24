@@ -83,6 +83,13 @@ GPUWorker::GPUWorker(int dev, int flags, int *device_arr, int len)
 
 	if (dev != -1)
 		call(bind(cudaSetDevice, dev));
+	else
+		{
+		// initialize the default CUDA context
+		void *d;
+		call(bind(cudaMalloc, &d, 4));
+		call(bind(cudaFree, d));
+		}
 	}
 	
 /*! Shuts down the worker thread
