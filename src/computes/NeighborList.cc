@@ -715,8 +715,9 @@ void NeighborList::setStorageMode(storageMode mode)
 	\param tag2 TAG (not index) of the second particle in the pair
 	\post The pair \a tag1, \a tag2 will not appear in the neighborlist
 	\note This only takes effect on the next call to compute() that updates the list
-	\note Only 4 particles can be excluded from a single particle's neighbor list
-	\note It is the caller's responsibility to not add duplicate entries
+	\note Only 4 particles can be excluded from a single particle's neighbor list,
+	\note unless the code is compiled with the option LARGE_EXCLUSION_LIST, in which
+	\note case the maximum is 16 exclusions. Duplicates are checked for and not added.
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 	{
@@ -725,7 +726,10 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 		cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
 		throw runtime_error("Error setting exclusion in NeighborList");
 		}
-		
+	// don't add an exclusion twice and waste space in the memory restricted exclusion lists.
+	if (isExcluded(tag1, tag2))
+		return;
+	
 	// add tag2 to tag1's exculsion list
 	if (m_exclusions[tag1].e1 == EXCLUDE_EMPTY)
 		m_exclusions[tag1].e1 = tag2;
@@ -927,10 +931,8 @@ void NeighborList::addExclusionsFromAngles()
 	// for each bond
 	for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
 		{
-		// add an exclusion only if it has not already been added
 		Angle angle = angle_data->getAngle(i);
-		if (!isExcluded(angle.a, angle.c))
-			addExclusion(angle.a, angle.c);
+		addExclusion(angle.a, angle.c);
 		}
 	}
 		
@@ -944,10 +946,8 @@ void NeighborList::addExclusionsFromDihedrals()
 	// for each bond
 	for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
 		{
-		// add an exclusion only if it has not already been added
 		Dihedral dihedral = dihedral_data->getDihedral(i);
-		if (!isExcluded(dihedral.a, dihedral.d))
-			addExclusion(dihedral.a, dihedral.d);
+		addExclusion(dihedral.a, dihedral.d);
 		}
 	}
 
@@ -1066,8 +1066,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
 			for (unsigned int j = 1; j < nBonds; ++j)
 				{
 				for (unsigned int k = j+1; k <= nBonds; ++k)
-					if (!isExcluded(localBondList[iAtom+j],localBondList[iAtom+k]))
-						addExclusion(localBondList[iAtom+j],localBondList[iAtom+k]);
+					addExclusion(localBondList[iAtom+j],localBondList[iAtom+k]);
 				}
 			}
 		}
@@ -1152,8 +1151,7 @@ void NeighborList::addOneFourExclusionsFromTopology()
 				if (tagK == tagA) // skip the bond in the middle of the dihedral
 					continue;
 
-				if(!isExcluded(tagJ,tagK))
-					addExclusion(tagJ,tagK);
+				addExclusion(tagJ,tagK);
 				}
 			}
 		}
