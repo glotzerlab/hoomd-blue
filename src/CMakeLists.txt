@@ -38,6 +38,7 @@
 ## $URL$
 # Maintainer: joaander
 
+
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6 FATAL_ERROR)
 if(COMMAND cmake_policy)
 	cmake_policy(SET CMP0003 NEW)
