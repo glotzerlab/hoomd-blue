@@ -92,11 +92,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
 		
 	if (dev_count > 0)
 		{
-		#ifdef ENABLE_CAC_GPU_ID
-		gpu_ids = getDefaultGPUList();
-		#else
 		gpu_ids.push_back(-1);
-		#endif
 		exec_mode = GPU;
 		
 		initializeGPUs(gpu_ids, min_cpu);
@@ -129,11 +125,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, bool min_cpu,
 	if (exec_mode == GPU)
 		{
 		std::vector<int> gpu_ids;
-		#ifdef ENABLE_CAC_GPU_ID
-		gpu_ids = getDefaultGPUList();
-		#else
 		gpu_ids.push_back(-1);
-		#endif
 		exec_mode = GPU;
 			
 		initializeGPUs(gpu_ids, min_cpu);
@@ -151,11 +143,6 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, bool min_cpu,
 ExecutionConfiguration::ExecutionConfiguration(const std::vector<int>& gpu_ids, bool min_cpu, bool ignore_display)
 	{
 	exec_mode = GPU;
-
-	#ifdef ENABLE_CAC_GPU_ID
-	cerr << endl << "***Error! Do not specify --mode=gpu when running on CAC, it triggers a nasty bug" << endl;
-	throw runtime_error("Error initializing execution configuration");
-	#endif
 
 	#ifdef ENABLE_CUDA
 	// scan the available GPUs
@@ -195,110 +182,19 @@ void ExecutionConfiguration::callAll(const boost::function< cudaError_t (void) >
 	}
 
 /*! \returns 0 in normal builds
-	\returns the value of the environment variable $CAC_GPU_ID when built with \a ENABLE_CAC_GPU_ID turned on in CMake
 */
 int ExecutionConfiguration::getDefaultGPU()
 	{
-	#ifdef ENABLE_CAC_GPU_ID
-	char *id_str = getenv("CAC_GPU_ID");
-	if (id_str)
-		{
-		unsigned int id = atoi(id_str);
-		cout << "Notice: HOOMD is running on GPU " << id << " as specified by $CAC_GPU_ID" << endl;
-		return id;
-		}
-	else
-		{
-		cerr << endl << "***Warning! HOOMD built with CAC_GPU_ID support, but no CAC_GPU_ID specified!" << endl << endl;
-		throw runtime_error("Error initializing execution configuration");
-		}
-	#else
 	return 0;
-	#endif
 	}
 
-#ifdef ENABLE_CAC_GPU_ID
-//! simple tokenizer
-/*! \param str String to tokenize
-	\param delimiters Delmiters that break up the string
-	This code originated here: http://www.digitalpeer.com/id/simple
-*/
-static vector<string> tokenize(const string& str,const string& delimiters)
-	{
-	vector<string> tokens;
-	
-	// skip delimiters at beginning.
-	string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-		
-	// find first "non-delimiter".
-	string::size_type pos = str.find_first_of(delimiters, lastPos);
-	
-	while (string::npos != pos || string::npos != lastPos)	
-		{
-		// found a token, add it to the vector.
-		tokens.push_back(str.substr(lastPos, pos - lastPos));
-			
-		// skip delimiters.  Note the "not_of"
-		lastPos = str.find_first_not_of(delimiters, pos);
-		
-		// find next "non-delimiter"
-		pos = str.find_first_of(delimiters, lastPos);
-		}
-	
-	return tokens;
-	}
-#endif
-	
 /*! \returns a list with 0 in it in normal builds
-	\returns the value of the environment variable $CAC_GPU_ID when built with \a ENABLE_CAC_GPU_ID turned on in CMake
 */
 std::vector< int > ExecutionConfiguration::getDefaultGPUList()
 	{
-	#ifdef ENABLE_CAC_GPU_ID
-	char *id_str = getenv("CAC_GPU_ID");
-	if (id_str)
-		{
-		vector<string> tokens = tokenize(string(id_str), ",");
-		vector< int > result;
-		for (unsigned int i = 0; i < tokens.size(); i++)
-			{
-			int id = atoi(tokens[i].c_str());
-			if (id < 0)
-				{
-				cout << endl << "***Error! CAC_GPU_ID contains negative values!" << endl << endl;
-				throw runtime_error("Error initializing execution configuration");
-				}
-				
-			result.push_back(id);
-			}
-		
-		cout << "Notice: HOOMD is running on ";
-		if (result.size() == 1)
-			cout << "GPU ";
-		else
-			cout << "the GPUs ";
-
-		for (unsigned int i = 0; i < result.size(); i++)
-			{
-			cout << result[i];
-			if (i != result.size()-1)
-				cout << ",";
-			}
-		
-		cout << " as specified by $CAC_GPU_ID" << endl;
-		
-		return result;
-		}
-	else
-		{
-		cerr << endl << "***Warning! HOOMD built with CAC_GPU_ID support, but no CAC_GPU_ID specified!" << endl << endl;
-		throw runtime_error("Error initializing execution configuration");
-		}
-	#else
 	vector< int > result;
 	result.push_back(0);
 	return result;
-	#endif
 	}
 
 /*! \returns Compute capability of GPU 0 as a string

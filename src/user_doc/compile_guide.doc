@@ -365,9 +365,6 @@ You really shouldn't change these from their defaults unless you really know wha
  		HOOMD stable for long run times. Set this to ON if you are a developer wanting
  		to test and tune HOOMD for the highest performance. If you are building HOOMD
  		for production simulation runs, set this ON only at the risk of your own sanity.
- - \b ENABLE_CAC_GPU_ID - Defaults to ON on nyx and OFF on all other machines. Setting this to
- 		ON enables all HOOMD executables to run on the GPU specified in the CAC_GPU_ID environment
-		variable. 
  - \b ENABLE_STATIC - Controls the compiling and linking of static libraries
  	- When set to \b ON, \b libhoomd is compiled as a static library and all 
  		other libraries (i.e. boost) are linked statically if possible.
