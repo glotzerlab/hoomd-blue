@@ -67,7 +67,7 @@ using namespace std;
 		statistics are printed every 10 seconds.
 */	
 System::System(boost::shared_ptr<ParticleData> pdata, unsigned int initial_tstep)
-	: m_pdata(pdata), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
+	: m_pdata(pdata), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep), m_first_run(true),
 		m_last_status_time(0), m_last_status_tstep(initial_tstep), m_profile(false), m_stats_period(10)
 	{
 	// sanity check
@@ -396,11 +396,14 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 			}
 		
 		// execute analyzers
-		vector<analyzer_item>::iterator analyzer;
-		for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+		if (m_cur_tstep > m_start_tstep || m_first_run)
 			{
-			if (analyzer->shouldExecute(m_cur_tstep))
-				analyzer->m_analyzer->analyze(m_cur_tstep);
+			vector<analyzer_item>::iterator analyzer;
+			for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+				{
+				if (analyzer->shouldExecute(m_cur_tstep))
+					analyzer->m_analyzer->analyze(m_cur_tstep);
+				}
 			}
 		
 		// execute updaters
@@ -456,7 +459,15 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 		{
 		callback(m_cur_tstep);
 		}
-	
+		
+	// execute analyzers on final step
+	vector<analyzer_item>::iterator analyzer;
+	for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+		{
+		if (analyzer->shouldExecute(m_cur_tstep))
+			analyzer->m_analyzer->analyze(m_cur_tstep);
+		}
+		
 	// calculate averate TPS
 	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
 	cout << "Average TPS: " << TPS << endl;
@@ -467,6 +478,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 		cout << *m_profiler;
 
 	printStats();
+	
+	// the first run is complete
+	m_first_run = false;
 	}
 		
 /*! \param enable Set to true to enable profiling during calls to run()
