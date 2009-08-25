@@ -56,13 +56,13 @@ void output_version_info(bool verbose)
 	{
 	// output the version info differently if this is tagged as a subversion build or not
 	if (HOOMD_SUBVERSION_BUILD)
-		cout << "HOOMD svnversion " << HOOMD_SVNVERSION << endl;
+		cout << "HOOMD-blue svnversion " << HOOMD_SVNVERSION << endl;
 	else
-		cout << "HOOMD " << HOOMD_VERSION << endl;
+		cout << "HOOMD-blue " << HOOMD_VERSION << endl;
 	
 	// output the compiled date and copyright information
 	cout << "Compiled: " << COMPILE_DATE << endl;
-	cout << "Copyright, 2008, Ames Laboratory Iowa State University" << endl;
+	cout << "Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan" << endl;
 	
 	// output the paper citation information
 	cout << "-----" << endl;

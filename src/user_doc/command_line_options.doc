@@ -41,7 +41,7 @@ enable error checks after every GPU kernel call
 <h2>Detailed description</h2>
 
 <h3>Control where a simulation is executed</h3>
-Any simulation in HOOMD can be run on a CPU or GPU.  To control which, 
+Any simulation in HOOMD-blue can be run on a CPU or GPU.  To control which, 
 set the \c --mode option on the script command line. Valid settings are \c cpu
 and \c gpu.
 \code
@@ -50,8 +50,8 @@ hoomd some_script.hoomd --mode=cpu
 When \c --mode is set to \c gpu and no other options are specified, hoomd will
 choose a GPU automatically. It will prioritize the GPU choice based on speed and
 whether it is attached to a display. Unless you take steps to configure your system
-(see below), then running a second instance of HOOMD will place it on the same GPU 
-as the first. HOOMD will run correctly with more than one simulation on a GPU as 
+(see below), then running a second instance of HOOMD-blue will place it on the same GPU 
+as the first. HOOMD-blue will run correctly with more than one simulation on a GPU as 
 long as there is enough memory, but the performance penalty is severe.
 
 You can select the GPU on which to run using the \c --gpu command line option.
@@ -72,7 +72,7 @@ If you run a script without any options
 \code
 hoomd some_script.hoomd
 \endcode
-HOOMD first checks if there are any GPUs in the system. If it finds one or more,
+hoomd first checks if there are any GPUs in the system. If it finds one or more,
 it makes the same automatic choice described previously. If none are found, it runs on the CPU.
 
 <hr>
@@ -90,12 +90,12 @@ hoomd some_script.hoomd --ngpu=N
 , where N is an integer
 
 Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA application to run on each GPU. If you have
-4 compute-exclusive GPUs available in the system, executing a fifth instance of HOOMD with "hoomd some_script.hoomd"
+4 compute-exclusive GPUs available in the system, executing a fifth instance of hoomd with "hoomd some_script.hoomd"
 will result in the error: ***Error! no CUDA-capable device is available.
 <hr>
 
-<h3>Minimizing the CPU usage of HOOMD</h3>
-When HOOMD is running on a GPU, it still uses 100% of one CPU core by default. This CPU usage can be
+<h3>Minimizing the CPU usage of HOOMD-blue</h3>
+When hoomd is running on a GPU, it still uses 100% of one CPU core by default. This CPU usage can be
 decreased significantly by specifying the \c --minimize-cpu-usage command line option:
 \code
 hoomd some_script.hoomd --minimize-cpu-usage
@@ -103,15 +103,15 @@ hoomd some_script.hoomd --minimize-cpu-usage
 Tests performed indicate that enabling this option incurs a 10% overall performance reduction, 
 but the CPU usage of hoomd is reduced to only 10% of a single CPU core.
 
-\note For the --minimize-cpu-usage option to work, HOOMD must be compiled and used on a system with CUDA 
+\note For the --minimize-cpu-usage option to work, hoomd must be compiled and used on a system with CUDA 
 version 2.2 or newer.
 
 <hr>
 
-<h3>Preventing HOOMD from running on the display GPU</h3>
+<h3>Preventing HOOMD-blue from running on the display GPU</h3>
 
-While running HOOMD on the display GPU works just fine, it does moderately slow the simulation and cause the display 
-to lag. If you wish to prevent HOOMD from running on the display, add the \c --ignore-display-gpu command line:
+While running hoomd on the display GPU works just fine, it does moderately slow the simulation and cause the display 
+to lag. If you wish to prevent hoomd from running on the display, add the \c --ignore-display-gpu command line:
 \code
 hoomd some_script.hoomd --ignore-display-gpu
 \endcode

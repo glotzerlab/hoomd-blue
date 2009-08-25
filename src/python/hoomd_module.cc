@@ -278,9 +278,9 @@ string get_hoomd_version()
 	ostringstream ver;
 	// output the version info differently if this is tagged as a subversion build or not
 	if (HOOMD_SUBVERSION_BUILD)
-		ver << "HOOMD svnversion " << HOOMD_SVNVERSION;
+		ver << "HOOMD-blue svnversion " << HOOMD_SVNVERSION;
 	else
-		ver << "HOOMD " << HOOMD_VERSION << endl;
+		ver << "HOOMD-blue " << HOOMD_VERSION << endl;
 	
 	return ver.str();
 	}

@@ -49,7 +49,7 @@ Inside the root node is the configuration node.
 \endcode
 \c time_step="0" is an attribute assigned to the configuration node. You can leave if off if you want
 and the time step will default to 0. It is used as the initial time step in the simulation when read
-by \link hoomd_script.init.read_xml init.read_xml\endlink. In files written by HOOMD, \c time_step 
+by \link hoomd_script.init.read_xml init.read_xml\endlink. In files written by hoomd, \c time_step 
 will be set to the value of the time step when the system snapshot was taken.
 
 <b>A note on case-sensitivity:</b> 
@@ -88,7 +88,7 @@ Version: 1.0 and newer
 <box units="sigma"  lx="5.1" ly="9.6" lz="15.8"/>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
  	for length, energy, etc...
  - \a lx Box length in the \b x direction
  - \a ly Box length in the \b y direction
@@ -111,7 +111,7 @@ Version: 1.0 and newer
 </position>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
  	for length, energy, etc...\
  - \a num (\b optional) number of particles coming in the node content. This attribute is written by
 	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
@@ -180,7 +180,7 @@ When used in an input file, the velocities specified are used as the initial con
 </velocity>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
  	for length, energy, etc...
  - \a num (\b optional) number of particles coming in the node content. This attribute is written by
 	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
@@ -229,7 +229,7 @@ Version: 1.0 and newer
 </diameter>
 \endcode
 \b Attributes:
- - \a units Currently unused. Potentially used for a future feature in HOOMD supporting different units
+ - \a units Currently unused. Potentially used for a future feature in HOOMD-blue supporting different units
  	for length, energy, etc...
  - \a num (\b optional) number of particles coming in the node content. This attribute is written by
 	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
@@ -260,7 +260,7 @@ A
 The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
 except that only one type is specified for each particle. A particle type can be \b any
 string you want that does not include whitespace (as whitespace is used to signify
-the next particle in the list). Internally, HOOMD assigns no meaning whatsoever to the 
+the next particle in the list). Internally, hoomd assigns no meaning whatsoever to the 
 value of the string you specify so name your particles in ways that are meaningful to you.
 When performing tasks such as setting the coefficients of a \link hoomd_script.pair pair\endlink 
 force, the type strings given are simply matched up to those specified in the xml file.

@@ -4,29 +4,10 @@
 \page page_credits Credits
 
 <hr>
-<h1>HOOMD Developers:</h1>
+<h1>HOOMD-blue Developers:</h1>
 <hr>
-Joshua Anderson, University of Michigan (original development as a student at Iowa State University and Ames Laboratory) - <b>primary developer</b>
- - Initial code architecture design
- - Neighbor list generation
- - Lennard-Jones forces
- - Gaussian pair forces
- - Harmonic bond forces
- - NVE and NVT integration
- - hoomd_script design & implementation
- - hoomd_xml file format design & implementation
- - MOL2 & DCD file format writers
- - PDB file format writer
- - Random polymer generator
- - IMD interface for VMD
- - Documentation
- - analyze.log design and implementation
- - analyze.msd implementation
- - integrate.nve implementation
- - integrate.nvt implementation
- - variant data type design and implementation
- - update.box_resize implementation
- - particle group commands design and implementation
+Joshua Anderson, University of Michigan (original development as a student at Iowa State University and Ames Laboratory) - <b>lead developer</b>
+ - (everything that somebody else listed below didn't do)
 
 Alex Travesset, Iowa State University and Ames Laboratory - <b>Joshua's PhD advisor</b>
  - Electrostatic forces
@@ -40,7 +21,7 @@ Carolyn Phillips, University of Michigan
  - Shifted LJ forces
  - Initial testing and debugging of HOOMD on Mac OS X systems
  
-Axel Kohlmeyer, David LeBard, Ben Levine, all from the CMM group at University of Pennsylvania
+Axel Kohlmeyer, David LeBard, Ben Levine, all from the ICMS group at Temple University
   - pair.cgcmm implementation
   - angle.harmonic implementation
   - angle.cgcmm implementation
@@ -48,7 +29,7 @@ Axel Kohlmeyer, David LeBard, Ben Levine, all from the CMM group at University o
   - improper.harmonic implementation
   - numerous other small contributions enhancing the usability of HOOMD
 
-While not having contributed a significant amount of code to HOOMD, David Tarjan at the University of Virginia is 
+While not having contributed a significant amount of code to HOOMD-blue, David Tarjan at the University of Virginia is 
 responsible for numerous performance tweaks to the neighbor list and pair force code.
 
 <hr>
@@ -117,7 +98,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 <hr>
 <h1>Libraries</h1>
 <hr>
-(distributed in a linked binary form if you downloaded a \b HOOMD static build)<br>
+(distributed in a linked binary form if you downloaded a \b HOOMD-blue static build)<br>
 \b boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)<br>
 \b zlib - Used under the zlib license (http://www.zlib.net/zlib_license.html)<br>
         \b bzip2 - Used under the bzip2 license (http://www.bzip.org)<br>

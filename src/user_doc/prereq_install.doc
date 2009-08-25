@@ -99,7 +99,7 @@ grep: /usr/include/boost/version.hpp: No such file or directory
 \endcode
 then boost is not installed. You can upgrade/install boost with your distribution's package
 manager. You may need to install the boost-static package to get the static libraries needed by
-HOOMD.
+HOOMD-blue.
 
 If your distribution doesn't have a new enough version of boost, you can build it by hand. Go
 to http://www.boost.org , download the latest source code and unpack it. cd to the source directory and run
@@ -108,7 +108,7 @@ to http://www.boost.org , download the latest source code and unpack it. cd to t
  $ ./configure --with-python-version=2.5 --prefix=/home/user/software/
 \endcode
 
-By default, only shared libraries are built. HOOMD expects static libraries by default,
+By default, only shared libraries are built. HOOMD-blue expects static libraries by default,
 so open up Makefile in your favorite text editor and  make the following change 
 (for building boost 1.35 or newer):
 \code
@@ -218,12 +218,12 @@ If you have a CUDA capable graphics card, you will also need the proper graphics
 the CUDA webpage linked to above for more information.
 
 If you wish, you can download the CUDA SDK from the same website and compile the example files to
-test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD, however.
+test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD-blue, however.
 
 \section software_req_install_linux_subversion Subversion
 
 Subversion is used for version control. You need to install it if you have commit access and are going to 
-work on active development of HOOMD, or if you just want to download and compile the latest and greatest
+work on active development of HOOMD-blue, or if you just want to download and compile the latest and greatest
 version.
 
 First, see if you already have subversion installed.
@@ -292,7 +292,7 @@ with the following argument in order for python to properly be detected.
 \endcode
 
 Now, the default settings from configure generate unoptimized boost libraries. 
-We can't have that since HOOMD is all about speed, so open the Makefile
+We can't have that since HOOMD-blue is all about speed, so open the Makefile
 \code
  $ open Makefile
 \endcode
@@ -322,7 +322,7 @@ After typing in your password and a considerably shorter wait, you should see
 again. Boost is now installed.
 
 You can delete the boost_1_36_0 directory now if you wish. It might be worth 
-saving for a little while until you have compiled HOOMD and know everything 
+saving for a little while until you have compiled HOOMD-blue and know everything 
 is working so that you won't need to go through all the setup steps again. 
 A common error may be to forget the "sudo" in the last command which will 
 result in boost not being installed and no obvious error message as to why. 
@@ -348,14 +348,14 @@ export PATH=$PATH:/usr/local/cuda/bin
 Change the paths on these lines if you did not install to the default location.
 
 If you wish, you can download the CUDA SDK from the same website and compile the example files to
-test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD, however.
+test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD-blue, however.
 
 <b>6. Subversion</b><br>
 Subversion is used for version control. You need to install it if you have commit access and are going to 
-work on active development of HOOMD, or if you just want to download and compile the latest and greatest
+work on active development of HOOMD-blue, or if you just want to download and compile the latest and greatest
 version.
 
-Subversion is included in Mac OS X 10.5 and newer. If you are building HOOMD on an older version, 
+Subversion is included in Mac OS X 10.5 and newer. If you are building HOOMD-blue on an older version, 
 subversion on Mac OS X is most easily installed from the dmg from here: http://downloads.open.collab.net/binaries.html
 
 <b>7. Doxygen</b><br>
@@ -408,7 +408,7 @@ platform SDK directly or use the file chooser dialog box.
 \b Note: If you intend to build installer packages to be redistributed, make sure that the 
 registry key [HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\8.0;InstallDir] is set 
 properly (typically C:\\Program Files (x86)\\Microsoft Visual Studio 8\\Common7\\IDE). You
-need this to get proper installation of the VS redistributable dlls required to run HOOMD
+need this to get proper installation of the VS redistributable dlls required to run HOOMD-blue
 on user's machines.
 
 \section software_req_install_windows_python Python
@@ -472,9 +472,9 @@ variable \b BOOST_ROOT to c:\\opt (or wherever you installed boost).
 \section software_req_install_windows_cuda CUDA
 Download and install the latest toolkit from http://www.nvidia.com/object/cuda_get.html. There
 is no need to install the SDK. If you have a CUDA capable graphics card, you will also need
-the latest driver in order to execute HOOMD on the GPU (get from http://www.nvidia.com). 
+the latest driver in order to execute HOOMD-blue on the GPU (get from http://www.nvidia.com). 
 
-If you do not have a CUDA capable graphics card, you can still install the toolkit and compile HOOMD in
+If you do not have a CUDA capable graphics card, you can still install the toolkit and compile HOOMD-blue in
 CPU emulation mode. It is quite slow, but developers can use it to test any code they 
 work on that touches GPU classes.
 
@@ -490,6 +490,6 @@ If you prefer a command line, you can download one from here:
 http://www.sliksvn.com/en/download
 
 Even if you only plan on using the GUI, there is a good reason to install both. It 
-allows HOOMD executables to report the svnversion which can only be done if the command line tool 
+allows HOOMD-blue executables to report the svnversion which can only be done if the command line tool 
 is installed.
 */
