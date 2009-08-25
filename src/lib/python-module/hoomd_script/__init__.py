@@ -67,7 +67,27 @@ __all__ = [	"analyze",
 			"variant", 
 			"run", 
 			"tune", 
-			"hoomd"];
+			"hoomd",
+			"get_hoomd_script_version"];
+			
+## \internal
+# \brief Major version of hoomd_script
+version_major = 0;
+
+## \internal
+# \brief Minor version of hoomd_script
+version_minor = 1;
+
+## \brief Get the version information of hoomd_script
+# \returns a tuple (major, minor)
+#
+# This version is the version number of \b hoomd_script , not HOOMD as a whole. It is intended for use by
+# third party API plugins that interface with hoomd_script. When new features are added (i.e. a new command
+# or a new option to an existing command), the minor version will be incremented. When major changes are implemented
+# or changes that break backwards compatibility are made, then the major version is incremented and the minor reset
+# to 0. Only one such increment of either type will occur per each tagged release of HOOMD.
+def get_hoomd_script_version():
+	return (version_major, version_minor)
 
 ## \brief Runs the simulation for a given number of time steps
 #
