@@ -66,7 +66,7 @@ void output_version_info(bool verbose)
 	
 	// output the paper citation information
 	cout << "-----" << endl;
-	cout << "http://www.ameslab.gov/hoomd/" << endl;
+	cout << "http://codeblue.umich.edu/hoomd-blue/" << endl;
 	cout << "This code is the implementation of the algorithms discussed in:" << endl;
 	cout << "   Joshua A. Anderson, Chris D. Lorenz, and Alex Travesset - 'General" << endl;
 	cout << "   Purpose Molecular Dynamics Fully Implemented on Graphics Processing" << endl;

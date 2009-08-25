@@ -57,7 +57,7 @@
 !ifndef PROC
   !define PROC 64 ; to be defined in cmd line
 !endif
-LangString wrongWow ${LANG_ENGLISH} "This binary build is for ${PROC}-bit computers only. Download the 32-bit version at http://www.ameslab.gov/hoomd"
+LangString wrongWow ${LANG_ENGLISH} "This binary build is for ${PROC}-bit computers only. Download the 32-bit version at http://codeblue.umich.edu/hoomd-blue/"
 
 ;--------------------------------
 ; determine admin versus local install
