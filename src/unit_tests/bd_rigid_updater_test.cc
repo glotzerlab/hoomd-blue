@@ -227,7 +227,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, ExecutionConfiguration ex
 	unsigned int dump = 1000000;
 	
 	// Restart if needed
-	bool restart = false;
+	bool restart = true;
 	if (restart == true)
 	{
 		// Initialize rigid bodies, bonds, etc.
@@ -276,7 +276,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, ExecutionConfiguration ex
 	FILE* fp;
 	Scalar Lx, Ly, Lz;
 
-
+/*
 	// Mix with WCA interactions
 	cout << "Equilibrating...\n";
 	cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
@@ -334,7 +334,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, ExecutionConfiguration ex
 	printf("Elapased time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
  
 	start_step = equil_steps;
-
+*/
 	// Production: turn on LJ interactions between rods
 	fc->setParams(1,1,lj1,lj2_lj);
 	
