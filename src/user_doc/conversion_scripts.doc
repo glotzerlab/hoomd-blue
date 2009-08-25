@@ -6,21 +6,6 @@ As of version 1.8.7 the VMD molecular visualization software supports the HOOMD 
 and write support through its molfile plugin library and can be used to build systems and convert between
 MD and visualization codes as well. For details on how to use VMD for HOOMD see below.
 
-\section sec_hoomd_vs_lammps_input HOOMD and LAMMPS compatibility
-While HOOMD in many ways follows the conventions of LAMMPS, there are a few notable differences
-that need to be considered when converting simulations from LAMMPS to HOOMD or vice versa.
-
-- HOOMD currently only supports reduced units. The equivalent setting in LAMMPS is: \c units \c lj
-- Bonded force constants (i.e. bonds, angles, dihedrals, impropers) do \b not include the factor 1/2
-  like in LAMMPS. So to convert \b to \b LAMMPS force constants need to be multiplied by 0.5 and 
-  to convert \b from \b LAMMPS force constants need to be multiplied by by 2.0. Parameters for 
-  pairwise interactions, e.g., \f$ \varepsilon \f$ and \f$ \sigma \f$ are \b not affected by this.
-- When using \c units \c lj, LAMMPS defaults to printing total energies per atom. Use the script command
-  \c thermo_modify \c norm \c no in the LAMMPS input script to get an output comparable to that of HOOMD.
-- When using the \c NVT ensemble, the total energy of LAMMPS does not contain the contribution from
-  the degrees of freedom of the Nose-Hoover thermostat, while they are included in the 
-  \c conserved_quantity log file component.
-
 \section sec_hoomd2lammps_input HOOMD XML -> LAMMPS data script
 
 \c hoomd2lammps_input.py converts a HOOMD XML file to the LAMMPS data file format. It handles positions,
