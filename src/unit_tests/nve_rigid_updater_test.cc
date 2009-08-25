@@ -91,7 +91,7 @@ const Scalar tol = 1e-3;
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT)> nveup_creator;
 
-void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_integrate_tests(nveup_creator nve_creator, const ExecutionConfiguration &exec_conf)
 	{
 	#ifdef ENABLE_CUDA
 	g_gpu_error_checking = true;
@@ -186,7 +186,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
 	}
 
 
-void nve_updater_energy_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfiguration& exec_conf)
 {
 	#ifdef ENABLE_CUDA
 	g_gpu_error_checking = true;
@@ -468,7 +468,8 @@ BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_energy_tests )
 {
 	printf("\nTesting energy conservation on GPU...\n");
 	nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-	nve_updater_energy_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	
+	nve_updater_energy_tests(nve_creator_gpu, ExecutionConfiguration());
 }
 
 #endif

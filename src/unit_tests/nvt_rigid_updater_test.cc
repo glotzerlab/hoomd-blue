@@ -107,7 +107,7 @@ shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scal
 	}
 #endif
 
-void nvt_updater_energy_tests(nvtup_creator nvt_creator, ExecutionConfiguration exec_conf)
+void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfiguration& exec_conf)
 {
 	#ifdef ENABLE_CUDA
 	g_gpu_error_checking = true;
@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_energy_tests )
 {
 	printf("\nTesting energy conservation on GPU...\n");
 	nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
-	nvt_updater_energy_tests(nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
+	nvt_updater_energy_tests(nvt_creator_gpu, ExecutionConfiguration());
 }
 
 #endif

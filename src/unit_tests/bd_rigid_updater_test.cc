@@ -101,7 +101,7 @@ void write_restart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep);
 
 void read_restart(shared_ptr<SystemDefinition> sysdef, char* file_name);
 
-void bd_updater_lj_tests(bdnvtup_creator bdup_creator, ExecutionConfiguration exec_conf)
+void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfiguration exec_conf)
 {
 	#ifdef ENABLE_CUDA
 	g_gpu_error_checking = true;
@@ -603,7 +603,7 @@ shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 {
 	bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
-	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+	bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration());
 }
 #endif
 

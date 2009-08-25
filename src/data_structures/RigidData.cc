@@ -61,8 +61,8 @@ using namespace std;
 	\pre \a particle_data has been completeley initialized with all arrays filled out
 	\post All data members in RigidData are completely initialized from the given info in \a particle_data
 */
-RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data, const ExecutionConfiguration& exec_conf)
-	: m_pdata(particle_data), m_exec_conf(exec_conf), m_n_bodies(0), m_ndof(0)
+RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
+	: m_pdata(particle_data), m_n_bodies(0), m_ndof(0)
 	{
 	// leave arrays initialized to NULL. There are currently 0 bodies and their 
 	// initialization is delayed because we cannot reasonably determine when that initialization

@@ -72,7 +72,7 @@ class RigidData
 	{
 	public:
 		//! Initializes all rigid body data from the given particle data
-		RigidData(boost::shared_ptr<ParticleData> particle_data, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+		RigidData(boost::shared_ptr<ParticleData> particle_data);
 		//! Destructor
 		~RigidData();
 		
@@ -135,8 +135,6 @@ class RigidData
 	private:
 		boost::shared_ptr<ParticleData> m_pdata;		//!< The particle data with which this RigidData is associated
 		boost::signals::connection m_sort_connection;	//!< Connection to the resort signal from ParticleData
-		
-		const ExecutionConfiguration m_exec_conf;		//!< The execution configuration
 		
 		//! \name static data members (set on initialization)
 		//@{
