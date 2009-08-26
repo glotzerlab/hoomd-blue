@@ -224,24 +224,32 @@ string find_vmd()
 	#ifdef WIN32
 	
 	// find VMD through the registry
-	string reg_path = "SOFTWARE\\University of Illinois\\VMD\\1.8.6";
+	vector<string> reg_paths;
+	reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.7");
+	reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.6");	
 	
-	char *value = new char[1024];
-	DWORD value_size = 1024;
-	HKEY vmd_root_key;
-	LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
-	if (err_code == ERROR_SUCCESS)
+	vector<string>::iterator cur_path;
+	for (cur_path = reg_paths.begin(); cur_path != reg_paths.end(); ++cur_path)
 		{
-		err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
-		// see if it installed where the reg key says so
+		string reg_path = *cur_path;
+		
+		char *value = new char[1024];
+		DWORD value_size = 1024;
+		HKEY vmd_root_key;
+		LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
 		if (err_code == ERROR_SUCCESS)
 			{
-			path install_dir = path(string(value));
-			if (exists(install_dir / "vmd.exe"))
-				return (install_dir / "vmd.exe").string();
+			err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
+			// see if it installed where the reg key says so
+			if (err_code == ERROR_SUCCESS)
+				{
+				path install_dir = path(string(value));
+				if (exists(install_dir / "vmd.exe"))
+					return (install_dir / "vmd.exe").string();
+				}
 			}
+		delete[] value;
 		}
-	delete[] value;
 
 	#else
 	// check some likely locations
@@ -251,6 +259,10 @@ string find_vmd()
 		return "/usr/local/bin/vmd";
 	if (exists("/opt/vmd/bin/vmd"))
 		return "/opt/vmd/bin/vmd";
+	if (exists(path("/Applications/3rd Party Apps/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check )))
+		return("/Applications/3rd Party Apps/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");	
+	if (exists(path("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
+		return("/Applications/VMD 1.8.7.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");	
 	if (exists(path("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check )))
 		return("/Applications/3rd Party Apps/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");	
 	if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
