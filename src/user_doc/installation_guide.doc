@@ -51,7 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
  - \b CPU: Any x86 or x86_64 processor
  - \b RAM: At least 1GB is recommended
  - \b GPU: Any CUDA capable card: http://www.nvidia.com/object/cuda_home.html
- 	- \b Recommended (listed here in the rough order of performance expected, see http://www.ameslab.gov/hoomd/benchmarks.html for actual performance numbers): 
+ 	- \b Recommended (listed here in the rough order of performance expected, see http://codeblue.umich.edu/hoomd-blue/benchmarks.html for actual performance numbers): 
 		- GTX 285/295 (fastest)
 		- GTX 280
 		- Tesla 10 series
@@ -65,37 +65,39 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 <hr>
 
-\section sec_install_hoomd_windows Installing HOOMD in Windows
+\section sec_install_hoomd_windows Installing HOOMD-blue in Windows
 
- -# Download the HOOMD installer from http://www.ameslab.gov/hoomd
+ -# Download the HOOMD-blue installer from http://codeblue.umich.edu/hoomd-blue/
  -# Install Python 2.5.x using the installer at http://www.python.org/download/
  -# Install the latest drivers for your GPU from http://www.nvidia.com
- -# Uninstall any previous version of HOOMD before continuing
- -# Double click on the HOOMD installer and follow the on screen steps
+ -# Uninstall any previous version of HOOMD/HOOMD-blue before continuing
+ -# Double click on the HOOMD-blue installer and follow the on screen steps
  
-HOOMD should now show up on your <b>Start menu</b> and the \a .hoomd file type 
+HOOMD-blue should now show up on your <b>Start menu</b> and the \a .hoomd file type 
 is registered to execute the script when you double-click on one.
-The command \b hoomd can also be run on the <b>command line</b> to start the HOOMD python interpreter.
+The command \b hoomd can also be run on the <b>command line</b> to start the HOOMD-blue python interpreter.
 
 The start menu also includes links to the standard benchmark scripts.
 
-Check out the \ref page_quick_start to learn how to use HOOMD.
+Check out the \ref page_quick_start to learn how to use hoomd.
 
 <hr>
 
-\section sec_install_hoomd_linux Installing HOOMD in Linux
+\section sec_install_hoomd_linux Installing HOOMD-blue in Linux
 
- -# Before you download HOOMD, check which python version you have by running 
+ -# Before you download HOOMD-blue, check which python version you have by running 
  	\code
  python -V
  	\endcode
  	in a terminal.
- -# Download the matching HOOMD package from http://www.ameslab.gov/hoomd
+ -# Download the matching HOOMD-blue package from http://codeblue.umich.edu/hoomd-blue/
  -# Install the NVIDIA CUDA Toolkit using the installer from http://www.nvidia.com/object/cuda_get.html
-    - Note: Make sure you install the toolkit version listed on the HOOMD download page.
+    - Note: Make sure you install the toolkit version listed on the HOOMD-blue download page.
     - Add /usr/local/cuda/lib to LD_LIBRARY_PATH (can be modified similar to PATH below)
+    - Note: If you are running CUDA 2.3 or newer on an x86_64 linux install, add /usr/local/cuda/lib64 to your 
+    LD_LIBRARY_PATH instead.
  -# Install the latest drivers for your GPU from http://www.nvidia.com
- -# Extract the HOOMD package using your favorite tool or by running
+ -# Extract the HOOMD-blue package using your favorite tool or by running
  	\code
  tar -xvjpf hoomd-0.7.1-Linux-x86_64-Python2.5.tar.bz2
  	\endcode
@@ -103,7 +105,7 @@ Check out the \ref page_quick_start to learn how to use HOOMD.
 	- Note: If you extract this package in /opt as root, it will be installed in a system directory for
 		any user on the system to run. If you need to have your own local copy, just extract
 		to your home directory.
- -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
+ -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD-blue to,
     i.e. /home/joaander/software/hoomd-0.8.2-Linux-x86_64-Python2.5
  -# Add EXTRACTED_LOCATION/bin to your $PATH.
   See http://www.newlinuxuser.com/howto-add-a-directory-to-my-path-statementvariable/
@@ -130,19 +132,19 @@ cd EXTRACTED_LOCATION/share/hoomd/benchmarks/
 ./polymer_bmark.hoomd --mode=gpu
 \endcode
 
-Check out the \ref page_quick_start to learn how to use HOOMD.
+Check out the \ref page_quick_start to learn how to use hoomd.
 
 <hr>
 
-\section sec_install_hoomd_mac Installing HOOMD in Mac OS X
+\section sec_install_hoomd_mac Installing HOOMD-blue in Mac OS X
 
- -# Download the HOOMD package from http://www.ameslab.gov/hoomd
+ -# Download the HOOMD package from http://codeblue.umich.edu/hoomd-blue/
  -# Install the NVIDIA CUDA Toolkit using the installer from http://www.nvidia.com/object/cuda_get.html
- 	- \b Note: Make sure you install the toolkit version listed on the HOOMD download page.
+ 	- \b Note: Make sure you install the toolkit version listed on the HOOMD-blue download page.
 	- \b Note: Make sure to select the \em Customize button and ensure that \em CUDAKext is selected.
 	- Add /usr/local/cuda/lib to DYLD_LIBRARY_PATH (see instructions for PATH below)
  -# Make sure that the Apple \b Software \b Update tool has installed all updates related to the video drivers. 
- -# Extract the HOOMD package using your favorite tool or by running
+ -# Extract the HOOMD-blue package using your favorite tool or by running
  	\code
  tar -xvjpf hoomd-0.8.0-Darwin-i386-Python2.5.tar.bz2
  	\endcode
@@ -150,7 +152,7 @@ Check out the \ref page_quick_start to learn how to use HOOMD.
 	- Note: If you extract this package in /opt as root, it will be installed in a system directory for
 		any user on the system to run. If you need to have your own local copy, just extract
 		to your home directory.
- -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD to,
+ -# Below, replace EXTRACTED_LOCATION with the location you extracted HOOMD-blue to,
     i.e. /home/joaander/software/hoomd-0.8.0-Darwin-i386-Python2.5
  -# Add EXTRACTED_LOCATION/bin to your $PATH. 
   See http://www.newlinuxuser.com/howto-add-a-directory-to-my-path-statementvariable/
@@ -177,5 +179,5 @@ cd EXTRACTED_LOCATION/share/hoomd/benchmarks/
 ./polymer_bmark.hoomd --mode=gpu
 \endcode
 
-Check out the \ref page_quick_start to learn how to use HOOMD.
+Check out the \ref page_quick_start to learn how to use hoomd.
 */

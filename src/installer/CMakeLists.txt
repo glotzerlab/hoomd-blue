@@ -37,10 +37,8 @@
 # $Id$
 # $URL$
 
-if (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)
-
-set(CPACK_DESCRIPTION_SUMMARY "Highly Optimized Object Oriented Molecular Dynamics")
-set(CPACK_PACKAGE_VENDOR "Ames Laboratory Iowa State University")
+set(CPACK_DESCRIPTION_SUMMARY "Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition")
+set(CPACK_PACKAGE_VENDOR "University of Michigan")
 set(CPACK_PACKAGE_VERSION_MAJOR ${HOOMD_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${HOOMD_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${HOOMD_VERSION_PATCH})
@@ -53,12 +51,12 @@ set(CPACK_RESOURCE_FILE_LICENSE "${HOOMD_SOURCE_DIR}/LICENSE")
 
 if (WIN32 AND NOT UNIX)
 	set(CPACK_NSIS_INSTALLER_ICON "${HOOMD_SOURCE_DIR}/pics_icons/InstallIcon.ico")
-	set(CPACK_NSIS_URL_INFO_ABOUT "http://www.ameslab.gov/hoomd/")
-	set(CPACK_NSIS_CONTACT "joaander@iastate.edu")
-	set(CPACK_NSIS_DISPLAY_NAME "HOOMD")
+	set(CPACK_NSIS_URL_INFO_ABOUT "http://codeblue.umich.edu/hoomd-blue")
+	set(CPACK_NSIS_CONTACT "http://codeblue.umich.edu/hoomd-blue")
+	set(CPACK_NSIS_DISPLAY_NAME "HOOMD-blue")
 		
 	set(CPACK_NSIS_MODIFY_PATH ON)
-	set(CPACK_PACKAGE_EXECUTABLES "hoomd;HOOMD Python Interpreter")
+	set(CPACK_PACKAGE_EXECUTABLES "hoomd;HOOMD-blue Python Interpreter")
 	
 else (WIN32 AND NOT UNIX)
 	# on linux, I want to have x86_64 or x86 in the name of the package
@@ -134,4 +132,3 @@ endif (ENABLE_CUDA)
 
 endif(WIN32)
 
-endif (NOT I_WILL_NOT_DISTRUBUTE_THIS_HOOMD)

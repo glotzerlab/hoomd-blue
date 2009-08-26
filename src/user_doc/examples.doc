@@ -94,7 +94,7 @@ analyze.imd(port=54321, period=500)
 # run a very long time so the simulation can be watched in VMD
 run(1e9)
 \endcode
-Start the simulation running in HOOMD, then load up VMD. Inside VMD, create
+Start the simulation running in hoomd, then load up VMD. Inside VMD, create
 a new molecule and load the file \c example2.mol2 generated at the beginning
 of the simulation. Then go to the VMD command window and run the command
 \code
@@ -105,7 +105,7 @@ is of the current state of the simulation, updated in \b real-time. Again,
 the best visualization is obtained by setting the <i>Drawing Method</i> to VDW in
 VMD's <i>Graphical Representation</i> menu.
 
-Switch back to the terminal where HOOMD is running and press CTRL-C to kill the 
+Switch back to the terminal where hoomd is running and press CTRL-C to kill the 
 simulation. It is set to run for an extremely long time on purpose to allow 
 ample time to launch VMD and issue the \c imd command.
 
@@ -172,7 +172,7 @@ run(2000)
 
 \section sec_example_hoomd_xml Example 4: Using arbitrary input files
 
-Of course, HOOMD is not limited by the built-in random initial condition generators used in the 
+Of course, hoomd is not limited by the built-in random initial condition generators used in the 
 previous example. You can load in an arbitrary initial condition from a formatted xml file. 
 Here is a simple example demonstrating most of the types of data that can be input (see \ref page_xml_file_format
 for full documentation of this format):
