@@ -60,14 +60,13 @@ using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef SystemDefinition for the system to be simulated
-	\param initial_tstep Time step to start counting from when run() is first called
 	
 	\post The System is constructed with no attached computes, updaters, 
 		analyzers or integrators. Profiling defaults to disabled and
 		statistics are printed every 10 seconds.
 */	
-System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
-	: m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep), m_first_run(true),
+System::System(boost::shared_ptr<SystemDefinition> sysdef)
+	: m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
 		m_last_status_time(0), m_last_status_tstep(initial_tstep), m_profile(false), m_stats_period(10)
 	{
 	// sanity check
@@ -395,14 +394,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 			}
 		
 		// execute analyzers
-		if (m_cur_tstep > m_start_tstep || m_first_run)
+		vector<analyzer_item>::iterator analyzer;
+		for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
 			{
-			vector<analyzer_item>::iterator analyzer;
-			for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-				{
-				if (analyzer->shouldExecute(m_cur_tstep))
-					analyzer->m_analyzer->analyze(m_cur_tstep);
-				}
+			if (analyzer->shouldExecute(m_cur_tstep))
+				analyzer->m_analyzer->analyze(m_cur_tstep);
 			}
 		
 		// execute updaters
@@ -458,15 +454,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 		{
 		callback(m_cur_tstep);
 		}
-		
-	// execute analyzers on final step
-	vector<analyzer_item>::iterator analyzer;
-	for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-		{
-		if (analyzer->shouldExecute(m_cur_tstep))
-			analyzer->m_analyzer->analyze(m_cur_tstep);
-		}
-		
+	
 	// calculate averate TPS
 	Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
 	cout << "Average TPS: " << TPS << endl;
@@ -477,9 +465,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 		cout << *m_profiler;
 
 	printStats();
-	
-	// the first run is complete
-	m_first_run = false;
 	}
 		
 /*! \param enable Set to true to enable profiling during calls to run()

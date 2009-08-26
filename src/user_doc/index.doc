@@ -1,6 +1,6 @@
 /*! \mainpage
 
-Welcome to the \b user documentation for HOOMD!
+Welcome to the \b user documentation for HOOMD-blue!
 
 -# \subpage page_install_guide
 -# \subpage page_quick_start
@@ -8,6 +8,7 @@ Welcome to the \b user documentation for HOOMD!
 -# \subpage page_command_list
 -# \subpage page_xml_file_format
 -# \subpage page_command_line_options
+-# <a href="https://codeblue.umich.edu/hoomd-blue/trac/wiki/MigratingFromLAMMPS">Migrating from LAMMPS (wiki link)</a>
 -# \subpage page_conversion_scripts
 -# \subpage page_compile_guide
 -# \subpage page_license
@@ -127,7 +128,7 @@ Table of contents:
  - \link hoomd_script.variant.linear_interp variant.linear_interp\endlink - <i>\copybrief hoomd_script::variant::linear_interp</i>
 
 <h2>Miscellaneous commands</h2>
-\section sec_index_tuning Commands for tuning HOOMD's performance
+\section sec_index_tuning Commands for tuning HOOMD-blue's performance
  - \link hoomd_script.tune.find_optimal_block_sizes() tune.find_optimal_block_sizes\endlink - <i>\copybrief hoomd_script::tune::find_optimal_block_sizes </i>
 
 */
