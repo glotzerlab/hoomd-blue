@@ -236,7 +236,7 @@ string find_vmd()
 		char *value = new char[1024];
 		DWORD value_size = 1024;
 		HKEY vmd_root_key;
-		LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
+		LONG err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ | KEY_WOW64_32KEY, &vmd_root_key);
 		if (err_code == ERROR_SUCCESS)
 			{
 			err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
@@ -248,6 +248,20 @@ string find_vmd()
 					return (install_dir / "vmd.exe").string();
 				}
 			}
+			
+		err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
+		if (err_code == ERROR_SUCCESS)
+			{
+			err_code = RegQueryValueEx(vmd_root_key, "VMDDIR", NULL, NULL, (LPBYTE)value, &value_size);
+			// see if it installed where the reg key says so
+			if (err_code == ERROR_SUCCESS)
+				{
+				path install_dir = path(string(value));
+				if (exists(install_dir / "vmd.exe"))
+					return (install_dir / "vmd.exe").string();
+				}
+			}
+
 		delete[] value;
 		}
 
