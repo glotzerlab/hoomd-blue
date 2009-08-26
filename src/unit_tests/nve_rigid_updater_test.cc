@@ -195,10 +195,10 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
 	// check that the nve updater can actually integrate particle positions and velocities correctly
 	// start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
 	// don't come into play
-	unsigned int nbodies = 12000;
+	unsigned int nbodies = 12000; // 12000, 24000, 36000, 48000, 60000
 	unsigned int nparticlesperbody = 5;
 	unsigned int N = nbodies * nparticlesperbody;
-	Scalar box_length = 80.0;
+	Scalar box_length = 80.0; // 80, 90, 100, 120, 150
 	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), 1, 0, 0, 0, 0, exec_conf));
 	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 	BoxDim box = pdata->getBox();

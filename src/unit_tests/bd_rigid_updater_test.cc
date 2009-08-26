@@ -101,7 +101,7 @@ void write_restart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep);
 
 void read_restart(shared_ptr<SystemDefinition> sysdef, char* file_name);
 
-void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfiguration exec_conf)
+void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfiguration& exec_conf)
 {
 	#ifdef ENABLE_CUDA
 	g_gpu_error_checking = true;
@@ -233,10 +233,10 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 		// Initialize rigid bodies, bonds, etc.
 		sysdef->init();
 		
-		start_step = 20000000;
+		start_step = 40000000;
 		char restart_file[100];
 		sprintf(restart_file, "restart_%d.txt", start_step);
-		read_restart(sysdef, restart_file);
+		sysdef->readRestart(restart_file);
 		
 		nrigid_dof = rdata->getNumDOF();
 		nnonrigid_dof = 3 * (N - body_size * nbodies);
@@ -323,7 +323,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 			pdata->release();
 
 			if (i % dump == 0)
-				write_restart(sysdef, i);
+				sysdef->writeRestart(i);
 
 			}
 
@@ -387,7 +387,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 			pdata->release();
 
 			if (i % dump == 0)
-				write_restart(sysdef, i);
+				sysdef->writeRestart(i);
 		}
 	}
 	

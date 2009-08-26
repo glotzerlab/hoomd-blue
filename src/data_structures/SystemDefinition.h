@@ -104,6 +104,12 @@ class SystemDefinition
 		
 		//! Initialize data
 		int init();
+
+		//! Write restart file
+		void writeRestart(unsigned int timestep);
+
+		//! Read restart file
+		void readRestart(const std::string& file_name);
 		
 		//! Get the particle data
 		boost::shared_ptr<ParticleData> getParticleData() const { return m_particle_data; }

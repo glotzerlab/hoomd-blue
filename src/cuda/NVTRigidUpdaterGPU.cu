@@ -263,7 +263,7 @@ __device__ float taylor_exp(float x)
 	\param box Box dimensions for periodic boundary condition handling
 */
 
-extern "C" __global__ void gpu_nvt_rigid_body_pre_step_kernel(gpu_pdata_arrays pdata, float4* rdata_com, float4* rdata_vel, float4* rdata_angmom, float4* rdata_angvel, 
+extern "C" __global__ void gpu_nvt_rigid_body_pre_step_kernel(float4* pdata_pos, float4* pdata_vel, int4* pdata_image, float4* rdata_com, float4* rdata_vel, float4* rdata_angmom, float4* rdata_angvel, 
 				float4* rdata_orientation, float4* rdata_ex_space, float4* rdata_ey_space, float4* rdata_ez_space, int* rdata_body_imagex, int* rdata_body_imagey, int* rdata_body_imagez, unsigned int n_bodies, unsigned int local_beg,
 				float nvt_rdata_eta_dot_t0, float nvt_rdata_eta_dot_r0, float4* nvt_rdata_conjqm, float* nvt_rdata_partial_Ksum_t, float* nvt_rdata_partial_Ksum_r, gpu_boxsize box, float deltaT)
 	{
@@ -447,9 +447,9 @@ extern "C" __global__ void gpu_nvt_rigid_body_pre_step_kernel(gpu_pdata_arrays p
 		pvel.w = 0.0;
 		
 		// write out the results (MEM_TRANSFER: ? bytes)
-		pdata.pos[idx_particle_index] = ppos;
-		pdata.vel[idx_particle_index] = pvel;
-		pdata.image[idx_particle_index] = image;
+		pdata_pos[idx_particle_index] = ppos;
+		pdata_vel[idx_particle_index] = pvel;
+		pdata_image[idx_particle_index] = image;
 		}
 	
 	}
@@ -563,7 +563,7 @@ cudaError_t gpu_nvt_rigid_body_pre_step(const gpu_pdata_arrays& pdata, const gpu
 
 	// run the kernel for bodies
     
-	gpu_nvt_rigid_body_pre_step_kernel<<< grid, threads, nmax * sizeof(float4)  >>>(pdata, rigid_data.com, rigid_data.vel, rigid_data.angmom, rigid_data.angvel, 
+	gpu_nvt_rigid_body_pre_step_kernel<<< grid, threads, nmax * sizeof(float4)  >>>(pdata.pos, pdata.vel, pdata.image, rigid_data.com, rigid_data.vel, rigid_data.angmom, rigid_data.angvel, 
 			rigid_data.orientation, rigid_data.ex_space, rigid_data.ey_space, rigid_data.ez_space, rigid_data.body_imagex, rigid_data.body_imagey, rigid_data.body_imagez, 
 			n_bodies, local_beg, nvt_rigid_data.eta_dot_t0, nvt_rigid_data.eta_dot_r0, nvt_rigid_data.conjqm, nvt_rigid_data.partial_Ksum_t, nvt_rigid_data.partial_Ksum_r, box, deltaT);
 

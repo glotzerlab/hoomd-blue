@@ -234,7 +234,8 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
 	cout << "Step\tTemp\tPotEng\tKinEng\tTotalE\n";
 		
 	clock_t start = clock();
-
+	
+//	steps = 0;
 	for (unsigned int i = 0; i <= steps; i++)
 		{
 
