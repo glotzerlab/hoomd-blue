@@ -60,12 +60,13 @@ using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef SystemDefinition for the system to be simulated
+    \param initial_tstep Initial time step of the simulation
 	
 	\post The System is constructed with no attached computes, updaters, 
 		analyzers or integrators. Profiling defaults to disabled and
 		statistics are printed every 10 seconds.
 */	
-System::System(boost::shared_ptr<SystemDefinition> sysdef)
+System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
 	: m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
 		m_last_status_time(0), m_last_status_tstep(initial_tstep), m_profile(false), m_stats_period(10)
 	{
