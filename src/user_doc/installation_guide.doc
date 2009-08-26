@@ -94,6 +94,8 @@ Check out the \ref page_quick_start to learn how to use hoomd.
  -# Install the NVIDIA CUDA Toolkit using the installer from http://www.nvidia.com/object/cuda_get.html
     - Note: Make sure you install the toolkit version listed on the HOOMD-blue download page.
     - Add /usr/local/cuda/lib to LD_LIBRARY_PATH (can be modified similar to PATH below)
+    - Note: If you are running CUDA 2.3 or newer on an x86_64 linux install, add /usr/local/cuda/lib64 to your 
+    LD_LIBRARY_PATH instead.
  -# Install the latest drivers for your GPU from http://www.nvidia.com
  -# Extract the HOOMD-blue package using your favorite tool or by running
  	\code
