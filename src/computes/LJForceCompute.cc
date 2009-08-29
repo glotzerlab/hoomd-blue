@@ -81,13 +81,15 @@ LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost
 	// allocate data for lj1 and lj2
 	m_lj1 = new Scalar[m_ntypes*m_ntypes];
 	m_lj2 = new Scalar[m_ntypes*m_ntypes];
+	m_cut = new Scalar[m_ntypes*m_ntypes];
 	
 	// sanity check
-	assert(m_lj1 != NULL && m_lj2 != NULL);
+	assert(m_lj1 != NULL && m_lj2 != NULL && m_cut != NULL);
 	
 	// initialize the parameters to 0;
 	memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
 	memset((void*)m_lj2, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
+	memset((void*)m_cut, m_r_cut, sizeof(Scalar)*m_ntypes*m_ntypes);	
 	}
 	
 
@@ -96,8 +98,10 @@ LJForceCompute::~LJForceCompute()
 	// deallocate our memory
 	delete[] m_lj1;
 	delete[] m_lj2;
+	delete[] m_cut;
 	m_lj1 = NULL;
 	m_lj2 = NULL;
+	m_cut = NULL;
 	}
 		
 
@@ -116,7 +120,7 @@ LJForceCompute::~LJForceCompute()
 	\param lj1 First parameter used to calcluate forces
 	\param lj2 Second parameter used to calculate forces
 */
-void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2)
+void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar r_cut)
 	{
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
 		{
@@ -131,6 +135,18 @@ void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1,
 	// set lj2 in both symmetric positions in the matrix
 	m_lj2[typ1*m_ntypes + typ2] = lj2;
 	m_lj2[typ2*m_ntypes + typ1] = lj2;
+	
+	// set r_cut in both symmetric positions in the matrix
+	if (r_cut > Scalar(0.0))
+	{
+		m_cut[typ1*m_ntypes + typ2] = r_cut;
+		m_cut[typ2*m_ntypes + typ1] = r_cut;
+	}
+	else // m_r_cut by default for all types
+	{
+		m_cut[typ1*m_ntypes + typ2] = m_r_cut;
+		m_cut[typ2*m_ntypes + typ1] = m_r_cut;
+	}
 	}
 	
 /*! LJForceCompute provides
@@ -292,6 +308,13 @@ void LJForceCompute::computeForces(unsigned int timestep)
 				radj = r - alphai -alphaj; 
 				rsq = radj*radj;		// This is now the diameter adjusted potential distance for slj
 				}
+			
+			// r_cut per type, re-compute involved quantities
+			r_cut_sq = m_cut[typei*m_ntypes	+ typej] * m_cut[typei*m_ntypes	+ typej];
+			r_on_sq = m_xplor_fraction*m_xplor_fraction * r_cut_sq;
+			rcut2inv = Scalar(1.0) / r_cut_sq;
+			rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+			xplor_denom_inv = Scalar(1.0) / ((r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq));
 				
 			// only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
 			if (rsq < r_cut_sq)

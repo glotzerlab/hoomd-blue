@@ -199,15 +199,13 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 	Scalar epsilon = Scalar(1.0);
 	Scalar sigma = Scalar(1.0);
 	Scalar alpha_lj = Scalar(1.0);  // alpha = 1.0: LJ
-	Scalar alpha_wca = Scalar(0.0);  // alpha = 0.0: close to WCA, purely repulsive
 	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma, Scalar(12.0));
-	Scalar lj2_lj = alpha_lj * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
-	Scalar lj2_wca = alpha_wca * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
+	Scalar lj2 = alpha_lj * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
 	
 	// specify the force parameters
-	fc->setParams(0,0,lj1,lj2_wca);
-	fc->setParams(0,1,lj1,lj2_wca);
-	fc->setParams(1,1,lj1,lj2_wca);
+	fc->setParams(0,0,lj1,lj2, Scalar(1.122));
+	fc->setParams(0,1,lj1,lj2, Scalar(1.122));
+	fc->setParams(1,1,lj1,lj2, Scalar(1.122));
 	
 	bdnvt_up->addForceCompute(fc);
 	
@@ -218,6 +216,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 	
 	unsigned int nrigid_dof, nnonrigid_dof;
 	Scalar current_temp;
+
 	shared_ptr<RigidData> rdata = sysdef->getRigidData();
 	
 	unsigned int start_step = 0;
@@ -227,7 +226,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 	unsigned int dump = 1000000;
 	
 	// Restart if needed
-	bool restart = true;
+	bool restart = false;
 	if (restart == true)
 	{
 		// Initialize rigid bodies, bonds, etc.
@@ -265,10 +264,6 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 		pdata->release();
 	}
 	
-		
-	
-	
-					
 	// Timing
 	clock_t start, end;
 	double elapsed;
@@ -276,7 +271,8 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 	FILE* fp;
 	Scalar Lx, Ly, Lz;
 
-/*
+
+
 	// Mix with WCA interactions
 	cout << "Equilibrating...\n";
 	cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
@@ -322,21 +318,25 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 		
 			pdata->release();
 
+
 			if (i % dump == 0)
 				sysdef->writeRestart(i);
+
 
 			}
 
 		}
 	
+
 	end = clock();
 	elapsed = (double)(end - start) / (double)CLOCKS_PER_SEC;	
 	printf("Elapased time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
  
 	start_step = equil_steps;
-*/
+    // End of mixing
+
 	// Production: turn on LJ interactions between rods
-	fc->setParams(1,1,lj1,lj2_lj);
+	fc->setParams(1,1,lj1,lj2, Scalar(2.5));
 	
 	cout << "Production...\n";
 	cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
@@ -385,6 +385,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 			}
 		
 			pdata->release();
+
 
 			if (i % dump == 0)
 				sysdef->writeRestart(i);

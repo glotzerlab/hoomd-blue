@@ -76,7 +76,7 @@ class LJForceCompute : public ForceCompute
 		virtual ~LJForceCompute();
 		
 		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2);
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar r_cut=-1.0);
 		
 		//! Returns a list of log quantities this compute calculates
 		virtual std::vector< std::string > getProvidedLogQuantities(); 
@@ -114,6 +114,7 @@ class LJForceCompute : public ForceCompute
 		// lj1 and lj2 here
 		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
+		Scalar * __restrict__ m_cut;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
 		
 		//! Actually compute the forces
 		virtual void computeForces(unsigned int timestep);

@@ -119,7 +119,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
 	else cout << "Diameter-Shifted LJ Pair Potential is NOT set for LJForceComputeGPU" << endl;
 */	
 	// allocate the coeff data on the GPU
-	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
+	int nbytes = sizeof(float3)*m_pdata->getNTypes()*m_pdata->getNTypes();
 	
 	d_coeffs.resize(exec_conf.gpu.size());
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
@@ -130,7 +130,7 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
 		}
 	// allocate the coeff data on the CPU
-	h_coeffs = new float2[m_pdata->getNTypes()*m_pdata->getNTypes()];
+	h_coeffs = new float3[m_pdata->getNTypes()*m_pdata->getNTypes()];
 	}
 	
 
@@ -170,7 +170,7 @@ void LJForceComputeGPU::setBlockSize(int block_size)
 	\param lj1 First parameter used to calcluate forces
 	\param lj2 Second parameter used to calculate forces
 */
-void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2)
+void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar r_cut)
 	{
 	assert(h_coeffs);
 	if (typ1 >= m_ntypes || typ2 >= m_ntypes)
@@ -180,10 +180,18 @@ void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar l
 		}
 	
 	// set coeffs in both symmetric positions in the matrix
-	h_coeffs[typ1*m_pdata->getNTypes() + typ2] = make_float2(lj1, lj2);
-	h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float2(lj1, lj2);
-	
-	int nbytes = sizeof(float2)*m_pdata->getNTypes()*m_pdata->getNTypes();
+	if (r_cut > Scalar(0.0))
+	{
+		h_coeffs[typ1*m_pdata->getNTypes() + typ2] = make_float3(lj1, lj2, r_cut);
+		h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float3(lj1, lj2, r_cut);
+	}
+	else // m_r_cut by default for all types
+	{
+		h_coeffs[typ1*m_pdata->getNTypes() + typ2] = make_float3(lj1, lj2, m_r_cut);
+		h_coeffs[typ2*m_pdata->getNTypes() + typ1] = make_float3(lj1, lj2, m_r_cut);
+	}
+		
+	int nbytes = sizeof(float3)*m_pdata->getNTypes()*m_pdata->getNTypes();
 	exec_conf.tagAll(__FILE__, __LINE__);
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, d_coeffs[cur_gpu], h_coeffs, nbytes, cudaMemcpyHostToDevice));

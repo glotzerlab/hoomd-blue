@@ -321,52 +321,53 @@ extern "C" __global__ void gpu_nve_rigid_body_pre_step_kernel(gpu_pdata_arrays p
 			rdata_body_imagey[idx_body] = body_imagey;
 			rdata_body_imagez[idx_body] = body_imagez;
 			}
-		}
 		
-	unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
-	// Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
-	// the particle index of these empty slots is set to be INVALID_INDEX.
-	if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX) 
-		{
-		// time to fix the periodic boundary conditions (FLOPS: 15)
-		int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
-		float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
-		
-		// compute ri with new orientation
-		ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
-		ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
-		ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
-	
-		// x_particle = com + ri
-		float4 ppos;
-		ppos.x = pos2.x + ri.x;
-		ppos.y = pos2.y + ri.y;
-		ppos.z = pos2.z + ri.z;
-		ppos.w = pos.w;
-		
-		float x_shift = rintf(ppos.x * box.Lxinv);
-		ppos.x -= box.Lx * x_shift;
-		image.x += (int)x_shift;
-		
-		float y_shift = rintf(ppos.y * box.Lyinv);
-		ppos.y -= box.Ly * y_shift;
-		image.y += (int)y_shift;
-		
-		float z_shift = rintf(ppos.z * box.Lzinv);
-		ppos.z -= box.Lz * z_shift;
-		image.z += (int)z_shift;
-		
-		// v_particle = vel + angvel x ri
-		float4 pvel;
-		pvel.x = vel2.x + angvel.y * ri.z - angvel.z * ri.y;
-		pvel.y = vel2.y + angvel.z * ri.x - angvel.x * ri.z;
-		pvel.z = vel2.z + angvel.x * ri.y - angvel.y * ri.x;
-		pvel.w = 0.0;
-		
-		// write out the results (MEM_TRANSFER: ? bytes)
-		pdata.pos[idx_particle_index] = ppos;
-		pdata.vel[idx_particle_index] = pvel;
-		pdata.image[idx_particle_index] = image;
+				
+		unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
+		// Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
+		// the particle index of these empty slots is set to be INVALID_INDEX.
+		if (idx_particle_index != INVALID_INDEX) 
+			{
+			// time to fix the periodic boundary conditions (FLOPS: 15)
+			int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
+			float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+			
+			// compute ri with new orientation
+			ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
+			ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
+			ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
+			
+			// x_particle = com + ri
+			float4 ppos;
+			ppos.x = pos2.x + ri.x;
+			ppos.y = pos2.y + ri.y;
+			ppos.z = pos2.z + ri.z;
+			ppos.w = pos.w;
+			
+			float x_shift = rintf(ppos.x * box.Lxinv);
+			ppos.x -= box.Lx * x_shift;
+			image.x += (int)x_shift;
+			 
+			float y_shift = rintf(ppos.y * box.Lyinv);
+			ppos.y -= box.Ly * y_shift;
+			image.y += (int)y_shift;
+			 
+			float z_shift = rintf(ppos.z * box.Lzinv);
+			ppos.z -= box.Lz * z_shift;
+			image.z += (int)z_shift;
+						
+			// v_particle = vel + angvel x ri
+			float4 pvel;
+			pvel.x = vel2.x + angvel.y * ri.z - angvel.z * ri.y;
+			pvel.y = vel2.y + angvel.z * ri.x - angvel.x * ri.z;
+			pvel.z = vel2.z + angvel.x * ri.y - angvel.y * ri.x;
+			pvel.w = 0.0;
+			
+			// write out the results (MEM_TRANSFER: ? bytes)
+			pdata.pos[idx_particle_index] = ppos;
+			pdata.vel[idx_particle_index] = pvel;
+			pdata.image[idx_particle_index] = image;
+			}
 		}
 	}
 
@@ -473,7 +474,7 @@ cudaError_t gpu_nve_rigid_body_pre_step(const gpu_pdata_arrays& pdata, const gpu
 
 	// run the kernel for bodies
     
- gpu_nve_rigid_body_pre_step_kernel<<< grid, threads, nmax * sizeof(float4)  >>>(pdata, rigid_data.com, rigid_data.vel, rigid_data.angmom, rigid_data.angvel, 
+	gpu_nve_rigid_body_pre_step_kernel<<< grid, threads, nmax * sizeof(float4)  >>>(pdata, rigid_data.com, rigid_data.vel, rigid_data.angmom, rigid_data.angvel, 
 			rigid_data.orientation, rigid_data.ex_space, rigid_data.ey_space, rigid_data.ez_space, rigid_data.body_imagex, rigid_data.body_imagey, rigid_data.body_imagez, n_bodies, local_beg,
 			box, deltaT, limit, limit_val);
 
