@@ -59,6 +59,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "BD_NVTUpdaterGPU.h"
 #endif
 
+#include "BoxResizeUpdater.h"
+
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
 #include "LJForceCompute.h"
@@ -191,7 +193,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 	pdata->release();
 
 	Scalar deltaT = Scalar(0.005);
-	shared_ptr<BD_NVTUpdater> bdnvt_up = bdup_creator(sysdef, deltaT, temperature, 48103);
+	shared_ptr<BD_NVTUpdater> bdnvt_up = bdup_creator(sysdef, deltaT, temperature, 257847);
 	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
 	shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
 	
@@ -271,12 +273,24 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 	FILE* fp;
 	Scalar Lx, Ly, Lz;
 
-
-
+	// Box rescaling to target density during mixing
+	shared_ptr<VariantLinear> target_L(new VariantLinear());
+	Scalar box_target = 20.0;
+	unsigned int resize_freq = 10;
+	unsigned int nrescale_times = equil_steps / resize_freq; 
+	for (unsigned int timestep = 0; timestep < nrescale_times; timestep++)
+		{
+		Scalar delta = (box_target - box_length) / (Scalar)(nrescale_times);
+		target_L->setPoint(timestep * resize_freq, box_length + delta * timestep);  
+		}
+	
+	shared_ptr<BoxResizeUpdater> box_resize(new BoxResizeUpdater(sysdef, target_L, target_L, target_L));
+	
+	
 	// Mix with WCA interactions
 	cout << "Equilibrating...\n";
 	cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
-	cout << "Step\tTemp\tPotEng\tKinEng\tTotalE\n";
+	cout << "Step\tTemp\tPotEng\tKinEng\tTotalE\tBoxSize\tElapsed time\n";
 	
 	start = clock();
 	
@@ -284,9 +298,15 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 		{
 
 		bdnvt_up->update(i);
-			
+		
+		if (i % resize_freq == 0)
+			box_resize->update(i);
+											
 		if (i % sampling == 0) 
 			{			
+			end = clock();
+			elapsed = (double)(end - start) / (double)CLOCKS_PER_SEC;
+				
 			arrays = pdata->acquireReadWrite();
 			KE = Scalar(0.0);
 			for (unsigned int j = 0; j < N; j++) 
@@ -294,13 +314,14 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 			PE = fc->calcEnergySum();
 			
 			current_temp = 2.0 * KE / (nrigid_dof + nnonrigid_dof);
-			printf("%8d\t%12.8g\t%12.8g\t%12.8g\t%12.8g\n", i, current_temp, PE / N, KE / N, (PE + KE) / N); 	
+			box = pdata->getBox();
+			printf("%8d\t%12.8g\t%12.8g\t%12.8g\t%12.8g\t%12.8g\t%12.8g\n", i, current_temp, PE / N, KE / N, (PE + KE) / N, box.xhi - box.xlo, elapsed); 	
 			
 			if (i % dump == 0)
 			{
 				sprintf(file_name, "x_t%d.xyz", i);
 				fp = fopen(file_name, "w");
-
+				box = pdata->getBox();								
 				Lx = box.xhi - box.xlo;
 				Ly = box.yhi - box.ylo;
 				Lz = box.zhi - box.zlo;
@@ -333,7 +354,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 	printf("Elapased time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
  
 	start_step = equil_steps;
-    // End of mixing
+    	// End of mixing
 
 	// Production: turn on LJ interactions between rods
 	fc->setParams(1,1,lj1,lj2, Scalar(2.5));

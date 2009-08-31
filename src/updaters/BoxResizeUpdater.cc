@@ -53,6 +53,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "BoxResizeUpdater.h"
+#include "RigidData.h"
 
 #include <math.h>
 #include <iostream>
@@ -111,9 +112,11 @@ void BoxResizeUpdater::update(unsigned int timestep)
 	Scalar Lx = m_Lx->getValue(timestep);
 	Scalar Ly = m_Ly->getValue(timestep);
 	Scalar Lz = m_Lz->getValue(timestep);
-
+	
 	// check if the current box size is the same
 	BoxDim curBox = m_pdata->getBox();
+	BoxDim newBox(Lx, Ly, Lz);
+		
 	bool no_change = fabs((Lx - curBox.xhi - curBox.xlo) / Lx) < 1e-5 && 
 					fabs((Ly - curBox.yhi - curBox.ylo) / Ly) < 1e-5 &&
 					fabs((Lz - curBox.zhi - curBox.zlo) / Lz) < 1e-5;
@@ -133,12 +136,28 @@ void BoxResizeUpdater::update(unsigned int timestep)
 		
 			for (unsigned int i = 0; i < arrays.nparticles; i++)
 				{
-				arrays.x[i] *= sx;
-				arrays.y[i] *= sy;
-				arrays.z[i] *= sz;
+				arrays.x[i] = (arrays.x[i] - curBox.xlo) * sx + newBox.xlo;
+				arrays.y[i] = (arrays.y[i] - curBox.ylo) * sy + newBox.ylo;
+				arrays.z[i] = (arrays.z[i] - curBox.zlo) * sz + newBox.zlo;
 				}
 				
 			m_pdata->release();
+			
+			// also rescale rigid body COMs
+			boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+			unsigned int n_bodies = rigid_data->getNumBodies();
+			if (n_bodies > 0)
+				{
+				ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+
+				for (unsigned int body = 0; body < n_bodies; body++)
+					{
+					com_handle.data[body].x = (com_handle.data[body].x - curBox.xlo) * sx + newBox.xlo;
+					com_handle.data[body].y = (com_handle.data[body].y - curBox.ylo) * sy + newBox.ylo;
+					com_handle.data[body].z = (com_handle.data[body].z - curBox.zlo) * sz + newBox.zlo;
+					}
+				}
+				
 			}
 		else if (Lx < (curBox.xhi - curBox.xlo) || Ly < (curBox.yhi - curBox.ylo) || Lz < (curBox.zhi - curBox.zlo))
 			{
@@ -154,6 +173,21 @@ void BoxResizeUpdater::update(unsigned int timestep)
 				}			
 		
 			m_pdata->release();
+				
+			// also rescale rigid body COMs
+			boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+			unsigned int n_bodies = rigid_data->getNumBodies();
+			if (n_bodies > 0)
+				{
+				ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+				
+				for (unsigned int body = 0; body < n_bodies; body++)
+					{
+					com_handle.data[body].x -= Lx * rintf(com_handle.data[body].x / Lx);
+					com_handle.data[body].y -= Ly * rintf(com_handle.data[body].y / Ly);
+					com_handle.data[body].z -= Lz * rintf(com_handle.data[body].z / Lz);
+					}
+				}	
 			}
 			
 		// set the new box
