@@ -107,7 +107,7 @@ to http://www.boost.org , download the latest source code and unpack it. cd to t
  $ mkdir /home/user/software
  $ ./configure --with-python-version=2.5 --prefix=/home/user/software/
 \endcode
-Note that to configure more recent versions of boost you will need to use ./bootstrap.sh instead of ./configure.
+Note that to configure more recent versions of boost, you will need to use ./bootstrap.sh instead of ./configure.
 
 By default, only shared libraries are built. HOOMD-blue expects static libraries by default,
 so open up Makefile in your favorite text editor and  make the following change 
@@ -121,6 +121,13 @@ Then you can build and install boost with the following commands.
  $ make
  $ make install
 \endcode
+
+Note that to build more recent versions of boost, you will need to run the following command instead of the above make sequence.
+\code
+ $ ./bjam variant=release threading=multi link=shared,static install --prefix=/home/user/software/
+\endcode
+
+
 Be prepared to wait a while: boost takes a long time to compile.
 
 Before running ccmake or cmake-gui, set the following environment variables to the location where you installed boost:
@@ -322,6 +329,12 @@ After typing in your password and a considerably shorter wait, you should see
 ...updated 7079 targets...
 \endcode
 again. Boost is now installed.
+
+Note that to build more recent versions of boost, you will need to run the following command instead of the above make
+sequence.
+\code
+ $ sudo ./bjam variant=release threading=multi link=shared,static install --prefix=/usr/local
+\endcode
 
 You can delete the boost_1_36_0 directory now if you wish. It might be worth 
 saving for a little while until you have compiled HOOMD-blue and know everything 
