@@ -107,6 +107,7 @@ to http://www.boost.org , download the latest source code and unpack it. cd to t
  $ mkdir /home/user/software
  $ ./configure --with-python-version=2.5 --prefix=/home/user/software/
 \endcode
+Note that to configure more recent versions of boost you will need to use ./bootstrap.sh instead of ./configure.
 
 By default, only shared libraries are built. HOOMD-blue expects static libraries by default,
 so open up Makefile in your favorite text editor and  make the following change 
@@ -284,6 +285,7 @@ not found.
 Generating Boost.Build configuration in user-config.jam...
 Generating Makefile...
 \endcode
+Note that to configure more recent versions of boost you will need to use ./bootstrap.sh instead of ./configure.
 
 Users who downloaded and installed python from www.python.org may need to run the configure command
 with the following arugment in order for python to properly be detected.
