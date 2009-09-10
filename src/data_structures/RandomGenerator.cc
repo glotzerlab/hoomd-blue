@@ -391,7 +391,7 @@ void GeneratedParticles::addBond(unsigned int a, unsigned int b, const std::stri
 /*! \param box Box dimensions to generate in
 	\param seed Random number generator seed
 */
-RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed), m_bond_type("bond")
+RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed)
 	{
 	}
 	
@@ -444,11 +444,9 @@ void RandomGenerator::initBondData(boost::shared_ptr<BondData> bond_data) const
 	{
 	// loop through all the bonds and add a bond for each
 	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)	
-		bond_data->addBond(Bond(0, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
+		bond_data->addBond(Bond(m_data.m_bonds[i].type_id, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
 	
-	vector<string> bond_type_mapping;
-	bond_type_mapping.push_back(m_bond_type);
-	bond_data->setBondTypeMapping(bond_type_mapping);
+	bond_data->setBondTypeMapping(m_bond_type_mapping);
 	}
 
 /*! \param type Name of the particle type to set the radius for
@@ -506,6 +504,10 @@ void RandomGenerator::generate()
 		{
 		m_data.m_particles[i].type_id = getTypeId(m_data.m_particles[i].type);
 		}
+		
+	// walk through all the bonds and assign ids
+	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)	
+		m_data.m_bonds[i].type_id = getBondTypeId(m_data.m_bonds[i].type);
 	}
 
 /*! \param name Name to get type id of
@@ -523,6 +525,23 @@ unsigned int RandomGenerator::getTypeId(const std::string& name)
 	// add a new one if it is not found
 	m_type_mapping.push_back(name);
 	return (unsigned int)m_type_mapping.size()-1;
+	}
+	
+/*! \param name Name to get type id of
+	If \a name has already been added, this returns the type index of that name.
+	If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int RandomGenerator::getBondTypeId(const std::string& name)
+	{
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_bond_type_mapping.size(); i++)
+		{
+		if (m_bond_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_bond_type_mapping.push_back(name);
+	return (unsigned int)m_bond_type_mapping.size()-1;
 	}
 
 //! Helper function to generate a [0..1] float
@@ -694,7 +713,6 @@ void export_RandomGenerator()
 		.def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
 		.def("addGenerator", &RandomGenerator::addGenerator)
 		.def("generate", &RandomGenerator::generate)
-		.def("setBondType", &RandomGenerator::setBondType)
 		;
 		
 	class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())

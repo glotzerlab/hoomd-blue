@@ -125,7 +125,7 @@ class GeneratedParticles
 		struct bond
 			{
 			//! Default constructor
-			bond() : tag_a(0), tag_b(0), type("")
+			bond() : tag_a(0), tag_b(0), type(""), type_id(0)
 				{
 				}
 
@@ -133,12 +133,13 @@ class GeneratedParticles
 			/*! \param a tag of the first particle in the bond
 				\param b tag of the second particle in the bond
 			*/
-			bond(unsigned int a, unsigned int b, const std::string& _type) : tag_a(a), tag_b(b), type(_type)
+			bond(unsigned int a, unsigned int b, const std::string& _type) : tag_a(a), tag_b(b), type(_type), type_id(0)
 				{
 				}
 			unsigned int tag_a;		//!< First particle in the bond
 			unsigned int tag_b;		//!< Second particle in the bond
 			std::string type;       //!< Type of the bond
+			unsigned int type_id;	//!< Type id of the bond (assigned in RandomGenerator::generate())
 			};
 
 		std::vector< bond > m_bonds;	//!< Bonds read in from the file
@@ -272,22 +273,20 @@ class RandomGenerator : public ParticleDataInitializer
 		//! Place the particles
 		void generate();
 		
-		//! Set the bond type name to use in creating bonds
-		/*! \param bond_type Bond type name to set */
-		void setBondType(const std::string& bond_type) { m_bond_type = bond_type; }
-		
 	private:
-		BoxDim m_box;								//!< Precalculated box
-		unsigned int m_seed;						//!< Random seed to use
-		GeneratedParticles m_data;					//!< Actual particle data genreated
-		std::string m_bond_type;					//!< Name of the bond type to generate
-		std::map< std::string, Scalar > m_radii;	//!< Separation radii accessed by particle type
+		BoxDim m_box;								        //!< Precalculated box
+		unsigned int m_seed;					 	        //!< Random seed to use
+		GeneratedParticles m_data;					        //!< Actual particle data genreated
+		std::map< std::string, Scalar > m_radii;	        //!< Separation radii accessed by particle type
 		std::vector< boost::shared_ptr<ParticleGenerator> > m_generators;	//!< Generators to place particles
-		std::vector< unsigned int > m_generator_repeat;	//!< Repeat count for each generator
-		std::vector<std::string> m_type_mapping;	//!< The created mapping between particle types and ids
+		std::vector< unsigned int > m_generator_repeat;	    //!< Repeat count for each generator
+		std::vector<std::string> m_type_mapping;	        //!< The created mapping between particle types and ids		
+		std::vector<std::string> m_bond_type_mapping;	    //!< The created mapping between bond types and ids
 		
 		//! Helper function for identifying the particle type id
 		unsigned int getTypeId(const std::string& name);
+		//! Helper function for identifying the bond type id
+		unsigned int getBondTypeId(const std::string& name);		
 	};
 
 //! Exports RandomGenerator and related classes to python
