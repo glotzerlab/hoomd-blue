@@ -547,13 +547,14 @@ static Scalar random01(boost::mt19937& rnd)
 	A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
 	Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
-PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, unsigned int max_attempts)
-	: m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_max_attempts(max_attempts)
+PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
+	: m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_bond_type(bond_type), m_max_attempts(max_attempts)
 	{
 	assert(m_types.size() > 0);
 	assert(m_max_attempts > 0);
 	assert(bond_len > Scalar(0.0));
 	assert(m_bond_a.size() == m_bond_b.size());
+	assert(m_bond_a.size() == m_bond_type.size());
 	}
 		
 /*! \param particles Data to place particles in
@@ -589,7 +590,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 			// create the bonds for this polymer now (polymers are simply linear for now)
 			for (unsigned int i = 0; i < m_bond_a.size(); i++)
 				{
-				particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i]);
+				particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i], m_bond_type[i]);
 				}
 			return;
 			}
@@ -700,7 +701,7 @@ void export_RandomGenerator()
 		// no methods exposed to python
 		;
 		
-	class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, unsigned int >())
+	class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int >())
 		// all methods are internal C++ methods
 		;
 	}

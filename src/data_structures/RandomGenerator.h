@@ -188,7 +188,7 @@ class PolymerParticleGenerator : public ParticleGenerator
 	{
 	public:
 		//! Constructor
-		PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, unsigned int max_attempts);
+		PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts);
 		
 		//! Returns the number of particles in each polymer
 		virtual unsigned int getNumToGenerate()
@@ -204,6 +204,7 @@ class PolymerParticleGenerator : public ParticleGenerator
 		std::vector<std::string> m_types;	//!< Particle types for each polymer bead
 		std::vector<unsigned int> m_bond_a;	//!< First particle in the bond pair
 		std::vector<unsigned int> m_bond_b;	//!< Second particle in the bond pair
+		std::vector<string> m_bond_type;    //!< Type name of the bond
 		unsigned int m_max_attempts;		//!< Number of attemps to make for each particle placement
 		
 		//! helper function to place particles recursively
