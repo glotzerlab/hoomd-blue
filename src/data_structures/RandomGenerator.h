@@ -105,7 +105,7 @@ class GeneratedParticles
 		const BoxDim& getBox() { return m_box; }
 		
 		//! Add a bond
-		void addBond(unsigned int a, unsigned int b);
+		void addBond(unsigned int a, unsigned int b, const std::string& type="");
 		
 	private:
 		friend class RandomGenerator;
@@ -125,7 +125,7 @@ class GeneratedParticles
 		struct bond
 			{
 			//! Default constructor
-			bond() : tag_a(0), tag_b(0)
+			bond() : tag_a(0), tag_b(0), type("")
 				{
 				}
 
@@ -133,11 +133,12 @@ class GeneratedParticles
 			/*! \param a tag of the first particle in the bond
 				\param b tag of the second particle in the bond
 			*/
-			bond(unsigned int a, unsigned int b) : tag_a(a), tag_b(b)
+			bond(unsigned int a, unsigned int b, const std::string& _type) : tag_a(a), tag_b(b), type(_type)
 				{
 				}
 			unsigned int tag_a;		//!< First particle in the bond
 			unsigned int tag_b;		//!< Second particle in the bond
+			std::string type;       //!< Type of the bond
 			};
 
 		std::vector< bond > m_bonds;	//!< Bonds read in from the file

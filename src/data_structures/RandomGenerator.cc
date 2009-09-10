@@ -379,12 +379,13 @@ void GeneratedParticles::undoPlace(unsigned int idx)
 	
 /*! \param a Tag of the first particle in the bond
 	\param b Tag of the second particle in the bond
+	\param type Type of the bond
 	
-	Adds a bond between particles with tags \a a and \a b
+	Adds a bond between particles with tags \a a and \a b of type \a type
 */
-void GeneratedParticles::addBond(unsigned int a, unsigned int b)
+void GeneratedParticles::addBond(unsigned int a, unsigned int b, const std::string& type)
 	{
-	m_bonds.push_back(bond(a,b));
+	m_bonds.push_back(bond(a,b, type));
 	}
 	
 /*! \param box Box dimensions to generate in
