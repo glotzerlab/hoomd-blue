@@ -434,7 +434,7 @@ std::vector<std::string> RandomGenerator::getTypeMapping() const
 */
 unsigned int RandomGenerator::getNumBondTypes() const
 	{
-	return 1;
+	return m_bond_type_mapping.size();
 	}
 
 /*! \param bond_data Shared pointer to the BondData to be initialized
