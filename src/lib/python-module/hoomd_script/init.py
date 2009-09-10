@@ -257,8 +257,15 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # 	they will be created in generating the polymer.
 # -	\a %bond can be specified as "linear" in which case the generator connects all particles together
 # 	with bonds to form a linear chain. \a %bond can also be given a list if python tuples (see example
-#	above). Each tuple in the form of \c (a,b) specifies that particle \c a of the polymer be bonded to
-# 	particle \c b.
+#	above). 
+#   - Each tuple in the form of \c (a,b) specifies that particle \c a of the polymer be bonded to
+# 	particle \c b. These bonds are given the default type name of 'polymer' to be used when specifying parameters to 
+#   bond forces such as bond.harmonic.
+#   - A tuple with three elements (a,b,type) can be used as above, but with a custom name for the bond. For example,
+#   a simple branched polymer with different bond types on each branch could be defined like so:
+#\code
+#bond=[(0,1), (1,2), (2,3,'branchA'), (3,4,'branchA), (2,5,'branchB'), (5,6,'branchB')]
+#\endcode
 # 
 # \a separation \b must contain one entry for each particle type specified in \a polymers
 # ('A' and 'B' in the examples above). The value given is the separation radius of each
@@ -307,8 +314,6 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # generator that writes HOOMD XML input files (see \ref page_xml_file_format). HOOMD's built-in polymer generator
 # attempts to be as general as possible, but unfortunately cannot work in every possible case.
 #
-# \note 4. The %bond type is named 'polymer' must be used in specifying %bond coefficients in command such as 
-# bond.harmonic
 def create_random_polymers(box, polymers, separation, seed=1):
 	util.print_status_line();
 	
@@ -371,20 +376,37 @@ def create_random_polymers(box, polymers, separation, seed=1):
 		# build bond list
 		bond_a = hoomd.std_vector_uint();
 		bond_b = hoomd.std_vector_uint();
+		bond_name = hoomd.std_vector_string();
+		
+		# if the bond setting is 'linear' create a default set of bonds
 		if poly['bond'] == 'linear':
 			for i in xrange(0,len(poly['type'])-1):
 				bond_a.push_back(i);
 				bond_b.push_back(i+1);
+				bond_name.append('polymer')
+		#if it is a list, parse the user custom bonds		
 		elif type(poly['bond']) == type([]):
-			for a,b in poly['bond']:
+			for t in poly['bond']:
+				# a 2-tuple gets the default 'polymer' name for the bond
+				if len(t) == 2:
+					a,b = t;
+					name = 'polymer';
+				# and a 3-tuple specifies the name directly
+				elif len(t) == 3:
+					a,b,name = t;
+				else:
+					print >> sys.stderr, '\n***Error! Custom bond', t, 'must have either two or three elements\n';
+					raise RuntimeError("Error creating random polymers");
+									
 				bond_a.push_back(a);
 				bond_b.push_back(b);
+				bond_name.append(name);
 		else:
 			print >> sys.stderr, '\n***Error! Unexpected argument value for polymer bond\n';
 			raise RuntimeError("Error creating random polymers");
 		
 		# create the generator
-		generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, 100));
+		generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100));
 		
 		
 	# check that all used types are in the separation list
@@ -400,10 +422,6 @@ def create_random_polymers(box, polymers, separation, seed=1):
 			print >> sys.stderr, "\n***Error! Separation radius", r, "is too big for the minimum bond length of", min_bond_len, "specified\n";
 			raise RuntimeError("Error creating random polymers");
 		
-	
-	# name the bond type
-	generator.setBondType('polymer');
-	
 	# generate the particles
 	generator.generate();
 	
