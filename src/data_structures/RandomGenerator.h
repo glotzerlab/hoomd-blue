@@ -132,6 +132,7 @@ class GeneratedParticles
 			//! Construct a bond between two particles
 			/*! \param a tag of the first particle in the bond
 				\param b tag of the second particle in the bond
+				\param _type the type name of the bond
 			*/
 			bond(unsigned int a, unsigned int b, const std::string& _type) : tag_a(a), tag_b(b), type(_type), type_id(0)
 				{

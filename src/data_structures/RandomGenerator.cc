@@ -561,6 +561,7 @@ static Scalar random01(boost::mt19937& rnd)
 	\param types Vector of type names. One element per bead of the polymer.
 	\param bond_a List of the first particle in each bond
 	\param bond_b List of the 2nd particle in each bond
+	\param bond_type List of the bond type names for each bond
 	\param max_attempts The maximum number of attempts to place each particle
 	
 	A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
