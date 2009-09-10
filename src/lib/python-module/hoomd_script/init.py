@@ -201,9 +201,10 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 	
 	# empty bond lists for single particles
 	bond_ab = hoomd.std_vector_uint();
+	bond_type = hoomd.std_vector_string();
 		
 	# create the generator
-	generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, 100));
+	generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
 	
 	# set the separation radius
 	generator.setSeparationRadius(name, min_dist/2.0);
