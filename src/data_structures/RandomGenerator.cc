@@ -379,18 +379,19 @@ void GeneratedParticles::undoPlace(unsigned int idx)
 	
 /*! \param a Tag of the first particle in the bond
 	\param b Tag of the second particle in the bond
+	\param type Type of the bond
 	
-	Adds a bond between particles with tags \a a and \a b
+	Adds a bond between particles with tags \a a and \a b of type \a type
 */
-void GeneratedParticles::addBond(unsigned int a, unsigned int b)
+void GeneratedParticles::addBond(unsigned int a, unsigned int b, const std::string& type)
 	{
-	m_bonds.push_back(bond(a,b));
+	m_bonds.push_back(bond(a,b, type));
 	}
 	
 /*! \param box Box dimensions to generate in
 	\param seed Random number generator seed
 */
-RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed), m_bond_type("bond")
+RandomGenerator::RandomGenerator(const BoxDim& box, unsigned int seed) : m_box(box), m_seed(seed)
 	{
 	}
 	
@@ -433,7 +434,7 @@ std::vector<std::string> RandomGenerator::getTypeMapping() const
 */
 unsigned int RandomGenerator::getNumBondTypes() const
 	{
-	return 1;
+	return m_bond_type_mapping.size();
 	}
 
 /*! \param bond_data Shared pointer to the BondData to be initialized
@@ -443,11 +444,9 @@ void RandomGenerator::initBondData(boost::shared_ptr<BondData> bond_data) const
 	{
 	// loop through all the bonds and add a bond for each
 	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)	
-		bond_data->addBond(Bond(0, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
+		bond_data->addBond(Bond(m_data.m_bonds[i].type_id, m_data.m_bonds[i].tag_a, m_data.m_bonds[i].tag_b));
 	
-	vector<string> bond_type_mapping;
-	bond_type_mapping.push_back(m_bond_type);
-	bond_data->setBondTypeMapping(bond_type_mapping);
+	bond_data->setBondTypeMapping(m_bond_type_mapping);
 	}
 
 /*! \param type Name of the particle type to set the radius for
@@ -505,6 +504,10 @@ void RandomGenerator::generate()
 		{
 		m_data.m_particles[i].type_id = getTypeId(m_data.m_particles[i].type);
 		}
+		
+	// walk through all the bonds and assign ids
+	for (unsigned int i = 0; i < m_data.m_bonds.size(); i++)	
+		m_data.m_bonds[i].type_id = getBondTypeId(m_data.m_bonds[i].type);
 	}
 
 /*! \param name Name to get type id of
@@ -522,6 +525,23 @@ unsigned int RandomGenerator::getTypeId(const std::string& name)
 	// add a new one if it is not found
 	m_type_mapping.push_back(name);
 	return (unsigned int)m_type_mapping.size()-1;
+	}
+	
+/*! \param name Name to get type id of
+	If \a name has already been added, this returns the type index of that name.
+	If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int RandomGenerator::getBondTypeId(const std::string& name)
+	{
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_bond_type_mapping.size(); i++)
+		{
+		if (m_bond_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_bond_type_mapping.push_back(name);
+	return (unsigned int)m_bond_type_mapping.size()-1;
 	}
 
 //! Helper function to generate a [0..1] float
@@ -541,18 +561,20 @@ static Scalar random01(boost::mt19937& rnd)
 	\param types Vector of type names. One element per bead of the polymer.
 	\param bond_a List of the first particle in each bond
 	\param bond_b List of the 2nd particle in each bond
+	\param bond_type List of the bond type names for each bond
 	\param max_attempts The maximum number of attempts to place each particle
 	
 	A bonded pair of paritlces is \a bond_a[i] bonded to \a bond_b[i], with 0 being the first particle in the polymer.
 	Hence, the sizes of \a bond_a and \a bond_b \b must be the same.
 */
-PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, unsigned int max_attempts)
-	: m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_max_attempts(max_attempts)
+PolymerParticleGenerator::PolymerParticleGenerator(Scalar bond_len, const std::vector<std::string>& types, const std::vector<unsigned int>& bond_a, const std::vector<unsigned int>& bond_b, const std::vector<string>& bond_type, unsigned int max_attempts)
+	: m_bond_len(bond_len), m_types(types), m_bond_a(bond_a), m_bond_b(bond_b), m_bond_type(bond_type), m_max_attempts(max_attempts)
 	{
 	assert(m_types.size() > 0);
 	assert(m_max_attempts > 0);
 	assert(bond_len > Scalar(0.0));
 	assert(m_bond_a.size() == m_bond_b.size());
+	assert(m_bond_a.size() == m_bond_type.size());
 	}
 		
 /*! \param particles Data to place particles in
@@ -588,7 +610,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 			// create the bonds for this polymer now (polymers are simply linear for now)
 			for (unsigned int i = 0; i < m_bond_a.size(); i++)
 				{
-				particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i]);
+				particles.addBond(start_idx+m_bond_a[i], start_idx + m_bond_b[i], m_bond_type[i]);
 				}
 			return;
 			}
@@ -692,14 +714,13 @@ void export_RandomGenerator()
 		.def("setSeparationRadius", &RandomGenerator::setSeparationRadius)
 		.def("addGenerator", &RandomGenerator::addGenerator)
 		.def("generate", &RandomGenerator::generate)
-		.def("setBondType", &RandomGenerator::setBondType)
 		;
 		
 	class_< ParticleGeneratorWrap, boost::shared_ptr<ParticleGeneratorWrap>, boost::noncopyable >("ParticleGenerator", init<>())
 		// no methods exposed to python
 		;
 		
-	class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, unsigned int >())
+	class_< PolymerParticleGenerator, boost::shared_ptr<PolymerParticleGenerator>, bases<ParticleGenerator>, boost::noncopyable >("PolymerParticleGenerator", init< Scalar, const std::vector<std::string>&, std::vector<unsigned int>&, std::vector<unsigned int>&, std::vector<string>&, unsigned int >())
 		// all methods are internal C++ methods
 		;
 	}

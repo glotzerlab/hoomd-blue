@@ -73,7 +73,7 @@ _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dih
                                  'angle.harmonic': 192, 'pair.gauss': 64};
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.cgcmm': 352, 'dihedral.harmonic': 128, 
                                  'angle.cgcmm': 320, 'pair.lj': 352, 'nlist': 160, 'bond.harmonic': 352, 
-                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 160}
+                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 416}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults

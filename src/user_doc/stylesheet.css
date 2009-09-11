@@ -34,7 +34,7 @@ body {
 	text-decoration: none;
 }
 #sidebar a:hover {
-	color: #CC0001; 
+	color: #aa0000;
 	background-color: inherit;
 }
 
@@ -58,10 +58,9 @@ h3 {
 }*/
 
 /* images */
-img {
+#sidebar img {
 	border: 0px solid #CCC;
-}
-
+} 
 #sidebar img.float-right {
   margin: 5px 0px 10px 10px;  
 }
@@ -69,15 +68,16 @@ img {
   margin: 5px 10px 10px 0px;
 }
 
-#sidebar h1, h2, h3, p {
+#sidebar h1, #sidebar h2, #sidebar h3, #sidebar p {
 	padding: 0;		
 	margin: 10px;
 }
 
-#sidebar ul, ol {
+#sidebar ul, #sidebar ol {
 	margin: 10px 20px;
 	padding: 0 20px;
 }
+
 
 /*code {
   margin: 10px 0;
@@ -119,55 +119,55 @@ pre {
 */
 
 /* form elements */
-form {
+#nottrac form {
 	margin:10px; padding: 0 5px;
 	border: 1px solid #f2f2f2; 
 	background-color: #FAFAFA; 
 }
-label {
+#nottrac label {
 	display:block;
 	font-weight:bold;
 	margin:5px 0;
 }
-input {
+#nottrac input {
 	padding: 2px;
 	border:1px solid #eee;
 	font: normal 1em Verdana, sans-serif;
-	color:#777;
+	color:#000;
 }
-textarea {
+#nottrac textarea {
 	width:400px;
 	padding:2px;
 	font: normal 1em Verdana, sans-serif;
 	border:1px solid #eee;
 	height:100px;
 	display:block;
-	color:#777;
+	color:#000;
 }
-input.button { 
+#nottrac input.button { 
 	margin: 0; 
 	font: bolder 12px Arial, Sans-serif; 
 	border: 1px solid #CCC; 
 	padding: 1px; 
 	background: #FFF;
-	color: #cc0000;
+	color: #3A5E8C;
 }
 /* search form */
-form.search {
+#nottrac form.search {
 	position: absolute;
 	top: 5px; right: 5px;
 	padding: 0; margin: 0;
 	border: none;
 	background-color: transparent; 
 }
-form.search input.textbox { 
+#nottrac form.search input.textbox { 
 	margin: 0; 
 	width: 120px;
 	border: 1px solid #CCC; 
 	background: #FFF;
 	color: #333; 
 }
-form.search input.searchbutton { 
+#nottrac form.search input.searchbutton { 
 	margin: 0; 
 	font-size: 100%; 
 	font-family: Arial, Sans-serif; 
@@ -190,17 +190,17 @@ form.search input.searchbutton {
 }
 
 /* header */
-#header {
+#topheader {
 	position: relative;
 	margin: 0; padding: 0;
 	height: 60px;
 }
-#header span#slogan {
+#topheader span#slogan {
 	z-index: 3;
 	position: absolute;
 	left: 3px; bottom: 32px;
 	font: bold 0.8em Verdana, Arial, Tahoma,  Sans-serif;	
-	color: #FFF;	
+	color: #000;	
 }
 
 #header-logo {
@@ -219,52 +219,53 @@ form.search input.searchbutton {
 }
 
 /* navigation tabs */
-#header ul {
+#topheader ul {
 	position: absolute;
    margin:0;
    list-style:none;
-	right:-18px ; bottom: 3px;
+	right:-18px ; bottom: 0px;
 	font: bold 13px 'Trebuchet MS', Arial, Sans-serif;
 }
-#header li {
+#topheader li {
    display:inline;
    margin:0; padding:0;
 }
-#header a {
+#topheader a {
    float:left;
    background: url(../images/tableft.gif) no-repeat left top;
    margin:0;
    padding:0 0 0 4px;
    text-decoration:none;
 }
-#header a span {
+#topheader a span {
    float:left;
    display:block;
    background: url(../images/tabright.gif) no-repeat right top;
    padding:5px 15px 4px 6px;
-   color:#FFF;
+   color:#000;
 }
 /* Commented Backslash Hack hides rule from IE5-Mac \*/
-#header a span {float:none;}
+#topheader a span {float:none;}
 /* End IE5-Mac hack */
-#header a:hover span {
+#topheader a:hover span {
 	color:#FFF;
 }
-#header a:hover {
+#topheader a:hover {
    background-position:0% -42px;
 }
-#header a:hover span {
+#topheader a:hover span {
    background-position:100% -42px;
 }
-#header #current a {
+#topheader #current a {
    background-position:0% -42px;
 }
-#header #current a span {
+#topheader #current a span {
    background-position:100% -42px;
+   color: #fff;
 }
 
 /* main column */
-#main {
+#maincol {
 	float: left;
 	margin: 0; padding: 0;
 	/*width: 545px;*/
@@ -293,9 +294,9 @@ form.search input.searchbutton {
 	margin: 10px 0 0 0; 
 	padding: 4px 0 4px 8px; 
 	font: bold 105% Arial, Sans-Serif;
-	color: #FFF;
+	color: #000000;
 	text-transform: uppercase; 
-	background: #333; 
+	background: #F6D565; 
 	letter-spacing: 1px;	
 }
 #sidebar .left-box {
@@ -322,7 +323,7 @@ form.search input.searchbutton {
 }
 
 /* footer */
-.footer { 
+#nottrac .footer { 
 	clear: both; 	
 	border-top: 1px solid #f2f2f2;
 	background: #FFF url(../images/footerbg.gif) repeat-x;
@@ -331,12 +332,12 @@ form.search input.searchbutton {
 	line-height: 1.5em;	
 	font-size: 95%;
 }
-.footer a { 
+#nottrac .footer a { 
 	text-decoration: none; 
 	font-weight: bold;		
 }
 
-.footer p {
+#nottrac .footer p {
 	margin: 0
 }
 
@@ -368,18 +369,18 @@ Begin default doxygen style
 /*BODY,TD {
        font-size: 90%;
 }*/
-#main H1 {
+#maincol H1 {
 	text-align: center;
        font-size: 160%;
 }
-#main H2 {
+#maincol H2 {
        font-size: 120%;
 }
-#main H3 {
+#maincol H3 {
        font-size: 100%;
 }
 
-#main CAPTION { font-weight: bold }
+#maincol CAPTION { font-weight: bold }
 DIV.qindex {
 	width: 100%;
 	background-color: #e8eef2;
@@ -409,46 +410,46 @@ DIV.navtab {
 TD.navtab {
        font-size: 70%;
 }
-#main A.qindex {
+#maincol A.qindex {
        text-decoration: none;
        font-weight: bold;
        color: #1A419D;
 }
-#main A.qindex:visited {
+#maincol A.qindex:visited {
        text-decoration: none;
        font-weight: bold;
        color: #1A419D
 }
-#main A.qindex:hover {
+#maincol A.qindex:hover {
 	text-decoration: none;
 	background-color: #ddddff;
 }
-#main A.qindexHL {
+#maincol A.qindexHL {
 	text-decoration: none;
 	font-weight: bold;
 	background-color: #6666cc;
 	color: #ffffff;
 	border: 1px double #9295C2;
 }
-#main A.qindexHL:hover {
+#maincol A.qindexHL:hover {
 	text-decoration: none;
 	background-color: #6666cc;
 	color: #ffffff;
 }
-#main A.qindexHL:visited { text-decoration: none; background-color: #6666cc; color: #ffffff }
-#main A.el { text-decoration: none; font-weight: bold; font-size: small; }
-#main A.elRef { font-weight: bold }
-#main A.code:link { text-decoration: none; font-weight: normal; color: #0000FF}
-#main A.code:visited { text-decoration: none; font-weight: normal; color: #0000FF}
-#main A.codeRef:link { font-weight: normal; color: #0000FF}
-#main A.codeRef:visited { font-weight: normal; color: #0000FF}
-#main A:hover { text-decoration: none; background-color: #f2f2ff }
-#main DL.el { margin-left: -1cm }
-#main .fragment {
+#maincol A.qindexHL:visited { text-decoration: none; background-color: #6666cc; color: #ffffff }
+#maincol A.el { text-decoration: none; font-weight: bold; font-size: small; }
+#maincol A.elRef { font-weight: bold }
+#maincol A.code:link { text-decoration: none; font-weight: normal; color: #0000FF}
+#maincol A.code:visited { text-decoration: none; font-weight: normal; color: #0000FF}
+#maincol A.codeRef:link { font-weight: normal; color: #0000FF}
+#maincol A.codeRef:visited { font-weight: normal; color: #0000FF}
+#maincol A:hover { text-decoration: none; background-color: #f2f2ff }
+#maincol DL.el { margin-left: -1cm }
+#maincol .fragment {
        font-family: monospace, fixed;
        font-size: 95%;
 }
-#main PRE.fragment {
+#maincol PRE.fragment {
 	border: 1px solid #CCCCCC;
 	background-color: #f5f5f5;
 	margin-top: 4px;
@@ -460,15 +461,15 @@ TD.navtab {
 	padding-top: 4px;
 	padding-bottom: 4px;
 }
-#main DIV.ah { background-color: black; font-weight: bold; color: #ffffff; margin-bottom: 3px; margin-top: 3px }
+#maincol DIV.ah { background-color: black; font-weight: bold; color: #ffffff; margin-bottom: 3px; margin-top: 3px }
 
-#main DIV.groupHeader {
+#maincol DIV.groupHeader {
        margin-left: 16px;
        margin-top: 12px;
        margin-bottom: 6px;
        font-weight: bold;
 }
-#main DIV.groupText { margin-left: 16px; font-style: italic; font-size: 90% }
+#maincol DIV.groupText { margin-left: 16px; font-style: italic; font-size: 90% }
 
 /*BODY {
 	background: white;
@@ -477,7 +478,7 @@ TD.navtab {
 	margin-left: 20px;
 }*/ 
 
-#main TD.indexkey {
+#maincol TD.indexkey {
 	background-color: #e8eef2;
 	font-weight: bold;
 	padding-right  : 10px;
@@ -490,7 +491,7 @@ TD.navtab {
 	margin-bottom  : 2px;
 	border: 1px solid #CCCCCC;
 }
-#main TD.indexvalue {
+#maincol TD.indexvalue {
 	background-color: #e8eef2;
 	font-style: italic;
 	padding-right  : 10px;
@@ -503,20 +504,20 @@ TD.navtab {
 	margin-bottom  : 2px;
 	border: 1px solid #CCCCCC;
 }
-#main TR.memlist {
+#maincol TR.memlist {
    background-color: #f0f0f0; 
 }
-#main P.formulaDsp { text-align: center; }
-#main IMG.formulaDsp { }
-#main IMG.formulaInl { vertical-align: middle; }
-#main SPAN.keyword       { color: #008000 }
-#main SPAN.keywordtype   { color: #604020 }
-#main SPAN.keywordflow   { color: #e08000 }
-#main SPAN.comment       { color: #800000 }
-#main SPAN.preprocessor  { color: #806020 }
-#main SPAN.stringliteral { color: #002080 }
-#main SPAN.charliteral   { color: #008080 }
-#main .mdescLeft {
+#maincol P.formulaDsp { text-align: center; }
+#maincol IMG.formulaDsp { }
+#maincol IMG.formulaInl { vertical-align: middle; }
+#maincol SPAN.keyword       { color: #008000 }
+#maincol SPAN.keywordtype   { color: #604020 }
+#maincol SPAN.keywordflow   { color: #e08000 }
+#maincol SPAN.comment       { color: #800000 }
+#maincol SPAN.preprocessor  { color: #806020 }
+#maincol SPAN.stringliteral { color: #002080 }
+#maincol SPAN.charliteral   { color: #008080 }
+#maincol .mdescLeft {
        padding: 0px 8px 4px 8px;
 	font-size: 80%;
 	font-style: italic;
@@ -527,7 +528,7 @@ TD.navtab {
 	border-left: 1px none #E0E0E0;
 	margin: 0px;
 }
-#main .mdescRight {
+#maincol .mdescRight {
        padding: 0px 8px 4px 8px;
 	font-size: 80%;
 	font-style: italic;
@@ -538,7 +539,7 @@ TD.navtab {
 	border-left: 1px none #E0E0E0;
 	margin: 0px;
 }
-#main .memItemLeft {
+#maincol .memItemLeft {
 	padding: 1px 0px 0px 8px;
 	margin: 4px;
 	border-top-width: 1px;
@@ -556,7 +557,7 @@ TD.navtab {
 	background-color: #FAFAFA;
 	font-size: 80%;
 }
-#main .memItemRight {
+#maincol .memItemRight {
 	padding: 1px 8px 0px 8px;
 	margin: 4px;
 	border-top-width: 1px;
@@ -574,7 +575,7 @@ TD.navtab {
 	background-color: #FAFAFA;
 	font-size: 80%;
 }
-#main .memTemplItemLeft {
+#maincol .memTemplItemLeft {
 	padding: 1px 0px 0px 8px;
 	margin: 4px;
 	border-top-width: 1px;
@@ -592,7 +593,7 @@ TD.navtab {
 	background-color: #FAFAFA;
 	font-size: 80%;
 }
-#main .memTemplItemRight {
+#maincol .memTemplItemRight {
 	padding: 1px 8px 0px 8px;
 	margin: 4px;
 	border-top-width: 1px;
@@ -610,7 +611,7 @@ TD.navtab {
 	background-color: #FAFAFA;
 	font-size: 80%;
 }
-#main .memTemplParams {
+#maincol .memTemplParams {
 	padding: 1px 0px 0px 8px;
 	margin: 4px;
 	border-top-width: 1px;
@@ -629,46 +630,46 @@ TD.navtab {
 	background-color: #FAFAFA;
 	font-size: 80%;
 }
-#main .search     { color: #003399;
+#maincol .search     { color: #003399;
               font-weight: bold;
 }
-#main FORM.search {
+#maincol FORM.search {
               margin-bottom: 0px;
               margin-top: 0px;
 }
-#main INPUT.search { font-size: 75%;
+#maincol INPUT.search { font-size: 75%;
                color: #000080;
                font-weight: normal;
                background-color: #e8eef2;
 }
-#main TD.tiny      { font-size: 75%;
+#maincol TD.tiny      { font-size: 75%;
 }
-#main a {
+#maincol a {
 	color: #1A41A8;
 }
-#main a:visited {
+#maincol a:visited {
 	color: #2A3798;
 }
-#main .dirtab { padding: 4px;
+#maincol .dirtab { padding: 4px;
           border-collapse: collapse;
           border: 1px solid #84b0c7;
 }
-#main TH.dirtab { background: #e8eef2;
+#maincol TH.dirtab { background: #e8eef2;
             font-weight: bold;
 }
-#main HR { height: 1px;
+#maincol HR { height: 1px;
      border: none;
      border-top: 1px solid black;
 }
 
 /* Style for detailed member documentation */
-#main .memtemplate {
+#maincol .memtemplate {
   font-size: 80%;
   color: #606060;
   font-weight: normal;
   margin-left: 3px;
 } 
-#main .memnav { 
+#maincol .memnav { 
   background-color: #e8eef2;
   border: 1px solid #84b0c7;
   text-align: center;
@@ -676,7 +677,7 @@ TD.navtab {
   margin-right: 15px;
   padding: 2px;
 }
-#main .memitem {
+#maincol .memitem {
   padding: 4px;
   background-color: #eef3f5;
   border-width: 1px;
@@ -684,14 +685,14 @@ TD.navtab {
   border-color: #dedeee;
   -moz-border-radius: 8px 8px 8px 8px;
 }
-#main .memname {
+#maincol .memname {
   white-space: nowrap;
   font-weight: bold;
 }
-#main .memdoc{
+#maincol .memdoc{
   padding-left: 10px;
 }
-#main .memproto {
+#maincol .memproto {
   background-color: #d5e1e8;
   width: 100%;
   border-width: 1px;
@@ -700,13 +701,13 @@ TD.navtab {
   font-weight: bold;
   -moz-border-radius: 8px 8px 8px 8px;
 }
-#main .paramkey {
+#maincol .paramkey {
   text-align: right;
 }
-#main .paramtype {
+#maincol .paramtype {
   white-space: nowrap;
 }
-#main .paramname {
+#maincol .paramname {
   color: #602020;
   font-style: italic;
   white-space: nowrap;
@@ -714,13 +715,13 @@ TD.navtab {
 /* End Styling for detailed member documentation */
 
 /* for the tree view */
-#main .ftvtree {
+#maincol .ftvtree {
 	font-family: sans-serif;
 	margin:0.5em;
 }
-#main .directory { font-size: 9pt; font-weight: bold; }
-#main .directory h3 { margin: 0px; margin-top: 1em; font-size: 11pt; }
-#main .directory > h3 { margin-top: 0; }
-#main .directory p { margin: 0px; white-space: nowrap; }
-#main .directory div { display: none; margin: 0px; }
-#main .directory img { vertical-align: -30%; }
+#maincol .directory { font-size: 9pt; font-weight: bold; }
+#maincol .directory h3 { margin: 0px; margin-top: 1em; font-size: 11pt; }
+#maincol .directory > h3 { margin-top: 0; }
+#maincol .directory p { margin: 0px; white-space: nowrap; }
+#maincol .directory div { display: none; margin: 0px; }
+#maincol .directory img { vertical-align: -30%; }
