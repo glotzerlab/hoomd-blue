@@ -1,4 +1,3 @@
-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
