@@ -45,8 +45,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \file Index1D.h
 	\brief Defines utility classes for 1D indexing of multi-dimensional arrays
-    \detailed These are very low-level, high performance functions. No error checking is performed on their arguments,
-    even in debug mode. They are provided mainly as a convenience.
+    \details These are very low-level, high performance functions. No error checking is performed on their arguments,
+    even in debug mode. They are provided mainly as a convenience. The col,row ordering is unorthodox for normal
+    matrices, but is consistent with the tex2D x,y access pattern used in CUDA. The decision is to go with x,y for
+    consistency.
 */
 
 //! Index a 2D array
@@ -62,14 +64,14 @@ class Index2D
         inline Index2D(unsigned int w) : m_w(w) {}
         
         //! Calculate an index
-        /*! \param i row index
-            \param j column index
+        /*! \param i column index
+            \param j row index
             \param w width of the 2D array
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
         */
         inline unsigned int operator()(unsigned int i, unsigned int j)
             {
-            return i*m_w + j;
+            return j*m_w + i;
             }
             
         //! Get the number of 1D elements stored
@@ -100,16 +102,22 @@ class Index2DUpperTriangular
             }
         
         //! Calculate an index
-        /*! \param i row index
-            \param j column index
+        /*! \param i column index
+            \param j row index
             \param w width of the 2D triangular array
-            \pre i <= j
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
             \note Forumla adapted from: http://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
         */
         inline unsigned int operator()(unsigned int i, unsigned int j)
             {
-            return i * (m_term - i) / 2 + j;
+            // swap if j > i
+            if (j > i)
+                {
+                unsigned int tmp = i;
+                i = j;
+                j = tmp;
+                }
+            return j * (m_term - j) / 2 + i;
             }
             
         //! Get the number of 1D elements stored

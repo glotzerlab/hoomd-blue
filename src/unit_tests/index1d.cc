@@ -78,8 +78,8 @@ BOOST_AUTO_TEST_CASE( Index2D_2 )
     Index2D a(2);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)4);
     BOOST_CHECK_EQUAL(a(0,0), (unsigned int)0);
-    BOOST_CHECK_EQUAL(a(0,1), (unsigned int)1);
-    BOOST_CHECK_EQUAL(a(1,0), (unsigned int)2);
+    BOOST_CHECK_EQUAL(a(1,0), (unsigned int)1);
+    BOOST_CHECK_EQUAL(a(0,1), (unsigned int)2);
     BOOST_CHECK_EQUAL(a(1,1), (unsigned int)3);
     }
     
@@ -89,13 +89,13 @@ BOOST_AUTO_TEST_CASE( Index2D_3 )
     Index2D a(3);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)9);
     BOOST_CHECK_EQUAL(a(0,0), (unsigned int)0);
-    BOOST_CHECK_EQUAL(a(0,1), (unsigned int)1);
-    BOOST_CHECK_EQUAL(a(0,2), (unsigned int)2);    
-    BOOST_CHECK_EQUAL(a(1,0), (unsigned int)3);
+    BOOST_CHECK_EQUAL(a(1,0), (unsigned int)1);
+    BOOST_CHECK_EQUAL(a(2,0), (unsigned int)2);    
+    BOOST_CHECK_EQUAL(a(0,1), (unsigned int)3);
     BOOST_CHECK_EQUAL(a(1,1), (unsigned int)4);
-    BOOST_CHECK_EQUAL(a(1,2), (unsigned int)5);
-    BOOST_CHECK_EQUAL(a(2,0), (unsigned int)6);
-    BOOST_CHECK_EQUAL(a(2,1), (unsigned int)7);
+    BOOST_CHECK_EQUAL(a(2,1), (unsigned int)5);
+    BOOST_CHECK_EQUAL(a(0,2), (unsigned int)6);
+    BOOST_CHECK_EQUAL(a(1,2), (unsigned int)7);
     BOOST_CHECK_EQUAL(a(2,2), (unsigned int)8);
     }
     
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE( Index2D_20 )
     for (unsigned int i=0; i < 20; i++)
         for (unsigned int j=0; j < 20; j++)
             {
-            BOOST_CHECK_EQUAL(a(i,j), i*20+j);
+            BOOST_CHECK_EQUAL(a(i,j), j*20+i);
             }
     }
 
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_2 )
     Index2DUpperTriangular a(2);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)3);
     BOOST_CHECK_EQUAL(a(0,0), (unsigned int)0);
-    BOOST_CHECK_EQUAL(a(0,1), (unsigned int)1);
+    BOOST_CHECK_EQUAL(a(1,0), (unsigned int)1);
     BOOST_CHECK_EQUAL(a(1,1), (unsigned int)2);
     }
     
@@ -136,10 +136,10 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_3 )
     Index2DUpperTriangular a(3);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)6);
     BOOST_CHECK_EQUAL(a(0,0), (unsigned int)0);
-    BOOST_CHECK_EQUAL(a(0,1), (unsigned int)1);
-    BOOST_CHECK_EQUAL(a(0,2), (unsigned int)2);
+    BOOST_CHECK_EQUAL(a(1,0), (unsigned int)1);
+    BOOST_CHECK_EQUAL(a(2,0), (unsigned int)2);
     BOOST_CHECK_EQUAL(a(1,1), (unsigned int)3);
-    BOOST_CHECK_EQUAL(a(1,2), (unsigned int)4);
+    BOOST_CHECK_EQUAL(a(2,1), (unsigned int)4);
     BOOST_CHECK_EQUAL(a(2,2), (unsigned int)5);
     }
     
@@ -154,6 +154,7 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_20 )
         for (unsigned int j=i; j < 20; j++)
             {
             BOOST_CHECK_EQUAL(a(i,j), cur_idx);
+            BOOST_CHECK_EQUAL(a(j,i), cur_idx);
             cur_idx++;
             }
     }
