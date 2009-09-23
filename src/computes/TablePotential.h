@@ -79,8 +79,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     between r values in the table respectively. For simple access on the GPU, these will be stored in a float4 where
     x is rmin, y is rmax, and z is dr. They are indexed with the same Index2DUpperTriangular as the tables themselves. 
     
-    V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr * i where is is chosen such that r >= rmin 
-    and r < rmax. V(r) for r < rmin and >= rmax is 0. The same goes for F.
+    V(0) is the value of V at r=rmin. V(i) is the value of V at r=rmin + dr * i where i is chosen such that r >= rmin 
+    and r <= rmax. V(r) for r < rmin and > rmax is 0. The same goes for F. Thus V and F are defined between the region 
+    [rmin,rmax], inclusive.
     
     For ease of storing the data, all tables must be of the same number of points for all type pairs.
     
@@ -98,7 +99,7 @@ class TablePotential : public ForceCompute
                        unsigned int table_width);
         
         //! Destructor
-        virtual ~TablePotential() {}
+        virtual ~TablePotential() { }
         
         //! Set the table for a given type pair
         virtual void setTable(unsigned int typ1, 

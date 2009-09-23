@@ -130,7 +130,7 @@ void TablePotential::setTable(unsigned int typ1,
     // fill out the parameters
     h_params.data[cur_table_index].x = rmin;
     h_params.data[cur_table_index].y = rmax;
-    h_params.data[cur_table_index].z = (rmax - rmin) / Scalar(m_table_width);
+    h_params.data[cur_table_index].z = (rmax - rmin) / Scalar(m_table_width - 1);
     
     // fill out the table
     for (unsigned int i = 0; i < m_table_width; i++)
@@ -283,7 +283,7 @@ void TablePotential::computeForces(unsigned int timestep)
             Scalar r = sqrt(rsq);
             
             // only compute the force if the particles are within the region defined by V
-            if (r < rmax && r > rmin)
+            if (r < rmax && r >= rmin)
                 {
                 // precomputed term
                 Scalar value_f = (r - rmin) / delta_r;

@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(potential_writer)
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
 	pdata_2->release();
-	shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
 	shared_ptr<TablePotential> fc(new TablePotential(sysdef_2, nlist_2, 5));
 
     // provide a basic potential and "force"
