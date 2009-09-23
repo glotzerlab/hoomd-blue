@@ -80,22 +80,32 @@ BOOST_AUTO_TEST_CASE(potential_writer)
 	arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
 	pdata_2->release();
 	shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
-	shared_ptr<TablePotential> fc(new TablePotential(sysdef_2, nlist_2, 5));
+	shared_ptr<TablePotential> fc(new TablePotential(sysdef_2, nlist_2, 1000));
 
     // provide a basic potential and "force"
     vector<Scalar> V, F;
-    V.push_back(10.0);  F.push_back(-10.0/1.0);
-    V.push_back(15.0);  F.push_back(-15.0/2.0);
-    V.push_back(5.0);   F.push_back(-5.0/3.0);
-    V.push_back(8.0);   F.push_back(-8.0/4.0);
-    V.push_back(18.0);  F.push_back(-18.0/5.0);
+    // 5 point test
+//    V.push_back(10.0);  F.push_back(-10.0/1.0);
+//    V.push_back(15.0);  F.push_back(-15.0/2.0);
+//    V.push_back(5.0);   F.push_back(-5.0/3.0);
+//    V.push_back(8.0);   F.push_back(-8.0/4.0);
+//    V.push_back(18.0);  F.push_back(-18.0/5.0);
+
+    // 1000 point lj test
+    Scalar delta_r = (5.0 - 0.5) / (999);
+    for (unsigned int i = 0; i < 1000; i++)
+        {
+        Scalar r = 0.5 + delta_r * Scalar(i);
+        V.push_back(4.0 * (pow(1.0 / r, 12) - pow(1.0 / r, 6)));
+        F.push_back(4.0 * (12.0 * pow(1.0 / r, 14) - 6 * pow(1.0 / r, 8)));
+        }
     
-	fc->setTable(0, 0, V, F, 1.0, 5.0);
+	fc->setTable(0, 0, V, F, 0.5, 5.0);
 	
 	ofstream f("table_dat.m");
 	f << "table = [";
 	unsigned int count = 0;	
-	for (float r = 0.1; r <= 5.0; r+= 0.001)
+	for (float r = 0.95; r <= 5.0; r+= 0.001)
 		{
 		// set the distance
 		ParticleDataArrays arrays = pdata_2->acquireReadWrite();
@@ -108,7 +118,7 @@ BOOST_AUTO_TEST_CASE(potential_writer)
 		count++;
 	
 		ForceDataArrays force_arrays = fc->acquire();
-		f << r << " " << force_arrays.fx[1] << " " << fc->calcEnergySum() << " ; " << endl;	
+		f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;	
 		}
 	f << "];" << endl;
 	f.close();
