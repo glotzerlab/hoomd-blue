@@ -350,3 +350,7 @@ void TablePotential::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
     }
+    
+#ifdef WIN32
+#pragma warning( pop )
+#endif

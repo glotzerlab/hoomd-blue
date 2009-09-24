@@ -127,3 +127,7 @@ BOOST_AUTO_TEST_CASE(potential_writer)
     f << "];" << endl;
     f.close();
     }
+    
+#ifdef WIN32
+#pragma warning( pop )
+#endif

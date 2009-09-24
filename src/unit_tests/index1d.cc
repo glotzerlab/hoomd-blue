@@ -158,3 +158,7 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_20 )
             cur_idx++;
             }
     }
+    
+#ifdef WIN32
+#pragma warning( pop )
+#endif
