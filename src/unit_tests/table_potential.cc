@@ -1,4 +1,4 @@
-/*!
+/*
 Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
 (HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
 Iowa State University and The Regents of the University of Michigan All rights
