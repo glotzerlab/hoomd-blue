@@ -56,6 +56,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TablePotential.h"
 #include "BinnedNeighborList.h"
+#ifdef ENABLE_CUDA
+#include "TablePotentialGPU.h"
+#endif
 
 using namespace std;
 using namespace boost;
@@ -66,21 +69,22 @@ using namespace boost;
 */
 
 BOOST_AUTO_TEST_CASE(potential_writer)
-	{
-	#ifdef CUDA
-	g_gpu_error_checking = true;
-	#endif
-	
-	// this 2-particle test is just to get a plot of the potential and force vs r cut
-	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, ExecutionConfiguration()));
+    {
+    #ifdef CUDA
+    g_gpu_error_checking = true;
+    #endif
+    
+    // this 2-particle test is just to get a plot of the potential and force vs r cut
+    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, ExecutionConfiguration()));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     
-	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-	arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
-	pdata_2->release();
-	shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
-	shared_ptr<TablePotential> fc(new TablePotential(sysdef_2, nlist_2, 1000));
+    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
+    pdata_2->release();
+    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
+    nlist_2->setStorageMode(NeighborList::full);
+    shared_ptr<TablePotential> fc(new TablePotentialGPU(sysdef_2, nlist_2, 1000));
 
     // provide a basic potential and "force"
     vector<Scalar> V, F;
@@ -100,26 +104,26 @@ BOOST_AUTO_TEST_CASE(potential_writer)
         F.push_back(4.0 * (12.0 * pow(1.0 / r, 14) - 6 * pow(1.0 / r, 8)));
         }
     
-	fc->setTable(0, 0, V, F, 0.5, 5.0);
-	
-	ofstream f("table_dat.m");
-	f << "table = [";
-	unsigned int count = 0;	
-	for (float r = 0.95; r <= 5.0; r+= 0.001)
-		{
-		// set the distance
-		ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-		arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-		arrays.x[1] = Scalar(r); arrays.y[1] = arrays.z[1] = 0.0;
-		pdata_2->release();
-		
-		// compute the forces
-		fc->compute(count);
-		count++;
-	
-		ForceDataArrays force_arrays = fc->acquire();
-		f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;	
-		}
-	f << "];" << endl;
-	f.close();
-	}
+    fc->setTable(0, 0, V, F, 0.5, 5.0);
+    
+    ofstream f("table_dat.m");
+    f << "table = [";
+    unsigned int count = 0;	
+    for (float r = 0.95; r <= 5.0; r+= 0.001)
+        {
+        // set the distance
+        ParticleDataArrays arrays = pdata_2->acquireReadWrite();
+        arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+        arrays.x[1] = Scalar(r); arrays.y[1] = arrays.z[1] = 0.0;
+        pdata_2->release();
+        
+        // compute the forces
+        fc->compute(count);
+        count++;
+    
+        ForceDataArrays force_arrays = fc->acquire();
+        f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;	
+        }
+    f << "];" << endl;
+    f.close();
+    }
