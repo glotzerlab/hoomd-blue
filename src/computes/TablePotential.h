@@ -89,6 +89,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Values are interpolated linearly between two points straddling the given r. For a given r, the first point needed, i
     can be calculated via i = floorf((r - rmin) / dr). The fraction between ri and ri+1 can be calculated via 
     f = (r - rmin) / dr - float(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
+    \ingroup computes
 */
 class TablePotential : public ForceCompute
     {
@@ -115,7 +116,7 @@ class TablePotential : public ForceCompute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
-    private:
+    protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         unsigned int m_table_width;                 //!< Width of the tables in memory
         unsigned int m_ntypes;                      //!< Store the number of particle types
