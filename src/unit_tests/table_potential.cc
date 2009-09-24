@@ -96,20 +96,32 @@ BOOST_AUTO_TEST_CASE(potential_writer)
 //    V.push_back(18.0);  F.push_back(-18.0/5.0);
 
     // 1000 point lj test
-    Scalar delta_r = (5.0 - 0.5) / (999);
+    /*Scalar delta_r = (5.0 - 0.5) / (999);
     for (unsigned int i = 0; i < 1000; i++)
         {
         Scalar r = 0.5 + delta_r * Scalar(i);
         V.push_back(4.0 * (pow(1.0 / r, 12) - pow(1.0 / r, 6)));
         F.push_back(4.0 * (12.0 * pow(1.0 / r, 14) - 6 * pow(1.0 / r, 8)));
+        }*/
+        
+    // 1000 point gaussian test
+    Scalar delta_r = (5.0) / (999);
+    for (unsigned int i = 0; i < 1000; i++)
+        {
+        Scalar r = delta_r * Scalar(i);
+        V.push_back(1.5 * expf(-r / 0.5));
+        if (r == 0.0)
+            F.push_back(0);
+        else
+            F.push_back(1.5 / 0.5 * expf(-r / 0.5) / r);
         }
     
-    fc->setTable(0, 0, V, F, 0.5, 5.0);
+    fc->setTable(0, 0, V, F, 0.0, 5.0);
     
     ofstream f("table_dat.m");
     f << "table = [";
     unsigned int count = 0;	
-    for (float r = 0.95; r <= 5.0; r+= 0.001)
+    for (float r = 0.0; r <= 5.0; r+= 0.001)
         {
         // set the distance
         ParticleDataArrays arrays = pdata_2->acquireReadWrite();
