@@ -80,4 +80,7 @@ class TablePotentialGPU : public TablePotential
         virtual void computeForces(unsigned int timestep);
     };
 
+//! Exports the TablePotentialGPU class to python
+void export_TablePotentialGPU();
+
 #endif

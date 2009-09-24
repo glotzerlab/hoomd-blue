@@ -350,7 +350,16 @@ void TablePotential::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
     }
-    
+
+//! Exports the TablePotential class to python
+void export_TablePotential()
+    {
+    scope in_table = class_<TablePotential, boost::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
+        ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int >())
+        .def("setTable", &TablePotential::setTable)
+        ;
+    }
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif

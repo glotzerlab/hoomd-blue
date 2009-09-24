@@ -127,4 +127,7 @@ class TablePotential : public ForceCompute
         virtual void computeForces(unsigned int timestep);
     };
 
+//! Exports the TablePotential class to python
+void export_TablePotential();
+
 #endif

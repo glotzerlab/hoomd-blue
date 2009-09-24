@@ -135,6 +135,17 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->pop(exec_conf);
     }
+    
+void export_TablePotentialGPU()
+    {
+    class_<TablePotentialGPU, boost::shared_ptr<TablePotentialGPU>, bases<TablePotential>, boost::noncopyable >
+        ("TablePotentialGPU",
+         init< boost::shared_ptr<SystemDefinition>,
+         boost::shared_ptr<NeighborList>,
+         unsigned int >())
+        .def("setBlockSize", &TablePotentialGPU::setBlockSize)
+        ;
+    }
 
 #ifdef WIN32
 #pragma warning( pop )
