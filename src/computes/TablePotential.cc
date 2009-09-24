@@ -49,6 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 using namespace boost::python;
 
 #include "TablePotential.h"
@@ -354,9 +355,13 @@ void TablePotential::computeForces(unsigned int timestep)
 //! Exports the TablePotential class to python
 void export_TablePotential()
     {
-    scope in_table = class_<TablePotential, boost::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
+    class_<TablePotential, boost::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
         ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int >())
         .def("setTable", &TablePotential::setTable)
+        ;
+        
+    class_<std::vector<float> >("std_vector_float")
+        .def(vector_indexing_suite<std::vector<float> >())
         ;
     }
 

@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -67,13 +68,13 @@ import sys
 _default_block_size_db = {};
 _default_block_size_db['1.0'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 64, 
                                  'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 320, 'bond.fene': 224, 'angle.harmonic': 192, 
-                                 'pair.gauss': 64}
+                                 'pair.gauss': 64, 'pair.table': 64}
 _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 128, 'angle.cgcmm': 64,
                                  'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 64, 'bond.fene': 256, 
-                                 'angle.harmonic': 192, 'pair.gauss': 64};
+                                 'angle.harmonic': 192, 'pair.gauss': 64, 'pair.table': 64};
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.cgcmm': 352, 'dihedral.harmonic': 128, 
                                  'angle.cgcmm': 320, 'pair.lj': 352, 'nlist': 160, 'bond.harmonic': 352, 
-                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 416}
+                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 416, 'pair.table': 64}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
