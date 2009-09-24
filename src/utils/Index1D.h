@@ -43,6 +43,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
+#ifndef __INDEX1D_H__
+#define __INDEX1D_H__
+
 /*! \file Index1D.h
 	\brief Defines utility classes for 1D indexing of multi-dimensional arrays
     \details These are very low-level, high performance functions. No error checking is performed on their arguments,
@@ -50,6 +53,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     matrices, but is consistent with the tex2D x,y access pattern used in CUDA. The decision is to go with x,y for
     consistency.
 */
+
+// need to declare these classes with __host__ __device__ qualifiers when building in nvcc
+#ifdef NVCC
+#define HOSTDEVICE __host__ __device__
+#else
+#define HOSTDEVICE
+#endif
 
 //! Index a 2D array
 /*! Row major mapping of 2D onto 1D
@@ -61,7 +71,7 @@ class Index2D
         //! Contstructor
         /*! \param w Width of the 2D array
         */
-        inline Index2D(unsigned int w) : m_w(w) {}
+        HOSTDEVICE inline Index2D(unsigned int w) : m_w(w) {}
         
         //! Calculate an index
         /*! \param i column index
@@ -69,7 +79,7 @@ class Index2D
             \param w width of the 2D array
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
         */
-        inline unsigned int operator()(unsigned int i, unsigned int j)
+        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j)
             {
             return j*m_w + i;
             }
@@ -77,7 +87,7 @@ class Index2D
         //! Get the number of 1D elements stored
         /*! \returns Number of elements stored in the underlying 1D array
         */
-        inline unsigned int getNumElements()
+        HOSTDEVICE inline unsigned int getNumElements()
             {
             return m_w*m_w;
             }
@@ -96,7 +106,7 @@ class Index2DUpperTriangular
         //! Contstructor
         /*! \param w Width of the 2D upper triangular array
         */
-        inline Index2DUpperTriangular(unsigned int w) : m_w(w) 
+        HOSTDEVICE inline Index2DUpperTriangular(unsigned int w) : m_w(w) 
             {
             m_term = 2*m_w - 1;
             }
@@ -108,7 +118,7 @@ class Index2DUpperTriangular
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
             \note Forumla adapted from: http://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
         */
-        inline unsigned int operator()(unsigned int i, unsigned int j)
+        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j)
             {
             // swap if j > i
             if (j > i)
@@ -123,7 +133,7 @@ class Index2DUpperTriangular
         //! Get the number of 1D elements stored
         /*! \returns Number of elements stored in the underlying 1D array
         */
-        inline unsigned int getNumElements()
+        HOSTDEVICE inline unsigned int getNumElements()
             {
             return m_w*(m_w+1) / 2;
             }
@@ -131,4 +141,6 @@ class Index2DUpperTriangular
     private:
         unsigned int m_w;     //!< Width of the 2D upper triangular array
         unsigned int m_term;  //!< Precomputed term of the equation for efficiency
-    };    
+    };
+
+#endif
