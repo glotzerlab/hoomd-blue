@@ -1066,13 +1066,7 @@ class table(force._force):
         for i in xrange(0, self.width):
             r = rmin + dr * i;
             (V,F) = func(r, rmin, rmax, **coeff);
-            
-            # divide F by r, but not if r is 0
-            if r == 0.0:
-                F = 0;
-            else:
-                F = F / r;
-            
+                 
             # fill out the tables
             Vtable.append(V);
             Ftable.append(F);

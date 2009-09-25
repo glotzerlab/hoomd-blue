@@ -62,7 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Pair potentials and forces are evaluated for all particle pairs in the system within the given cutoff distances.
     Both the potentials and forces** are provided the tables V(r) and F(r) at discreet \a r values between \a rmin and
     \a rmax. Evaluations are performed by simple linear interpolation, thus why F(r) must be explicitly specified to
-    avoid large errors resulting from the numerical derivative. Note that F(r) actually stores - 1/r dV/dr. 
+    avoid large errors resulting from the numerical derivative. Note that F(r) should store - dV/dr. 
     
     \b Table memory layout
     

@@ -98,7 +98,7 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
 /*! \param typ1 First particle type index in the pair to set
     \param typ2 Second particle type index in the pair to set
     \param V Table for the potential V
-    \param F Table for the potential F (must be - 1 / r dV / dr)
+    \param F Table for the potential F (must be - dV / dr)
     \param rmin Minimum r in the potential
     \param rmax Maximum r in the potential
     \post Values from \a V and \a F are copied into the interal storage for type pair (typ1, typ2)
@@ -307,7 +307,9 @@ void TablePotential::computeForces(unsigned int timestep)
                 Scalar F = F0 + f * (F1 - F0);
                                 
                 // convert to standard variables used by the other pair computes in HOOMD-blue
-                Scalar forcemag_divr = F;
+                Scalar forcemag_divr = Scalar(0.0);
+                if (r > Scalar(0.0))
+                    forcemag_divr = F / r;
                 Scalar pair_eng = Scalar(0.5) * V;
                 
                 // compute the virial (FLOPS: 2)

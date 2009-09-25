@@ -181,7 +181,9 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
             float F = F0 + f * (F1 - F0);
                             
             // convert to standard variables used by the other pair computes in HOOMD-blue
-            float forcemag_divr = F;
+            float forcemag_divr = 0.0f;
+            if (r > 0.0f)
+                forcemag_divr = F / r;
             float pair_eng = V;
             // calculate the virial
             virial += float(1.0/6.0) * rsq * forcemag_divr;
