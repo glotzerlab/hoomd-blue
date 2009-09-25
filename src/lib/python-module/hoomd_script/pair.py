@@ -986,6 +986,7 @@ class yukawa(force._force):
 #
 # \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
 # \f$ r_{\mathrm{min}} \f$ and \f$ r_{\mathrm{max}} \f$. Values are interpolated linearly between grid points.
+# For correctness, the user must specify a force defined by: \f$ F = -\frac{\partial V}{\partial r}\f$  
 #
 # The following coefficients must be set per unique %pair of particle types. See pair or 
 # the \ref page_quick_start for information on how to set coefficients.
