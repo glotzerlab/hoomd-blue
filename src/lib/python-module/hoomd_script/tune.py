@@ -68,13 +68,13 @@ import sys
 _default_block_size_db = {};
 _default_block_size_db['1.0'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 64, 
                                  'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 320, 'bond.fene': 224, 'angle.harmonic': 192, 
-                                 'pair.gauss': 64, 'pair.table': 64}
+                                 'pair.gauss': 64, 'pair.table': 320}
 _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 128, 'angle.cgcmm': 64,
                                  'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 64, 'bond.fene': 256, 
-                                 'angle.harmonic': 192, 'pair.gauss': 64, 'pair.table': 64};
+                                 'angle.harmonic': 192, 'pair.gauss': 64, 'pair.table': 320};
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.cgcmm': 352, 'dihedral.harmonic': 128, 
                                  'angle.cgcmm': 320, 'pair.lj': 352, 'nlist': 160, 'bond.harmonic': 352, 
-                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 416, 'pair.table': 64}
+                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 416, 'pair.table': 320}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -296,10 +296,11 @@ def _choose_optimal_block_sizes(optimal_dbs):
 			print "Notice: more than one common optimal block size found for", entry, ", using", common_optimal;
 	
 	return common_optimal_db;
-	
+
 ## Determine optimal block size tuning parameters
 #
 # \param save Set to False to disable the saving of ~/.hoomd_block_tuning
+# \param only List of commands to limit the benchmarking to
 #
 # A number of parameters related to running the GPU code in HOOMD can be tuned for optimal performance.
 # Unfortunately, the optimal values are impossible to predict and must be benchmarked. Additionally,
@@ -321,20 +322,25 @@ def _choose_optimal_block_sizes(optimal_dbs):
 #
 # \note HOOMD ignores .hoomd_block_tuning files from older versions. You must rerun the tuning
 # script after upgrading HOOMD. 
-def find_optimal_block_sizes(save = True):
+def find_optimal_block_sizes(save = True, only=None):
 	util._disable_status_lines = True;
+
+	# we cannot save if only is set
+	if only:
+		save = False;
 	
 	# list of force computes to tune
-	fc_list = [ ('pair.lj', '(r_cut=3.0)', 500),
-	            ('pair.cgcmm', '(r_cut=3.0)', 500),
-	            ('pair.gauss', '(r_cut=3.0)', 500),
-	            ('bond.harmonic', '()', 10000),
-	            ('angle.harmonic', '()', 3000),
-	            ('angle.cgcmm', '()', 2000),
-	            ('dihedral.harmonic', '()', 1000),
-	            ('improper.harmonic', '()', 1000),
-	            ('bond.fene', '()', 2000)
-	          ];
+	fc_list = [ ('pair.table', 'pair_table_bmark', '()', 500),
+				('pair.lj', 'pair.lj', '(r_cut=3.0)', 500),
+				('pair.cgcmm', 'pair.cgcmm', '(r_cut=3.0)', 500),
+				('pair.gauss', 'pair.gauss', '(r_cut=3.0)', 500),
+				('bond.harmonic', 'bond.harmonic', '()', 10000),
+				('angle.harmonic', 'angle.harmonic', '()', 3000),
+				('angle.cgcmm', 'angle.cgcmm', '()', 2000),
+				('dihedral.harmonic', 'dihedral.harmonic', '()', 1000),
+				('improper.harmonic', 'improper.harmonic', '()', 1000),
+				('bond.fene', 'bond.fene', '()', 2000)
+				];
 	
 	# setup the particle system to benchmark
 	polymer = dict(bond_len=1.2, type=['A']*50, bond="linear", count=2000);
@@ -374,10 +380,13 @@ def find_optimal_block_sizes(save = True):
 		optimal_db = {};
 		
 		# for each force compute
-		for (fc_name,fc_args,n) in fc_list:
+		for (fc_name,fc_init,fc_args,n) in fc_list:
+			if only and (not fc_name in only):
+				continue
+
 			print 'Benchmarking ', fc_name
 			# create it and benchmark it
-			fc = eval(fc_name + fc_args)
+			fc = eval(fc_init + fc_args)
 			optimal = _find_optimal_block_size_fc(fc, n)
 			optimal_db[fc_name] = optimal;
 			
@@ -412,3 +421,22 @@ def find_optimal_block_sizes(save = True):
 	## Currently not working for some reason.....
 	# init.reset();
 	util._disable_status_lines = False;
+
+# functions for setting up potentials for benchmarking
+def lj_table(r, rmin, rmax, epsilon, sigma):
+    V = 4 * epsilon * ( (sigma / r)**12 - (sigma / r)**6);
+    F = 4 * epsilon / r * ( 12 * (sigma / r)**12 - 6 * (sigma / r)**6);
+    return (V, F)
+
+## \internal
+# \brief Setup pair.table for benchmarking
+def pair_table_bmark():
+    table = pair.table(width=1000);
+    table.pair_coeff.set('A', 'A', func=lj_table, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.0, sigma=1.0));
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    pair._update_global_nlist(3.0);
+    return table;
+
+
+
