@@ -778,7 +778,7 @@ class cgcmm(force._force):
 #			 = & V_{\mathrm{gauss}}(r) - V_{\mathrm{gauss}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift}	\\
 #	\f}
 # ,
-# \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma}^2 \right) \right] \f]
+# \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
 # ,
 # and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
