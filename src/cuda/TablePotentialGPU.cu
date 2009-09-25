@@ -126,19 +126,7 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
     unsigned int next_neigh = nlist.list[idx_global];
 
     // loop over neighbors
-    // on pre C1060 hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
-    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
-    // inside the loop
-    bool ulf_workaround = true;
-    int n_loop;
-    if (ulf_workaround)
-        n_loop = nlist.height;
-    else
-        n_loop = n_neigh;
-        
-    for (int neigh_idx = 0; neigh_idx < n_loop; neigh_idx++)
-        {
-        if (!ulf_workaround || neigh_idx < n_neigh)
+	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
         {
         // read the current neighbor index
         // prefetch the next value and set the current one
@@ -204,7 +192,6 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
             force.z += dz * forcemag_divr;
             force.w += pair_eng;
             }
-        }
         }
     
     // potential energy per particle must be halved
