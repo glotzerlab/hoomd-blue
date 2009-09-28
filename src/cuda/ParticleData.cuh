@@ -92,7 +92,7 @@ struct gpu_boxsize
 	{
 	float Lx;	//!< Length of the box in the x-direction
 	float Ly;	//!< Length of the box in the y-direction
-	float Lz;	//!< Length of the box in the z-direction
+	float Lz;	//!< Length of teh box in the z-direction
 	float Lxinv;//!< 1.0f/Lx
 	float Lyinv;//!< 1.0f/Ly
 	float Lzinv;//!< 1.0f/Lz
