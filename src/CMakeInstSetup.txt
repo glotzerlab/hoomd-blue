@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 # setup flags to specify installation directories for files, these differ in
 # linux and windows

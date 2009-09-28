@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 #################################
 ## Setup include directories and file lists for sub directories

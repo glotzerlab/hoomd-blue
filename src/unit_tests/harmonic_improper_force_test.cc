@@ -1,3 +1,5 @@
+// Maintainer: dnlebard
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )

@@ -40,6 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file gpu_array_test.cu
 	\brief GPU kernels for gpu_array_test.cc

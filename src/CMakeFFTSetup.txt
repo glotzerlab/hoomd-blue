@@ -36,6 +36,7 @@
 
 # $Id: CMakeLists.txt 1232 2008-09-10 19:32:52Z joaander $
 # $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/installer/CMakeLists.txt $
+# Maintainer: joaander
 
 
 #################################
