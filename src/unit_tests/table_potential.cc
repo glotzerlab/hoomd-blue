@@ -209,48 +209,75 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     }
  
  //! checks to see if TablePotential correctly handles multiple types
-/*void table_potential_type_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
+void table_potential_type_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
     {
     #ifdef CUDA
     g_gpu_error_checking = true;
     #endif
     
     // perform a basic test to see of the potential and force can be interpolated between two particles
-    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(2, BoxDim(1000.0), 2, 0, 0, 0, 0, ExecutionConfiguration()));
-    shared_ptr<ParticleData> pdata_3 = sysdef_2->getParticleData();
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, ExecutionConfiguration()));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0; arrays.type[0] = 0;
+    arrays.x[1] = Scalar(1.5); arrays.y[1] = arrays.z[1] = 0.0; arrays.type[1] = 1;
+    arrays.x[2] = 0.0; arrays.y[2] = Scalar(1.5); arrays.z[2] = 0.0; arrays.type[2] = 0;
+    arrays.x[3] = Scalar(1.5); arrays.y[3] = Scalar(1.5); arrays.z[3] = 0.0; arrays.type[3] = 1;    
+    pdata->release();
     
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
-    shared_ptr<TablePotential> fc_2 = table_creator(sysdef_2, nlist_2, 3);
+    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
+    shared_ptr<TablePotential> fc = table_creator(sysdef, nlist, 3);
     
-    // first check for proper initialization by seeing if the force and potential come out to be 0
-    fc_2->compute(0);
-    
-    ForceDataArrays force_arrays = fc_2->acquire();
-    MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[0], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol_small);
-
-    MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol_small);
-    MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol_small);
-
     // specify a table to interpolate
     vector<Scalar> V, F;
     V.push_back(10.0);  F.push_back(1.0);
-    V.push_back(21.0);  F.push_back(6.0);
+    V.push_back(20.0);  F.push_back(6.0);
     V.push_back(5.0);   F.push_back(2.0);
-    fc_2->setTable(0, 0, V, F, 2.0, 4.0);
+    fc->setTable(0, 0, V, F, 1.0, 2.0);
     
-    }*/
+    // next type pair
+    V.clear(); F.clear();
+    V.push_back(20.0);  F.push_back(2.0);
+    V.push_back(40.0);  F.push_back(12.0);
+    V.push_back(10.0);   F.push_back(4.0);
+    fc->setTable(0, 1, V, F, 0.0, 2.0);
+    
+    // next type pair
+    V.clear(); F.clear();
+    V.push_back(5.0);  F.push_back(0.5);
+    V.push_back(10.0);  F.push_back(3.0);
+    V.push_back(2.5);   F.push_back(2.0);
+    fc->setTable(1, 1, V, F, 1.0, 2.0);
+    
+    // compute and check
+    fc->compute(0);
+    
+    ForceDataArrays force_arrays = fc->acquire();
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -8.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -6.0, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
+    MY_BOOST_CHECK_SMALL(force_arrays.pe[0], 10.0+25.0);
+    MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], (8*1.5+6*1.5)*1.0/6.0, tol);
+
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 8.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -3.0, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 25.0/2.0 + 5.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.virial[1], (8*1.5 + 3.0 * 1.5)*1.0/6.0, tol);
+    
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -8.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], 6.0, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[2], tol_small);
+    MY_BOOST_CHECK_SMALL(force_arrays.pe[2], 10.0+25.0);
+    MY_BOOST_CHECK_CLOSE(force_arrays.virial[2], (8*1.5+6*1.5)*1.0/6.0, tol);
+    
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 8.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 3.0, tol);
+    MY_BOOST_CHECK_SMALL(force_arrays.fz[3], tol_small);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 25.0/2.0 + 5.0, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], (8*1.5 + 3.0*1.5)*1.0/6.0, tol);
+    }
           
 //! TablePotential creator for unit tests
 shared_ptr<TablePotential> base_class_table_creator(shared_ptr<SystemDefinition> sysdef, 
@@ -282,12 +309,26 @@ BOOST_AUTO_TEST_CASE( TablePotential_basic )
     table_potential_basic_test(table_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
+//! boost test case for type test on CPU
+BOOST_AUTO_TEST_CASE( TablePotential_type )
+    {
+    table_potential_creator table_creator_base = bind(base_class_table_creator, _1, _2, _3);
+    table_potential_type_test(table_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    }
+
 #ifdef ENABLE_CUDA
-//! boost test case for basic test on CPU
+//! boost test case for basic test on GPU
 BOOST_AUTO_TEST_CASE( TablePotentialGPU_basic )
     {
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
     table_potential_basic_test(table_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    }
+    
+//! boost test case for type test on GPU
+BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
+    {
+    table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
+    table_potential_type_test(table_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 #endif
 
