@@ -553,15 +553,16 @@ BOOST_AUTO_TEST_CASE( LJForceMultiGPU_compare )
 	#endif
 	
 	// this 2-particle test is just to get a plot of the potential and force vs r cut
-	shared_ptr<ParticleData> pdata_2(new ParticleData(2, BoxDim(1000.0), 1, 0, ExecutionConfiguration()));
+	shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0,0, 0, 0, ExecutionConfiguration()));
+    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 	ParticleDataArrays arrays = pdata_2->acquireReadWrite();
 	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
 	arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
 	pdata_2->release();
-	shared_ptr<NeighborList> nlist_2(new NeighborList(pdata_2, Scalar(3.0), Scalar(0.8)));
-	shared_ptr<LJForceCompute> fc(new LJForceCompute(pdata_2, nlist_2, Scalar(3.0)));
+	shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
+	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef_2, nlist_2, Scalar(3.0)));
 	// nlist_2->setStorageMode(NeighborList::full);
-	fc->setShiftMode(LJForceCompute::xplor);
+	// fc->setShiftMode(LJForceCompute::xplor);
 
 	// setup a standard epsilon and sigma
 	Scalar epsilon = Scalar(1.0);
@@ -574,7 +575,7 @@ BOOST_AUTO_TEST_CASE( LJForceMultiGPU_compare )
 	ofstream f("lj_dat.m");
 	f << "lj = [";
 	unsigned int count = 0;	
-	for (float r = 0.96; r <= 3.5; r+= 0.001)
+	for (float r = 0.95; r <= 5.0; r+= 0.001)
 		{
 		// set the distance
 		ParticleDataArrays arrays = pdata_2->acquireReadWrite();

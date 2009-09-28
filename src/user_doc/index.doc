@@ -84,9 +84,10 @@ Table of contents:
 
 \section sec_index_pair Pair forces
 \link hoomd_script.pair pair\endlink:
- - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
- - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>\copybrief hoomd_script::pair::cgcmm </i>
+ - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
+ - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
+ - \link hoomd_script.pair.table pair.table\endlink - <i>\copybrief hoomd_script::pair::table </i>
  - \link hoomd_script.pair.nlist nlist\endlink - <i>\copybrief hoomd_script::pair::nlist </i>
 
 \section sec_index_bond Bond forces

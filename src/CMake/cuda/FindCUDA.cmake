@@ -92,7 +92,8 @@
 #    (e.g. nvcc -Ipath0 -Ipath1 ... ). These paths usually contain other .cu
 #    files.
 #
-# CUDA_ADD_LIBRARY( cuda_target file0 file1 ... [OPTIONS ...] )
+# CUDA_ADD_LIBRARY( cuda_target file0 file1 ...
+#                   [STATIC | SHARED | MODULE] [EXCLUDE_FROM_ALL] [OPTIONS ...] )
 # -- Creates a shared library "cuda_target" which contains all of the source
 #    (*.c, *.cc, etc.) specified and all of the nvcc'ed .cu files specified.
 #    All of the specified source files and generated .cpp files are compiled
@@ -101,10 +102,12 @@
 #    build and link.  In addition CUDA_INCLUDE_DIRS is added automatically added
 #    to include_directories().
 #
-# CUDA_ADD_EXECUTABLE( cuda_target file0 file1 ... [OPTIONS ...] )
+# CUDA_ADD_EXECUTABLE( cuda_target file0 file1 ...
+#                      [WIN32] [MACOSX_BUNDLE] [EXCLUDE_FROM_ALL] [OPTIONS ...] )
 # -- Same as CUDA_ADD_LIBRARY except that an exectuable is created.
 #
-# CUDA_COMPILE( generated_files file0 file1 ... [OPTIONS ...] )
+# CUDA_COMPILE( generated_files file0 file1 ... [STATIC | SHARED | MODULE]
+#               [OPTIONS ...] )
 # -- Returns a list of generated files from the input source files to be used
 #    with ADD_LIBRARY or ADD_EXECUTABLE.
 #
@@ -112,7 +115,7 @@
 # -- Returns a list of PTX files generated from the input source files.
 #
 # CUDA_WRAP_SRCS ( cuda_target format generated_files file0 file1 ...
-#                  [OPTIONS ...] )
+#                  [STATIC | SHARED | MODULE] [OPTIONS ...] )
 # -- This is where all the magic happens.  CUDA_ADD_EXECUTABLE,
 #    CUDA_ADD_LIBRARY, CUDA_COMPILE, and CUDA_COMPILE_PTX all call this function
 #    under the hood.
@@ -139,6 +142,10 @@
 #    be produced for the given cuda file.  This is because when you add the cuda
 #    file to Visual Studio it knows that this file produces and will link in the
 #    resulting object file automatically.
+#
+#    This script also looks at optional arguments STATIC, SHARED, or MODULE to
+#    override the behavior specified by the value of the CMake variable
+#    BUILD_SHARED_LIBS.  See BUILD_SHARED_LIBS below for more details.
 #
 #    This script will also generate a separate cmake script that is used at
 #    build time to invoke nvcc.  This is for serveral reasons.
@@ -202,11 +209,12 @@
 # with their configuration dependent counterparts (i.e. CMAKE_C_FLAGS_DEBUG).
 # These flags are passed through nvcc to the native compiler.  In addition, on
 # some systems special flags are added for building objects intended for shared
-# libraries.  FindCUDA make use of the CMake variable BUILD_SHARED_LIBS to
-# determine if these flags should be used.  Please set this variable according
-# to how the objects are to be used before calling CUDA_ADD_LIBRARY.  A
-# preprocessor macro, <target_name>_EXPORTS is defined when BUILD_SHARED_LIBS is
-# defined.  In addition, flags passed into add_definitions with -D or /D are
+# libraries.  FindCUDA make use of the CMake variable BUILD_SHARED_LIBS and the
+# usual STATIC, SHARED, and MODULE arguments to determine if these flags should
+# be used.  Please set BUILD_SHARED_LIBS or pass in STATIC, SHARED, or MODULE
+# according to how the objects are to be used before calling CUDA_ADD_LIBRARY.
+# A preprocessor macro, <target_name>_EXPORTS is defined when BUILD_SHARED_LIBS
+# is defined.  In addition, flags passed into add_definitions with -D or /D are
 # passed along to nvcc.
 #
 # Files with the HEADER_FILE_ONLY property set will not be compiled.
@@ -223,9 +231,9 @@
 
 # FindCUDA.cmake
 
-# We need to have at least this version to support the VERSION_LESS argument to 'if'.
+# We need to have at least this version to support the VERSION_LESS argument to 'if' (2.6.2) and unset (2.6.3)
 cmake_policy(PUSH)
-cmake_minimum_required(VERSION 2.6.2)
+cmake_minimum_required(VERSION 2.6.3)
 cmake_policy(POP)
 
 # This macro helps us find the location of helper files we will need the full path to
@@ -406,7 +414,7 @@ if(NOT CUDA_TOOLKIT_ROOT_DIR)
     )
 
   if (CUDA_TOOLKIT_ROOT_DIR)
-    string(REGEX REPLACE "[/\\\\]?bin[/\\\\]?$" "" CUDA_TOOLKIT_ROOT_DIR ${CUDA_TOOLKIT_ROOT_DIR})
+    string(REGEX REPLACE "[/\\\\]?bin[64]*[/\\\\]?$" "" CUDA_TOOLKIT_ROOT_DIR ${CUDA_TOOLKIT_ROOT_DIR})
     # We need to force this back into the cache.
     set(CUDA_TOOLKIT_ROOT_DIR ${CUDA_TOOLKIT_ROOT_DIR} CACHE PATH "Toolkit location." FORCE)
   endif(CUDA_TOOLKIT_ROOT_DIR)
@@ -482,9 +490,12 @@ set (CUDA_NVCC_INCLUDE_ARGS_USER "")
 set (CUDA_INCLUDE_DIRS ${CUDA_TOOLKIT_INCLUDE})
 
 macro(FIND_LIBRARY_LOCAL_FIRST _var _names _doc)
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(_cuda_64bit_lib_dir "${CUDA_TOOLKIT_ROOT_DIR}/lib64")
+  endif()
   find_library(${_var}
     NAMES ${_names}
-    PATHS "${CUDA_TOOLKIT_ROOT_DIR}/lib64"
+    PATHS ${_cuda_64bit_lib_dir}
           "${CUDA_TOOLKIT_ROOT_DIR}/lib"
     ENV CUDA_LIB_PATH
     DOC ${_doc}
@@ -634,13 +645,23 @@ cuda_find_helper_file(run_nvcc cmake)
 ##############################################################################
 # Separate the OPTIONS out from the sources
 #
-macro(CUDA_GET_SOURCES_AND_OPTIONS _sources _options)
+macro(CUDA_GET_SOURCES_AND_OPTIONS _sources _cmake_options _options)
   set( ${_sources} )
+  set( ${_cmake_options} )
   set( ${_options} )
   set( _found_options FALSE )
   foreach(arg ${ARGN})
     if(arg STREQUAL "OPTIONS")
       set( _found_options TRUE )
+    elseif(
+        arg STREQUAL "WIN32" OR
+        arg STREQUAL "MACOSX_BUNDLE" OR
+        arg STREQUAL "EXCLUDE_FROM_ALL" OR
+        arg STREQUAL "STATIC" OR
+        arg STREQUAL "SHARED" OR
+        arg STREQUAL "MODULE"
+        )
+      list(APPEND ${_cmake_options} "${arg}")
     else()
       if ( _found_options )
         list(APPEND ${_options} "${arg}")
@@ -780,12 +801,26 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
     set(CUDA_WRAP_OPTION_NVCC_FLAGS_${config_upper})
   endforeach()
 
-  CUDA_GET_SOURCES_AND_OPTIONS(_cuda_wrap_sources _cuda_wrap_options ${ARGN})
+  CUDA_GET_SOURCES_AND_OPTIONS(_cuda_wrap_sources _cuda_wrap_cmake_options _cuda_wrap_options ${ARGN})
   CUDA_PARSE_NVCC_OPTIONS(CUDA_WRAP_OPTION_NVCC_FLAGS ${_cuda_wrap_options})
 
+  # Figure out if we are building a shared library.  Default the value of BUILD_SHARED_LIBS.
+  set(_cuda_build_shared_libs ${BUILD_SHARED_LIBS})
+  # SHARED, MODULE
+  list(FIND _cuda_wrap_cmake_options SHARED _cuda_found_SHARED)
+  list(FIND _cuda_wrap_cmake_options MODULE _cuda_found_MODULE)
+  if(_cuda_found_SHARED GREATER -1 OR _cuda_found_MODULE GREATER -1)
+    set(_cuda_build_shared_libs TRUE)
+  endif()
+  # STATIC
+  list(FIND _cuda_wrap_cmake_options STATIC _cuda_found_STATIC)
+  if(_cuda_found_STATIC GREATER -1)
+    set(_cuda_build_shared_libs FALSE)
+  endif()
+
   # CUDA_HOST_FLAGS
-  if(BUILD_SHARED_LIBS)
-    # If BUILD_SHARED_LIBS is true, then we need to add extra flags for
+  if(_cuda_build_shared_libs)
+    # If we are setting up code for a shared library, then we need to add extra flags for
     # compiling objects for shared libraries.
     set(CUDA_HOST_SHARED_FLAGS ${CMAKE_SHARED_LIBRARY_${CUDA_C_OR_CXX}_FLAGS})
   endif()
@@ -810,6 +845,11 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
     set(CUDA_NVCC_FLAGS_CONFIG "${CUDA_NVCC_FLAGS_CONFIG}\nset(CUDA_NVCC_FLAGS_${config_upper} \"${CUDA_NVCC_FLAGS_${config_upper}};${CUDA_WRAP_OPTION_NVCC_FLAGS_${config_upper}}\")")
   endforeach()
 
+  if(compile_to_ptx)
+    # Don't use any of the host compilation flags for PTX targets
+    set(CUDA_HOST_FLAGS)
+  endif()
+
   # Get the list of definitions from the directory property
   get_directory_property(CUDA_NVCC_DEFINITIONS COMPILE_DEFINITIONS)
   if(CUDA_NVCC_DEFINITIONS)
@@ -818,7 +858,7 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
     endforeach()
   endif()
 
-  if(BUILD_SHARED_LIBS)
+  if(_cuda_build_shared_libs)
     list(APPEND nvcc_flags "-D${cuda_target}_EXPORTS")
   endif()
 
@@ -985,12 +1025,13 @@ macro(CUDA_ADD_LIBRARY cuda_target)
   CUDA_ADD_CUDA_INCLUDE_ONCE()
 
   # Separate the sources from the options
-  CUDA_GET_SOURCES_AND_OPTIONS(_sources _options ${ARGN})
+  CUDA_GET_SOURCES_AND_OPTIONS(_sources _cmake_options _options ${ARGN})
   # Create custom commands and targets for each file.
-  CUDA_WRAP_SRCS( ${cuda_target} OBJ _generated_files ${_sources} OPTIONS ${_options} )
+  CUDA_WRAP_SRCS( ${cuda_target} OBJ _generated_files ${_sources} ${_cmake_options}
+    OPTIONS ${_options} )
 
   # Add the library.
-  add_library(${cuda_target}
+  add_library(${cuda_target} ${_cmake_options}
     ${_generated_files}
     ${_sources}
     )
@@ -1019,12 +1060,12 @@ macro(CUDA_ADD_EXECUTABLE cuda_target)
   CUDA_ADD_CUDA_INCLUDE_ONCE()
 
   # Separate the sources from the options
-  CUDA_GET_SOURCES_AND_OPTIONS(_sources _options ${ARGN})
+  CUDA_GET_SOURCES_AND_OPTIONS(_sources _cmake_options _options ${ARGN})
   # Create custom commands and targets for each file.
   CUDA_WRAP_SRCS( ${cuda_target} OBJ _generated_files ${_sources} OPTIONS ${_options} )
 
   # Add the library.
-  add_executable(${cuda_target}
+  add_executable(${cuda_target} ${_cmake_options}
     ${_generated_files}
     ${_sources}
     )
@@ -1051,9 +1092,10 @@ endmacro(CUDA_ADD_EXECUTABLE cuda_target)
 macro(CUDA_COMPILE generated_files)
 
   # Separate the sources from the options
-  CUDA_GET_SOURCES_AND_OPTIONS(_sources _options ${ARGN})
+  CUDA_GET_SOURCES_AND_OPTIONS(_sources _cmake_options _options ${ARGN})
   # Create custom commands and targets for each file.
-  CUDA_WRAP_SRCS( cuda_compile OBJ _generated_files ${_sources} OPTIONS ${_options} )
+  CUDA_WRAP_SRCS( cuda_compile OBJ _generated_files ${_sources} ${_cmake_options}
+    OPTIONS ${_options} )
 
   set( ${generated_files} ${_generated_files})
 
@@ -1068,9 +1110,10 @@ endmacro(CUDA_COMPILE)
 macro(CUDA_COMPILE_PTX generated_files)
 
   # Separate the sources from the options
-  CUDA_GET_SOURCES_AND_OPTIONS(_sources _options ${ARGN})
+  CUDA_GET_SOURCES_AND_OPTIONS(_sources _cmake_options _options ${ARGN})
   # Create custom commands and targets for each file.
-  CUDA_WRAP_SRCS( cuda_compile_ptx PTX _generated_files ${_sources} OPTIONS ${_options} )
+  CUDA_WRAP_SRCS( cuda_compile_ptx PTX _generated_files ${_sources} ${_cmake_options}
+    OPTIONS ${_options} )
 
   set( ${generated_files} ${_generated_files})
 
