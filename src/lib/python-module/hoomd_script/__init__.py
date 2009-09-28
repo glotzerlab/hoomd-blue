@@ -76,7 +76,7 @@ version_major = 0;
 
 ## \internal
 # \brief Minor version of hoomd_script
-version_minor = 1;
+version_minor = 2;
 
 ## \brief Get the version information of hoomd_script
 # \returns a tuple (major, minor)
