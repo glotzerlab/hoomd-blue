@@ -38,7 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintaner: ndtrung
+// Maintainer: ndtrung
 
 #include "Integrator.cuh"
 #include "NVTRigidUpdaterGPU.cuh"
