@@ -123,10 +123,16 @@ void TablePotential::setTable(unsigned int typ1,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        cerr << "***Error! rmin, rmax (" << rmin << "," << rmax 
+        cerr << endl << "***Error! rmin, rmax (" << rmin << "," << rmax 
              << ") given to TablePotential make no sense." << endl << endl;
         throw runtime_error("Error initializing TablePotential");
         }
+        
+    if (V.size() != m_table_width || F.size() != m_table_width)
+        {
+        cerr << endl << "***Error! table provided to setTable is not of the correct size" << endl << endl;
+        throw runtime_error("Error initializing TablePotential");
+        }        
     
     // fill out the parameters
     h_params.data[cur_table_index].x = rmin;

@@ -501,8 +501,33 @@ class pair_lj_tests (unittest.TestCase):
 	
 	def tearDown(self):
 		globals._clear();
+
+# pair.table
+class pair_table_tests (unittest.TestCase):
+	def setUp(self):
+		print
+		init.create_random(N=1000, phi_p=0.05);
 		
+	# basic test of creation
+	def test(self):
+		table = pair.table(width=1000);
+		table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
+		table.update_coeffs();
+
+	# test missing coefficients
+	def test_set_missing_epsilon(self):
+		table = pair.table(width=1000);
+		table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0);
+		self.assertRaises(RuntimeError, table.update_coeffs);
 		
+	# test missing coefficients
+	def test_missing_AA(self):
+		table = pair.table(width=1000);
+		self.assertRaises(RuntimeError, table.update_coeffs);
+	
+	def tearDown(self):
+		globals._clear();
+
 # pair.gauss
 class pair_gauss_tests (unittest.TestCase):
 	def setUp(self):
