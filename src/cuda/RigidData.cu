@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: ParticleData.cu 1578 2009-04-14 ndtrung $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/cuda/RigidData.cu $
+// $Id$
+// $URL$
 
 #include "RigidData.cuh"
 #include "gpu_settings.h"

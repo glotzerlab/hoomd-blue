@@ -36,8 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: NVEUpdaterGPU.cu 1676 2009-02-13 19:15:18Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/cuda/NVEUpdaterGPU.cu $
+// $Id$
+// $URL$
+// Maintainer: ndtrung
 
 #include "Integrator.cuh"
 #include "NVERigidUpdaterGPU.cuh"

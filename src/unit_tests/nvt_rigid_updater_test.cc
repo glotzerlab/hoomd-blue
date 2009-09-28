@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: nve_updater_test.cc 1622 2009-01-28 22:51:01Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/nve_updater_test.cc $
+// $Id$
+// $URL$
 
 #ifdef WIN32
 #pragma warning( push )

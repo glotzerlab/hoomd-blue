@@ -36,9 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: NVTRigidUpdaterGPU.cuh 1946 2009-07-07 16:39:02Z ndtrung $
-// $URL: http://svn2.assembla.com/svn/hoomd/branches/rigid-bodies/src/cuda/NVTRigidUpdaterGPU.cuh $
-// Maintainer: joaander
+// $Id$
+// $URL$
+// Maintainer: ndtrung
 
 /*! \file NVTRigidUpdaterGPU.cuh
 	\brief Declares GPU kernel code for NVT rigid body integration on the GPU. Used by NVTUpdaterGPU.

@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: ParticleData.cuh 1644 2009-02-05 15:14:27Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/cuda/ParticleData.cuh $
+// $Id$
+// $URL$
 
 #ifndef _RIGIDDATA_CUH_
 #define _RIGIDDATA_CUH_
