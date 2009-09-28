@@ -81,6 +81,7 @@ enable_testing()
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
+    index1d
 	gpu_array_test
 	pdata_test
 	particle_group_test
@@ -94,6 +95,7 @@ set(TEST_LIST
 	lj_wall_compute_test
 	neighborlist_test
 	lj_force_test
+    table_potential
 	shiftedlj_force_test
 	gaussian_force_test
 	cgcmm_force_test

@@ -73,6 +73,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "LJForceCompute.h"
 //#include "YukawaForceCompute.h"
 #include "CGCMMForceCompute.h"
+#include "TablePotential.h"
 #include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "TempCompute.h"
@@ -110,6 +111,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "LJForceComputeGPU.h"
 //#include "YukawaForceComputeGPU.h"
 #include "CGCMMForceComputeGPU.h"
+#include "TablePotentialGPU.h"
 #include "GaussianForceGPU.h"
 #include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
@@ -361,6 +363,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_HarmonicDihedralForceCompute();
 	export_HarmonicImproperForceCompute();
 	export_CGCMMAngleForceCompute();
+    export_TablePotential();
 	export_FENEBondForceCompute();
 	export_LJForceCompute();
 	//export_YukawaForceCompute();	
@@ -376,6 +379,7 @@ BOOST_PYTHON_MODULE(hoomd)
 	export_LJForceComputeGPU();
 //	export_YukawaForceComputeGPU();
 	export_CGCMMForceComputeGPU();
+    export_TablePotentialGPU();
 	export_GaussianForceGPU();
 	export_HarmonicBondForceComputeGPU();
 	export_HarmonicAngleForceComputeGPU();
