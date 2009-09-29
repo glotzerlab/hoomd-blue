@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -86,27 +87,27 @@ _options = {};
 # .... setup and run simulation
 # \endcode
 def reset():
-	if globals.system_definition == None:
-		print "\n***Warning! Trying to reset an uninitialized system";
-		return;
+    if globals.system_definition == None:
+        print "\n***Warning! Trying to reset an uninitialized system";
+        return;
 
-	# perform some reference counting magic to verify that the user has cleared all saved variables
-	sysdef = globals.system_definition;
-	globals._clear();
-	
-	gc.collect();
-	count = sys.getrefcount(sysdef)
+    # perform some reference counting magic to verify that the user has cleared all saved variables
+    sysdef = globals.system_definition;
+    globals._clear();
+    
+    gc.collect();
+    count = sys.getrefcount(sysdef)
 
-	# note: the check should be against 2, getrefcount counts the temporary reference 
-	# passed to it in the argument
-	expected_count = 2
-	if count != expected_count:
-		print "\n***Warning! Not all saved variables were cleared before calling reset()";
-		print count-expected_count, "references to the particle data still exist somewhere\n"
-		raise RuntimeError('Error resetting');
+    # note: the check should be against 2, getrefcount counts the temporary reference 
+    # passed to it in the argument
+    expected_count = 2
+    if count != expected_count:
+        print "\n***Warning! Not all saved variables were cleared before calling reset()";
+        print count-expected_count, "references to the particle data still exist somewhere\n"
+        raise RuntimeError('Error resetting');
 
-	del sysdef
-	gc.collect();
+    del sysdef
+    gc.collect();
 
 ## Reads initial system state from an XML file
 #
@@ -130,29 +131,29 @@ def reset():
 # step of the simulation instead of the one read from the XML file.
 #
 def read_xml(filename, time_step = None):
-	util.print_status_line();
-	
-	# parse command line
-	_parse_command_line();
+    util.print_status_line();
+    
+    # parse command line
+    _parse_command_line();
 
-	# check if initialization has already occurred
-	if (globals.system_definition != None):
-		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
-		raise RuntimeError('Error initializing');
+    # check if initialization has already occurred
+    if (globals.system_definition != None):
+        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        raise RuntimeError('Error initializing');
 
-	# read in the data
-	initializer = hoomd.HOOMDInitializer(filename);
-	globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
-	
-	# initialize the system
-	if time_step == None:
-		globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
-	else:
-		initializer.setTimeStep(time_step)
-		globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
-	
-	_perform_common_init_tasks();
-	return globals.system_definition;
+    # read in the data
+    initializer = hoomd.HOOMDInitializer(filename);
+    globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
+    
+    # initialize the system
+    if time_step == None:
+        globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
+    else:
+        initializer.setTimeStep(time_step)
+        globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
+    
+    _perform_common_init_tasks();
+    return globals.system_definition;
 
 
 ## Generates N randomly positioned particles of the same type
@@ -176,50 +177,50 @@ def read_xml(filename, time_step = None):
 # All particles are created with the same type, given by \a name.
 #
 def create_random(N, phi_p, name="A", min_dist=0.7):
-	util.print_status_line();
-	
-	# parse command line
-	_parse_command_line();
-	my_exec_conf = _create_exec_conf();
-	
-	# check if initialization has already occurred
-	if (globals.system_definition != None):
-		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
-		raise RuntimeError('Error initializing');
+    util.print_status_line();
+    
+    # parse command line
+    _parse_command_line();
+    my_exec_conf = _create_exec_conf();
+    
+    # check if initialization has already occurred
+    if (globals.system_definition != None):
+        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        raise RuntimeError('Error initializing');
 
-	# abuse the polymer generator to generate single particles
-	
-	# calculat the box size
-	L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
-	box = hoomd.BoxDim(L);
-	
-	# create the generator
-	generator = hoomd.RandomGenerator(box, 12345);
-	
-	# build type list
-	type_vector = hoomd.std_vector_string();
-	type_vector.append(name);
-	
-	# empty bond lists for single particles
-	bond_ab = hoomd.std_vector_uint();
-	bond_type = hoomd.std_vector_string();
-		
-	# create the generator
-	generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
-	
-	# set the separation radius
-	generator.setSeparationRadius(name, min_dist/2.0);
-		
-	# generate the particles
-	generator.generate();
-	
-	globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
-	
-	# initialize the system
-	globals.system = hoomd.System(globals.system_definition, 0);
-	
-	_perform_common_init_tasks();
-	return globals.system_definition;
+    # abuse the polymer generator to generate single particles
+    
+    # calculat the box size
+    L = math.pow(math.pi/6.0*N / phi_p, 1.0/3.0);
+    box = hoomd.BoxDim(L);
+    
+    # create the generator
+    generator = hoomd.RandomGenerator(box, 12345);
+    
+    # build type list
+    type_vector = hoomd.std_vector_string();
+    type_vector.append(name);
+    
+    # empty bond lists for single particles
+    bond_ab = hoomd.std_vector_uint();
+    bond_type = hoomd.std_vector_string();
+        
+    # create the generator
+    generator.addGenerator(int(N), hoomd.PolymerParticleGenerator(1.0, type_vector, bond_ab, bond_ab, bond_type, 100));
+    
+    # set the separation radius
+    generator.setSeparationRadius(name, min_dist/2.0);
+        
+    # generate the particles
+    generator.generate();
+    
+    globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
+    
+    # initialize the system
+    globals.system = hoomd.System(globals.system_definition, 0);
+    
+    _perform_common_init_tasks();
+    return globals.system_definition;
 
 
 ## Generates any number of randomly positioned polymers of configurable types
@@ -317,123 +318,123 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # attempts to be as general as possible, but unfortunately cannot work in every possible case.
 #
 def create_random_polymers(box, polymers, separation, seed=1):
-	util.print_status_line();
-	
-	# parse command line
-	_parse_command_line();
-	my_exec_conf = _create_exec_conf();
-		
-	# check if initialization has already occured
-	if (globals.system_definition != None):
-		print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
-		raise RuntimeError("Error creating random polymers");
-	
-	if type(polymers) != type([]) or len(polymers) == 0:
-		print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
-		raise RuntimeError("Error creating random polymers");
-	 
-	if type(separation) != type(dict()) or len(separation) == 0:
-		print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
-		raise RuntimeError("Error creating random polymers");
-	
-	# create the generator
-	generator = hoomd.RandomGenerator(box, seed);
-	
-	# make a list of types used for an eventual check vs the types in separation for completeness
-	types_used = [];
-	
-	# track the minimum bond length
-	min_bond_len = None;
-	
-	# build the polymer generators
-	for poly in polymers:
-		type_list = [];
-		# check that all fields are specified
-		if not 'bond_len' in poly:
-			print >> sys.stderr, '\n***Error! Polymer specification missing bond_len\n';
-			raise RuntimeError("Error creating random polymers");
-		
-		if min_bond_len == None:
-			min_bond_len = poly['bond_len'];
-		else:
-			min_bond_len = min(min_bond_len, poly['bond_len']);
-		
-		if not 'type' in poly:
-			print >> sys.stderr, '\n***Error! Polymer specification missing type\n';
-			raise RuntimeError("Error creating random polymers");
-		if not 'count' in poly:	
-			print >> sys.stderr, '\n***Error! Polymer specification missing count\n';
-			raise RuntimeError("Error creating random polymers");
-		if not 'bond' in poly:	
-			print >> sys.stderr, '\n***Error! Polymer specification missing bond\n';
-			raise RuntimeError("Error creating random polymers");
-				
-		# build type list
-		type_vector = hoomd.std_vector_string();
-		for t in poly['type']:
-			type_vector.append(t);
-			if not t in types_used:
-				types_used.append(t);
-		
-		# build bond list
-		bond_a = hoomd.std_vector_uint();
-		bond_b = hoomd.std_vector_uint();
-		bond_name = hoomd.std_vector_string();
-		
-		# if the bond setting is 'linear' create a default set of bonds
-		if poly['bond'] == 'linear':
-			for i in xrange(0,len(poly['type'])-1):
-				bond_a.push_back(i);
-				bond_b.push_back(i+1);
-				bond_name.append('polymer')
-		#if it is a list, parse the user custom bonds		
-		elif type(poly['bond']) == type([]):
-			for t in poly['bond']:
-				# a 2-tuple gets the default 'polymer' name for the bond
-				if len(t) == 2:
-					a,b = t;
-					name = 'polymer';
-				# and a 3-tuple specifies the name directly
-				elif len(t) == 3:
-					a,b,name = t;
-				else:
-					print >> sys.stderr, '\n***Error! Custom bond', t, 'must have either two or three elements\n';
-					raise RuntimeError("Error creating random polymers");
-									
-				bond_a.push_back(a);
-				bond_b.push_back(b);
-				bond_name.append(name);
-		else:
-			print >> sys.stderr, '\n***Error! Unexpected argument value for polymer bond\n';
-			raise RuntimeError("Error creating random polymers");
-		
-		# create the generator
-		generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100));
-		
-		
-	# check that all used types are in the separation list
-	for t in types_used:
-		if not t in separation:
-			print >> sys.stderr, "\n***Error! No separation radius specified for type ", t, "\n";
-			raise RuntimeError("Error creating random polymers");
-			
-	# set the separation radii, checking that it is within the minimum bond length
-	for t,r in separation.items():
-		generator.setSeparationRadius(t, r);
-		if 2*r >= min_bond_len:
-			print >> sys.stderr, "\n***Error! Separation radius", r, "is too big for the minimum bond length of", min_bond_len, "specified\n";
-			raise RuntimeError("Error creating random polymers");
-		
-	# generate the particles
-	generator.generate();
-	
-	globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
-	
-	# initialize the system
-	globals.system = hoomd.System(globals.system_definition, 0);
-	
-	_perform_common_init_tasks();
-	return globals.system_definition;
+    util.print_status_line();
+    
+    # parse command line
+    _parse_command_line();
+    my_exec_conf = _create_exec_conf();
+        
+    # check if initialization has already occured
+    if (globals.system_definition != None):
+        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        raise RuntimeError("Error creating random polymers");
+    
+    if type(polymers) != type([]) or len(polymers) == 0:
+        print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
+        raise RuntimeError("Error creating random polymers");
+    
+    if type(separation) != type(dict()) or len(separation) == 0:
+        print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
+        raise RuntimeError("Error creating random polymers");
+    
+    # create the generator
+    generator = hoomd.RandomGenerator(box, seed);
+    
+    # make a list of types used for an eventual check vs the types in separation for completeness
+    types_used = [];
+    
+    # track the minimum bond length
+    min_bond_len = None;
+    
+    # build the polymer generators
+    for poly in polymers:
+        type_list = [];
+        # check that all fields are specified
+        if not 'bond_len' in poly:
+            print >> sys.stderr, '\n***Error! Polymer specification missing bond_len\n';
+            raise RuntimeError("Error creating random polymers");
+        
+        if min_bond_len == None:
+            min_bond_len = poly['bond_len'];
+        else:
+            min_bond_len = min(min_bond_len, poly['bond_len']);
+        
+        if not 'type' in poly:
+            print >> sys.stderr, '\n***Error! Polymer specification missing type\n';
+            raise RuntimeError("Error creating random polymers");
+        if not 'count' in poly:	
+            print >> sys.stderr, '\n***Error! Polymer specification missing count\n';
+            raise RuntimeError("Error creating random polymers");
+        if not 'bond' in poly:	
+            print >> sys.stderr, '\n***Error! Polymer specification missing bond\n';
+            raise RuntimeError("Error creating random polymers");
+                
+        # build type list
+        type_vector = hoomd.std_vector_string();
+        for t in poly['type']:
+            type_vector.append(t);
+            if not t in types_used:
+                types_used.append(t);
+        
+        # build bond list
+        bond_a = hoomd.std_vector_uint();
+        bond_b = hoomd.std_vector_uint();
+        bond_name = hoomd.std_vector_string();
+        
+        # if the bond setting is 'linear' create a default set of bonds
+        if poly['bond'] == 'linear':
+            for i in xrange(0,len(poly['type'])-1):
+                bond_a.push_back(i);
+                bond_b.push_back(i+1);
+                bond_name.append('polymer')
+        #if it is a list, parse the user custom bonds		
+        elif type(poly['bond']) == type([]):
+            for t in poly['bond']:
+                # a 2-tuple gets the default 'polymer' name for the bond
+                if len(t) == 2:
+                    a,b = t;
+                    name = 'polymer';
+                # and a 3-tuple specifies the name directly
+                elif len(t) == 3:
+                    a,b,name = t;
+                else:
+                    print >> sys.stderr, '\n***Error! Custom bond', t, 'must have either two or three elements\n';
+                    raise RuntimeError("Error creating random polymers");
+                                    
+                bond_a.push_back(a);
+                bond_b.push_back(b);
+                bond_name.append(name);
+        else:
+            print >> sys.stderr, '\n***Error! Unexpected argument value for polymer bond\n';
+            raise RuntimeError("Error creating random polymers");
+        
+        # create the generator
+        generator.addGenerator(int(poly['count']), hoomd.PolymerParticleGenerator(poly['bond_len'], type_vector, bond_a, bond_b, bond_name, 100));
+        
+        
+    # check that all used types are in the separation list
+    for t in types_used:
+        if not t in separation:
+            print >> sys.stderr, "\n***Error! No separation radius specified for type ", t, "\n";
+            raise RuntimeError("Error creating random polymers");
+            
+    # set the separation radii, checking that it is within the minimum bond length
+    for t,r in separation.items():
+        generator.setSeparationRadius(t, r);
+        if 2*r >= min_bond_len:
+            print >> sys.stderr, "\n***Error! Separation radius", r, "is too big for the minimum bond length of", min_bond_len, "specified\n";
+            raise RuntimeError("Error creating random polymers");
+        
+    # generate the particles
+    generator.generate();
+    
+    globals.system_definition = hoomd.SystemDefinition(generator, my_exec_conf);
+    
+    # initialize the system
+    globals.system = hoomd.System(globals.system_definition, 0);
+    
+    _perform_common_init_tasks();
+    return globals.system_definition;
 
 ## Performs common initialization tasks
 #
@@ -444,79 +445,79 @@ def create_random_polymers(box, polymers, separation, seed=1):
 #
 # Currently only creates the sorter
 def _perform_common_init_tasks():
-	# create the sorter, using the evil import __main__ trick to provide the user with a default variable
-	import __main__;
-	__main__.sorter = update.sort();
+    # create the sorter, using the evil import __main__ trick to provide the user with a default variable
+    import __main__;
+    __main__.sorter = update.sort();
 
 ## Parses command line options
 #
 # \internal
 # Parses all hoomd_script command line options into the module variable _options
 def _parse_command_line():
-	global _options;
-	
-	parser = OptionParser();
-	parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
-	parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
-	parser.add_option("--ngpu", dest="ngpu", help="Number of GPUs to execute on (requires that CUDA 2.2 compute-exclusive mode be enabled on all GPUs)");
-	parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
-	parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
-	parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
-	
-	(_options, args) = parser.parse_args();
-	
-	# chedk for valid mode setting
-	if _options.mode:
-		if not (_options.mode == "cpu" or _options.mode == "gpu"):
-			parser.error("--mode must be either cpu or gpu");
-	
-	# check for sane options
-	if _options.mode == "cpu" and (_options.gpu or _options.ngpu):
-		parser.error("It doesn't make sense to specify --mode=cpu and a value for --gpu")
+    global _options;
+    
+    parser = OptionParser();
+    parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
+    parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
+    parser.add_option("--ngpu", dest="ngpu", help="Number of GPUs to execute on (requires that CUDA 2.2 compute-exclusive mode be enabled on all GPUs)");
+    parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
+    parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
+    parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
+    
+    (_options, args) = parser.parse_args();
+    
+    # chedk for valid mode setting
+    if _options.mode:
+        if not (_options.mode == "cpu" or _options.mode == "gpu"):
+            parser.error("--mode must be either cpu or gpu");
+    
+    # check for sane options
+    if _options.mode == "cpu" and (_options.gpu or _options.ngpu):
+        parser.error("It doesn't make sense to specify --mode=cpu and a value for --gpu")
 
-	# set the mode to gpu if the gpu # was set
-	if (_options.gpu and not _options.mode) or (_options.ngpu and not _options.mode):
-		_options.mode = "gpu"
-		
-	if _options.gpu and _options.ngpu:
-		parser.error("--gpu and --ngpu are mutually exclusive options")
-		
-	# if gpu_error_checking is set, enable it on the GPU
-	if _options.gpu_error_checking:
-		hoomd.set_gpu_error_checking(True);
-	
+    # set the mode to gpu if the gpu # was set
+    if (_options.gpu and not _options.mode) or (_options.ngpu and not _options.mode):
+        _options.mode = "gpu"
+        
+    if _options.gpu and _options.ngpu:
+        parser.error("--gpu and --ngpu are mutually exclusive options")
+        
+    # if gpu_error_checking is set, enable it on the GPU
+    if _options.gpu_error_checking:
+        hoomd.set_gpu_error_checking(True);
+    
 ## Initializes the execution configuration
 #
 # \internal
 # Given an initializer, create a particle data with a properly configured ExecutionConfiguration
 def _create_exec_conf():
-	global _options;
-	
-	# if no command line options were specified, create a default ExecutionConfiguration
-	if not _options.mode:
-		exec_conf = hoomd.ExecutionConfiguration(_options.min_cpu, _options.ignore_display);
-	else:
-		# create a list of GPUs to execute on
-		gpu_ids = hoomd.std_vector_int();
-		if _options.gpu:
-			# parse the list of gpus
-			string_gpu_list = _options.gpu.split(",")
-			for gpu in string_gpu_list:
-				gpu_ids.append(int(gpu));
-		elif _options.ngpu:
-			for i in xrange(0, int(_options.ngpu)):
-				gpu_ids.append(-1);
-		else:
-			# otherwise, assume the default GPU
-			gpu_ids.append(-1);
-		
-		# create the specified configuration
-		if _options.mode == "cpu":
-			exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, _options.min_cpu, _options.ignore_display);
-		elif _options.mode == "gpu":
-			exec_conf = hoomd.ExecutionConfiguration(gpu_ids, _options.min_cpu, _options.ignore_display);
-		else:
-			raise RuntimeError("Error initializing");
-		
-	return exec_conf;
-		
+    global _options;
+    
+    # if no command line options were specified, create a default ExecutionConfiguration
+    if not _options.mode:
+        exec_conf = hoomd.ExecutionConfiguration(_options.min_cpu, _options.ignore_display);
+    else:
+        # create a list of GPUs to execute on
+        gpu_ids = hoomd.std_vector_int();
+        if _options.gpu:
+            # parse the list of gpus
+            string_gpu_list = _options.gpu.split(",")
+            for gpu in string_gpu_list:
+                gpu_ids.append(int(gpu));
+        elif _options.ngpu:
+            for i in xrange(0, int(_options.ngpu)):
+                gpu_ids.append(-1);
+        else:
+            # otherwise, assume the default GPU
+            gpu_ids.append(-1);
+        
+        # create the specified configuration
+        if _options.mode == "cpu":
+            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, _options.min_cpu, _options.ignore_display);
+        elif _options.mode == "gpu":
+            exec_conf = hoomd.ExecutionConfiguration(gpu_ids, _options.min_cpu, _options.ignore_display);
+        else:
+            raise RuntimeError("Error initializing");
+        
+    return exec_conf;
+        

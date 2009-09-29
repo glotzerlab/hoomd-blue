@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -72,15 +73,15 @@ loggers = [];
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def _clear():
-	global system_definition, system, forces, integrator, neighbor_list, loggers;
-	
-	system_definition = None;
-	system = None;
-	forces = [];
-	integrator = None;
-	neighbor_list = None;
-	loggers = [];
-	
-	import __main__;
-	__main__.sorter = None;
-	__main__.nlist = None;
+    global system_definition, system, forces, integrator, neighbor_list, loggers;
+    
+    system_definition = None;
+    system = None;
+    forces = [];
+    integrator = None;
+    neighbor_list = None;
+    loggers = [];
+    
+    import __main__;
+    __main__.sorter = None;
+    __main__.nlist = None;

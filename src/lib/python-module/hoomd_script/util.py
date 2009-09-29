@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -51,27 +52,27 @@ _disable_status_lines = False;
 
 ## Prints a status line tracking the execution of the current hoomd script
 def print_status_line():
-	if _disable_status_lines:
-		return;
-	
-	# get the traceback info first
-	stack = traceback.extract_stack();
-	if len(stack) < 3:
-		print "hoomd_script executing unknown command";
-	file_name, line, module, code = stack[-3];
-	
-	# if we are in interactive mode, there is no need to print anything: the
-	# interpreter loop does it for us. We can make that check by testing if
-	# sys.ps1 is defined (this is not a hack, the python documentation states 
-	# that ps1 is _only_ defined in interactive mode
-	if 'ps1' in sys.__dict__:
-		return
+    if _disable_status_lines:
+        return;
+    
+    # get the traceback info first
+    stack = traceback.extract_stack();
+    if len(stack) < 3:
+        print "hoomd_script executing unknown command";
+    file_name, line, module, code = stack[-3];
+    
+    # if we are in interactive mode, there is no need to print anything: the
+    # interpreter loop does it for us. We can make that check by testing if
+    # sys.ps1 is defined (this is not a hack, the python documentation states 
+    # that ps1 is _only_ defined in interactive mode
+    if 'ps1' in sys.__dict__:
+        return
 
-	# piped input from stdin doesn't provide a code line, handle the situation 
-	# gracefully
-	if not code:
-		code = "<unknown code>";
-	
-	# build and print the message line
-	message = file_name + ":" + str(line).zfill(3) + "  |  " + code;
-	print message;
+    # piped input from stdin doesn't provide a code line, handle the situation 
+    # gracefully
+    if not code:
+        code = "<unknown code>";
+    
+    # build and print the message line
+    message = file_name + ":" + str(line).zfill(3) + "  |  " + code;
+    print message;

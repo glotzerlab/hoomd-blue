@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -109,154 +110,154 @@ import util;
 # System 2) methods are provided for disabling the analyzer and changing the 
 # period which the system calls it
 class _analyzer:
-	## \internal
-	# \brief Constructs the analyzer
-	#
-	# Initializes the cpp_analyzer to None.
-	# Assigns a name to the analyzer in analyzer_name;
-	def __init__(self):
-		# check if initialization has occurred
-		if globals.system == None:
-			print >> sys.stderr, "\n***Error! Cannot create analyzer before initialization\n";
-			raise RuntimeError('Error creating analyzer');
-		
-		self.cpp_analyzer = None;
+    ## \internal
+    # \brief Constructs the analyzer
+    #
+    # Initializes the cpp_analyzer to None.
+    # Assigns a name to the analyzer in analyzer_name;
+    def __init__(self):
+        # check if initialization has occurred
+        if globals.system == None:
+            print >> sys.stderr, "\n***Error! Cannot create analyzer before initialization\n";
+            raise RuntimeError('Error creating analyzer');
+        
+        self.cpp_analyzer = None;
 
-		# increment the id counter
-		id = _analyzer.cur_id;
-		_analyzer.cur_id += 1;
-		
-		self.analyzer_name = "analyzer%d" % (id);
-		self.enabled = True;
+        # increment the id counter
+        id = _analyzer.cur_id;
+        _analyzer.cur_id += 1;
+        
+        self.analyzer_name = "analyzer%d" % (id);
+        self.enabled = True;
 
-	## \internal
-	# \brief Helper function to setup analyzer period
-	#
-	# \param period An integer or callable function period
-	#
-	# If an integer is specified, then that is set as the period for the analyzer.
-	# If a callable is passed in as a period, then a default period of 1000 is set 
-	# to the integer period and the variable period is enabled
-	#
-	def setupAnalyzer(self, period):
-		if type(period) == type(1):
-			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
-		elif type(period) == type(lambda n: n*2):
-			globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
-			globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
-		else:
-			print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
-			raise RuntimeError('Error creating analyzer');
-			
-	## \var enabled
-	# \internal
-	# \brief True if the analyzer is enabled
+    ## \internal
+    # \brief Helper function to setup analyzer period
+    #
+    # \param period An integer or callable function period
+    #
+    # If an integer is specified, then that is set as the period for the analyzer.
+    # If a callable is passed in as a period, then a default period of 1000 is set 
+    # to the integer period and the variable period is enabled
+    #
+    def setupAnalyzer(self, period):
+        if type(period) == type(1):
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
+        elif type(period) == type(lambda n: n*2):
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
+            globals.system.setAnalyzerPeriodVariable(self.analyzer_name, period);
+        else:
+            print >> sys.stderr, "\n***Error! I don't know what to do with a period of type", type(period), "expecting an int or a function\n";
+            raise RuntimeError('Error creating analyzer');
+            
+    ## \var enabled
+    # \internal
+    # \brief True if the analyzer is enabled
 
-	## \var cpp_analyzer
-	# \internal
-	# \brief Stores the C++ side Analyzer managed by this class
-	
-	## \var analyzer_name
-	# \internal
-	# \brief The Analyzer's name as it is assigned to the System
+    ## \var cpp_analyzer
+    # \internal
+    # \brief Stores the C++ side Analyzer managed by this class
+    
+    ## \var analyzer_name
+    # \internal
+    # \brief The Analyzer's name as it is assigned to the System
 
-	## \var prev_period
-	# \internal
-	# \brief Saved period retrieved when an analyzer is disabled: used to set the period when re-enabled
+    ## \var prev_period
+    # \internal
+    # \brief Saved period retrieved when an analyzer is disabled: used to set the period when re-enabled
 
-	## Disables the analyzer
-	#
-	# \b Examples:
-	# \code
-	# analyzer.disable()
-	# \endcode
-	#
-	# Executing the disable command will remove the analyzer from the system.
-	# Any run() command executed after disabling an analyzer will not use that 
-	# analyzer during the simulation. A disabled analyzer can be re-enabled
-	# with enable()
-	#
-	# To use this command, you must have saved the analyzer in a variable, as 
-	# shown in this example:
-	# \code
-	# analyzer = analyzer.some_analyzer()
-	# # ... later in the script
-	# analyzer.disable()
-	# \endcode
-	def disable(self):
-		util.print_status_line();
-		
-		# check that we have been initialized properly
-		if self.cpp_analyzer == None:
-			print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
-			raise RuntimeError('Error disabling analyzer');
-			
-		# check if we are already disabled
-		if not self.enabled:
-			print "***Warning! Ignoring command to disable an analyzer that is already disabled";
-			return;
-		
-		self.prev_period = globals.system.getAnalyzerPeriod(self.analyzer_name);
-		globals.system.removeAnalyzer(self.analyzer_name);
-		self.enabled = False;
+    ## Disables the analyzer
+    #
+    # \b Examples:
+    # \code
+    # analyzer.disable()
+    # \endcode
+    #
+    # Executing the disable command will remove the analyzer from the system.
+    # Any run() command executed after disabling an analyzer will not use that 
+    # analyzer during the simulation. A disabled analyzer can be re-enabled
+    # with enable()
+    #
+    # To use this command, you must have saved the analyzer in a variable, as 
+    # shown in this example:
+    # \code
+    # analyzer = analyzer.some_analyzer()
+    # # ... later in the script
+    # analyzer.disable()
+    # \endcode
+    def disable(self):
+        util.print_status_line();
+        
+        # check that we have been initialized properly
+        if self.cpp_analyzer == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
+            raise RuntimeError('Error disabling analyzer');
+            
+        # check if we are already disabled
+        if not self.enabled:
+            print "***Warning! Ignoring command to disable an analyzer that is already disabled";
+            return;
+        
+        self.prev_period = globals.system.getAnalyzerPeriod(self.analyzer_name);
+        globals.system.removeAnalyzer(self.analyzer_name);
+        self.enabled = False;
 
-	## Enables the analyzer
-	#
-	# \b Examples:
-	# \code
-	# analyzer.enable()
-	# \endcode
-	#
-	# See disable() for a detailed description.
-	def enable(self):
-		util.print_status_line();
-		
-		# check that we have been initialized properly
-		if self.cpp_analyzer == None:
-			print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
-			raise RuntimeError('Error disabling analyzer');
-			
-		# check if we are already disabled
-		if self.enabled:
-			print "***Warning! Ignoring command to enable an analyzer that is already enabled";
-			return;
-			
-		globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period);
-		self.enabled = True;
-		
-	## Changes the period between analyzer executions
-	#
-	# \param period New period to set
-	#
-	# \b Examples:
-	# \code
-	# analyzer.set_period(100)
-	# analyzer.set_period(1)
-	# \endcode
-	#
-	# While the simulation is \ref run() "running", the action of each analyzer
-	# is executed every \a period time steps.
-	#
-	# To use this command, you must have saved the analyzer in a variable, as 
-	# shown in this example:
-	# \code
-	# analyzer = analyze.some_analyzer()
-	# # ... later in the script
-	# analyzer.set_period(10)
-	# \endcode
-	def set_period(self, period):
-		util.print_status_line();
-		
-		if type(period) == type(1):
-			if self.enabled:
-				globals.system.setAnalyzerPeriod(self.analyzer_name, period);
-			else:
-				self.prev_period = period;
-		elif type(period) == type(lambda n: n*2):
-			print "***Warning! A period cannot be changed to a variable one";
-		else:
-			print "***Warning! I don't know what to do with a period of type", type(period), "expecting an int or a function";
-		
+    ## Enables the analyzer
+    #
+    # \b Examples:
+    # \code
+    # analyzer.enable()
+    # \endcode
+    #
+    # See disable() for a detailed description.
+    def enable(self):
+        util.print_status_line();
+        
+        # check that we have been initialized properly
+        if self.cpp_analyzer == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
+            raise RuntimeError('Error disabling analyzer');
+            
+        # check if we are already disabled
+        if self.enabled:
+            print "***Warning! Ignoring command to enable an analyzer that is already enabled";
+            return;
+            
+        globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period);
+        self.enabled = True;
+        
+    ## Changes the period between analyzer executions
+    #
+    # \param period New period to set
+    #
+    # \b Examples:
+    # \code
+    # analyzer.set_period(100)
+    # analyzer.set_period(1)
+    # \endcode
+    #
+    # While the simulation is \ref run() "running", the action of each analyzer
+    # is executed every \a period time steps.
+    #
+    # To use this command, you must have saved the analyzer in a variable, as 
+    # shown in this example:
+    # \code
+    # analyzer = analyze.some_analyzer()
+    # # ... later in the script
+    # analyzer.set_period(10)
+    # \endcode
+    def set_period(self, period):
+        util.print_status_line();
+        
+        if type(period) == type(1):
+            if self.enabled:
+                globals.system.setAnalyzerPeriod(self.analyzer_name, period);
+            else:
+                self.prev_period = period;
+        elif type(period) == type(lambda n: n*2):
+            print "***Warning! A period cannot be changed to a variable one";
+        else:
+            print "***Warning! I don't know what to do with a period of type", type(period), "expecting an int or a function";
+        
 # set default counter
 _analyzer.cur_id = 0;
 
@@ -276,27 +277,27 @@ _analyzer.cur_id = 0;
 #
 # \sa \ref page_example_scripts
 class imd(_analyzer):
-	## Initialize the IMD interface
-	#
-	# \param port TCP/IP port to listen on
-	# \param period Number of time steps between file dumps
-	# 
-	# \b Examples:
-	# \code
-	# analyze.imd(port=54321, period=100)
-	# imd = analyze.imd(port=12345, period=1000)
-	# \endcode
-	#
-	# \a period can be a function: see \ref variable_period_docs for details
-	def __init__(self, port, period):
-		util.print_status_line();
-		
-		# initialize base class
-		_analyzer.__init__(self);
-		
-		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port);
-		self.setupAnalyzer(period);
+    ## Initialize the IMD interface
+    #
+    # \param port TCP/IP port to listen on
+    # \param period Number of time steps between file dumps
+    # 
+    # \b Examples:
+    # \code
+    # analyze.imd(port=54321, period=100)
+    # imd = analyze.imd(port=12345, period=1000)
+    # \endcode
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    def __init__(self, port, period):
+        util.print_status_line();
+        
+        # initialize base class
+        _analyzer.__init__(self);
+        
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port);
+        self.setupAnalyzer(period);
 
 
 ## Logs a number of calculated quanties to a file
@@ -330,125 +331,125 @@ class imd(_analyzer):
 # - \b nvt_eta (integrate.nvt) - \f$ \eta \f$ value in the NVT integrator
 #
 class log(_analyzer):
-	## Initialize the log
-	#
-	# \param filename File to write the log to
-	# \param quantities List of quantities to log
-	# \param period Quantities are logged every \a period time steps
-	# \param header_prefix (optional) Specify a string to print before the header
-	# \param overwrite When False (the default) an existing log will be appended to. 
-	#                  If True, an existing log file will be overwritten instead.
-	#
-	# \b Examples:
-	# \code
-	# logger = analyze.log(filename='mylog.log', period=100,
-	#                      quantities=['pair_lj_energy'])
-	#
-	# analyze.log(quantities=['pair_lj_energy', 'bond_harmonic_energy', 
-	#             'kinetic_energy'], period=1000, filename='full.log')
-	#
-	# analyze.log(filename='mylog.log', quantities=['pair_lj_energy'], 
-	#             period=100, header_prefix='#')
-	#
-	# analyze.log(filename='mylog.log', quantities=['bond_harmonic_energy'], 
-	#             period=10, header_prefix='Log of harmonic energy, run 5\n')
-	# logger = analyze.log(filename='mylog.log', period=100,
-	#                      quantities=['pair_lj_energy'], overwrite=True)	
-	# \endcode
-	#
-	# By default, columns in the log file are separated by tabs, suitable for importing as a 
-	# tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
-	# 
-	# The \a header_prefix can be used in a number of ways. It specifies a simple string that
-	# will be printed before the header line of the output file. One handy way to use this
-	# is to specify header_prefix='#' so that \c gnuplot will ignore the header line
-	# automatically. Another use-case would be to specify a descriptive line containing
-	# details of the current run. Examples of each of these cases are given above.
-	#
-	# \warning When an existing log is appended to, the header is not printed. For the log to 
-	# remain consistent with the header already in the file, you must specify the same quantities
-	# to log and in the same order for all runs of hoomd that append to the same log.
-	#
-	# \a period can be a function: see \ref variable_period_docs for details
-	def __init__(self, filename, quantities, period, header_prefix='', overwrite=False):
-		util.print_status_line();
-		
-		# initialize base class
-		_analyzer.__init__(self);
-		
-		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.Logger(globals.system_definition, filename, header_prefix, overwrite);
-		self.setupAnalyzer(period);
-		
-		# set the logged quantities
-		quantity_list = hoomd.std_vector_string();
-		for item in quantities:
-			quantity_list.append(item);
-		self.cpp_analyzer.setLoggedQuantities(quantity_list);
-		
-		# add the logger to the list of loggers
-		globals.loggers.append(self);
-	
-	## Change the parameters of the log
-	#
-	# \param quantities New list of quantities to log (if specified)
-	# \param delimiter New delimiter between columns in the output file (if specified)
-	#
-	# Using set_params() requires that the specified logger was saved in a variable when created.
-	# i.e. 
-	# \code
-	# logger = analyze.log(quantities=['pair_lj_energy', 
-	#                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
-	#                      period=1000, filename="'full.log')
-	# \endcode
-	#
-	# \b Examples:
-	# \code
-	# logger.set_params(quantities=['bond_harmonic_energy'])
-	# logger.set_params(delimiter=',');
-	# logger.set_params(quantities=['bond_harmonic_energy'], delimiter=',');
-	# \endcode
-	def set_params(self, quantities=None, delimiter=None):
-		util.print_status_line();
-		
-		if quantities != None:
-			# set the logged quantities
-			quantity_list = hoomd.std_vector_string();
-			for item in quantities:
-				quantity_list.append(item);
-			self.cpp_analyzer.setLoggedQuantities(quantity_list);
-			
-		if delimiter:
-			self.cpp_analyzer.setDelimiter(delimiter);
-		
-	## Retrieve a cached value of a monitored quantity from the last update of the logger.
-	# \param quantity Name of the quantity to return.
-	# Using query() requires that the specified logger was saved in a variable when created.
-	# i.e. 
-	# \code
-	# logger = analyze.log(quantities=['pair_lj_energy', 
-	#                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
-	#                      period=1000, filename="'full.log')
-	# \endcode
-	#
-	# \b Examples:
-	# \code
-	# logdata = logger.query('timestep')
-	# \endcode
-	def query(self, quantity):
-		util.print_status_line();
-		
-		# retrieve data from internal cache.
-		return self.cpp_analyzer.getCachedQuantity(quantity);
-		
-	## \internal
-	# \brief Re-registers all computes and updaters with the logger
-	def update_quantities(self):
-		# remove all registered quantities
-		self.cpp_analyzer.removeAll();
-		
-		# re-register all computes and updatesr
-		globals.system.registerLogger(self.cpp_analyzer);
+    ## Initialize the log
+    #
+    # \param filename File to write the log to
+    # \param quantities List of quantities to log
+    # \param period Quantities are logged every \a period time steps
+    # \param header_prefix (optional) Specify a string to print before the header
+    # \param overwrite When False (the default) an existing log will be appended to. 
+    #                  If True, an existing log file will be overwritten instead.
+    #
+    # \b Examples:
+    # \code
+    # logger = analyze.log(filename='mylog.log', period=100,
+    #                      quantities=['pair_lj_energy'])
+    #
+    # analyze.log(quantities=['pair_lj_energy', 'bond_harmonic_energy', 
+    #             'kinetic_energy'], period=1000, filename='full.log')
+    #
+    # analyze.log(filename='mylog.log', quantities=['pair_lj_energy'], 
+    #             period=100, header_prefix='#')
+    #
+    # analyze.log(filename='mylog.log', quantities=['bond_harmonic_energy'], 
+    #             period=10, header_prefix='Log of harmonic energy, run 5\n')
+    # logger = analyze.log(filename='mylog.log', period=100,
+    #                      quantities=['pair_lj_energy'], overwrite=True)	
+    # \endcode
+    #
+    # By default, columns in the log file are separated by tabs, suitable for importing as a 
+    # tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
+    # 
+    # The \a header_prefix can be used in a number of ways. It specifies a simple string that
+    # will be printed before the header line of the output file. One handy way to use this
+    # is to specify header_prefix='#' so that \c gnuplot will ignore the header line
+    # automatically. Another use-case would be to specify a descriptive line containing
+    # details of the current run. Examples of each of these cases are given above.
+    #
+    # \warning When an existing log is appended to, the header is not printed. For the log to 
+    # remain consistent with the header already in the file, you must specify the same quantities
+    # to log and in the same order for all runs of hoomd that append to the same log.
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    def __init__(self, filename, quantities, period, header_prefix='', overwrite=False):
+        util.print_status_line();
+        
+        # initialize base class
+        _analyzer.__init__(self);
+        
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.Logger(globals.system_definition, filename, header_prefix, overwrite);
+        self.setupAnalyzer(period);
+        
+        # set the logged quantities
+        quantity_list = hoomd.std_vector_string();
+        for item in quantities:
+            quantity_list.append(item);
+        self.cpp_analyzer.setLoggedQuantities(quantity_list);
+        
+        # add the logger to the list of loggers
+        globals.loggers.append(self);
+    
+    ## Change the parameters of the log
+    #
+    # \param quantities New list of quantities to log (if specified)
+    # \param delimiter New delimiter between columns in the output file (if specified)
+    #
+    # Using set_params() requires that the specified logger was saved in a variable when created.
+    # i.e. 
+    # \code
+    # logger = analyze.log(quantities=['pair_lj_energy', 
+    #                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
+    #                      period=1000, filename="'full.log')
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # logger.set_params(quantities=['bond_harmonic_energy'])
+    # logger.set_params(delimiter=',');
+    # logger.set_params(quantities=['bond_harmonic_energy'], delimiter=',');
+    # \endcode
+    def set_params(self, quantities=None, delimiter=None):
+        util.print_status_line();
+        
+        if quantities != None:
+            # set the logged quantities
+            quantity_list = hoomd.std_vector_string();
+            for item in quantities:
+                quantity_list.append(item);
+            self.cpp_analyzer.setLoggedQuantities(quantity_list);
+            
+        if delimiter:
+            self.cpp_analyzer.setDelimiter(delimiter);
+        
+    ## Retrieve a cached value of a monitored quantity from the last update of the logger.
+    # \param quantity Name of the quantity to return.
+    # Using query() requires that the specified logger was saved in a variable when created.
+    # i.e. 
+    # \code
+    # logger = analyze.log(quantities=['pair_lj_energy', 
+    #                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
+    #                      period=1000, filename="'full.log')
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # logdata = logger.query('timestep')
+    # \endcode
+    def query(self, quantity):
+        util.print_status_line();
+        
+        # retrieve data from internal cache.
+        return self.cpp_analyzer.getCachedQuantity(quantity);
+        
+    ## \internal
+    # \brief Re-registers all computes and updaters with the logger
+    def update_quantities(self):
+        # remove all registered quantities
+        self.cpp_analyzer.removeAll();
+        
+        # re-register all computes and updatesr
+        globals.system.registerLogger(self.cpp_analyzer);
 
 
 ## Calculates the mean-squared displacement of groups of particles and logs the values to a file
@@ -462,74 +463,74 @@ class log(_analyzer):
 #
 # The file format is the same convenient delimited format used by analyze.log 
 class msd(_analyzer):
-	## Initialize the msd calculator
-	#
-	# \param filename File to write the data to
-	# \param groups List of groups to calculate the MSDs of
-	# \param period Quantities are logged every \a period time steps
-	# \param header_prefix (optional) Specify a string to print before the header
-	#
-	# \b Examples:
-	# \code
-	# msd = analyze.msd(filename='msd.log', groups=[group1, group2], 
-	#                   period=100)
-	#
-	# analyze.log(groups=[group1, group2, group3], period=1000, 
-	#             filename='msd.log', header_prefix='#')
-	# 
-	# analyze.log(filename='msd.log', groups=[group1], period=10, 
-	#             header_prefix='Log of group1 msd, run 5\n')
-	# \endcode
-	#
-	# A group variable (\c groupN above) can be created by any number of group creation functions.
-	# see group for a list.
-	#
-	# By default, columns in the file are separated by tabs, suitable for importing as a 
-	# tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
-	# 
-	# The \a header_prefix can be used in a number of ways. It specifies a simple string that
-	# will be printed before the header line of the output file. One handy way to use this
-	# is to specify header_prefix='#' so that \c gnuplot will ignore the header line
-	# automatically. Another use-case would be to specify a descriptive line containing
-	# details of the current run. Examples of each of these cases are given above.
-	#
-	# \a period can be a function: see \ref variable_period_docs for details
-	def __init__(self, filename, groups, period, header_prefix=''):
-		util.print_status_line();
-		
-		# initialize base class
-		_analyzer.__init__(self);
-		
-		# create the c++ mirror class
-		self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix);
-		self.setupAnalyzer(period);
-	
-		# it is an error to specify no groups
-		if len(groups) == 0:
-			print >> sys.stderr, "\nAt least one group must be specified to analyze.msd\n";
-			raise RuntimeError('Error creating analyzer');
+    ## Initialize the msd calculator
+    #
+    # \param filename File to write the data to
+    # \param groups List of groups to calculate the MSDs of
+    # \param period Quantities are logged every \a period time steps
+    # \param header_prefix (optional) Specify a string to print before the header
+    #
+    # \b Examples:
+    # \code
+    # msd = analyze.msd(filename='msd.log', groups=[group1, group2], 
+    #                   period=100)
+    #
+    # analyze.log(groups=[group1, group2, group3], period=1000, 
+    #             filename='msd.log', header_prefix='#')
+    # 
+    # analyze.log(filename='msd.log', groups=[group1], period=10, 
+    #             header_prefix='Log of group1 msd, run 5\n')
+    # \endcode
+    #
+    # A group variable (\c groupN above) can be created by any number of group creation functions.
+    # see group for a list.
+    #
+    # By default, columns in the file are separated by tabs, suitable for importing as a 
+    # tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()
+    # 
+    # The \a header_prefix can be used in a number of ways. It specifies a simple string that
+    # will be printed before the header line of the output file. One handy way to use this
+    # is to specify header_prefix='#' so that \c gnuplot will ignore the header line
+    # automatically. Another use-case would be to specify a descriptive line containing
+    # details of the current run. Examples of each of these cases are given above.
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    def __init__(self, filename, groups, period, header_prefix=''):
+        util.print_status_line();
+        
+        # initialize base class
+        _analyzer.__init__(self);
+        
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix);
+        self.setupAnalyzer(period);
+    
+        # it is an error to specify no groups
+        if len(groups) == 0:
+            print >> sys.stderr, "\nAt least one group must be specified to analyze.msd\n";
+            raise RuntimeError('Error creating analyzer');
 
-		# set the group columns
-		for cur_group in groups:
-			self.cpp_analyzer.addColumn(cur_group.cpp_group, cur_group.name);
-		
-	## Change the parameters of the msd analysis
-	#
-	# \param delimiter New delimiter between columns in the output file (if specified)
-	#
-	# Using set_params() requires that the specified msd was saved in a variable when created.
-	# i.e. 
-	# \code
-	# msd = analyze.msd(filename='msd.log', groups=[group1, group2], period=100)
-	# \endcode
-	#
-	# \b Examples:
-	# \code
-	# msd.set_params(delimiter=',');
-	# \endcode
-	def set_params(self, delimiter=None):
-		util.print_status_line();
-		
-		if delimiter:
-			self.cpp_analyzer.setDelimiter(delimiter);
-		
+        # set the group columns
+        for cur_group in groups:
+            self.cpp_analyzer.addColumn(cur_group.cpp_group, cur_group.name);
+        
+    ## Change the parameters of the msd analysis
+    #
+    # \param delimiter New delimiter between columns in the output file (if specified)
+    #
+    # Using set_params() requires that the specified msd was saved in a variable when created.
+    # i.e. 
+    # \code
+    # msd = analyze.msd(filename='msd.log', groups=[group1, group2], period=100)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # msd.set_params(delimiter=',');
+    # \endcode
+    def set_params(self, delimiter=None):
+        util.print_status_line();
+        
+        if delimiter:
+            self.cpp_analyzer.setDelimiter(delimiter);
+        

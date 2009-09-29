@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -80,34 +81,34 @@ import globals;
 # group_combined = groupA & group100_199;
 # \endcode
 class group:
-	## \internal
-	# \brief Creates a group
-	# 
-	# \param name Name of the group
-	# \param cpp_group an instance of hoomd.ParticleData that defines the group
-	def __init__(self, name, cpp_group):
-		# initialize the group
-		self.name = name;
-		self.cpp_group = cpp_group;
-	
-	## \internal
-	# \brief Creates a new group as the intersection of two given groups
-	# 
-	# \param a group to perform the intersection with
-	def __and__(self, a):
-		new_name = '(' + self.name + ' & ' + a.name + ')';
-		new_cpp_group = hoomd.ParticleGroup.groupIntersection(self.cpp_group, a.cpp_group);
-		return group(new_name, new_cpp_group);
-	
-	## \internal
-	# \brief Creates a new group as the union of two given groups
-	# 
-	# \param a group to perform the union with
-	def __or__(self, a):
-		new_name = '(' + self.name + ' | ' + a.name + ')';
-		new_cpp_group = hoomd.ParticleGroup.groupUnion(self.cpp_group, a.cpp_group);
-		return group(new_name, new_cpp_group);
-		
+    ## \internal
+    # \brief Creates a group
+    # 
+    # \param name Name of the group
+    # \param cpp_group an instance of hoomd.ParticleData that defines the group
+    def __init__(self, name, cpp_group):
+        # initialize the group
+        self.name = name;
+        self.cpp_group = cpp_group;
+    
+    ## \internal
+    # \brief Creates a new group as the intersection of two given groups
+    # 
+    # \param a group to perform the intersection with
+    def __and__(self, a):
+        new_name = '(' + self.name + ' & ' + a.name + ')';
+        new_cpp_group = hoomd.ParticleGroup.groupIntersection(self.cpp_group, a.cpp_group);
+        return group(new_name, new_cpp_group);
+    
+    ## \internal
+    # \brief Creates a new group as the union of two given groups
+    # 
+    # \param a group to perform the union with
+    def __or__(self, a):
+        new_name = '(' + self.name + ' | ' + a.name + ')';
+        new_cpp_group = hoomd.ParticleGroup.groupUnion(self.cpp_group, a.cpp_group);
+        return group(new_name, new_cpp_group);
+        
 ## Groups particles by type
 #
 # \param type Name of the particle type to add to the group
@@ -123,24 +124,24 @@ class group:
 # groupB = group.type('B')
 # \endcode
 def type(type):
-	util.print_status_line();
-	
-	# check if initialization has occurred
-	if globals.system == None:
-		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-		raise RuntimeError('Error creating group');
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
 
-	# create the group
-	type_id = globals.system_definition.getParticleData().getTypeByName(type);
-	name = 'type ' + type;
-	cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.type, type_id, type_id);
+    # create the group
+    type_id = globals.system_definition.getParticleData().getTypeByName(type);
+    name = 'type ' + type;
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.type, type_id, type_id);
 
-	# notify the user of the created group
-	print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-	# return it in the wrapper class
-	return group(name, cpp_group);
-	
+    # return it in the wrapper class
+    return group(name, cpp_group);
+    
 ## Groups particles by tag
 #
 # \param tag_min First tag in the range to include (inclusive)
@@ -159,30 +160,30 @@ def type(type):
 # half2 = group.tags(1000, 1999)
 # \endcode
 def tags(tag_min, tag_max=None):
-	util.print_status_line();
-	
-	# check if initialization has occurred
-	if globals.system == None:
-		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-		raise RuntimeError('Error creating group');
-	
-	# handle the optional argument	
-	if tag_max != None:
-		name = 'tags ' + str(tag_min) + '-' + str(tag_max);
-	else:
-		# if the option is not specified, tag_max is set equal to tag_min to include only that particle in the range
-		# and the name is chosen accordingly
-		tag_max = tag_min;
-		name = 'tag ' + str(tag_min);
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    # handle the optional argument	
+    if tag_max != None:
+        name = 'tags ' + str(tag_min) + '-' + str(tag_max);
+    else:
+        # if the option is not specified, tag_max is set equal to tag_min to include only that particle in the range
+        # and the name is chosen accordingly
+        tag_max = tag_min;
+        name = 'tag ' + str(tag_min);
 
-	# create the group
-	cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
+    # create the group
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
 
-	# notify the user of the created group
-	print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-	# return it in the wrapper class
-	return group(name, cpp_group);
+    # return it in the wrapper class
+    return group(name, cpp_group);
 
 ## Groups all particles
 #
@@ -196,23 +197,23 @@ def tags(tag_min, tag_max=None):
 # all = group.all()
 # \endcode
 def all():
-	util.print_status_line();
+    util.print_status_line();
 
-	# check if initialization has occurred
-	if globals.system == None:
-		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-		raise RuntimeError('Error creating group');
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
 
-	# choose the tag range
-	tag_min = 0;
-	tag_max = globals.system_definition.getParticleData().getN()-1;
+    # choose the tag range
+    tag_min = 0;
+    tag_max = globals.system_definition.getParticleData().getN()-1;
 
-	# create the group
-	name = 'all';
-	cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
+    # create the group
+    name = 'all';
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
 
-	# notify the user of the created group
-	print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-	# return it in the wrapper class
-	return group(name, cpp_group);
+    # return it in the wrapper class
+    return group(name, cpp_group);
