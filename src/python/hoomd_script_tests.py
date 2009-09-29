@@ -1,5 +1,6 @@
 # $Id:$
 # $URL:$
+# Maintainer: joaander
 
 from hoomd_script import *
 import unittest

@@ -38,6 +38,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander / All Developers are free to add commands for new features
 
 ## \package hoomd_script.pair
 # \brief Commands that create forces between pairs of particles

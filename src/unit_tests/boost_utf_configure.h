@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file boost_utf_configure.h
 	\brief Helps unit tests setup the boost unit testing framework

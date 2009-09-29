@@ -36,8 +36,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: shiftedlj_force_test.cc 1490 2008-11-20 22:05:10Z phillicl $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/shiftedlj_force_test.cc $
+// $Id$
+// $URL$
+// Maintainer: phillicl
 
 #ifdef WIN32
 #pragma warning( push )

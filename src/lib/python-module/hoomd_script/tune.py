@@ -37,6 +37,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 import globals
 import pair

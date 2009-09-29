@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 if (UNIX)
 if(ENABLE_CUDA)

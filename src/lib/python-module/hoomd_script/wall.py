@@ -34,8 +34,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id: bond.py 1117 2008-08-04 15:44:35Z joaander $
-# $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/lib/python-module/hoomd_script/bond.py $
+# $Id$
+# $URL$
+# Maintainer: joaander / All Developers are free to add commands for new features
 
 import force;
 import globals;

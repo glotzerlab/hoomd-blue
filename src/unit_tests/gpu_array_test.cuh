@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
+// Maintainer: joaander
 
 /*! \file gpu_array_test.cuh
 	\brief Definitions of GPU kernel drivers for gpu_array_test.cc

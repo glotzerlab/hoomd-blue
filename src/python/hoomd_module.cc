@@ -38,7 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: joaander All developers are free to add the calls needed to export their modules
 
 #ifdef WIN32
 #pragma warning( push )

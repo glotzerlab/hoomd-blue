@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 set(CPACK_DESCRIPTION_SUMMARY "Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition")
 set(CPACK_PACKAGE_VENDOR "University of Michigan")

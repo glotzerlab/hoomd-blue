@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 ## \package hoomd_script.globals
 # \brief Global variables

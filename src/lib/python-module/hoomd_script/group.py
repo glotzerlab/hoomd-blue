@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander / All Developers are free to add commands for new features
 
 import hoomd;
 import sys;

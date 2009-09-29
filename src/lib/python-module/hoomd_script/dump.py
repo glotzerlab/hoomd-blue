@@ -36,6 +36,7 @@
 
 # $Id$
 # $URL$
+# Maintainer: joaander / All Developers are free to add commands for new features
 
 ## \package hoomd_script.dump
 # \brief Commands that %dump particles to files
