@@ -63,7 +63,10 @@ class NVTUpdaterGPU : public NVTUpdater
     {
     public:
         //! Constructor
-        NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T);
+        NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
+					  Scalar deltaT,
+					  Scalar tau,
+					  boost::shared_ptr<Variant> T);
         
         virtual ~NVTUpdaterGPU();
         

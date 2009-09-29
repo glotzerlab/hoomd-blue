@@ -94,10 +94,10 @@ class FENEBondForceComputeGPU : public FENEBondForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon);
         
     protected:
-        int m_block_size;       //!< Block size to run calculation on
+        int m_block_size;                   //!< Block size to run calculation on
         std::vector<float4 *> m_gpu_params; //!< Parameters stored on the GPU
-        std::vector<int *> m_checkr;    //!< Error flag stored on the GPU
-        float4 *m_host_params;  //!< Host parameters
+        std::vector<int *> m_checkr;        //!< Error flag stored on the GPU
+        float4 *m_host_params;              //!< Host parameters
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

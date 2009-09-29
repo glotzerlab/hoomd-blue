@@ -62,8 +62,10 @@ using namespace std;
     \param r_cut Cuttoff radius beyond which the force is 0
     \post memory is allocated and all parameters epsilon and sigma are set to 0.0
 */
-GaussianForceCompute::GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
-        : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift)
+GaussianForceCompute::GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+										   boost::shared_ptr<NeighborList> nlist,
+										   Scalar r_cut)
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -247,7 +249,7 @@ void GaussianForceCompute::computeForces(unsigned int timestep)
             // sanity check
             assert(typej < m_pdata->getNTypes());
             
-            // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
+            // apply periodic boundary conditions (FLOPS: 9)
             if (dx >= box.xhi)
                 dx -= Lx;
             else if (dx < box.xlo)
@@ -342,11 +344,12 @@ void GaussianForceCompute::computeForces(unsigned int timestep)
 
 void export_GaussianForceCompute()
     {
-    scope in_lj = class_<GaussianForceCompute, boost::shared_ptr<GaussianForceCompute>, bases<ForceCompute>, boost::noncopyable >
-                  ("GaussianForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
-                  .def("setParams", &GaussianForceCompute::setParams)
-                  .def("setShiftMode", &GaussianForceCompute::setShiftMode)
-                  ;
+    scope in_lj = 
+		class_<GaussianForceCompute, boost::shared_ptr<GaussianForceCompute>, bases<ForceCompute>, boost::noncopyable >
+		("GaussianForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+		.def("setParams", &GaussianForceCompute::setParams)
+		.def("setShiftMode", &GaussianForceCompute::setShiftMode)
+		;
                   
     enum_<GaussianForceCompute::energyShiftMode>("energyShiftMode")
     .value("no_shift", GaussianForceCompute::no_shift)

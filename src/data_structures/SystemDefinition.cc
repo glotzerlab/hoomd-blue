@@ -67,7 +67,14 @@ SystemDefinition::SystemDefinition()
      - BondData constructed with the arguments \a n_bond_types
      - All other data structures are default constructed.
 */
-SystemDefinition::SystemDefinition(unsigned int N, const BoxDim &box, unsigned int n_types, unsigned int n_bond_types, unsigned int n_angle_types, unsigned int n_dihedral_types, unsigned int n_improper_types, const ExecutionConfiguration& exec_conf)
+SystemDefinition::SystemDefinition(unsigned int N,
+								   const BoxDim &box,
+								   unsigned int n_types,
+								   unsigned int n_bond_types,
+								   unsigned int n_angle_types,
+								   unsigned int n_dihedral_types,
+								   unsigned int n_improper_types,
+								   const ExecutionConfiguration& exec_conf)
     {
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf));
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));

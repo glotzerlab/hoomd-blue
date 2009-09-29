@@ -66,13 +66,27 @@ struct gpu_npt_data
 
 
 //! Sums virials on the GPU. Used by NPTUpdaterGPU.
-cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata, const gpu_pdata_arrays &pdata, float** virial_list, int num_virials);
+cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata,
+									   const gpu_pdata_arrays &pdata,
+									   float** virial_list,
+									   int num_virials);
 
 //! Kernel driver for the the first step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_npt_data &d_npt_data, float Xi, float Eta, float deltaT);
+cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata,
+						     const gpu_boxsize &box,
+							 const gpu_npt_data &d_npt_data,
+							 float Xi,
+							 float Eta,
+							 float deltaT);
 
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata, const gpu_npt_data &d_npt_data, float4 **force_data_ptrs, int num_forces, float Xi, float Eta, float deltaT);
+cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata,
+						 const gpu_npt_data &d_npt_data,
+						 float4 **force_data_ptrs,
+						 int num_forces,
+						 float Xi,
+						 float Eta,
+						 float deltaT);
 
 //! Kernel driver for calculating the final pass Ksum on the GPU. Used by NPTUpdaterGPU
 cudaError_t gpu_npt_reduce_ksum(const gpu_npt_data &d_npt_data);

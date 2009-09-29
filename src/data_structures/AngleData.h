@@ -148,9 +148,9 @@ class AngleData : boost::noncopyable
         
     private:
         const unsigned int m_n_angle_types;             //!< Number of angle types
-        bool m_angles_dirty;                                //!< True if the angle list has been changed
-        boost::shared_ptr<ParticleData> m_pdata;                            //!< Particle Data these angles belong to
-        std::vector<Angle> m_angles;                        //!< List of angles on the CPU
+        bool m_angles_dirty;                            //!< True if the angle list has been changed
+        boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these angles belong to
+        std::vector<Angle> m_angles;                    //!< List of angles on the CPU
         std::vector<std::string> m_angle_type_mapping;  //!< Mapping between angle type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData

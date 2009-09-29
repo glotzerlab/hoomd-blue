@@ -54,7 +54,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __TEMPRESCALEUPDATER_H__
 
 //! Updates particle velocities to set a temperature
-/*! This updater computes the current temperature of the system and then scales the velocities in order to set the temperature.
+/*! This updater computes the current temperature of the system and then scales the velocities in order to set the 
+	temperature.
 
     \ingroup updaters
 */
@@ -72,7 +73,7 @@ class TempRescaleUpdater : public Updater
         
     private:
         boost::shared_ptr<TempCompute> m_tc;        //!< Computes the temperature
-        Scalar m_tset;          //!< Temperature set point
+        Scalar m_tset;                              //!< Temperature set point
     };
 
 //! Export the TempRescaleUpdater to python

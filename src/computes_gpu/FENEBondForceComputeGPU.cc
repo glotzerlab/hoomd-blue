@@ -67,7 +67,9 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
     // only one GPU is currently supported
     if (exec_conf.gpu.size() == 0)
         {
-        cerr << endl << "***Error! Creating a FENEBondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+        cerr << endl 
+			 << "***Error! Creating a FENEBondForceComputeGPU with no GPU in the execution configuration" 
+			 << endl << endl;
         throw std::runtime_error("Error initializing FENEBondForceComputeGPU");
         }
         

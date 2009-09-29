@@ -85,7 +85,8 @@ using namespace std;
     \post The storage mode defaults to half
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-        : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
+	: Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_updates(0), m_forced_updates(0), 
+	  m_dangerous_updates(0), m_force_update(true)
     {
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)

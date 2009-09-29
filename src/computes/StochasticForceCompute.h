@@ -61,7 +61,10 @@ class StochasticForceCompute :  public ForceCompute
     {
     public:
         //! Constructor
-        StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
+        StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+							   Scalar deltaT, boost::shared_ptr<Variant> Temp,
+							   unsigned int seed,
+							   bool use_diam);
         
         //! Destructor
         ~StochasticForceCompute();

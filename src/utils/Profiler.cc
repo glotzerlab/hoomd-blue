@@ -173,7 +173,13 @@ void ProfileDataElem::output(std::ostream &o, const std::string& name, int tab_l
         }
     }
 
-void ProfileDataElem::output_line(std::ostream &o, const std::string &name, double sec, double perc, double flops, double bytes, unsigned int name_width) const
+void ProfileDataElem::output_line(std::ostream &o, 
+								  const std::string &name,
+								  double sec,
+								  double perc,
+								  double flops,
+								  double bytes,
+								  unsigned int name_width) const
     {
     o << setiosflags(ios::fixed);
     

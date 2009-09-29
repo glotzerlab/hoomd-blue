@@ -70,7 +70,12 @@ texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
     \param blist Bond data to use in calculating the forces
     \param d_checkr Flag allocated on the device for use in checking for bonds that are too long
 */
-extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_bondtable_array blist, int *d_checkr)
+extern "C" __global__ 
+void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
+										 gpu_pdata_arrays pdata,
+										 gpu_boxsize box,
+										 gpu_bondtable_array blist,
+										 int *d_checkr)
     {
     // start by identifying which particle we are to handle
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -129,7 +134,8 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
         float K = params.x;
         float r_0 = params.y;
         // lj1 is defined as 4*epsilon*sigma^12
-        float lj1 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z * params.z;
+        float lj1 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z * 
+						params.z * params.z * params.z * params.z * params.z * params.z;
         // lj2 is defined as 4*epsilon*sigma^6
         float lj2 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z;
         float epsilon = params.w;
@@ -202,7 +208,15 @@ extern "C" __global__ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_ar
     \a d_params should include one float4 element per bond type. The x component contains K the spring constant
     and the y component contains r_0 the equilibrium length, z and w contain lj1 and lj2.
 */
-cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float4 *d_params, int *d_checkr, unsigned int n_bond_types, int block_size, unsigned int& exceedsR0)
+cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data,
+										 const gpu_pdata_arrays &pdata,
+										 const gpu_boxsize &box,
+										 const gpu_bondtable_array &btable,
+										 float4 *d_params,
+										 int *d_checkr,
+										 unsigned int n_bond_types,
+										 int block_size,
+										 unsigned int& exceedsR0)
     {
     assert(d_params);
     // check that block_size is valid

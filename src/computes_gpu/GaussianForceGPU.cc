@@ -67,13 +67,17 @@ using namespace std;
     \param r_cut Cuttoff radius beyond which the force is 0
     \post memory is allocated and all parameters epsilon and sigma are set to 0.0
 */
-GaussianForceGPU::GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
-        : GaussianForceCompute(sysdef, nlist, r_cut), m_block_size(64)
+GaussianForceGPU::GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef,
+								   boost::shared_ptr<NeighborList> nlist,
+								   Scalar r_cut)
+	: GaussianForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)
         {
-        cerr << endl << "***Error! Creating a GaussianForceGPU with no GPU in the execution configuration" << endl << endl;
+        cerr << endl 
+			 << "***Error! Creating a GaussianForceGPU with no GPU in the execution configuration"
+			 << endl << endl;
         throw std::runtime_error("Error initializing GaussianForceGPU");
         }
         
@@ -160,7 +164,9 @@ void GaussianForceGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar ep
     assert(h_coeffs);
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        cerr << endl << "***Error! Trying to set Gaussian params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+        cerr << endl 
+			 << "***Error! Trying to set Gaussian params for a non existant type! " 
+			 << typ1 << "," << typ2 << endl << endl;
         throw runtime_error("GaussianForceGPU::setParams argument error");
         }
         

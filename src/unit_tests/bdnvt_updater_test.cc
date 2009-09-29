@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: bdnvt_updater_test.cc 1256 2008-09-12 21:51:07Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/bdnvt_updater_test.cc $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 #ifdef WIN32
@@ -89,7 +89,11 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)> bdnvtup_creator;
+typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<SystemDefinition> sysdef,
+												   Scalar deltaT,
+												   Scalar Temp,
+												   unsigned int seed,
+												   bool use_diam)> bdnvtup_creator;
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
@@ -574,7 +578,11 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 
 
 //! BD_NVTUpdater factory for the unit tests
-shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)
+shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
+												   Scalar deltaT,
+												   Scalar Temp,
+												   unsigned int seed,
+												   bool use_diam)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
     return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(sysdef, deltaT, T_variant, seed, use_diam));
@@ -582,7 +590,11 @@ shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> 
 
 #ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
-shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed, bool use_diam)
+shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
+											Scalar deltaT,
+											Scalar Temp,
+											unsigned int seed,
+											bool use_diam)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
     return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(sysdef, deltaT, T_variant, seed, use_diam));

@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: BD_NVTUpdaterGPU.h 1045 2008-07-07 21:35:57Z phillicl $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters_gpu/BD_NVTUpdaterGPU.h $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 /*! \file BD_NVTUpdaterGPU.h
@@ -59,7 +59,11 @@ class BD_NVTUpdaterGPU : public BD_NVTUpdater
     {
     public:
         //! Constructor
-        BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
+        BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
+						 Scalar deltaT,
+						 boost::shared_ptr<Variant> Temp,
+						 unsigned int seed,
+						 bool use_diam);
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);

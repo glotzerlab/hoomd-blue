@@ -77,7 +77,8 @@ using namespace boost::python;
     \param spacing Separation between particles
     \param type_name Name of the particle type to create
 */
-SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name) : m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
+SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, const std::string &type_name) 
+	: m_M(M), m_spacing(spacing), box(M * spacing), m_type_name(type_name)
     {
     }
 
@@ -153,7 +154,8 @@ std::vector<std::string> SimpleCubicInitializer::getTypeMapping() const
     \param type_name Name of the particle type to create
     \note assumes particles have a diameter of 1
 */
-RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name) : m_N(N), m_phi_p(phi_p), m_min_dist(min_dist), m_type_name(type_name)
+RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_dist, const std::string &type_name) 
+	: m_N(N), m_phi_p(phi_p), m_min_dist(min_dist), m_type_name(type_name)
     {
     // sanity checks
     if (N == 0)
@@ -266,7 +268,9 @@ void RandomInitializer::initArrays(const ParticleDataArrays &pdata) const
             tries++;
             if (tries > pdata.nparticles*100)
                 {
-                cerr << endl << "***Error! RandomInitializer: Unable to find location for particle after trying many times" << endl << endl;
+                cerr << endl 
+					 << "***Error! RandomInitializer: Unable to find location for particle after trying many times"
+					 << endl << endl;
                 throw runtime_error("Unable to init system in RandomInitializer");
                 }
             }
@@ -299,8 +303,12 @@ std::vector<std::string> RandomInitializer::getTypeMapping() const
     \param type_name Name of the particle type to create
     \note assumes particles have a diameter of 1
 */
-RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N, Scalar phi_p, Scalar min_dist, Scalar wall_buffer, const std::string &type_name)
-        : RandomInitializer(N, phi_p, min_dist, type_name), m_wall_buffer(wall_buffer)
+RandomInitializerWithWalls::RandomInitializerWithWalls(unsigned int N,
+													   Scalar phi_p,
+													   Scalar min_dist,
+													   Scalar wall_buffer,
+													   const std::string &type_name)
+	: RandomInitializer(N, phi_p, min_dist, type_name), m_wall_buffer(wall_buffer)
     {
     Scalar L = pow(Scalar(M_PI/6.0)*Scalar(N) / phi_p, Scalar(1.0/3.0));
     // artificially shrink the box dimensions by 10% so that the super class doesn't put
@@ -346,21 +354,24 @@ void RandomInitializerWithWalls::initWallData(boost::shared_ptr<WallData> wall_d
 
 void export_SimpleCubicInitializer()
     {
-    class_< SimpleCubicInitializer, bases<ParticleDataInitializer> >("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
+    class_< SimpleCubicInitializer, bases<ParticleDataInitializer> >
+		("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
     ;
     // no need to .def methods, they are all inherited
     }
 
 void export_RandomInitializer()
     {
-    class_< RandomInitializer, bases<ParticleDataInitializer> >("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
+    class_< RandomInitializer, bases<ParticleDataInitializer> >
+		("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
     ;
     // no need to .def methods, they are all inherited
     }
 
 void export_RandomInitializerWithWalls()
     {
-    class_< RandomInitializerWithWalls, bases<ParticleDataInitializer> >("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar, Scalar, string>())
+    class_< RandomInitializerWithWalls, bases<ParticleDataInitializer> >
+		("RandomInitializerWithWalls", init<unsigned int, Scalar, Scalar, Scalar, string>())
     ;
     // no need to .def methods, they are all inherited
     }

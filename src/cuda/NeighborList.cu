@@ -62,7 +62,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
     If any particle has moved a distance larger than r_buffsq since the last neighbor list update,
     nlist.needs_update is set to 1.
 */
-__global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata, gpu_nlist_array nlist, float r_buffsq, gpu_boxsize box)
+__global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata,
+													gpu_nlist_array nlist,
+													float r_buffsq,
+													gpu_boxsize box)
     {
     // each thread will compare vs it's old position to see if the list needs updating
     // if that is true, write a 1 to nlist_needs_updating
@@ -101,7 +104,11 @@ __global__ void gpu_nlist_needs_update_check_kernel(gpu_pdata_arrays pdata, gpu_
     If any particle has moved a distance larger than r_buffsq since the last neighbor list update,
     *result is set to 1. Otherwide *result is set to 0.
 */
-cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata, gpu_boxsize *box, gpu_nlist_array *nlist, float r_buffsq, int *result)
+cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata,
+										 gpu_boxsize *box,
+										 gpu_nlist_array *nlist,
+										 float r_buffsq,
+										 int *result)
     {
     assert(pdata);
     assert(nlist);

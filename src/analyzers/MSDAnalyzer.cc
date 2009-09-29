@@ -60,8 +60,11 @@ using namespace std;
     (and overwritten if necessary). Nothing is initially written to the file, that will occur on the first call to
     analyze()
 */
-MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef, std::string fname, const std::string& header_prefix)
-        : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_columns_changed(false), m_file(fname.c_str())
+MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
+						 std::string fname,
+						 const std::string& header_prefix)
+	: Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_columns_changed(false),
+	  m_file(fname.c_str())
     {
     // record the initial particle positions by tag
     m_initial_x.resize(m_pdata->getN());

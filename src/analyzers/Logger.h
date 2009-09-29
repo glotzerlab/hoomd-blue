@@ -81,7 +81,10 @@ class Logger : public Analyzer
     {
     public:
         //! Constructs a logger and opens the file
-        Logger(boost::shared_ptr<SystemDefinition> sysdef, const std::string& fname, const std::string& header_prefix="", bool overwrite=false);
+        Logger(boost::shared_ptr<SystemDefinition> sysdef,
+			   const std::string& fname,
+			   const std::string& header_prefix="",
+			   bool overwrite=false);
         
         //! Registers a compute
         void registerCompute(boost::shared_ptr<Compute> compute);

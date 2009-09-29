@@ -79,10 +79,10 @@ class FENEBondForceCompute : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
     protected:
-        Scalar *m_K;    //!< K parameter for multiple bond tyes
-        Scalar *m_r_0;  //!< r_0 parameter for multiple bond types
-        Scalar *m_lj1;  //!< lj1 for multiple bond types
-        Scalar *m_lj2;  //!< lj2 for multiple bond types
+        Scalar *m_K;        //!< K parameter for multiple bond tyes
+        Scalar *m_r_0;      //!< r_0 parameter for multiple bond types
+        Scalar *m_lj1;      //!< lj1 for multiple bond types
+        Scalar *m_lj2;      //!< lj2 for multiple bond types
         Scalar *m_epsilon;  //!< epsilon value for multiple bond types
         
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds

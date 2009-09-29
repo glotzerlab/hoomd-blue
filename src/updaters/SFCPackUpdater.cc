@@ -80,7 +80,7 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scala
 
 /*! Performs the sort.
     \note In an updater list, this sort should be done first, before anyone else
-        gets ahold of the particle data
+	gets ahold of the particle data
 
     \param timestep Current timestep of the simulation
  */

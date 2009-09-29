@@ -151,11 +151,11 @@ class DihedralData : boost::noncopyable
     private:
         const unsigned int m_n_dihedral_types;              //!< Number of dihedral types
         bool m_dihedrals_dirty;                             //!< True if the dihedral list has been changed
-        boost::shared_ptr<ParticleData> m_pdata;                            //!< Particle Data these dihedrals belong to
-        std::vector<Dihedral> m_dihedrals;                      //!< List of dihedrals on the CPU
+        boost::shared_ptr<ParticleData> m_pdata;            //!< Particle Data these dihedrals belong to
+        std::vector<Dihedral> m_dihedrals;                  //!< List of dihedrals on the CPU
         std::vector<std::string> m_dihedral_type_mapping;   //!< Mapping between dihedral type indices and names
         
-        boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        boost::signals::connection m_sort_connection;       //!< Connection to the resort signal from ParticleData
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_dihedrals_dirty flag when partciles are sorted or an dihedral is added.
@@ -168,9 +168,9 @@ class DihedralData : boost::noncopyable
             
 #ifdef ENABLE_CUDA
         std::vector<gpu_dihedraltable_array> m_gpu_dihedraldata;    //!< List of dihedrals on the GPU
-        uint4 *m_host_dihedrals;                //!< Host copy of the dihedral list (3atoms of a,b,c, or d, plus the type)
-        uint1 *m_host_dihedralsABCD;            //!< Host copy of the dihedralABCD list
-        unsigned int *m_host_n_dihedrals;       //!< Host copy of the number of dihedrals
+        uint4 *m_host_dihedrals;             //!< Host copy of the dihedral list (3atoms of a,b,c, or d, plus the type)
+        uint1 *m_host_dihedralsABCD;         //!< Host copy of the dihedralABCD list
+        unsigned int *m_host_n_dihedrals;    //!< Host copy of the number of dihedrals
         
         /*! \enum dihedralABCD tells if the Dihedral is on the a,b,c, or d atom
         */

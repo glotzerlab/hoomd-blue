@@ -114,10 +114,10 @@ class RandomInitializer : public ParticleDataInitializer
         //! Initialize the type name mapping
         std::vector<std::string> getTypeMapping() const;
     protected:
-        unsigned int m_N;   //!< Number of particles to generate
-        Scalar m_phi_p;     //!< Packing fraction to generate the particles at
-        Scalar m_min_dist;  //!< Minimum distance to separate particles by
-        BoxDim m_box;       //!< Box to put the particles in
+        unsigned int m_N;           //!< Number of particles to generate
+        Scalar m_phi_p;             //!< Packing fraction to generate the particles at
+        Scalar m_min_dist;          //!< Minimum distance to separate particles by
+        BoxDim m_box;               //!< Box to put the particles in
         std::string m_type_name;    //!< Name of the particle type created
     };
 
@@ -139,7 +139,7 @@ class RandomInitializerWithWalls : public RandomInitializer
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
     protected:
         Scalar m_wall_buffer;   //!< Buffer distance between the wall and the edge of the box
-        BoxDim m_real_box;  //!< Stores the actual dimensions of the box where the walls are defined
+        BoxDim m_real_box;      //!< Stores the actual dimensions of the box where the walls are defined
         
     };
 

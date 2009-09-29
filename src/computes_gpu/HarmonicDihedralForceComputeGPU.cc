@@ -62,7 +62,7 @@ using namespace std;
 /*! \param pdata ParticleData to compute dihedral forces on
 */
 HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : HarmonicDihedralForceCompute(sysdef), m_block_size(64)
+	: HarmonicDihedralForceCompute(sysdef), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)

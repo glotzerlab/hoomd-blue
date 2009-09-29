@@ -69,12 +69,16 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param r_cut Cuttoff radius beyond which the force is 0
-    \post memory is allocated and all parameters ljX are set to 0.0
-    \note The CGCMMForceComputeGPU does not own the Neighborlist, the caller should
-        delete the neighborlist when done.
+    
+	\post memory is allocated and all parameters ljX are set to 0.0
+    
+	\note The CGCMMForceComputeGPU does not own the Neighborlist, the caller should
+	delete the neighborlist when done.
 */
-CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
-        : CGCMMForceCompute(sysdef, nlist, r_cut), m_block_size(64)
+CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+										   boost::shared_ptr<NeighborList> nlist,
+										   Scalar r_cut)
+	: CGCMMForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)

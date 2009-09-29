@@ -42,8 +42,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //! Long-range electrostatic force by the PPPM method
-/*! In order for this class to be useful it needs to be complemented with a class that computes the short-range electrostatic part
-    The total pair force is summed for each particle when compute() is called.
+/*! In order for this class to be useful it needs to be complemented with a class that computes the short-range 
+	electrostatic part The total pair force is summed for each particle when compute() is called.
     This class requires the use of Fast Fourier Transforms, which are defined somewhere else
 
     Usage: Construct a ElectrostaticLongRangePPM class, providing it an already constructed ParticleData.
@@ -87,7 +87,14 @@ class ElectrostaticLongRangePPPM : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ElectrostaticLongRangePPPM(boost::shared_ptr<SystemDefinition> sysdef,unsigned int Mmesh_x,unsigned int Mmesh_y,unsigned int Mmesh_z, unsigned int P_order_a, Scalar alpha,boost::shared_ptr<FFTClass> FFTP,bool third_law_m);
+        ElectrostaticLongRangePPPM(boost::shared_ptr<SystemDefinition> sysdef,
+								   unsigned int Mmesh_x,
+								   unsigned int Mmesh_y,
+								   unsigned int Mmesh_z,
+								   unsigned int P_order_a,
+								   Scalar alpha,
+								   boost::shared_ptr<FFTClass> FFTP,
+								   bool third_law_m);
         
         //! Destructor
         virtual ~ElectrostaticLongRangePPPM();
@@ -104,7 +111,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
         //! Show the value of the polynomial coefficients for charge distribution, convenient for unit testing
         const Scalar & Poly_coeff_Grid(unsigned int i,unsigned int j) const;
         
-        //! Show the value of the polynomial coefficients in the denominator of the Influence function, convenient for unit testing
+        //! Show the value of the polynomial coefficients in the denominator of the Influence function, for unit testing
         const Scalar & Poly_coeff_Denom_Influence_Function(unsigned int i) const;
         
         //! Delivers the Influence function, convenient for unit testing
@@ -142,39 +149,43 @@ class ElectrostaticLongRangePPPM : public ForceCompute
         Scalar h_x;                  //!< Spacing along the x axis
         Scalar h_y;                  //!< Spacing along the y axis
         Scalar h_z;                  //!< Spacing along the z axis
-        CScalar *rho_real;          //!< density of charge on the mesh
-        CScalar *rho_kspace;        //!< density of charge in Fourier space
+        CScalar *rho_real;           //!< density of charge on the mesh
+        CScalar *rho_kspace;         //!< density of charge in Fourier space
         Scalar  *G_Inf;              //!< Precomputed proximity function
-        CScalar *fx_kspace;         //!< force in k-space, x component
-        CScalar *fy_kspace;         //!< force in k-space, y component
-        CScalar *fz_kspace;         //!< force in k-space, z component
-        CScalar *e_kspace;          //!< Energy in k-space
-        CScalar *v_kspace;          //!< virial in k-space
-        CScalar *fx_real;           //!< force on mesh points, x component
-        CScalar *fy_real;           //!< force on mesh points, y component
-        CScalar *fz_real;           //!< force on mesh points, z component
-        CScalar *e_real;            //!< Energy on mesh points
-        CScalar *v_real;            //!< virial on mesh points
-        Scalar **P_coeff;           //!< Coefficients of Polynomial to distribute charge
-        double **a_P;               //!< Pointer necessary to determine P_coeff
-        double **b_P;               //!< Pointer necessary to determine P_coeff
-        void (ElectrostaticLongRangePPPM::*make_rho_helper)(void); //!<function pointer used to hide implementation details
-        void (ElectrostaticLongRangePPPM::*back_interpolate_helper)(CScalar *,Scalar *); //!<function to pointer to ide implementation details
-        Scalar *Denom_Coeff;         //!< Coefficients of the polynomial to compute the denominator of the influence function
+        CScalar *fx_kspace;          //!< force in k-space, x component
+        CScalar *fy_kspace;          //!< force in k-space, y component
+        CScalar *fz_kspace;          //!< force in k-space, z component
+        CScalar *e_kspace;           //!< Energy in k-space
+        CScalar *v_kspace;           //!< virial in k-space
+        CScalar *fx_real;            //!< force on mesh points, x component
+        CScalar *fy_real;            //!< force on mesh points, y component
+        CScalar *fz_real;            //!< force on mesh points, z component
+        CScalar *e_real;             //!< Energy on mesh points
+        CScalar *v_real;             //!< virial on mesh points
+        Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
+        double **a_P;                //!< Pointer necessary to determine P_coeff
+        double **b_P;                //!< Pointer necessary to determine P_coeff
+        void (ElectrostaticLongRangePPPM::*make_rho_helper)(void);
+        void (ElectrostaticLongRangePPPM::*back_interpolate_helper)(CScalar *,Scalar *);
+        Scalar *Denom_Coeff;   //!< Coefficients of the polynomial to compute the denominator of the influence function
         
         
         virtual Scalar Poly(int n,Scalar x); //!< Polynomial that computes the fraction of charge at point x
         
         virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
         virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
-        virtual void back_interpolate_even(CScalar *Grid,Scalar *Continuum);//!< Backinterpolate mesh grid points into continuum for P even
-        virtual void back_interpolate_odd(CScalar *Grid,Scalar *Continuum);//!< Backinterpolate mesh grid points into continuum for P odd
+		//! Backinterpolate mesh grid points into continuum for P even
+        virtual void back_interpolate_even(CScalar *Grid,Scalar *Continuum);
+        //! Backinterpolate mesh grid points into continuum for P odd
+		virtual void back_interpolate_odd(CScalar *Grid,Scalar *Continuum);
         
         virtual void ComputePolyCoeff(void); //!<Compute the coefficients of the Polynomial (encoded in P_coeff)
         
         virtual void Compute_G(void);        //!<Compute the influence function
-        virtual Scalar Denominator_G(Scalar x,Scalar y,Scalar z); //!< Denominator of the influence function (without the derivative square)
-        virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z); //!< Numerator of the influence function (without the derivative);
+        //! Denominator of the influence function (without the derivative square)
+		virtual Scalar Denominator_G(Scalar x,Scalar y,Scalar z);
+        //! Numerator of the influence function (without the derivative);
+		virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z);
         void Denominator_Poly_G(void);       //!<Compute the coefficients of the Polynomial Denom_Coeff
         
         //! Actually compute the forces

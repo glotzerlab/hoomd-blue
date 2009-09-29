@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: BD_NVTUpdater.h 1085 2008-07-30 20:22:24Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters/BD_NVTUpdater.h $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 /*! \file BD_NVTUpdater.h
@@ -72,7 +72,10 @@ class BD_NVTUpdater : public NVEUpdater
     {
     public:
         //! Constructor
-        BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
+        BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
+					  Scalar deltaT, boost::shared_ptr<Variant> Temp,
+					  unsigned int seed,
+					  bool use_diam);
         
         //! Sets the Stochastic Bath Temperature
         void setT(boost::shared_ptr<Variant> Temp);
@@ -105,7 +108,7 @@ class BD_NVTUpdater : public NVEUpdater
         boost::shared_ptr<Variant> m_T;         //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;                    //!< The seed for the RNG of the Stochastic Bath
         bool m_bath;                            //!< Whether the bath has been set or not
-        bool m_use_diam;    //!< Determines whether the Stochastic Force uses a user-created gamma per type or the diameter of each particle
+        bool m_use_diam;						//!< flag to enable gamma set by the diameter of each particle
         
         //! Attaches the Stochastic Bath Temperature
         void addStochasticBath();

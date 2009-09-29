@@ -62,8 +62,11 @@ using namespace std;
     \param r_cut Cuttoff radius beyond which the force is 0
     \post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 */
-LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
-        : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0)), m_slj(false)
+LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+							   boost::shared_ptr<NeighborList> nlist,
+							   Scalar r_cut)
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0)),
+	  m_slj(false)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -120,7 +123,8 @@ void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1,
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+        cerr << endl << "***Error! Trying to set LJ params for a non existant type! "
+			 << typ1 << "," << typ2 << endl << endl;
         throw runtime_error("Error setting parameters in LJForceCompute");
         }
         
@@ -262,7 +266,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
             // sanity check
             assert(typej < m_pdata->getNTypes());
             
-            // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
+            // apply periodic boundary conditions (FLOPS: 9)
             if (dx >= box.xhi)
                 dx -= Lx;
             else if (dx < box.xlo)

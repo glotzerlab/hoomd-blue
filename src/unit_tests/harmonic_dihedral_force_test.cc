@@ -321,7 +321,9 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, ExecutionConfi
 
 
 //! Compares the output of two HarmonicDihedralForceComputes
-void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1, dihedralforce_creator tf_creator2, ExecutionConfiguration exec_conf)
+void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
+									 dihedralforce_creator tf_creator2,
+									 ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;

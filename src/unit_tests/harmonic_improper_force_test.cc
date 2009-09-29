@@ -353,7 +353,9 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
 
 
 //! Compares the output of two HarmonicImproperForceComputes
-void improper_force_comparison_tests(improperforce_creator tf_creator1, improperforce_creator tf_creator2, ExecutionConfiguration exec_conf)
+void improper_force_comparison_tests(improperforce_creator tf_creator1,
+									 improperforce_creator tf_creator2,
+									 ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;

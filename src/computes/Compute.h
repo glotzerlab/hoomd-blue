@@ -96,7 +96,8 @@ class Compute : boost::noncopyable
         
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
-            Derived classes will implement this method to calculate their results*/
+            Derived classes will implement this method to calculate their results
+		*/
         virtual void compute(unsigned int timestep) = 0;
         
         //! Abstract method that performs a benchmark
@@ -105,7 +106,8 @@ class Compute : boost::noncopyable
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Compute's printStats functions at the end of a run
-            so the user can see useful information */
+            so the user can see useful information 
+		*/
         virtual void printStats()
             {
             }

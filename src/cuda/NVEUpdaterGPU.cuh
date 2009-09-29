@@ -48,9 +48,18 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __NVEUPDATER_CUH__
 
 //! Kernel driver for the first part of the NVE update called by NVEUpdaterGPU
-cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float deltaT, bool limit, float limit_val);
+cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
+							 const gpu_boxsize &box,
+							 float deltaT,
+							 bool limit,
+							 float limit_val);
 
 //! Kernel driver for the second part of the NVE update called by NVEUpdaterGPU
-cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
+cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
+						 float4 **force_data_ptrs,
+						 int num_forces,
+						 float deltaT,
+						 bool limit,
+						 float limit_val);
 
 #endif

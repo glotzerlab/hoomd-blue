@@ -65,20 +65,27 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     \param d_coeffs Coefficients to the lennard jones force (lj12, lj9, lj6, lj4).
     \param coeff_width Width of the coefficient matrix
     \param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
-        set to 0
+	set to 0
     \param box Box dimensions used to implement periodic boundary conditions
 
     \a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a lj12 for the type pair \a i, \a j.
     Similarly, .y, .z, and .w are the \a lj9, \a lj6, and \a lj4 parameters, respectively. The values in d_coeffs are
-        read into shared memory, so \c coeff_width*coeff_width*sizeof(float4) bytes of extern shared memory must be allocated
-        for the kernel call.
+	read into shared memory, so \c coeff_width*coeff_width*sizeof(float4) bytes of extern shared memory must be allocated
+	for the kernel call.
 
     Developer information:
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<bool ulf_workaround> __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float4 *d_coeffs, int coeff_width, float r_cutsq)
+template<bool ulf_workaround>
+__global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data,
+											   gpu_pdata_arrays pdata,
+											   gpu_boxsize box,
+											   gpu_nlist_array nlist,
+											   float4 *d_coeffs,
+											   int coeff_width,
+											   float r_cutsq)
     {
     // read in the coefficients
     extern __shared__ float4 s_coeffs[];
@@ -205,7 +212,15 @@ template<bool ulf_workaround> __global__ void gpu_compute_cgcmm_forces_kernel(gp
 
     This is just a driver for calcCGCMMForces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float4 *d_coeffs, int coeff_width, float r_cutsq, int block_size, bool ulf_workaround)
+cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
+									 const gpu_pdata_arrays &pdata,
+									 const gpu_boxsize &box,
+									 const gpu_nlist_array &nlist,
+									 float4 *d_coeffs,
+									 int coeff_width,
+									 float r_cutsq,
+									 int block_size,
+									 bool ulf_workaround)
     {
     assert(d_coeffs);
     assert(coeff_width > 0);

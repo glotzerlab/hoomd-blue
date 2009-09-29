@@ -79,9 +79,9 @@ class HarmonicDihedralForceCompute : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
     protected:
-        Scalar *m_K;    //!< K parameter for multiple dihedral tyes
-        Scalar *m_sign; //!< sign parameter for multiple dihedral types
-        Scalar *m_multi;//!< multiplicity parameter for multiple dihedral types
+        Scalar *m_K;     //!< K parameter for multiple dihedral tyes
+        Scalar *m_sign;  //!< sign parameter for multiple dihedral types
+        Scalar *m_multi; //!< multiplicity parameter for multiple dihedral types
         
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
         

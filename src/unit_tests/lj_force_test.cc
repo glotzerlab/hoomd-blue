@@ -90,7 +90,9 @@ const Scalar tol = 1e-6;
 const Scalar tol_small = 1e-4;
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)> ljforce_creator;
+typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<SystemDefinition> sysdef,
+													shared_ptr<NeighborList> nlist,
+													Scalar r_cut)> ljforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
 void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
@@ -462,14 +464,18 @@ void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec
     }
 
 //! LJForceCompute creator for unit tests
-shared_ptr<LJForceCompute> base_class_lj_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
+shared_ptr<LJForceCompute> base_class_lj_creator(shared_ptr<SystemDefinition> sysdef,
+												 shared_ptr<NeighborList> nlist,
+												 Scalar r_cut)
     {
     return shared_ptr<LJForceCompute>(new LJForceCompute(sysdef, nlist, r_cut));
     }
 
 #ifdef ENABLE_CUDA
 //! LJForceComputeGPU creator for unit tests
-shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)
+shared_ptr<LJForceCompute> gpu_lj_creator(shared_ptr<SystemDefinition> sysdef,
+										  shared_ptr<NeighborList> nlist,
+										  Scalar r_cut)
     {
     nlist->setStorageMode(NeighborList::full);
     shared_ptr<LJForceComputeGPU> lj(new LJForceComputeGPU(sysdef, nlist, r_cut));

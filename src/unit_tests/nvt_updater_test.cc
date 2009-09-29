@@ -1097,7 +1097,10 @@ double q_reference[]  = { 1.6 , 1.6000093706007106 , 1.6000373852098038 ,
 
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)> nvtup_creator;
+typedef boost::function<shared_ptr<NVTUpdater> (shared_ptr<SystemDefinition> sysdef,
+												Scalar deltaT,
+												Scalar Q,
+												Scalar T)> nvtup_creator;
 
 //! NVTUpdater creator
 shared_ptr<NVTUpdater> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)

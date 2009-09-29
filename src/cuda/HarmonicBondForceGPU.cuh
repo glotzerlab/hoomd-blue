@@ -52,6 +52,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __HARMONICBONDFORCEGPU_CUH__
 
 //! Kernel driver that computes harmonic bond forces for HarmonicBondForceComputeGPU
-cudaError_t gpu_compute_harmonic_bond_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_bondtable_array &btable, float2 *d_params, unsigned int n_bond_types, int block_size);
+cudaError_t gpu_compute_harmonic_bond_forces(const gpu_force_data_arrays& force_data,
+											 const gpu_pdata_arrays &pdata,
+											 const gpu_boxsize &box,
+											 const gpu_bondtable_array &btable,
+											 float2 *d_params,
+											 unsigned int n_bond_types,
+											 int block_size);
 
 #endif

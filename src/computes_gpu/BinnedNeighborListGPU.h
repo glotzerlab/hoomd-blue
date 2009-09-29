@@ -60,9 +60,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
     currently implemented.
      - Particles are currently binned on the CPU (index only)
      - Once transferred to the GPU, the binned indices are transposed and x,y,z coords
-        are interleaved with them
+       are interleaved with them
      - A kernel is launched on the GPU that reads this transposed/interleaved
-        bin list using textures to generate the neighbor list
+       bin list using textures to generate the neighbor list
 
     Currently, bins are ordered in memory based on a Z-order curve. m_mem_location[bin_idx]
     gives the real index at which to access that bin in memory.
@@ -109,11 +109,11 @@ class BinnedNeighborListGPU : public NeighborList
         Scalar m_avgNmax;       //!< Average number of particles per bin
         
         std::vector<gpu_bin_array> m_gpu_bin_data;  //!< The binned particle data
-        unsigned int *m_host_idxlist;   //!< Host bins
-        int m_block_size;               //!< Block size to use when performing the calculations on the GPU
-        unsigned int *m_mem_location;   //!< Memory location of bins (Z-order curve)
+        unsigned int *m_host_idxlist;               //!< Host bins
+        int m_block_size;                           //!< Block size to use when performing the calculations on the GPU
+        unsigned int *m_mem_location;				//!< Memory location of bins (Z-order curve)
         
-        bool m_ulf_workaround;          //!< Stores decision made by the constructor whether to enable the ULF workaround
+        bool m_ulf_workaround;						//!< Stores decision made by the constructor whether to enable the ULF workaround
         
         //! Builds the neighbor list
         virtual void buildNlist();

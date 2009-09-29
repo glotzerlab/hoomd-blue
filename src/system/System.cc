@@ -63,8 +63,8 @@ using namespace std;
     \param initial_tstep Initial time step of the simulation
 
     \post The System is constructed with no attached computes, updaters,
-        analyzers or integrators. Profiling defaults to disabled and
-        statistics are printed every 10 seconds.
+	analyzers or integrators. Profiling defaults to disabled and
+    statistics are printed every 10 seconds.
 */
 System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
         : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
@@ -77,7 +77,7 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
 /*! \param analyzer Shared pointer to the Analyzer to add
     \param name A unique name to identify the Analyzer by
     \param period Analyzer::analyze() will be called for every time step that is a multiple
-        of \a period.
+    of \a period.
 
     All Analyzers will be called, in the order that they are added, and with the specified
     \a period during time step calculations performed when run() is called. An analyzer
@@ -202,7 +202,7 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
 /*! \param updater Shared pointer to the Updater to add
     \param name A unique name to identify the Updater by
     \param period Updater::update() will be called for every time step that is a multiple
-        of \a period.
+    of \a period.
 
     All Updaters will be called, in the order that they are added, and with the specified
     \a period during time step calculations performed when run() is called. An updater

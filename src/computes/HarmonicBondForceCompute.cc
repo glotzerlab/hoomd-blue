@@ -64,8 +64,8 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef),
-        m_K(NULL), m_r_0(NULL)
+HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
+	: ForceCompute(sysdef), m_K(NULL), m_r_0(NULL)
     {
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();

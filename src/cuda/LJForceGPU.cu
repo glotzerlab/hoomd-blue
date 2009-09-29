@@ -84,7 +84,17 @@ texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<bool ulf_workaround, unsigned int shift_mode, bool slj> __global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data, gpu_pdata_arrays pdata, gpu_boxsize box, gpu_nlist_array nlist, float2 *d_coeffs, int coeff_width, float r_cutsq, float rcut6inv, float xplor_denom_inv, float r_on_sq)
+template<bool ulf_workaround, unsigned int shift_mode, bool slj>
+__global__ void gpu_compute_lj_forces_kernel(gpu_force_data_arrays force_data,
+											 gpu_pdata_arrays pdata,
+											 gpu_boxsize box,
+											 gpu_nlist_array nlist,
+											 float2 *d_coeffs,
+											 int coeff_width,
+											 float r_cutsq,
+											 float rcut6inv,
+											 float xplor_denom_inv,
+											 float r_on_sq)
     {
     // read in the coefficients
     extern __shared__ float2 s_coeffs[];
@@ -267,7 +277,13 @@ template<bool ulf_workaround, unsigned int shift_mode, bool slj> __global__ void
 
     This is just a driver for calcLJForces_kernel, see the documentation for it for more information.
 */
-cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const lj_options& opt)
+cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data,
+								  const gpu_pdata_arrays &pdata,
+								  const gpu_boxsize &box,
+								  const gpu_nlist_array &nlist,
+								  float2 *d_coeffs,
+								  int coeff_width,
+								  const lj_options& opt)
     {
     assert(d_coeffs);
     assert(coeff_width > 0);

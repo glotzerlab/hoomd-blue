@@ -62,7 +62,8 @@ void output_version_info(bool verbose)
         
     // output the compiled date and copyright information
     cout << "Compiled: " << COMPILE_DATE << endl;
-    cout << "Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan" << endl;
+    cout << "Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan" 
+		 << endl;
     
     // output the paper citation information
     cout << "-----" << endl;

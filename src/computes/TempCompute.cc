@@ -59,11 +59,11 @@ using namespace std;
 
 
 /*! \param sysdef System to compute temperature of
- *
- * Note: we have periodic boundary conditions, so we have
- * translational invariance, i.e. the number of degrees of
- * freedom is 3N-3 (minus constraints when implemented).
- */
+
+   Note: we have periodic boundary conditions, so we have
+   translational invariance, i.e. the number of degrees of
+   freedom is 3N-3 (minus constraints when implemented).
+*/
 TempCompute::TempCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_temp(0.0)
     {
     assert(m_pdata);

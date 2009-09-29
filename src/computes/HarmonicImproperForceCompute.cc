@@ -67,8 +67,8 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef) :    ForceCompute(sysdef),
-        m_K(NULL), m_chi(NULL)
+HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
+	: ForceCompute(sysdef), m_K(NULL), m_chi(NULL)
     {
     // access the improper data for later use
     m_improper_data = m_sysdef->getImproperData();
@@ -144,7 +144,9 @@ Scalar HarmonicImproperForceCompute::getLogValue(const std::string& quantity, un
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for ImproperForceCompute" << endl << endl;
+        cerr << endl << "***Error! " 
+			 << quantity << " is not a valid log quantity for ImproperForceCompute" 
+			 << endl << endl;
         throw runtime_error("Error getting log value");
         }
     }

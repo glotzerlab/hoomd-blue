@@ -57,7 +57,8 @@ using namespace boost::python;
 /*! \param sysdef System this compute will act on. Must not be NULL.
     \post The Updater is constructed with the given particle data and a NULL profiler.
 */
-Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf())
+Updater::Updater(boost::shared_ptr<SystemDefinition> sysdef) 
+	: m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf())
     {
     // sanity check
     assert(m_sysdef);

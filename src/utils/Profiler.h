@@ -98,7 +98,13 @@ class ProfileDataElem
         //! Output helper function
         void output(std::ostream &o, const std::string &name, int tab_level, int64_t total_time, int name_width) const;
         //! Another output helper function
-        void output_line(std::ostream &o, const std::string &name, double sec, double perc, double flops, double bytes, unsigned int name_width) const;
+        void output_line(std::ostream &o,
+						 const std::string &name,
+						 double sec,
+						 double perc,
+						 double flops,
+						 double bytes,
+						 unsigned int name_width) const;
         
         std::map<std::string, ProfileDataElem> m_children; //!< Child nodes of this profile
         

@@ -70,10 +70,10 @@ class BinnedNeighborList : public NeighborList
         virtual void printStats();
         
     protected:
-        std::vector< std::vector<unsigned int> > m_bins;    //!< Bins of particle indices
-        std::vector < std::vector<Scalar> > m_binned_x;     //!< coordinates of the particles in the bins
-        std::vector < std::vector<Scalar> > m_binned_y;     //!< coordinates of the particles in the bins
-        std::vector < std::vector<Scalar> > m_binned_z;     //!< coordinates of the particles in the bins
+        std::vector< std::vector<unsigned int> > m_bins;        //!< Bins of particle indices
+        std::vector < std::vector<Scalar> > m_binned_x;         //!< coordinates of the particles in the bins
+        std::vector < std::vector<Scalar> > m_binned_y;         //!< coordinates of the particles in the bins
+        std::vector < std::vector<Scalar> > m_binned_z;         //!< coordinates of the particles in the bins
         std::vector < std::vector<unsigned int> > m_binned_tag; //!< tags of the particles in the bins
         
         unsigned int m_Mx;  //!< Number of bins in x direction

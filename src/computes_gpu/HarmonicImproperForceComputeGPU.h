@@ -90,9 +90,9 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
         
     protected:
-        int m_block_size;       //!< Block size to run calculation on
+        int m_block_size;               //!< Block size to run calculation on
         vector<float2 *> m_gpu_params;  //!< Parameters stored on the GPU (k,chi)
-        float2 *m_host_params;  //!< Host parameters -- padded to float4 due to a problem with reading float 3s from texture cashe
+        float2 *m_host_params;          //!< Host parameters -- padded to float4
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

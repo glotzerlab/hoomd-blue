@@ -67,8 +67,8 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef) :    ForceCompute(sysdef),
-        m_K(NULL), m_sign(NULL), m_multi(NULL)
+HarmonicDihedralForceCompute::HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
+	: ForceCompute(sysdef), m_K(NULL), m_sign(NULL), m_multi(NULL)
     {
     // access the dihedral data for later use
     m_dihedral_data = m_sysdef->getDihedralData();
@@ -150,7 +150,9 @@ Scalar HarmonicDihedralForceCompute::getLogValue(const std::string& quantity, un
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for DihedralForceCompute" << endl << endl;
+        cerr << endl << "***Error! " 
+			 << quantity << " is not a valid log quantity for DihedralForceCompute" 
+			 << endl << endl;
         throw runtime_error("Error getting log value");
         }
     }

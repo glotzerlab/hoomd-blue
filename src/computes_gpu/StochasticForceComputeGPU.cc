@@ -73,8 +73,12 @@ using namespace std;
     \param deltaT Length of the computation timestep
     \param seed Seed for initializing the RNG
 */
-StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam)
-        : StochasticForceCompute(sysdef, deltaT, Temp, seed, use_diam)
+StochasticForceComputeGPU::StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+													 Scalar deltaT,
+													 boost::shared_ptr<Variant> Temp,
+													 unsigned int seed,
+													 bool use_diam)
+	: StochasticForceCompute(sysdef, deltaT, Temp, seed, use_diam)
     {
     // default block size is the highest performance in testing on different hardware
     // choose based on compute capability of the device

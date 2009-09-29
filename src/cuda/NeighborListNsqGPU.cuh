@@ -53,6 +53,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 //! Kernel driver to run GPU code called by NeighborListNsqGPU
-cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float r_maxsq);
+cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist,
+								  const gpu_pdata_arrays &pdata,
+								  const gpu_boxsize &box,
+								  float r_maxsq);
 
 #endif

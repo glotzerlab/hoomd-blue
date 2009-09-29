@@ -106,7 +106,7 @@ class MSDAnalyzer : public Analyzer
                     m_group(group), m_name(name) {}
                     
             boost::shared_ptr<ParticleGroup const> m_group; //!< A shared pointer to the group definition
-            std::string m_name;                     //!< The name to print across the file header
+            std::string m_name;                             //!< The name to print across the file header
             };
             
         std::vector<column> m_columns;  //!< List of groups to output

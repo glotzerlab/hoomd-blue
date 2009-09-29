@@ -84,7 +84,8 @@ const Scalar tol = 1e-3;
 const Scalar tol_small = 1e-4;
 
 //! Typedef'd LJWallForceCompute factory
-typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinition> sysdef, Scalar r_cut)> ljwallforce_creator;
+typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinition> sysdef,
+														Scalar r_cut)> ljwallforce_creator;
 
 //! Test the ability of the lj wall force compute to actually calculate forces
 void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionConfiguration exec_conf)

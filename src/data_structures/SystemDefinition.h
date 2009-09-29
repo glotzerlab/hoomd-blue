@@ -99,9 +99,17 @@ class SystemDefinition
         //! Constructs a NULL SystemDefinition
         SystemDefinition();
         //! Conctructs a SystemDefinition with a simply initialized ParticleData
-        SystemDefinition(unsigned int N, const BoxDim &box, unsigned int n_types=1, unsigned int n_bond_types=0, unsigned int n_angle_types=0, unsigned int n_dihedral_types=0, unsigned int n_improper_types=0, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+        SystemDefinition(unsigned int N,
+						 const BoxDim &box,
+						 unsigned int n_types=1,
+						 unsigned int n_bond_types=0,
+						 unsigned int n_angle_types=0,
+						 unsigned int n_dihedral_types=0,
+						 unsigned int n_improper_types=0,
+						 const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
         //! Construct from an initializer (temporary measure until the initializer setup is rewritten)
-        SystemDefinition(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
+        SystemDefinition(const ParticleDataInitializer& init,
+						 const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
         
         //! Initialize data
         int init();

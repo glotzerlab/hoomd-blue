@@ -89,7 +89,12 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NPTUpdator class factory
-typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P) > nptup_creator;
+typedef boost::function<shared_ptr<NPTUpdater> (shared_ptr<SystemDefinition> sysdef,
+												Scalar deltaT,
+												Scalar tau,
+												Scalar tauP,
+												Scalar T,
+												Scalar P) > nptup_creator;
 
 
 //! Basic functionality test of a generic NPTUpdater
@@ -233,7 +238,12 @@ void npt_updater_compare_test(nptup_creator npt_creator1, nptup_creator npt_crea
     }
 
 //! NPTUpdater factory for the unit tests
-shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
+shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<SystemDefinition> sysdef,
+											  Scalar deltaT,
+											  Scalar tau,
+											  Scalar tauP,
+											  Scalar T,
+											  Scalar P)
     {
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
@@ -242,7 +252,12 @@ shared_ptr<NPTUpdater> base_class_npt_creator(shared_ptr<SystemDefinition> sysde
 
 #ifdef ENABLE_CUDA
 //! NPTUpdaterGPU factory for the unit tests
-shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, Scalar T, Scalar P)
+shared_ptr<NPTUpdater> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef,
+									   Scalar deltaT,
+									   Scalar tau,
+									   Scalar tauP,
+									   Scalar T,
+									   Scalar P)
     {
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));

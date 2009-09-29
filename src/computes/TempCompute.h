@@ -81,7 +81,7 @@ class TempCompute : public Compute
             return m_temp;
             }
     protected:
-        Scalar m_temp;  //!< Stores the last computed value of the temperature
+        Scalar m_temp;      //!< Stores the last computed value of the temperature
         unsigned int m_dof; //!< Stores the number of degrees of freedom in the system
         
         //! Does the actual computation

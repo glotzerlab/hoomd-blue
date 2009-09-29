@@ -76,12 +76,16 @@ using namespace std;
 /*! \param sysdef System the neighborlist is to compute neighbors for
     \param r_cut Cuttoff radius under which particles are considered neighbors
     \param r_buff Buffer distance to include around the cutoff
-    \post The neighbor list is initialized and the list memory has been allocated,
-        but the list will not be computed until compute is called.
-    \post The storage mode defaults to full
-    \sa NeighborList
+    
+	\post The neighbor list is initialized and the list memory has been allocated,
+	but the list will not be computed until compute is called.
+    
+	\post The storage mode defaults to full
+    
+	\sa NeighborList
 */
-BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) : NeighborList(sysdef, r_cut, r_buff), m_block_size(64)
+BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) 
+	: NeighborList(sysdef, r_cut, r_buff), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)

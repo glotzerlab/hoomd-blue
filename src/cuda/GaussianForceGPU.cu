@@ -66,7 +66,7 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     \param d_coeffs Coefficients to the gaussian force.
     \param coeff_width Width of the coefficient matrix
     \param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
-        set to 0
+	set to 0
 
     \a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a epsilon for the type pair \a i, \a j.
     Similarly, .y is the \a sigma parameter. The values in d_coeffs are read into shared memory, so
@@ -193,7 +193,7 @@ template<bool ulf_workaround, unsigned int shift_mode> __global__ void gpu_compu
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param nlist Neighbor list stored on the gpu
     \param d_coeffs A \a coeff_width by \a coeff_width matrix of coefficients indexed by type
-        pair i,j. The x-component is epsilon and the y-component is sigma.
+           pair i,j. The x-component is epsilon and the y-component is sigma.
     \param coeff_width Width of the \a d_coeffs matrix.
     \param opt More execution options bundled up in a strct
 

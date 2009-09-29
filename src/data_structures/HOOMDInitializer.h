@@ -226,22 +226,17 @@ class HOOMDInitializer : public ParticleDataInitializer
         std::vector< unsigned int > m_type_array;   //!< type values for all particles loaded
         std::vector< Scalar > m_charge_array;       //!< charge of the particles loaded
         std::vector< Wall > m_walls;                //!< walls loaded from the file
+        std::vector< Bond > m_bonds;                //!< Bonds read in from the file
+        std::vector< Angle > m_angles;              //!< Angle read in from the file
+        std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
+        std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
+        unsigned int m_timestep;                    //!< The time stamp
         
-        std::vector< Bond > m_bonds;    //!< Bonds read in from the file
-        
-        std::vector< Angle > m_angles;  //!< Angle read in from the file
-        
-        std::vector< Dihedral > m_dihedrals;//!< Dihedral read in from the file
-        
-        std::vector< Dihedral > m_impropers;//!< Improper read in from the file
-        
-        unsigned int m_timestep;        //!< The time stamp
-        
-        std::vector<std::string> m_type_mapping;    //!< The created mapping between particle types and ids
-        std::vector<std::string> m_bond_type_mapping;   //!< The created mapping between bond types and ids
-        std::vector<std::string> m_angle_type_mapping;  //!< The created mapping between angle types and ids
-        std::vector<std::string> m_dihedral_type_mapping;//!< The created mapping between dihedral types and ids
-        std::vector<std::string> m_improper_type_mapping;//!< The created mapping between improper types and ids
+        std::vector<std::string> m_type_mapping;          //!< The created mapping between particle types and ids
+        std::vector<std::string> m_bond_type_mapping;     //!< The created mapping between bond types and ids
+        std::vector<std::string> m_angle_type_mapping;    //!< The created mapping between angle types and ids
+        std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
+        std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
         
     };
 

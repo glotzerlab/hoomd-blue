@@ -73,7 +73,8 @@ const int NLIST_BLOCK_SIZE = 128;
     the way this funciton loads data, all data arrays need to be padded so they have a multiple of
     blockDim.x elements.
 */
-extern "C" __global__ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata, gpu_boxsize box, float r_maxsq)
+extern "C" __global__ 
+void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata, gpu_boxsize box, float r_maxsq)
     {
     // shared data to store all of the particles we compare against
     __shared__ float sdata[NLIST_BLOCK_SIZE*4];

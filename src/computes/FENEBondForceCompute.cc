@@ -124,9 +124,7 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
     m_lj1[type] = 4*epsilon*pow(sigma,12);
     m_lj2[type] = 4*epsilon*pow(sigma,6);
     m_epsilon[type] = epsilon;
-    
-    //cout <<    "Setting FENE parameters K=" << K << ", r0=" << r_0 << ", sigma=" << sigma <<  ", lj1=" << m_lj1[type] << ", lj2=" << m_lj2[type] << ", epsilon=" << m_epsilon[type] << endl;
-    
+        
     // check for some silly errors a user could make
     if (K <= 0)
         cout << "***Warning! K <= 0 specified for fene bond" << endl;
@@ -160,7 +158,9 @@ Scalar FENEBondForceCompute::getLogValue(const std::string& quantity, unsigned i
         }
     else
         {
-        cerr << endl << "***Error! " << quantity << " is not a valid log quantity for FENEBondForceCompute" << endl << endl;
+        cerr << endl << "***Error! " << quantity 
+			 << " is not a valid log quantity for FENEBondForceCompute" 
+			 << endl << endl;
         throw runtime_error("Error getting log value");
         }
     }
@@ -286,8 +286,10 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         
         // calculate force and energy
         // MEM TRANSFER 2 Scalars: FLOPS: 13
-        Scalar forcemag_divr = -m_K[bond.type] / (Scalar(1.0) - rsq /(m_r_0[bond.type]*m_r_0[bond.type])) + WCAforcemag_divr;  //FLOPS 4
-        Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));
+        Scalar forcemag_divr = -m_K[bond.type] / (Scalar(1.0) - rsq /
+								(m_r_0[bond.type]*m_r_0[bond.type])) + WCAforcemag_divr;  //FLOPS 4
+        Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * 
+						   log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));
         
         // calculate virial (FLOPS: 2)
         Scalar bond_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
@@ -314,7 +316,9 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
     m_data_location = cpu;
 #endif
     
-    if (m_prof) m_prof->pop(m_bond_data->getNumBonds() * (3+9+5+13+2+16), m_pdata->getN() * 5 * sizeof(Scalar) + m_bond_data->getNumBonds() * ( (4) * sizeof(unsigned int) + (6+2+20) ) );
+    if (m_prof) m_prof->pop(m_bond_data->getNumBonds() * (3+9+5+13+2+16), 
+							m_pdata->getN() * 5 * sizeof(Scalar) + m_bond_data->getNumBonds() * 
+							( (4) * sizeof(unsigned int) + (6+2+20) ) );
     }
 
 void export_FENEBondForceCompute()

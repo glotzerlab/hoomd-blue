@@ -83,7 +83,10 @@ using namespace std;
 
     The default setting is to scale particle positions along with the box.
 */
-BoxResizeUpdater::BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<Variant> Lx, boost::shared_ptr<Variant> Ly, boost::shared_ptr<Variant> Lz)
+BoxResizeUpdater::BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
+								   boost::shared_ptr<Variant> Lx,
+								   boost::shared_ptr<Variant> Ly,
+								   boost::shared_ptr<Variant> Lz)
         : Updater(sysdef), m_Lx(Lx), m_Ly(Ly), m_Lz(Lz), m_scale_particles(true)
     {
     assert(m_pdata);
@@ -166,7 +169,10 @@ void BoxResizeUpdater::update(unsigned int timestep)
 void export_BoxResizeUpdater()
     {
     class_<BoxResizeUpdater, boost::shared_ptr<BoxResizeUpdater>, bases<Updater>, boost::noncopyable>
-    ("BoxResizeUpdater", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<Variant>, boost::shared_ptr<Variant>, boost::shared_ptr<Variant> >())
+    ("BoxResizeUpdater", init< boost::shared_ptr<SystemDefinition>,
+						 boost::shared_ptr<Variant>,
+						 boost::shared_ptr<Variant>,
+						 boost::shared_ptr<Variant> >())
     .def("setParams", &BoxResizeUpdater::setParams);
     }
 

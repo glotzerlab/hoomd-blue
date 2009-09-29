@@ -74,7 +74,9 @@ using namespace boost;
 #define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
 
 //! Shortcut for defining a factory
-typedef boost::function<shared_ptr<NeighborList> (shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)> nlist_creator_typ;
+typedef boost::function<shared_ptr<NeighborList> (shared_ptr<SystemDefinition> sysdef,
+												  Scalar r_cut,
+												  Scalar r_buff)> nlist_creator_typ;
 
 //! Performs basic functionality tests on a neighbor list
 void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
@@ -261,7 +263,9 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConf
     }
 
 //! Test two implementations of NeighborList and verify that the output is identical
-void neighborlist_comparison_test(nlist_creator_typ nlist_creator1, nlist_creator_typ nlist_creator2, ExecutionConfiguration exec_conf)
+void neighborlist_comparison_test(nlist_creator_typ nlist_creator1,
+								  nlist_creator_typ nlist_creator2,
+								  ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;

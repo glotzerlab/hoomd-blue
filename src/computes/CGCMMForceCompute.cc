@@ -62,8 +62,10 @@ using namespace std;
     \param r_cut Cuttoff radius beyond which the force is 0
     \post memory is allocated and all parameters ljX are set to 0.0
 */
-CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
-        : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
+CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+									 boost::shared_ptr<NeighborList> nlist,
+									 Scalar r_cut)
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
     {
     assert(m_pdata);
     assert(m_nlist);

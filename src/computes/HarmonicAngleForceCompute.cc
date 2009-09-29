@@ -67,8 +67,8 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) :  ForceCompute(sysdef),
-        m_K(NULL), m_t_0(NULL)
+HarmonicAngleForceCompute::HarmonicAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
+	:  ForceCompute(sysdef), m_K(NULL), m_t_0(NULL)
     {
     // access the angle data for later use
     m_angle_data = m_sysdef->getAngleData();

@@ -313,8 +313,9 @@ Scalar ForceCompute::calcEnergySum()
 
 /*! Access the computed forces on the CPU, this may require copying data from the GPU
     \returns Structure of arrays of the x,y,and z components of the forces on each particle
-            calculated by the last call to compute()
-    \note These are const pointers so the caller cannot muss with the data
+	calculated by the last call to compute()
+    
+	\note These are const pointers so the caller cannot muss with the data
  */
 const ForceDataArrays& ForceCompute::acquire()
     {

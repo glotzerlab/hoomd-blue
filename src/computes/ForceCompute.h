@@ -69,7 +69,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
     The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
 
-    The per particle virial is defined such that \f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
+    The per particle virial is defined such that 
+	\f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
 
     \ingroup data_structs
 */
@@ -173,16 +174,17 @@ class ForceCompute : public Compute
             m_particles_sorted = true;
             }
             
-        Scalar * __restrict__ m_fx; //!< x-component of the force
-        Scalar * __restrict__ m_fy; //!< y-component of the force
-        Scalar * __restrict__ m_fz; //!< z-component of the force
-        Scalar * __restrict__ m_pe; //!< per-particle potential energy (see ForceDataArrays for definition)
+        Scalar * __restrict__ m_fx;     //!< x-component of the force
+        Scalar * __restrict__ m_fy;     //!< y-component of the force
+        Scalar * __restrict__ m_fz;     //!< z-component of the force
+        Scalar * __restrict__ m_pe;     //!< per-particle potential energy (see ForceDataArrays for definition)
         Scalar * __restrict__ m_virial; //!< per-particle virial (see ForceDataArrays for definition)
-        int m_nbytes;   //!< stores the number of bytes of memory allocated
+        int m_nbytes;                   //!< stores the number of bytes of memory allocated
         
-        boost::signals::connection m_sort_connection;   //!< Connection to the signal notifying when particles are resorted
+		//! Connection to the signal notifying when particles are resorted
+        boost::signals::connection m_sort_connection;   
         
-        ForceDataArrays m_arrays;   //!< Structure-of-arrays for quick returning via acquire
+        ForceDataArrays m_arrays;       //!< Structure-of-arrays for quick returning via acquire
         
 #ifdef ENABLE_CUDA
         //! Simple type for identifying where the most up to date particle data is

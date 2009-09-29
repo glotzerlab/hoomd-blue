@@ -90,11 +90,9 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
         virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity);
         
     protected:
-        int m_block_size;       //!< Block size to run calculation on
-        //vector<float2 *> m_gpu_params;    //!< Parameters stored on the GPU
-        //float2 *m_host_params;    //!< Host parameters
+        int m_block_size;               //!< Block size to run calculation on
         vector<float4 *> m_gpu_params;  //!< Parameters stored on the GPU (k,sign,m)
-        float4 *m_host_params;  //!< Host parameters -- padded to float4 due to a problem with reading float 3s from texture cashe
+        float4 *m_host_params;          //!< Host parameters -- padded to float4
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
