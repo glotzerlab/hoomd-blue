@@ -41,13 +41,13 @@
 #################################
 ## Setup include directories and file lists for sub directories
 include_directories(${HOOMD_SOURCE_DIR}/utils ${HOOMD_SOURCE_DIR}/data_structures ${HOOMD_SOURCE_DIR}/computes
-					${HOOMD_SOURCE_DIR}/updaters ${HOOMD_SOURCE_DIR}/cuda ${HOOMD_SOURCE_DIR}/analyzers
-					${HOOMD_SOURCE_DIR}/computes_gpu
-					${HOOMD_SOURCE_DIR}/updaters_gpu
-					${HOOMD_SOURCE_DIR}/system
-					${HOOMD_SOURCE_DIR}/extern
-					${CUDA_INCLUDE}
-					${HOOMD_BINARY_DIR}/utils)
+                    ${HOOMD_SOURCE_DIR}/updaters ${HOOMD_SOURCE_DIR}/cuda ${HOOMD_SOURCE_DIR}/analyzers
+                    ${HOOMD_SOURCE_DIR}/computes_gpu
+                    ${HOOMD_SOURCE_DIR}/updaters_gpu
+                    ${HOOMD_SOURCE_DIR}/system
+                    ${HOOMD_SOURCE_DIR}/extern
+                    ${CUDA_INCLUDE}
+                    ${HOOMD_BINARY_DIR}/utils)
 
 # list of all sources in various source directories
 file(GLOB UTILS_SRCS ${HOOMD_SOURCE_DIR}/utils/*.cc ${HOOMD_SOURCE_DIR}/utils/*.h)
@@ -73,9 +73,9 @@ set(HOOMD_GPU_SRCS ${COMPUTES_GPU_SRCS} ${UPDATER_GPU_SRCS} ${CUDA_SRCS})
 
 # handle linux/mac and windows dates differently
 if (NOT WIN32)
-	exec_program("date" OUTPUT_VARIABLE COMPILE_DATE)
+    exec_program("date" OUTPUT_VARIABLE COMPILE_DATE)
 else(NOT WIN32)
-	exec_program("cmd" ARGS "/c date /T" OUTPUT_VARIABLE COMPILE_DATE)
+    exec_program("cmd" ARGS "/c date /T" OUTPUT_VARIABLE COMPILE_DATE)
 endif (NOT WIN32)
 
 configure_file (${HOOMD_SOURCE_DIR}/utils/HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/utils/HOOMDVersion.h)

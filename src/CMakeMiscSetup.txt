@@ -44,7 +44,7 @@
 OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" ON)
 mark_as_advanced(ENABLE_STATIC)
 if (ENABLE_STATIC)
-	add_definitions(-DENABLE_STATIC)
+    add_definitions(-DENABLE_STATIC)
 endif(ENABLE_STATIC)
 
 #################################
@@ -54,7 +54,7 @@ endif(ENABLE_STATIC)
 ## thus is not on by default.
 OPTION(LARGE_EXCLUSION_LIST "Increase the number of allowed exclusions from 4 to 16 per atom. Only needed for branched molecules with angles and dihedrals." OFF)
 if (LARGE_EXCLUSION_LIST)
-	add_definitions(-DLARGE_EXCLUSION_LIST)
+    add_definitions(-DLARGE_EXCLUSION_LIST)
 endif(LARGE_EXCLUSION_LIST)
 
 #################################
@@ -79,26 +79,26 @@ endif (DOXYGEN_FOUND)
 ################################
 ## thread safe compiling
 if(WIN32)
-	add_definitions(-D_MT)
+    add_definitions(-D_MT)
 elseif(UNIX)
-	add_definitions(-D_REENTRANT)
+    add_definitions(-D_REENTRANT)
 endif(WIN32)
 
 #################################
 ## On windows: we need winsock
 if (WIN32)
-	if(CMAKE_CL_64)
-	find_library(WINSOCK_LIB WSock32 PATHS 
-		$ENV{PLATFORMSDK_DIR}Lib/AMD64 "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib/AMD64" 
-		"$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib/AMD64" 
-		DOC "Path to WSock32.lib")
-	else(CMAKE_CL_64)
-	find_library(WINSOCK_LIB WSock32 PATHS
-		$ENV{PLATFORMSDK_DIR}Lib "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib" 
-		"$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib"
-		"$ENV{PROGRAMFILES}/Microsoft Platform SDK for Windows Server 2003 R2/Lib"
-		DOC "Path to WSock32.lib")
-	endif(CMAKE_CL_64)
+    if(CMAKE_CL_64)
+    find_library(WINSOCK_LIB WSock32 PATHS 
+        $ENV{PLATFORMSDK_DIR}Lib/AMD64 "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib/AMD64" 
+        "$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib/AMD64" 
+        DOC "Path to WSock32.lib")
+    else(CMAKE_CL_64)
+    find_library(WINSOCK_LIB WSock32 PATHS
+        $ENV{PLATFORMSDK_DIR}Lib "$ENV{PROGRAMFILES}/Microsoft Platform SDK/Lib" 
+        "$ENV{PROGRAMFILES}/Microsoft Visual Studio 8/VC/PlatformSDK/Lib"
+        "$ENV{PROGRAMFILES}/Microsoft Platform SDK for Windows Server 2003 R2/Lib"
+        DOC "Path to WSock32.lib")
+    endif(CMAKE_CL_64)
 endif (WIN32)
 
 if (WINSOCK_LIB)

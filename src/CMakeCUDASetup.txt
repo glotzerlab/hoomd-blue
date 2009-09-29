@@ -45,26 +45,26 @@
 remove_definitions (-DSINGLE_PRECISION)
 remove_definitions (-DENABLE_CUDA)
 if(SINGLE_PRECISION)
-	add_definitions (-DSINGLE_PRECISION)
+    add_definitions (-DSINGLE_PRECISION)
 
-	option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
+    option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
 
-	# add ENABLE_CUDA definition to compiler to enable #ifdef'd code
-	if (ENABLE_CUDA)
-		find_package(CUDA REQUIRED)
-		add_definitions (-DENABLE_CUDA)
-		
-		mark_as_advanced(CUDA_SDK_ROOT_DIR)
-		if (CUDA_TOOLKIT_ROOT_DIR)
-			mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
-		endif (CUDA_TOOLKIT_ROOT_DIR)
-		mark_as_advanced(CUDA_VERBOSE_BUILD)
+    # add ENABLE_CUDA definition to compiler to enable #ifdef'd code
+    if (ENABLE_CUDA)
+        find_package(CUDA REQUIRED)
+        add_definitions (-DENABLE_CUDA)
+        
+        mark_as_advanced(CUDA_SDK_ROOT_DIR)
+        if (CUDA_TOOLKIT_ROOT_DIR)
+            mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
+        endif (CUDA_TOOLKIT_ROOT_DIR)
+        mark_as_advanced(CUDA_VERBOSE_BUILD)
 
-		if (CUDA_BUILD_EMULATION)
-			add_definitions(-D_DEVICEEMU)
-		endif (CUDA_BUILD_EMULATION)
-	endif (ENABLE_CUDA)
-	
+        if (CUDA_BUILD_EMULATION)
+            add_definitions(-D_DEVICEEMU)
+        endif (CUDA_BUILD_EMULATION)
+    endif (ENABLE_CUDA)
+    
 endif(SINGLE_PRECISION)
 
 ###############
@@ -74,12 +74,12 @@ set(CUDA_ARCH 11 CACHE STRING "Target architecture to compile CUDA code for. Val
 # the arch is going to be passed on a command line: verify it so the user doesn't make any blunders
 set(_cuda_arch_ok FALSE)
 foreach(_valid_cuda_arch 10 11 12 13)
-	if (CUDA_ARCH EQUAL ${_valid_cuda_arch})
-		set(_cuda_arch_ok TRUE)
-	endif (CUDA_ARCH EQUAL ${_valid_cuda_arch})
-		endforeach(_valid_cuda_arch)
-	if (NOT _cuda_arch_ok)
-		message(FATAL_ERROR "Wrong CUDA_ARCH specified. Must be one of 10, 11, 12, or 13")
+    if (CUDA_ARCH EQUAL ${_valid_cuda_arch})
+        set(_cuda_arch_ok TRUE)
+    endif (CUDA_ARCH EQUAL ${_valid_cuda_arch})
+        endforeach(_valid_cuda_arch)
+    if (NOT _cuda_arch_ok)
+        message(FATAL_ERROR "Wrong CUDA_ARCH specified. Must be one of 10, 11, 12, or 13")
 endif (NOT _cuda_arch_ok)
 
 add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
@@ -91,5 +91,5 @@ endif(ENABLE_CUDA)
 option(DISABLE_ULF_WORKAROUND "Set to ON to enable higher performace at the cost of stability on pre C1060 GPUs" off)
 mark_as_advanced(DISABLE_ULF_WORKAROUND)	
 if (DISABLE_ULF_WORKAROUND)
-	add_definitions (-DDISABLE_ULF_WORKAROUND)
+    add_definitions (-DDISABLE_ULF_WORKAROUND)
 endif (DISABLE_ULF_WORKAROUND)
