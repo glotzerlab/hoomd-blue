@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -43,19 +43,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GPU_SETTINGS_H__
 #define __GPU_SETTINGS_H__
 
-extern "C" {
-
-extern bool g_gpu_error_checking;
-
+extern "C"
+    {
+    
+    extern bool g_gpu_error_checking;
+    
 // this is a bit of a hack, but it is a simple way to support calling cudaHostAlloc in CUDA 2.2 and previous builds
 #if (CUDA_VERSION < 2020)
-const int cudaDeviceBlockingSync = 0;
-const int cudaHostAllocPortable = 0;
+    const int cudaDeviceBlockingSync = 0;
+    const int cudaHostAllocPortable = 0;
 #endif
-cudaError_t cudaHostAllocHack(void **pHost, size_t bytes, unsigned int flags);
-cudaError_t cudaMallocHack(void **pDevice, size_t bytes);
-cudaError_t cudaMallocPitchHack(void **devPtr, size_t  *pitch, size_t   width, size_t   height);
-
-}
+    cudaError_t cudaHostAllocHack(void **pHost, size_t bytes, unsigned int flags);
+    cudaError_t cudaMallocHack(void **pDevice, size_t bytes);
+    cudaError_t cudaMallocPitchHack(void **devPtr, size_t  *pitch, size_t   width, size_t   height);
+    
+    }
 
 #endif

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file TempRescaleUpdater.cc
-	\brief Defines the TempRescaleUpdater class
+    \brief Defines the TempRescaleUpdater class
 */
 
 #ifdef WIN32
@@ -61,82 +61,82 @@ using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef System to set temperature on
-	\param tc TempCompute to compute the temperature with
-	\param tset Temperature set point
+    \param tc TempCompute to compute the temperature with
+    \param tset Temperature set point
 */
 TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<TempCompute> tc, Scalar tset)
-	: Updater(sysdef), m_tc(tc), m_tset(tset)
-	{
-	assert(m_pdata);
-	assert(tc);
-	if (m_tset < 0.0)
-		{
-		cerr << endl << "***Error! TempRescaleUpdater: Cannot set a negative temperature" << endl << endl;
-		throw runtime_error("Error initializing TempRescaleUpdater");
-		}
-	}
-	
-	
+        : Updater(sysdef), m_tc(tc), m_tset(tset)
+    {
+    assert(m_pdata);
+    assert(tc);
+    if (m_tset < 0.0)
+        {
+        cerr << endl << "***Error! TempRescaleUpdater: Cannot set a negative temperature" << endl << endl;
+        throw runtime_error("Error initializing TempRescaleUpdater");
+        }
+    }
+
+
 /*! Perform the proper velocity rescaling
-	\param timestep Current time step of the simulation
+    \param timestep Current time step of the simulation
 */
 void TempRescaleUpdater::update(unsigned int timestep)
-	{
-	// find the current temperature
+    {
+    // find the current temperature
+    
+    assert(m_tc);
+    m_tc->compute(timestep);
+    Scalar cur_temp = m_tc->getTemp();
+    
+    if (m_prof) m_prof->push("TempRescale");
+    
+    if (cur_temp < 1e-3)
+        {
+        cout << "Notice: TempRescaleUpdater cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
+        }
+    else
+        {
+        // calculate a fraction to scale the velocities by
+        Scalar fraction = sqrt(m_tset / cur_temp);
+        
+        // scale the particles velocities
+        assert(m_pdata);
+        ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+        
+        for (unsigned int i = 0; i < arrays.nparticles; i++)
+            {
+            arrays.vx[i] *= fraction;
+            arrays.vy[i] *= fraction;
+            arrays.vz[i] *= fraction;
+            }
+            
+        m_pdata->release();
+        }
+        
+    if (m_prof) m_prof->pop();
+    }
 
-	assert(m_tc);
-	m_tc->compute(timestep);
-	Scalar cur_temp = m_tc->getTemp();
-
-	if (m_prof) m_prof->push("TempRescale");
-
-	if (cur_temp < 1e-3)
-		{
-		cout << "Notice: TempRescaleUpdater cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
-		}
-	else
-		{
-		// calculate a fraction to scale the velocities by
-		Scalar fraction = sqrt(m_tset / cur_temp);
-		
-		// scale the particles velocities
-		assert(m_pdata);
-		ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-		
-		for (unsigned int i = 0; i < arrays.nparticles; i++)
-			{
-			arrays.vx[i] *= fraction;
-			arrays.vy[i] *= fraction;
-			arrays.vz[i] *= fraction;
-			}
-		
-		m_pdata->release();
-		}
-	
-	if (m_prof) m_prof->pop();
-	}
-	
 /*! \param tset New temperature set point
-	\note The new set point doesn't take effect until the next call to update()
+    \note The new set point doesn't take effect until the next call to update()
 */
 void TempRescaleUpdater::setT(Scalar tset)
-	{
-	m_tset = tset;
-	
-	if (m_tset < 0.0)
-		{
-		cerr << endl << "***Error! TempRescaleUpdater: Cannot set a negative temperature" << endl << endl;
-		throw runtime_error("Error initializing TempRescaleUpdater");
-		}
-	}
+    {
+    m_tset = tset;
+    
+    if (m_tset < 0.0)
+        {
+        cerr << endl << "***Error! TempRescaleUpdater: Cannot set a negative temperature" << endl << endl;
+        throw runtime_error("Error initializing TempRescaleUpdater");
+        }
+    }
 
 void export_TempRescaleUpdater()
-	{
-	class_<TempRescaleUpdater, boost::shared_ptr<TempRescaleUpdater>, bases<Updater>, boost::noncopyable>
-		("TempRescaleUpdater", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<TempCompute>, Scalar >())
-		.def("setT", &TempRescaleUpdater::setT)
-		;
-	}
+    {
+    class_<TempRescaleUpdater, boost::shared_ptr<TempRescaleUpdater>, bases<Updater>, boost::noncopyable>
+    ("TempRescaleUpdater", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<TempCompute>, Scalar >())
+    .def("setT", &TempRescaleUpdater::setT)
+    ;
+    }
 
 #ifdef WIN32
 #pragma warning( pop )

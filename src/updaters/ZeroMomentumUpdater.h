@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file ZeroMomentumUpdater.h
-	\brief Declares an updater that zeros the momentum of the system
+    \brief Declares an updater that zeros the momentum of the system
 */
 
 #include <boost/shared_ptr.hpp>
@@ -53,22 +53,22 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __ZEROMOMENTUMUPDATER_H__
 
 //! Updates particle velocities to zero the momentum
-/*! This simple updater just calculate the linear momentum of the system and subtracts it from every particle to 
-	zero it.
-	
-	\ingroup updaters
+/*! This simple updater just calculate the linear momentum of the system and subtracts it from every particle to
+    zero it.
+
+    \ingroup updaters
 */
 class ZeroMomentumUpdater : public Updater
-	{
-	public:
-		//! Constructor
-		ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef);
-		
-		//! Take one timestep forward
-		virtual void update(unsigned int timestep);
-	};
-	
+    {
+    public:
+        //! Constructor
+        ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
+    };
+
 //! Export the ZeroMomentumUpdater to python
 void export_ZeroMomentumUpdater();
-	
+
 #endif

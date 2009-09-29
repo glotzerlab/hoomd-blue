@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -47,40 +47,40 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 /*! \file AngleData.cuh
- 	\brief GPU data structures used in AngleData
+    \brief GPU data structures used in AngleData
 */
 
 //! Angle data stored on the GPU
 /*! gpu_angletable_array stores all of the angles between particles on the GPU.
-	It is structured similar to gpu_nlist_array in that a single column in the list
-	stores all of the angles for the particle associated with that column. 
-	
-	To access angle \em a of particle with local index \em i, use the following indexing scheme
-	\code
-	uint2 angle = angletable.angles[a*angletable.pitch + i]
-	\endcode
-	The particle with \b index (not tag) \em i is angled with particles \em angle.x
-        and \em angle.y	with angle type \em angle.z. Each particle may have a different number of angles as
-	indicated in \em n_angles[i].
-	
-	Only \a num_local angles are stored on each GPU for the local particles
-	
-	\ingroup gpu_data_structs
+    It is structured similar to gpu_nlist_array in that a single column in the list
+    stores all of the angles for the particle associated with that column.
+
+    To access angle \em a of particle with local index \em i, use the following indexing scheme
+    \code
+    uint2 angle = angletable.angles[a*angletable.pitch + i]
+    \endcode
+    The particle with \b index (not tag) \em i is angled with particles \em angle.x
+        and \em angle.y with angle type \em angle.z. Each particle may have a different number of angles as
+    indicated in \em n_angles[i].
+
+    Only \a num_local angles are stored on each GPU for the local particles
+
+    \ingroup gpu_data_structs
 */
 
 
 struct gpu_angletable_array
-	{
-	unsigned int *n_angles;	//!< Number of angles for each particle
-	uint4 *angles;			//!< angle list
-	unsigned int height;	//!< height of the angle list
-	unsigned int pitch;		//!< width (in elements) of the angle list
-
-	//! Allocates memory
-	cudaError_t allocate(unsigned int num_local, unsigned int alloc_height);
-	
-	//! Frees memory
-	cudaError_t deallocate();
-	};
+    {
+    unsigned int *n_angles; //!< Number of angles for each particle
+    uint4 *angles;          //!< angle list
+    unsigned int height;    //!< height of the angle list
+    unsigned int pitch;     //!< width (in elements) of the angle list
+    
+    //! Allocates memory
+    cudaError_t allocate(unsigned int num_local, unsigned int alloc_height);
+    
+    //! Frees memory
+    cudaError_t deallocate();
+    };
 
 #endif

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -75,73 +75,73 @@ const Scalar tol = 1e-6;
 #endif
 
 /*! \file temp_rescale_updater_test.cc
-	\brief Unit tests for the TempCompute and TempRescaleUpdater classes.
-	\ingroup unit_tests
+    \brief Unit tests for the TempCompute and TempRescaleUpdater classes.
+    \ingroup unit_tests
 */
 
 //! boost test case to verify proper operation of TempCompute
 BOOST_AUTO_TEST_CASE( TempCompute_basic )
-	{
-	#ifdef CUDA
-	g_gpu_error_checking = true;
-	#endif
-	
-	// verify that we can constructe a TempCompute properly
-	// create a simple particle data to test with
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-	
-	ParticleDataArrays arrays = pdata->acquireReadWrite();
-	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-	arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
-	arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
-	arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
-	pdata->release();
-	
-	// construct a TempCompute and see that everything is set properly
-	shared_ptr<TempCompute> tc(new TempCompute(sysdef));
-		
-	// check that we can actually compute temperature
-	tc->setDOF(3*pdata->getN());
-	tc->compute(0);
-	MY_BOOST_CHECK_CLOSE(tc->getTemp(), 15.1666666666666666666667, tol);
-	}
-	
+    {
+#ifdef CUDA
+    g_gpu_error_checking = true;
+#endif
+    
+    // verify that we can constructe a TempCompute properly
+    // create a simple particle data to test with
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
+    arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
+    arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
+    pdata->release();
+    
+    // construct a TempCompute and see that everything is set properly
+    shared_ptr<TempCompute> tc(new TempCompute(sysdef));
+    
+    // check that we can actually compute temperature
+    tc->setDOF(3*pdata->getN());
+    tc->compute(0);
+    MY_BOOST_CHECK_CLOSE(tc->getTemp(), 15.1666666666666666666667, tol);
+    }
+
 //! boost test case to verify proper operation of TempRescaleUpdater
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
-	{
-	#ifdef CUDA
-	g_gpu_error_checking = true;
-	#endif
-	
-	// create a simple particle data to test with
-	shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-	
-	ParticleDataArrays arrays = pdata->acquireReadWrite();
-	arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-	arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
-	arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
-	arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
-	pdata->release();
-	
-	// construct a TempCompute for the updater
-	shared_ptr<TempCompute> tc(new TempCompute(sysdef));
-	
-	// construct the updater and make sure everything is set properly
-	shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, Scalar(1.2)));
-	
-	// run the updater and check the new temperature
-	rescaler->update(0);
-	tc->compute(1);
-	MY_BOOST_CHECK_CLOSE(tc->getTemp(), 1.2, tol);
-	
-	// check that the setT method works
-	rescaler->setT(2.0);
-	rescaler->update(1);
-	tc->compute(2);
-	MY_BOOST_CHECK_CLOSE(tc->getTemp(), 2.0, tol);
-	}
+    {
+#ifdef CUDA
+    g_gpu_error_checking = true;
+#endif
+    
+    // create a simple particle data to test with
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
+    arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
+    arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
+    pdata->release();
+    
+    // construct a TempCompute for the updater
+    shared_ptr<TempCompute> tc(new TempCompute(sysdef));
+    
+    // construct the updater and make sure everything is set properly
+    shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, Scalar(1.2)));
+    
+    // run the updater and check the new temperature
+    rescaler->update(0);
+    tc->compute(1);
+    MY_BOOST_CHECK_CLOSE(tc->getTemp(), 1.2, tol);
+    
+    // check that the setT method works
+    rescaler->setT(2.0);
+    rescaler->update(1);
+    tc->compute(2);
+    MY_BOOST_CHECK_CLOSE(tc->getTemp(), 2.0, tol);
+    }
 
 #ifdef WIN32
 #pragma warning( pop )

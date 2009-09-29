@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file gpu_worker_test.cc
-	\brief Unit tests for the GPUWorker class
+    \brief Unit tests for the GPUWorker class
 */
 
 #ifdef WIN32
@@ -69,56 +69,56 @@ using namespace std;
 
 //! boost test case for GPUWorker basic operation
 BOOST_AUTO_TEST_CASE( GPUWorker_basic )
-	{
-	GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
-	
-	// try allocating and memcpying some data
-	float *d_float;
-	float h_float;
-	
-	// allocate and copy a float to the device
-	gpu.call(bind(cudaMalloc, (void **)((void *)&d_float), sizeof(float)));
-
-	h_float = 4.293f;
-	gpu.call(bind(cudaMemcpy, d_float, &h_float, sizeof(float), cudaMemcpyHostToDevice));
-
-	// clear the float and copy it back to see if everything worked
-	h_float = 0.0f;
-	gpu.call(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyDeviceToHost));
-	
-	BOOST_CHECK_EQUAL(h_float, 4.293f);
-	
-	gpu.call(bind(cudaFree, d_float));
-	}
+    {
+    GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
+    
+    // try allocating and memcpying some data
+    float *d_float;
+    float h_float;
+    
+    // allocate and copy a float to the device
+    gpu.call(bind(cudaMalloc, (void **)((void *)&d_float), sizeof(float)));
+    
+    h_float = 4.293f;
+    gpu.call(bind(cudaMemcpy, d_float, &h_float, sizeof(float), cudaMemcpyHostToDevice));
+    
+    // clear the float and copy it back to see if everything worked
+    h_float = 0.0f;
+    gpu.call(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyDeviceToHost));
+    
+    BOOST_CHECK_EQUAL(h_float, 4.293f);
+    
+    gpu.call(bind(cudaFree, d_float));
+    }
 
 //! boost test case for GPUWorker error detection
 BOOST_AUTO_TEST_CASE( GPUWorker_throw )
-	{
-	GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
-	
-	// try allocating and memcpying some data
-	float *d_float;
-	float h_float;
-	
-	// allocate and copy a float to the device
-	gpu.call(bind(cudaMalloc, (void **)((void *)&d_float), sizeof(float)));
-
-	h_float = 4.293f;
-	// purposefully switch pointers: this should introduce a CUDA error
-	// check that an exception is thrown
-	BOOST_CHECK_THROW(gpu.call(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyHostToDevice)), runtime_error);
-	
-	// the error should be cleared now
-	BOOST_CHECK_NO_THROW(gpu.sync());
-	
-	// test this through sync (which only works when not in device emu mode)
-	#ifndef _DEVICEEMU
-	gpu.callAsync(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyHostToDevice));
-	BOOST_CHECK_THROW(gpu.sync(), runtime_error);
-	#endif
-
-	gpu.call(bind(cudaFree, d_float));
-	}
+    {
+    GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
+    
+    // try allocating and memcpying some data
+    float *d_float;
+    float h_float;
+    
+    // allocate and copy a float to the device
+    gpu.call(bind(cudaMalloc, (void **)((void *)&d_float), sizeof(float)));
+    
+    h_float = 4.293f;
+    // purposefully switch pointers: this should introduce a CUDA error
+    // check that an exception is thrown
+    BOOST_CHECK_THROW(gpu.call(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyHostToDevice)), runtime_error);
+    
+    // the error should be cleared now
+    BOOST_CHECK_NO_THROW(gpu.sync());
+    
+    // test this through sync (which only works when not in device emu mode)
+#ifndef _DEVICEEMU
+    gpu.callAsync(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyHostToDevice));
+    BOOST_CHECK_THROW(gpu.sync(), runtime_error);
+#endif
+    
+    gpu.call(bind(cudaFree, d_float));
+    }
 
 #endif
 

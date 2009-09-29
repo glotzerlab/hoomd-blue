@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/updaters/NVEUpdater.h $
 
 /*! \file NVEUpdater.h
-	\brief Declares an updater that implements NVE dynamics
+    \brief Declares an updater that implements NVE dynamics
 */
 
 #include <vector>
@@ -55,53 +55,53 @@ THE POSSIBILITY OF SUCH DAMAGE.
 class SystemDefinition;
 
 //! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant energy (NVE) dynamics. Particle positions and velocities are 
-	updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
-	in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on 
-	each particle.
-	
-	\ingroup updaters
+/*! This updater performes constant N, constant volume, constant energy (NVE) dynamics. Particle positions and velocities are
+    updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
+    in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on
+    each particle.
+
+    \ingroup updaters
 */
 class NVERigidUpdater
-	{
-	public:
-		//! Constructor
-		NVERigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+    {
+    public:
+        //! Constructor
+        NVERigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+        
+        //! Setup the initial net forces, torques and angular momenta
+        void setup();
+        
+        //! First step of velocit Verlet integration
+        void initialIntegrate();
+        
+        //! Summing the net forces and torques
+        void computeForceAndTorque();
+        
+        //! Second step of velocit Verlet integration
+        void finalIntegrate();
+        
+    protected:
+        void set_xv();
+        void set_v();
+        
+        //! Private member functions using parameters to avoid duplicate array handles declaration
+        void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
+        void computeAngularVelocity(Scalar4 &angmom, Scalar4 &moment_inertia,
+                                    Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space,
+                                    Scalar4 &angvel);
+        void advanceQuaternion(Scalar4 &angmom, Scalar4 &moment_inertia, Scalar4 &angvel,
+                               Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
+        void multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c);
+        void normalize(Scalar4 &q);
+        
+        Scalar m_deltaT;
+        unsigned int m_n_bodies;
+        boost::shared_ptr<RigidData> m_rigid_data;
+        boost::shared_ptr<ParticleData> m_pdata;
+        
+        GPUArray<Scalar4> m_force;
+        GPUArray<Scalar4> m_torque;
+    };
 
-		//! Setup the initial net forces, torques and angular momenta
-		void setup();
-		
-		//! First step of velocit Verlet integration
-		void initialIntegrate();
-		
-		//! Summing the net forces and torques
-		void computeForceAndTorque();
-		
-		//! Second step of velocit Verlet integration
-		void finalIntegrate();
-			
-	protected:
-		void set_xv();
-		void set_v();
-		
-		//! Private member functions using parameters to avoid duplicate array handles declaration
-		void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
-		void computeAngularVelocity(Scalar4 &angmom, Scalar4 &moment_inertia, 
-									Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space,
-									Scalar4 &angvel);
-		void advanceQuaternion(Scalar4 &angmom, Scalar4 &moment_inertia, Scalar4 &angvel, 
-							   Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
-		void multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c);
-		void normalize(Scalar4 &q);
-		
-		Scalar m_deltaT;
-		unsigned int m_n_bodies;
-		boost::shared_ptr<RigidData> m_rigid_data;
-		boost::shared_ptr<ParticleData> m_pdata;
-		
-		GPUArray<Scalar4> m_force;
-		GPUArray<Scalar4> m_torque;
-	};
-	
-	
+
 #endif

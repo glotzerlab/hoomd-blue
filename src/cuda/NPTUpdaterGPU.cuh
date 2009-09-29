@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -49,20 +49,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 
 /*! \file NPTUpdaterGPU.cuh
-	\brief Declares GPU kernel code for NPT integration on the GPU. Used by NPTUpdaterGPU.
+    \brief Declares GPU kernel code for NPT integration on the GPU. Used by NPTUpdaterGPU.
 */
 
 //! Data structure storing needed intermediate values for NPT integration
 struct gpu_npt_data
-	{
-	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
-	float *Ksum;	//!< fully reduced Ksum on one GPU
-	float *partial_Wsum; //!< NBlocks elements, each is a partial sum of virials
-	float *Wsum;  //!< fully reduced Psum on one GPU
-	float *virial;  //!< Stores virials
-	int NBlocks;	//!< Number of blocks in the computation
-	int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
-	};
+    {
+    float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
+    float *Ksum;    //!< fully reduced Ksum on one GPU
+    float *partial_Wsum; //!< NBlocks elements, each is a partial sum of virials
+    float *Wsum;  //!< fully reduced Psum on one GPU
+    float *virial;  //!< Stores virials
+    int NBlocks;    //!< Number of blocks in the computation
+    int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
+    };
 
 
 //! Sums virials on the GPU. Used by NPTUpdaterGPU.

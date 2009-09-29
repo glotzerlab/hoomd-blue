@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -46,45 +46,45 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 /*! \file StochasticForceComputeGPU.h
-	\brief Declares a class for computing lennard jones forces on the GPU
+    \brief Declares a class for computing lennard jones forces on the GPU
 */
 
 #ifndef __STOCHASTICFORCECOMPUTEGPU_H__
 #define __STOCHASTICFORCECOMPUTEGPU_H__
 
 //! Computes a stochastic force on each particle using the GPU
-/*! Stochastic forces are calculated much faster on the GPU. This class 
-	has the same public	interface as StochasticForceCompute so that they can be used interchangably. 
-	
-	\b Developer information: <br>
-	This class operates as a wrapper around CUDA code written in C and compiled by 
-	nvcc. See stochasticforce_kernel.cu for detailed internal documentation.
-	\ingroup computes
+/*! Stochastic forces are calculated much faster on the GPU. This class
+    has the same public interface as StochasticForceCompute so that they can be used interchangably.
+
+    \b Developer information: <br>
+    This class operates as a wrapper around CUDA code written in C and compiled by
+    nvcc. See stochasticforce_kernel.cu for detailed internal documentation.
+    \ingroup computes
 */
 class StochasticForceComputeGPU : public StochasticForceCompute
-	{
-	public:
-		//! Constructs the compute
-		StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
-		
-		//! Destructor
-		virtual ~StochasticForceComputeGPU();
+    {
+    public:
+        //! Constructs the compute
+        StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
+        
+        //! Destructor
+        virtual ~StochasticForceComputeGPU();
+        
+        //! Set the force parameters
+        virtual void setParams(unsigned int typ, Scalar gamma);
+        
+        //! Sets the block size to run at
+        void setBlockSize(int block_size);
+        
+    protected:
+        vector<float *> d_gammas;       //!< Pointer to the coefficients on the GPU
+        float * h_gammas;               //!< Pointer to the coefficients on the host
+        int m_block_size;               //!< The block size to run on the GPU
+        
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+        
+    };
 
-		//! Set the force parameters
-		virtual void setParams(unsigned int typ, Scalar gamma);
-		
-		//! Sets the block size to run at
-		void setBlockSize(int block_size);
-
-	protected:
-		vector<float *> d_gammas;		//!< Pointer to the coefficients on the GPU
-		float * h_gammas;				//!< Pointer to the coefficients on the host
-		int m_block_size;				//!< The block size to run on the GPU
-
-		//! Actually compute the forces
-		virtual void computeForces(unsigned int timestep);
-		
-	};
-	
 
 #endif

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -46,7 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 /*! \file GaussianForceCompute.h
-	\brief Declares the GaussianForceCompute class
+    \brief Declares the GaussianForceCompute class
 */
 
 #ifndef __GAUSSIANFORCECOMPUTE_H__
@@ -54,58 +54,61 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes Gaussian forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
-	neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
-	to identify these neighbors. Calling compute() in this class will in turn result in a call to the 
-	NeighborList's compute() to make sure that the neighbor list is up to date.
-	
-	\f[ V(r) = \varepsilon \exp \left[ -\frac{1}{2} \left(\frac{r}{\sigma} \right)^2 \right] \f]
-	
-	\ingroup computes
+    neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
+    to identify these neighbors. Calling compute() in this class will in turn result in a call to the
+    NeighborList's compute() to make sure that the neighbor list is up to date.
+
+    \f[ V(r) = \varepsilon \exp \left[ -\frac{1}{2} \left(\frac{r}{\sigma} \right)^2 \right] \f]
+
+    \ingroup computes
 */
 class GaussianForceCompute : public ForceCompute
-	{
-	public:
-		//! Constructs the compute
-		GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
-		
-		//! Destructor
-		virtual ~GaussianForceCompute();
-		
-		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma);
-		
-		//! Returns a list of log quantities this compute calculates
-		virtual std::vector< std::string > getProvidedLogQuantities();
-		
-		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-		
-		//! Shifting modes that can be applied to the energy
-		enum energyShiftMode
-			{
-			no_shift = 0,
-			shift
-			};
-		
-		//! Set the mode to use for shifting the energy
-		void setShiftMode(energyShiftMode mode) { m_shift_mode = mode; }
-		
-	protected:
-		boost::shared_ptr<NeighborList> m_nlist;	//!< The neighborlist to use for the computation
-		Scalar m_r_cut;								//!< Cuttoff radius beyond which the force is set to 0
-		unsigned int m_ntypes;						//!< Store the width and height of lj1 and lj2 here
-		energyShiftMode m_shift_mode;				//!< Store the mode with which to handle the energy shift at r_cut
-		
-		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
-		// level concepts like mixing. That is for the caller to handle. So, I only store 
-		// epsilon and sigma here
-		Scalar * __restrict__ m_epsilon;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
-		Scalar * __restrict__ m_sigma;		//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
-		
-		//! Actually compute the forces
-		virtual void computeForces(unsigned int timestep);
-	};
-	
+    {
+    public:
+        //! Constructs the compute
+        GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+        
+        //! Destructor
+        virtual ~GaussianForceCompute();
+        
+        //! Set the parameters for a single type pair
+        virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma);
+        
+        //! Returns a list of log quantities this compute calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+        
+        //! Calculates the requested log value and returns it
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        
+        //! Shifting modes that can be applied to the energy
+        enum energyShiftMode
+            {
+            no_shift = 0,
+            shift
+            };
+            
+        //! Set the mode to use for shifting the energy
+        void setShiftMode(energyShiftMode mode)
+            {
+            m_shift_mode = mode;
+            }
+            
+    protected:
+        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        Scalar m_r_cut;                             //!< Cuttoff radius beyond which the force is set to 0
+        unsigned int m_ntypes;                      //!< Store the width and height of lj1 and lj2 here
+        energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
+        
+        // This is a low level force summing class, it ONLY sums forces, and doesn't do high
+        // level concepts like mixing. That is for the caller to handle. So, I only store
+        // epsilon and sigma here
+        Scalar * __restrict__ m_epsilon;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        Scalar * __restrict__ m_sigma;      //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
+
 //! Exports the GaussianForceCompute class to python
 void export_GaussianForceCompute();
 

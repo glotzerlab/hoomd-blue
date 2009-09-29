@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -44,63 +44,63 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_FFT
 
 /*! \file FFTClass.h
-	\brief Declares the FFTClass class
+    \brief Declares the FFTClass class
 */
 
 //! provides a general interface for fft in HOOMD
 /*! The three member functions are respectively, the 3D fft of a complex matrix, the fft of
-    a real matrix, and the fft of a complex matrix whose fft is a real matrix. The data 
-	types are three dimensional matrices.
-	\note This class is abstract and therefore cannot be instantiated.	     
+    a real matrix, and the fft of a complex matrix whose fft is a real matrix. The data
+    types are three dimensional matrices.
+    \note This class is abstract and therefore cannot be instantiated.
 */
 class FFTClass
-	{
-	public:
-
-	//! Complex FFT
-	/*! \param N_x number of grid points in the x axis
-		\param N_y number of grid points in the y axis
-		\param N_z number of grid points in the z axis
-		\param in 3D complex matrix labelled as a 1D dimensional matrix
-		\param out 3D complex matrix labelled as a 1D dimensional matrix
-		\param sig specify if the FFT is forwards or backward
-	
-		3D FFT of complex matrix in, result stored in matrix out, sign=-1 (forward)
-		or +1 (backward)
-
-		\todo document me
-	*/
-	virtual void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *in,CScalar *out,int sig)=0;
-	
-	//! Real to complex FFT
-	/*! \param N_x number of grid points in the x axis
-		\param N_y number of grid points in the y axis
-		\param N_z number of grid points in the z axis
-		\param in 3D scalar matrix labelled as a 1D dimensional matrix
-		\param out 3D complex matrix labelled as a 1D dimensional matrix
-	
-		3D FFT of real matrix in, result stored in matrix out, forward is implictly assumed
-	*/
-	virtual void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar *in,CScalar *out)=0;
-	
-	//! Complex to real FFT
-	/*! \param N_x number of grid points in the x axis
-		\param N_y number of grid points in the y axis
-		\param N_z number of grid points in the z axis
-		\param in 3D complex scalar matrix labelled as a 1D dimensional matrix
-		\param out 3D scalar matrix labelled as a 1D dimensional matrix
-	
-		3D FFT of complex matrix in, result is real and stored in matrix 
-		out, backward is implictly assumed
-
-		\todo document me
-	*/
-	virtual void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *in,Scalar *out)=0;
-	
-	//! Virtual destructor
-	virtual ~FFTClass() {}
-
-};
+    {
+    public:
+    
+        //! Complex FFT
+        /*! \param N_x number of grid points in the x axis
+            \param N_y number of grid points in the y axis
+            \param N_z number of grid points in the z axis
+            \param in 3D complex matrix labelled as a 1D dimensional matrix
+            \param out 3D complex matrix labelled as a 1D dimensional matrix
+            \param sig specify if the FFT is forwards or backward
+        
+            3D FFT of complex matrix in, result stored in matrix out, sign=-1 (forward)
+            or +1 (backward)
+        
+            \todo document me
+        */
+        virtual void cmplx_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *in,CScalar *out,int sig)=0;
+        
+        //! Real to complex FFT
+        /*! \param N_x number of grid points in the x axis
+            \param N_y number of grid points in the y axis
+            \param N_z number of grid points in the z axis
+            \param in 3D scalar matrix labelled as a 1D dimensional matrix
+            \param out 3D complex matrix labelled as a 1D dimensional matrix
+        
+            3D FFT of real matrix in, result stored in matrix out, forward is implictly assumed
+        */
+        virtual void real_to_compl_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,Scalar *in,CScalar *out)=0;
+        
+        //! Complex to real FFT
+        /*! \param N_x number of grid points in the x axis
+            \param N_y number of grid points in the y axis
+            \param N_z number of grid points in the z axis
+            \param in 3D complex scalar matrix labelled as a 1D dimensional matrix
+            \param out 3D scalar matrix labelled as a 1D dimensional matrix
+        
+            3D FFT of complex matrix in, result is real and stored in matrix
+            out, backward is implictly assumed
+        
+            \todo document me
+        */
+        virtual void compl_to_real_fft(unsigned int N_x,unsigned int N_y,unsigned int N_z,CScalar *in,Scalar *out)=0;
+        
+        //! Virtual destructor
+        virtual ~FFTClass() {}
+        
+    };
 
 #endif
 #endif

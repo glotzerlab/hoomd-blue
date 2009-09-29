@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -47,7 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 /*! \file SignalHandler.cc
-	\brief Defines variables and functions related to handling signals
+    \brief Defines variables and functions related to handling signals
 */
 
 //! Tracks the previous signal handler that was set to make a chain
@@ -57,38 +57,38 @@ volatile sig_atomic_t g_sigint_recvd = 0;
 
 //! The actual signal handler
 extern "C" void sigint_handler(int sig)
-	{
-	// ignore if we didn't get SIGINT
-	if (sig != SIGINT)
-		return;
-
-	// call the previous signal handler, but only if it is well defined
-	if (prev_sigint_handler && prev_sigint_handler != SIG_ERR && prev_sigint_handler != SIG_DFL && prev_sigint_handler != SIG_IGN)
-		prev_sigint_handler(sig);
-
-	// set the global
-	g_sigint_recvd = 1;
-	}
+    {
+    // ignore if we didn't get SIGINT
+    if (sig != SIGINT)
+        return;
+        
+    // call the previous signal handler, but only if it is well defined
+    if (prev_sigint_handler && prev_sigint_handler != SIG_ERR && prev_sigint_handler != SIG_DFL && prev_sigint_handler != SIG_IGN)
+        prev_sigint_handler(sig);
+        
+    // set the global
+    g_sigint_recvd = 1;
+    }
 
 /*! Call only once at the start of program execution. This method
-	installs a signal handler for SIGING that will set \c g_sigint_recvd
-	to 1. It will also call the previously set signal handler.
+    installs a signal handler for SIGING that will set \c g_sigint_recvd
+    to 1. It will also call the previously set signal handler.
 */
 void InstallSIGINTHandler()
-	{
-	void (*retval)(int) = NULL;
-	retval = signal(SIGINT, sigint_handler);
-
-	if (retval == SIG_ERR)
-		{
-		cerr << "Error setting signal handler" << endl;
-		return;
-		}
-
-	// set the previous signal handler, but only if it is not the same as the
-	// one we just set. That would make for a fun infinite loop!
-	if (retval != sigint_handler)
-		prev_sigint_handler = retval;
-	else
-		prev_sigint_handler = NULL;
-	}
+    {
+    void (*retval)(int) = NULL;
+    retval = signal(SIGINT, sigint_handler);
+    
+    if (retval == SIG_ERR)
+        {
+        cerr << "Error setting signal handler" << endl;
+        return;
+        }
+        
+    // set the previous signal handler, but only if it is not the same as the
+    // one we just set. That would make for a fun infinite loop!
+    if (retval != sigint_handler)
+        prev_sigint_handler = retval;
+    else
+        prev_sigint_handler = NULL;
+    }

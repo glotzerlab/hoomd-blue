@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -47,31 +47,31 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 /*! \file ForceCompute.cuh
- 	\brief Declares data structures for calculating forces on the GPU. Used by ForceCompute and descendants.
+    \brief Declares data structures for calculating forces on the GPU. Used by ForceCompute and descendants.
 */
 
 //! Force data stored on the GPU
 /*! Stores device pointers to allocated force data on the GPU. \a force[local_idx] holds the
-	x,y,z componets of the force and the potential energy in w for particle \em local_idx.
-	\a virial[local_idx] holds the single particle virial value for particle \em local_idx. See
-	 ForceDataArrays for a definition of what the single particle virial and potential energy
-	 mean.
-	
-	Only forces for particles belonging to a GPU are stored there, thus each array
-	is allocated to be of length \a local_num (see gpu_pdata_arrays)
-	
-	\ingroup gpu_data_structs
+    x,y,z componets of the force and the potential energy in w for particle \em local_idx.
+    \a virial[local_idx] holds the single particle virial value for particle \em local_idx. See
+     ForceDataArrays for a definition of what the single particle virial and potential energy
+     mean.
+
+    Only forces for particles belonging to a GPU are stored there, thus each array
+    is allocated to be of length \a local_num (see gpu_pdata_arrays)
+
+    \ingroup gpu_data_structs
 */
 struct gpu_force_data_arrays
-	{
-	float4 *force;	//!< Force in \a x, \a y, \a z and the single particle potential energy in \a w.
-	float *virial;	//!< Single particle virial
-	
-	//! Allocates memory
-	cudaError_t allocate(unsigned int num_local);
-	
-	//! Frees memory
-	cudaError_t deallocate();
-	};
+    {
+    float4 *force;  //!< Force in \a x, \a y, \a z and the single particle potential energy in \a w.
+    float *virial;  //!< Single particle virial
+    
+    //! Allocates memory
+    cudaError_t allocate(unsigned int num_local);
+    
+    //! Frees memory
+    cudaError_t deallocate();
+    };
 
 #endif

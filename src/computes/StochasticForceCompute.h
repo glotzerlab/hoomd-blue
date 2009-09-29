@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: phillicl
 
 /*! \file StochasticForceCompute.h
-	\brief Declares the StochasticForceCompute class
+    \brief Declares the StochasticForceCompute class
 */
 
 #include <boost/shared_ptr.hpp>
@@ -54,42 +54,48 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //! Adds a stochastic force to each particle and a drag force based on its velocity
-/*! 
-	\ingroup computes
+/*!
+    \ingroup computes
 */
-class StochasticForceCompute :	public ForceCompute
-	{
-	public:
-		//! Constructor
-		StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
-
-		//! Destructor
-		~StochasticForceCompute();
-		
-		//! Sets force parameters
-		virtual void setParams(unsigned int typ, Scalar gamma);
-		
-		//! Sets Temperature Parameter
-		virtual void setT(boost::shared_ptr<Variant> Temp) { m_T = Temp; }
-		
-		//! Sets timestep Parameter
-		virtual void setDeltaT(Scalar deltaT) { m_dt = deltaT; }
-		
-		//! Returns a list of log quantities this compute calculates
-		virtual std::vector< std::string > getProvidedLogQuantities(); 
-		
-	protected:
-		//! Computes forces
-		virtual void computeForces(unsigned int timestep);
-		
-		boost::shared_ptr<Variant> m_T;			//!< Temperature of the bath
-		Scalar m_dt;							//!< friction coefficient of the bath
-		unsigned int m_seed; 					//!< initializing seed for RNG
-		unsigned int m_ntypes; 					//!< Store the number of particle types
-		Scalar * __restrict__ m_gamma;			//!< Parameter for computing forces (m_ntypes by m_ntypes array)
-		bool m_use_diam; 						//!< This flag indicates whether gammas will be set by the type, or automatically set to the diameter
-		boost::shared_ptr<Saru> m_saru; 		//!< Store the instantiation of the Saru Random Number Geneator Class
-	};
+class StochasticForceCompute :  public ForceCompute
+    {
+    public:
+        //! Constructor
+        StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
+        
+        //! Destructor
+        ~StochasticForceCompute();
+        
+        //! Sets force parameters
+        virtual void setParams(unsigned int typ, Scalar gamma);
+        
+        //! Sets Temperature Parameter
+        virtual void setT(boost::shared_ptr<Variant> Temp)
+            {
+            m_T = Temp;
+            }
+            
+        //! Sets timestep Parameter
+        virtual void setDeltaT(Scalar deltaT)
+            {
+            m_dt = deltaT;
+            }
+            
+        //! Returns a list of log quantities this compute calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+        
+    protected:
+        //! Computes forces
+        virtual void computeForces(unsigned int timestep);
+        
+        boost::shared_ptr<Variant> m_T;         //!< Temperature of the bath
+        Scalar m_dt;                            //!< friction coefficient of the bath
+        unsigned int m_seed;                    //!< initializing seed for RNG
+        unsigned int m_ntypes;                  //!< Store the number of particle types
+        Scalar * __restrict__ m_gamma;          //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        bool m_use_diam;                        //!< This flag indicates whether gammas will be set by the type, or automatically set to the diameter
+        boost::shared_ptr<Saru> m_saru;         //!< Store the instantiation of the Saru Random Number Geneator Class
+    };
 
 
 //! Exports the StochasticForceCompute class to python

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file MOL2DumpWriter.h
-	\brief Declares the MOL2DumpWriter class
+    \brief Declares the MOL2DumpWriter class
 */
 
 #include <string>
@@ -54,26 +54,26 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __MOL2_DUMP_WRITER_H__
 
 //! Analyzer for writing out MOL2 dump files
-/*! MOL2DumpWriter writes a single .mol2 formated file each time analyze() is called. The timestep is 
-	added into the file name the same as HOOMDDumpWriter and PDBDumpWriter do.
-	
-	\ingroup analyzers
+/*! MOL2DumpWriter writes a single .mol2 formated file each time analyze() is called. The timestep is
+    added into the file name the same as HOOMDDumpWriter and PDBDumpWriter do.
+
+    \ingroup analyzers
 */
 class MOL2DumpWriter : public Analyzer
-	{
-	public:
-		//! Construct the writer
-		MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname_base);
-		
-		//! Write out the data for the current timestep
-		void analyze(unsigned int timestep);
-		
-		//! Write the mol2 file
-		void writeFile(std::string fname);
-	private:
-		std::string m_base_fname;	//!< String used to store the file name of the output file
-	};
-	
+    {
+    public:
+        //! Construct the writer
+        MOL2DumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string fname_base);
+        
+        //! Write out the data for the current timestep
+        void analyze(unsigned int timestep);
+        
+        //! Write the mol2 file
+        void writeFile(std::string fname);
+    private:
+        std::string m_base_fname;   //!< String used to store the file name of the output file
+    };
+
 //! Exports the MOL2DumpWriter class to python
 void export_MOL2DumpWriter();
 

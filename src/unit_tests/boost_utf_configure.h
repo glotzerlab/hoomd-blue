@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,14 +41,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file boost_utf_configure.h
-	\brief Helps unit tests setup the boost unit testing framework
-	\details boost, for whatever reason, has greatly changed the interface
-		for the unit testing framework over the versions. This header file
-		does it's best to setup BOOST_AUTO_TEST_CASE( ) to work for
-		any version of boost from 1.32 to 1.34 ... hopefully not much 
-		changes in 1.35
-	\note This file should be included only once and by a file that will 
-		compile into a unit test executable
+    \brief Helps unit tests setup the boost unit testing framework
+    \details boost, for whatever reason, has greatly changed the interface
+        for the unit testing framework over the versions. This header file
+        does it's best to setup BOOST_AUTO_TEST_CASE( ) to work for
+        any version of boost from 1.32 to 1.34 ... hopefully not much
+        changes in 1.35
+    \note This file should be included only once and by a file that will
+        compile into a unit test executable
 */
 
 // unit testing has changed much over the different boost versions: try to
@@ -66,7 +66,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #if (BOOST_VERSION >= 103400)
 #include <boost/test/unit_test.hpp>
-#else 
+#else
 //! Macro needed to define the main() function on older versions of boost
 #define BOOST_AUTO_TEST_MAIN
 #include <boost/test/auto_unit_test.hpp>

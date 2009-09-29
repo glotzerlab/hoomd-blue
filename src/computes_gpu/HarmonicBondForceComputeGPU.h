@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -52,49 +52,52 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signals.hpp>
 
 /*! \file HarmonicBondForceComputeGPU.h
-	\brief Declares the HarmonicBondForceGPU class
+    \brief Declares the HarmonicBondForceGPU class
 */
 
 #ifndef __HARMONICBONDFORCECOMPUTEGPU_H__
 #define __HARMONICBONDFORCECOMPUTEGPU_H__
 
 //! Implements the harmonic bond force calculation on the GPU
-/*!	HarmonicBondForceComputeGPU implements the same calculations as HarmonicBondForceCompute,
-	but executing on the GPU.
-	
-	Per-type parameters are stored in a simple global memory area pointed to by
-	\a m_gpu_params. They are stored as float2's with the \a x component being K and the
-	\a y component being r_0.
-	
-	The GPU kernel can be found in bondforce_kernel.cu.
+/*! HarmonicBondForceComputeGPU implements the same calculations as HarmonicBondForceCompute,
+    but executing on the GPU.
 
-	\ingroup computes
+    Per-type parameters are stored in a simple global memory area pointed to by
+    \a m_gpu_params. They are stored as float2's with the \a x component being K and the
+    \a y component being r_0.
+
+    The GPU kernel can be found in bondforce_kernel.cu.
+
+    \ingroup computes
 */
 class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute
-	{
-	public:
-		//! Constructs the compute
-		HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
-		//! Destructor
-		~HarmonicBondForceComputeGPU();
-		
-		//! Sets the block size to run on the device
-		/*! \param block_size Block size to set
-		*/
-		void setBlockSize(int block_size) { m_block_size = block_size; }
-		
-		//! Set the parameters
-		virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
-		
-	protected:
-		int m_block_size;		//!< Block size to run calculation on
-		vector<float2 *> m_gpu_params;	//!< Parameters stored on the GPU
-		float2 *m_host_params;	//!< Host parameters
-		
-		//! Actually compute the forces
-		virtual void computeForces(unsigned int timestep);
-	};
-	
+    {
+    public:
+        //! Constructs the compute
+        HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        //! Destructor
+        ~HarmonicBondForceComputeGPU();
+        
+        //! Sets the block size to run on the device
+        /*! \param block_size Block size to set
+        */
+        void setBlockSize(int block_size)
+            {
+            m_block_size = block_size;
+            }
+            
+        //! Set the parameters
+        virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
+        
+    protected:
+        int m_block_size;       //!< Block size to run calculation on
+        vector<float2 *> m_gpu_params;  //!< Parameters stored on the GPU
+        float2 *m_host_params;  //!< Host parameters
+        
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
+
 //! Export the BondForceComputeGPU class to python
 void export_HarmonicBondForceComputeGPU();
 

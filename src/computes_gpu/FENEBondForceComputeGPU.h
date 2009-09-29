@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -52,7 +52,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signals.hpp>
 
 /*! \file FENEBondForceComputeGPU.h
-	\brief Declares the FENEBondForceGPU class
+    \brief Declares the FENEBondForceGPU class
 */
 
 #ifndef __FENEBONDFORCECOMPUTEGPU_H__
@@ -60,46 +60,49 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Implements the fene bond force calculation on the GPU
 /*! FENEBondForceComputeGPU implements the same calculations as FENEBondForceCompute,
-	but executing on the GPU.
-	
-	The calculation on the GPU is structured after that used in HarmonicBondForceCompute.
-	See its documentation for more implementation details.
+    but executing on the GPU.
 
-	Per-type parameters are stored in a simple global memory area pointed to by
-	\a m_gpu_params. They are stored as float4's with the \a x component set to  K, the
-	\a y component set to r_0, the z component set to epsilon and the \a w component
-	set to sigma.
-	
-	The GPU computation is implemented in fenebondforce_kernel.cu
-	
-	\ingroup computes
+    The calculation on the GPU is structured after that used in HarmonicBondForceCompute.
+    See its documentation for more implementation details.
+
+    Per-type parameters are stored in a simple global memory area pointed to by
+    \a m_gpu_params. They are stored as float4's with the \a x component set to  K, the
+    \a y component set to r_0, the z component set to epsilon and the \a w component
+    set to sigma.
+
+    The GPU computation is implemented in fenebondforce_kernel.cu
+
+    \ingroup computes
 */
 class FENEBondForceComputeGPU : public FENEBondForceCompute
-	{
-	public:
-		//! Constructs the compute
-		FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
-		//! Destructor
-		~FENEBondForceComputeGPU();
-		
-		//! Sets the block size to run on the device
-		/*! \param block_size Block size to set
-		*/
-		void setBlockSize(int block_size) { m_block_size = block_size; }
-		
-		//! Set the parameters
-		virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon);
-				
-	protected:
-		int m_block_size;		//!< Block size to run calculation on
-		std::vector<float4 *> m_gpu_params;	//!< Parameters stored on the GPU
-		std::vector<int *> m_checkr;	//!< Error flag stored on the GPU
-		float4 *m_host_params;	//!< Host parameters
-				
-		//! Actually compute the forces
-		virtual void computeForces(unsigned int timestep);
-	};
-	
+    {
+    public:
+        //! Constructs the compute
+        FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        //! Destructor
+        ~FENEBondForceComputeGPU();
+        
+        //! Sets the block size to run on the device
+        /*! \param block_size Block size to set
+        */
+        void setBlockSize(int block_size)
+            {
+            m_block_size = block_size;
+            }
+            
+        //! Set the parameters
+        virtual void setParams(unsigned int type, Scalar K, Scalar r_0, Scalar sigma, Scalar epsilon);
+        
+    protected:
+        int m_block_size;       //!< Block size to run calculation on
+        std::vector<float4 *> m_gpu_params; //!< Parameters stored on the GPU
+        std::vector<int *> m_checkr;    //!< Error flag stored on the GPU
+        float4 *m_host_params;  //!< Host parameters
+        
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
+
 //! Export the BondForceComputeGPU class to python
 void export_FENEBondForceComputeGPU();
 

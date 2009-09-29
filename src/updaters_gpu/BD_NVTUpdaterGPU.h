@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: phillicl
 
 /*! \file BD_NVTUpdaterGPU.h
-	\brief Declares the BD_NVTUpdaterGPU class
+    \brief Declares the BD_NVTUpdaterGPU class
 */
 
 #include "BD_NVTUpdater.h"
@@ -52,20 +52,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __BD_NVTUPDATER_GPU_H__
 
 //! Brownian dynamics integration of particles
-/*!	\ingroup updaters
-	See BD_NVTUpdater for details. This class implements the same calculations on the GPU.	
+/*! \ingroup updaters
+    See BD_NVTUpdater for details. This class implements the same calculations on the GPU.
 */
 class BD_NVTUpdaterGPU : public BD_NVTUpdater
-	{
-	public:
-		//! Constructor
-		BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
-		
-		//! Take one timestep forward
-		virtual void update(unsigned int timestep);
-	};
-	
+    {
+    public:
+        //! Constructor
+        BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam);
+        
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
+    };
+
 //! Exports the BD_NVTUpdaterGPU class to python
 void export_BD_NVTUpdaterGPU();
-	
+
 #endif

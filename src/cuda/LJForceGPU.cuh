@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 
 /*! \file LJForceGPU.cuh
-	\brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
+    \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
 */
 
 #ifndef __LJFORCEGPU_CUH__
@@ -53,14 +53,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! options struct for passing additional options to gpu_compute_lj_forces
 struct lj_options
-	{
-	float r_cutsq;			//!< cutoff distance squared
-	int block_size;			//!< block size to execute on
-	float xplor_fraction;	//!< fraction at which xplor smoothing starts
-	bool ulf_workaround;	//!< Set to true to enable the ULF workaround
-	bool slj;	//!< Set to true to enable the ULF workaroudn	
-	unsigned int shift_mode;//!< Shift mode for pair energy
-	};
+    {
+    float r_cutsq;          //!< cutoff distance squared
+    int block_size;         //!< block size to execute on
+    float xplor_fraction;   //!< fraction at which xplor smoothing starts
+    bool ulf_workaround;    //!< Set to true to enable the ULF workaround
+    bool slj;   //!< Set to true to enable the ULF workaroudn
+    unsigned int shift_mode;//!< Shift mode for pair energy
+    };
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
 cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const lj_options& opt);

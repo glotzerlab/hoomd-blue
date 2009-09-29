@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -46,7 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 /*! \file LJForceCompute.h
-	\brief Declares the LJForceCompute class
+    \brief Declares the LJForceCompute class
 */
 
 #ifndef __LJFORCECOMPUTE_H__
@@ -54,71 +54,80 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes Lennard-Jones forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
-	neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
-	to identify these neighbors. Calling compute() in this class will in turn result in a call to the 
-	NeighborList's compute() to make sure that the neighbor list is up to date.
-	
-	Usage: Construct a LJForceCompute, providing it an already constructed ParticleData and NeighborList.
-	Then set parameters for all possible pairs of types by calling setParams. 
-	
-	Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but 
-	a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater. 
-	
-	\ingroup computes
+    neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
+    to identify these neighbors. Calling compute() in this class will in turn result in a call to the
+    NeighborList's compute() to make sure that the neighbor list is up to date.
+
+    Usage: Construct a LJForceCompute, providing it an already constructed ParticleData and NeighborList.
+    Then set parameters for all possible pairs of types by calling setParams.
+
+    Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
+    a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
+
+    \ingroup computes
 */
 class LJForceCompute : public ForceCompute
-	{
-	public:
-		//! Constructs the compute
-		LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
-		
-		//! Destructor
-		virtual ~LJForceCompute();
-		
-		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2);
-		
-		//! Returns a list of log quantities this compute calculates
-		virtual std::vector< std::string > getProvidedLogQuantities(); 
-		
-		//! Calculates the requested log value and returns it
-		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-		
-		//! Shifting modes that can be applied to the energy
-		enum energyShiftMode
-			{
-			no_shift = 0,
-			shift,
-			xplor
-			};
-		
-		//! Set the fraction of r_cut at which the xplor shifting is enabled (if that mode is set)
-		void setXplorFraction(Scalar f) { m_xplor_fraction = f; }
-		
-		//! Set the mode to use for shifting the energy
-		void setShiftMode(energyShiftMode mode) { m_shift_mode = mode; }
-		
-		//! Set the mode to use for shifting the energy
-		void setSLJ(bool mode) { m_slj = mode; }		
-		
-	protected:
-		boost::shared_ptr<NeighborList> m_nlist;	//!< The neighborlist to use for the computation
-		Scalar m_r_cut;								//!< Cuttoff radius beyond which the force is set to 0
-		unsigned int m_ntypes;						//!< Store the width and height of lj1 and lj2 here
-		energyShiftMode m_shift_mode;				//!< Store the mode with which to handle the energy shift at r_cut
-		Scalar m_xplor_fraction;					//!< Fraction of r_cut at which to turn on the xplor shifting
-		bool m_slj;									//!< Determines whether diameter shifted LJ is being used
-		
-		// This is a low level force summing class, it ONLY sums forces, and doesn't do high
-		// level concepts like mixing. That is for the caller to handle. So, I only store 
-		// lj1 and lj2 here
-		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
-		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
-		
-		//! Actually compute the forces
-		virtual void computeForces(unsigned int timestep);
-	};
-	
+    {
+    public:
+        //! Constructs the compute
+        LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+        
+        //! Destructor
+        virtual ~LJForceCompute();
+        
+        //! Set the parameters for a single type pair
+        virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2);
+        
+        //! Returns a list of log quantities this compute calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+        
+        //! Calculates the requested log value and returns it
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        
+        //! Shifting modes that can be applied to the energy
+        enum energyShiftMode
+            {
+            no_shift = 0,
+            shift,
+            xplor
+            };
+            
+        //! Set the fraction of r_cut at which the xplor shifting is enabled (if that mode is set)
+        void setXplorFraction(Scalar f)
+            {
+            m_xplor_fraction = f;
+            }
+            
+        //! Set the mode to use for shifting the energy
+        void setShiftMode(energyShiftMode mode)
+            {
+            m_shift_mode = mode;
+            }
+            
+        //! Set the mode to use for shifting the energy
+        void setSLJ(bool mode)
+            {
+            m_slj = mode;
+            }
+            
+    protected:
+        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        Scalar m_r_cut;                             //!< Cuttoff radius beyond which the force is set to 0
+        unsigned int m_ntypes;                      //!< Store the width and height of lj1 and lj2 here
+        energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
+        Scalar m_xplor_fraction;                    //!< Fraction of r_cut at which to turn on the xplor shifting
+        bool m_slj;                                 //!< Determines whether diameter shifted LJ is being used
+        
+        // This is a low level force summing class, it ONLY sums forces, and doesn't do high
+        // level concepts like mixing. That is for the caller to handle. So, I only store
+        // lj1 and lj2 here
+        Scalar * __restrict__ m_lj1;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        Scalar * __restrict__ m_lj2;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
+        
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
+
 //! Exports the LJForceCompute class to python
 void export_LJForceCompute();
 

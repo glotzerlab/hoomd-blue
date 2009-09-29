@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -47,7 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 /*! \file CGCMMForceComputeGPU.h
-	\brief Declares the class CGCMMForceComputeGPU
+    \brief Declares the class CGCMMForceComputeGPU
 */
 
 #ifndef __CGCMMFORCECOMPUTEGPU_H__
@@ -55,35 +55,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes CGCMM forces on each particle using the GPU
 /*! Calculates the same forces as CGCMMForceCompute, but on the GPU.
-	
-	The GPU kernel for calculating the forces is in cgcmmforcesum_kernel.cu.
-	\ingroup computes
+
+    The GPU kernel for calculating the forces is in cgcmmforcesum_kernel.cu.
+    \ingroup computes
 */
 class CGCMMForceComputeGPU : public CGCMMForceCompute
-	{
-	public:
-		//! Constructs the compute
-		CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
-		
-		//! Destructor
-		virtual ~CGCMMForceComputeGPU();
-		
-		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4);
-		
-		//! Sets the block size to run at
-		void setBlockSize(int block_size);
+    {
+    public:
+        //! Constructs the compute
+        CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+        
+        //! Destructor
+        virtual ~CGCMMForceComputeGPU();
+        
+        //! Set the parameters for a single type pair
+        virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj12, Scalar lj9, Scalar lj6, Scalar lj4);
+        
+        //! Sets the block size to run at
+        void setBlockSize(int block_size);
+        
+    protected:
+        vector<float4 *> d_coeffs;      //!< Pointer to the coefficients on the GPU
+        float4 * h_coeffs;              //!< Pointer to the coefficients on the host
+        int m_block_size;               //!< The block size to run on the GPU
+        bool m_ulf_workaround;          //!< Stores decision made by the constructor whether to enable the ULF workaround
+        
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
 
-	protected:
-		vector<float4 *> d_coeffs;		//!< Pointer to the coefficients on the GPU
-		float4 * h_coeffs;				//!< Pointer to the coefficients on the host
-		int m_block_size;				//!< The block size to run on the GPU
-		bool m_ulf_workaround;			//!< Stores decision made by the constructor whether to enable the ULF workaround
-
-		//! Actually compute the forces
-		virtual void computeForces(unsigned int timestep);
-	};
-	
 //! Exports the CGCMMForceComputeGPU class to python
 void export_CGCMMForceComputeGPU();
 

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: phillicl
 
 /*! \file BD_NVTUpdater.cc
-	\brief Defines the BD_NVTUpdater class
+    \brief Defines the BD_NVTUpdater class
 */
 
 #ifdef WIN32
@@ -65,85 +65,85 @@ using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef System to update
-	\param deltaT Time step to use
-	\param Temp Temperature to set
-	\param seed Random seed to use for the random force compuataion
+    \param deltaT Time step to use
+    \param Temp Temperature to set
+    \param seed Random seed to use for the random force compuataion
 */
 BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, boost::shared_ptr<Variant> Temp, unsigned int seed, bool use_diam) : NVEUpdater(sysdef, deltaT), m_T(Temp), m_seed(seed), m_bath(false), m_use_diam(use_diam)
-	{
-	#ifdef ENABLE_CUDA
-	// check the execution configuration
-	if (exec_conf.exec_mode == ExecutionConfiguration::CPU )
-		m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));
-	else
-		m_bdfc =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));
-	
-	#else
-	m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));
-	#endif
-	
-	addStochasticBath();
-	}
+    {
+#ifdef ENABLE_CUDA
+    // check the execution configuration
+    if (exec_conf.exec_mode == ExecutionConfiguration::CPU )
+        m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));
+    else
+        m_bdfc =  boost::shared_ptr<StochasticForceComputeGPU> (new StochasticForceComputeGPU(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));
+        
+#else
+    m_bdfc = boost::shared_ptr<StochasticForceCompute>(new StochasticForceCompute(m_sysdef, m_deltaT, m_T, m_seed, m_use_diam));
+#endif
+        
+    addStochasticBath();
+    }
 
-/*! The StochasticForceCompute is added to the list \a m_forces. 
-	The index to which it is added is tracked in a m_bath_index so that other calls
-	can reference it to set coefficients.
+/*! The StochasticForceCompute is added to the list \a m_forces.
+    The index to which it is added is tracked in a m_bath_index so that other calls
+    can reference it to set coefficients.
 */
 void BD_NVTUpdater::addStochasticBath()
-	{
-	if (m_bath)	
-		cout << "Stochastic Bath Already Added" << endl;
-	else 
-		{
-		addForceCompute(m_bdfc);	
-		m_bath = true;
-		}
-	}
+    {
+    if (m_bath)
+        cout << "Stochastic Bath Already Added" << endl;
+    else
+        {
+        addForceCompute(m_bdfc);
+        m_bath = true;
+        }
+    }
 
 /*! \param Temp Temperature of the Stochastic Bath
-*/	
+*/
 void BD_NVTUpdater::setT(boost::shared_ptr<Variant> Temp)
-	{
-	m_T = Temp;
-	m_bdfc->setT(m_T);
-	}
+    {
+    m_T = Temp;
+    m_bdfc->setT(m_T);
+    }
 
 /*! Disables the ForceComputes
-	Since the base class removes all force computes, this class flags that the stochastic bath
-	has been removed so it can be re-added when it is needed.
+    Since the base class removes all force computes, this class flags that the stochastic bath
+    has been removed so it can be re-added when it is needed.
 */
 void BD_NVTUpdater::removeForceComputes()
-	{
-	m_bath = false;
-	Integrator::removeForceComputes();
-	}
+    {
+    m_bath = false;
+    Integrator::removeForceComputes();
+    }
 
 /*! Uses velocity verlet
-	\param timestep Current time step of the simulation
-	
-	\pre Associated ParticleData is initialized, and particle positions and velocities 
-		are set for time timestep
-	\post Forces and accelerations are computed and particle's positions, velocities 
-		and accelartions are updated to their values at timestep+1.
+    \param timestep Current time step of the simulation
+
+    \pre Associated ParticleData is initialized, and particle positions and velocities
+        are set for time timestep
+    \post Forces and accelerations are computed and particle's positions, velocities
+        and accelartions are updated to their values at timestep+1.
 */
 void BD_NVTUpdater::update(unsigned int timestep)
-	{
-	// hack to get correct profiling
-	m_bdfc->setProfiler(m_prof);
+    {
+    // hack to get correct profiling
+    m_bdfc->setProfiler(m_prof);
+    
+    if (!m_bath) addStochasticBath();
+    NVEUpdater::update(timestep);
+    }
 
-	if (!m_bath) addStochasticBath();
-	NVEUpdater::update(timestep);
-	}
-
-//! Exports the BD_NVTUpdater class to python	
+//! Exports the BD_NVTUpdater class to python
 void export_BD_NVTUpdater()
-	{
-	class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<NVEUpdater>, boost::noncopyable>
-		("BD_NVTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, boost::shared_ptr<Variant>, unsigned int, bool >())
-		.def("setGamma", &BD_NVTUpdater::setGamma)
-		.def("setT", &BD_NVTUpdater::setT)
-		;
-	}
+    {
+    class_<BD_NVTUpdater, boost::shared_ptr<BD_NVTUpdater>, bases<NVEUpdater>, boost::noncopyable>
+    ("BD_NVTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, boost::shared_ptr<Variant>, unsigned int, bool >())
+    .def("setGamma", &BD_NVTUpdater::setGamma)
+    .def("setT", &BD_NVTUpdater::setT)
+    ;
+    }
 
 #ifdef WIN32
 #pragma warning( pop )

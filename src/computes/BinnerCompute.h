@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file BinnerCompute.h
-	\brief Declares a base class for all computes
+    \brief Declares a base class for all computes
 */
 
 #ifndef __BINNER_COMPUTE_H__
@@ -52,25 +52,25 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Simple structure for holding the binned particles
 struct BinData
-	{
-	//! Constructs an empty BinData
-	BinData();
-	//! Allocate and/or reallocate memory as needed to setup the bins given the parameters
-	void resize(const BoxDim& box, Scalar width);
-	
-	GPUArray< unsigned int > bin_idxlist;	//!< \a Nmax x (\a bin_dim.x x \a bin_dim.y x \a  bin_dim.z) 4D array holding the indices of the particles in each cell
-	GPUArray< uint4 > bin_coord;			//!< \a bin_dim.x x \a bin_dim.y x \a  bin_dim.z 1D array containing the coordinates of each bin
-	GPUArray< unsigned int > bin_adjlist;	//!< (\a bin_dim.x x \a bin_dim.y x \a  bin_dim.z) x 27 2D array listing the bins adjacect to bin x,y,z
-	GPUArray< unsigned int > bin_size;		//!< \a bin_dim.x x \a bin_dim.y x \a  bin_dim.z 1D array containing the size of each bin
-	
-	Scalar3 bin_shape;	//!< Length of each side of the bins in .x, .y, and .z
-	Scalar3 bin_scale;	//!< Scale factor to take particle coordinates into the bin coordinates in .x, .y, and .z
-	uint3 bin_dim;		//!< Dimensions of the 3D grid of bins
-	unsigned int Nmax;	//!< Maximum number of particles that can be stored in each bin
-	
-	private:
-		bool allocated;		//!< Set to true if this BinData has been allocated
-	};
+    {
+    //! Constructs an empty BinData
+    BinData();
+    //! Allocate and/or reallocate memory as needed to setup the bins given the parameters
+    void resize(const BoxDim& box, Scalar width);
+    
+    GPUArray< unsigned int > bin_idxlist;   //!< \a Nmax x (\a bin_dim.x x \a bin_dim.y x \a  bin_dim.z) 4D array holding the indices of the particles in each cell
+    GPUArray< uint4 > bin_coord;            //!< \a bin_dim.x x \a bin_dim.y x \a  bin_dim.z 1D array containing the coordinates of each bin
+    GPUArray< unsigned int > bin_adjlist;   //!< (\a bin_dim.x x \a bin_dim.y x \a  bin_dim.z) x 27 2D array listing the bins adjacect to bin x,y,z
+    GPUArray< unsigned int > bin_size;      //!< \a bin_dim.x x \a bin_dim.y x \a  bin_dim.z 1D array containing the size of each bin
+    
+    Scalar3 bin_shape;  //!< Length of each side of the bins in .x, .y, and .z
+    Scalar3 bin_scale;  //!< Scale factor to take particle coordinates into the bin coordinates in .x, .y, and .z
+    uint3 bin_dim;      //!< Dimensions of the 3D grid of bins
+    unsigned int Nmax;  //!< Maximum number of particles that can be stored in each bin
+    
+private:
+    bool allocated;     //!< Set to true if this BinData has been allocated
+    };
 
 
 #endif

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file BoxResizeUpdater.h
-	\brief Declares an updater that resizes the simulation box of the system
+    \brief Declares an updater that resizes the simulation box of the system
 */
 
 #include <boost/shared_ptr.hpp>
@@ -53,33 +53,33 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __BOXRESIZEUPDATER_H__
 
 //! Updates the simulation box over time
-/*! This simple updater gets the box lengths from specified variants and sets those box sizes 
-	over time. As an option, particles can be rescaled with the box lengths or left where they are.
-	
-	\ingroup updaters
+/*! This simple updater gets the box lengths from specified variants and sets those box sizes
+    over time. As an option, particles can be rescaled with the box lengths or left where they are.
+
+    \ingroup updaters
 */
 class BoxResizeUpdater : public Updater
-	{
-	public:
-		//! Constructor
-		BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<Variant> Lx, boost::shared_ptr<Variant> Ly, boost::shared_ptr<Variant> Lz);
-		
-		//! Sets parameter flags
-		void setParams(bool scale_particles);
-		
-		//! Take one timestep forward
-		virtual void update(unsigned int timestep);
-		
-	private:
-		boost::shared_ptr<Variant> m_Lx;	//!< Box Lx vs time
-		boost::shared_ptr<Variant> m_Ly;	//!< Box Ly vs time
-		boost::shared_ptr<Variant> m_Lz;	//!< Box Lz vs time
-		bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
+    {
+    public:
+        //! Constructor
+        BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<Variant> Lx, boost::shared_ptr<Variant> Ly, boost::shared_ptr<Variant> Lz);
+        
+        //! Sets parameter flags
+        void setParams(bool scale_particles);
+        
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
+        
+    private:
+        boost::shared_ptr<Variant> m_Lx;    //!< Box Lx vs time
+        boost::shared_ptr<Variant> m_Ly;    //!< Box Ly vs time
+        boost::shared_ptr<Variant> m_Lz;    //!< Box Lz vs time
+        bool m_scale_particles; //!< Set to true if particle positions are to be scaled as well
+        
+        
+    };
 
-
-	};
-	
 //! Export the BoxResizeUpdater to python
 void export_BoxResizeUpdater();
-	
+
 #endif

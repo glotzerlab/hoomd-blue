@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -39,35 +39,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "IndexTransform.h"
 
 /*! \file IndexTransform.cc
-	\brief Implements the code for the  CoordinateTransform class
+    \brief Implements the code for the  CoordinateTransform class
 */
 
 //! basically defines the following parameters
 IndexTransform::IndexTransform(void)
-{
+    {
 //constructor initializes to zero
-	N_1=0;
-	N_2=0;
-	N_3=0;
-}
+    N_1=0;
+    N_2=0;
+    N_3=0;
+    }
 
 IndexTransform::~IndexTransform()
-{
+    {
 // destructor does nothing
-}
-/*!				\param N1 number of grid points in the 1 axis
-			    \param N2 number of grid points in the 2 axis
-			    \param N3 number of grid points in the 3 axis
+    }
+/*!             \param N1 number of grid points in the 1 axis
+                \param N2 number of grid points in the 2 axis
+                \param N3 number of grid points in the 3 axis
 */
 void IndexTransform::SetD3to1D(unsigned int N1,unsigned int N2,unsigned int N3)
-{
-	N_1=N1;
-	N_2=N2;
-	N_3=N3;
-}
+    {
+    N_1=N1;
+    N_2=N2;
+    N_3=N3;
+    }
 
 unsigned int IndexTransform::D3To1D(unsigned int i,unsigned int j,unsigned int k) const
-{
-	return k+N_3*j+N_2*N_3*i;
-}
+    {
+    return k+N_3*j+N_2*N_3*i;
+    }
 
