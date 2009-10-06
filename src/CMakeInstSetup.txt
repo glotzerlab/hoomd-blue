@@ -41,17 +41,17 @@
 # setup flags to specify installation directories for files, these differ in
 # linux and windows
 if (WIN32)
-    # The "." needs to be there to install to the root directory of
-    # the specified install path, "" doesn't work
-    set(DATA_INSTALL_DIR ".")
-    set(LIB_INSTALL_DIR "bin")
-    set(BIN_INSTALL_DIR "bin")
+	# The "." needs to be there to install to the root directory of
+	# the specified install path, "" doesn't work
+	set(DATA_INSTALL_DIR ".")
+	set(LIB_INSTALL_DIR "bin")
+	set(BIN_INSTALL_DIR "bin")
 else (WIN32)
-    set(DATA_INSTALL_DIR "share/hoomd")
-    set(LIB_INSTALL_DIR "lib/hoomd")
-    set(BIN_INSTALL_DIR "bin")
+	set(DATA_INSTALL_DIR "share/hoomd")
+	set(LIB_INSTALL_DIR "lib/hoomd")
+	set(BIN_INSTALL_DIR "bin")
 endif (WIN32)
-
+ 
 
 ################################
 ## Version information
@@ -70,14 +70,14 @@ endif ("$URL$" MATCHES "codeblue.umich.edu/hoomd-blue/svn/tags")
 find_program(SVNVERSION_EXE "svnversion" DOC "svnversion executable")
 mark_as_advanced(SVNVERSION_EXE)
 if (SVNVERSION_EXE)
-    exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} ARGS ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
+	exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} ARGS ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
 else (SVNVERSION_EXE)
-    set(SVNVERSION "NA")
+	set(SVNVERSION "NA")
 endif (SVNVERSION_EXE)
 
 if(HOOMD_SUBVERSION_BUILD)
-    string(REGEX REPLACE ":" "_" SVNVERSION_UNDERSCORE ${SVNVERSION})
-    set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION}_beta${SVNVERSION_UNDERSCORE}")
+	string(REGEX REPLACE ":" "_" SVNVERSION_UNDERSCORE ${SVNVERSION})
+	set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION}_beta${SVNVERSION_UNDERSCORE}")
 endif(HOOMD_SUBVERSION_BUILD)
 
 #################################

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file TempCompute.cc
-    \brief Contains code for the TempCompute class
+	\brief Contains code for the TempCompute class
 */
 
 #ifdef WIN32
@@ -59,68 +59,68 @@ using namespace std;
 
 
 /*! \param sysdef System to compute temperature of
-
-   Note: we have periodic boundary conditions, so we have
-   translational invariance, i.e. the number of degrees of
-   freedom is 3N-3 (minus constraints when implemented).
-*/
+ *
+ * Note: we have periodic boundary conditions, so we have
+ * translational invariance, i.e. the number of degrees of
+ * freedom is 3N-3 (minus constraints when implemented).
+ */
 TempCompute::TempCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_temp(0.0)
-    {
-    assert(m_pdata);
-    m_dof = m_pdata->getN() * 3 - 3;
-    }
+	{
+	assert(m_pdata);
+	m_dof = m_pdata->getN() * 3 - 3;
+	}
 
 /*! Calls computeTemp if the temperature needs updating
-    \param timestep Current time step of the simulation
+	\param timestep Current time step of the simulation
 */
 void TempCompute::compute(unsigned int timestep)
-    {
-    if (!shouldCompute(timestep))
-        return;
-        
-    computeTemp();
-    }
-
+	{
+	if (!shouldCompute(timestep))
+		return;
+	
+	computeTemp();
+	}
+		
 
 /*! Computes the temperature by computing the kinetic energy and multiplying by the appropriate factor.
-    \note This is computed in reduced units
+	\note This is computed in reduced units
 */
 void TempCompute::computeTemp()
-    {
-    if (m_prof) m_prof->push("Temp");
-    
-    assert(m_pdata);
-    assert(m_dof != 0);
-    
-    // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
-    // total up kinetic energy
-    Scalar K = 0.0;
-    // K = Sum(m * v**2)
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        {
-        K += arrays.mass[i] * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
-        }
-        
-    // K = 1/2 * k_b * T * dof
-    // => T = K * 2 / dof / k_b
-    // but the variable K is already K*2
-    m_temp = K / Scalar(m_dof);
-    
-    m_pdata->release();
-    
-    if (m_prof) m_prof->pop();
-    }
+	{
+	if (m_prof) m_prof->push("Temp");
+	
+	assert(m_pdata);
+	assert(m_dof != 0);
+	
+	// access the particle data
+	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
+
+	// total up kinetic energy
+	Scalar K = 0.0;
+	// K = Sum(m * v**2)
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		{
+		K += arrays.mass[i] * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
+		}
+		
+	// K = 1/2 * k_b * T * dof
+	// => T = K * 2 / dof / k_b
+	// but the variable K is already K*2
+	m_temp = K / Scalar(m_dof);
+	
+	m_pdata->release();
+	
+	if (m_prof) m_prof->pop();
+	}
 
 void export_TempCompute()
-    {
-    class_<TempCompute, boost::shared_ptr<TempCompute>, bases<Compute>, boost::noncopyable >
-    ("TempCompute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("setDOF", &TempCompute::setDOF)
-    .def("getTemp", &TempCompute::getTemp)
-    ;
-    }
+	{
+	class_<TempCompute, boost::shared_ptr<TempCompute>, bases<Compute>, boost::noncopyable >
+		("TempCompute", init< boost::shared_ptr<SystemDefinition> >())
+		.def("setDOF", &TempCompute::setDOF)
+		.def("getTemp", &TempCompute::getTemp)
+		;
+	}
 
 #ifdef WIN32
 #pragma warning( pop )

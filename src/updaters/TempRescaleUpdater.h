@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file TempRescaleUpdater.h
-    \brief Declares an updater that rescales velocities to achieve a set temperature
+	\brief Declares an updater that rescales velocities to achieve a set temperature
 */
 
 #include <boost/shared_ptr.hpp>
@@ -54,29 +54,28 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __TEMPRESCALEUPDATER_H__
 
 //! Updates particle velocities to set a temperature
-/*! This updater computes the current temperature of the system and then scales the velocities in order to set the 
-	temperature.
-
-    \ingroup updaters
+/*! This updater computes the current temperature of the system and then scales the velocities in order to set the temperature.
+	
+	\ingroup updaters
 */
 class TempRescaleUpdater : public Updater
-    {
-    public:
-        //! Constructor
-        TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<TempCompute> tc, Scalar tset);
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-        
-        //! Change the timestep
-        void setT(Scalar tset);
-        
-    private:
-        boost::shared_ptr<TempCompute> m_tc;        //!< Computes the temperature
-        Scalar m_tset;                              //!< Temperature set point
-    };
-
+	{
+	public:
+		//! Constructor
+		TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<TempCompute> tc, Scalar tset);
+		
+		//! Take one timestep forward
+		virtual void update(unsigned int timestep);
+		
+		//! Change the timestep
+		void setT(Scalar tset);
+		
+	private:
+		boost::shared_ptr<TempCompute> m_tc;		//!< Computes the temperature
+		Scalar m_tset;			//!< Temperature set point
+	};
+	
 //! Export the TempRescaleUpdater to python
 void export_TempRescaleUpdater();
-
+	
 #endif

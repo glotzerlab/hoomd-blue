@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -48,7 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 /*! \file HarmonicBondForceCompute.h
-    \brief Declares a class for computing harmonic bonds
+	\brief Declares a class for computing harmonic bonds
 */
 
 #ifndef __HARMONICBONDFORCECOMPUTE_H__
@@ -57,37 +57,37 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Computes harmonic bond forces on each particle
 /*! Harmonic bond forces are computed on every particle in the simulation.
 
-    The bonds which forces are computed on are accessed from ParticleData::getBondData
-    \ingroup computes
+	The bonds which forces are computed on are accessed from ParticleData::getBondData
+	\ingroup computes
 */
 class HarmonicBondForceCompute : public ForceCompute
-    {
-    public:
-        //! Constructs the compute
-        HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
-        
-        //! Destructor
-        ~HarmonicBondForceCompute();
-        
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
-        
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-    protected:
-        Scalar *m_K;    //!< K parameter for multiple bond tyes
-        Scalar *m_r_0;  //!< r_0 parameter for multiple bond types
-        
-        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+	{
+	public:
+		//! Constructs the compute
+		HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+		
+		//! Destructor
+		~HarmonicBondForceCompute();
+		
+		//! Set the parameters
+		virtual void setParams(unsigned int type, Scalar K, Scalar r_0);
+		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities(); 
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+	protected:
+		Scalar *m_K;	//!< K parameter for multiple bond tyes
+		Scalar *m_r_0;	//!< r_0 parameter for multiple bond types
+		
+		boost::shared_ptr<BondData> m_bond_data;	//!< Bond data to use in computing bonds
+		
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
 //! Exports the BondForceCompute class to python
 void export_HarmonicBondForceCompute();
 

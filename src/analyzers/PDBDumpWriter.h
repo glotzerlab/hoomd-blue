@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file PDBDumpWriter.h
-    \brief Declares the PDBDumpWriter class
+	\brief Declares the PDBDumpWriter class
 */
 
 #include <string>
@@ -55,32 +55,29 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Analyzer for writing out HOOMD  dump files
 /*! PDBDumpWriter dumps the current positions of all particles (and optionall bonds) to a pdb file periodically
-    during a simulation.
+	during a simulation. 
 
-    \ingroup analyzers
+	\ingroup analyzers
 */
 class PDBDumpWriter : public Analyzer
-    {
-    public:
-        //! Construct the writer
-        PDBDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
-        
-        //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
-        
-        //! Set the output bond flag
-        void setOutputBond(bool enable)
-            {
-            m_output_bond = enable;
-            }
-            
-        //! Helper function to write file
-        void writeFile(std::string fname);
-    private:
-        std::string m_base_fname;   //!< String used to store the base file name of the PDB file
-        bool m_output_bond;         //!< Flag telling whether to output bonds
-    };
+	{
+	public:
+		//! Construct the writer
+		PDBDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
 
+		//! Write out the data for the current timestep
+		void analyze(unsigned int timestep);
+
+		//! Set the output bond flag
+		void setOutputBond(bool enable)	{ m_output_bond = enable; }
+	
+		//! Helper function to write file
+		void writeFile(std::string fname);	
+	private:
+		std::string m_base_fname;	//!< String used to store the base file name of the PDB file
+		bool m_output_bond;			//!< Flag telling whether to output bonds
+	};
+	
 //! Exports the PDBDumpWriter class to python
 void export_PDBDumpWriter();
 

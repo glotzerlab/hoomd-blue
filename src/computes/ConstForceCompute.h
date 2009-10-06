@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 
 /*! \file ConstForceCompute.h
-    \brief Declares a class for computing constant forces
+	\brief Declares a class for computing constant forces
 */
 
 #ifndef __CONSTFORCECOMPUTE_H__
@@ -55,20 +55,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup computes
 */
 class ConstForceCompute : public ForceCompute
-    {
-    public:
-        //! Constructs the compute
-        ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz);
-        
-        //! Set the force to a new value
-        void setForce(Scalar fx, Scalar fy, Scalar fz);
-        
-    protected:
-    
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
-
+	{
+	public:
+		//! Constructs the compute
+		ConstForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz);
+		
+		//! Set the force to a new value
+		void setForce(Scalar fx, Scalar fy, Scalar fz);
+		
+	protected:
+				
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
 //! Exports the ConstForceComputeClass to python
 void export_ConstForceCompute();
 

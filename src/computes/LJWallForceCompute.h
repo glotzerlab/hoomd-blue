@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file LJWallForceCompute.h
-    \brief Declares the LJWallForceCompute class
+	\brief Declares the LJWallForceCompute class
 */
 
 #include <boost/shared_ptr.hpp>
@@ -52,41 +52,38 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __LJWallForceCompute__
 
 //! Computes an LJ-type force between each particle and each wall in the simulation
-/*!
-    \ingroup computes
+/*! 
+	\ingroup computes
 */
-class LJWallForceCompute :  public ForceCompute
-    {
-    public:
-        //! Constructor
-        LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut);
-        //! Destructor
-        ~LJWallForceCompute();
-        //! Sets force parameters
-        virtual void setParams(unsigned int typ, Scalar lj1, Scalar lj2);
-        
-        //! Sets a new cuttoff
-        /*! \param r_cut New cuttoff to set */
-        void setRCut(Scalar r_cut)
-            {
-            m_r_cut = r_cut;
-            }
-            
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-    protected:
-        //! Computes forces
-        virtual void computeForces(unsigned int timestep);
-        
-        Scalar m_r_cut;         //!< Cuttoff distance beyond which the force is set to 0
-        
-        Scalar * __restrict__ m_lj1;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-        Scalar * __restrict__ m_lj2;    //!< Parameter for computing forces (m_ntypes by m_ntypes array)
-    };
+class LJWallForceCompute :	public ForceCompute
+	{
+	public:
+		//! Constructor
+		LJWallForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut);
+		//! Destructor
+		~LJWallForceCompute();
+		//! Sets force parameters
+		virtual void setParams(unsigned int typ, Scalar lj1, Scalar lj2);
+		
+		//! Sets a new cuttoff
+		/*! \param r_cut New cuttoff to set */
+		void setRCut(Scalar r_cut) { m_r_cut = r_cut; }
+		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities(); 
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);		
+
+	protected:
+		//! Computes forces
+		virtual void computeForces(unsigned int timestep);
+
+		Scalar m_r_cut;			//!< Cuttoff distance beyond which the force is set to 0
+
+		Scalar * __restrict__ m_lj1;	//!< Parameter for computing forces (m_ntypes by m_ntypes array)
+		Scalar * __restrict__ m_lj2;	//!< Parameter for computing forces	(m_ntypes by m_ntypes array)
+	};
 
 //! Exports the LJWallForceCompute class to python
 void export_LJWallForceCompute();

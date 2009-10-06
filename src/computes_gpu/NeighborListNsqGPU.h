@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file NeighborListNsqGPU.h
-    \brief Declares the NeighborListNsqGPU class
+	\brief Declares the NeighborListNsqGPU class
 */
 
 #include <vector>
@@ -54,30 +54,30 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __NEIGHBORLIST_NSQ_GPU_H__
 
 //! Computes a Neibhorlist from the particles
-/*! Calculates the same neighbor list that NeighborList does, but on the GPU.
-
-    This class implements the same O(N^2) algorithm as the base class.
-
-    The GPU kernel that does the calculations can be found in nlist_nsq_kernel.cu.
-    \ingroup computes
+/*!	Calculates the same neighbor list that NeighborList does, but on the GPU.
+	
+	This class implements the same O(N^2) algorithm as the base class.
+	
+	The GPU kernel that does the calculations can be found in nlist_nsq_kernel.cu.
+	\ingroup computes
 */
 class NeighborListNsqGPU : public NeighborList
-    {
-    public:
-        //! Constructs the compute
-        NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
-        
-        //! Destructor
-        virtual ~NeighborListNsqGPU();
-        
-    private:
-        //! Builds the neighbor list
-        virtual void buildNlist();
-        
-        //! Attempts to builds the neighbor list
-        virtual void buildNlistAttempt();
-    };
+	{
+	public:
+		//! Constructs the compute
+		NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
 
+		//! Destructor
+		virtual ~NeighborListNsqGPU();
+		
+	private:
+		//! Builds the neighbor list
+		virtual void buildNlist();
+		
+		//! Attempts to builds the neighbor list
+		virtual void buildNlistAttempt();
+	};
+	
 //! Exports the NeighborListNsqGPU class to python
 void export_NeighborListNsqGPU();
 

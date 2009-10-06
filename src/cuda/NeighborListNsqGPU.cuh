@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -49,13 +49,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.cuh"
 
 /*! \file NeighborListNsqGPU.cuh
-    \brief Declares data structures and methods used by NeighborListNsqGPU
+	\brief Declares data structures and methods used by NeighborListNsqGPU
 */
 
 //! Kernel driver to run GPU code called by NeighborListNsqGPU
-cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist,
-								  const gpu_pdata_arrays &pdata,
-								  const gpu_boxsize &box,
-								  float r_maxsq);
+cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float r_maxsq);
 
 #endif

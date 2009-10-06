@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file ClockSource.cc
-    \brief Defines the ClockSource class
+	\brief Defines the ClockSource class
 */
 
 #ifdef WIN32
@@ -60,34 +60,34 @@ using namespace std;
 
 /*! A newly constructed ClockSource should read ~0 when getTime() is called. There is no other way to reset the clock*/
 ClockSource::ClockSource() : m_start_time(0)
-    {
-    // take advantage of the initial 0 start time to assign a new start time
-    m_start_time = getTime();
-    }
+	{
+	// take advantage of the initial 0 start time to assign a new start time
+	m_start_time = getTime();
+	}
 
 /*! \param t the time to format
 */
 std::string ClockSource::formatHMS(int64_t t)
-    {
-    // separate out into hours minutes and seconds
-    int hours = int(t / (int64_t(3600) * int64_t(1000000000)));
-    t -= hours * int64_t(3600) * int64_t(1000000000);
-    int minutes = int(t / (int64_t(60) * int64_t(1000000000)));
-    t -= minutes * int64_t(60) * int64_t(1000000000);
-    int seconds = int(t / int64_t(1000000000));
-    
-    // format the string
-    ostringstream str;
-    str <<  setfill('0') << setw(2) << hours << ":" << setw(2) << minutes << ":" << setw(2) << seconds;
-    return str.str();
-    }
+	{
+	// separate out into hours minutes and seconds
+	int hours = int(t / (int64_t(3600) * int64_t(1000000000)));
+	t -= hours * int64_t(3600) * int64_t(1000000000);
+	int minutes = int(t / (int64_t(60) * int64_t(1000000000)));
+	t -= minutes * int64_t(60) * int64_t(1000000000);
+	int seconds = int(t / int64_t(1000000000));
+
+	// format the string
+	ostringstream str;
+	str <<  setfill('0') << setw(2) << hours << ":" << setw(2) << minutes << ":" << setw(2) << seconds;
+	return str.str();
+	}
 
 void export_ClockSource()
-    {
-    class_<ClockSource>("ClockSource")
-    .def("getTime", &ClockSource::getTime)
-    ;
-    }
+	{
+	class_<ClockSource>("ClockSource")
+		.def("getTime", &ClockSource::getTime)
+		;
+	}
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file NeighborListNsqGPU.cc
-    \brief Defines the NeighborListNsqGPU class
+	\brief Defines the NeighborListNsqGPU class
 */
 
 #ifdef WIN32
@@ -61,112 +61,111 @@ using namespace boost::python;
 using namespace boost;
 
 /*! \param sysdef System the neighborlist is to compute neighbors for
-    \param r_cut Cuttoff radius under which particles are considered neighbors
-    \param r_buff Buffer distance around the cuttoff within which particles are included
-    \post NeighborList is initialized and the list memory has been allocated,
-        but the list will not be computed until compute is called.
-    \post The storage mode defaults to half
-    \todo update docs
+	\param r_cut Cuttoff radius under which particles are considered neighbors
+	\param r_buff Buffer distance around the cuttoff within which particles are included
+	\post NeighborList is initialized and the list memory has been allocated,
+		but the list will not be computed until compute is called.
+	\post The storage mode defaults to half
+	\todo update docs
 */
-NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-        : NeighborList(sysdef, r_cut, r_buff)
-    {
-    // only one GPU is currently supported
-    if (exec_conf.gpu.size() == 0)
-        {
-        cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration"
-			 << endl << endl;
-        throw std::runtime_error("Error initializing NeighborListNsqGPU");
-        }
-    if (exec_conf.gpu.size() != 1)
-        {
-        cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
-        throw std::runtime_error("Error initializing NeighborListNsqGPU");
-        }
-        
-    m_storage_mode = full;
-    }
+NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff) 
+	: NeighborList(sysdef, r_cut, r_buff)
+	{
+	// only one GPU is currently supported
+	if (exec_conf.gpu.size() == 0)
+		{
+		cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+		throw std::runtime_error("Error initializing NeighborListNsqGPU");
+		}
+	if (exec_conf.gpu.size() != 1)
+		{
+		cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
+		throw std::runtime_error("Error initializing NeighborListNsqGPU");
+		}
+	
+	m_storage_mode = full;
+	}
 
 NeighborListNsqGPU::~NeighborListNsqGPU()
-    {
-    }
-
+	{
+	}
+		 
 /*! Makes all the calls needed to bring the neighbor list up to date on the GPU.
-    This requires attempting to build the list repeatedly, increasing the allocated
-    memory each time until the list does not overflow.
+	This requires attempting to build the list repeatedly, increasing the allocated 
+	memory each time until the list does not overflow.
 */
 void NeighborListNsqGPU::buildNlist()
-    {
-    buildNlistAttempt();
-    
-    // handle when the neighbor list overflows
-    int overflow = 0;
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
-    while (overflow)
-        {
-        int new_height = m_gpu_nlist[0].height * 2;
-        // cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
-        freeGPUData();
-        allocateGPUData(new_height);
-        updateExclusionData();
-        
-        buildNlist();
-        exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-        exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
-        }
-        
-    m_data_location = gpu;
-    }
-
+	{
+	buildNlistAttempt();
+		
+	// handle when the neighbor list overflows
+	int overflow = 0;
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+	while (overflow)
+		{
+		int new_height = m_gpu_nlist[0].height * 2;
+		// cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
+		freeGPUData();
+		allocateGPUData(new_height);
+		updateExclusionData();
+		
+		buildNlist();
+		exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+		exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+		}
+		
+	m_data_location = gpu;
+	}
+	
 /*! Builds the neighbor list on the GPU and flags an overflow if the list would overflow the
-    current allocated memory.
-
-    Calls gpu_compute_nlist_nsq to do the dirty work.
+	current allocated memory.
+	
+	Calls gpu_compute_nlist_nsq to do the dirty work.
 */
 void NeighborListNsqGPU::buildNlistAttempt()
-    {
-    if (m_storage_mode != full)
-        {
-        cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
-        throw runtime_error("Error computing neighbor list in NeighborListNsqGPU");
-        }
-        
-    // access the particle data
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
-    gpu_boxsize box = m_pdata->getBoxGPU();
-    
-    if (box.Lx <= (m_r_cut+m_r_buff) * 2.0 || box.Ly <= (m_r_cut+m_r_buff) * 2.0 || box.Lz <= (m_r_cut+m_r_buff) * 2.0)
-        {
-        cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
-        throw runtime_error("Error updating neighborlist bins");
-        }
-        
-    // create a temporary copy of r_max sqaured
-    Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
-    
-    if (m_prof) m_prof->push(exec_conf, "Build list");
-    
-    // calculate the nlist
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_compute_nlist_nsq, m_gpu_nlist[0], pdata[0], box, r_max_sq));
-    
-    // amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
-    int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;
-    // number of flops is 21 for each N*N
-    int64_t flops = int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*21;
-    
-    m_pdata->release();
-    
-    if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
-    }
+	{
+	if (m_storage_mode != full)
+		{
+		cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
+		throw runtime_error("Error computing neighbor list in NeighborListNsqGPU");
+		}	
+	
+	// access the particle data
+	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+	gpu_boxsize box = m_pdata->getBoxGPU();
+
+	if (box.Lx <= (m_r_cut+m_r_buff) * 2.0 || box.Ly <= (m_r_cut+m_r_buff) * 2.0 || box.Lz <= (m_r_cut+m_r_buff) * 2.0)
+		{
+		cerr << endl << "***Error! Simulation box is too small! Particles would be interacting with themselves." << endl << endl;
+		throw runtime_error("Error updating neighborlist bins");
+		}	
+
+	// create a temporary copy of r_max sqaured
+	Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
+	
+	if (m_prof) m_prof->push(exec_conf, "Build list");
+	
+	// calculate the nlist
+	exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
+	exec_conf.gpu[0]->call(bind(gpu_compute_nlist_nsq, m_gpu_nlist[0], pdata[0], box, r_max_sq));
+
+	// amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
+	int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;
+	// number of flops is 21 for each N*N
+	int64_t flops = int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*21;
+
+	m_pdata->release();
+
+	if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
+	}
 
 void export_NeighborListNsqGPU()
-    {
-    class_<NeighborListNsqGPU, boost::shared_ptr<NeighborListNsqGPU>, bases<NeighborList>, boost::noncopyable >
-    ("NeighborListNsqGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-    ;
-    }
+	{
+	class_<NeighborListNsqGPU, boost::shared_ptr<NeighborListNsqGPU>, bases<NeighborList>, boost::noncopyable >
+		("NeighborListNsqGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+		;
+	}
 
 #ifdef WIN32
 #pragma warning( pop )

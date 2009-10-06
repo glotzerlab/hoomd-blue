@@ -46,8 +46,8 @@ if(ENABLE_STATIC)
 set(Boost_USE_STATIC_LIBS "ON")
 else(ENABLE_STATIC)
 if(WIN32)
-    message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
-        you really want this feature, make it work yourself")
+	message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
+		you really want this feature, make it work yourself")
 endif(WIN32)
 set(Boost_USE_STATIC_LIBS "OFF")
 endif(ENABLE_STATIC)

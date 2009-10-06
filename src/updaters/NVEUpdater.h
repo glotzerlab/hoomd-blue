@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file NVEUpdater.h
-    \brief Declares an updater that implements NVE dynamics
+	\brief Declares an updater that implements NVE dynamics
 */
 
 #include "Updater.h"
@@ -53,40 +53,40 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __NVEUPDATER_H__
 
 //! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant energy (NVE) dynamics. Particle positions and 
-	velocities are updated according to the velocity verlet algorithm. The forces that drive this motion are defined 
-	external to this class in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be 
-	summed to produce a net force on each particle.
-
-    \ingroup updaters
+/*! This updater performes constant N, constant volume, constant energy (NVE) dynamics. Particle positions and velocities are 
+	updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
+	in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on 
+	each particle.
+	
+	\ingroup updaters
 */
 class NVEUpdater : public Integrator
-    {
-    public:
-        //! Constructor
-        NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-        
-        //! Sets the movement limit
-        void setLimit(Scalar limit);
-        
-        //! Removes the limit
-        void removeLimit();
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-    protected:
-        bool m_accel_set;   //!< Flag to tell if we have set the accelleration yet
-        bool m_limit;       //!< True if we should limit the distance a particle moves in one step
-        Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
-        
-        boost::shared_ptr<class NVERigidUpdater> m_rigid_updater;   //! The updater for rigid bodies, if any
-    };
-
+	{
+	public:
+		//! Constructor
+		NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+		
+		//! Sets the movement limit
+		void setLimit(Scalar limit);
+		
+		//! Removes the limit
+		void removeLimit();
+		
+		//! Take one timestep forward
+		virtual void update(unsigned int timestep);
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+		
+	protected:
+		bool m_accel_set;	//!< Flag to tell if we have set the accelleration yet
+		bool m_limit;		//!< True if we should limit the distance a particle moves in one step
+		Scalar m_limit_val;	//!< The maximum distance a particle is to move in one step
+	
+		boost::shared_ptr<class NVERigidUpdater> m_rigid_updater;	//! The updater for rigid bodies, if any
+	};
+	
 //! Exports the NVEUpdater class to python
 void export_NVEUpdater();
-
+	
 #endif

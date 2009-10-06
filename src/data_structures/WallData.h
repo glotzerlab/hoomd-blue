@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file WallData.h
-    \brief Contains declarations for WallData.
+ 	\brief Contains declarations for WallData.
  */
 
 #include <math.h>
@@ -54,77 +54,77 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Simple structure representing a single wall
 /*! Walls are represented by an origin and a unit length normal.
-    \ingroup data_structs
+	\ingroup data_structs
 */
 struct Wall
-    {
-    //! Constructor
-    /*! \param ox Origin x-component
-        \param oy Origin y-component
-        \param oz Origin z-component
-        \param nx Origin x-component
-        \param ny Normal y-component
-        \param nz Normal z-component
-    */
-    Wall(Scalar ox=0.0, Scalar oy=0.0, Scalar oz=0.0, Scalar nx=1.0, Scalar ny=0.0, Scalar nz=0.0)
-            : origin_x(ox), origin_y(oy), origin_z(oz)
-        {
-        // normalize nx,ny,nz
-        Scalar len = sqrt(nx*nx + ny*ny + nz*nz);
-        normal_x = nx / len;
-        normal_y = ny / len;
-        normal_z = nz / len;
-        }
-        
-    Scalar origin_x;    //!< x-component of the origin
-    Scalar origin_y;    //!< y-component of the origin
-    Scalar origin_z;    //!< z-component of the origin
-    
-    Scalar normal_x;    //!< x-component of the normal
-    Scalar normal_y;    //!< y-component of the normal
-    Scalar normal_z;    //!< z-component of the normal
-    };
+	{
+	//! Constructor
+	/*!	\param ox Origin x-component
+		\param oy Origin y-component
+		\param oz Origin z-component
+		\param nx Origin x-component
+		\param ny Normal y-component
+		\param nz Normal z-component
+	*/
+	Wall(Scalar ox=0.0, Scalar oy=0.0, Scalar oz=0.0, Scalar nx=1.0, Scalar ny=0.0, Scalar nz=0.0)
+		: origin_x(ox), origin_y(oy), origin_z(oz)
+		{
+		// normalize nx,ny,nz
+		Scalar len = sqrt(nx*nx + ny*ny + nz*nz);
+		normal_x = nx / len;
+		normal_y = ny / len;
+		normal_z = nz / len;
+		}
+
+	Scalar origin_x;	//!< x-component of the origin
+	Scalar origin_y;	//!< y-component of the origin
+	Scalar origin_z;	//!< z-component of the origin
+
+	Scalar normal_x;	//!< x-component of the normal
+	Scalar normal_y;	//!< y-component of the normal
+	Scalar normal_z;	//!< z-component of the normal
+	};
 
 //! Stores information about all the walls defined in the simulation
-/*! WallData is responsible for storing all of the walls in the simulation.
-    Walls are specified by the Wall struct and any number can be added.
+/*!	WallData is responsible for storing all of the walls in the simulation. 
+	Walls are specified by the Wall struct and any number can be added. 
 
-    On the CPU, walls can be accessed with getWall()
+	On the CPU, walls can be accessed with getWall()
 
-    An optimized data structure for the GPU will be written later.
-    It will most likely take the form of a 2D texture.
-    \ingroup data_structs
+	An optimized data structure for the GPU will be written later.
+	It will most likely take the form of a 2D texture.
+	\ingroup data_structs
 */
 class WallData : boost::noncopyable
-    {
-    public:
-        //! Creates an empty structure with no walls
-        WallData() : m_walls() {}
-        
-        //! Get the number of walls in the data
-        /*! \return Number of walls
-        */
-        unsigned int getNumWalls() const
-            {
-            return (unsigned int)m_walls.size();
-            }
-            
-        //! Access a specific wall
-        /*! \param idx Index of the wall to retrieve
-            \return Wall stored at index \a idx
-        */
-        const Wall& getWall(unsigned int idx) const
-            {
-            assert(idx < m_walls.size());
-            return m_walls[idx];
-            }
-            
-        //! Adds a wall to the data structure
-        void addWall(const Wall& wall);
-        
-    private:
-        //! Storage for the walls
-        std::vector<Wall> m_walls;
-    };
+	{
+	public:
+		//! Creates an empty structure with no walls
+		WallData() : m_walls() {}
+		
+		//! Get the number of walls in the data
+		/*! \return Number of walls
+		*/
+		unsigned int getNumWalls() const
+			{
+			return (unsigned int)m_walls.size();
+			}
+		
+		//! Access a specific wall
+		/*! \param idx Index of the wall to retrieve
+			\return Wall stored at index \a idx
+		*/
+		const Wall& getWall(unsigned int idx) const
+			{
+			assert(idx < m_walls.size());
+			return m_walls[idx];
+			}
+		
+		//! Adds a wall to the data structure
+		void addWall(const Wall& wall);
+
+	private:
+		//! Storage for the walls
+		std::vector<Wall> m_walls;
+	};
 
 #endif

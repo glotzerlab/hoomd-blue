@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file NVEUpdaterGPU.h
-    \brief Declares the NVEUpdaterGPU class
+	\brief Declares the NVEUpdaterGPU class
 */
 
 #include "NVEUpdater.h"
@@ -52,24 +52,24 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define __NVEUPDATER_GPU_H__
 
 //! NVE via velocity verlet on the GPU
-/*! NVEUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
-
-    The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
-
-    \ingroup updaters
+/*!	NVEUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
+	
+	The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
+	
+	\ingroup updaters
 */
 class NVEUpdaterGPU : public NVEUpdater
-    {
-    public:
-        //! Constructor
-        NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-        
-    };
-
+	{
+	public:
+		//! Constructor
+		NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+		
+		//! Take one timestep forward
+		virtual void update(unsigned int timestep);
+		
+	};
+	
 //! Exports the NVEUpdaterGPU class to python
 void export_NVEUpdaterGPU();
-
+	
 #endif

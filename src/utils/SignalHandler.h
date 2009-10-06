@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -46,12 +46,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <signal.h>
 
 /*! \file SignalHandler.h
-    \brief Declares variables and functions related to handling signals
+	\brief Declares variables and functions related to handling signals
 */
 
 //! Value set to non-zero if SIGINT has occured
 /*! Any method that reads this value as non-zero should immediately reset it to 0
-    and return.
+	and return.
 */
 extern volatile sig_atomic_t g_sigint_recvd;
 

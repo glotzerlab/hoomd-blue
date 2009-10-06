@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -45,21 +45,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 
 /*! \file CGCMMForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
+	\brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by CGCMMForceComputeGPU.
 */
 
 #ifndef __CGCMMFORCEGPU_CUH__
 #define __CGCMMFORCEGPU_CUH__
 
 //! Kernel driver that computes lj forces on the GPU for CGCMMForceComputeGPU
-cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
-									 const gpu_pdata_arrays &pdata,
-									 const gpu_boxsize &box,
-									 const gpu_nlist_array &nlist,
-									 float4 *d_coeffs,
-									 int coeff_width,
-									 float r_cutsq,
-									 int block_size,
-									 bool ulf_workaround);
+cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float4 *d_coeffs, int coeff_width, float r_cutsq, int block_size, bool ulf_workaround);
 
 #endif

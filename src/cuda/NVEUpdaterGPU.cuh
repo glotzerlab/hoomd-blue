@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,25 +41,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file NVEUpdaterGPU.cuh
-    \brief Declares GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
+	\brief Declares GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
 */
 
 #ifndef __NVEUPDATER_CUH__
 #define __NVEUPDATER_CUH__
 
 //! Kernel driver for the first part of the NVE update called by NVEUpdaterGPU
-cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
-							 const gpu_boxsize &box,
-							 float deltaT,
-							 bool limit,
-							 float limit_val);
+cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float deltaT, bool limit, float limit_val);
 
 //! Kernel driver for the second part of the NVE update called by NVEUpdaterGPU
-cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float deltaT,
-						 bool limit,
-						 float limit_val);
+cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata, float4 **force_data_ptrs, int num_forces, float deltaT, bool limit, float limit_val);
 
 #endif

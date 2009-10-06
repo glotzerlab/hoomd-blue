@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -47,7 +47,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 /*! \file GaussianForceGPU.h
-    \brief Declares the class GaussianForceGPU
+	\brief Declares the class GaussianForceGPU
 */
 
 #ifndef __GAUSSIANFORCEGPU_H__
@@ -55,35 +55,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes Gaussian forces on each particle using the GPU
 /*! Calculates the same forces as GaussianForceCompute, but on the GPU.
-
-    The GPU kernel for calculating the forces is in GaussianForceGPU.cu.
-    \ingroup computes
+	
+	The GPU kernel for calculating the forces is in GaussianForceGPU.cu.
+	\ingroup computes
 */
 class GaussianForceGPU : public GaussianForceCompute
-    {
-    public:
-        //! Constructs the compute
-        GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
-        
-        //! Destructor
-        virtual ~GaussianForceGPU();
-        
-        //! Set the parameters for a single type pair
-        virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma);
-        
-        //! Sets the block size to run at
-        void setBlockSize(int block_size);
-        
-    protected:
-        vector<float2 *> d_coeffs;      //!< Pointer to the coefficients on the GPU
-        float2 * h_coeffs;              //!< Pointer to the coefficients on the host
-        int m_block_size;               //!< The block size to run on the GPU
-        bool m_ulf_workaround;          //!< Stores decision made by the constructor whether to enable the ULF workaround
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+	{
+	public:
+		//! Constructs the compute
+		GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+		
+		//! Destructor
+		virtual ~GaussianForceGPU();
+		
+		//! Set the parameters for a single type pair
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma);
+		
+		//! Sets the block size to run at
+		void setBlockSize(int block_size);
 
+	protected:
+		vector<float2 *> d_coeffs;		//!< Pointer to the coefficients on the GPU
+		float2 * h_coeffs;				//!< Pointer to the coefficients on the host
+		int m_block_size;				//!< The block size to run on the GPU
+		bool m_ulf_workaround;			//!< Stores decision made by the constructor whether to enable the ULF workaround
+
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
 //! Exports the GaussianForceGPU class to python
 void export_GaussianForceGPU();
 

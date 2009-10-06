@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -48,7 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 /*! \file HarmonicImproperForceCompute.h
-    \brief Declares a class for computing harmonic impropers
+	\brief Declares a class for computing harmonic impropers
 */
 
 #ifndef __HARMONICIMPROPERFORCECOMPUTE_H__
@@ -57,37 +57,37 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Computes harmonic improper forces on each particle
 /*! Harmonic improper forces are computed on every particle in the simulation.
 
-    The impropers which forces are computed on are accessed from ParticleData::getImproperData
-    \ingroup computes
+	The impropers which forces are computed on are accessed from ParticleData::getImproperData
+	\ingroup computes
 */
 class HarmonicImproperForceCompute : public ForceCompute
-    {
-    public:
-        //! Constructs the compute
-        HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
-        
-        //! Destructor
-        ~HarmonicImproperForceCompute();
-        
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar chi);
-        
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-    protected:
-        Scalar *m_K;    //!< K parameter for multiple improper tyes
-        Scalar *m_chi;  //!< Chi parameter for multiple impropers
-        
-        boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data to use in computing impropers
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+	{
+	public:
+		//! Constructs the compute
+		HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+		
+		//! Destructor
+		~HarmonicImproperForceCompute();
+		
+		//! Set the parameters
+		virtual void setParams(unsigned int type, Scalar K, Scalar chi);
+		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities(); 
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+	protected:
+		Scalar *m_K;	//!< K parameter for multiple improper tyes
+		Scalar *m_chi;	//!< Chi parameter for multiple impropers
+		
+		boost::shared_ptr<DihedralData> m_improper_data;	//!< Improper data to use in computing impropers
+		
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
 //! Exports the ImproperForceCompute class to python
 void export_HarmonicImproperForceCompute();
 

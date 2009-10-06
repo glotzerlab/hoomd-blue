@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,21 +41,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file gpu_array_test.cuh
-    \brief Definitions of GPU kernel drivers for gpu_array_test.cc
-    \ingroup unit_tests
+	\brief Definitions of GPU kernel drivers for gpu_array_test.cc
+	\ingroup unit_tests
 */
 
 #ifndef __GPU_ARRAY_TEST_H__
 #define __GPU_ARRAY_TEST_CUH__
 
-extern "C"
-    {
-    
+extern "C" {
+
 //! Adds one to every value in an array of ints
-    cudaError_t gpu_add_one(int *d_data, unsigned int num);
+cudaError_t gpu_add_one(int *d_data, unsigned int num);
 //! Fills out the data array with a test pattern
-    cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num);
-    
-    }
+cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num);
+
+}
 
 #endif

@@ -56,7 +56,7 @@ using namespace boost::python;
 #include <stdexcept>
 
 /*! \file TablePotential.cc
-    \brief Defines the TablePotential class
+	\brief Defines the TablePotential class
 */
 
 using namespace std;
@@ -68,7 +68,7 @@ using namespace std;
 TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
                                boost::shared_ptr<NeighborList> nlist,
                                unsigned int table_width)
-        : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
+    : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)  
     {
     // sanity checks
     assert(m_pdata);
@@ -94,7 +94,7 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     assert(!m_tables.isNull());
     assert(!m_params.isNull());
     }
-
+    
 /*! \param typ1 First particle type index in the pair to set
     \param typ2 Second particle type index in the pair to set
     \param V Table for the potential V
@@ -105,12 +105,12 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     \note There is no need to call this again for typ2,typ1
     \note See TablePotential for a detailed definiton of rmin and rmax
 */
-void TablePotential::setTable(unsigned int typ1,
-                              unsigned int typ2,
-                              const std::vector<Scalar> &V,
-                              const std::vector<Scalar> &F,
-                              Scalar rmin,
-                              Scalar rmax)
+void TablePotential::setTable(unsigned int typ1, 
+                         unsigned int typ2,
+                         const std::vector<Scalar> &V,
+                         const std::vector<Scalar> &F,
+                         Scalar rmin,
+                         Scalar rmax)
     {
     // helpers to compute indices
     unsigned int cur_table_index = Index2DUpperTriangular(m_ntypes)(typ1, typ2);
@@ -123,7 +123,7 @@ void TablePotential::setTable(unsigned int typ1,
     // range check on the parameters
     if (rmin < 0 || rmax < 0 || rmax <= rmin)
         {
-        cerr << endl << "***Error! rmin, rmax (" << rmin << "," << rmax
+        cerr << endl << "***Error! rmin, rmax (" << rmin << "," << rmax 
              << ") given to TablePotential make no sense." << endl << endl;
         throw runtime_error("Error initializing TablePotential");
         }
@@ -132,8 +132,8 @@ void TablePotential::setTable(unsigned int typ1,
         {
         cerr << endl << "***Error! table provided to setTable is not of the correct size" << endl << endl;
         throw runtime_error("Error initializing TablePotential");
-        }
-        
+        }        
+    
     // fill out the parameters
     h_params.data[cur_table_index].x = rmin;
     h_params.data[cur_table_index].y = rmax;
@@ -148,7 +148,7 @@ void TablePotential::setTable(unsigned int typ1,
     }
 
 /*! TablePotential provides
-    - \c pair_table_energy
+	- \c pair_table_energy
 */
 std::vector< std::string > TablePotential::getProvidedLogQuantities()
     {
@@ -156,7 +156,7 @@ std::vector< std::string > TablePotential::getProvidedLogQuantities()
     list.push_back("pair_table_energy");
     return list;
     }
-
+	
 Scalar TablePotential::getLogValue(const std::string& quantity, unsigned int timestep)
     {
     if (quantity == string("pair_table_energy"))
@@ -180,47 +180,47 @@ void TablePotential::computeForces(unsigned int timestep)
     {
     // start by updating the neighborlist
     m_nlist->compute(timestep);
-    
+
     // start the profile for this compute
     if (m_prof) m_prof->push("Table pair");
-    
+
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
     bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-    
+
     // access the neighbor list
     const vector< vector< unsigned int > >& full_list = m_nlist->getList();
-    
+
     // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
     // sanity check
     assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-    
+
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
     // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
+
     // precalculate box lenghts for use in the periodic imaging
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    
+
     // need to start from a zero force, energy and virial
     memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
     memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
     memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
     memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
     memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
-    
+
     // access the table data
     ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
-    
+
     // index calculation helpers
     Index2DUpperTriangular table_index(m_ntypes);
     Index2D table_value(m_table_width);
-    
+
     // for each particle
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
@@ -243,12 +243,12 @@ void TablePotential::computeForces(unsigned int timestep)
         const vector< unsigned int >& list = full_list[i];
         const unsigned int size = (unsigned int)list.size();
         for (unsigned int j = 0; j < size; j++)
-            {
+            {            
             // access the index of this neighbor
             unsigned int k = list[j];
             // sanity check
             assert(k < m_pdata->getN());
-            
+                
             // calculate dr
             Scalar dx = xi - arrays.x[k];
             Scalar dy = yi - arrays.y[k];
@@ -259,20 +259,23 @@ void TablePotential::computeForces(unsigned int timestep)
             // sanity check
             assert(typej < m_pdata->getNTypes());
             
-            // apply periodic boundary conditions
+            // apply periodic boundary conditions 
             if (dx >= box.xhi)
                 dx -= Lx;
-            else if (dx < box.xlo)
+            else
+            if (dx < box.xlo)
                 dx += Lx;
-                
+
             if (dy >= box.yhi)
                 dy -= Ly;
-            else if (dy < box.ylo)
+            else
+            if (dy < box.ylo)
                 dy += Ly;
-                
+
             if (dz >= box.zhi)
                 dz -= Lz;
-            else if (dz < box.zlo)
+            else
+            if (dz < box.zlo)
                 dz += Lz;
                 
             // access needed parameters
@@ -291,7 +294,7 @@ void TablePotential::computeForces(unsigned int timestep)
                 {
                 // precomputed term
                 Scalar value_f = (r - rmin) / delta_r;
-                
+                                
                 // compute index into the table and read in values
                 unsigned int value_i = floor(value_f);
                 Scalar2 VF0 = h_tables.data[table_value(value_i, cur_table_index)];
@@ -308,7 +311,7 @@ void TablePotential::computeForces(unsigned int timestep)
                 // interpolate to get V and F;
                 Scalar V = V0 + f * (V1 - V0);
                 Scalar F = F0 + f * (F1 - F0);
-                
+                                
                 // convert to standard variables used by the other pair computes in HOOMD-blue
                 Scalar forcemag_divr = Scalar(0.0);
                 if (r > Scalar(0.0))
@@ -317,9 +320,9 @@ void TablePotential::computeForces(unsigned int timestep)
                 
                 // compute the virial (FLOPS: 2)
                 // note the sign in the virial calculation, this is because dx,dy,dz are \vec{r}_{ji} thus
-                // there is no - in the 1/6 to compensate
+                // there is no - in the 1/6 to compensate	
                 Scalar pair_virial = Scalar(1.0/6.0) * rsq * forcemag_divr;
-                
+                                
                 // add the force, potential energy and virial to the particle i
                 fxi += dx*forcemag_divr;
                 fyi += dy*forcemag_divr;
@@ -346,14 +349,14 @@ void TablePotential::computeForces(unsigned int timestep)
         m_pe[i] += pei;
         m_virial[i] += viriali;
         }
-        
+
     m_pdata->release();
-    
-#ifdef ENABLE_CUDA
+
+    #ifdef ENABLE_CUDA
     // the force data is now only up to date on the cpu
     m_data_location = cpu;
-#endif
-    
+    #endif
+
     if (m_prof) m_prof->pop();
     }
 
@@ -361,13 +364,13 @@ void TablePotential::computeForces(unsigned int timestep)
 void export_TablePotential()
     {
     class_<TablePotential, boost::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
-    ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int >())
-    .def("setTable", &TablePotential::setTable)
-    ;
-    
+        ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int >())
+        .def("setTable", &TablePotential::setTable)
+        ;
+        
     class_<std::vector<float> >("std_vector_float")
-    .def(vector_indexing_suite<std::vector<float> >())
-    ;
+        .def(vector_indexing_suite<std::vector<float> >())
+        ;
     }
 
 #ifdef WIN32

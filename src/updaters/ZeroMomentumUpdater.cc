@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file ZeroMomentumUpdater.cc
-    \brief Defines the ZeroMomentumUpdater class
+	\brief Defines the ZeroMomentumUpdater class
 */
 
 #ifdef WIN32
@@ -63,61 +63,61 @@ using namespace std;
 /*! \param sysdef System to zero the momentum of
 */
 ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef)
-        : Updater(sysdef)
-    {
-    assert(m_pdata);
-    }
-
-
+	: Updater(sysdef)
+	{
+	assert(m_pdata);
+	}
+	
+	
 /*! Perform the needed calculations to zero the system's momentum
-    \param timestep Current time step of the simulation
+	\param timestep Current time step of the simulation
 */
 void ZeroMomentumUpdater::update(unsigned int timestep)
-    {
-    if (m_prof) m_prof->push("ZeroMomentum");
-    
-    // calculate the average momentum
-    assert(m_pdata);
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    
-    // temp variables for holding the sums
-    Scalar sum_px = 0.0;
-    Scalar sum_py = 0.0;
-    Scalar sum_pz = 0.0;
-    
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        {
-        Scalar mass = arrays.mass[i];
-        sum_px += mass*arrays.vx[i];
-        sum_py += mass*arrays.vy[i];
-        sum_pz += mass*arrays.vz[i];
-        }
-        
-    // calculate the average
-    Scalar avg_px = sum_px / Scalar(arrays.nparticles);
-    Scalar avg_py = sum_py / Scalar(arrays.nparticles);
-    Scalar avg_pz = sum_pz / Scalar(arrays.nparticles);
-    
-    // subtract this momentum from every partcile
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        {
-        Scalar mass = arrays.mass[i];
-        arrays.vx[i] -= avg_px/mass;
-        arrays.vy[i] -= avg_py/mass;
-        arrays.vz[i] -= avg_pz/mass;
-        }
-        
-    m_pdata->release();
-    
-    if (m_prof) m_prof->pop();
-    }
+	{
+	if (m_prof) m_prof->push("ZeroMomentum");
 
+	// calculate the average momentum
+	assert(m_pdata);
+	ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+	
+	// temp variables for holding the sums
+	Scalar sum_px = 0.0;
+	Scalar sum_py = 0.0;
+	Scalar sum_pz = 0.0;
+	
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		{
+		Scalar mass = arrays.mass[i];
+		sum_px += mass*arrays.vx[i];
+		sum_py += mass*arrays.vy[i];
+		sum_pz += mass*arrays.vz[i];
+		}
+	
+	// calculate the average
+	Scalar avg_px = sum_px / Scalar(arrays.nparticles);
+	Scalar avg_py = sum_py / Scalar(arrays.nparticles);
+	Scalar avg_pz = sum_pz / Scalar(arrays.nparticles);
+	
+	// subtract this momentum from every partcile
+	for (unsigned int i = 0; i < arrays.nparticles; i++)
+		{
+		Scalar mass = arrays.mass[i];
+		arrays.vx[i] -= avg_px/mass;
+		arrays.vy[i] -= avg_py/mass;
+		arrays.vz[i] -= avg_pz/mass;
+		}
+	
+	m_pdata->release();
+	
+	if (m_prof) m_prof->pop();
+	}
+	
 void export_ZeroMomentumUpdater()
-    {
-    class_<ZeroMomentumUpdater, boost::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
-    ("ZeroMomentumUpdater", init< boost::shared_ptr<SystemDefinition> >())
-    ;
-    }
+	{
+	class_<ZeroMomentumUpdater, boost::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
+		("ZeroMomentumUpdater", init< boost::shared_ptr<SystemDefinition> >())
+		;
+	}
 
 #ifdef WIN32
 #pragma warning( pop )

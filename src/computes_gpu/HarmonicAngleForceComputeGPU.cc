@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -62,101 +62,99 @@ using namespace std;
 /*! \param sysdef System to compute angle forces on
 */
 HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : HarmonicAngleForceCompute(sysdef), m_block_size(64)
-    {
-    // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (exec_conf.gpu.size() == 0)
-        {
-        cerr << endl 
-			 << "***Error! Creating a AngleForceComputeGPU with no GPU in the execution configuration" 
-			 << endl << endl;
-        throw std::runtime_error("Error initializing AngleForceComputeGPU");
-        }
-        
-    // allocate and zero device memory
-    m_gpu_params.resize(exec_conf.gpu.size());
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_params[cur_gpu]), m_angle_data->getNAngleTypes()*sizeof(float2)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_angle_data->getNAngleTypes()*sizeof(float2)));
-        }
-        
-    m_host_params = new float2[m_angle_data->getNAngleTypes()];
-    memset(m_host_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
-    }
-
+	: HarmonicAngleForceCompute(sysdef), m_block_size(64)
+	{
+	// can't run on the GPU if there aren't any GPUs in the execution configuration
+	if (exec_conf.gpu.size() == 0)
+		{
+		cerr << endl << "***Error! Creating a AngleForceComputeGPU with no GPU in the execution configuration" << endl << endl;
+		throw std::runtime_error("Error initializing AngleForceComputeGPU");
+		}
+		
+	// allocate and zero device memory
+	m_gpu_params.resize(exec_conf.gpu.size());
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_params[cur_gpu]), m_angle_data->getNAngleTypes()*sizeof(float2)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_angle_data->getNAngleTypes()*sizeof(float2)));
+		}
+	
+	m_host_params = new float2[m_angle_data->getNAngleTypes()];
+	memset(m_host_params, 0, m_angle_data->getNAngleTypes()*sizeof(float2));
+	}
+	
 HarmonicAngleForceComputeGPU::~HarmonicAngleForceComputeGPU()
-    {
-    // free memory on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
-        m_gpu_params[cur_gpu] = NULL;
-        }
-        
-    // free memory on the CPU
-    delete[] m_host_params;
-    m_host_params = NULL;
-    }
+	{
+	// free memory on the GPU
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		{	
+		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
+		m_gpu_params[cur_gpu] = NULL;
+		}
+	
+	// free memory on the CPU
+	delete[] m_host_params;
+	m_host_params = NULL;
+	}
 
 /*! \param type Type of the angle to set parameters for
-    \param K Stiffness parameter for the force computation
-    \param t_0 Equilibrium angle (in radians) for the force computation
-
-    Sets parameters for the potential of a particular angle type and updates the
-    parameters on the GPU.
+	\param K Stiffness parameter for the force computation
+	\param t_0 Equilibrium angle (in radians) for the force computation
+	
+	Sets parameters for the potential of a particular angle type and updates the 
+	parameters on the GPU.
 */
 void HarmonicAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_0)
-    {
-    HarmonicAngleForceCompute::setParams(type, K, t_0);
-    
-    // update the local copy of the memory
-    m_host_params[type] = make_float2(K, t_0);
-    
-    // copy the parameters to the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_angle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
-    }
+	{
+	HarmonicAngleForceCompute::setParams(type, K, t_0);
+	
+	// update the local copy of the memory
+	m_host_params[type] = make_float2(K, t_0);
+	
+	// copy the parameters to the GPU
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_angle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+	}
 
-/*! Internal method for computing the forces on the GPU.
-    \post The force data on the GPU is written with the calculated forces
-
-    \param timestep Current time step of the simulation
-
-    Calls gpu_compute_harmonic_angle_forces to do the dirty work.
+/*! Internal method for computing the forces on the GPU. 
+	\post The force data on the GPU is written with the calculated forces
+	
+	\param timestep Current time step of the simulation
+	
+	Calls gpu_compute_harmonic_angle_forces to do the dirty work.
 */
 void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
-    {
-    // start the profile
-    if (m_prof) m_prof->push(exec_conf, "Harmonic Angle");
-    
-    vector<gpu_angletable_array>& gpu_angletable = m_angle_data->acquireGPU();
-    
-    // the angle table is up to date: we are good to go. Call the kernel
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
-    gpu_boxsize box = m_pdata->getBoxGPU();
-    
-    // run the kernel in parallel on all GPUs
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_harmonic_angle_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_angletable[cur_gpu], m_gpu_params[cur_gpu], m_angle_data->getNAngleTypes(), m_block_size));
-    exec_conf.syncAll();
-    
-    // the force data is now only up to date on the gpu
-    m_data_location = gpu;
-    
-    m_pdata->release();
-    
-    if (m_prof) m_prof->pop(exec_conf);
-    }
+	{
+	// start the profile
+	if (m_prof) m_prof->push(exec_conf, "Harmonic Angle");
+		
+	vector<gpu_angletable_array>& gpu_angletable = m_angle_data->acquireGPU();
+	
+	// the angle table is up to date: we are good to go. Call the kernel
+	vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+	gpu_boxsize box = m_pdata->getBoxGPU();
+	
+	// run the kernel in parallel on all GPUs
+	exec_conf.tagAll(__FILE__, __LINE__);
+	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+		exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_harmonic_angle_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_angletable[cur_gpu], m_gpu_params[cur_gpu], m_angle_data->getNAngleTypes(), m_block_size));
+	exec_conf.syncAll();
+		
+	// the force data is now only up to date on the gpu
+	m_data_location = gpu;
+	
+	m_pdata->release();
+	
+	if (m_prof)	m_prof->pop(exec_conf);
+	}
 
 void export_HarmonicAngleForceComputeGPU()
-    {
-    class_<HarmonicAngleForceComputeGPU, boost::shared_ptr<HarmonicAngleForceComputeGPU>, bases<HarmonicAngleForceCompute>, boost::noncopyable >
-    ("HarmonicAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
-    .def("setBlockSize", &HarmonicAngleForceComputeGPU::setBlockSize)
-    ;
-    }
+	{
+	class_<HarmonicAngleForceComputeGPU, boost::shared_ptr<HarmonicAngleForceComputeGPU>, bases<HarmonicAngleForceCompute>, boost::noncopyable >
+		("HarmonicAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+		.def("setBlockSize", &HarmonicAngleForceComputeGPU::setBlockSize)
+		;
+	}

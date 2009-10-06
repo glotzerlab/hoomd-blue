@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -47,41 +47,41 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 /*! \file DihedralData.cuh
-    \brief GPU data structures used in DihedralData
+ 	\brief GPU data structures used in DihedralData
 */
 
 //! Dihedral data stored on the GPU
 /*! gpu_dihedraltable_array stores all of the dihedral between particles on the GPU.
-    It is structured similar to gpu_nlist_array in that a single column in the list
-    stores all of the dihedrals for the particle associated with that column.
-
-    To access dihedral \em a of particle with local index \em i, use the following indexing scheme
-    \code
-    uint2 dihedral = dihedraltable.dihedrals[a*dihedraltable.pitch + i]
-    \endcode
-    The particle with \b index (not tag) \em i is dihedral'd with particles \em dihedral.x
-	and \em dihedral.y  with angle type \em angle.z. Each particle may have a different number of angles as
-    indicated in \em n_angles[i].
-
-    Only \a num_local angles are stored on each GPU for the local particles
-
-    \ingroup gpu_data_structs
+	It is structured similar to gpu_nlist_array in that a single column in the list
+	stores all of the dihedrals for the particle associated with that column. 
+	
+	To access dihedral \em a of particle with local index \em i, use the following indexing scheme
+	\code
+	uint2 dihedral = dihedraltable.dihedrals[a*dihedraltable.pitch + i]
+	\endcode
+	The particle with \b index (not tag) \em i is dihedral'd with particles \em dihedral.x
+        and \em dihedral.y	with angle type \em angle.z. Each particle may have a different number of angles as
+	indicated in \em n_angles[i].
+	
+	Only \a num_local angles are stored on each GPU for the local particles
+	
+	\ingroup gpu_data_structs
 */
 
 
 struct gpu_dihedraltable_array
-    {
-    unsigned int *n_dihedrals;  //!< Number of dihedrals for each particle
-    uint4 *dihedrals;       //!< dihedral atoms 1, 2, 3, type
-    uint1 *dihedralABCD;        //!< for each dihedral, this tells atom a, b, c, or d
-    unsigned int height;    //!< height of the dihedral list
-    unsigned int pitch; //!< width (in elements) of the dihedral list
-    
-    //! Allocates memory
-    cudaError_t allocate(unsigned int num_local, unsigned int alloc_height);
-    
-    //! Frees memory
-    cudaError_t deallocate();
-    };
+	{
+	unsigned int *n_dihedrals;	//!< Number of dihedrals for each particle
+	uint4 *dihedrals;		//!< dihedral atoms 1, 2, 3, type
+	uint1 *dihedralABCD;		//!< for each dihedral, this tells atom a, b, c, or d
+	unsigned int height;	//!< height of the dihedral list
+	unsigned int pitch;	//!< width (in elements) of the dihedral list
+
+	//! Allocates memory
+	cudaError_t allocate(unsigned int num_local, unsigned int alloc_height);
+	
+	//! Frees memory
+	cudaError_t deallocate();
+	};
 
 #endif

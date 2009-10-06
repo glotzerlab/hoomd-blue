@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -49,54 +49,54 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file ForceCompute.cu
-    \brief Defines data structures for calculating forces on the GPU. Used by ForceCompute and descendants.
+ 	\brief Defines data structures for calculating forces on the GPU. Used by ForceCompute and descendants.
 */
 
 /*! \pre allocate() has not previously been called
-    \post Memory for \a force and \a virial is allocated on the device
-    \param num_local Number of particles local to the GPU on which this is being called
-    \note allocate() \b must be called on the GPU it is to allocate data on
+	\post Memory for \a force and \a virial is allocated on the device
+	\param num_local Number of particles local to the GPU on which this is being called
+	\note allocate() \b must be called on the GPU it is to allocate data on
 */
 cudaError_t gpu_force_data_arrays::allocate(unsigned int num_local)
-    {
-    // sanity checks
-    assert(force == NULL);
-    assert(virial == NULL);
-    
-    // allocate force and check for errors
-    cudaError_t error = cudaMalloc((void **)((void *)&force), sizeof(float4)*num_local);
-    if (error != cudaSuccess)
-        return error;
-        
-    // allocate virial and check for errors
-    error = cudaMalloc((void **)((void *)&virial), sizeof(float)*num_local);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
-
+	{
+	// sanity checks
+	assert(force == NULL);
+	assert(virial == NULL);
+	
+	// allocate force and check for errors
+	cudaError_t error = cudaMalloc((void **)((void *)&force), sizeof(float4)*num_local);
+	if (error != cudaSuccess)
+		return error;
+		
+	// allocate virial and check for errors
+	error = cudaMalloc((void **)((void *)&virial), sizeof(float)*num_local);
+	if (error != cudaSuccess)
+		return error;
+		
+	// all done, return success
+	return cudaSuccess;
+	}
+	
 /*! \pre allocate() has been called
-    \post Memory for \a force and \a virial is freed on the device
-    \note deallocate() \b must be called on the same GPU as allocate()
+	\post Memory for \a force and \a virial is freed on the device
+	\note deallocate() \b must be called on the same GPU as allocate()
 */
 cudaError_t gpu_force_data_arrays::deallocate()
-    {
-    // sanity checks
-    assert(force != NULL);
-    assert(virial != NULL);
-    
-    // free force and check for errors
-    cudaError_t error = cudaFree((void*)force);
-    if (error != cudaSuccess)
-        return error;
-        
-    // free virial and check for errors
-    error = cudaFree((void*)virial);
-    if (error != cudaSuccess)
-        return error;
-        
-    // all done, return success
-    return cudaSuccess;
-    }
+	{
+	// sanity checks
+	assert(force != NULL);
+	assert(virial != NULL);
+	
+	// free force and check for errors
+	cudaError_t error = cudaFree((void*)force);
+	if (error != cudaSuccess)
+		return error;
+		
+	// free virial and check for errors
+	error = cudaFree((void*)virial);
+	if (error != cudaSuccess)
+		return error;
+	
+	// all done, return success
+	return cudaSuccess;
+	}

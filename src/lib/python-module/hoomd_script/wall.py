@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -83,78 +82,78 @@ import util;
 #
 # The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when wall.lj is specified (see __init__())
 class lj(force._force):
-    ## Specify the Lennard-Jones %wall %force
-    #
-    # \param r_cut Cutoff radius
-    #
-    # \b Example:
-    # \code
-    # lj_wall = wall.lj(r_cut=3.0);
-    # \endcode
-    #
-    # \note Coefficients must be set with set_coeff() before the simulation can be run().
-    def __init__(self, r_cut):
-        util.print_status_line();
-        
-        # initialize the base class
-        force._force.__init__(self);
-        
-        # create the c++ mirror class
-        #if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-        self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
-        #elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-        #	self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
-        #else:
-        #	print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-        #	raise RuntimeError("Error creating wall.lj forces");
-        
-        # variable for tracking which particle type coefficients have been set
-        self.particle_types_set = [];
-        
-        globals.system.addCompute(self.cpp_force, self.force_name);
-        
-    ## Sets the particle-wall interaction coefficients for a particular particle type
-    #
-    # \param particle_type Particle type to set coefficients for
-    # \param epsilon Coefficient \f$ \varepsilon \f$ in the %force
-    # \param sigma Coefficient \f$ \sigma \f$ in the %force
-    # \param alpha Coefficient \f$ \alpha \f$ in the %force
-    #
-    # Using set_coeff() requires that the specified %wall %force has been saved in a variable. i.e.
-    # \code
-    # lj_wall = wall.lj(r_cut=3.0)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # lj_wall.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
-    # lj_wall.set_coeff('B', epsilon=1.0, sigma=2.0, alpha=0.0)
-    # \endcode
-    #
-    # The coefficients for every particle type in the simulation must be set 
-    # before the run() can be started.
-    def set_coeff(self, particle_type, epsilon, sigma, alpha):
-        util.print_status_line();
-        
-        # calculate the parameters
-        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        # set the parameters for the appropriate type
-        self.cpp_force.setParams(globals.system_definition.getParticleData().getTypeByName(particle_type), lj1, lj2);
-        
-        # track which particle types we have set
-        if not particle_type in self.particle_types_set:
-            self.particle_types_set.append(particle_type);
-        
-    def update_coeffs(self):
-        # get a list of all particle types in the simulation
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in xrange(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-            
-        # check to see if all particle types have been set
-        for cur_type in type_list:
-            if not cur_type in self.particle_types_set:
-                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in wall.lj\n";
-                raise RuntimeError("Error updating coefficients");
+	## Specify the Lennard-Jones %wall %force
+	#
+	# \param r_cut Cutoff radius
+	#
+	# \b Example:
+	# \code
+	# lj_wall = wall.lj(r_cut=3.0);
+	# \endcode
+	#
+	# \note Coefficients must be set with set_coeff() before the simulation can be run().
+	def __init__(self, r_cut):
+		util.print_status_line();
+		
+		# initialize the base class
+		force._force.__init__(self);
+		
+		# create the c++ mirror class
+		#if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+		self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
+		#elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		#	self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
+		#else:
+		#	print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+		#	raise RuntimeError("Error creating wall.lj forces");
+		
+		# variable for tracking which particle type coefficients have been set
+		self.particle_types_set = [];
+		
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		
+	## Sets the particle-wall interaction coefficients for a particular particle type
+	#
+	# \param particle_type Particle type to set coefficients for
+	# \param epsilon Coefficient \f$ \varepsilon \f$ in the %force
+	# \param sigma Coefficient \f$ \sigma \f$ in the %force
+	# \param alpha Coefficient \f$ \alpha \f$ in the %force
+	#
+	# Using set_coeff() requires that the specified %wall %force has been saved in a variable. i.e.
+	# \code
+	# lj_wall = wall.lj(r_cut=3.0)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# lj_wall.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
+	# lj_wall.set_coeff('B', epsilon=1.0, sigma=2.0, alpha=0.0)
+	# \endcode
+	#
+	# The coefficients for every particle type in the simulation must be set 
+	# before the run() can be started.
+	def set_coeff(self, particle_type, epsilon, sigma, alpha):
+		util.print_status_line();
+		
+		# calculate the parameters
+		lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+		lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+		# set the parameters for the appropriate type
+		self.cpp_force.setParams(globals.system_definition.getParticleData().getTypeByName(particle_type), lj1, lj2);
+		
+		# track which particle types we have set
+		if not particle_type in self.particle_types_set:
+			self.particle_types_set.append(particle_type);
+		
+	def update_coeffs(self):
+		# get a list of all particle types in the simulation
+		ntypes = globals.system_definition.getParticleData().getNTypes();
+		type_list = [];
+		for i in xrange(0,ntypes):
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+			
+		# check to see if all particle types have been set
+		for cur_type in type_list:
+			if not cur_type in self.particle_types_set:
+				print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in wall.lj\n";
+				raise RuntimeError("Error updating coefficients");

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -50,37 +50,37 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file Integrator.cu
-    \brief Defines methods and data structures used by the Integrator class on the GPU
+	\brief Defines methods and data structures used by the Integrator class on the GPU
 */
 
 //! Kernel for summing forces on the GPU
 /*! \param pdata Particle data arrays
-    \param force_data_ptrs list of force data pointers
-    \param num_forces number of force pointes in the list
+	\param force_data_ptrs list of force data pointers
+	\param num_forces number of force pointes in the list
 
-    \a force_data_ptrs contains up to 32 pointers. Each points to N float4's in memory
-    All forces are summed into pdata.accel.
+	\a force_data_ptrs contains up to 32 pointers. Each points to N float4's in memory
+	All forces are summed into pdata.accel.
 
-    \note mass is assumed to be 1.0 at this stage
+	\note mass is assumed to be 1.0 at this stage
 */
 __global__ void gpu_integrator_sum_accel_kernel(gpu_pdata_arrays pdata, float4 **force_data_ptrs, int num_forces)
-    {
-    // calculate the index we will be handling
-    int idx_local = blockDim.x * blockIdx.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
-    
-    float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
-    float mass = pdata.mass[idx_global];
-    accel.x /= mass;
-    accel.y /= mass;
-    accel.z /= mass;
-    
-    if (idx_local < pdata.local_num)
-        {
-        // write out the result
-        pdata.accel[idx_global] = accel;
-        }
-    }
+	{
+	// calculate the index we will be handling
+	int idx_local = blockDim.x * blockIdx.x + threadIdx.x;
+	int idx_global = idx_local + pdata.local_beg;
+
+	float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
+	float mass = pdata.mass[idx_global];
+	accel.x /= mass;
+	accel.y /= mass;
+	accel.z /= mass;
+
+	if (idx_local < pdata.local_num)
+		{
+		// write out the result
+		pdata.accel[idx_global] = accel;
+		}
+	}
 
 /*! Every force on every particle is summed up into \a pdata.accel
 
@@ -92,22 +92,22 @@ __global__ void gpu_integrator_sum_accel_kernel(gpu_pdata_arrays pdata, float4 *
     \note Always returns cudaSuccess in release builds for performance reasons
 */
 cudaError_t gpu_integrator_sum_accel(const gpu_pdata_arrays &pdata, float4** force_list, int num_forces)
-    {
-    // sanity check
-    assert(force_list);
-    assert(num_forces < 32);
-    
-    const int block_size = 256;
-    
-    gpu_integrator_sum_accel_kernel<<< pdata.local_num/block_size+1, block_size >>>(pdata, force_list, num_forces);
-    
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+	{
+	// sanity check
+	assert(force_list);
+	assert(num_forces < 32);
+
+	const int block_size = 256;
+
+	gpu_integrator_sum_accel_kernel<<< pdata.local_num/block_size+1, block_size >>>(pdata, force_list, num_forces);
+
+	if (!g_gpu_error_checking)
+		{
+		return cudaSuccess;
+		}
+	else
+		{
+		cudaThreadSynchronize();
+		return cudaGetLastError();
+		}
     }

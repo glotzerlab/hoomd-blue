@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -49,44 +49,30 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 
 /*! \file NPTUpdaterGPU.cuh
-    \brief Declares GPU kernel code for NPT integration on the GPU. Used by NPTUpdaterGPU.
+	\brief Declares GPU kernel code for NPT integration on the GPU. Used by NPTUpdaterGPU.
 */
 
 //! Data structure storing needed intermediate values for NPT integration
 struct gpu_npt_data
-    {
-    float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
-    float *Ksum;    //!< fully reduced Ksum on one GPU
-    float *partial_Wsum; //!< NBlocks elements, each is a partial sum of virials
-    float *Wsum;  //!< fully reduced Psum on one GPU
-    float *virial;  //!< Stores virials
-    int NBlocks;    //!< Number of blocks in the computation
-    int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
-    };
+	{
+	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
+	float *Ksum;	//!< fully reduced Ksum on one GPU
+	float *partial_Wsum; //!< NBlocks elements, each is a partial sum of virials
+	float *Wsum;  //!< fully reduced Psum on one GPU
+	float *virial;  //!< Stores virials
+	int NBlocks;	//!< Number of blocks in the computation
+	int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
+	};
 
 
 //! Sums virials on the GPU. Used by NPTUpdaterGPU.
-cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata,
-									   const gpu_pdata_arrays &pdata,
-									   float** virial_list,
-									   int num_virials);
+cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata, const gpu_pdata_arrays &pdata, float** virial_list, int num_virials);
 
 //! Kernel driver for the the first step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata,
-						     const gpu_boxsize &box,
-							 const gpu_npt_data &d_npt_data,
-							 float Xi,
-							 float Eta,
-							 float deltaT);
+cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_npt_data &d_npt_data, float Xi, float Eta, float deltaT);
 
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata,
-						 const gpu_npt_data &d_npt_data,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float Xi,
-						 float Eta,
-						 float deltaT);
+cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata, const gpu_npt_data &d_npt_data, float4 **force_data_ptrs, int num_forces, float Xi, float Eta, float deltaT);
 
 //! Kernel driver for calculating the final pass Ksum on the GPU. Used by NPTUpdaterGPU
 cudaError_t gpu_npt_reduce_ksum(const gpu_npt_data &d_npt_data);

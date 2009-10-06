@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file WallData.cc
-    \brief Contains all code for WallData.
+ 	\brief Contains all code for WallData.
  */
 
 #include "WallData.h"
@@ -49,6 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \param wall Wall to add to the system
 */
 void WallData::addWall(const Wall& wall)
-    {
-    m_walls.push_back(wall);
-    }
+	{
+	m_walls.push_back(wall);
+	}

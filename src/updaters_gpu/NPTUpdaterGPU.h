@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file NVTUpdaterGPU.h
-    \brief Declares the NVTUpdaterGPU class
+	\brief Declares the NVTUpdaterGPU class
 */
 
 #include "NPTUpdater.h"
@@ -56,46 +56,41 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*! \ingroup updaters
 */
 class NPTUpdaterGPU : public NPTUpdater
-    {
-    public:
-        //! Constructor
-        NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-					  Scalar deltaT,
-					  Scalar tau,
-					  Scalar tauP,
-					  boost::shared_ptr<Variant> T,
-					  boost::shared_ptr<Variant> P);
-        
-        virtual ~NPTUpdaterGPU();
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-        
-        //! Overides addForceCompute to add virial computes
-        virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
-        
-        //! overides removeForceCompute to remove all virial computes
-        virtual void removeForceComputes();
-        
-        //! Computes current pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
-        //! Computes current temperature
-        virtual Scalar computeTemperature(unsigned int timestep);
-        
-    private:
-        std::vector<gpu_npt_data> d_npt_data;   //!< Temp data on the device needed to implement NPT
-        
-        //! Helper function to allocate data
-        void allocateNPTData(int block_size);
-        
-        //! Helper function to free data
-        void freeNPTData();
-        
-        //! Virial data pointers on the device
-        vector<float **> m_d_virial_data_ptrs;
-    };
+	{
+	public:
+		//! Constructor
+        NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, Scalar tauP, boost::shared_ptr<Variant> T, boost::shared_ptr<Variant> P);
+		
+		virtual ~NPTUpdaterGPU();
 
+		//! Take one timestep forward
+		virtual void update(unsigned int timestep);
+
+		//! Overides addForceCompute to add virial computes
+		virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+				
+		//! overides removeForceCompute to remove all virial computes
+		virtual void removeForceComputes();
+	
+		//! Computes current pressure
+		virtual Scalar computePressure(unsigned int timestep);
+		
+		//! Computes current temperature
+		virtual Scalar computeTemperature(unsigned int timestep);
+
+	private:
+		std::vector<gpu_npt_data> d_npt_data;	//!< Temp data on the device needed to implement NPT
+
+		//! Helper function to allocate data
+		void allocateNPTData(int block_size);
+		
+		//! Helper function to free data
+		void freeNPTData();
+
+		//! Virial data pointers on the device
+		vector<float **> m_d_virial_data_ptrs;
+	};
+	
 //! Exports the NPTUpdater class to python
 void export_NPTUpdaterGPU();
 

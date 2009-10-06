@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -44,24 +44,24 @@ bool g_gpu_error_checking = false;
 
 #if (CUDA_VERSION < 2020)
 cudaError_t cudaHostAllocHack(void **pHost, size_t bytes, unsigned int flags)
-    {
-    return cudaMallocHost(pHost, bytes);
-    }
+	{
+	return cudaMallocHost(pHost, bytes);
+	}
 #else
 cudaError_t cudaHostAllocHack(void **pHost, size_t bytes, unsigned int flags)
-    {
-    return cudaHostAlloc(pHost, bytes, flags);
-    }
+	{
+	return cudaHostAlloc(pHost, bytes, flags);
+	}
 #endif
 
 cudaError_t cudaMallocHack(void **pDevice, size_t bytes)
-    {
-    return cudaMalloc(pDevice, bytes);
-    }
+	{
+	return cudaMalloc(pDevice, bytes);
+	}
 
 cudaError_t cudaMallocPitchHack(void **devPtr, size_t  *pitch, size_t   width, size_t   height)
-    {
-    return cudaMallocPitch(devPtr, pitch, width, height);
-    }
+	{
+	return cudaMallocPitch(devPtr, pitch, width, height);
+	}
 
 // vim:syntax=cpp

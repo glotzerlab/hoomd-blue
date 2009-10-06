@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -44,30 +44,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 
 /*! \file StochasticForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the stochastic forces. Used by StochasticForceComputeGPU.
+	\brief Declares GPU kernel code for calculating the stochastic forces. Used by StochasticForceComputeGPU.
 */
 
 #ifndef __STOCHASTICFORCEGPU_CUH__
 #define __STOCHASTICFORCEGPU_CUH__
 
 //! Kernel driver that computes stochastic forces on the GPU for StochasticForceComputeGPU
-cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_data,
-										  const gpu_pdata_arrays &pdata,
-										  float dt,
-										  float T,
-										  float *d_gammas,
-										  unsigned int seed,
-										  unsigned int iteration,
-										  int gamma_length,
-										  int block_size);
+cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, float dt, float T, float *d_gammas, unsigned int seed, unsigned int iteration, int gamma_length, int block_size);
 
 //! Kernel driver that computes stochastic forces on the GPU for StochasticForceComputeGPU if gamma is specified by diameter
-cudaError_t gpu_compute_stochastic_forces_diam(const gpu_force_data_arrays& force_data,
-											   const gpu_pdata_arrays &pdata,
-											   float dt,
-											   float T,
-											   unsigned int seed,
-											   unsigned int iteration,
-											   int block_size);
+cudaError_t gpu_compute_stochastic_forces_diam(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, float dt, float T, unsigned int seed, unsigned int iteration, int block_size);
 
 #endif

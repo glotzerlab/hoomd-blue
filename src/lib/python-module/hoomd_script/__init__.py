@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -53,25 +52,25 @@ import util;
 ## \internal
 # \brief Internal python variable 
 __all__ = [	"analyze", 
-            "bond", 
-            "angle", 
-            "dihedral", 
-            "improper", 
-            "dump", 
-            "force", 
-            "globals", 
-            "group", 
-            "init", 
-            "integrate", 
-            "pair", 
-            "update", 
-            "wall",
-            "variant", 
-            "run", 
-            "tune", 
-            "hoomd",
-            "get_hoomd_script_version"];
-            
+			"bond", 
+			"angle", 
+			"dihedral", 
+			"improper", 
+			"dump", 
+			"force", 
+			"globals", 
+			"group", 
+			"init", 
+			"integrate", 
+			"pair", 
+			"update", 
+			"wall",
+			"variant", 
+			"run", 
+			"tune", 
+			"hoomd",
+			"get_hoomd_script_version"];
+			
 ## \internal
 # \brief Major version of hoomd_script
 version_major = 0;
@@ -89,7 +88,7 @@ version_minor = 2;
 # or changes that break backwards compatibility are made, then the major version is incremented and the minor reset
 # to 0. Only one such increment of either type will occur per each tagged release of HOOMD.
 def get_hoomd_script_version():
-    return (version_major, version_minor)
+	return (version_major, version_minor)
 
 ## \brief Runs the simulation for a given number of time steps
 #
@@ -148,24 +147,24 @@ def get_hoomd_script_version():
 # time step number is a multiple of \a callback_period.
 #
 def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None):
-    util.print_status_line();
-    # check if initialization has occured
-    if (globals.system == None):
-        print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
-        raise RuntimeError('Error running');
-        
-    if (globals.integrator == None):
-        print "***Warning! Starting a run without an integrator set";
-    else:
-        globals.integrator.update_forces();
-    
-    for logger in globals.loggers:
-        logger.update_quantities();
-    globals.system.enableProfiler(profile);
+	util.print_status_line();
+	# check if initialization has occured
+	if (globals.system == None):
+		print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
+		raise RuntimeError('Error running');
+		
+	if (globals.integrator == None):
+		print "***Warning! Starting a run without an integrator set";
+	else:
+		globals.integrator.update_forces();
+	
+	for logger in globals.loggers:
+		logger.update_quantities();
+	globals.system.enableProfiler(profile);
 
-    if limit_hours == None:
-        limit_hours = 0.0
-    
-    print "** starting run **"
-    globals.system.run(int(tsteps), callback_period, callback, limit_hours);
-    print "** run complete **"
+	if limit_hours == None:
+		limit_hours = 0.0
+	
+	print "** starting run **"
+	globals.system.run(int(tsteps), callback_period, callback, limit_hours);
+	print "** run complete **"

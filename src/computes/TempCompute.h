@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "Compute.h"
 
 /*! \file TempCompute.h
-    \brief Declares a class for computing temperatures
+	\brief Declares a class for computing temperatures
 */
 
 #ifndef __TEMPCOMPUTE_H__
@@ -53,41 +53,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes the temperature of the particle system
 /*! An instantaneous temperature is computed in the standard method: AVG Kinetic energy = dof/2 * k_B * T
-    The number of degrees of freedom defaults to 3*N, but can be changed with setDOF().
-    \ingroup computes
+	The number of degrees of freedom defaults to 3*N, but can be changed with setDOF().
+	\ingroup computes
 */
 class TempCompute : public Compute
-    {
-    public:
-        //! Constructs the compute
-        TempCompute(boost::shared_ptr<SystemDefinition> sysdef);
-        
-        //! Compute the temperature
-        virtual void compute(unsigned int timestep);
-        
-        //! Change the number of degrees of freedom
-        /*! \param dof Number of degrees of freedom to set
-        */
-        void setDOF(unsigned int dof)
-            {
-            m_dof = dof;
-            }
-            
-        //! Returns the temperature last computed by compute()
-        /*! \returns Instantaneous temperature of the system
-        */
-        Scalar getTemp()
-            {
-            return m_temp;
-            }
-    protected:
-        Scalar m_temp;      //!< Stores the last computed value of the temperature
-        unsigned int m_dof; //!< Stores the number of degrees of freedom in the system
-        
-        //! Does the actual computation
-        void computeTemp();
-    };
+	{
+	public:
+		//! Constructs the compute
+		TempCompute(boost::shared_ptr<SystemDefinition> sysdef);
 
+		//! Compute the temperature
+		virtual void compute(unsigned int timestep);
+		
+		//! Change the number of degrees of freedom
+		/*! \param dof Number of degrees of freedom to set
+		*/
+		void setDOF(unsigned int dof) { m_dof = dof; }
+	
+		//! Returns the temperature last computed by compute()
+		/*! \returns Instantaneous temperature of the system
+		*/
+		Scalar getTemp() { return m_temp; }
+	protected:
+		Scalar m_temp;	//!< Stores the last computed value of the temperature
+		unsigned int m_dof;	//!< Stores the number of degrees of freedom in the system
+		
+		//! Does the actual computation
+		void computeTemp();
+	};
+	
 //! Exports the TempCompute class to python
 void export_TempCompute();
 

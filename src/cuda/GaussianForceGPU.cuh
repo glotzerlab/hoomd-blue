@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -45,7 +45,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 
 /*! \file GaussianForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
+	\brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
 */
 
 #ifndef __GAUSSIANFORCEGPU_CUH__
@@ -53,12 +53,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! options struct for passing additional options to gpu_compute_lj_forces
 struct gauss_options
-    {
-    float r_cutsq;          //!< cutoff distance squared
-    int block_size;         //!< block size to execute on
-    bool ulf_workaround;    //!< Set to true to enable the ULF workaround
-    unsigned int shift_mode;//!< Shift mode for pair energy
-    };
+	{
+	float r_cutsq;			//!< cutoff distance squared
+	int block_size;			//!< block size to execute on
+	bool ulf_workaround;	//!< Set to true to enable the ULF workaround
+	unsigned int shift_mode;//!< Shift mode for pair energy
+	};
 
 //! Kernel driver that computes gauss forces on the GPU for GaussianForceGPU
 cudaError_t gpu_compute_gauss_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const gauss_options& opt);

@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -48,7 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 /*! \file HarmonicAngleForceCompute.h
-    \brief Declares a class for computing harmonic bonds
+	\brief Declares a class for computing harmonic bonds
 */
 
 #ifndef __CGCMMANGLEFORCECOMPUTE_H__
@@ -57,47 +57,47 @@ THE POSSIBILITY OF SUCH DAMAGE.
 //! Computes harmonic angle forces for CGCMM coarse grain systems.
 /*! Harmonic angle forces are computed on every particle in the simulation.
 
-    The angles which forces are computed on are accessed from ParticleData::getAngleData
-    \ingroup computes
+	The angles which forces are computed on are accessed from ParticleData::getAngleData
+	\ingroup computes
 */
 class CGCMMAngleForceCompute : public ForceCompute
-    {
-    public:
-        //! Constructs the compute
-        CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> pdata);
-        
-        //! Destructor
-        ~CGCMMAngleForceCompute();
-        
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma);
-        
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-    protected:
-        Scalar *m_K;    //!< K parameter for multiple angle tyes
-        Scalar *m_t_0;  //!< t_0 parameter for multiple angle types
-        
-        // THESE ARE NEW FOR GC ANGLES
-        Scalar *m_eps;  //!< epsilon parameter for 1-3 repulsion of multiple angle tyes
-        Scalar *m_sigma;//!< sigma parameter for 1-3 repulsion of multiple angle types
-        Scalar *m_rcut;//!< cutoff parameter for 1-3 repulsion of multiple angle types
-        unsigned int *m_cg_type; //!< coarse grain angle type index (0-3)
-        
-        Scalar prefact[4]; //!< prefact precomputed prefactors for CG-CMM angles
-        Scalar cgPow1[4];  //!< list of 1st powers for CG-CMM angles
-        Scalar cgPow2[4];  //!< list of 2nd powers for CG-CMM angles
-        
-        boost::shared_ptr<AngleData> m_CGCMMAngle_data; //!< Angle data to use in computing angles
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+	{
+	public:
+		//! Constructs the compute
+		CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> pdata);
+		
+		//! Destructor
+		~CGCMMAngleForceCompute();
+		
+		//! Set the parameters
+		virtual void setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma);
+		
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities(); 
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+	protected:
+		Scalar *m_K;	//!< K parameter for multiple angle tyes
+		Scalar *m_t_0;	//!< t_0 parameter for multiple angle types
+
+		// THESE ARE NEW FOR GC ANGLES
+		Scalar *m_eps;	//!< epsilon parameter for 1-3 repulsion of multiple angle tyes
+		Scalar *m_sigma;//!< sigma parameter for 1-3 repulsion of multiple angle types
+		Scalar *m_rcut;//!< cutoff parameter for 1-3 repulsion of multiple angle types
+		unsigned int *m_cg_type; //!< coarse grain angle type index (0-3)
+
+		Scalar prefact[4]; //!< prefact precomputed prefactors for CG-CMM angles
+		Scalar cgPow1[4];  //!< list of 1st powers for CG-CMM angles
+		Scalar cgPow2[4];  //!< list of 2nd powers for CG-CMM angles
+		
+		boost::shared_ptr<AngleData> m_CGCMMAngle_data; //!< Angle data to use in computing angles
+		
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
 //! Exports the BondForceCompute class to python
 void export_CGCMMAngleForceCompute();
 

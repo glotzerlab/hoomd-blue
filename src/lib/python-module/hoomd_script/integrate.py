@@ -1,4 +1,3 @@
-# -*- coding: iso-8859-1 -*-
 # Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
 # Source Software License
 # Copyright (c) 2008 Ames Laboratory Iowa State University
@@ -85,43 +84,43 @@ import variant;
 # forces created so far in the simulation are updated in the cpp_integrator
 # whenever run() is called.
 class _integrator:
-    ## \internal
-    # \brief Constructs the integrator
-    #
-    # This doesn't really do much bet set some member variables to None
-    def __init__(self):
-        # check if initialization has occured
-        if globals.system == None:
-            print >> sys.stderr, "\n***Error! Cannot create integrator before initialization\n";
-            raise RuntimeError('Error creating integrator');
-        
-        self.cpp_integrator = None;
-        
-        # save ourselves in the global variable
-        globals.integrator = self;
-        
-    ## \var cpp_integrator
-    # \internal 
-    # \brief Stores the C++ side Integrator managed by this class
-    
-    ## \internal
-    # \brief Updates the integrators in the reflected c++ class
-    def update_forces(self):
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');		
-        
-        # set the forces
-        self.cpp_integrator.removeForceComputes();
-        for f in globals.forces:
-            if f.enabled:
-                if f.cpp_force == None:
-                    print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-                    raise RuntimeError('Error updating forces');		
-                else:
-                    self.cpp_integrator.addForceCompute(f.cpp_force);
-                    f.update_coeffs();
+	## \internal
+	# \brief Constructs the integrator
+	#
+	# This doesn't really do much bet set some member variables to None
+	def __init__(self):
+		# check if initialization has occured
+		if globals.system == None:
+			print >> sys.stderr, "\n***Error! Cannot create integrator before initialization\n";
+			raise RuntimeError('Error creating integrator');
+		
+		self.cpp_integrator = None;
+		
+		# save ourselves in the global variable
+		globals.integrator = self;
+		
+	## \var cpp_integrator
+	# \internal 
+	# \brief Stores the C++ side Integrator managed by this class
+	
+	## \internal
+	# \brief Updates the integrators in the reflected c++ class
+	def update_forces(self):
+		# check that proper initialization has occured
+		if self.cpp_integrator == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+			raise RuntimeError('Error updating forces');		
+		
+		# set the forces
+		self.cpp_integrator.removeForceComputes();
+		for f in globals.forces:
+			if f.enabled:
+				if f.cpp_force == None:
+					print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+					raise RuntimeError('Error updating forces');		
+				else:
+					self.cpp_integrator.addForceCompute(f.cpp_force);
+					f.update_coeffs();
 
 
 
@@ -130,162 +129,162 @@ class _integrator:
 # integrate.nvt performs constant volume, constant temperature simulations using the standard
 # Nos&eacute;-Hoover thermostat. 
 class nvt(_integrator):
-    ## Specifies the NVT integrator
-    # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
-    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat.
-    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
-    #
-    # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
-    # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
-    # and \f$ T_0 \f$ is the temperature set point (\a T above).
-    #
-    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
-    #
-    # \b Examples:
-    # \code
-    # integrate.nvt(dt=0.005, T=1.0, tau=0.5)
-    # integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
-    # integrator = integrate.nvt(tau=1.0, dt=5e-3, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
-    # \endcode
-    def __init__(self, dt, T, tau):
-        util.print_status_line();
-        
-        # initialize base class
-        _integrator.__init__(self);
-        
-        # setup the variant inputs
-        T = variant._setup_variant_input(T);
-        
-        # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_integrator = hoomd.NVTUpdater(globals.system_definition, dt, tau, T.cpp_variant);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.system_definition, dt, tau, T.cpp_variant);
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating NVT integrator");
-            
-        globals.system.setIntegrator(self.cpp_integrator);
-    
-    ## Changes parameters of an existing integrator
-    # \param dt New time step delta (if set)
-    # \param T New temperature (if set)
-    # \param tau New coupling constant (if set)
-    #
-    # To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(dt=0.007)
-    # integrator.set_params(tau=0.6)
-    # integrator.set_params(dt=3e-3, T=2.0)
-    # \endcode
-    def set_params(self, dt=None, T=None, tau=None):
-        util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
-        
-        # change the parameters
-        if dt != None:
-            self.cpp_integrator.setDeltaT(dt);
-        if T != None:
-            # setup the variant inputs
-            T = variant._setup_variant_input(T);
-            self.cpp_integrator.setT(T.cpp_variant);
-        if tau != None:
-            self.cpp_integrator.setTau(tau);
+	## Specifies the NVT integrator
+	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+	# \param T Temperature set point for the Nos&eacute;-Hoover thermostat.
+	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
+	#
+	# \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
+	# \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
+	# and \f$ T_0 \f$ is the temperature set point (\a T above).
+	#
+	# \a T can be a variant type, allowing for temperature ramps in simulation runs.
+	#
+	# \b Examples:
+	# \code
+	# integrate.nvt(dt=0.005, T=1.0, tau=0.5)
+	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
+	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+	# \endcode
+	def __init__(self, dt, T, tau):
+		util.print_status_line();
+		
+		# initialize base class
+		_integrator.__init__(self);
+		
+		# setup the variant inputs
+		T = variant._setup_variant_input(T);
+		
+		# initialize the reflected c++ class
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NVTUpdater(globals.system_definition, dt, tau, T.cpp_variant);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NVTUpdaterGPU(globals.system_definition, dt, tau, T.cpp_variant);
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating NVT integrator");
+			
+		globals.system.setIntegrator(self.cpp_integrator);
+	
+	## Changes parameters of an existing integrator
+	# \param dt New time step delta (if set)
+	# \param T New temperature (if set)
+	# \param tau New coupling constant (if set)
+	#
+	# To change the parameters of an existing integrator, you must save it in a variable when it is
+	# specified, like so:
+	# \code
+	# integrator = integrate.nvt(tau=1.0, dt=5e-3, T=0.65)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# integrator.set_params(dt=0.007)
+	# integrator.set_params(tau=0.6)
+	# integrator.set_params(dt=3e-3, T=2.0)
+	# \endcode
+	def set_params(self, dt=None, T=None, tau=None):
+		util.print_status_line();
+		# check that proper initialization has occured
+		if self.cpp_integrator == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+			raise RuntimeError('Error updating forces');
+		
+		# change the parameters
+		if dt != None:
+			self.cpp_integrator.setDeltaT(dt);
+		if T != None:
+			# setup the variant inputs
+			T = variant._setup_variant_input(T);
+			self.cpp_integrator.setT(T.cpp_variant);
+		if tau != None:
+			self.cpp_integrator.setTau(tau);
 
 ## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat
 #
 # integrate.npt performs constant pressure, constant temperature simulations using the standard
 # Nos&eacute;-Hoover thermosta/Anderson barostat. 
 class npt(_integrator):
-    ## Specifies the NPT integrator
-    # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
-    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat
-    # \param P Pressure set point for the Anderson barostat
-    # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
-    # \param tauP Coupling constant for the barostat
-    #
-    # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
-    #
-    # \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
-    # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
-    # and \f$ T_0 \f$ is the temperature set point (\a T above).
-    #
-    # \b Examples:
-    # \code
-    # integrate.npt(dt=0.005, T=1.0, tau=0.5, tauP=1.0, P=2.0)
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
-    # \endcode
-    def __init__(self, dt, T, tau, P, tauP):
-        util.print_status_line();
-        
-        # initialize base class
-        _integrator.__init__(self);
-        
-        # setup the variant inputs
-        T = variant._setup_variant_input(T);
-        P = variant._setup_variant_input(P);
-        
-        # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_integrator = hoomd.NPTUpdater(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating NVT integrator");
-            
-        globals.system.setIntegrator(self.cpp_integrator);
-    
-    ## Changes parameters of an existing integrator
-    # \param dt New time step delta (if set)
-    # \param T New temperature (if set)
-    # \param tau New coupling constant (if set)
-    # \param P New pressure (if set)
-    # \param tauP New barostat coupling constant (if set)
-    #
-    # To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(dt=0.007)
-    # integrator.set_params(tau=0.6)
-    # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
-    # \endcode
-    def set_params(self, dt=None, T=None, tau=None, P=None, tauP=None):
-        util.print_status_line();
-        # check that proper initialization has occurred
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
-        
-        # change the parameters
-        if dt != None:
-            self.cpp_integrator.setDeltaT(dt);
-        if T != None:
-            # setup the variant inputs
-            T = variant._setup_variant_input(T);
-            self.cpp_integrator.setT(T.cpp_variant);
-        if tau != None:
-            self.cpp_integrator.setTau(tau);
-        if P != None:
-            # setup the variant inputs
-            P = variant._setup_variant_input(P);
-            self.cpp_integrator.setP(P.cpp_variant);
-        if tauP != None:
-            self.cpp_integrator.setTauP(tauP);
+	## Specifies the NPT integrator
+	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+	# \param T Temperature set point for the Nos&eacute;-Hoover thermostat
+	# \param P Pressure set point for the Anderson barostat
+	# \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
+	# \param tauP Coupling constant for the barostat
+	#
+	# Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
+	#
+	# \f$ \tau \f$ is related to the Nos&eacute; mass \f$ Q \f$ by 
+	# \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
+	# and \f$ T_0 \f$ is the temperature set point (\a T above).
+	#
+	# \b Examples:
+	# \code
+	# integrate.npt(dt=0.005, T=1.0, tau=0.5, tauP=1.0, P=2.0)
+	# integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
+	# \endcode
+	def __init__(self, dt, T, tau, P, tauP):
+		util.print_status_line();
+		
+		# initialize base class
+		_integrator.__init__(self);
+		
+		# setup the variant inputs
+		T = variant._setup_variant_input(T);
+		P = variant._setup_variant_input(P);
+		
+		# initialize the reflected c++ class
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NPTUpdater(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating NVT integrator");
+			
+		globals.system.setIntegrator(self.cpp_integrator);
+	
+	## Changes parameters of an existing integrator
+	# \param dt New time step delta (if set)
+	# \param T New temperature (if set)
+	# \param tau New coupling constant (if set)
+	# \param P New pressure (if set)
+	# \param tauP New barostat coupling constant (if set)
+	#
+	# To change the parameters of an existing integrator, you must save it in a variable when it is
+	# specified, like so:
+	# \code
+	# integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# integrator.set_params(dt=0.007)
+	# integrator.set_params(tau=0.6)
+	# integrator.set_params(dt=3e-3, T=2.0, P=1.0)
+	# \endcode
+	def set_params(self, dt=None, T=None, tau=None, P=None, tauP=None):
+		util.print_status_line();
+		# check that proper initialization has occurred
+		if self.cpp_integrator == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+			raise RuntimeError('Error updating forces');
+		
+		# change the parameters
+		if dt != None:
+			self.cpp_integrator.setDeltaT(dt);
+		if T != None:
+			# setup the variant inputs
+			T = variant._setup_variant_input(T);
+			self.cpp_integrator.setT(T.cpp_variant);
+		if tau != None:
+			self.cpp_integrator.setTau(tau);
+		if P != None:
+			# setup the variant inputs
+			P = variant._setup_variant_input(P);
+			self.cpp_integrator.setP(P.cpp_variant);
+		if tauP != None:
+			self.cpp_integrator.setTauP(tauP);
 
 
 ## NVE Integration via Velocity-Verlet
@@ -300,62 +299,62 @@ class npt(_integrator):
 # can gain linear momentum. Activate the update.zero_momentum updater during the limited nve
 # run to prevent this.
 class nve(_integrator):
-    ## Specifies the NVE integrator
-    # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
-    # \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
-    #
-    # \b Examples:
-    # \code
-    # integrate.nve(dt=0.005)
-    # integrator = integrate.nve(dt=5e-3)
-    # integrate.nve(dt=0.005, limit=0.01)
-    # \endcode
-    def __init__(self, dt, limit=None):
-        util.print_status_line();
-        
-        # initialize base class
-        _integrator.__init__(self);
-        
-        # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_integrator = hoomd.NVEUpdater(globals.system_definition, dt);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_integrator = hoomd.NVEUpdaterGPU(globals.system_definition, dt);
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating NVE integrator");
-        
-        # set the limit
-        if limit != None:
-            self.cpp_integrator.setLimit(limit);
-        
-        globals.system.setIntegrator(self.cpp_integrator);
-    
-    ## Changes parameters of an existing integrator
-    # \param dt New time step (if set)
-    #
-    # To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.nve(dt=0.005)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(dt=0.007)
-    # integrator.set_params(dt=3e-3)
-    # \endcode
-    def set_params(self, dt=None):
-        util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
-        
-        # change the parameters
-        if dt != None:
-            self.cpp_integrator.setDeltaT(dt);
-    
+	## Specifies the NVE integrator
+	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
+	#
+	# \b Examples:
+	# \code
+	# integrate.nve(dt=0.005)
+	# integrator = integrate.nve(dt=5e-3)
+	# integrate.nve(dt=0.005, limit=0.01)
+	# \endcode
+	def __init__(self, dt, limit=None):
+		util.print_status_line();
+		
+		# initialize base class
+		_integrator.__init__(self);
+		
+		# initialize the reflected c++ class
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.NVEUpdater(globals.system_definition, dt);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.NVEUpdaterGPU(globals.system_definition, dt);
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating NVE integrator");
+		
+		# set the limit
+		if limit != None:
+			self.cpp_integrator.setLimit(limit);
+		
+		globals.system.setIntegrator(self.cpp_integrator);
+	
+	## Changes parameters of an existing integrator
+	# \param dt New time step (if set)
+	#
+	# To change the parameters of an existing integrator, you must save it in a variable when it is
+	# specified, like so:
+	# \code
+	# integrator = integrate.nve(dt=0.005)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# integrator.set_params(dt=0.007)
+	# integrator.set_params(dt=3e-3)
+	# \endcode
+	def set_params(self, dt=None):
+		util.print_status_line();
+		# check that proper initialization has occured
+		if self.cpp_integrator == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+			raise RuntimeError('Error updating forces');
+		
+		# change the parameters
+		if dt != None:
+			self.cpp_integrator.setDeltaT(dt);
+	
 
 ## NVT integration via Brownian dynamics
 #
@@ -377,112 +376,112 @@ class nve(_integrator):
 # can gain linear momentum. Activate the update.zero_momentum updater during the limited bdnvt
 # run to prevent this.
 class bdnvt(_integrator):
-    ## Specifies the BD NVT integrator
-    # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
-    # \param T Temperature of the simulation \a T
-    # \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
-    # \param seed Random seed to use for the run. Otherwise identical simulations with different seeds set will follow 
-    # different trajectories.
-    # \param use_diam If this is set to 1, then the diameter of each particle will be used as gamma.
-    #
-    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
-    #
-    # \b Examples:
-    # \code
-    # integrate.bdnvt(dt=0.005, T=1.0, seed=5)
-    # integrator = integrate.bdnvt(dt=5e-3, T=1.0, seed=100)
-    # integrate.bdnvt(dt=0.005, T=1.0, limit=0.01, use_diam=1)
-    # integrate.bdnvt(dt=0.005, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
-    # \endcode
-    def __init__(self, dt, T, limit=None, seed=0, use_diam=0):
-        util.print_status_line();
-        
-        # initialize base class
-        _integrator.__init__(self);
-        
-        # setup the variant inputs
-        T = variant._setup_variant_input(T);
-        
-        # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_integrator = hoomd.BD_NVTUpdater(globals.system_definition, dt, T.cpp_variant, seed, use_diam);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.system_definition, dt, T.cpp_variant, seed, use_diam);
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating BD NVT integrator");
-        
-        # set the limit
-        if limit != None:
-            self.cpp_integrator.setLimit(limit);
-        
-        globals.system.setIntegrator(self.cpp_integrator);
-    
-    ## Changes parameters of an existing integrator
-    # \param dt New time step (if set)
-    # \param T New temperature (if set)
-    #
-    # To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.bdnvt(dt=0.005, T=1.0)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(dt=0.007)
-    # integrator.set_params(T=2.0)
-    # \endcode
-    def set_params(self, dt=None, T=None):
-        util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
-        
-        # change the parameters
-        if dt != None:
-            self.cpp_integrator.setDeltaT(dt);
-        if T != None:
-            # setup the variant inputs
-            T = variant._setup_variant_input(T);
-            self.cpp_integrator.setT(T.cpp_variant);
+	## Specifies the BD NVT integrator
+	# \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+	# \param T Temperature of the simulation \a T
+	# \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
+	# \param seed Random seed to use for the run. Otherwise identical simulations with different seeds set will follow 
+	# different trajectories.
+	# \param use_diam If this is set to 1, then the diameter of each particle will be used as gamma.
+	#
+	# \a T can be a variant type, allowing for temperature ramps in simulation runs.
+	#
+	# \b Examples:
+	# \code
+	# integrate.bdnvt(dt=0.005, T=1.0, seed=5)
+	# integrator = integrate.bdnvt(dt=5e-3, T=1.0, seed=100)
+	# integrate.bdnvt(dt=0.005, T=1.0, limit=0.01, use_diam=1)
+	# integrate.bdnvt(dt=0.005, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+	# \endcode
+	def __init__(self, dt, T, limit=None, seed=0, use_diam=0):
+		util.print_status_line();
+		
+		# initialize base class
+		_integrator.__init__(self);
+		
+		# setup the variant inputs
+		T = variant._setup_variant_input(T);
+		
+		# initialize the reflected c++ class
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_integrator = hoomd.BD_NVTUpdater(globals.system_definition, dt, T.cpp_variant, seed, use_diam);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			self.cpp_integrator = hoomd.BD_NVTUpdaterGPU(globals.system_definition, dt, T.cpp_variant, seed, use_diam);
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating BD NVT integrator");
+		
+		# set the limit
+		if limit != None:
+			self.cpp_integrator.setLimit(limit);
+		
+		globals.system.setIntegrator(self.cpp_integrator);
+	
+	## Changes parameters of an existing integrator
+	# \param dt New time step (if set)
+	# \param T New temperature (if set)
+	#
+	# To change the parameters of an existing integrator, you must save it in a variable when it is
+	# specified, like so:
+	# \code
+	# integrator = integrate.bdnvt(dt=0.005, T=1.0)
+	# \endcode
+	#
+	# \b Examples:
+	# \code
+	# integrator.set_params(dt=0.007)
+	# integrator.set_params(T=2.0)
+	# \endcode
+	def set_params(self, dt=None, T=None):
+		util.print_status_line();
+		# check that proper initialization has occured
+		if self.cpp_integrator == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+			raise RuntimeError('Error updating forces');
+		
+		# change the parameters
+		if dt != None:
+			self.cpp_integrator.setDeltaT(dt);
+		if T != None:
+			# setup the variant inputs
+			T = variant._setup_variant_input(T);
+			self.cpp_integrator.setT(T.cpp_variant);
 
-    ## Sets gamma parameter for a particle type
-    # \param a Particle type
-    # \param gamma \f$ \gamma \f$ for particle type (see below for examples)
-    #
-    # set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
-    # by name.
-    #
-    # The gamma parameter determines how strongly a particular particle is coupled to 
-    # the stochastic bath.  The higher the gamma, the more strongly coupled: see 
-    # integrate.bdnvt.
-    #
-    # If gamma is not set for any particle type will automatically default to  1.0.
-    # It is not an error to specify gammas for particle types that do not exist in the simulation.
-    # This can be useful in defining a single simulation script for many different types of particles 
-    # even when some simulations only include a subset.
-    #
-    # \b Examples:
-    # \code
-    # bd.set_gamma('A', gamma=2.0)
-    # \endcode
-    #
-    def set_gamma(self, a, gamma):
-        util.print_status_line();
-        
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
-        
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in xrange(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-        
-        # change the parameters
-        for i in xrange(0,ntypes):
-            if a == type_list[i]:
-                self.cpp_integrator.setGamma(i,gamma);	
+	## Sets gamma parameter for a particle type
+	# \param a Particle type
+	# \param gamma \f$ \gamma \f$ for particle type (see below for examples)
+	#
+	# set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
+	# by name.
+	#
+	# The gamma parameter determines how strongly a particular particle is coupled to 
+	# the stochastic bath.  The higher the gamma, the more strongly coupled: see 
+	# integrate.bdnvt.
+	#
+	# If gamma is not set for any particle type will automatically default to  1.0.
+	# It is not an error to specify gammas for particle types that do not exist in the simulation.
+	# This can be useful in defining a single simulation script for many different types of particles 
+	# even when some simulations only include a subset.
+	#
+	# \b Examples:
+	# \code
+	# bd.set_gamma('A', gamma=2.0)
+	# \endcode
+	#
+	def set_gamma(self, a, gamma):
+		util.print_status_line();
+		
+		# check that proper initialization has occured
+		if self.cpp_integrator == None:
+			print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+			raise RuntimeError('Error updating forces');
+		
+		ntypes = globals.system_definition.getParticleData().getNTypes();
+		type_list = [];
+		for i in xrange(0,ntypes):
+			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+		
+		# change the parameters
+		for i in xrange(0,ntypes):
+			if a == type_list[i]:
+				self.cpp_integrator.setGamma(i,gamma);	

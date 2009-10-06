@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -47,41 +47,40 @@ using namespace std;
 
 #include "HOOMDVersion.h"
 /*! \file HOOMDVersion.cc
-    \brief Defines functions for writing compile time version information to the screen.
-
-    \ingroup utils
+	\brief Defines functions for writing compile time version information to the screen.
+	
+	\ingroup utils
 */
 
 void output_version_info(bool verbose)
-    {
-    // output the version info differently if this is tagged as a subversion build or not
-    if (HOOMD_SUBVERSION_BUILD)
-        cout << "HOOMD-blue svnversion " << HOOMD_SVNVERSION << endl;
-    else
-        cout << "HOOMD-blue " << HOOMD_VERSION << endl;
-        
-    // output the compiled date and copyright information
-    cout << "Compiled: " << COMPILE_DATE << endl;
-    cout << "Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan" 
-		 << endl;
-    
-    // output the paper citation information
-    cout << "-----" << endl;
-    cout << "http://codeblue.umich.edu/hoomd-blue/" << endl;
-    cout << "This code is the implementation of the algorithms discussed in:" << endl;
-    cout << "   Joshua A. Anderson, Chris D. Lorenz, and Alex Travesset - 'General" << endl;
-    cout << "   Purpose Molecular Dynamics Fully Implemented on Graphics Processing" << endl;
-    cout << "   Units', Journal of Computational Physics 227 (2008) 5342-5359" << endl;
-    cout << "-----" << endl;
-    
-    // warn the user if they are running a debug or GPU emulation build
-#ifndef NDEBUG
-    cout << "WARNING: This is a DEBUG build, expect slow performance." << endl;
-#endif
-    
-#ifdef ENABLE_CUDA
-#ifdef _DEVICEEMU
-    cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
-#endif
-#endif
-    }
+	{
+	// output the version info differently if this is tagged as a subversion build or not
+	if (HOOMD_SUBVERSION_BUILD)
+		cout << "HOOMD-blue svnversion " << HOOMD_SVNVERSION << endl;
+	else
+		cout << "HOOMD-blue " << HOOMD_VERSION << endl;
+	
+	// output the compiled date and copyright information
+	cout << "Compiled: " << COMPILE_DATE << endl;
+	cout << "Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan" << endl;
+	
+	// output the paper citation information
+	cout << "-----" << endl;
+	cout << "http://codeblue.umich.edu/hoomd-blue/" << endl;
+	cout << "This code is the implementation of the algorithms discussed in:" << endl;
+	cout << "   Joshua A. Anderson, Chris D. Lorenz, and Alex Travesset - 'General" << endl;
+	cout << "   Purpose Molecular Dynamics Fully Implemented on Graphics Processing" << endl;
+	cout << "   Units', Journal of Computational Physics 227 (2008) 5342-5359" << endl;
+	cout << "-----" << endl;
+
+	// warn the user if they are running a debug or GPU emulation build
+	#ifndef NDEBUG
+	cout << "WARNING: This is a DEBUG build, expect slow performance." << endl;
+	#endif
+	
+	#ifdef ENABLE_CUDA
+	#ifdef _DEVICEEMU
+	cout << "WARNING: This is a GPU emulation build, expect extremely slow performance." << endl;
+	#endif
+	#endif
+	}

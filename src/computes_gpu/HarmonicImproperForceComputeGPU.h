@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -52,52 +52,49 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signals.hpp>
 
 /*! \file HarmonicImproperForceComputeGPU.h
-    \brief Declares the HarmonicImproperForceGPU class
+	\brief Declares the HarmonicImproperForceGPU class
 */
 
 #ifndef __HARMONICIMPROPERFORCECOMPUTEGPU_H__
 #define __HARMONICIMPROPERFORCECOMPUTEGPU_H__
 
 //! Implements the harmonic improper force calculation on the GPU
-/*! HarmonicImproperForceComputeGPU implements the same calculations as HarmonicImproperForceCompute,
-    but executing on the GPU.
+/*!	HarmonicImproperForceComputeGPU implements the same calculations as HarmonicImproperForceCompute,
+	but executing on the GPU.
+	
+	Per-type parameters are stored in a simple global memory area pointed to by
+	\a m_gpu_params. They are stored as float2's with the \a x component being K and the
+	\a y component being t_0.
+	
+	The GPU kernel can be found in improperforce_kernel.cu.
 
-    Per-type parameters are stored in a simple global memory area pointed to by
-    \a m_gpu_params. They are stored as float2's with the \a x component being K and the
-    \a y component being t_0.
-
-    The GPU kernel can be found in improperforce_kernel.cu.
-
-    \ingroup computes
+	\ingroup computes
 */
 class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
-    {
-    public:
-        //! Constructs the compute
-        HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
-        //! Destructor
-        ~HarmonicImproperForceComputeGPU();
-        
-        //! Sets the block size to run on the device
-        /*! \param block_size Block size to set
-        */
-        void setBlockSize(int block_size)
-            {
-            m_block_size = block_size;
-            }
-            
-        //! Set the parameters
-        virtual void setParams(unsigned int type, Scalar K, Scalar chi);
-        
-    protected:
-        int m_block_size;               //!< Block size to run calculation on
-        vector<float2 *> m_gpu_params;  //!< Parameters stored on the GPU (k,chi)
-        float2 *m_host_params;          //!< Host parameters -- padded to float4
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+	{
+	public:
+		//! Constructs the compute
+		HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+		//! Destructor
+		~HarmonicImproperForceComputeGPU();
+		
+		//! Sets the block size to run on the device
+		/*! \param block_size Block size to set
+		*/
+		void setBlockSize(int block_size) { m_block_size = block_size; }
+		
+		//! Set the parameters
+		virtual void setParams(unsigned int type, Scalar K, Scalar chi);
+		
+	protected:
+		int m_block_size;		//!< Block size to run calculation on
+		vector<float2 *> m_gpu_params;	//!< Parameters stored on the GPU (k,chi)
+		float2 *m_host_params;	//!< Host parameters -- padded to float4 due to a problem with reading float 3s from texture cashe
 
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
 //! Export the ImproperForceComputeGPU class to python
 void export_HarmonicImproperForceComputeGPU();
 

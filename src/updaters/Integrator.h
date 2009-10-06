@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file Integrator.h
-    \brief Declares the Integrator base class
+	\brief Declares the Integrator base class
 */
 
 #ifndef __INTEGRATOR_H__
@@ -59,97 +59,97 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Base class that defines an integrator
 /*! An Integrator steps the entire simulation forward one time step in time.
-    Prior to calling update(timestep), the system is at time step \a timestep.
-    After the call to update completes, the system is at \a timestep + 1.
+	Prior to calling update(timestep), the system is at time step \a timestep.
+	After the call to update completes, the system is at \a timestep + 1.
 
-    Many integrators have the common property that they add up many forces to
-    get the net force on each particle. This task is performed by the
-    base class Integrator. Similarly, all integrators share the
-    property that they have a time step, \a deltaT.
+	Many integrators have the common property that they add up many forces to
+	get the net force on each particle. This task is performed by the 
+	base class Integrator. Similarly, all integrators share the 
+	property that they have a time step, \a deltaT.
 
-    Derived integrators can of course add additional parameters and
-    properties.
+	Derived integrators can of course add additional parameters and 
+	properties.
 
-    Any number of ForceComputes can be used to specify the net force
-    for use with this integrator. They are added via calling
-    addForceCompute(). Although there is a current, a maximum of 32 ForceComputes
-    supported on the GPU. If there is ever a need for this to be increased, it can
-    be done without too much trouble, but 32 should be much more than sufficient
-    for any simulation.
-
-    Integrators take "ownership" of the particle's accellerations. Any other updater
-    that modifies the particles accelerations will produce undefined results. If
-    accelerations are to be modified, they must be done through forces, and added to
-    an Integrator via addForceCompute().
-
-    No such ownership is taken of the particle positions and velocities. Other Updaters
-    can modify particle positions and velocities as they wish. Those updates will be taken
-    into account by the Integrator. It would probably make the most sense to have such updaters
-    run BEFORE the Integrator, since an Integrator actually moves the particles to the next time
-    step. This is handled correctly by System.
-
-    \ingroup updaters
+	Any number of ForceComputes can be used to specify the net force
+	for use with this integrator. They are added via calling
+	addForceCompute(). Although there is a current, a maximum of 32 ForceComputes 
+	supported on the GPU. If there is ever a need for this to be increased, it can 
+	be done without too much trouble, but 32 should be much more than sufficient 
+	for any simulation.
+	
+	Integrators take "ownership" of the particle's accellerations. Any other updater 
+	that modifies the particles accelerations will produce undefined results. If 
+	accelerations are to be modified, they must be done through forces, and added to 
+	an Integrator via addForceCompute().
+	
+	No such ownership is taken of the particle positions and velocities. Other Updaters 
+	can modify particle positions and velocities as they wish. Those updates will be taken 
+	into account by the Integrator. It would probably make the most sense to have such updaters 
+	run BEFORE the Integrator, since an Integrator actually moves the particles to the next time
+	step. This is handled correctly by System.
+	
+	\ingroup updaters
 */
 class Integrator : public Updater
-    {
-    public:
-        //! Constructor
-        Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-        
-        //! Destructor
-        ~Integrator();
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-        
-        //! Add a ForceCompute to the list
-        virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
-        
-        //! Removes all ForceComputes from the list
-        virtual void removeForceComputes();
-        
-        //! Change the timestep
-        virtual void setDeltaT(Scalar deltaT);
-        
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
-        
-        //! helper function to compute temperature
-        virtual Scalar computeTemperature(unsigned int timestep);
-        
-        //! helper function to compute pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
-        //! helper function to compute kinetic energy
-        virtual Scalar computeKineticEnergy(unsigned int timestep);
-        
-        //! helper function to compute potential energy
-        virtual Scalar computePotentialEnergy(unsigned int timestep);
-        
-        //! helper function to compute total momentum
-        virtual Scalar computeTotalMomentum(unsigned int timestep);
-        
-    protected:
-        Scalar m_deltaT;    //!< The time step
-        std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
-        
-        //! helper function to compute accelerations
-        void computeAccelerations(unsigned int timestep, const std::string& profile_name);
-        
-#ifdef ENABLE_CUDA
-        //! helper function to compute accelerations on the GPU
-        void computeAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
-        
-        //! Force data pointers on the device
-        vector<float4 **> m_d_force_data_ptrs;
-        
-#endif
-    };
+	{
+	public:
+		//! Constructor
+		Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+		
+		//! Destructor
+		~Integrator();
 
+		//! Take one timestep forward
+		virtual void update(unsigned int timestep);
+		
+		//! Add a ForceCompute to the list
+		virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+				
+		//! Removes all ForceComputes from the list
+		virtual void removeForceComputes();
+		
+		//! Change the timestep
+		virtual void setDeltaT(Scalar deltaT);
+
+		//! Returns a list of log quantities this compute calculates
+		virtual std::vector< std::string > getProvidedLogQuantities();
+		
+		//! Calculates the requested log value and returns it
+		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+		
+		//! helper function to compute temperature
+		virtual Scalar computeTemperature(unsigned int timestep);
+		
+		//! helper function to compute pressure
+		virtual Scalar computePressure(unsigned int timestep);
+		
+		//! helper function to compute kinetic energy
+		virtual Scalar computeKineticEnergy(unsigned int timestep);
+		
+		//! helper function to compute potential energy
+		virtual Scalar computePotentialEnergy(unsigned int timestep);
+		
+		//! helper function to compute total momentum
+		virtual Scalar computeTotalMomentum(unsigned int timestep);
+		
+	protected:
+		Scalar m_deltaT;	//!< The time step
+		std::vector< boost::shared_ptr<ForceCompute> > m_forces;	//!< List of all the force computes
+		
+		//! helper function to compute accelerations
+		void computeAccelerations(unsigned int timestep, const std::string& profile_name);
+	
+		#ifdef ENABLE_CUDA
+		//! helper function to compute accelerations on the GPU
+		void computeAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
+
+		//! Force data pointers on the device
+		vector<float4 **> m_d_force_data_ptrs;
+
+		#endif
+	};
+	
 //! Exports the NVEUpdater class to python
 void export_Integrator();
-
+	
 #endif

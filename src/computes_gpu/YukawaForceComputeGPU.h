@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -46,45 +46,45 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 /*! \file YukawaForceComputeGPU.h
-    \brief Declares a class for computing yukawa forces on the GPU
+	\brief Declares a class for computing yukawa forces on the GPU
 */
 
 #ifndef __YUKAWAFORCECOMPUTEGPU_H__
 #define __YUKAWAFORCECOMPUTEGPU_H__
 
 //! Computes Yukawa forces on each particle using the GPU
-/*! Yukawa pair forces are calucated much faster on the GPU. This class
-    has the same public interface as YukawaForceCompute so that they can be used interchangably.
-
-    \b Developer information: <br>
-    This class operates as a wrapper around CUDA code written in C and compiled by
-    nvcc. See yukawaforcesum_kernel.cu for detailed internal documentation.
-    \ingroup computes
+/*! Yukawa pair forces are calucated much faster on the GPU. This class 
+	has the same public	interface as YukawaForceCompute so that they can be used interchangably. 
+	
+	\b Developer information: <br>
+	This class operates as a wrapper around CUDA code written in C and compiled by 
+	nvcc. See yukawaforcesum_kernel.cu for detailed internal documentation.
+	\ingroup computes
 */
 class YukawaForceComputeGPU : public YukawaForceCompute
-    {
-    public:
-        //! Constructs the compute
-        YukawaForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa);
-        
-        //! Destructor
-        virtual ~YukawaForceComputeGPU();
-        
-        //! Set the parameters for a single type pair
-        virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon);
-        
-        //! Sets the block size to run at
-        void setBlockSize(int block_size);
-        
-    protected:
-        vector<float *> d_coeffs;       //!< Pointer to the coefficients on the GPU
-        float * h_coeffs;               //!< Pointer to the coefficients on the host
-        int m_block_size;               //!< The block size to run on the GPU
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+	{
+	public:
+		//! Constructs the compute
+		YukawaForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, Scalar kappa);
+		
+		//! Destructor
+		virtual ~YukawaForceComputeGPU();
+		
+		//! Set the parameters for a single type pair
+		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon);
+		
+		//! Sets the block size to run at
+		void setBlockSize(int block_size);
 
+	protected:
+		vector<float *> d_coeffs;		//!< Pointer to the coefficients on the GPU
+		float * h_coeffs;				//!< Pointer to the coefficients on the host
+		int m_block_size;				//!< The block size to run on the GPU
+
+		//! Actually compute the forces
+		virtual void computeForces(unsigned int timestep);
+	};
+	
 //! Exports the YukawaForceComputeGPU class to python
 void export_YukawaForceComputeGPU();
 

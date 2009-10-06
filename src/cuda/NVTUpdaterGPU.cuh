@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file NVTUpdaterGPU.cuh
-    \brief Declares GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.
+	\brief Declares GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.
 */
 
 #include "ParticleData.cuh"
@@ -51,35 +51,26 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Stores intermediate values for NVT integration
 /*! NVT integration (NVTUpdaterGPU) requires summing up the kinetic energy of the system.
-    gpu_nvt_data stores the needed auxiliary data structure needed to do the standard reduction
-    sum.
-
-    \ingroup gpu_data_structs
+	gpu_nvt_data stores the needed auxiliary data structure needed to do the standard reduction
+	sum.
+	
+	\ingroup gpu_data_structs
 */
 struct gpu_nvt_data
-    {
-    float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
-    float *Ksum;    //!< fully reduced Ksum on one GPU
-    int NBlocks;    //!< Number of blocks in the computation
-    int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
-    };
+	{
+	float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
+	float *Ksum;	//!< fully reduced Ksum on one GPU
+	int NBlocks;	//!< Number of blocks in the computation
+	int block_size;	//!< Block size of the kernel to be run on the device (must be a power of 2)
+	};
 
 //! Kernel driver for the first part of the NVT update called by NVTUpdaterGPU
-cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata,
-							 const gpu_boxsize &box,
-							 const gpu_nvt_data &d_nvt_data,
-							 float Xi,
-							 float deltaT);
+cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nvt_data &d_nvt_data, float Xi, float deltaT);
 
 //! Kernel driver for the Ksum reduction final pass called by NVTUpdaterGPU
 cudaError_t gpu_nvt_reduce_ksum(const gpu_nvt_data &d_nvt_data);
 
 //! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
-cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata,
-						 const gpu_nvt_data &d_nvt_data,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float Xi,
-						 float deltaT);
+cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata, const gpu_nvt_data &d_nvt_data, float4 **force_data_ptrs, int num_forces, float Xi, float deltaT);
 
 #endif

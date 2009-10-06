@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -41,7 +41,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file IMDInterface.h
-    \brief Declares the IMDInterface class
+	\brief Declares the IMDInterface class
 */
 
 #include <boost/shared_ptr.hpp>
@@ -53,35 +53,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Iterfaces with VMD through the IMD communcations port
 /*! analyze() can be called very often. When not connected to
-    VMD, it will do nothing. After a connection has been established,
-    which can only happen during a call to analyze(), further calls will
-    transmit particle positions to VMD.
-
-    In its current implementation, only a barebones set of commands are
-    supported. The sending of any command that is not understood will
-    result in the socket closing the connection.
-    \ingroup analyzers
+	VMD, it will do nothing. After a connection has been established,
+	which can only happen during a call to analyze(), further calls will 
+	transmit particle positions to VMD.
+	
+	In its current implementation, only a barebones set of commands are 
+	supported. The sending of any command that is not understood will
+	result in the socket closing the connection.
+	\ingroup analyzers
 */
 class IMDInterface : public Analyzer
-    {
-    public:
-        //! Constructor
-        IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port = 54321);
-        
-        //! Destructor
-        ~IMDInterface();
-        
-        //! Handle connection requests and send current positions if connected
-        void analyze(unsigned int timestep);
-    private:
-        void *m_listen_sock;    //!< Socket we are listening on
-        void *m_connected_sock; //!< Socket to transmit/receive data
-        float *m_tmp_coords;    //!< Temporary holding location for coordinate data
-        
-        bool m_active;          //!< True if we have received a go command
-    };
-
+	{
+	public:
+		//! Constructor
+		IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port = 54321);
+			
+		//! Destructor
+		~IMDInterface();
+		
+		//! Handle connection requests and send current positions if connected
+		void analyze(unsigned int timestep);
+	private:
+		void *m_listen_sock;	//!< Socket we are listening on
+		void *m_connected_sock;	//!< Socket to transmit/receive data
+		float *m_tmp_coords;	//!< Temporary holding location for coordinate data
+		
+		bool m_active;			//!< True if we have received a go command
+	};
+	
 //! Exports the IMDInterface class to python
 void export_IMDInterface();
-
+	
 #endif
