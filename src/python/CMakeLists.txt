@@ -35,8 +35,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id$
-# $URL$
+# $Id: CMakeLists.txt 1980 2009-07-23 14:53:54Z joaander $
+# $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/src/python/CMakeLists.txt $
 # Maintainer: joaander
 
 # enable testing on this directory
@@ -136,6 +136,14 @@ if (ENABLE_STATIC)
 	endif (MSVC)
 	
 endif (ENABLE_STATIC)
+
+if (ENABLE_CXX)
+install(TARGETS hoomd_python_module 		
+		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+      		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)	
+endif (ENABLE_CXX)
+
 
 #################################
 ## Create source file groups

@@ -121,6 +121,7 @@ add_subdirectory (microbenchmarks EXCLUDE_FROM_ALL)
 add_subdirectory (share)
 add_subdirectory (scripts)
 add_subdirectory (python)
+add_subdirectory (cppapi)
 
 ################################
 # set up unit tests
