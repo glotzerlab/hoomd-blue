@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: YukawaForceComputeGPU.h 1325 2008-10-06 13:42:07Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/computes_gpu/YukawaForceComputeGPU.h $
+// $Id$
+// $URL$
 
 #include "YukawaForceCompute.h"
 #include "NeighborList.h"

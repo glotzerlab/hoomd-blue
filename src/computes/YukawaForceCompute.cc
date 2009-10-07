@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: YukawaForceCompute.cc 1325 2008-10-06 13:42:07Z phillicl $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/computes/YukawaForceCompute.cc $
+// $Id$
+// $URL$
 
 #ifdef WIN32
 #pragma warning( push )

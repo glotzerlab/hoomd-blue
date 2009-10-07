@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: NVERigidUpdater.h 1468 2008-11-13 03:36:34Z joaander $
-// $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/updaters/NVEUpdater.h $
+// $Id$
+// $URL$
 
 /*! \file NVEUpdater.h
     \brief Declares an updater that implements NVE dynamics

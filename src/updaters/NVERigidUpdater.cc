@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: NVERigidUpdater.cc 1478 2008-11-14 19:25:38Z joaander $
-// $URL: https://svn2.assembla.com/svn/hoomd/trunk/src/updaters/NVERigidUpdater.cc $
+// $Id$
+// $URL$
 
 /*! \file NVERigidUpdater.cc
     \brief Defines the NVERigidUpdater class

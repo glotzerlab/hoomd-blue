@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: YukawaForceComputeGPU.cc 1368 2008-10-15 15:57:40Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/computes_gpu/YukawaForceComputeGPU.cc $
+// $Id$
+// $URL$
 
 /*! \file YukawaForceComputeGPU.cc
     \brief Defines the YukawaForceComputeGPU class

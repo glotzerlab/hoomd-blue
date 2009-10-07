@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
-# $Id:$
-# $URL:$
+# $Id$
+# $URL$
 # Maintainer: joaander
 
 from hoomd_script import *

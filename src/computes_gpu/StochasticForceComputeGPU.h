@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: StochasticForceComputeGPU.h 1217 2008-09-05 14:54:46Z joaander $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/computes_gpu/StochasticForceComputeGPU.h $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 #include "StochasticForceCompute.h"

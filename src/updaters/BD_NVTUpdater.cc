@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: BD_NVTUpdater.cc 1206 2008-09-04 18:00:45Z phillicl $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters/BD_NVTUpdater.cc $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 /*! \file BD_NVTUpdater.cc

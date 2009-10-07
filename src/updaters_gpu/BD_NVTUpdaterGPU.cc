@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: BD_NVTUpdaterGPU.cc 1234 2008-09-11 16:29:13Z philliclBD_NVT $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/updaters_gpu/BD_NVTUpdaterGPU.cc $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 /*! \file BD_NVTUpdaterGPU.cc

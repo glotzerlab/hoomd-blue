@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: FENEBondForceCompute.cc 1127 2008-08-31 19:54:39Z phillicl $
-// $URL: https://svn2.assembla.com/svn/hoomd/tags/hoomd-0.7.0/src/computes/FENEBondForceCompute.cc $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 #ifdef WIN32
