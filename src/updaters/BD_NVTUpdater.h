@@ -73,9 +73,9 @@ class BD_NVTUpdater : public NVEUpdater
     public:
         //! Constructor
         BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-					  Scalar deltaT, boost::shared_ptr<Variant> Temp,
-					  unsigned int seed,
-					  bool use_diam);
+                      Scalar deltaT, boost::shared_ptr<Variant> Temp,
+                      unsigned int seed,
+                      bool use_diam);
         
         //! Sets the Stochastic Bath Temperature
         void setT(boost::shared_ptr<Variant> Temp);
@@ -108,7 +108,7 @@ class BD_NVTUpdater : public NVEUpdater
         boost::shared_ptr<Variant> m_T;         //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;                    //!< The seed for the RNG of the Stochastic Bath
         bool m_bath;                            //!< Whether the bath has been set or not
-        bool m_use_diam;						//!< flag to enable gamma set by the diameter of each particle
+        bool m_use_diam;                        //!< flag to enable gamma set by the diameter of each particle
         
         //! Attaches the Stochastic Bath Temperature
         void addStochasticBath();

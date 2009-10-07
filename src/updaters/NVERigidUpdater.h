@@ -56,9 +56,9 @@ class SystemDefinition;
 
 //! Updates particle positions and velocities
 /*! This updater performes constant N, constant volume, constant energy (NVE) dynamics. Particle positions and 
-	velocities are updated according to the velocity verlet algorithm. The forces that drive this motion are defined 
-	external to this class in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be 
-	summed to produce a net force on each particle.
+    velocities are updated according to the velocity verlet algorithm. The forces that drive this motion are defined 
+    external to this class in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be 
+    summed to produce a net force on each particle.
 
     \ingroup updaters
 */

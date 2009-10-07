@@ -72,10 +72,10 @@ using namespace std;
     Taking in pdata as a pointer instead of a shared pointer is sloppy, but there really isn't an alternative
     due to the way ParticleData is constructed. Things will be fixed in a later version with a reorganization
     of the various data structures. For now, be careful not to destroy the ParticleData and keep the DihedralData
-	hanging around.
+    hanging around.
 */
 DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types) 
-	: m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata)
+    : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata)
     {
     assert(pdata);
     
@@ -337,10 +337,10 @@ void DihedralData::updateDihedralTable()
 
 /*! \param height New height for the dihedral table
     
-	\post Reallocates memory on the device making room for up to
+    \post Reallocates memory on the device making room for up to
     \a height dihedrals per particle.
     
-	\note updateDihedralTable() needs to be called after so that the
+    \note updateDihedralTable() needs to be called after so that the
     data in the dihedral table will be correct.
 */
 void DihedralData::reallocateDihedralTable(int height)

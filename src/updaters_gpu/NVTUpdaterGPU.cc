@@ -69,10 +69,10 @@ using namespace std;
     \param T Temperature set point
 */
 NVTUpdaterGPU::NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-							 Scalar deltaT,
-							 Scalar tau,
-							 boost::shared_ptr<Variant> T) 
-	: NVTUpdater(sysdef, deltaT, tau, T)
+                             Scalar deltaT,
+                             Scalar tau,
+                             boost::shared_ptr<Variant> T) 
+    : NVTUpdater(sysdef, deltaT, tau, T)
     {
     // at least one GPU is needed
     if (exec_conf.gpu.size() == 0)

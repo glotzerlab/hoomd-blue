@@ -71,12 +71,12 @@ using namespace std;
     \param P Pressure set point
 */
 NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-							 Scalar deltaT,
-							 Scalar tau,
-							 Scalar tauP,
-							 boost::shared_ptr<Variant> T,
-							 boost::shared_ptr<Variant> P) 
-	: NPTUpdater(sysdef, deltaT, tau, tauP, T, P)
+                             Scalar deltaT,
+                             Scalar tau,
+                             Scalar tauP,
+                             boost::shared_ptr<Variant> T,
+                             boost::shared_ptr<Variant> P) 
+    : NPTUpdater(sysdef, deltaT, tau, tauP, T, P)
     {
     const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
     

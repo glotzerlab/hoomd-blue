@@ -144,3 +144,4 @@ class Index2DUpperTriangular
     };
 
 #endif
+

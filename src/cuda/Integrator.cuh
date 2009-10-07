@@ -75,9 +75,9 @@ cudaError_t gpu_integrator_sum_accel(const gpu_pdata_arrays &pdata, float4** for
     call this function. Coalescing is achieved when idx_local = blockDim.x*blockIDx.x + threadIdx.x
 */
 __device__ float4 gpu_integrator_sum_forces_inline(unsigned int idx_local,
-												   unsigned int local_num,
-												   float4 **force_data_ptrs,
-												   int num_forces)
+                                                   unsigned int local_num,
+                                                   float4 **force_data_ptrs,
+                                                   int num_forces)
     {
     // each block loads in the pointers
     __shared__ float4 *force_ptrs[32];

@@ -60,11 +60,11 @@ class NPTUpdaterGPU : public NPTUpdater
     public:
         //! Constructor
         NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-					  Scalar deltaT,
-					  Scalar tau,
-					  Scalar tauP,
-					  boost::shared_ptr<Variant> T,
-					  boost::shared_ptr<Variant> P);
+                      Scalar deltaT,
+                      Scalar tau,
+                      Scalar tauP,
+                      boost::shared_ptr<Variant> T,
+                      boost::shared_ptr<Variant> P);
         
         virtual ~NPTUpdaterGPU();
         

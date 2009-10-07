@@ -68,8 +68,8 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
     if (exec_conf.gpu.size() == 0)
         {
         cerr << endl 
-			 << "***Error! Creating a AngleForceComputeGPU with no GPU in the execution configuration" 
-			 << endl << endl;
+             << "***Error! Creating a AngleForceComputeGPU with no GPU in the execution configuration" 
+             << endl << endl;
         throw std::runtime_error("Error initializing AngleForceComputeGPU");
         }
         

@@ -74,9 +74,9 @@ using namespace std;
     After construction, all data structure are set to defaults and particles are ready to be placed.
 */
 GeneratedParticles::GeneratedParticles(unsigned int n_particles,
-									   const BoxDim& box,
-									   const std::map< std::string, Scalar >& radii) 
-	: m_particles(n_particles), m_box(box), m_radii(radii)
+                                       const BoxDim& box,
+                                       const std::map< std::string, Scalar >& radii) 
+    : m_particles(n_particles), m_box(box), m_radii(radii)
     {
     // sanity checks
     assert(n_particles > 0);

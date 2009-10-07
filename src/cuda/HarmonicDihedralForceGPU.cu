@@ -71,9 +71,9 @@ texture<float4, 1, cudaReadModeElementType> dihedral_params_tex;
 */
 extern "C" __global__ 
 void gpu_compute_harmonic_dihedral_forces_kernel(gpu_force_data_arrays force_data,
-												 gpu_pdata_arrays pdata,
-												 gpu_boxsize box,
-												 gpu_dihedraltable_array tlist)
+                                                 gpu_pdata_arrays pdata,
+                                                 gpu_boxsize box,
+                                                 gpu_dihedraltable_array tlist)
     {
     // start by identifying which particle we are to handle
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;

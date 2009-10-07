@@ -111,9 +111,9 @@ class BinnedNeighborListGPU : public NeighborList
         std::vector<gpu_bin_array> m_gpu_bin_data;  //!< The binned particle data
         unsigned int *m_host_idxlist;               //!< Host bins
         int m_block_size;                           //!< Block size to use when performing the calculations on the GPU
-        unsigned int *m_mem_location;				//!< Memory location of bins (Z-order curve)
+        unsigned int *m_mem_location;                //!< Memory location of bins (Z-order curve)
         
-        bool m_ulf_workaround;						//!< Stores decision made by the constructor whether to enable the ULF workaround
+        bool m_ulf_workaround;                        //!< Stores decision made by the constructor whether to enable the ULF workaround
         
         //! Builds the neighbor list
         virtual void buildNlist();

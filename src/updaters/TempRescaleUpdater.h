@@ -55,7 +55,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Updates particle velocities to set a temperature
 /*! This updater computes the current temperature of the system and then scales the velocities in order to set the 
-	temperature.
+    temperature.
 
     \ingroup updaters
 */

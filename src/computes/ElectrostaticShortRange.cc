@@ -80,12 +80,12 @@ using namespace std;
     \param min_value minimum value expected to compute using the look up table
 */
 ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<SystemDefinition> sysdef,
-												 boost::shared_ptr<NeighborList> nlist,
-												Scalar r_cut,
-												Scalar alpha,
-												Scalar delta,
-												Scalar min_value)
-	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut),m_alpha(alpha),m_delta(delta),m_min_value(min_value)
+                                                 boost::shared_ptr<NeighborList> nlist,
+                                                Scalar r_cut,
+                                                Scalar alpha,
+                                                Scalar delta,
+                                                Scalar min_value)
+    : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut),m_alpha(alpha),m_delta(delta),m_min_value(min_value)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -110,8 +110,8 @@ ElectrostaticShortRange::ElectrostaticShortRange(boost::shared_ptr<SystemDefinit
     if ((m_min_value<m_delta)||(m_min_value<TOL))
         {
         cerr << endl << 
-		"***Error! min_value must be larger than m_delta or TOL in ElectrostaticShortRange, otherwise errors may occur"  
-			<< endl << endl;
+        "***Error! min_value must be larger than m_delta or TOL in ElectrostaticShortRange, otherwise errors may occur"  
+            << endl << endl;
         throw runtime_error("Error initializing ElectrostaticShortRange");
         }
         

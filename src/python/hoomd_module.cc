@@ -215,8 +215,8 @@ string find_hoomd_data_dir()
 #endif
         
     cerr << endl 
-		 << "***Error! HOOMD data directory not found, please set the environment variable HOOMD_ROOT" 
-		 << endl << endl;
+         << "***Error! HOOMD data directory not found, please set the environment variable HOOMD_ROOT" 
+         << endl << endl;
     return string("");
     }
 

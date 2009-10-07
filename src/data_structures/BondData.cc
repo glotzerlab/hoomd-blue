@@ -70,7 +70,7 @@ using namespace std;
     \param n_bond_types Number of bond types in the list
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
-	: m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata)
+    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata)
     {
     assert(pdata);
     
@@ -299,11 +299,11 @@ void BondData::updateBondTable()
 
 /*! \param height New height for the bond table
     
-	\post Reallocates memory on the device making room for up to
-	\a height bonds per particle.
+    \post Reallocates memory on the device making room for up to
+    \a height bonds per particle.
     
-	\note updateBondTable() needs to be called after so that the
-	data in the bond table will be correct.
+    \note updateBondTable() needs to be called after so that the
+    data in the bond table will be correct.
 */
 void BondData::reallocateBondTable(int height)
     {

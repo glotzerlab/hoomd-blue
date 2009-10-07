@@ -69,7 +69,7 @@ using namespace std;
 TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                      boost::shared_ptr<NeighborList> nlist,
                                      unsigned int table_width)
-	: TablePotential(sysdef, nlist, table_width), m_block_size(64)
+    : TablePotential(sysdef, nlist, table_width), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)
@@ -150,3 +150,4 @@ void export_TablePotentialGPU()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

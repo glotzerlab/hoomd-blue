@@ -64,8 +64,8 @@ class LJForceComputeGPU : public LJForceCompute
     public:
         //! Constructs the compute
         LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-						  boost::shared_ptr<NeighborList> nlist,
-						  Scalar r_cut);
+                          boost::shared_ptr<NeighborList> nlist,
+                          Scalar r_cut);
         
         //! Destructor
         virtual ~LJForceComputeGPU();

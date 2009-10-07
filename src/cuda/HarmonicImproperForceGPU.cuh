@@ -53,12 +53,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Kernel driver that computes harmonic IMPROPER forces for HarmonicImproperForceComputeGPU
 cudaError_t gpu_compute_harmonic_improper_forces(const gpu_force_data_arrays& force_data,
-												 const gpu_pdata_arrays &pdata,
-												 const gpu_boxsize &box,
-												 const gpu_dihedraltable_array &ttable,
-												 float2 *d_params,
-												 unsigned int n_improper_types,
-												 int block_size);
+                                                 const gpu_pdata_arrays &pdata,
+                                                 const gpu_boxsize &box,
+                                                 const gpu_dihedraltable_array &ttable,
+                                                 float2 *d_params,
+                                                 unsigned int n_improper_types,
+                                                 int block_size);
 
 #endif
 

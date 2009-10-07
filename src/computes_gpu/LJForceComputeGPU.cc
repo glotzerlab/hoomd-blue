@@ -75,9 +75,9 @@ using namespace std;
         delete the neighborlist when done.
 */
 LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-									 boost::shared_ptr<NeighborList> nlist,
-									 Scalar r_cut)
-	: LJForceCompute(sysdef, nlist, r_cut), m_block_size(64)
+                                     boost::shared_ptr<NeighborList> nlist,
+                                     Scalar r_cut)
+    : LJForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)

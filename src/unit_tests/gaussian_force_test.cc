@@ -91,8 +91,8 @@ const Scalar tol_small = Scalar(1e-4);
 
 //! Typedef'd GaussianForceCompute factory
 typedef boost::function<shared_ptr<GaussianForceCompute> (shared_ptr<SystemDefinition> sysdef,
-														  shared_ptr<NeighborList> nlist,
-														  Scalar r_cut)> gaussforce_creator;
+                                                          shared_ptr<NeighborList> nlist,
+                                                          Scalar r_cut)> gaussforce_creator;
 
 //! Test the ability of the gauss force compute to actually calucate forces
 void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
@@ -257,8 +257,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfig
 
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
 void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
-								 gaussforce_creator gauss_creator2,
-								 ExecutionConfiguration exec_conf)
+                                 gaussforce_creator gauss_creator2,
+                                 ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;
@@ -374,8 +374,8 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfigura
 
 //! LJForceCompute creator for unit tests
 shared_ptr<GaussianForceCompute> base_class_gauss_creator(shared_ptr<SystemDefinition> sysdef,
-														  shared_ptr<NeighborList> nlist,
-														  Scalar r_cut)
+                                                          shared_ptr<NeighborList> nlist,
+                                                          Scalar r_cut)
     {
     return shared_ptr<GaussianForceCompute>(new GaussianForceCompute(sysdef, nlist, r_cut));
     }
@@ -383,8 +383,8 @@ shared_ptr<GaussianForceCompute> base_class_gauss_creator(shared_ptr<SystemDefin
 #ifdef ENABLE_CUDA
 //! GaussianForceComputeGPU creator for unit tests
 shared_ptr<GaussianForceCompute> gpu_gauss_creator(shared_ptr<SystemDefinition> sysdef,
-												   shared_ptr<NeighborList> nlist,
-												   Scalar r_cut)
+                                                   shared_ptr<NeighborList> nlist,
+                                                   Scalar r_cut)
     {
     nlist->setStorageMode(NeighborList::full);
     shared_ptr<GaussianForceGPU> gauss(new GaussianForceGPU(sysdef, nlist, r_cut));

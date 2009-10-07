@@ -66,10 +66,10 @@ using namespace std;
     \param seed Random seed to use for the random force compuataion
 */
 BD_NVTUpdaterGPU::BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-								   Scalar deltaT, boost::shared_ptr<Variant> Temp,
-								   unsigned int seed,
-								   bool use_diam) 
-	: BD_NVTUpdater(sysdef, deltaT, Temp, seed, use_diam)
+                                   Scalar deltaT, boost::shared_ptr<Variant> Temp,
+                                   unsigned int seed,
+                                   bool use_diam) 
+    : BD_NVTUpdater(sysdef, deltaT, Temp, seed, use_diam)
     {
     // at least one GPU is needed
     if (exec_conf.gpu.size() == 0)

@@ -63,7 +63,7 @@ using namespace std;
     \param initial_tstep Initial time step of the simulation
 
     \post The System is constructed with no attached computes, updaters,
-	analyzers or integrators. Profiling defaults to disabled and
+    analyzers or integrators. Profiling defaults to disabled and
     statistics are printed every 10 seconds.
 */
 System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)

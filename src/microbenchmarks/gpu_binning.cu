@@ -279,7 +279,7 @@ void sort_data()
     free(bin_list);
     // update the data on the device
     cudaMemcpy(gd_pos, gh_pos, sizeof(float4)*g_N, cudaMemcpyHostToDevice);
-    printf("	done.\n");
+    printf("    done.\n");
     }
 
 __global__ void fast_memclear_kernal(unsigned int *d_data, unsigned int N)

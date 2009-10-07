@@ -68,8 +68,8 @@ HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_p
     if (exec_conf.gpu.size() == 0)
         {
         cerr << endl 
-			 << "***Error! Creating a ImproperForceComputeGPU with no GPU in the execution configuration" 
-			 << endl << endl;
+             << "***Error! Creating a ImproperForceComputeGPU with no GPU in the execution configuration" 
+             << endl << endl;
         throw std::runtime_error("Error initializing ImproperForceComputeGPU");
         }
         

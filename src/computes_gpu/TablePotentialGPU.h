@@ -84,3 +84,4 @@ class TablePotentialGPU : public TablePotential
 void export_TablePotentialGPU();
 
 #endif
+

@@ -55,9 +55,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! NPT Integration via the Nose-Hoover thermostat and Anderson barostat
 /*! This updater performes constant N, constant pressure, constant temperature (NVT) dynamics. Particle positions and 
-	velocities are updated according to the Nose-Hoover/Anderson algorithm. The forces that drive this motion are 
-	defined external to this class in ForceCompute. Any number of ForceComputes can be given, the resulting forces will
-	be summed to produce a net force on each particle.
+    velocities are updated according to the Nose-Hoover/Anderson algorithm. The forces that drive this motion are 
+    defined external to this class in ForceCompute. Any number of ForceComputes can be given, the resulting forces will
+    be summed to produce a net force on each particle.
 
     \ingroup updaters
 */
@@ -66,11 +66,11 @@ class NPTUpdater : public Integrator
     public:
         //! Constructor
         NPTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-				   Scalar deltaT,
-				   Scalar tau,
-				   Scalar tauP,
-				   boost::shared_ptr<Variant> T,
-				   boost::shared_ptr<Variant> P);
+                   Scalar deltaT,
+                   Scalar tau,
+                   Scalar tauP,
+                   boost::shared_ptr<Variant> T,
+                   boost::shared_ptr<Variant> P);
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);

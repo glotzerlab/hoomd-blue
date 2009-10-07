@@ -72,7 +72,7 @@ extern __shared__ float npt_sdata[];
 /*! \param idx_local Local index of the running thread
     \param local_num Number of particles local to this GPU
     \param virial_data_ptrs Pointer to a list of pointers which are the arrays of virial data from the various
-		   ForceComputes
+           ForceComputes
     \param num_virials Number of virials listed in \a virial_data_ptrs
 
     \note Every thread in the grid must call this function: it needs to __syncthreads()
@@ -86,9 +86,9 @@ extern __shared__ float npt_sdata[];
     This inlined call is designed to be used from within other kernels.
 */
 __device__ float gpu_integrator_sum_virials_inline(unsigned int idx_local,
-												   unsigned int local_num,
-												   float **virial_data_ptrs,
-												   int num_virials)
+                                                   unsigned int local_num,
+                                                   float **virial_data_ptrs,
+                                                   int num_virials)
     {
     // each block loads in the pointers
     __shared__ float *virial_ptrs[32];
@@ -126,9 +126,9 @@ __device__ float gpu_integrator_sum_virials_inline(unsigned int idx_local,
 */
 extern "C" __global__ 
 void gpu_integrator_sum_virials_kernel(gpu_npt_data nptdata,
-									   gpu_pdata_arrays pdata,
-									   float **virial_data_ptrs,
-									   int num_virials)
+                                       gpu_pdata_arrays pdata,
+                                       float **virial_data_ptrs,
+                                       int num_virials)
     {
     // calculate the index we will be handling
     int idx_local = blockDim.x * blockIdx.x + threadIdx.x;
@@ -154,9 +154,9 @@ void gpu_integrator_sum_virials_kernel(gpu_npt_data nptdata,
     This is just a kernel driver for gpu_integrator_sum_virials_kernel(). See it for more details.
 */
 cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata,
-									   const gpu_pdata_arrays &pdata,
-									   float** virial_list,
-									   int num_virials)
+                                       const gpu_pdata_arrays &pdata,
+                                       float** virial_list,
+                                       int num_virials)
     {
     // sanity check
     assert(num_virials < 32);
@@ -188,11 +188,11 @@ position update and is a result of coupling to the thermo/barostat
 */
 extern "C" __global__ 
 void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata,
-							 gpu_boxsize box,
-							 gpu_npt_data d_npt_data,
-							 float exp_v_fac,
-							 float exp_r_fac,
-							 float deltaT)
+                             gpu_boxsize box,
+                             gpu_npt_data d_npt_data,
+                             float exp_v_fac,
+                             float exp_r_fac,
+                             float deltaT)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // particle index on local GPU
     int idx_global = idx_local + pdata.local_beg; // global particle index across all GPUs
@@ -264,11 +264,11 @@ void gpu_npt_pre_step_kernel(gpu_pdata_arrays pdata,
     This is just a kernel driver for gpu_integrator_pre_step_kernel(). See it for more details.
 */
 cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata,
-							 const gpu_boxsize &box,
-							 const gpu_npt_data &d_npt_data,
-							 float Xi,
-							 float Eta,
-							 float deltaT)
+                             const gpu_boxsize &box,
+                             const gpu_npt_data &d_npt_data,
+                             float Xi,
+                             float Eta,
+                             float deltaT)
     {
     // setup the grid to run the kernel
     int block_size = d_npt_data.block_size;
@@ -332,11 +332,11 @@ velocity update and is a result of coupling to the thermo/barostat
 */
 extern "C" __global__ 
 void gpu_npt_step_kernel(gpu_pdata_arrays pdata,
-						 gpu_npt_data d_npt_data,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float exp_v_fac,
-						 float deltaT)
+                         gpu_npt_data d_npt_data,
+                         float4 **force_data_ptrs,
+                         int num_forces,
+                         float exp_v_fac,
+                         float deltaT)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // local particle index on this GPU
     int idx_global = idx_local + pdata.local_beg; // global particle index across all GPUs
@@ -378,12 +378,12 @@ void gpu_npt_step_kernel(gpu_pdata_arrays pdata,
     This is just a kernel driver for gpu_npt_step_kernel(). See it for more details.
 */
 cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata,
-						 const gpu_npt_data &d_npt_data,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float Xi,
-						 float Eta,
-						 float deltaT)
+                         const gpu_npt_data &d_npt_data,
+                         float4 **force_data_ptrs,
+                         int num_forces,
+                         float Xi,
+                         float Eta,
+                         float deltaT)
     {
     // setup the grid to run the kernel
     int block_size = d_npt_data.block_size;

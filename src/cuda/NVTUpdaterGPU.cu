@@ -77,10 +77,10 @@ extern __shared__ float nvt_sdata[];
 */
 extern "C" __global__ 
 void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata,
-							 gpu_boxsize box,
-							 gpu_nvt_data d_nvt_data,
-							 float denominv,
-							 float deltaT)
+                             gpu_boxsize box,
+                             gpu_nvt_data d_nvt_data,
+                             float denominv,
+                             float deltaT)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_global = idx_local + pdata.local_beg;
@@ -174,10 +174,10 @@ void gpu_nvt_pre_step_kernel(gpu_pdata_arrays pdata,
     \param deltaT Amount of real time to step forward in one time step
 */
 cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata,
-							 const gpu_boxsize &box,
-							 const gpu_nvt_data &d_nvt_data,
-							 float Xi,
-							 float deltaT)
+                             const gpu_boxsize &box,
+                             const gpu_nvt_data &d_nvt_data,
+                             float Xi,
+                             float deltaT)
     {
     // setup the grid to run the kernel
     int block_size = d_nvt_data.block_size;
@@ -224,11 +224,11 @@ cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata,
 */
 extern "C" __global__ 
 void gpu_nvt_step_kernel(gpu_pdata_arrays pdata,
-						 gpu_nvt_data d_nvt_data,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float Xi,
-						 float deltaT)
+                         gpu_nvt_data d_nvt_data,
+                         float4 **force_data_ptrs,
+                         int num_forces,
+                         float Xi,
+                         float deltaT)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_global = idx_local + pdata.local_beg;
@@ -263,11 +263,11 @@ void gpu_nvt_step_kernel(gpu_pdata_arrays pdata,
     \param deltaT Amount of real time to step forward in one time step
 */
 cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata,
-						 const gpu_nvt_data &d_nvt_data,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float Xi,
-						 float deltaT)
+                         const gpu_nvt_data &d_nvt_data,
+                         float4 **force_data_ptrs,
+                         int num_forces,
+                         float Xi,
+                         float deltaT)
     {
     // setup the grid to run the kernel
     int block_size = d_nvt_data.block_size;

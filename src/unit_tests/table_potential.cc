@@ -408,3 +408,4 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

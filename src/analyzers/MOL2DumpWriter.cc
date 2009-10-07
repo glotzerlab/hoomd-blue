@@ -131,7 +131,7 @@ void MOL2DumpWriter::writeFile(std::string fname)
         if (type_name.size() > 15)
             {
             cerr << endl << "Error! Type name <" << type_name << "> too long: please limit to 15 characters" 
-				 << endl << endl;
+                 << endl << endl;
             throw runtime_error("Error writting mol2 dump file");
             }
             

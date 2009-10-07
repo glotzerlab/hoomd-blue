@@ -75,7 +75,7 @@ NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysde
     if (exec_conf.gpu.size() == 0)
         {
         cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration"
-			 << endl << endl;
+             << endl << endl;
         throw std::runtime_error("Error initializing NeighborListNsqGPU");
         }
     if (exec_conf.gpu.size() != 1)

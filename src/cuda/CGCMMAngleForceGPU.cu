@@ -75,9 +75,9 @@ texture<float4, 1, cudaReadModeElementType> angle_CGCMMepow_tex; // now with EPS
     \param alist Angle data to use in calculating the forces
 */
 extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_arrays force_data,
-																 gpu_pdata_arrays pdata,
-																 gpu_boxsize box,
-																 gpu_angletable_array alist)
+                                                                 gpu_pdata_arrays pdata,
+                                                                 gpu_boxsize box,
+                                                                 gpu_angletable_array alist)
     {
     // start by identifying which particle we are to handle
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -296,8 +296,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param atable List of angles stored on the GPU
     \param d_params K and t_0 params packed as float2 variables
-	\param d_CGCMMsr sigma, and rcut packed as a float2
-	\param d_CGCMMepow epsilon, pow1, pow2, and prefactor packed as a float4
+    \param d_CGCMMsr sigma, and rcut packed as a float2
+    \param d_CGCMMepow epsilon, pow1, pow2, and prefactor packed as a float4
     \param n_angle_types Number of angle types in d_params
     \param block_size Block size to use when performing calculations
 
@@ -308,14 +308,14 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_
     and the y component contains t_0 the equilibrium angle.
 */
 cudaError_t gpu_compute_CGCMM_angle_forces(const gpu_force_data_arrays& force_data,
-										   const gpu_pdata_arrays &pdata,
-										   const gpu_boxsize &box,
-										   const gpu_angletable_array &atable,
-										   float2 *d_params,
-										   float2 *d_CGCMMsr,
-										   float4 *d_CGCMMepow,
-										   unsigned int n_angle_types,
-										   int block_size)
+                                           const gpu_pdata_arrays &pdata,
+                                           const gpu_boxsize &box,
+                                           const gpu_angletable_array &atable,
+                                           float2 *d_params,
+                                           float2 *d_CGCMMsr,
+                                           float4 *d_CGCMMepow,
+                                           unsigned int n_angle_types,
+                                           int block_size)
     {
     assert(d_params);
     assert(d_CGCMMsr);

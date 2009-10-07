@@ -288,8 +288,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 
 //! Compares the output of two FENEBondForceComputes
 void bond_force_comparison_tests(bondforce_creator bf_creator1,
-								 bondforce_creator bf_creator2,
-								 ExecutionConfiguration exec_conf)
+                                 bondforce_creator bf_creator2,
+                                 ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;

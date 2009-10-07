@@ -43,7 +43,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Long-range electrostatic force by the PPPM method
 /*! In order for this class to be useful it needs to be complemented with a class that computes the short-range 
-	electrostatic part The total pair force is summed for each particle when compute() is called.
+    electrostatic part The total pair force is summed for each particle when compute() is called.
     This class requires the use of Fast Fourier Transforms, which are defined somewhere else
 
     Usage: Construct a ElectrostaticLongRangePPM class, providing it an already constructed ParticleData.
@@ -88,13 +88,13 @@ class ElectrostaticLongRangePPPM : public ForceCompute
     public:
         //! Constructs the compute
         ElectrostaticLongRangePPPM(boost::shared_ptr<SystemDefinition> sysdef,
-								   unsigned int Mmesh_x,
-								   unsigned int Mmesh_y,
-								   unsigned int Mmesh_z,
-								   unsigned int P_order_a,
-								   Scalar alpha,
-								   boost::shared_ptr<FFTClass> FFTP,
-								   bool third_law_m);
+                                   unsigned int Mmesh_x,
+                                   unsigned int Mmesh_y,
+                                   unsigned int Mmesh_z,
+                                   unsigned int P_order_a,
+                                   Scalar alpha,
+                                   boost::shared_ptr<FFTClass> FFTP,
+                                   bool third_law_m);
         
         //! Destructor
         virtual ~ElectrostaticLongRangePPPM();
@@ -174,18 +174,18 @@ class ElectrostaticLongRangePPPM : public ForceCompute
         
         virtual void make_rho_even(void);    //!<Distribute charges on the mesh when P_order is even
         virtual void make_rho_odd(void);     //!<Distribute charges on the mesh when P_order is odd
-		//! Backinterpolate mesh grid points into continuum for P even
+        //! Backinterpolate mesh grid points into continuum for P even
         virtual void back_interpolate_even(CScalar *Grid,Scalar *Continuum);
         //! Backinterpolate mesh grid points into continuum for P odd
-		virtual void back_interpolate_odd(CScalar *Grid,Scalar *Continuum);
+        virtual void back_interpolate_odd(CScalar *Grid,Scalar *Continuum);
         
         virtual void ComputePolyCoeff(void); //!<Compute the coefficients of the Polynomial (encoded in P_coeff)
         
         virtual void Compute_G(void);        //!<Compute the influence function
         //! Denominator of the influence function (without the derivative square)
-		virtual Scalar Denominator_G(Scalar x,Scalar y,Scalar z);
+        virtual Scalar Denominator_G(Scalar x,Scalar y,Scalar z);
         //! Numerator of the influence function (without the derivative);
-		virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z);
+        virtual vector<Scalar> Numerator_G(Scalar x,Scalar y,Scalar z);
         void Denominator_Poly_G(void);       //!<Compute the coefficients of the Polynomial Denom_Coeff
         
         //! Actually compute the forces

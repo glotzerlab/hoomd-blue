@@ -65,11 +65,11 @@ using namespace std;
     \param P Pressure set point
 */
 NPTUpdater::NPTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-					   Scalar deltaT,
-					   Scalar tau,
-					   Scalar tauP,
-					   boost::shared_ptr<Variant> T, boost::shared_ptr<Variant> P) 
-	: Integrator(sysdef, deltaT), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_accel_set(false)
+                       Scalar deltaT,
+                       Scalar tau,
+                       Scalar tauP,
+                       boost::shared_ptr<Variant> T, boost::shared_ptr<Variant> P) 
+    : Integrator(sysdef, deltaT), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_accel_set(false)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in NPTUpdater" << endl;

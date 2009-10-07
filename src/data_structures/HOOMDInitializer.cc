@@ -259,8 +259,8 @@ void HOOMDInitializer::readFile(const string &fname)
             
         ostringstream error_message;
         error_message << XMLNode::getError(results.error) << " in file " 
-					  << fname << " at line " << results.nLine << " col " 
-					  << results.nColumn;
+                      << fname << " at line " << results.nLine << " col " 
+                      << results.nColumn;
         cerr << endl << "***Error! " << error_message.str() << endl << endl;
         throw runtime_error("Error reading xml file");
         }
@@ -279,8 +279,8 @@ void HOOMDInitializer::readFile(const string &fname)
     // right now, the version tag doesn't do anything: just warn if it is not 1.0 or 1.1
     if ((xml_version != string("1.0")) && (xml_version != string("1.1")))
         cout << endl 
-			 << "***Warning! hoomd_xml file with version other than 1.0 or 1.1 specified,"
-			 << " I don't know how to read this. Continuing anyways." << endl << endl;
+             << "***Warning! hoomd_xml file with version other than 1.0 or 1.1 specified,"
+             << " I don't know how to read this. Continuing anyways." << endl << endl;
         
     // the file was parsed successfully by the XML reader. Extract the information now
     // start by checking the number of configurations in the file
@@ -324,8 +324,8 @@ void HOOMDInitializer::readFile(const string &fname)
     if (!m_box_read)
         {
         cerr << endl 
-			 << "***Error! A <box> node is required to define the dimensions of the simulation box" 
-			 << endl << endl;
+             << "***Error! A <box> node is required to define the dimensions of the simulation box" 
+             << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_pos_array.size() == 0)
@@ -338,37 +338,37 @@ void HOOMDInitializer::readFile(const string &fname)
     if (m_vel_array.size() != 0 && m_vel_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_vel_array.size() << " velocities != " << m_pos_array.size() 
-			 << " positions" << endl << endl;
+             << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_mass_array.size() != 0 && m_mass_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_mass_array.size() << " masses != " << m_pos_array.size() 
-			 << " positions" << endl << endl;
+             << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_diameter_array.size() != 0 && m_diameter_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_diameter_array.size() << " diameters != " << m_pos_array.size() 
-			 << " positions" << endl << endl;
+             << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_image_array.size() != 0 && m_image_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_image_array.size() << " images != " << m_pos_array.size() 
-			 << " positions" << endl << endl;
+             << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_pos_array.size() 
-			 << " positions" << endl << endl;
+             << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
     if (m_charge_array.size() != 0 && m_charge_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_charge_array.size() << " charge values != " << m_pos_array.size()
-			 << " positions" << endl << endl;
+             << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
         

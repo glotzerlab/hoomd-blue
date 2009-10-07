@@ -63,9 +63,9 @@ class BoxResizeUpdater : public Updater
     public:
         //! Constructor
         BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-						 boost::shared_ptr<Variant> Lx,
-						 boost::shared_ptr<Variant> Ly,
-						 boost::shared_ptr<Variant> Lz);
+                         boost::shared_ptr<Variant> Lx,
+                         boost::shared_ptr<Variant> Ly,
+                         boost::shared_ptr<Variant> Lz);
         
         //! Sets parameter flags
         void setParams(bool scale_particles);
@@ -77,7 +77,7 @@ class BoxResizeUpdater : public Updater
         boost::shared_ptr<Variant> m_Lx;    //!< Box Lx vs time
         boost::shared_ptr<Variant> m_Ly;    //!< Box Ly vs time
         boost::shared_ptr<Variant> m_Lz;    //!< Box Lz vs time
-        bool m_scale_particles;				//!< Set to true if particle positions are to be scaled as well
+        bool m_scale_particles;                //!< Set to true if particle positions are to be scaled as well
     };
 
 //! Export the BoxResizeUpdater to python

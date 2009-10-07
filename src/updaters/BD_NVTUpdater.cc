@@ -70,11 +70,11 @@ using namespace std;
     \param seed Random seed to use for the random force compuataion
 */
 BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-							 Scalar deltaT,
-							 boost::shared_ptr<Variant> Temp,
-							 unsigned int seed,
-							 bool use_diam) 
-	: NVEUpdater(sysdef, deltaT), m_T(Temp), m_seed(seed), m_bath(false), m_use_diam(use_diam)
+                             Scalar deltaT,
+                             boost::shared_ptr<Variant> Temp,
+                             unsigned int seed,
+                             bool use_diam) 
+    : NVEUpdater(sysdef, deltaT), m_T(Temp), m_seed(seed), m_bath(false), m_use_diam(use_diam)
     {
 #ifdef ENABLE_CUDA
     // check the execution configuration
@@ -127,10 +127,10 @@ void BD_NVTUpdater::removeForceComputes()
     \param timestep Current time step of the simulation
 
     \pre Associated ParticleData is initialized, and particle positions and velocities
-	are set for time timestep
+    are set for time timestep
     
-	\post Forces and accelerations are computed and particle's positions, velocities
-	and accelartions are updated to their values at timestep+1.
+    \post Forces and accelerations are computed and particle's positions, velocities
+    and accelartions are updated to their values at timestep+1.
 */
 void BD_NVTUpdater::update(unsigned int timestep)
     {

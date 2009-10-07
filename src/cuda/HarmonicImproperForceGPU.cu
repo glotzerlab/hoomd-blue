@@ -70,9 +70,9 @@ texture<float2, 1, cudaReadModeElementType> improper_params_tex;
 */
 extern "C" __global__ 
 void gpu_compute_harmonic_improper_forces_kernel(gpu_force_data_arrays force_data,
-												 gpu_pdata_arrays pdata,
-												 gpu_boxsize box,
-												 gpu_dihedraltable_array tlist)
+                                                 gpu_pdata_arrays pdata,
+                                                 gpu_boxsize box,
+                                                 gpu_dihedraltable_array tlist)
     {
     // start by identifying which particle we are to handle
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -308,12 +308,12 @@ void gpu_compute_harmonic_improper_forces_kernel(gpu_force_data_arrays force_dat
     and the y component contains sign, and the z component the multiplicity.
 */
 cudaError_t gpu_compute_harmonic_improper_forces(const gpu_force_data_arrays& force_data,
-												 const gpu_pdata_arrays &pdata,
-												 const gpu_boxsize &box,
-												 const gpu_dihedraltable_array &ttable,
-												 float2 *d_params,
-												 unsigned int n_improper_types,
-												 int block_size)
+                                                 const gpu_pdata_arrays &pdata,
+                                                 const gpu_boxsize &box,
+                                                 const gpu_dihedraltable_array &ttable,
+                                                 float2 *d_params,
+                                                 unsigned int n_improper_types,
+                                                 int block_size)
     {
     assert(d_params);
     

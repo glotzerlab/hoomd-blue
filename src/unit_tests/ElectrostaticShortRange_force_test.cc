@@ -87,11 +87,11 @@ const Scalar MIN_force=Scalar(1.0e-9);
 
 //! Typedef'd ElectrostaticShortRange factory
 typedef boost::function<shared_ptr<ElectrostaticShortRange> (shared_ptr<SystemDefinition> sysdef,
-															 shared_ptr<NeighborList> nlist,
-															 Scalar r_cut,
-															 Scalar alpha,
-															 Scalar delta,
-															 Scalar min_value)> ElectrostaticShortRange_force_creator;
+                                                             shared_ptr<NeighborList> nlist,
+                                                             Scalar r_cut,
+                                                             Scalar alpha,
+                                                             Scalar delta,
+                                                             Scalar min_value)> ElectrostaticShortRange_force_creator;
 
 //! Test the ability of the Short Range Electrostatic force compute to actually calculate forces
 void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator,
@@ -185,7 +185,7 @@ void ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_force_c
 
 //! Tests periodic boundary conditions
 void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator Elstatics_ShortRange_creator,
-										   ExecutionConfiguration exec_conf)
+                                           ExecutionConfiguration exec_conf)
     {
     cout << "Testing periodic conditions in the calculation of ElectrostaticShortRange" << endl;
     // Here we are going to place particles next to the boundary of the box and see that
@@ -259,11 +259,11 @@ void ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_force_creator
 //! ElectrostaticShortRange creator for unit tests
 shared_ptr<ElectrostaticShortRange>
 base_class_ShortRangeElectrostatic_creator(shared_ptr<SystemDefinition> sysdef,
-										   shared_ptr<NeighborList> nlist,
-										   Scalar r_cut,
-										   Scalar alpha,
-										   Scalar delta,
-										   Scalar min_value)
+                                           shared_ptr<NeighborList> nlist,
+                                           Scalar r_cut,
+                                           Scalar alpha,
+                                           Scalar delta,
+                                           Scalar min_value)
     {
     return shared_ptr<ElectrostaticShortRange>(new ElectrostaticShortRange(sysdef, nlist, r_cut, alpha, delta,min_value));
     }
@@ -272,18 +272,18 @@ base_class_ShortRangeElectrostatic_creator(shared_ptr<SystemDefinition> sysdef,
 BOOST_AUTO_TEST_CASE(ElectrostaticShortRange_force_accuracy)
     {
     ElectrostaticShortRange_force_creator ElectrostaticShortRange_creator_base = 
-		bind(base_class_ShortRangeElectrostatic_creator, _1, _2, _3, _4, _5,_6);
+        bind(base_class_ShortRangeElectrostatic_creator, _1, _2, _3, _4, _5,_6);
     ElectrostaticShortRange_force_accuracy_test(ElectrostaticShortRange_creator_base,
-												ExecutionConfiguration(ExecutionConfiguration::CPU));
+                                                ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 //! boost test periodic boundary conditions
 BOOST_AUTO_TEST_CASE(ElectrostaticShortRange_force_periodic)
     {
     ElectrostaticShortRange_force_creator ElectrostaticShortRange_creator_base = 
-		bind(base_class_ShortRangeElectrostatic_creator, _1, _2, _3, _4, _5,_6);
+        bind(base_class_ShortRangeElectrostatic_creator, _1, _2, _3, _4, _5,_6);
     ElectrostaticShortRange_periodic_test(ElectrostaticShortRange_creator_base,
-										  ExecutionConfiguration(ExecutionConfiguration::CPU));
+                                          ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 

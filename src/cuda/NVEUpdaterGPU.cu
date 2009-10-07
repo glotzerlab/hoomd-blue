@@ -161,10 +161,10 @@ void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, float delt
     \param limit_val Length to limit particle distance movement to
 */
 cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
-							 const gpu_boxsize &box,
-							 float deltaT,
-							 bool limit,
-							 float limit_val)
+                             const gpu_boxsize &box,
+                             float deltaT,
+                             bool limit,
+                             float limit_val)
     {
     // setup the grid to run the kernel
     int block_size = 256;
@@ -213,11 +213,11 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
 */
 extern "C" __global__ 
 void gpu_nve_step_kernel(gpu_pdata_arrays pdata,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float deltaT,
-						 bool limit,
-						 float limit_val)
+                         float4 **force_data_ptrs,
+                         int num_forces,
+                         float deltaT,
+                         bool limit,
+                         float limit_val)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_global = idx_local + pdata.local_beg;
@@ -269,11 +269,11 @@ void gpu_nve_step_kernel(gpu_pdata_arrays pdata,
     \param limit_val Length to limit particle distance movement to
 */
 cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
-						 float4 **force_data_ptrs,
-						 int num_forces,
-						 float deltaT,
-						 bool limit,
-						 float limit_val)
+                         float4 **force_data_ptrs,
+                         int num_forces,
+                         float deltaT,
+                         bool limit,
+                         float limit_val)
     {
     
     // setup the grid to run the kernel

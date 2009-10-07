@@ -99,10 +99,10 @@ class AnalyzerWrap: public Analyzer, public wrapper<Analyzer>
 void export_Analyzer()
     {
     class_<AnalyzerWrap, boost::shared_ptr<AnalyzerWrap>, boost::noncopyable>
-		("Analyzer", init< boost::shared_ptr<SystemDefinition> >())
-		.def("analyze", pure_virtual(&Analyzer::analyze))
-		.def("setProfiler", &Analyzer::setProfiler)
-		;
+        ("Analyzer", init< boost::shared_ptr<SystemDefinition> >())
+        .def("analyze", pure_virtual(&Analyzer::analyze))
+        .def("setProfiler", &Analyzer::setProfiler)
+        ;
     }
 
 #ifdef WIN32

@@ -88,8 +88,8 @@ string find_hoomd_script()
             return cur_path->native_file_string();
         }
     cerr << endl 
-		 << "***Error! HOOMD python-module directory not found. Check your HOOMD directory file structure near " 
-		 << hoomd_data_dir.string() << endl << endl;
+         << "***Error! HOOMD python-module directory not found. Check your HOOMD directory file structure near " 
+         << hoomd_data_dir.string() << endl << endl;
     return "";
     }
 

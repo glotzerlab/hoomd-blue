@@ -91,13 +91,13 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
 */
 extern "C" __global__ 
 void gpu_compute_stochastic_forces_kernel(gpu_force_data_arrays force_data,
-										  gpu_pdata_arrays pdata,
-										  float dt,
-										  float T,
-										  float *d_gammas,
-										  int gamma_length,
-										  unsigned int seed,
-										  unsigned int iteration)
+                                          gpu_pdata_arrays pdata,
+                                          float dt,
+                                          float T,
+                                          float *d_gammas,
+                                          int gamma_length,
+                                          unsigned int seed,
+                                          unsigned int iteration)
     {
     
     // read in the gammas (1 dimensional array)
@@ -171,14 +171,14 @@ void gpu_compute_stochastic_forces_kernel(gpu_force_data_arrays force_data,
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
 cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_data,
-										  const gpu_pdata_arrays &pdata,
-										  float dt,
-										  float T,
-										  float *d_gammas,
-										  unsigned int seed,
-										  unsigned int iteration,
-										  int gamma_length,
-										  int block_size)
+                                          const gpu_pdata_arrays &pdata,
+                                          float dt,
+                                          float T,
+                                          float *d_gammas,
+                                          unsigned int seed,
+                                          unsigned int iteration,
+                                          int gamma_length,
+                                          int block_size)
     {
     assert(d_gammas);
     assert(gamma_length > 0);
@@ -237,11 +237,11 @@ cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_dat
 */
 extern "C" __global__ 
 void gpu_compute_stochastic_forces_diam_kernel(gpu_force_data_arrays force_data,
-											   gpu_pdata_arrays pdata,
-											   float dt,
-											   float T,
-											   unsigned int seed,
-											   unsigned int iteration)
+                                               gpu_pdata_arrays pdata,
+                                               float dt,
+                                               float T,
+                                               unsigned int seed,
+                                               unsigned int iteration)
     {
     
     
@@ -304,12 +304,12 @@ void gpu_compute_stochastic_forces_diam_kernel(gpu_force_data_arrays force_data,
     \note Always returns cudaSuccess in release builds to avoid the cudaThreadSynchronize()
 */
 cudaError_t gpu_compute_stochastic_forces_diam(const gpu_force_data_arrays& force_data,
-											   const gpu_pdata_arrays &pdata,
-											   float dt,
-											   float T,
-											   unsigned int seed,
-											   unsigned int iteration,
-											   int block_size)
+                                               const gpu_pdata_arrays &pdata,
+                                               float dt,
+                                               float T,
+                                               unsigned int seed,
+                                               unsigned int iteration,
+                                               int block_size)
     {
     
     // setup the grid to run the kernel

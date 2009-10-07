@@ -69,10 +69,10 @@ using namespace std;
     Constructing a logger will open the file \a fname, overwriting it if it exists.
 */
 Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
-			   const std::string& fname,
-			   const std::string& header_prefix,
-			   bool overwrite)
-	: Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false)
+               const std::string& fname,
+               const std::string& header_prefix,
+               bool overwrite)
+    : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false)
     {
     // open the file
     if (exists(fname) && !overwrite)

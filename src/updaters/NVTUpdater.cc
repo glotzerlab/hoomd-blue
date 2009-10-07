@@ -63,10 +63,10 @@ using namespace std;
     \param T Temperature set point
 */
 NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-					   Scalar deltaT,
-					   Scalar tau,
-					   boost::shared_ptr<Variant> T) 
-	: Integrator(sysdef, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
+                       Scalar deltaT,
+                       Scalar tau,
+                       boost::shared_ptr<Variant> T) 
+    : Integrator(sysdef, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;

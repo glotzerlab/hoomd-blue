@@ -60,7 +60,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
     uint2 angle = angletable.angles[a*angletable.pitch + i]
     \endcode
     The particle with \b index (not tag) \em i is angled with particles \em angle.x
-	and \em angle.y with angle type \em angle.z. Each particle may have a different number of angles as
+    and \em angle.y with angle type \em angle.z. Each particle may have a different number of angles as
     indicated in \em n_angles[i].
 
     Only \a num_local angles are stored on each GPU for the local particles

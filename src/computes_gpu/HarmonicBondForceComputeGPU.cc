@@ -66,7 +66,7 @@ using namespace std;
 /*! \param sysdef System to compute bond forces on
 */
 HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-	: HarmonicBondForceCompute(sysdef), m_block_size(64)
+    : HarmonicBondForceCompute(sysdef), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)
