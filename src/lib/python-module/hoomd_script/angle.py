@@ -154,17 +154,23 @@ class harmonic(force._force):
 # \f[ V(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2 \f]
 # where \f$ \theta \f$ is the current angle between the three particles
 # and either
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-#     \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}} \f],
+# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ 
+#     \left( \frac{\sigma}{r} \right)^{12} - \alpha \left( \frac{\sigma}{r} \right)^{6} \right] 
+#     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}} \f],
 # or
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
-#     \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}\f],
+# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} 
+#     V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
+#     \alpha \left( \frac{\sigma}{r} \right)^{6} \right] 
+#     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}\f],
 # or
-# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-#     \alpha \left( \frac{\sigma}{r} \right)^{4} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}} \f],
+# \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~}
+#     V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+#     \alpha \left( \frac{\sigma}{r} \right)^{4} \right] 
+#     \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}} \f],
 #  \f$ r_{13} \f$ being the distance between the two outer particles of the angle.
 #
-# Coefficients \f$ k, \theta_0, \varepsilon,\f$ and \f$ \sigma \f$ and Lennard-Jones exponents pair must be set for each type of %angle in the simulation using
+# Coefficients \f$ k, \theta_0, \varepsilon,\f$ and \f$ \sigma \f$ and Lennard-Jones exponents pair must be set for 
+# each type of %angle in the simulation using
 # set_coeff().
 #
 # \note Specifying the angle.cgcmm command when no angles are defined in the simulation results in an error.
@@ -232,17 +238,32 @@ class cgcmm(force._force):
         if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
             cg_type=2;
 
-            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
+            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), 
+                                     k,
+                                     t0,
+                                     cg_type,
+                                     epsilon,
+                                     sigma);
     
         elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
             cg_type=1;
 
-            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
+            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type),
+                                     k,
+                                     t0,
+                                     cg_type,
+                                     epsilon,
+                                     sigma);
 
         elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
             cg_type=3;
                     
-            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type), k, t0, cg_type, epsilon, sigma);
+            self.cpp_force.setParams(globals.system_definition.getAngleData().getTypeByName(angle_type),
+                                     k,
+                                     t0,
+                                     cg_type,
+                                     epsilon,
+                                     sigma);
         else:
             raise RuntimeError("Unknown exponent type.  Must be 'none' or one of MN, ljM_N, LJM-N with M/N in 12/4, 9/6, or 12/6");
 

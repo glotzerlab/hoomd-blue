@@ -51,7 +51,8 @@ import globals;
 
 ## Defines a group of particles
 #
-# group should not be created directly in hoomd_script code. The following methods can be used to create particle groups.
+# group should not be created directly in hoomd_script code. The following methods can be used to create particle 
+# groups.
 # - group.all()
 # - group.type()
 # - group.tags()
@@ -113,10 +114,11 @@ class group:
 #
 # \param type Name of the particle type to add to the group
 # 
-# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script commands
-# (such as analyze.msd) to specify which particles should be operated on.
+# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script 
+# commands (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and examples.
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# examples.
 # 
 # \b Examples:
 # \code
@@ -134,7 +136,10 @@ def type(type):
     # create the group
     type_id = globals.system_definition.getParticleData().getTypeByName(type);
     name = 'type ' + type;
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.type, type_id, type_id);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
+                                    hoomd.ParticleGroup.criteriaOption.type,
+                                    type_id,
+                                    type_id);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
@@ -147,12 +152,15 @@ def type(type):
 # \param tag_min First tag in the range to include (inclusive)
 # \param tag_max Last tag in the range to include (inclusive)
 # 
-# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be added to the group. 
+# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
+# added to the group. 
 #
-# Creates a particle group from particles that match the given tag range. The group can then be used by other hoomd_script commands
+# Creates a particle group from particles that match the given tag range. The group can then be used by other
+# hoomd_script commands
 # (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and examples.
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
 # 
 # \b Examples:
 # \code
@@ -177,7 +185,10 @@ def tags(tag_min, tag_max=None):
         name = 'tag ' + str(tag_min);
 
     # create the group
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
+                                    hoomd.ParticleGroup.criteriaOption.tag,
+                                    tag_min,
+                                    tag_max);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
@@ -187,10 +198,11 @@ def tags(tag_min, tag_max=None):
 
 ## Groups all particles
 #
-# Creates a particle group from all particles in the simulation. The group can then be used by other hoomd_script commands
-# (such as analyze.msd) to specify which particles should be operated on.
+# Creates a particle group from all particles in the simulation. The group can then be used by other hoomd_script 
+# commands (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and examples.
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# examples.
 # 
 # \b Examples:
 # \code
@@ -210,7 +222,10 @@ def all():
 
     # create the group
     name = 'all';
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
+                                    hoomd.ParticleGroup.criteriaOption.tag,
+                                    tag_min,
+                                    tag_max);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';

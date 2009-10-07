@@ -214,7 +214,8 @@ class coeff:
                 count = 0;
                 for coeff_name in self.values[cur_pair].keys():
                     if not coeff_name in required_coeffs:
-                        print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), ", but is not used by the pair force";
+                        print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), \
+                              ", but is not used by the pair force";
                     else:
                         count += 1;
                 
@@ -315,7 +316,8 @@ class nlist:
     ## Change neighbor list parameters
     # 
     # \param r_buff (if set) changes the buffer radius around the cutoff
-    # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list needs updating
+    # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list 
+    #        needs updating
     # 
     # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
     # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
@@ -517,7 +519,9 @@ def _update_global_nlist(r_cut):
 # , \f$ S(r) \f$ is the XPLOR smoothing function
 # \f{eqnarray*} 
 # S(r) = & 1 & r < r_{\mathrm{on}} \\
-#      = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 - 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3} & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
+#      = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 - 
+#          3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3} 
+#        & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
 #  = & 0 & r > r_{\mathrm{cut}} \\
 # \f}
 # , with \f$ r_{\mathrm{on}} = \lambda \cdot r_{\mathrm{cut}} \f$,
@@ -618,12 +622,14 @@ class lj(force._force):
     ## Set parameters controlling the way forces are computed
     #
     # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    # \param fraction (if set) Change the fraction of \f$ r_{\mathrm{cut}} \f$ at which the XPLOR smoothing starts (default is 2.0/3.0). Only applies of \a mode is set to "xplor"
+    # \param fraction (if set) Change the fraction of \f$ r_{\mathrm{cut}} \f$ at which the XPLOR smoothing starts 
+    #        (default is 2.0/3.0). Only applies of \a mode is set to "xplor"
     #
     # valid values for \a mode are: "none" (the default), "shift", and "xplor"
     #  - \b none - No shifting is performed and potentials are abruptly cut off
     #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-    #  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the cutoff
+    #  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the 
+    #               cutoff
     # (see above for formulas and more information)
     #
     # \b Examples:
