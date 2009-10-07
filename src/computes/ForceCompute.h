@@ -70,7 +70,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
     The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
 
     The per particle virial is defined such that 
-	\f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
+    \f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
 
     \ingroup data_structs
 */
@@ -181,7 +181,7 @@ class ForceCompute : public Compute
         Scalar * __restrict__ m_virial; //!< per-particle virial (see ForceDataArrays for definition)
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
         
-		//! Connection to the signal notifying when particles are resorted
+        //! Connection to the signal notifying when particles are resorted
         boost::signals::connection m_sort_connection;   
         
         ForceDataArrays m_arrays;       //!< Structure-of-arrays for quick returning via acquire

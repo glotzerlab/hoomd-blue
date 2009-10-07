@@ -66,11 +66,11 @@ using namespace std;
     \param seed Seed for initializing the RNG
 */
 StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-											   Scalar deltaT,
-											   boost::shared_ptr<Variant> Temp,
-											   unsigned int seed,
-											   bool use_diam)
-	: ForceCompute(sysdef), m_T(Temp), m_dt(deltaT), m_seed(seed), m_use_diam(use_diam)
+                                               Scalar deltaT,
+                                               boost::shared_ptr<Variant> Temp,
+                                               unsigned int seed,
+                                               bool use_diam)
+    : ForceCompute(sysdef), m_T(Temp), m_dt(deltaT), m_seed(seed), m_use_diam(use_diam)
     {
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
@@ -199,3 +199,4 @@ void StochasticForceCompute::computeForces(unsigned int timestep)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

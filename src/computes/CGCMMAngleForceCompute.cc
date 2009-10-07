@@ -69,7 +69,7 @@ using namespace std;
     \post Memory is allocated, and forces are zeroed.
 */
 CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
-	: ForceCompute(sysdef), m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
+    : ForceCompute(sysdef), m_K(NULL), m_t_0(NULL), m_eps(NULL), m_sigma(NULL), m_rcut(NULL), m_cg_type(NULL)
     {
     // access the angle data for later use
     m_CGCMMAngle_data = m_sysdef->getAngleData();
@@ -453,3 +453,4 @@ void export_CGCMMAngleForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

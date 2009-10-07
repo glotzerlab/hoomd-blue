@@ -67,8 +67,8 @@ class GaussianForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-							 boost::shared_ptr<NeighborList> nlist,
-							 Scalar r_cut);
+                             boost::shared_ptr<NeighborList> nlist,
+                             Scalar r_cut);
         
         //! Destructor
         virtual ~GaussianForceCompute();
@@ -115,3 +115,4 @@ class GaussianForceCompute : public ForceCompute
 void export_GaussianForceCompute();
 
 #endif
+

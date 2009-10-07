@@ -92,3 +92,4 @@ class HarmonicImproperForceCompute : public ForceCompute
 void export_HarmonicImproperForceCompute();
 
 #endif
+

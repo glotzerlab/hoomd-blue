@@ -54,10 +54,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes the short-range electrostatic part of the force on each particle
 /*! In order for this class to be useful it needs to be complemented with a suitable class to compute the long range 
-	electrostatic part The total pair force is summed for each particle when compute() is called.
+    electrostatic part The total pair force is summed for each particle when compute() is called.
     Forces are only summed between neighboring particles with a separation distance less than \c r_cut. 
-	A NeighborList must be provide  to identify these neighbors. Calling compute() in this class will in turn result in 
-	a call to the NeighborList's compute() to make sure that the neighbor list is up to date.
+    A NeighborList must be provide  to identify these neighbors. Calling compute() in this class will in turn result in 
+    a call to the NeighborList's compute() to make sure that the neighbor list is up to date.
 
     Usage: Construct a ElectrostaticShortRange class, providing it an already constructed ParticleData and NeighborList.
     The parameter alpha splits the short range and the long range electrostatic part.
@@ -83,11 +83,11 @@ class ElectrostaticShortRange : public ForceCompute
     public:
         //! Constructs the compute
         ElectrostaticShortRange(boost::shared_ptr<SystemDefinition> sysdef,
-								boost::shared_ptr<NeighborList> nlist,
-								Scalar r_cut,
-								Scalar alpha,
-								Scalar delta,
-								Scalar min_value);
+                                boost::shared_ptr<NeighborList> nlist,
+                                Scalar r_cut,
+                                Scalar alpha,
+                                Scalar delta,
+                                Scalar min_value);
         
         //! Destructor
         virtual ~ElectrostaticShortRange();
@@ -126,5 +126,4 @@ class ElectrostaticShortRange : public ForceCompute
 
 #endif
 #endif
-
 

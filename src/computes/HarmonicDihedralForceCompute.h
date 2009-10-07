@@ -93,3 +93,4 @@ class HarmonicDihedralForceCompute : public ForceCompute
 void export_HarmonicDihedralForceCompute();
 
 #endif
+

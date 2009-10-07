@@ -63,9 +63,9 @@ using namespace std;
     \post memory is allocated and all parameters epsilon and sigma are set to 0.0
 */
 GaussianForceCompute::GaussianForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-										   boost::shared_ptr<NeighborList> nlist,
-										   Scalar r_cut)
-	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift)
+                                           boost::shared_ptr<NeighborList> nlist,
+                                           Scalar r_cut)
+    : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -345,11 +345,11 @@ void GaussianForceCompute::computeForces(unsigned int timestep)
 void export_GaussianForceCompute()
     {
     scope in_lj = 
-		class_<GaussianForceCompute, boost::shared_ptr<GaussianForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("GaussianForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
-		.def("setParams", &GaussianForceCompute::setParams)
-		.def("setShiftMode", &GaussianForceCompute::setShiftMode)
-		;
+        class_<GaussianForceCompute, boost::shared_ptr<GaussianForceCompute>, bases<ForceCompute>, boost::noncopyable >
+        ("GaussianForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+        .def("setParams", &GaussianForceCompute::setParams)
+        .def("setShiftMode", &GaussianForceCompute::setShiftMode)
+        ;
                   
     enum_<GaussianForceCompute::energyShiftMode>("energyShiftMode")
     .value("no_shift", GaussianForceCompute::no_shift)
@@ -360,3 +360,4 @@ void export_GaussianForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

@@ -102,3 +102,4 @@ class CGCMMAngleForceCompute : public ForceCompute
 void export_CGCMMAngleForceCompute();
 
 #endif
+

@@ -92,3 +92,4 @@ class HarmonicBondForceCompute : public ForceCompute
 void export_HarmonicBondForceCompute();
 
 #endif
+

@@ -71,8 +71,8 @@ class CGCMMForceCompute : public ForceCompute
     public:
         //! Constructs the compute
         CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-						  boost::shared_ptr<NeighborList> nlist,
-						  Scalar r_cut);
+                          boost::shared_ptr<NeighborList> nlist,
+                          Scalar r_cut);
         
         //! Destructor
         virtual ~CGCMMForceCompute();
@@ -107,3 +107,4 @@ class CGCMMForceCompute : public ForceCompute
 void export_CGCMMForceCompute();
 
 #endif
+

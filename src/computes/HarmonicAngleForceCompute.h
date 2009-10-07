@@ -92,3 +92,4 @@ class HarmonicAngleForceCompute : public ForceCompute
 void export_HarmonicAngleForceCompute();
 
 #endif
+

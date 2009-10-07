@@ -63,9 +63,9 @@ using namespace std;
     \post memory is allocated and all parameters ljX are set to 0.0
 */
 CGCMMForceCompute::CGCMMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-									 boost::shared_ptr<NeighborList> nlist,
-									 Scalar r_cut)
-	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
+                                     boost::shared_ptr<NeighborList> nlist,
+                                     Scalar r_cut)
+    : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -380,3 +380,4 @@ void export_CGCMMForceCompute()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

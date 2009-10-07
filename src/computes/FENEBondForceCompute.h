@@ -95,3 +95,4 @@ class FENEBondForceCompute : public ForceCompute
 void export_FENEBondForceCompute();
 
 #endif
+
