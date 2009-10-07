@@ -47,7 +47,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __INDEX1D_H__
 
 /*! \file Index1D.h
-	\brief Defines utility classes for 1D indexing of multi-dimensional arrays
+    \brief Defines utility classes for 1D indexing of multi-dimensional arrays
     \details These are very low-level, high performance functions. No error checking is performed on their arguments,
     even in debug mode. They are provided mainly as a convenience. The col,row ordering is unorthodox for normal
     matrices, but is consistent with the tex2D x,y access pattern used in CUDA. The decision is to go with x,y for
@@ -91,7 +91,7 @@ class Index2D
             {
             return m_w*m_w;
             }
-        
+            
     private:
         unsigned int m_w;   //!< Width of the 2D array
     };
@@ -106,11 +106,11 @@ class Index2DUpperTriangular
         //! Contstructor
         /*! \param w Width of the 2D upper triangular array
         */
-        HOSTDEVICE inline Index2DUpperTriangular(unsigned int w) : m_w(w) 
+        HOSTDEVICE inline Index2DUpperTriangular(unsigned int w) : m_w(w)
             {
             m_term = 2*m_w - 1;
             }
-        
+            
         //! Calculate an index
         /*! \param i column index
             \param j row index
@@ -137,10 +137,11 @@ class Index2DUpperTriangular
             {
             return m_w*(m_w+1) / 2;
             }
-        
+            
     private:
         unsigned int m_w;     //!< Width of the 2D upper triangular array
         unsigned int m_term;  //!< Precomputed term of the equation for efficiency
     };
 
 #endif
+

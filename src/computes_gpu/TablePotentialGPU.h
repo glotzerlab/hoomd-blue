@@ -55,7 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Compute table based potentials on the GPU
 /*! Calculates exactly the same thing as TablePotential, but on the GPU
-    
+
     The GPU kernel for calculating this can be found in TablePotentialGPU.cu/
     \ingroup computes
 */
@@ -66,7 +66,7 @@ class TablePotentialGPU : public TablePotential
         TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
                           boost::shared_ptr<NeighborList> nlist,
                           unsigned int table_width);
-
+                          
         //! Destructor
         virtual ~TablePotentialGPU() { }
         
@@ -84,3 +84,4 @@ class TablePotentialGPU : public TablePotential
 void export_TablePotentialGPU();
 
 #endif
+

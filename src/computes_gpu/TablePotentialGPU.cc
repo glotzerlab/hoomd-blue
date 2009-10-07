@@ -67,8 +67,8 @@ using namespace std;
     \param table_width Width the tables will be in memory
 */
 TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                               boost::shared_ptr<NeighborList> nlist,
-                               unsigned int table_width)
+                                     boost::shared_ptr<NeighborList> nlist,
+                                     unsigned int table_width)
     : TablePotential(sysdef, nlist, table_width), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -108,11 +108,11 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
         cerr << endl << "***Error! TablePotentialGPU cannot handle a half neighborlist" << endl << endl;
         throw runtime_error("Error computing forces in TablePotentialGPU");
         }
-    
+        
     // access the neighbor list, which just selects the neighborlist into the device's memory, copying
     // it there if needed
     vector<gpu_nlist_array>& nlist = m_nlist->getListGPU();
-
+    
     // access the particle data
     vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
@@ -132,21 +132,22 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     
     // the force data is now only up to date on the gpu
     m_data_location = gpu;
-
+    
     if (m_prof) m_prof->pop(exec_conf);
     }
-    
+
 void export_TablePotentialGPU()
     {
     class_<TablePotentialGPU, boost::shared_ptr<TablePotentialGPU>, bases<TablePotential>, boost::noncopyable >
-        ("TablePotentialGPU",
-         init< boost::shared_ptr<SystemDefinition>,
-         boost::shared_ptr<NeighborList>,
-         unsigned int >())
-        .def("setBlockSize", &TablePotentialGPU::setBlockSize)
-        ;
+    ("TablePotentialGPU",
+     init< boost::shared_ptr<SystemDefinition>,
+     boost::shared_ptr<NeighborList>,
+     unsigned int >())
+    .def("setBlockSize", &TablePotentialGPU::setBlockSize)
+    ;
     }
 
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+
