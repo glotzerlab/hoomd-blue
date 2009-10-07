@@ -249,3 +249,4 @@ double FftwWrapper::Initial_Conf_Imag(double x,double y)
     }
 
 #endif
+

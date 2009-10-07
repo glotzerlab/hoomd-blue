@@ -85,3 +85,4 @@ struct gpu_dihedraltable_array
     };
 
 #endif
+

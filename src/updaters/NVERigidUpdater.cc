@@ -679,3 +679,4 @@ void NVERigidUpdater::normalize(Scalar4 &q)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

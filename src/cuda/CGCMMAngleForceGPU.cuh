@@ -63,3 +63,4 @@ cudaError_t gpu_compute_CGCMM_angle_forces(const gpu_force_data_arrays& force_da
 										   int block_size);
 
 #endif
+

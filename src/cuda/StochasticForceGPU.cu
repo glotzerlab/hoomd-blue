@@ -351,3 +351,4 @@ cudaError_t gpu_compute_stochastic_forces_diam(const gpu_force_data_arrays& forc
     }
 
 // vim:syntax=cpp
+

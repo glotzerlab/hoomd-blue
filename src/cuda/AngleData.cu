@@ -116,3 +116,4 @@ cudaError_t gpu_angletable_array::deallocate()
     // all done, return success
     return cudaSuccess;
     }
+

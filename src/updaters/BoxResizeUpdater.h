@@ -84,3 +84,4 @@ class BoxResizeUpdater : public Updater
 void export_BoxResizeUpdater();
 
 #endif
+

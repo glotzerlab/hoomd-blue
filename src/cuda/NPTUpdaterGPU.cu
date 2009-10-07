@@ -705,3 +705,4 @@ cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arr
     }
 
 // vim:syntax=cpp
+

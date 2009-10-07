@@ -218,3 +218,4 @@ class RigidData
     };
 
 #endif
+

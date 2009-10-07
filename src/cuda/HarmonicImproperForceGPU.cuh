@@ -61,3 +61,4 @@ cudaError_t gpu_compute_harmonic_improper_forces(const gpu_force_data_arrays& fo
 												 int block_size);
 
 #endif
+

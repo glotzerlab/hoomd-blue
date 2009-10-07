@@ -100,3 +100,4 @@ cudaError_t gpu_force_data_arrays::deallocate()
     // all done, return success
     return cudaSuccess;
     }
+

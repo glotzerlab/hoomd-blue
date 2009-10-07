@@ -204,3 +204,4 @@ class DihedralData : boost::noncopyable
 void export_DihedralData();
 
 #endif
+

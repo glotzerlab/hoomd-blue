@@ -297,3 +297,4 @@ class RandomGenerator : public ParticleDataInitializer
 void export_RandomGenerator();
 
 #endif
+

@@ -85,3 +85,4 @@ class PDBDumpWriter : public Analyzer
 void export_PDBDumpWriter();
 
 #endif
+

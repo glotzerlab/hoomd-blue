@@ -89,3 +89,4 @@ class YukawaForceComputeGPU : public YukawaForceCompute
 void export_YukawaForceComputeGPU();
 
 #endif
+

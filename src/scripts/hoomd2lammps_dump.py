@@ -138,3 +138,4 @@ for fname in args:
 		f.write("%d %d %f %f %f\n" % (i+1, type_id[i], x, y, z));
 		
 f.close()
+

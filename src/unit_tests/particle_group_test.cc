@@ -182,3 +182,4 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     MY_BOOST_CHECK_EQUAL(intersection_group->getMemberTag(0), 0);
     MY_BOOST_CHECK_EQUAL(intersection_group->getMemberTag(1), 2);
     }
+

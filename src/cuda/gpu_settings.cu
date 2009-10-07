@@ -65,3 +65,4 @@ cudaError_t cudaMallocPitchHack(void **devPtr, size_t  *pitch, size_t   width, s
     }
 
 // vim:syntax=cpp
+

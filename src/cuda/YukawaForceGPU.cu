@@ -223,3 +223,4 @@ cudaError_t gpu_compute_yukawa_forces(const gpu_force_data_arrays& force_data, c
     }
 
 // vim:syntax=cpp
+

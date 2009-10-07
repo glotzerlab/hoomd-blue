@@ -111,3 +111,4 @@ cudaError_t gpu_integrator_sum_accel(const gpu_pdata_arrays &pdata, float4** for
         return cudaGetLastError();
         }
     }
+

@@ -83,3 +83,4 @@ cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata,
 						 float deltaT);
 
 #endif
+

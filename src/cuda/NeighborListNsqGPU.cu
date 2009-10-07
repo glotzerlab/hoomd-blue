@@ -230,3 +230,4 @@ cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist, const gpu_pdata_
     }
 
 // vim:syntax=cpp
+

@@ -226,3 +226,4 @@ inline void Profiler::pop(uint64_t flop_count, uint64_t byte_count)
     }
 
 #endif
+

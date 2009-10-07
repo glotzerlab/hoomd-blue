@@ -99,3 +99,4 @@ class FftwWrapper:public FFTClass
     };
 #endif
 #endif
+

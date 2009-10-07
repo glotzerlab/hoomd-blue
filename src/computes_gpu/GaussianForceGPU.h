@@ -88,3 +88,4 @@ class GaussianForceGPU : public GaussianForceCompute
 void export_GaussianForceGPU();
 
 #endif
+

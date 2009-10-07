@@ -80,3 +80,4 @@ class TempRescaleUpdater : public Updater
 void export_TempRescaleUpdater();
 
 #endif
+

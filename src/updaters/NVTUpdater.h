@@ -115,3 +115,4 @@ class NVTUpdater : public Integrator
 void export_NVTUpdater();
 
 #endif
+

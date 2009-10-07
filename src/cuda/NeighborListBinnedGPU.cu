@@ -370,3 +370,4 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     }
 
 // vim:syntax=cpp
+

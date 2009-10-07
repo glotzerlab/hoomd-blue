@@ -88,3 +88,4 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
 void export_CGCMMForceComputeGPU();
 
 #endif
+

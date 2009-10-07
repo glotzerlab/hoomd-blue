@@ -128,3 +128,4 @@ cudaError_t gpu_dihedraltable_array::deallocate()
     // all done, return success
     return cudaSuccess;
     }
+

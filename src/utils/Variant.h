@@ -125,3 +125,4 @@ class VariantLinear : public Variant
 void export_Variant();
 
 #endif
+

@@ -137,3 +137,4 @@ class Logger : public Analyzer
 void export_Logger();
 
 #endif
+

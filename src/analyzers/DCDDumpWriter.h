@@ -114,3 +114,4 @@ class DCDDumpWriter : public Analyzer
 void export_DCDDumpWriter();
 
 #endif
+

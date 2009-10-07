@@ -874,3 +874,4 @@ BOOST_AUTO_TEST_CASE(dummy_test)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

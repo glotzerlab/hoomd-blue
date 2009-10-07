@@ -717,3 +717,4 @@ template<class T> T* const GPUArray<T>::aquire(const access_location::Enum locat
     }
 
 #endif
+

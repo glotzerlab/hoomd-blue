@@ -295,3 +295,4 @@ BOOST_AUTO_TEST_CASE( NPTUpdaterGPU_comparison_tests)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

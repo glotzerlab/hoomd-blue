@@ -63,3 +63,4 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
 									 bool ulf_workaround);
 
 #endif
+

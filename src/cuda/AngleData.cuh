@@ -84,3 +84,4 @@ struct gpu_angletable_array
     };
 
 #endif
+

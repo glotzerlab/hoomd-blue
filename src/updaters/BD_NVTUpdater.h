@@ -121,3 +121,4 @@ class BD_NVTUpdater : public NVEUpdater
 void export_BD_NVTUpdater();
 
 #endif
+

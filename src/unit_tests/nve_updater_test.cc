@@ -445,3 +445,4 @@ BOOST_AUTO_TEST_CASE( NVEUPdaterMultiGPU_comparison_tests)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

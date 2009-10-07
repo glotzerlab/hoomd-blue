@@ -160,3 +160,4 @@ void export_HarmonicImproperForceComputeGPU()
     .def("setBlockSize", &HarmonicImproperForceComputeGPU::setBlockSize)
     ;
     }
+

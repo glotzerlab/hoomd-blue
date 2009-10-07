@@ -160,3 +160,4 @@ void export_HarmonicAngleForceComputeGPU()
     .def("setBlockSize", &HarmonicAngleForceComputeGPU::setBlockSize)
     ;
     }
+

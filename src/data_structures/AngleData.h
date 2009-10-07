@@ -200,3 +200,4 @@ class AngleData : boost::noncopyable
 void export_AngleData();
 
 #endif
+

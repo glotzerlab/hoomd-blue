@@ -73,3 +73,4 @@ class BD_NVTUpdaterGPU : public BD_NVTUpdater
 void export_BD_NVTUpdaterGPU();
 
 #endif
+

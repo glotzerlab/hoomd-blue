@@ -111,3 +111,4 @@ extern "C" cudaError_t gpu_fill_test_pattern(int *d_data, unsigned int num)
     cudaThreadSynchronize();
     return cudaGetLastError();
     }
+

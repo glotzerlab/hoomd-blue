@@ -52,3 +52,4 @@ void WallData::addWall(const Wall& wall)
     {
     m_walls.push_back(wall);
     }
+

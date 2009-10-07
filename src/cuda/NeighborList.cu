@@ -148,3 +148,4 @@ cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata,
     }
 
 // vim:syntax=cpp
+

@@ -72,3 +72,4 @@ class ZeroMomentumUpdater : public Updater
 void export_ZeroMomentumUpdater();
 
 #endif
+

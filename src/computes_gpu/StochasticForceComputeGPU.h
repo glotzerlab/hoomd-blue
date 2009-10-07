@@ -92,3 +92,4 @@ class StochasticForceComputeGPU : public StochasticForceCompute
 
 
 #endif
+

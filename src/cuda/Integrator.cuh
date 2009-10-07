@@ -105,3 +105,4 @@ __device__ float4 gpu_integrator_sum_forces_inline(unsigned int idx_local,
 #endif
 
 #endif
+

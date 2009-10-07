@@ -87,3 +87,4 @@ class NVTUpdaterGPU : public NVTUpdater
 void export_NVTUpdaterGPU();
 
 #endif
+

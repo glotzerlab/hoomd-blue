@@ -663,3 +663,4 @@ BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

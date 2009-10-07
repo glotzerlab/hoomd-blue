@@ -132,3 +132,4 @@ class LJForceCompute : public ForceCompute
 void export_LJForceCompute();
 
 #endif
+

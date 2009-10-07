@@ -154,3 +154,4 @@ void export_BD_NVTUpdater()
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

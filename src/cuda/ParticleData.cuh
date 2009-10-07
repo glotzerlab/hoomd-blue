@@ -109,3 +109,4 @@ cudaError_t gpu_generate_pdata_test(const gpu_pdata_arrays &pdata);
 cudaError_t gpu_pdata_texread_test(const gpu_pdata_arrays &pdata);
 
 #endif
+

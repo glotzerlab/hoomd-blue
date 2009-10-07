@@ -442,3 +442,4 @@ BOOST_AUTO_TEST_CASE( ConstForceCompute_basic )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

@@ -90,3 +90,4 @@ class LJForceComputeGPU : public LJForceCompute
 void export_LJForceComputeGPU();
 
 #endif
+

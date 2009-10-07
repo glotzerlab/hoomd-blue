@@ -173,3 +173,4 @@ class GPUWorker
 
 #endif
 #endif
+

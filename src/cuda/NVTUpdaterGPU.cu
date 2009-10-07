@@ -362,3 +362,4 @@ cudaError_t gpu_nvt_reduce_ksum(const gpu_nvt_data &d_nvt_data)
 
 
 // vim:syntax=cpp
+

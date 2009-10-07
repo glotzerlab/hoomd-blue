@@ -129,3 +129,4 @@ if len(bond_a) > 0:
 	for i in xrange(0,len(bond_a)):
 		f.write("%d %d %d %d\n" % (i+1, bond_type_id[i], int(bond_a[i])+1, int(bond_b[i])+1));
 f.close()
+

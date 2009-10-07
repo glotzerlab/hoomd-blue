@@ -172,3 +172,4 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

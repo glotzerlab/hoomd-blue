@@ -72,3 +72,4 @@ class IndexTransform
         unsigned int N_3;   //!< Number of grid points along the 3 axis
     };
 #endif
+

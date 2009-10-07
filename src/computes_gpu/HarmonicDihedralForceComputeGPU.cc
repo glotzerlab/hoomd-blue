@@ -159,3 +159,4 @@ void export_HarmonicDihedralForceComputeGPU()
     .def("setBlockSize", &HarmonicDihedralForceComputeGPU::setBlockSize)
     ;
     }
+

@@ -72,3 +72,4 @@ cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data,
 								  const lj_options& opt);
 
 #endif
+

@@ -82,3 +82,4 @@ struct gpu_bondtable_array
     };
 
 #endif
+

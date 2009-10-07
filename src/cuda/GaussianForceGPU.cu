@@ -249,3 +249,4 @@ cudaError_t gpu_compute_gauss_forces(const gpu_force_data_arrays& force_data, co
     }
 
 // vim:syntax=cpp
+

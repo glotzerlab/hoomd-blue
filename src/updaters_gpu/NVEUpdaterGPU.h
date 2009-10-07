@@ -73,3 +73,4 @@ class NVEUpdaterGPU : public NVEUpdater
 void export_NVEUpdaterGPU();
 
 #endif
+

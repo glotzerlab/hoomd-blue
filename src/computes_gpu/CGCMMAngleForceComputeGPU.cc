@@ -221,3 +221,4 @@ void export_CGCMMAngleForceComputeGPU()
     .def("setBlockSize", &CGCMMAngleForceComputeGPU::setBlockSize)
     ;
     }
+

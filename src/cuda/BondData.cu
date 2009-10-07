@@ -114,3 +114,4 @@ cudaError_t gpu_bondtable_array::deallocate()
     // all done, return success
     return cudaSuccess;
     }
+

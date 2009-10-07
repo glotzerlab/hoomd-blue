@@ -141,3 +141,4 @@ class BinnedNeighborListGPU : public NeighborList
 void export_BinnedNeighborListGPU();
 
 #endif
+

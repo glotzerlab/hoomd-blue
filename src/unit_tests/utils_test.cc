@@ -294,3 +294,4 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

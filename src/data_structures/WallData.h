@@ -128,3 +128,4 @@ class WallData : boost::noncopyable
     };
 
 #endif
+

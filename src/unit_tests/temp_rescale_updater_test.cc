@@ -146,3 +146,4 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

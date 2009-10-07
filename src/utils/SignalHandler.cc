@@ -92,3 +92,4 @@ void InstallSIGINTHandler()
     else
         prev_sigint_handler = NULL;
     }
+

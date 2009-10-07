@@ -101,3 +101,4 @@ cudaError_t gpu_npt_reduce_wsum(const gpu_npt_data &d_npt_data);
 cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata);
 
 #endif
+

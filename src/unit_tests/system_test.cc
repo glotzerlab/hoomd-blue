@@ -455,3 +455,4 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

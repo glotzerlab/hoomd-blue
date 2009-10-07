@@ -24,3 +24,4 @@ lines = file.readlines();
 
 process_column(lines, "p", 1);
 process_column(lines, "q", 2);
+
