@@ -83,7 +83,7 @@ class harmonic(force._force):
         # check that some bonds are defined
         if globals.system_definition.getBondData().getNumBonds() == 0:
             print >> sys.stderr, "\n***Error! No bonds are defined.\n";
-            raise RuntimeError("Error creating bond forces");		
+            raise RuntimeError("Error creating bond forces");
         
         # initialize the base class
         force._force.__init__(self);
@@ -175,7 +175,7 @@ class fene(force._force):
         # check that some bonds are defined
         if globals.system_definition.getBondData().getNumBonds() == 0:
             print >> sys.stderr, "\n***Error! No bonds are defined.\n";
-            raise RuntimeError("Error creating bond forces");		
+            raise RuntimeError("Error creating bond forces");
         
         # initialize the base class
         force._force.__init__(self);

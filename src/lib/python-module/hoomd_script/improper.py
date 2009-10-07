@@ -85,7 +85,7 @@ class harmonic(force._force):
         # check that some impropers are defined
         if globals.system_definition.getImproperData().getNumDihedrals() == 0:
             print >> sys.stderr, "\n***Error! No impropers are defined.\n";
-            raise RuntimeError("Error creating improper forces");		
+            raise RuntimeError("Error creating improper forces");
         
         # initialize the base class
         force._force.__init__(self);

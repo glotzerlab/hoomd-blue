@@ -167,7 +167,7 @@ def tags(tag_min, tag_max=None):
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
     
-    # handle the optional argument	
+    # handle the optional argument
     if tag_max != None:
         name = 'tags ' + str(tag_min) + '-' + str(tag_max);
     else:
@@ -217,3 +217,4 @@ def all():
 
     # return it in the wrapper class
     return group(name, cpp_group);
+

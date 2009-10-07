@@ -505,24 +505,24 @@ def _update_global_nlist(r_cut):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+# \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#           = & 0           & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where \f$ V(r) \f$ is chosen by a mode switch (see set_params())
 # \f{eqnarray*}
-#	V(r)  = & V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ no\_shift} \\
-#			 = & V_{\mathrm{LJ}}(r) - V_{\mathrm{LJ}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift}	\\
-#			 = & S(r) \cdot V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ xplor}	\\
-#	\f}
+# V(r)  = & V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ no\_shift} \\
+#       = & V_{\mathrm{LJ}}(r) - V_{\mathrm{LJ}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
+#       = & S(r) \cdot V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ xplor} \\
+# \f}
 # , \f$ S(r) \f$ is the XPLOR smoothing function
 # \f{eqnarray*} 
-#	S(r) = & 1 & r < r_{\mathrm{on}} \\
-#	= & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 - 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3} & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
+# S(r) = & 1 & r < r_{\mathrm{on}} \\
+#      = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 - 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3} & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
 #  = & 0 & r > r_{\mathrm{cut}} \\
 # \f}
 # , with \f$ r_{\mathrm{on}} = \lambda \cdot r_{\mathrm{cut}} \f$,
 # \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+#                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 # ,
 # and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
@@ -564,9 +564,9 @@ class lj(force._force):
         r_cut_wc = r_cut;
         
         # Set neighborcutoff correctly if diameter shifted LJ will be used
-        if slj == True:		
+        if slj == True:
             maxdiam = globals.system_definition.getParticleData().getMaximumDiameter();
-            r_cut_wc = r_cut + maxdiam - 1.0;	
+            r_cut_wc = r_cut + maxdiam - 1.0;
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut_wc);
@@ -589,8 +589,8 @@ class lj(force._force):
         self.pair_coeff = coeff();
         
         # Determine if diameter shifted LJ will be used
-        if slj != False:		
-            self.cpp_force.setSLJ(True)			
+        if slj != False:
+            self.cpp_force.setSLJ(True)
         
         
     def update_coeffs(self):
@@ -631,7 +631,7 @@ class lj(force._force):
     # lj.set_params(mode="shift")
     # lj.set_params(mode="no_shift")
     # lj.set_params(mode="xplor", xplor_factor = 0.5)
-    # \endcode	
+    # \endcode
     # 
     def set_params(self, mode=None, fraction=None):
         util.print_status_line();
@@ -642,10 +642,10 @@ class lj(force._force):
             elif mode == "shift":
                 self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.shift)
             elif mode == "xplor":
-                self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.xplor)					
+                self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.xplor)
             else:
                 print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-                raise RuntimeError("Error creating lj pair force");								
+                raise RuntimeError("Error creating lj pair force");
         if fraction != None:
             self.cpp_force.setXplorFraction(fraction);
             
@@ -658,18 +658,18 @@ class lj(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V_{\mathrm{LJ}}(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+# \vec{F}  = & -\nabla V_{\mathrm{LJ}}(r) & r < r_{\mathrm{cut}} \\
+#          = & 0                          & r \ge r_{\mathrm{cut}} \\
+# \f}
 # with being either
 # \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
+#                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
 # or
 # \f[ V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
+#                                                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
 # or
 # \f[ V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{4} \right] \f],
+#                                                            \alpha \left( \frac{\sigma}{r} \right)^{4} \right] \f],
 # and \f$ \vec{r} \f$ being the vector pointing from one particle to the other in the %pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See pair or 
@@ -772,14 +772,14 @@ class cgcmm(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+#   \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#            = & 0            & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where \f$ V(r) \f$ is chosen by a mode switch (see set_params())
 # \f{eqnarray*}
-#	V(r)  = & V_{\mathrm{gauss}}(r) & \mathrm{mode\ is\ no\_shift} \\
-#			 = & V_{\mathrm{gauss}}(r) - V_{\mathrm{gauss}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift}	\\
-#	\f}
+# V(r)  = & V_{\mathrm{gauss}}(r) & \mathrm{mode\ is\ no\_shift} \\
+#       = & V_{\mathrm{gauss}}(r) - V_{\mathrm{gauss}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
+# \f}
 # ,
 # \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
 # ,
@@ -870,7 +870,7 @@ class gauss(force._force):
     # \code
     # gauss.set_params(mode="shift")
     # gauss.set_params(mode="no_shift")
-    # \endcode	
+    # \endcode
     #
     def set_params(self, mode=None):
         util.print_status_line();
@@ -892,9 +892,9 @@ class gauss(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+# \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#          = & 0            & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where
 # \f[ V(r) = 4 \varepsilon \frac{ e^{\kappa r}}{r} \f]
 # and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
@@ -973,16 +973,16 @@ class yukawa(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}(\vec{r})    = & 0 			& r < r_{\mathrm{min}} \\
+#  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
 #                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
-#                       = & 0 			& r \ge r_{\mathrm{max}} \\
-#	\f}
+#                       = & 0                           & r \ge r_{\mathrm{max}} \\
+# \f}
 # and the potential \f$ V(r) \f$ is
 # \f{eqnarray*}
-#	V(r)     = & 0 			& r < r_{\mathrm{min}} \\
+# V(r)       = & 0                    & r < r_{\mathrm{min}} \\
 #            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
-#			 = & 0 			& r \ge r_{\mathrm{max}} \\
-#	\f}
+#            = & 0                    & r \ge r_{\mathrm{max}} \\
+# \f}
 # ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
 # \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
@@ -1106,3 +1106,4 @@ class table(force._force):
         
         # update the neighbor list with the found maximum rmax
         _update_global_nlist(maxrmax);
+

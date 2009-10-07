@@ -392,8 +392,8 @@ class box_resize(_updater):
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
     # box_resize = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), period = 10)
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), 
-    #					Ly = variant.linear_interp([(0, 20), (1e6, 60)]),
-    #					Lz = variant.linear_interp([(0, 10), (1e6, 80)]))
+    #                   Ly = variant.linear_interp([(0, 20), (1e6, 60)]),
+    #                   Lz = variant.linear_interp([(0, 10), (1e6, 80)]))
     # update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]), Ly = 10, Lz = 10)
     # \endcode
     #
@@ -421,7 +421,7 @@ class box_resize(_updater):
     ## Change box_resize parameters
     #
     # \param scale_particles Set to True to scale particles with the box. Set to False
-    # 							to have particles remain in place when the box is scaled.
+    #        to have particles remain in place when the box is scaled.
     # 
     # To change the parameters of an existing updater, you must have saved it when it was specified.
     # \code
@@ -446,3 +446,4 @@ class box_resize(_updater):
 
 # Global current id counter to assign updaters unique names
 _updater.cur_id = 0;
+

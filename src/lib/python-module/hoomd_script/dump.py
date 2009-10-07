@@ -421,3 +421,4 @@ class pdb(analyze._analyzer):
             raise RuntimeError('Error writing pdb');
         
         self.cpp_analyzer.writeFile(filename);
+

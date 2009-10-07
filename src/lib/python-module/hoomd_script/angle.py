@@ -155,13 +155,13 @@ class harmonic(force._force):
 # where \f$ \theta \f$ is the current angle between the three particles
 # and either
 # \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 				\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}} \f],
+#     \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 2^{\frac{1}{6}} \f],
 # or
 # \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
-# 				\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}\f],
+#     \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot \left(\frac{3}{2}\right)^{\frac{1}{3}}\f],
 # or
 # \f[ V_{\mathrm{LJ}}(r_{13}) -V_{\mathrm{LJ}}(r_c) \mathrm{~with~~~} V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 				\alpha \left( \frac{\sigma}{r} \right)^{4} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}} \f],
+#     \alpha \left( \frac{\sigma}{r} \right)^{4} \right] \mathrm{~~~~for~} r <= r_c \mathrm{~~~} r_c = \sigma \cdot 3^{\frac{1}{8}} \f],
 #  \f$ r_{13} \f$ being the distance between the two outer particles of the angle.
 #
 # Coefficients \f$ k, \theta_0, \varepsilon,\f$ and \f$ \sigma \f$ and Lennard-Jones exponents pair must be set for each type of %angle in the simulation using
@@ -180,7 +180,7 @@ class cgcmm(force._force):
         # check that some angles are defined
         if globals.system_definition.getAngleData().getNumAngles() == 0:
             print >> sys.stderr, "\n***Error! No angles are defined.\n";
-            raise RuntimeError("Error creating CGCMM angle forces");		
+            raise RuntimeError("Error creating CGCMM angle forces");
         
         # initialize the base class
         force._force.__init__(self);

@@ -76,3 +76,4 @@ def print_status_line():
     # build and print the message line
     message = file_name + ":" + str(line).zfill(3) + "  |  " + code;
     print message;
+

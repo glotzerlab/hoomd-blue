@@ -63,12 +63,12 @@ import util;
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+#    \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#             = & 0            & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where
 # \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+#                                        \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 # and \f$ \vec{r} \f$ is the vector pointing from the %wall to the particle parallel to the wall's normal.
 #
 # The following coefficients must be set for each particle type using set_coeff(). 
@@ -103,10 +103,10 @@ class lj(force._force):
         #if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
         self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
         #elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-        #	self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
+        #    self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
         #else:
-        #	print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-        #	raise RuntimeError("Error creating wall.lj forces");
+        #    print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+        #    raise RuntimeError("Error creating wall.lj forces");
         
         # variable for tracking which particle type coefficients have been set
         self.particle_types_set = [];
@@ -158,3 +158,4 @@ class lj(force._force):
             if not cur_type in self.particle_types_set:
                 print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in wall.lj\n";
                 raise RuntimeError("Error updating coefficients");
+

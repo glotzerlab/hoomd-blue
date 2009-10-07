@@ -354,7 +354,7 @@ class log(_analyzer):
     # analyze.log(filename='mylog.log', quantities=['bond_harmonic_energy'], 
     #             period=10, header_prefix='Log of harmonic energy, run 5\n')
     # logger = analyze.log(filename='mylog.log', period=100,
-    #                      quantities=['pair_lj_energy'], overwrite=True)	
+    #                      quantities=['pair_lj_energy'], overwrite=True)
     # \endcode
     #
     # By default, columns in the log file are separated by tabs, suitable for importing as a 
@@ -533,4 +533,4 @@ class msd(_analyzer):
         
         if delimiter:
             self.cpp_analyzer.setDelimiter(delimiter);
-        
+

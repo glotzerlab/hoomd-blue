@@ -110,7 +110,7 @@ class _integrator:
         # check that proper initialization has occured
         if self.cpp_integrator == None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');		
+            raise RuntimeError('Error updating forces');
         
         # set the forces
         self.cpp_integrator.removeForceComputes();
@@ -118,7 +118,7 @@ class _integrator:
             if f.enabled:
                 if f.cpp_force == None:
                     print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-                    raise RuntimeError('Error updating forces');		
+                    raise RuntimeError('Error updating forces');
                 else:
                     self.cpp_integrator.addForceCompute(f.cpp_force);
                     f.update_coeffs();
@@ -485,4 +485,5 @@ class bdnvt(_integrator):
         # change the parameters
         for i in xrange(0,ntypes):
             if a == type_list[i]:
-                self.cpp_integrator.setGamma(i,gamma);	
+                self.cpp_integrator.setGamma(i,gamma);
+

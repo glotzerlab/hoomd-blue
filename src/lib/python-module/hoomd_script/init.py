@@ -251,18 +251,18 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # generated in the system.
 #
 # In detail: 
-# -	\a bond_len defines the %bond length of the generated polymers. This should 
-# 	not necessarily be set to the equilibrium %bond length! The generator is dumb and doesn't know
-# 	that bonded particles can be placed closer together than the separation (see below). Thus
-# 	\a bond_len must be at a minimum set at twice the value of the largest separation radius. An 
-# 	error will be generated if this is not the case.
-# -	\a type is a python list of strings. Each string names a particle type in the order that
-# 	they will be created in generating the polymer.
-# -	\a %bond can be specified as "linear" in which case the generator connects all particles together
-# 	with bonds to form a linear chain. \a %bond can also be given a list if python tuples (see example
-#	above). 
+# - \a bond_len defines the %bond length of the generated polymers. This should 
+#   not necessarily be set to the equilibrium %bond length! The generator is dumb and doesn't know
+#   that bonded particles can be placed closer together than the separation (see below). Thus
+#   \a bond_len must be at a minimum set at twice the value of the largest separation radius. An 
+#   error will be generated if this is not the case.
+# - \a type is a python list of strings. Each string names a particle type in the order that
+#   they will be created in generating the polymer.
+# - \a %bond can be specified as "linear" in which case the generator connects all particles together
+#   with bonds to form a linear chain. \a %bond can also be given a list if python tuples (see example
+#   above). 
 #   - Each tuple in the form of \c (a,b) specifies that particle \c a of the polymer be bonded to
-# 	particle \c b. These bonds are given the default type name of 'polymer' to be used when specifying parameters to 
+#   particle \c b. These bonds are given the default type name of 'polymer' to be used when specifying parameters to 
 #   bond forces such as bond.harmonic.
 #   - A tuple with three elements (a,b,type) can be used as above, but with a custom name for the bond. For example,
 #   a simple branched polymer with different bond types on each branch could be defined like so:
@@ -362,10 +362,10 @@ def create_random_polymers(box, polymers, separation, seed=1):
         if not 'type' in poly:
             print >> sys.stderr, '\n***Error! Polymer specification missing type\n';
             raise RuntimeError("Error creating random polymers");
-        if not 'count' in poly:	
+        if not 'count' in poly:
             print >> sys.stderr, '\n***Error! Polymer specification missing count\n';
             raise RuntimeError("Error creating random polymers");
-        if not 'bond' in poly:	
+        if not 'bond' in poly:
             print >> sys.stderr, '\n***Error! Polymer specification missing bond\n';
             raise RuntimeError("Error creating random polymers");
                 
@@ -387,7 +387,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
                 bond_a.push_back(i);
                 bond_b.push_back(i+1);
                 bond_name.append('polymer')
-        #if it is a list, parse the user custom bonds		
+        #if it is a list, parse the user custom bonds
         elif type(poly['bond']) == type([]):
             for t in poly['bond']:
                 # a 2-tuple gets the default 'polymer' name for the bond
@@ -520,4 +520,4 @@ def _create_exec_conf():
             raise RuntimeError("Error initializing");
         
     return exec_conf;
-        
+
