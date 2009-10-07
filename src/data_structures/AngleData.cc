@@ -74,8 +74,8 @@ using namespace std;
     of the various data structures. For now, be careful not to destroy the ParticleData and keep the AngleData hanging
     around.
 */
-AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types) 
-    : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata)
+AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types)
+        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata)
     {
     assert(pdata);
     
@@ -145,7 +145,7 @@ void AngleData::addAngle(const Angle& angle)
     // check for some silly errors a user could make
     if (angle.a >= m_pdata->getN() || angle.b >= m_pdata->getN() || angle.c >= m_pdata->getN())
         {
-        cerr << endl << "***Error! Particle tag out of bounds when attempting to add angle: " 
+        cerr << endl << "***Error! Particle tag out of bounds when attempting to add angle: "
              << angle.a << ","
              << angle.b << ","
              << angle.c << endl << endl;
@@ -154,7 +154,7 @@ void AngleData::addAngle(const Angle& angle)
         
     if (angle.a == angle.b || angle.a == angle.c || angle.b == angle.c )
         {
-        cerr << endl << "***Error! Particle cannot included in an angle twice! " 
+        cerr << endl << "***Error! Particle cannot included in an angle twice! "
              << angle.a << ","
              << angle.b << ","
              << angle.c << endl << endl;
@@ -165,7 +165,7 @@ void AngleData::addAngle(const Angle& angle)
     if (angle.type+1 > m_n_angle_types)
         {
         cerr << endl << "***Error! Invalid angle type! "
-            << angle.type << ", the number of types is " << m_n_angle_types << endl << endl;
+             << angle.type << ", the number of types is " << m_n_angle_types << endl << endl;
         throw runtime_error("Error adding angle");
         }
         
@@ -412,13 +412,13 @@ void AngleData::copyAngleTable()
 void export_AngleData()
     {
     class_<AngleData, boost::shared_ptr<AngleData>, boost::noncopyable>
-        ("AngleData", init<boost::shared_ptr<ParticleData>, unsigned int>())
-        .def("addAngle", &AngleData::addAngle)
-        .def("getNumAngles", &AngleData::getNumAngles)
-        .def("getNAngleTypes", &AngleData::getNAngleTypes)
-        .def("getTypeByName", &AngleData::getTypeByName)
-        .def("getNameByType", &AngleData::getNameByType)
-        ;
+    ("AngleData", init<boost::shared_ptr<ParticleData>, unsigned int>())
+    .def("addAngle", &AngleData::addAngle)
+    .def("getNumAngles", &AngleData::getNumAngles)
+    .def("getNAngleTypes", &AngleData::getNAngleTypes)
+    .def("getTypeByName", &AngleData::getTypeByName)
+    .def("getNameByType", &AngleData::getNameByType)
+    ;
     
     class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
     .def_readwrite("a", &Angle::a)
