@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: fenebond_force_test.cc 1240 2008-09-19 17:19:48Z phillicl $
-// $URL: http://svn2.assembla.com/svn/hoomd/trunk/src/unit_tests/fenebond_force_test.cc $
+// $Id$
+// $URL$
 // Maintainer: phillicl
 
 #ifdef WIN32

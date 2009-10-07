@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Name the unit test module
 #define BOOST_TEST_MODULE TablePotentialTests
 #include "boost_utf_configure.h"
+#include <boost/test/floating_point_comparison.hpp>
 
 #include <fstream>
 
