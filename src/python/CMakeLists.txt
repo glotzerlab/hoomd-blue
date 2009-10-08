@@ -35,8 +35,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 
-# $Id: CMakeLists.txt 1980 2009-07-23 14:53:54Z joaander $
-# $URL: http://codeblue.umich.edu/hoomd-blue/svn/trunk/src/python/CMakeLists.txt $
+# $Id$
+# $URL$
 # Maintainer: joaander
 
 # enable testing on this directory
