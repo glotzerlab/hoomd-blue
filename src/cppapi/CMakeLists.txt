@@ -52,6 +52,10 @@ foreach(_LIBRARY ${HOOMD_COMMON_LIBS})
         endif (NOT _SKIP_THIS AND NOT _SKIP_THIS_AND_NEXT)
     endif (_SKIP_THIS_AND_NEXT)
 endforeach(_LIBRARY ${HOOMD_COMMON_LIBS})
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "${CMAKE_INSTALL_PREFIX}/lib/libhoomd_python_module.a \\\n")
+
+# the name of the hoomd library for linking changes between static and dynamic builds
+get_target_property(_HOOMD_LIB_LOC hoomd_python_module LOCATION)
+get_filename_component(_HOOMD_LIB_NAME ${_HOOMD_LIB_LOC} NAME)
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "${CMAKE_INSTALL_PREFIX}/lib/${_HOOMD_LIB_NAME} \\\n")
 file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "-I${CMAKE_INSTALL_PREFIX}/include/hoomd\"")
 endif (ENABLE_PLUGINAPI)
