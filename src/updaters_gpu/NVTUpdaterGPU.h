@@ -66,28 +66,28 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \ingroup updaters
 */
 class NVTUpdaterGPU : public NVTUpdater
-	{
-	public:
-		//! Constructor
-		NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T);
-		
-		virtual ~NVTUpdaterGPU();
+    {
+    public:
+        //! Constructor
+        NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T);
+        
+        virtual ~NVTUpdaterGPU();
+        
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
+        
+    private:
+        std::vector<gpu_nvt_data> d_nvt_data;   //!< Temp data on the device needed to implement NVT
+        
+        std::vector<gpu_nvt_rigid_data> d_nvt_rigid_data;
+        
+        //! Helper function to allocate data
+        void allocateNVTData(int block_size);
+        
+        //! Helper function to free data
+        void freeNVTData();
+    };
 
-		//! Take one timestep forward
-		virtual void update(unsigned int timestep);
-		
-	private:
-		std::vector<gpu_nvt_data> d_nvt_data;	//!< Temp data on the device needed to implement NVT
-
-		std::vector<gpu_nvt_rigid_data>	d_nvt_rigid_data;
-
-		//! Helper function to allocate data
-		void allocateNVTData(int block_size);
-		
-		//! Helper function to free data
-		void freeNVTData();
-	};
-	
 //! Exports the NVTUpdater class to python
 void export_NVTUpdaterGPU();
 

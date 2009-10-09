@@ -62,30 +62,30 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \ingroup computes
 */
 class LJForceComputeGPU : public LJForceCompute
-	{
-	public:
-		//! Constructs the compute
-		LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
-		
-		//! Destructor
-		virtual ~LJForceComputeGPU();
-		
-		//! Set the parameters for a single type pair
-		virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar r_cut=-1.0);	
-		
-		//! Sets the block size to run at
-		void setBlockSize(int block_size);
+    {
+    public:
+        //! Constructs the compute
+        LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+        
+        //! Destructor
+        virtual ~LJForceComputeGPU();
+        
+        //! Set the parameters for a single type pair
+        virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar r_cut=-1.0);
+        
+        //! Sets the block size to run at
+        void setBlockSize(int block_size);
+        
+    protected:
+        vector<float3*> d_coeffs;       //!< Pointer to the coefficients on the GPU
+        float3 * h_coeffs;              //!< Pointer to the coefficients on the host
+        int m_block_size;               //!< The block size to run on the GPU
+        bool m_ulf_workaround;          //!< Stores decision made by the constructor whether to enable the ULF workaround
+        
+        //! Actually compute the forces
+        virtual void computeForces(unsigned int timestep);
+    };
 
-	protected:
-		vector<float3 *> d_coeffs;		//!< Pointer to the coefficients on the GPU
-		float3 * h_coeffs;				//!< Pointer to the coefficients on the host
-		int m_block_size;				//!< The block size to run on the GPU
-		bool m_ulf_workaround;			//!< Stores decision made by the constructor whether to enable the ULF workaround
-
-		//! Actually compute the forces
-		virtual void computeForces(unsigned int timestep);
-	};
-	
 //! Exports the LJForceComputeGPU class to python
 void export_LJForceComputeGPU();
 

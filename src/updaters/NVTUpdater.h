@@ -112,10 +112,10 @@ class NVTUpdater : public Integrator
         bool m_accel_set;               //!< Flag to tell if we have set the accelleration yet
         Scalar m_curr_T;                //!< Current calculated temperature of the system
         Scalar m_dof;                   //!< Number of degrees of freedom
-		
-        boost::shared_ptr<class NVTRigidUpdater> m_rigid_updater;	//! The updater for rigid bodies, if any
+        
+        boost::shared_ptr<class NVTRigidUpdater> m_rigid_updater;   //! The updater for rigid bodies, if any
     };
-	
+
 //! Exports the NVTUpdater class to python
 void export_NVTUpdater();
 

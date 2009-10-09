@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -46,70 +46,71 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 /*! \file RigidData.cuh
- 	\brief Declares GPU kernel code and data structure functions used by RigidData
+    \brief Declares GPU kernel code and data structure functions used by RigidData
 */
 
 //! Structure of arrays of the rigid data as it resides on the GPU
 /*! Stores pointers to the particles positions, velocities, acceleartions, and particle tags.
-	Particle type information is most likely needed along with the position, so the type
-	is encoded in the 4th float in the position float4 as an integer. Device code
-	can decode this type data with __float_as_int();
-	
-	All the pointers in this structure are allocated on the device.
-	
-	This structure is about to be rewritten. Consider it being documented as poorly documented
-	for now.
-	
-	\ingroup gpu_data_structs
+    Particle type information is most likely needed along with the position, so the type
+    is encoded in the 4th float in the position float4 as an integer. Device code
+    can decode this type data with __float_as_int();
+
+    All the pointers in this structure are allocated on the device.
+
+    This structure is about to be rewritten. Consider it being documented as poorly documented
+    for now.
+
+    \ingroup gpu_data_structs
 */
-struct gpu_rigid_data_arrays 
-{
-	unsigned int n_bodies;	//!< Number of rigid bodies in the arrays
-	unsigned int nmax;		//!< Maximum number of particles in a rigid body
-	unsigned int local_beg;	//!< Index of the first body local to this GPU
-	unsigned int local_num;	//!< Number of particles local to this GPU	
+struct gpu_rigid_data_arrays
+    {
+    unsigned int n_bodies;  //!< Number of rigid bodies in the arrays
+    unsigned int nmax;      //!< Maximum number of particles in a rigid body
+    unsigned int local_beg; //!< Index of the first body local to this GPU
+    unsigned int local_num; //!< Number of particles local to this GPU
+    
+    float  *body_mass;      //!< Body mass
+    float4 *moment_inertia; //!< Body principle moments in \c x, \c y, \c z, nothing in \c w
+    float4 *com;            //!< Body position in \c x,\c y,\c z, particle type as an int in \c w
+    float4 *vel;            //!< Body velocity in \c x, \c y, \c z, nothing in \c w
+    float4 *angvel;         //!< Angular velocity in \c x, \c y, \c z, nothing in \c w
+    float4 *angmom;         //!< Angular momentum in \c x, \c y, \c z, nothing in \c w
+    float4 *orientation;    //!< Quaternion in \c x, \c y, \c z, nothing in \c w
+    float4 *ex_space;       //!< Body frame x axis in the world space in \c x, \c y, \c z, nothing in \c w
+    float4 *ey_space;       //!< Body frame y axis in the world space in \c x, \c y, \c z, nothing in \c w
+    float4 *ez_space;       //!< Body frame z axis in the world space in \c x, \c y, \c z, nothing in \c w
+    int    *body_imagex;    //!< Body box image location in \c x.
+    int    *body_imagey;    //!< Body box image location in \c y.
+    int    *body_imagez;    //!< Body box image location in \c z.
+    float4 *force;          //!< Body force in \c x, \c y, \c z, nothing in \c w
+    float4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
+    
+    float4 *particle_pos;           //!< Particle relative position to the body frame
+    unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays
+    unsigned int *particle_tags;    //!< Particle tags
+    };
 
-	float  *body_mass;		//!< Body mass	
-	float4 *moment_inertia;	//!< Body principle moments in \c x, \c y, \c z, nothing in \c w
-	float4 *com;			//!< Body position in \c x,\c y,\c z, particle type as an int in \c w
-	float4 *vel;			//!< Body velocity in \c x, \c y, \c z, nothing in \c w
-	float4 *angvel;			//!< Angular velocity in \c x, \c y, \c z, nothing in \c w
-	float4 *angmom;			//!< Angular momentum in \c x, \c y, \c z, nothing in \c w
-	float4 *orientation;	//!< Quaternion in \c x, \c y, \c z, nothing in \c w
-	float4 *ex_space;		//!< Body frame x axis in the world space in \c x, \c y, \c z, nothing in \c w
-	float4 *ey_space;		//!< Body frame y axis in the world space in \c x, \c y, \c z, nothing in \c w
-	float4 *ez_space;		//!< Body frame z axis in the world space in \c x, \c y, \c z, nothing in \c w
-	int    *body_imagex;	//!< Body box image location in \c x.
-	int    *body_imagey;	//!< Body box image location in \c y.
-	int    *body_imagez;	//!< Body box image location in \c z.
-	float4 *force;			//!< Body force in \c x, \c y, \c z, nothing in \c w
-	float4 *torque;			//!< Body torque in \c x, \c y, \c z, nothing in \c w
+struct gpu_nvt_rigid_data_arrays
+    {
+    unsigned int n_bodies;
+    
+    float  *q_t;
+    float  *q_r;
+    float  *eta_t;
+    float  *eta_r;
+    float  *eta_dot_t;
+    float  *eta_dot_r;
+    float  *f_eta_t;
+    float  *f_eta_r;
+    float  *w;
+    float  *wdti1;
+    float  *wdti2;
+    float  *wdti4;
+    float4 *conjqm;
+    
+    float   *partial_ke;
+    float   *ke;
+    };
 
-	float4 *particle_pos;			//!< Particle relative position to the body frame
-	unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays
-	unsigned int *particle_tags;	//!< Particle tags
-};
+#endif
 
-struct gpu_nvt_rigid_data_arrays 
-{
-	unsigned int n_bodies;	
-	
-	float  *q_t;
-	float  *q_r;
-	float  *eta_t;
-	float  *eta_r;
-	float  *eta_dot_t;
-	float  *eta_dot_r;
-	float  *f_eta_t;
-	float  *f_eta_r;
-	float  *w;
-	float  *wdti1;
-	float  *wdti2;
-	float  *wdti4;
-	float4 *conjqm;
-	
-	float	*partial_ke;
-	float	*ke;
-};
-
-#endif	

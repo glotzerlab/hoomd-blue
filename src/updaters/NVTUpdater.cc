@@ -68,7 +68,7 @@ using namespace std;
 NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar deltaT,
                        Scalar tau,
-                       boost::shared_ptr<Variant> T) 
+                       boost::shared_ptr<Variant> T)
     : Integrator(sysdef, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
     {
     if (m_tau <= 0.0)
@@ -136,188 +136,185 @@ Scalar NVTUpdater::getLogValue(const std::string& quantity, unsigned int timeste
 /*! \param timestep Current time step of the simulation
 */
 void NVTUpdater::update(unsigned int timestep)
-	{
-	assert(m_pdata);
-	static bool gave_warning = false;
+    {
+    assert(m_pdata);
+    static bool gave_warning = false;
+    
+    // get the rigid data from SystemDefinition
+    boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
+    
+    // if there is any rigid body
+    unsigned int n_bodies = rigid_data->getNumBodies();
+    if (n_bodies > 0 && !m_rigid_updater)
+        {
+        // allocate the rigid updater
+        m_rigid_updater = boost::shared_ptr<NVTRigidUpdater> (new NVTRigidUpdater(m_sysdef, m_deltaT, m_T));
+        assert(m_rigid_updater);
+        }
+        
+    if (m_forces.size() == 0 && !gave_warning)
+        {
+        cout << "***Warning! No forces defined in NVTUpdater, continuing anyways" << endl;
+        gave_warning = true;
+        }
+        
+    // if we haven't been called before, then the accelerations have not been set and we need to calculate them
+    if (!m_accel_set)
+        {
+        m_accel_set = true;
+        computeAccelerations(timestep, "NVT");
+        
+        // compute the initial net forces, torques and angular momenta
+        if (m_rigid_updater) m_rigid_updater->setup();
+        }
+        
+    if (m_prof)
+        {
+        m_prof->push("NVT");
+        m_prof->push("Half-step 1");
+        }
+        
+    // access the particle data arrays
+    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
+    assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
+    
+    // now we can get on with the Nose-Hoover
+    // first half step: update the velocities and positions
+    // sum up K while we are doing the loop
+    Scalar Ksum = 0.0;
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        // no need to update particles in rigid bodies
+        if (arrays.body[j] != NO_BODY) continue;
+        
+        Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * m_Xi);
+        
+        arrays.vx[j] = (arrays.vx[j] + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT) * denominv;
+        arrays.x[j] += m_deltaT * arrays.vx[j];
+        
+        arrays.vy[j] = (arrays.vy[j] + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT) * denominv;
+        arrays.y[j] += m_deltaT * arrays.vy[j];
+        
+        arrays.vz[j] = (arrays.vz[j] + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT) * denominv;
+        arrays.z[j] += m_deltaT * arrays.vz[j];
+        
+        Ksum += arrays.mass[j] * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+        }
+        
+    // need previous xi to update eta
+    Scalar xi_prev = m_Xi;
+    
+    // update Xi
+    m_curr_T = Ksum / m_dof;
+    m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    
+    // update eta
+    m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
+    
+    // We aren't done yet! Need to fix the periodic boundary conditions
+    // this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
+    // get a local copy of the simulation box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    // precalculate box lenghts
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        // no need to update particles in rigid bodies
+        if (arrays.body[j] != NO_BODY) continue;
+        
+        // wrap the particle around the box
+        if (arrays.x[j] >= box.xhi)
+            {
+            arrays.x[j] -= Lx;
+            arrays.ix[j]++;
+            }
+        else if (arrays.x[j] < box.xlo)
+            {
+            arrays.x[j] += Lx;
+            arrays.ix[j]--;
+            }
+            
+        if (arrays.y[j] >= box.yhi)
+            {
+            arrays.y[j] -= Ly;
+            arrays.iy[j]++;
+            }
+        else if (arrays.y[j] < box.ylo)
+            {
+            arrays.y[j] += Ly;
+            arrays.iy[j]--;
+            }
+            
+        if (arrays.z[j] >= box.zhi)
+            {
+            arrays.z[j] -= Lz;
+            arrays.iz[j]++;
+            }
+        else if (arrays.z[j] < box.zlo)
+            {
+            arrays.z[j] += Lz;
+            arrays.iz[j]--;
+            }
+        }
+        
+        
+    // release the particle data arrays so that they can be accessed to add up the accelerations
+    m_pdata->release();
+    
+    // rigid body 1st step integration
+    if (m_rigid_updater) m_rigid_updater->initialIntegrate(timestep);
+    
+    // functions that computeAccelerations calls profile themselves, so suspend
+    // the profiling for now
+    if (m_prof)
+        {
+        m_prof->pop();
+        m_prof->pop();
+        }
+        
+    // for the next half of the step, we need the accelerations at t+deltaT
+    computeAccelerations(timestep+1, "NVT");
+    
+    if (m_prof)
+        {
+        m_prof->push("NVT");
+        m_prof->push("Half-step 2");
+        }
+        
+    // get the particle data arrays again so we can update the 2nd half of the step
+    arrays = m_pdata->acquireReadWrite();
+    
+    // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        if (arrays.body[j] != NO_BODY) continue;
+        
+        arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - m_Xi * arrays.vx[j]);
+        arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - m_Xi * arrays.vy[j]);
+        arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - m_Xi * arrays.vz[j]);
+        }
+        
+    m_pdata->release();
+    
+    // rigid body 2nd step integration (net forces and torques are computed within)
+    if (m_rigid_updater) m_rigid_updater->finalIntegrate(timestep);
+    
+    // and now the acceleration at timestep+1 is precalculated for the first half of the next step
+    if (m_prof)
+        {
+        m_prof->pop();
+        m_prof->pop();
+        }
+    }
 
-	// get the rigid data from SystemDefinition
-	boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
-
-	// if there is any rigid body
-	unsigned int n_bodies = rigid_data->getNumBodies();
-	if (n_bodies > 0 && !m_rigid_updater) 
-		{			
-		// allocate the rigid updater
-		m_rigid_updater = boost::shared_ptr<NVTRigidUpdater> (new NVTRigidUpdater(m_sysdef, m_deltaT, m_T));
-		assert(m_rigid_updater);
-		}
-
-	if (m_forces.size() == 0 && !gave_warning)
-		{
-		cout << "***Warning! No forces defined in NVTUpdater, continuing anyways" << endl;
-		gave_warning = true;
-		}
-	
-	// if we haven't been called before, then the accelerations	have not been set and we need to calculate them
-	if (!m_accel_set)
-		{
-		m_accel_set = true;
-		computeAccelerations(timestep, "NVT");
-
-		// compute the initial net forces, torques and angular momenta
-		if (m_rigid_updater) m_rigid_updater->setup();
-		}
-
-	if (m_prof)
-		{
-		m_prof->push("NVT");
-		m_prof->push("Half-step 1");
-		}
-		
-	// access the particle data arrays
-	ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-	assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
-	assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
-	
-	// now we can get on with the Nose-Hoover
-	// first half step: update the velocities and positions
-	// sum up K while we are doing the loop
-	Scalar Ksum = 0.0;
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		// no need to update particles in rigid bodies
-		if (arrays.body[j] != NO_BODY) continue;
-
-		Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * m_Xi);
-	
-		arrays.vx[j] = (arrays.vx[j] + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT) * denominv;	
-		arrays.x[j] += m_deltaT * arrays.vx[j];
-		
-		arrays.vy[j] = (arrays.vy[j] + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT) * denominv;
-		arrays.y[j] += m_deltaT * arrays.vy[j];
-		
-		arrays.vz[j] = (arrays.vz[j] + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT) * denominv;
-		arrays.z[j] += m_deltaT * arrays.vz[j];
-
-		Ksum += arrays.mass[j] * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
-		}
-	
-	// need previous xi to update eta
-	Scalar xi_prev = m_Xi;
-	
-	// update Xi
-	m_curr_T = Ksum / m_dof;
-	m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
-	
-	// update eta
-	m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
-	
-	// We aren't done yet! Need to fix the periodic boundary conditions
-	// this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
-	// get a local copy of the simulation box
-	const BoxDim& box = m_pdata->getBox();
-	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
-	
-	// precalculate box lenghts
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
-
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		// no need to update particles in rigid bodies
-		if (arrays.body[j] != NO_BODY) continue;
-
-		// wrap the particle around the box
-		if (arrays.x[j] >= box.xhi)
-			{
-			arrays.x[j] -= Lx;
-			arrays.ix[j]++;
-			}
-		else
-		if (arrays.x[j] < box.xlo)
-			{
-			arrays.x[j] += Lx;
-			arrays.ix[j]--;
-			}
-			
-		if (arrays.y[j] >= box.yhi)
-			{
-			arrays.y[j] -= Ly;
-			arrays.iy[j]++;
-			}
-		else
-		if (arrays.y[j] < box.ylo)
-			{
-			arrays.y[j] += Ly;
-			arrays.iy[j]--;
-			}
-			
-		if (arrays.z[j] >= box.zhi)
-			{
-			arrays.z[j] -= Lz;
-			arrays.iz[j]++;
-			}
-		else
-		if (arrays.z[j] < box.zlo)
-			{
-			arrays.z[j] += Lz;
-			arrays.iz[j]--;
-			}
-		}
-
-	
-	// release the particle data arrays so that they can be accessed to add up the accelerations
-	m_pdata->release();
-	
-	// rigid body 1st step integration	
-	if (m_rigid_updater) m_rigid_updater->initialIntegrate(timestep);
-
-	// functions that computeAccelerations calls profile themselves, so suspend
-	// the profiling for now
-	if (m_prof)
-		{
-		m_prof->pop();
-		m_prof->pop();
-		}
-	
-	// for the next half of the step, we need the accelerations at t+deltaT
-	computeAccelerations(timestep+1, "NVT");
-	
-	if (m_prof)
-		{
-		m_prof->push("NVT");
-		m_prof->push("Half-step 2");
-		}
-	
-	// get the particle data arrays again so we can update the 2nd half of the step
-	arrays = m_pdata->acquireReadWrite();
-	
-	// v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		if (arrays.body[j] != NO_BODY) continue;
-
-		arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - m_Xi * arrays.vx[j]);
-		arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - m_Xi * arrays.vy[j]);
-		arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - m_Xi * arrays.vz[j]);
-		}
-
-	m_pdata->release();
-	
-	// rigid body 2nd step integration (net forces and torques are computed within)
-	if (m_rigid_updater) m_rigid_updater->finalIntegrate(timestep);
-
-	// and now the acceleration at timestep+1 is precalculated for the first half of the next step
-	if (m_prof)
-		{
-		m_prof->pop();
-		m_prof->pop();
-		}
-	}
-	
 void export_NVTUpdater()
     {
     class_<NVTUpdater, boost::shared_ptr<NVTUpdater>, bases<Integrator>, boost::noncopyable>

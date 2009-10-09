@@ -71,365 +71,365 @@ using namespace std;
     \param deltaT Time step to use
 */
 NVERigidUpdater::NVERigidUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : m_deltaT(deltaT)
-	{
-	//! Get the system rigid data
-	m_rigid_data = sysdef->getRigidData();
-		
-	//! Get the particle data associated with the rigid data (i.e. the system particle data?)
-	m_pdata = sysdef->getParticleData();
-	
-	//! Get the number of rigid bodies for frequent use
-	m_n_bodies = m_rigid_data->getNumBodies();
-		
-	}
+    {
+    //! Get the system rigid data
+    m_rigid_data = sysdef->getRigidData();
+    
+    //! Get the particle data associated with the rigid data (i.e. the system particle data?)
+    m_pdata = sysdef->getParticleData();
+    
+    //! Get the number of rigid bodies for frequent use
+    m_n_bodies = m_rigid_data->getNumBodies();
+    
+    }
 
 void NVERigidUpdater::setup()
-	{
-	// get box
-	const BoxDim& box = m_pdata->getBox();
-	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
-	
-	// precalculate box lenghts
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
-	
-	{
-	// rigid data handles
-	ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-	ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
-	ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
-	unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();	
-	
-	ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
-		
-	// Reset all forces and torques
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{
-		vel_handle.data[body].x = 0.0;
-		vel_handle.data[body].y = 0.0;
-		vel_handle.data[body].z = 0.0;
-
-		force_handle.data[body].x = 0.0;
-		force_handle.data[body].y = 0.0;
-		force_handle.data[body].z = 0.0;
-		
-		torque_handle.data[body].x = 0.0;
-		torque_handle.data[body].y = 0.0;
-		torque_handle.data[body].z = 0.0;
-		
-		angmom_handle.data[body].x = 0.0;
-		angmom_handle.data[body].y = 0.0;
-		angmom_handle.data[body].z = 0.0;
-		}
-	
-	// Access the particle data arrays
-	ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-	
-	// for each body
-	for (unsigned int body = 0; body < m_n_bodies; body++) 
-		{
-		// for each particle
-		unsigned int len = body_size_handle.data[body];
-		for (unsigned int j = 0; j < len; j++)
-			{
-			// get the index of particle in the particle arrays
-			unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
-				
-			// get the particle mass 
-			Scalar mass_one = arrays.mass[pidx];
-			
-			vel_handle.data[body].x += mass_one * arrays.vx[pidx];
-			vel_handle.data[body].y += mass_one * arrays.vy[pidx];
-			vel_handle.data[body].z += mass_one * arrays.vz[pidx];
-
-			Scalar fx = mass_one * arrays.ax[pidx];
-			Scalar fy = mass_one * arrays.ay[pidx];
-			Scalar fz = mass_one * arrays.az[pidx];
-							
-			force_handle.data[body].x += fx;
-			force_handle.data[body].y += fy;
-			force_handle.data[body].z += fz;
-			
-			// Torque = r x f (all are in the space frame)
-			Scalar rx = arrays.x[pidx] - com_handle.data[body].x;
-			Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
-			Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
-				
-			if (rx >= Lx/2.0) rx -= Lx;
-			if (rx < -Lx/2.0) rx += Lx;
-			if (ry >= Ly/2.0) ry -= Ly;
-			if (ry < -Ly/2.0) ry += Ly;
-			if (rz >= Lz/2.0) rz -= Lz;
-			if (rz < -Lz/2.0) rz += Lz;
-				
-			torque_handle.data[body].x += ry * fz - rz * fy;
-			torque_handle.data[body].y += rz * fx - rx * fz;
-			torque_handle.data[body].z += rx * fy - ry * fx;
-			
-			// Angular momentum = r x (m * v) is calculated for setup
-			angmom_handle.data[body].x += ry * (mass_one * arrays.vz[pidx]) - rz * (mass_one * arrays.vy[pidx]);
-			angmom_handle.data[body].y += rz * (mass_one * arrays.vx[pidx]) - rx * (mass_one * arrays.vz[pidx]);
-			angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
-			}
-		}
-	
-	for (unsigned int body = 0; body < m_n_bodies; body++) 
-		{
-
-		vel_handle.data[body].x /= body_mass_handle.data[body];
-		vel_handle.data[body].y /= body_mass_handle.data[body];
-		vel_handle.data[body].z /= body_mass_handle.data[body];
-
-		computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
-						ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
-		}
-		
-	m_pdata->release();
-	
-	} // out of scope for handles
-	
-	
-		
-	// Set the velocities of particles in rigid bodies
-	set_v();
-	}
+    {
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    // precalculate box lenghts
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+        {
+        // rigid data handles
+        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
+        unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
+        
+        ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+        
+        // Reset all forces and torques
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            vel_handle.data[body].x = 0.0;
+            vel_handle.data[body].y = 0.0;
+            vel_handle.data[body].z = 0.0;
+            
+            force_handle.data[body].x = 0.0;
+            force_handle.data[body].y = 0.0;
+            force_handle.data[body].z = 0.0;
+            
+            torque_handle.data[body].x = 0.0;
+            torque_handle.data[body].y = 0.0;
+            torque_handle.data[body].z = 0.0;
+            
+            angmom_handle.data[body].x = 0.0;
+            angmom_handle.data[body].y = 0.0;
+            angmom_handle.data[body].z = 0.0;
+            }
+            
+        // Access the particle data arrays
+        ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+        
+        // for each body
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            // for each particle
+            unsigned int len = body_size_handle.data[body];
+            for (unsigned int j = 0; j < len; j++)
+                {
+                // get the index of particle in the particle arrays
+                unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
+                
+                // get the particle mass
+                Scalar mass_one = arrays.mass[pidx];
+                
+                vel_handle.data[body].x += mass_one * arrays.vx[pidx];
+                vel_handle.data[body].y += mass_one * arrays.vy[pidx];
+                vel_handle.data[body].z += mass_one * arrays.vz[pidx];
+                
+                Scalar fx = mass_one * arrays.ax[pidx];
+                Scalar fy = mass_one * arrays.ay[pidx];
+                Scalar fz = mass_one * arrays.az[pidx];
+                
+                force_handle.data[body].x += fx;
+                force_handle.data[body].y += fy;
+                force_handle.data[body].z += fz;
+                
+                // Torque = r x f (all are in the space frame)
+                Scalar rx = arrays.x[pidx] - com_handle.data[body].x;
+                Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
+                Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
+                
+                if (rx >= Lx/2.0) rx -= Lx;
+                if (rx < -Lx/2.0) rx += Lx;
+                if (ry >= Ly/2.0) ry -= Ly;
+                if (ry < -Ly/2.0) ry += Ly;
+                if (rz >= Lz/2.0) rz -= Lz;
+                if (rz < -Lz/2.0) rz += Lz;
+                
+                torque_handle.data[body].x += ry * fz - rz * fy;
+                torque_handle.data[body].y += rz * fx - rx * fz;
+                torque_handle.data[body].z += rx * fy - ry * fx;
+                
+                // Angular momentum = r x (m * v) is calculated for setup
+                angmom_handle.data[body].x += ry * (mass_one * arrays.vz[pidx]) - rz * (mass_one * arrays.vy[pidx]);
+                angmom_handle.data[body].y += rz * (mass_one * arrays.vx[pidx]) - rx * (mass_one * arrays.vz[pidx]);
+                angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
+                }
+            }
+            
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            
+            vel_handle.data[body].x /= body_mass_handle.data[body];
+            vel_handle.data[body].y /= body_mass_handle.data[body];
+            vel_handle.data[body].z /= body_mass_handle.data[body];
+            
+            computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
+                                   ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
+            }
+            
+        m_pdata->release();
+        
+        } // out of scope for handles
+        
+        
+        
+    // Set the velocities of particles in rigid bodies
+    set_v();
+    }
 
 /*! Velocity verlet: adapted from LAMMPS (Large-scale Atomistic/Molecular Massively Parallel Simulator)
 
 */
 void NVERigidUpdater::initialIntegrate(unsigned int timestep)
-	{	
-	// get box
-	const BoxDim& box = m_pdata->getBox();
-	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
-		
-	// precalculate box lenghts
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
-		
-	// now we can get on with the velocity verlet: initial integration
-	Scalar dt_half = 0.5 * m_deltaT;
-	Scalar dtfm;
-	
-	{ 
-	// rigid data handles
-	ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-		
-	ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);	
-	ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);	
-	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-	
-	ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);	
-	ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);	
-	ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);	
-	ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);		
-	
-	// for each body
-	for (unsigned int body = 0; body < m_n_bodies; body++) 
-		{
-		dtfm = dt_half / body_mass_handle.data[body];	
-		vel_handle.data[body].x += dtfm * force_handle.data[body].x;
-		vel_handle.data[body].y += dtfm * force_handle.data[body].y;
-		vel_handle.data[body].z += dtfm * force_handle.data[body].z;
-				
-		com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
-		com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
-		com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
-		
-		// map the center of mass to the periodic box, update the com image info
-		if (com_handle.data[body].x >= box.xhi) 
-			{
-			com_handle.data[body].x -= Lx;
-			body_imagex_handle.data[body]--;
-			}
-		else if (com_handle.data[body].x < box.xlo) 
-			{
-			com_handle.data[body].x += Lx;
-			body_imagex_handle.data[body]++;
-			}	
-		
-		if (com_handle.data[body].y >= box.yhi) 
-			{
-			com_handle.data[body].y -= Ly;
-			body_imagey_handle.data[body]--;
-			}
-		else if (com_handle.data[body].y < box.ylo) 
-			{
-			com_handle.data[body].y += Ly;
-			body_imagey_handle.data[body]++;
-			}
-		
-		if (com_handle.data[body].z >= box.zhi) 
-			{
-			com_handle.data[body].z -= Lz;
-			body_imagez_handle.data[body]--;
-			}
-		else if (com_handle.data[body].z < box.zlo) 
-			{
-			com_handle.data[body].z += Lz;
-			body_imagez_handle.data[body]++;
-			}
-			
-		angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
-		angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
-		angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
-				
-		advanceQuaternion(angmom_handle.data[body], moment_inertia_handle.data[body], angvel_handle.data[body], 
-						ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], orientation_handle.data[body]);
-		}
-	} // out of scope for handles
-	
-	// set positions and velocities of particles in rigid bodies	
-	set_xv();
-
-	}
+    {
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    // precalculate box lenghts
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    // now we can get on with the velocity verlet: initial integration
+    Scalar dt_half = 0.5 * m_deltaT;
+    Scalar dtfm;
+    
+        {
+        // rigid data handles
+        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+        
+        ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+        
+        ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
+        
+        // for each body
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            dtfm = dt_half / body_mass_handle.data[body];
+            vel_handle.data[body].x += dtfm * force_handle.data[body].x;
+            vel_handle.data[body].y += dtfm * force_handle.data[body].y;
+            vel_handle.data[body].z += dtfm * force_handle.data[body].z;
+            
+            com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
+            com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
+            com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
+            
+            // map the center of mass to the periodic box, update the com image info
+            if (com_handle.data[body].x >= box.xhi)
+                {
+                com_handle.data[body].x -= Lx;
+                body_imagex_handle.data[body]--;
+                }
+            else if (com_handle.data[body].x < box.xlo)
+                {
+                com_handle.data[body].x += Lx;
+                body_imagex_handle.data[body]++;
+                }
+                
+            if (com_handle.data[body].y >= box.yhi)
+                {
+                com_handle.data[body].y -= Ly;
+                body_imagey_handle.data[body]--;
+                }
+            else if (com_handle.data[body].y < box.ylo)
+                {
+                com_handle.data[body].y += Ly;
+                body_imagey_handle.data[body]++;
+                }
+                
+            if (com_handle.data[body].z >= box.zhi)
+                {
+                com_handle.data[body].z -= Lz;
+                body_imagez_handle.data[body]--;
+                }
+            else if (com_handle.data[body].z < box.zlo)
+                {
+                com_handle.data[body].z += Lz;
+                body_imagez_handle.data[body]++;
+                }
+                
+            angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
+            angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
+            angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+            
+            advanceQuaternion(angmom_handle.data[body], moment_inertia_handle.data[body], angvel_handle.data[body],
+                              ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], orientation_handle.data[body]);
+            }
+        } // out of scope for handles
+        
+    // set positions and velocities of particles in rigid bodies
+    set_xv();
+    
+    }
 
 void NVERigidUpdater::finalIntegrate(unsigned int timestep)
-{			
-	// compute net forces and torques on rigid bodies from particle forces 
-	computeForceAndTorque();
-	
-	{
-	// rigid data handes
-	ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-	
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-	
-	ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-
-	
-	Scalar dt_half = 0.5 * m_deltaT;
-	
-	// 2nd step: final integration
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{
-		Scalar dtfm = dt_half / body_mass_handle.data[body];	
-		vel_handle.data[body].x += dtfm * force_handle.data[body].x;
-		vel_handle.data[body].y += dtfm * force_handle.data[body].y;
-		vel_handle.data[body].z += dtfm * force_handle.data[body].z;
-			
-		angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
-		angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
-		angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
-		
-		computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
-							   ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);	
-		}
-	} // out of scope for handles	
-	
-	// set velocities of particles in rigid bodies	
-	set_v();
-
-	}
+    {
+    // compute net forces and torques on rigid bodies from particle forces
+    computeForceAndTorque();
+    
+        {
+        // rigid data handes
+        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+        
+        ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+        
+        ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+        
+        
+        Scalar dt_half = 0.5 * m_deltaT;
+        
+        // 2nd step: final integration
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            Scalar dtfm = dt_half / body_mass_handle.data[body];
+            vel_handle.data[body].x += dtfm * force_handle.data[body].x;
+            vel_handle.data[body].y += dtfm * force_handle.data[body].y;
+            vel_handle.data[body].z += dtfm * force_handle.data[body].z;
+            
+            angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
+            angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
+            angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+            
+            computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
+                                   ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
+            }
+        } // out of scope for handles
+        
+    // set velocities of particles in rigid bodies
+    set_v();
+    
+    }
 
 
 void NVERigidUpdater::computeForceAndTorque()
-	{
-	// get box
-	const BoxDim& box = m_pdata->getBox();
-	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
-		
-	// precalculate box lenghts
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
-	
-	// rigid data handles
-	ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);	
-	ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);	
-	ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
-	unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();	
-		
-	ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
-		
-	// reset all forces and torques
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{
-		force_handle.data[body].x = 0.0;
-		force_handle.data[body].y = 0.0;
-		force_handle.data[body].z = 0.0;
-		
-		torque_handle.data[body].x = 0.0;
-		torque_handle.data[body].y = 0.0;
-		torque_handle.data[body].z = 0.0;
-		}
-	
-	// access the particle data arrays
-	const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
-	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-	assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);	
-	
-	// for each body
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{	
-		// for each particle
-		unsigned int len = body_size_handle.data[body];
-		for (unsigned int j = 0; j < len; j++)
-			{
-			// get the actual index of particle in the particle arrays
-			unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
-			
-			// get the particle mass 
-			Scalar mass_one = arrays.mass[pidx];
-			
-			Scalar fx = mass_one * arrays.ax[pidx];
-			Scalar fy = mass_one * arrays.ay[pidx];
-			Scalar fz = mass_one * arrays.az[pidx];
-			
-			force_handle.data[body].x += fx;
-			force_handle.data[body].y += fy;
-			force_handle.data[body].z += fz;
-			
-			// torque = r x f
-			Scalar rx = arrays.x[pidx] - com_handle.data[body].x;
-			Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
-			Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
-			
-			if (rx >= Lx/2.0) rx -= Lx;
-			if (rx < -Lx/2.0) rx += Lx;
-			if (ry >= Ly/2.0) ry -= Ly;
-			if (ry < -Ly/2.0) ry += Ly;
-			if (rz >= Lz/2.0) rz -= Lz;
-			if (rz < -Lz/2.0) rz += Lz;
-			
-			torque_handle.data[body].x += ry * fz - rz * fy;
-			torque_handle.data[body].y += rz * fx - rx * fz;
-			torque_handle.data[body].z += rx * fy - ry * fx;
-			}
-		}
-	
-	m_pdata->release();
-		
-	}
+    {
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    // precalculate box lenghts
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    // rigid data handles
+    ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
+    unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
+    
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+    
+    // reset all forces and torques
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+        force_handle.data[body].x = 0.0;
+        force_handle.data[body].y = 0.0;
+        force_handle.data[body].z = 0.0;
+        
+        torque_handle.data[body].x = 0.0;
+        torque_handle.data[body].y = 0.0;
+        torque_handle.data[body].z = 0.0;
+        }
+        
+    // access the particle data arrays
+    const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
+    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
+    
+    // for each body
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+        // for each particle
+        unsigned int len = body_size_handle.data[body];
+        for (unsigned int j = 0; j < len; j++)
+            {
+            // get the actual index of particle in the particle arrays
+            unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
+            
+            // get the particle mass
+            Scalar mass_one = arrays.mass[pidx];
+            
+            Scalar fx = mass_one * arrays.ax[pidx];
+            Scalar fy = mass_one * arrays.ay[pidx];
+            Scalar fz = mass_one * arrays.az[pidx];
+            
+            force_handle.data[body].x += fx;
+            force_handle.data[body].y += fy;
+            force_handle.data[body].z += fz;
+            
+            // torque = r x f
+            Scalar rx = arrays.x[pidx] - com_handle.data[body].x;
+            Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
+            Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
+            
+            if (rx >= Lx/2.0) rx -= Lx;
+            if (rx < -Lx/2.0) rx += Lx;
+            if (ry >= Ly/2.0) ry -= Ly;
+            if (ry < -Ly/2.0) ry += Ly;
+            if (rz >= Lz/2.0) rz -= Lz;
+            if (rz < -Lz/2.0) rz += Lz;
+            
+            torque_handle.data[body].x += ry * fz - rz * fy;
+            torque_handle.data[body].y += rz * fx - rx * fz;
+            torque_handle.data[body].z += rx * fy - ry * fx;
+            }
+        }
+        
+    m_pdata->release();
+    
+    }
 
 /*! Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
     based on the body center of mass and particle relative position in each body frame.
@@ -438,108 +438,108 @@ void NVERigidUpdater::computeForceAndTorque()
 */
 
 void NVERigidUpdater::set_xv()
-{
-	// get box	
-	const BoxDim& box = m_pdata->getBox();
-	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
-	
-	Scalar Lx = box.xhi - box.xlo;
-	Scalar Ly = box.yhi - box.ylo;
-	Scalar Lz = box.zhi - box.zlo;
-	
-	// handles
-	ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);	
-	ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);	
-	ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-	ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-	
-	ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
-	unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();	
-	ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
-	unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();	
-	
-	// access the particle data arrays
-	ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-	assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
-	assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
-	
-	// for each body
-	for (unsigned int body = 0; body < m_n_bodies; body++) 
-		{
-		unsigned int len = body_size_handle.data[body];
-		// for each particle
-		for (unsigned int j = 0; j < len; j++) 
-			{
-			// get the actual index of particle in the particle arrays
-			unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
-			// get the index of particle in the current rigid body in the particle_pos array
-			unsigned int localidx = body * particle_pos_pitch + j;
-				
-			// project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
-			Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x 
-					+ ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y 
-					+ ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
-			Scalar yr = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x 
-					+ ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y 
-					+ ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
-			Scalar zr = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x 
-					+ ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y 
-					+ ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
-			
-			// x_particle = x_com + xr
-			arrays.x[pidx] = com.data[body].x + xr;
-			arrays.y[pidx] = com.data[body].y + yr;
-			arrays.z[pidx] = com.data[body].z + zr;
-			
-			if (arrays.x[pidx] >= box.xhi)
-				{
-				arrays.x[pidx] -= Lx;
-				arrays.ix[pidx]++;
-				}
-			else if (arrays.x[pidx] < box.xlo)
-				{
-				arrays.x[pidx] += Lx;
-				arrays.ix[pidx]--;
-				}
-				
-			if (arrays.y[pidx] >= box.yhi)
-				{
-				arrays.y[pidx] -= Ly;
-				arrays.iy[pidx]++;
-				}
-			else if (arrays.y[pidx] < box.ylo)
-				{
-				arrays.y[pidx] += Ly;
-				arrays.iy[pidx]--;
-				}
-				
-			if (arrays.z[pidx] >= box.zhi)
-				{
-				arrays.z[pidx] -= Lz;
-				arrays.iz[pidx]++;
-				}
-			else if (arrays.z[pidx] < box.zlo)
-				{
-				arrays.z[pidx] += Lz;
-				arrays.iz[pidx]--;
-				}
-				
-			// v_particle = v_com + angvel x xr
-			arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
-			arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
-			arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
-
-			}
-		}
-	
-	m_pdata->release();
-	
-	}
+    {
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    // handles
+    ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+    
+    ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
+    unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
+    ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
+    unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
+    
+    // access the particle data arrays
+    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
+    assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
+    assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
+    
+    // for each body
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+        unsigned int len = body_size_handle.data[body];
+        // for each particle
+        for (unsigned int j = 0; j < len; j++)
+            {
+            // get the actual index of particle in the particle arrays
+            unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
+            // get the index of particle in the current rigid body in the particle_pos array
+            unsigned int localidx = body * particle_pos_pitch + j;
+            
+            // project the position in the body frame to the space frame: xr = rotation_matrix * particle_pos
+            Scalar xr = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
+            Scalar yr = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
+            Scalar zr = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
+                        
+            // x_particle = x_com + xr
+            arrays.x[pidx] = com.data[body].x + xr;
+            arrays.y[pidx] = com.data[body].y + yr;
+            arrays.z[pidx] = com.data[body].z + zr;
+            
+            if (arrays.x[pidx] >= box.xhi)
+                {
+                arrays.x[pidx] -= Lx;
+                arrays.ix[pidx]++;
+                }
+            else if (arrays.x[pidx] < box.xlo)
+                {
+                arrays.x[pidx] += Lx;
+                arrays.ix[pidx]--;
+                }
+                
+            if (arrays.y[pidx] >= box.yhi)
+                {
+                arrays.y[pidx] -= Ly;
+                arrays.iy[pidx]++;
+                }
+            else if (arrays.y[pidx] < box.ylo)
+                {
+                arrays.y[pidx] += Ly;
+                arrays.iy[pidx]--;
+                }
+                
+            if (arrays.z[pidx] >= box.zhi)
+                {
+                arrays.z[pidx] -= Lz;
+                arrays.iz[pidx]++;
+                }
+            else if (arrays.z[pidx] < box.zlo)
+                {
+                arrays.z[pidx] += Lz;
+                arrays.iz[pidx]--;
+                }
+                
+            // v_particle = v_com + angvel x xr
+            arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
+            arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
+            arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
+            
+            }
+        }
+        
+    m_pdata->release();
+    
+    }
 
 /*! Set velocity of constituent particles in rigid bodies in the 2nd half of integration
  based on the body center of mass and particle relative position in each body frame.

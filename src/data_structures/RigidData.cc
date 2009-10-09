@@ -65,14 +65,14 @@ using namespace std;
     \post All data members in RigidData are completely initialized from the given info in \a particle_data
 */
 RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
-	: m_pdata(particle_data), m_n_bodies(0), m_ndof(0)
-	{
-	// leave arrays initialized to NULL. There are currently 0 bodies and their 
-	// initialization is delayed because we cannot reasonably determine when that initialization
-	// must be done
-
+    : m_pdata(particle_data), m_n_bodies(0), m_ndof(0)
+    {
+    // leave arrays initialized to NULL. There are currently 0 bodies and their
+    // initialization is delayed because we cannot reasonably determine when that initialization
+    // must be done
+    
     // connect the sort signal
-    m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));   
+    m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));
     }
 
 RigidData::~RigidData()
@@ -87,355 +87,355 @@ RigidData::~RigidData()
     \post m_particle_indices is updated to match the current sorting of the particle data
 */
 void RigidData::recalcIndices()
-	{
-	if (m_n_bodies == 0)
-		return;
-		
-	// sanity check
-	assert(m_pdata);
-	assert(!m_particle_tags.isNull());
-	assert(!m_particle_indices.isNull());
-//	assert(m_n_bodies <= m_particle_tags.getPitch());
-//	assert(m_n_bodies <= m_particle_indices.getPitch());
-	assert(m_n_bodies == m_body_size.getNumElements());
-	
-	// get the particle data
-	const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
-	
-	// get all the rigid data we need
-	ArrayHandle<unsigned int> tags(m_particle_tags, access_location::host, access_mode::read);
-	unsigned int tags_pitch = m_particle_tags.getPitch();
-	
-	ArrayHandle<unsigned int> indices(m_particle_indices, access_location::host, access_mode::readwrite);
-	unsigned int indices_pitch = m_particle_indices.getPitch();
-	
-	ArrayHandle<unsigned int> body_size(m_body_size, access_location::host, access_mode::read);
-	
-	// for each body
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{
-		// for each particle in this body
-		unsigned int len = body_size.data[body];
-		assert(body <= m_particle_tags.getHeight() && body <= m_particle_indices.getHeight());
-		assert(len <= tags_pitch && len <= indices_pitch);
-		for (unsigned int i = 0; i < len; i++)
-			{
-			// translate the tag to the current index
-			unsigned int tag = tags.data[body*tags_pitch + i];
-			unsigned int pidx = arrays.rtag[tag];
-			indices.data[body*indices_pitch + i] = pidx;
-			}
-		}
-		
-	m_pdata->release();
-	}
-	
+    {
+    if (m_n_bodies == 0)
+        return;
+        
+    // sanity check
+    assert(m_pdata);
+    assert(!m_particle_tags.isNull());
+    assert(!m_particle_indices.isNull());
+//  assert(m_n_bodies <= m_particle_tags.getPitch());
+//  assert(m_n_bodies <= m_particle_indices.getPitch());
+    assert(m_n_bodies == m_body_size.getNumElements());
+    
+    // get the particle data
+    const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
+    
+    // get all the rigid data we need
+    ArrayHandle<unsigned int> tags(m_particle_tags, access_location::host, access_mode::read);
+    unsigned int tags_pitch = m_particle_tags.getPitch();
+    
+    ArrayHandle<unsigned int> indices(m_particle_indices, access_location::host, access_mode::readwrite);
+    unsigned int indices_pitch = m_particle_indices.getPitch();
+    
+    ArrayHandle<unsigned int> body_size(m_body_size, access_location::host, access_mode::read);
+    
+    // for each body
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+        // for each particle in this body
+        unsigned int len = body_size.data[body];
+        assert(body <= m_particle_tags.getHeight() && body <= m_particle_indices.getHeight());
+        assert(len <= tags_pitch && len <= indices_pitch);
+        for (unsigned int i = 0; i < len; i++)
+            {
+            // translate the tag to the current index
+            unsigned int tag = tags.data[body*tags_pitch + i];
+            unsigned int pidx = arrays.rtag[tag];
+            indices.data[body*indices_pitch + i] = pidx;
+            }
+        }
+        
+    m_pdata->release();
+    }
+
 /*! \pre all data members have been allocated
     \post all data members are initialized with data from the particle data
 */
 void RigidData::initializeData()
-	{
-	
-	// get the particle data
-	const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();	
-	
-	// determine the number of rigid bodies
-	unsigned int maxbody = arrays.body[0];
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		if (arrays.body[j] != NO_BODY)
-			{
-			if (maxbody < arrays.body[j]) 
-				maxbody = arrays.body[j];
-			}
-		}
-	
-	m_n_bodies = maxbody + 1;	// arrays.body[j] is numbered from 0
-	if (m_n_bodies <= 0) 
-	{
-		m_pdata->release();
-		return;
-	}
-		
-	// allocate nbodies-size arrays
-	GPUArray<Scalar> body_mass(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<unsigned int> body_size(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> moment_inertia(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> orientation(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> ex_space(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> ey_space(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> ez_space(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<int> body_imagex(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<int> body_imagey(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<int> body_imagez(m_n_bodies, m_pdata->getExecConf());
-		
-	GPUArray<Scalar4> com(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> vel(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> angvel(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> force(m_n_bodies, m_pdata->getExecConf());
-	GPUArray<Scalar4> torque(m_n_bodies, m_pdata->getExecConf());
-		
-	m_body_mass.swap(body_mass);
-	m_body_size.swap(body_size);
-	m_moment_inertia.swap(moment_inertia);
-	m_orientation.swap(orientation);
-	m_ex_space.swap(ex_space);
-	m_ey_space.swap(ey_space);
-	m_ez_space.swap(ez_space);
-	m_body_imagex.swap(body_imagex);
-	m_body_imagey.swap(body_imagey);
-	m_body_imagez.swap(body_imagez);
-		
-	m_com.swap(com);
-	m_vel.swap(vel);
-	m_angmom.swap(angmom);
-	m_angvel.swap(angvel);
-	m_force.swap(force);
-	m_torque.swap(torque);
-		
-	{	
-	// determine the largest size of rigid bodies (nmax)
-	ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::readwrite);
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		body_size_handle.data[body] = 0;
-		
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		unsigned int body = arrays.body[j];
-		if (body != NO_BODY)
-			body_size_handle.data[body]++;
-		}	
-	
-	// determine the maximum number of particles in a rigid body
-	m_nmax = 0;
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		if (m_nmax < body_size_handle.data[body])
-			m_nmax = body_size_handle.data[body];	
-	
-	m_nmax = (m_nmax + (16 - m_nmax & 15));
-		
-	// determine body_mass, inertia tensor, com and vel	
-	GPUArray<Scalar> inertia(6, m_n_bodies, m_pdata->getExecConf()); // the inertia tensor is symmetric, therefore we only need to store 6 elements
-	ArrayHandle<Scalar> inertia_handle(inertia, access_location::host, access_mode::readwrite);
-		
-	ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::readwrite);
-	ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
-	ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
-	ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
-	ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
-	
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{
-		body_mass_handle.data[body] = 0.0;
-		com_handle.data[body].x = 0.0;
-		com_handle.data[body].y = 0.0;
-		com_handle.data[body].z = 0.0;
-		
-		inertia_handle.data[6 * body] = 0.0;
-		inertia_handle.data[6 * body + 1] = 0.0;
-		inertia_handle.data[6 * body + 2] = 0.0;
-		inertia_handle.data[6 * body + 3] = 0.0;
-		inertia_handle.data[6 * body + 4] = 0.0;
-		inertia_handle.data[6 * body + 5] = 0.0;
-		}
-		
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		if (arrays.body[j] == NO_BODY) continue;
-		
-		unsigned int body = arrays.body[j];
-		Scalar mass_one = arrays.mass[j];
-		body_mass_handle.data[body] += mass_one;
-		
-		com_handle.data[body].x += mass_one * arrays.x[j];
-		com_handle.data[body].y += mass_one * arrays.y[j];
-		com_handle.data[body].z += mass_one * arrays.z[j];
-		}
-	
-	// com, vel and body images
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{
-		Scalar mass_body = body_mass_handle.data[body];
-		com_handle.data[body].x /= mass_body;
-		com_handle.data[body].y /= mass_body;
-		com_handle.data[body].z /= mass_body;
-		
-		body_imagex_handle.data[body] = 0;
-		body_imagey_handle.data[body] = 0;
-		body_imagez_handle.data[body] = 0;
-		}
-	
-	// determine the inertia tensor then diagonalize it
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		if (arrays.body[j] == NO_BODY) continue;
-			
-		unsigned int body = arrays.body[j];
-		Scalar mass_one = arrays.mass[j];
-			
-		Scalar dx = arrays.x[j] - com_handle.data[body].x;
-		Scalar dy = arrays.y[j] - com_handle.data[body].y;
-		Scalar dz = arrays.z[j] - com_handle.data[body].z;
-		
-		inertia_handle.data[6 * body] += mass_one * (dy * dy + dz * dz);
-		inertia_handle.data[6 * body + 1] += mass_one * (dz * dz + dx * dx);
-		inertia_handle.data[6 * body + 2] += mass_one * (dx * dx + dy * dy);
-		inertia_handle.data[6 * body + 3] -= mass_one * dx * dy;
-		inertia_handle.data[6 * body + 4] -= mass_one * dy * dz;
-		inertia_handle.data[6 * body + 5] -= mass_one * dx * dz;
-		}
-	
-	// allocate temporary arrays: revision needed!
-	Scalar **matrix, *evalues, **evectors;
-	matrix = new Scalar*[3];
-	evectors = new Scalar*[3];
-	evalues = new Scalar[3];
-	for (unsigned int j = 0; j < 3; j++) 
-		{
-		matrix[j] = new Scalar[3];
-		evectors[j] = new Scalar[3];
-		}
-	
-	unsigned int dof_one;
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-		{
-		matrix[0][0] = inertia_handle.data[6 * body];
-		matrix[1][1] = inertia_handle.data[6 * body + 1];
-		matrix[2][2] = inertia_handle.data[6 * body + 2];
-		matrix[0][1] = matrix[1][0] = inertia_handle.data[6 * body + 3];
-		matrix[1][2] = matrix[2][1] = inertia_handle.data[6 * body + 4];
-		matrix[2][0] = matrix[0][2] = inertia_handle.data[6 * body + 5];
-		
-		int error = diagonalize(matrix, evalues, evectors);
-		if (error) cout << "Insufficient Jacobi iterations for diagonalization!\n";
-		
-		// obtain the moment inertia from eigen values
-		moment_inertia_handle.data[body].x = evalues[0];
-		moment_inertia_handle.data[body].y = evalues[1];
-		moment_inertia_handle.data[body].z = evalues[2];
-		
-		// set tiny moment of inertia component to be zero, count the number of degrees of freedom
-		dof_one = 6;
-		Scalar max = MAX(moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y);
-		max = MAX(max, moment_inertia_handle.data[body].z);
-			
-		if (moment_inertia_handle.data[body].x < EPSILON * max) 
-			{
-			dof_one--;
-			moment_inertia_handle.data[body].x = Scalar(0.0);
-			}
-			
-		if (moment_inertia_handle.data[body].y < EPSILON * max)
-			{
-			dof_one--;
-			moment_inertia_handle.data[body].y = Scalar(0.0);
-			}
-		
-		if (moment_inertia_handle.data[body].z < EPSILON * max) 
-			{
-			dof_one--;
-			moment_inertia_handle.data[body].z = Scalar(0.0);
-			}
-		
-		m_ndof += dof_one;
-			
-		// obtain the principle axes from eigen vectors
-		ex_space_handle.data[body].x = evectors[0][0];
-		ex_space_handle.data[body].y = evectors[1][0];
-		ex_space_handle.data[body].z = evectors[2][0];
-			
-		ey_space_handle.data[body].x = evectors[0][1];
-		ey_space_handle.data[body].y = evectors[1][1];
-		ey_space_handle.data[body].z = evectors[2][1];
-			
-		ez_space_handle.data[body].x = evectors[0][2];
-		ez_space_handle.data[body].y = evectors[1][2];
-		ez_space_handle.data[body].z = evectors[2][2];
-		
-		// create the initial quaternion from the new body frame
-		quaternionFromExyz(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], 
-							orientation_handle.data[body]);	
-		}
-	
-	// deallocate temporary memory
-	delete [] evalues;
-	
-	for (unsigned int j = 0; j < 3; j++)
-		{
-		delete [] matrix[j];
-		delete [] evectors[j];
-		}
-	
-	delete [] evectors;
-	delete [] matrix;
-		
-		
-	// allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
-	GPUArray<unsigned int> particle_tags(m_nmax, m_n_bodies,  m_pdata->getExecConf());
-	m_particle_tags.swap(particle_tags);
-	ArrayHandle<unsigned int> particle_tags_handle(m_particle_tags, access_location::host, access_mode::readwrite); 
-	unsigned int particle_tags_pitch = m_particle_tags.getPitch();
-		
-	GPUArray<unsigned int> particle_indices(m_nmax, m_n_bodies, m_pdata->getExecConf());
-	m_particle_indices.swap(particle_indices);
-	ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite); 
-	unsigned int particle_indices_pitch = m_particle_indices.getPitch();
-	for (unsigned int j = 0; j < m_nmax * m_n_bodies; j++) particle_indices_handle.data[j] = NO_INDEX; // initialize with a sentinel value
-		
-	GPUArray<Scalar4> particle_pos(m_nmax, m_n_bodies, m_pdata->getExecConf());	
-	m_particle_pos.swap(particle_pos);
-	ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite); 
-	unsigned int particle_pos_pitch = m_particle_pos.getPitch();
-		
-	GPUArray<unsigned int> local_indices(m_n_bodies, m_pdata->getExecConf());
-	ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite); 
-	for (unsigned int body = 0; body < m_n_bodies; body++)
-			local_indices_handle.data[body] = 0;
-		
-	// determine the particle indices and particle tags
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-		{
-		if (arrays.body[j] == NO_BODY) continue;
-		
-		// get the corresponding body
-		unsigned int body = arrays.body[j];
-		// get the current index in the body
-		unsigned int current_localidx = local_indices_handle.data[body];
-		// set the particle index to be this value
-		particle_indices_handle.data[body * particle_indices_pitch + current_localidx] = j;
-		// set the particle tag to be the tag of this particle
-		particle_tags_handle.data[body * particle_tags_pitch + current_localidx] = arrays.tag[j];
-		
-		// determine the particle position in the body frame 
-		// with ex_space, ey_space and ex_space vectors computed from the diagonalization
-		Scalar dx = arrays.x[j] - com_handle.data[body].x;
-		Scalar dy = arrays.y[j] - com_handle.data[body].y;
-		Scalar dz = arrays.z[j] - com_handle.data[body].z;
-		particle_pos_handle.data[body * particle_pos_pitch + current_localidx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
-					dz * ex_space_handle.data[body].z;
-		particle_pos_handle.data[body * particle_pos_pitch + current_localidx].y = dx * ey_space_handle.data[body].x + dy * ey_space_handle.data[body].y +
-					dz * ey_space_handle.data[body].z;
-		particle_pos_handle.data[body * particle_pos_pitch + current_localidx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
-					dz * ez_space_handle.data[body].z; 
-	
-		// increment the current index by one
-		local_indices_handle.data[body]++;
-		}
-	
-	
-	// release particle data for later access
-	m_pdata->release();	
-	}	// out of scope for handles
-		
-	// finish up by initializing the indices
-	recalcIndices();
-	}
+    {
+    
+    // get the particle data
+    const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
+    
+    // determine the number of rigid bodies
+    unsigned int maxbody = arrays.body[0];
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        if (arrays.body[j] != NO_BODY)
+            {
+            if (maxbody < arrays.body[j])
+                maxbody = arrays.body[j];
+            }
+        }
+        
+    m_n_bodies = maxbody + 1;   // arrays.body[j] is numbered from 0
+    if (m_n_bodies <= 0)
+        {
+        m_pdata->release();
+        return;
+        }
+        
+    // allocate nbodies-size arrays
+    GPUArray<Scalar> body_mass(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<unsigned int> body_size(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> moment_inertia(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> orientation(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> ex_space(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> ey_space(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> ez_space(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<int> body_imagex(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<int> body_imagey(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<int> body_imagez(m_n_bodies, m_pdata->getExecConf());
+    
+    GPUArray<Scalar4> com(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> vel(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> angvel(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> force(m_n_bodies, m_pdata->getExecConf());
+    GPUArray<Scalar4> torque(m_n_bodies, m_pdata->getExecConf());
+    
+    m_body_mass.swap(body_mass);
+    m_body_size.swap(body_size);
+    m_moment_inertia.swap(moment_inertia);
+    m_orientation.swap(orientation);
+    m_ex_space.swap(ex_space);
+    m_ey_space.swap(ey_space);
+    m_ez_space.swap(ez_space);
+    m_body_imagex.swap(body_imagex);
+    m_body_imagey.swap(body_imagey);
+    m_body_imagez.swap(body_imagez);
+    
+    m_com.swap(com);
+    m_vel.swap(vel);
+    m_angmom.swap(angmom);
+    m_angvel.swap(angvel);
+    m_force.swap(force);
+    m_torque.swap(torque);
+    
+        {
+        // determine the largest size of rigid bodies (nmax)
+        ArrayHandle<unsigned int> body_size_handle(m_body_size, access_location::host, access_mode::readwrite);
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            body_size_handle.data[body] = 0;
+            
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            unsigned int body = arrays.body[j];
+            if (body != NO_BODY)
+                body_size_handle.data[body]++;
+            }
+            
+        // determine the maximum number of particles in a rigid body
+        m_nmax = 0;
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            if (m_nmax < body_size_handle.data[body])
+                m_nmax = body_size_handle.data[body];
+                
+        m_nmax = (m_nmax + (16 - m_nmax & 15));
+        
+        // determine body_mass, inertia tensor, com and vel
+        GPUArray<Scalar> inertia(6, m_n_bodies, m_pdata->getExecConf()); // the inertia tensor is symmetric, therefore we only need to store 6 elements
+        ArrayHandle<Scalar> inertia_handle(inertia, access_location::host, access_mode::readwrite);
+        
+        ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> ex_space_handle(m_ex_space, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> ey_space_handle(m_ey_space, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> ez_space_handle(m_ez_space, access_location::host, access_mode::readwrite);
+        ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
+        ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
+        ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
+        
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            body_mass_handle.data[body] = 0.0;
+            com_handle.data[body].x = 0.0;
+            com_handle.data[body].y = 0.0;
+            com_handle.data[body].z = 0.0;
+            
+            inertia_handle.data[6 * body] = 0.0;
+            inertia_handle.data[6 * body + 1] = 0.0;
+            inertia_handle.data[6 * body + 2] = 0.0;
+            inertia_handle.data[6 * body + 3] = 0.0;
+            inertia_handle.data[6 * body + 4] = 0.0;
+            inertia_handle.data[6 * body + 5] = 0.0;
+            }
+            
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            if (arrays.body[j] == NO_BODY) continue;
+            
+            unsigned int body = arrays.body[j];
+            Scalar mass_one = arrays.mass[j];
+            body_mass_handle.data[body] += mass_one;
+            
+            com_handle.data[body].x += mass_one * arrays.x[j];
+            com_handle.data[body].y += mass_one * arrays.y[j];
+            com_handle.data[body].z += mass_one * arrays.z[j];
+            }
+            
+        // com, vel and body images
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            Scalar mass_body = body_mass_handle.data[body];
+            com_handle.data[body].x /= mass_body;
+            com_handle.data[body].y /= mass_body;
+            com_handle.data[body].z /= mass_body;
+            
+            body_imagex_handle.data[body] = 0;
+            body_imagey_handle.data[body] = 0;
+            body_imagez_handle.data[body] = 0;
+            }
+            
+        // determine the inertia tensor then diagonalize it
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            if (arrays.body[j] == NO_BODY) continue;
+            
+            unsigned int body = arrays.body[j];
+            Scalar mass_one = arrays.mass[j];
+            
+            Scalar dx = arrays.x[j] - com_handle.data[body].x;
+            Scalar dy = arrays.y[j] - com_handle.data[body].y;
+            Scalar dz = arrays.z[j] - com_handle.data[body].z;
+            
+            inertia_handle.data[6 * body] += mass_one * (dy * dy + dz * dz);
+            inertia_handle.data[6 * body + 1] += mass_one * (dz * dz + dx * dx);
+            inertia_handle.data[6 * body + 2] += mass_one * (dx * dx + dy * dy);
+            inertia_handle.data[6 * body + 3] -= mass_one * dx * dy;
+            inertia_handle.data[6 * body + 4] -= mass_one * dy * dz;
+            inertia_handle.data[6 * body + 5] -= mass_one * dx * dz;
+            }
+            
+        // allocate temporary arrays: revision needed!
+        Scalar **matrix, *evalues, **evectors;
+        matrix = new Scalar*[3];
+        evectors = new Scalar*[3];
+        evalues = new Scalar[3];
+        for (unsigned int j = 0; j < 3; j++)
+            {
+            matrix[j] = new Scalar[3];
+            evectors[j] = new Scalar[3];
+            }
+            
+        unsigned int dof_one;
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            {
+            matrix[0][0] = inertia_handle.data[6 * body];
+            matrix[1][1] = inertia_handle.data[6 * body + 1];
+            matrix[2][2] = inertia_handle.data[6 * body + 2];
+            matrix[0][1] = matrix[1][0] = inertia_handle.data[6 * body + 3];
+            matrix[1][2] = matrix[2][1] = inertia_handle.data[6 * body + 4];
+            matrix[2][0] = matrix[0][2] = inertia_handle.data[6 * body + 5];
+            
+            int error = diagonalize(matrix, evalues, evectors);
+            if (error) cout << "Insufficient Jacobi iterations for diagonalization!\n";
+            
+            // obtain the moment inertia from eigen values
+            moment_inertia_handle.data[body].x = evalues[0];
+            moment_inertia_handle.data[body].y = evalues[1];
+            moment_inertia_handle.data[body].z = evalues[2];
+            
+            // set tiny moment of inertia component to be zero, count the number of degrees of freedom
+            dof_one = 6;
+            Scalar max = MAX(moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y);
+            max = MAX(max, moment_inertia_handle.data[body].z);
+            
+            if (moment_inertia_handle.data[body].x < EPSILON * max)
+                {
+                dof_one--;
+                moment_inertia_handle.data[body].x = Scalar(0.0);
+                }
+                
+            if (moment_inertia_handle.data[body].y < EPSILON * max)
+                {
+                dof_one--;
+                moment_inertia_handle.data[body].y = Scalar(0.0);
+                }
+                
+            if (moment_inertia_handle.data[body].z < EPSILON * max)
+                {
+                dof_one--;
+                moment_inertia_handle.data[body].z = Scalar(0.0);
+                }
+                
+            m_ndof += dof_one;
+            
+            // obtain the principle axes from eigen vectors
+            ex_space_handle.data[body].x = evectors[0][0];
+            ex_space_handle.data[body].y = evectors[1][0];
+            ex_space_handle.data[body].z = evectors[2][0];
+            
+            ey_space_handle.data[body].x = evectors[0][1];
+            ey_space_handle.data[body].y = evectors[1][1];
+            ey_space_handle.data[body].z = evectors[2][1];
+            
+            ez_space_handle.data[body].x = evectors[0][2];
+            ez_space_handle.data[body].y = evectors[1][2];
+            ez_space_handle.data[body].z = evectors[2][2];
+            
+            // create the initial quaternion from the new body frame
+            quaternionFromExyz(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body],
+                               orientation_handle.data[body]);
+            }
+            
+        // deallocate temporary memory
+        delete [] evalues;
+        
+        for (unsigned int j = 0; j < 3; j++)
+            {
+            delete [] matrix[j];
+            delete [] evectors[j];
+            }
+            
+        delete [] evectors;
+        delete [] matrix;
+        
+        
+        // allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
+        GPUArray<unsigned int> particle_tags(m_nmax, m_n_bodies,  m_pdata->getExecConf());
+        m_particle_tags.swap(particle_tags);
+        ArrayHandle<unsigned int> particle_tags_handle(m_particle_tags, access_location::host, access_mode::readwrite);
+        unsigned int particle_tags_pitch = m_particle_tags.getPitch();
+        
+        GPUArray<unsigned int> particle_indices(m_nmax, m_n_bodies, m_pdata->getExecConf());
+        m_particle_indices.swap(particle_indices);
+        ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite);
+        unsigned int particle_indices_pitch = m_particle_indices.getPitch();
+        for (unsigned int j = 0; j < m_nmax * m_n_bodies; j++) particle_indices_handle.data[j] = NO_INDEX; // initialize with a sentinel value
+        
+        GPUArray<Scalar4> particle_pos(m_nmax, m_n_bodies, m_pdata->getExecConf());
+        m_particle_pos.swap(particle_pos);
+        ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite);
+        unsigned int particle_pos_pitch = m_particle_pos.getPitch();
+        
+        GPUArray<unsigned int> local_indices(m_n_bodies, m_pdata->getExecConf());
+        ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite);
+        for (unsigned int body = 0; body < m_n_bodies; body++)
+            local_indices_handle.data[body] = 0;
+            
+        // determine the particle indices and particle tags
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            if (arrays.body[j] == NO_BODY) continue;
+            
+            // get the corresponding body
+            unsigned int body = arrays.body[j];
+            // get the current index in the body
+            unsigned int current_localidx = local_indices_handle.data[body];
+            // set the particle index to be this value
+            particle_indices_handle.data[body * particle_indices_pitch + current_localidx] = j;
+            // set the particle tag to be the tag of this particle
+            particle_tags_handle.data[body * particle_tags_pitch + current_localidx] = arrays.tag[j];
+            
+            // determine the particle position in the body frame
+            // with ex_space, ey_space and ex_space vectors computed from the diagonalization
+            Scalar dx = arrays.x[j] - com_handle.data[body].x;
+            Scalar dy = arrays.y[j] - com_handle.data[body].y;
+            Scalar dz = arrays.z[j] - com_handle.data[body].z;
+            particle_pos_handle.data[body * particle_pos_pitch + current_localidx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
+                    dz * ex_space_handle.data[body].z;
+            particle_pos_handle.data[body * particle_pos_pitch + current_localidx].y = dx * ey_space_handle.data[body].x + dy * ey_space_handle.data[body].y +
+                    dz * ey_space_handle.data[body].z;
+            particle_pos_handle.data[body * particle_pos_pitch + current_localidx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
+                    dz * ez_space_handle.data[body].z;
+                    
+            // increment the current index by one
+            local_indices_handle.data[body]++;
+            }
+            
+            
+        // release particle data for later access
+        m_pdata->release();
+        }   // out of scope for handles
+        
+    // finish up by initializing the indices
+    recalcIndices();
+    }
 
 /*! Compute eigenvalues and eigenvectors of 3x3 real symmetric matrix based on Jacobi rotations
    adapted from Numerical Recipes jacobi() function (LAMMPS)
