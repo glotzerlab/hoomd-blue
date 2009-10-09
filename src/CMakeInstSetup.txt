@@ -9,11 +9,15 @@ if (WIN32)
     # the specified install path, "" doesn't work
     set(DATA_INSTALL_DIR ".")
     set(LIB_INSTALL_DIR "bin")
+    set(LIB_BASE_INSTALL_DIR "bin")
     set(BIN_INSTALL_DIR "bin")
+    set(INC_INSTALL_DIR "include/hoomd")
 else (WIN32)
     set(DATA_INSTALL_DIR "share/hoomd")
     set(LIB_INSTALL_DIR "lib/hoomd")
+    set(LIB_BASE_INSTALL_DIR "lib")
     set(BIN_INSTALL_DIR "bin")
+    set(INC_INSTALL_DIR "include/hoomd")
 endif (WIN32)
 
 

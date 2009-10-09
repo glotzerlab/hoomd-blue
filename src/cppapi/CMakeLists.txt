@@ -3,14 +3,15 @@
 
 #################################
 ## write a C++ include file and a config.h file
-option(ENABLE_CXX "Create headers and library variables to link c++ codes to the hoomd library" OFF)
-mark_as_advanced(ENABLE_CXX)
-if (ENABLE_CXX)
+option(ENABLE_PLUGINAPI "Create headers and library variables to link c++ codes to the hoomd library" OFF)
+mark_as_advanced(ENABLE_PLUGINAPI)
+
+if (ENABLE_PLUGINAPI)
 # set up a config.h file to include the appropriate precompiler directives
-configure_file(${HOOMD_SOURCE_DIR}/cppapi/Config.h.cmake ${HOOMD_BINARY_DIR}/cppapi/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 ## set up a "hoomd.h" header file that includes the "config.h" file as well as the other headers 
-file(WRITE ${HOOMD_BINARY_DIR}/cppapi/hoomd.h "#ifndef _HOOMD_H\n#define _HOOMD_H\n\n")
-file(APPEND ${HOOMD_BINARY_DIR}/cppapi/hoomd.h "#include \"config.h\"\n") 
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "#ifndef _HOOMD_H\n#define _HOOMD_H\n\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "#include \"config.h\"\n") 
 file(GLOB HEADER_FILES "${HOOMD_SOURCE_DIR}/*/*.h")
 foreach(_FILENAME ${HEADER_FILES})
     get_filename_component(_FILENAMENOPATH ${_FILENAME} NAME)
@@ -25,25 +26,17 @@ foreach(_FILENAME ${HEADER_FILES})
     endif (_DONT_SKIP_THIS)
 endforeach(_FILENAME ${HEADER_FILES})
 
-#if (ENABLE_CUDA)
-#file(GLOB HEADER_FILES "${HOOMD_SOURCE_DIR}/*/*.cuh")
-#foreach(_FILENAME ${HEADER_FILES})
-#    get_filename_component(_FILENAMENOPATH ${_FILENAME} NAME)
-#    file(APPEND ${HOOMD_BINARY_DIR}/cppapi/hoomd.h "#include \"${_FILENAMENOPATH}\"\n")
-#endforeach(_FILENAME ${HEADER_FILES})
-#endif (ENABLE_CUDA)
-
-file(APPEND ${HOOMD_BINARY_DIR}/cppapi/hoomd.h "\n#endif\n\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "\n#endif\n\n")
 
 # copy the headers into the include/hoomd folder
 file(GLOB files "${HOOMD_SOURCE_DIR}/*/*h")
-install(FILES ${files} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/hoomd)
+install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
 file(GLOB files "${HOOMD_BINARY_DIR}/cppapi/*.h")
-install(FILES ${files} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/hoomd)
+install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
 
 ## write a list of libraries used for linking.
-file(WRITE ${HOOMD_BINARY_DIR}/cppapi/hoomd_linker_setup.sh "#!/bin/bash\n\n")
-file(APPEND ${HOOMD_BINARY_DIR}/cppapi/hoomd_linker_setup.sh "HOOMD_LINK_LIBS=\" \\\n")
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "#!/bin/bash\n\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "HOOMD_LINK_LIBS=\" \\\n")
 #message(STATUS ${HOOMD_COMMON_LIBS})
 set (_SKIP_THIS_AND_NEXT 0)
 set (_SKIP_THIS 0)
@@ -59,6 +52,6 @@ foreach(_LIBRARY ${HOOMD_COMMON_LIBS})
         endif (NOT _SKIP_THIS AND NOT _SKIP_THIS_AND_NEXT)
     endif (_SKIP_THIS_AND_NEXT)
 endforeach(_LIBRARY ${HOOMD_COMMON_LIBS})
-file(APPEND ${HOOMD_BINARY_DIR}/cppapi/hoomd_linker_setup.sh "${CMAKE_INSTALL_PREFIX}/lib/libhoomd_python_module.a \\\n")
-file(APPEND ${HOOMD_BINARY_DIR}/cppapi/hoomd_linker_setup.sh "-I${CMAKE_INSTALL_PREFIX}/include/hoomd\"")
-endif (ENABLE_CXX)
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "${CMAKE_INSTALL_PREFIX}/lib/libhoomd_python_module.a \\\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "-I${CMAKE_INSTALL_PREFIX}/include/hoomd\"")
+endif (ENABLE_PLUGINAPI)
