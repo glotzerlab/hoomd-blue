@@ -1,47 +1,49 @@
 /*
-Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-Source Software License
-Copyright (c) 2008 Ames Laboratory Iowa State University
-All rights reserved.
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
-Redistribution and use of HOOMD, in source and binary forms, with or
-without modification, are permitted, provided that the following
-conditions are met:
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
 
-* Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
 
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
 
-* Neither the name of the copyright holder nor the names HOOMD's
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
 contributors may be used to endorse or promote products derived from this
 software without specific prior written permission.
 
 Disclaimer
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 // $Id$
 // $URL$
 // Maintainer: joaander
 
 /*! \file BoxResizeUpdater.cc
-	\brief Defines the BoxResizeUpdater class
+    \brief Defines the BoxResizeUpdater class
 */
 
 #ifdef WIN32
@@ -63,46 +65,49 @@ using namespace boost::python;
 #ifdef WIN32
 //! replacement for rint in windows
 double rint(double x)
-	{
-	return floor(x+.5);
-	}
-	
+    {
+    return floor(x+.5);
+    }
+
 //! replacement for rint in windows
 double rintf(float x)
-	{
-	return floorf(x+.5f);
-	}
+    {
+    return floorf(x+.5f);
+    }
 #endif
 
 
 using namespace std;
 
 /*! \param sysdef System definition containing the particle data to set the box size on
-	\param Lx length of the x dimension over time
-	\param Ly length of the y dimension over time
-	\param Lz length of the z dimension over time
-	
-	The default setting is to scale particle positions along with the box.
+    \param Lx length of the x dimension over time
+    \param Ly length of the y dimension over time
+    \param Lz length of the z dimension over time
+
+    The default setting is to scale particle positions along with the box.
 */
-BoxResizeUpdater::BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<Variant> Lx, boost::shared_ptr<Variant> Ly, boost::shared_ptr<Variant> Lz)
-	: Updater(sysdef), m_Lx(Lx), m_Ly(Ly), m_Lz(Lz), m_scale_particles(true)
-	{
-	assert(m_pdata);
-	assert(m_Lx);
-	assert(m_Ly);
-	assert(m_Lz);
-	}
+BoxResizeUpdater::BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
+                                   boost::shared_ptr<Variant> Lx,
+                                   boost::shared_ptr<Variant> Ly,
+                                   boost::shared_ptr<Variant> Lz)
+        : Updater(sysdef), m_Lx(Lx), m_Ly(Ly), m_Lz(Lz), m_scale_particles(true)
+    {
+    assert(m_pdata);
+    assert(m_Lx);
+    assert(m_Ly);
+    assert(m_Lz);
+    }
 
 /*! \param scale_particles Set to true to scale particles with the box. Set to false to leave particle positions alone
-	when scaling the box.
+    when scaling the box.
 */
 void BoxResizeUpdater::setParams(bool scale_particles)
-	{
-	m_scale_particles = scale_particles;
-	}
-	
+    {
+    m_scale_particles = scale_particles;
+    }
+
 /*! Perform the needed calculations to scale the box size
-	\param timestep Current time step of the simulation
+    \param timestep Current time step of the simulation
 */
 void BoxResizeUpdater::update(unsigned int timestep)
 	{
@@ -198,12 +203,16 @@ void BoxResizeUpdater::update(unsigned int timestep)
 	}
 	
 void export_BoxResizeUpdater()
-	{
-	class_<BoxResizeUpdater, boost::shared_ptr<BoxResizeUpdater>, bases<Updater>, boost::noncopyable>
-		("BoxResizeUpdater", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<Variant>, boost::shared_ptr<Variant>, boost::shared_ptr<Variant> >())
-		.def("setParams", &BoxResizeUpdater::setParams);
-	}
+    {
+    class_<BoxResizeUpdater, boost::shared_ptr<BoxResizeUpdater>, bases<Updater>, boost::noncopyable>
+    ("BoxResizeUpdater", init< boost::shared_ptr<SystemDefinition>,
+                         boost::shared_ptr<Variant>,
+                         boost::shared_ptr<Variant>,
+                         boost::shared_ptr<Variant> >())
+    .def("setParams", &BoxResizeUpdater::setParams);
+    }
 
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

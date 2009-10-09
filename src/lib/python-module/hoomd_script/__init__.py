@@ -1,38 +1,42 @@
-# Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-# Source Software License
-# Copyright (c) 2008 Ames Laboratory Iowa State University
-# All rights reserved.
+# -*- coding: iso-8859-1 -*-
+#Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+#(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+#Iowa State University and The Regents of the University of Michigan All rights
+#reserved.
 
-# Redistribution and use of HOOMD, in source and binary forms, with or
-# without modification, are permitted, provided that the following
-# conditions are met:
+#HOOMD-blue may contain modifications ("Contributions") provided, and to which
+#copyright is held, by various Contributors who have granted The Regents of the
+#University of Michigan the right to modify and/or distribute such Contributions.
 
-# * Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
+#Redistribution and use of HOOMD-blue, in source and binary forms, with or
+#without modification, are permitted, provided that the following conditions are
+#met:
 
-# * Redistributions in binary form must reproduce the above copyright
-# notice, this list of conditions and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
+#* Redistributions of source code must retain the above copyright notice, this
+#list of conditions, and the following disclaimer.
 
-# * Neither the name of the copyright holder nor the names HOOMD's
-# contributors may be used to endorse or promote products derived from this
-# software without specific prior written permission.
+#* Redistributions in binary form must reproduce the above copyright notice, this
+#list of conditions, and the following disclaimer in the documentation and/or
+#other materials provided with the distribution.
 
-# Disclaimer
+#* Neither the name of the copyright holder nor the names of HOOMD-blue's
+#contributors may be used to endorse or promote products derived from this
+#software without specific prior written permission.
 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-# CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+#Disclaimer
 
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+#ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+#INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+#LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+#OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+#ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # $Id$
 # $URL$
@@ -51,26 +55,26 @@ import util;
 
 ## \internal
 # \brief Internal python variable 
-__all__ = [	"analyze", 
-			"bond", 
-			"angle", 
-			"dihedral", 
-			"improper", 
-			"dump", 
-			"force", 
-			"globals", 
-			"group", 
-			"init", 
-			"integrate", 
-			"pair", 
-			"update", 
-			"wall",
-			"variant", 
-			"run", 
-			"tune", 
-			"hoomd",
-			"get_hoomd_script_version"];
-			
+__all__ = [ "analyze", 
+            "bond", 
+            "angle", 
+            "dihedral", 
+            "improper", 
+            "dump", 
+            "force", 
+            "globals", 
+            "group", 
+            "init", 
+            "integrate", 
+            "pair", 
+            "update", 
+            "wall",
+            "variant", 
+            "run", 
+            "tune", 
+            "hoomd",
+            "get_hoomd_script_version"];
+            
 ## \internal
 # \brief Major version of hoomd_script
 version_major = 0;
@@ -88,7 +92,7 @@ version_minor = 2;
 # or changes that break backwards compatibility are made, then the major version is incremented and the minor reset
 # to 0. Only one such increment of either type will occur per each tagged release of HOOMD.
 def get_hoomd_script_version():
-	return (version_major, version_minor)
+    return (version_major, version_minor)
 
 ## \brief Runs the simulation for a given number of time steps
 #
@@ -147,24 +151,25 @@ def get_hoomd_script_version():
 # time step number is a multiple of \a callback_period.
 #
 def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None):
-	util.print_status_line();
-	# check if initialization has occured
-	if (globals.system == None):
-		print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
-		raise RuntimeError('Error running');
-		
-	if (globals.integrator == None):
-		print "***Warning! Starting a run without an integrator set";
-	else:
-		globals.integrator.update_forces();
-	
-	for logger in globals.loggers:
-		logger.update_quantities();
-	globals.system.enableProfiler(profile);
+    util.print_status_line();
+    # check if initialization has occured
+    if (globals.system == None):
+        print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
+        raise RuntimeError('Error running');
+        
+    if (globals.integrator == None):
+        print "***Warning! Starting a run without an integrator set";
+    else:
+        globals.integrator.update_forces();
+    
+    for logger in globals.loggers:
+        logger.update_quantities();
+    globals.system.enableProfiler(profile);
 
-	if limit_hours == None:
-		limit_hours = 0.0
-	
-	print "** starting run **"
-	globals.system.run(int(tsteps), callback_period, callback, limit_hours);
-	print "** run complete **"
+    if limit_hours == None:
+        limit_hours = 0.0
+    
+    print "** starting run **"
+    globals.system.run(int(tsteps), callback_period, callback, limit_hours);
+    print "** run complete **"
+

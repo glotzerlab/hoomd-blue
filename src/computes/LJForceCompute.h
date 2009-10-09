@@ -1,39 +1,42 @@
 /*
-Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-Source Software License
-Copyright (c) 2008 Ames Laboratory Iowa State University
-All rights reserved.
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
-Redistribution and use of HOOMD, in source and binary forms, with or
-without modification, are permitted, provided that the following
-conditions are met:
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
 
-* Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
 
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
 
-* Neither the name of the copyright holder nor the names HOOMD's
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
 contributors may be used to endorse or promote products derived from this
 software without specific prior written permission.
 
 Disclaimer
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // $Id$
@@ -46,7 +49,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborList.h"
 
 /*! \file LJForceCompute.h
-	\brief Declares the LJForceCompute class
+    \brief Declares the LJForceCompute class
 */
 
 #ifndef __LJFORCECOMPUTE_H__
@@ -54,17 +57,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Computes Lennard-Jones forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
-	neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
-	to identify these neighbors. Calling compute() in this class will in turn result in a call to the 
-	NeighborList's compute() to make sure that the neighbor list is up to date.
-	
-	Usage: Construct a LJForceCompute, providing it an already constructed ParticleData and NeighborList.
-	Then set parameters for all possible pairs of types by calling setParams. 
-	
-	Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but 
-	a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater. 
-	
-	\ingroup computes
+    neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
+    to identify these neighbors. Calling compute() in this class will in turn result in a call to the
+    NeighborList's compute() to make sure that the neighbor list is up to date.
+
+    Usage: Construct a LJForceCompute, providing it an already constructed ParticleData and NeighborList.
+    Then set parameters for all possible pairs of types by calling setParams.
+
+    Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
+    a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
+
+    \ingroup computes
 */
 class LJForceCompute : public ForceCompute
 	{
@@ -124,3 +127,4 @@ class LJForceCompute : public ForceCompute
 void export_LJForceCompute();
 
 #endif
+

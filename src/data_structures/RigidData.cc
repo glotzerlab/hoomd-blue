@@ -1,46 +1,49 @@
 /*
-Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-Source Software License
-Copyright (c) 2008 Ames Laboratory Iowa State University
-All rights reserved.
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
-Redistribution and use of HOOMD, in source and binary forms, with or
-without modification, are permitted, provided that the following
-conditions are met:
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
 
-* Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
 
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
 
-* Neither the name of the copyright holder nor the names HOOMD's
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
 contributors may be used to endorse or promote products derived from this
 software without specific prior written permission.
 
 Disclaimer
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // $Id$
 // $URL$
 
 /*! \file RigidData.cc
- 	\brief Defines RigidData and related classes.
+    \brief Defines RigidData and related classes.
 */
 
 #include "RigidData.h"
@@ -58,8 +61,8 @@ using namespace std;
 
 /*! \param particle_data ParticleData this use in initializing this RigidData
 
-	\pre \a particle_data has been completeley initialized with all arrays filled out
-	\post All data members in RigidData are completely initialized from the given info in \a particle_data
+    \pre \a particle_data has been completeley initialized with all arrays filled out
+    \post All data members in RigidData are completely initialized from the given info in \a particle_data
 */
 RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
 	: m_pdata(particle_data), m_n_bodies(0), m_ndof(0)
@@ -68,20 +71,20 @@ RigidData::RigidData(boost::shared_ptr<ParticleData> particle_data)
 	// initialization is delayed because we cannot reasonably determine when that initialization
 	// must be done
 
-	// connect the sort signal
-	m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));	
-	}
+    // connect the sort signal
+    m_sort_connection = m_pdata->connectParticleSort(bind(&RigidData::recalcIndices, this));   
+    }
 
 RigidData::~RigidData()
-	{
-	m_sort_connection.disconnect();
-	}
-		
+    {
+    m_sort_connection.disconnect();
+    }
 
-/*!	\pre m_body_size has been filled with values
-	\pre m_particle_tags hass been filled with values
-	\pre m_particle_indices has been allocated
-	\post m_particle_indices is updated to match the current sorting of the particle data
+
+/*! \pre m_body_size has been filled with values
+    \pre m_particle_tags hass been filled with values
+    \pre m_particle_indices has been allocated
+    \post m_particle_indices is updated to match the current sorting of the particle data
 */
 void RigidData::recalcIndices()
 	{
@@ -128,7 +131,7 @@ void RigidData::recalcIndices()
 	}
 	
 /*! \pre all data members have been allocated
-	\post all data members are initialized with data from the particle data
+    \post all data members are initialized with data from the particle data
 */
 void RigidData::initializeData()
 	{
@@ -439,153 +442,153 @@ void RigidData::initializeData()
 */
 
 int RigidData::diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors)
-{
-	int i,j,k;
-	Scalar tresh, theta, tau, t, sm, s, h, g, c, b[3], z[3];
-	
-	for (i = 0; i < 3; i++) 
-		{
-		for (j = 0; j < 3; j++) evectors[i][j] = 0.0;
-		evectors[i][i] = 1.0;
-		}
-	
-	for (i = 0; i < 3; i++) 
-		{
-		b[i] = evalues[i] = matrix[i][i];
-		z[i] = 0.0;
-		}
-	
-	for (int iter = 1; iter <= MAXJACOBI; iter++) 
-		{
-		sm = 0.0;
-		for (i = 0; i < 2; i++)
-			for (j = i+1; j < 3; j++)
-				sm += fabs(matrix[i][j]);
-		
-		if (sm == 0.0) return 0;
-			
-		if (iter < 4) tresh = 0.2*sm/(3*3);
-		else tresh = 0.0;
-		
-		for (i = 0; i < 2; i++) 
-			{
-			for (j = i+1; j < 3; j++) 
-				{
-				g = 100.0 * fabs(matrix[i][j]);
-				if (iter > 4 && fabs(evalues[i]) + g == fabs(evalues[i])
-					&& fabs(evalues[j]) + g == fabs(evalues[j]))
-					matrix[i][j] = 0.0;
-				else if (fabs(matrix[i][j]) > tresh)
-					{
-					h = evalues[j]-evalues[i];
-					if (fabs(h)+g == fabs(h)) t = (matrix[i][j])/h;
-					else 
-						{
-						theta = 0.5 * h / (matrix[i][j]);
-						t = 1.0/(fabs(theta)+sqrt(1.0+theta*theta));
-						if (theta < 0.0) t = -t;
-						}
-					
-					c = 1.0/sqrt(1.0+t*t);
-					s = t*c;
-					tau = s/(1.0+c);
-					h = t*matrix[i][j];
-					z[i] -= h;
-					z[j] += h;
-					evalues[i] -= h;
-					evalues[j] += h;
-					matrix[i][j] = 0.0;
-					for (k = 0; k < i; k++) rotate(matrix,k,i,k,j,s,tau);
-					for (k = i+1; k < j; k++) rotate(matrix,i,k,k,j,s,tau);
-					for (k = j+1; k < 3; k++) rotate(matrix,i,k,j,k,s,tau);
-					for (k = 0; k < 3; k++) rotate(evectors,k,i,k,j,s,tau);
-					}
-				}
-			}
-		
-		for (i = 0; i < 3; i++) 
-			{
-			evalues[i] = b[i] += z[i];
-			z[i] = 0.0;
-			}
-		}
-	
-	return 1;
-	}
+    {
+    int i,j,k;
+    Scalar tresh, theta, tau, t, sm, s, h, g, c, b[3], z[3];
+    
+    for (i = 0; i < 3; i++)
+        {
+        for (j = 0; j < 3; j++) evectors[i][j] = 0.0;
+        evectors[i][i] = 1.0;
+        }
+        
+    for (i = 0; i < 3; i++)
+        {
+        b[i] = evalues[i] = matrix[i][i];
+        z[i] = 0.0;
+        }
+        
+    for (int iter = 1; iter <= MAXJACOBI; iter++)
+        {
+        sm = 0.0;
+        for (i = 0; i < 2; i++)
+            for (j = i+1; j < 3; j++)
+                sm += fabs(matrix[i][j]);
+                
+        if (sm == 0.0) return 0;
+        
+        if (iter < 4) tresh = 0.2*sm/(3*3);
+        else tresh = 0.0;
+        
+        for (i = 0; i < 2; i++)
+            {
+            for (j = i+1; j < 3; j++)
+                {
+                g = 100.0 * fabs(matrix[i][j]);
+                if (iter > 4 && fabs(evalues[i]) + g == fabs(evalues[i])
+                        && fabs(evalues[j]) + g == fabs(evalues[j]))
+                    matrix[i][j] = 0.0;
+                else if (fabs(matrix[i][j]) > tresh)
+                    {
+                    h = evalues[j]-evalues[i];
+                    if (fabs(h)+g == fabs(h)) t = (matrix[i][j])/h;
+                    else
+                        {
+                        theta = 0.5 * h / (matrix[i][j]);
+                        t = 1.0/(fabs(theta)+sqrt(1.0+theta*theta));
+                        if (theta < 0.0) t = -t;
+                        }
+                        
+                    c = 1.0/sqrt(1.0+t*t);
+                    s = t*c;
+                    tau = s/(1.0+c);
+                    h = t*matrix[i][j];
+                    z[i] -= h;
+                    z[j] += h;
+                    evalues[i] -= h;
+                    evalues[j] += h;
+                    matrix[i][j] = 0.0;
+                    for (k = 0; k < i; k++) rotate(matrix,k,i,k,j,s,tau);
+                    for (k = i+1; k < j; k++) rotate(matrix,i,k,k,j,s,tau);
+                    for (k = j+1; k < 3; k++) rotate(matrix,i,k,j,k,s,tau);
+                    for (k = 0; k < 3; k++) rotate(evectors,k,i,k,j,s,tau);
+                    }
+                }
+            }
+            
+        for (i = 0; i < 3; i++)
+            {
+            evalues[i] = b[i] += z[i];
+            z[i] = 0.0;
+            }
+        }
+        
+    return 1;
+    }
 
 /*! Perform a single Jacobi rotation
 */
 
 void RigidData::rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau)
-	{
-	Scalar g = matrix[i][j];
-	Scalar h = matrix[k][l];
-	matrix[i][j] = g - s * (h + g * tau);
-	matrix[k][l] = h + s * (g - h * tau);
-	}
+    {
+    Scalar g = matrix[i][j];
+    Scalar h = matrix[k][l];
+    matrix[i][j] = g - s * (h + g * tau);
+    matrix[k][l] = h + s * (g - h * tau);
+    }
 
 void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat)
-	{
-	
-	// enforce 3 evectors as a right-handed coordinate system
-	// flip 3rd evector if needed
-	Scalar ez0, ez1, ez2; // Cross product of first two vectors
-	ez0 = ex_space.y * ey_space.z - ex_space.z * ey_space.y;
-	ez1 = ex_space.z * ey_space.x - ex_space.x * ey_space.z;
-	ez2 = ex_space.x * ey_space.y - ex_space.y * ey_space.x;
-	
-	// then dot product with the third one
-	if (ez0 * ez_space.x + ez1 * ez_space.y + ez2 * ez_space.z < 0.0) 
-	{
-		ez_space.x = -ez_space.x;
-		ez_space.y = -ez_space.y;
-		ez_space.z = -ez_space.z;
-	}
-	
-	// squares of quaternion components
-	Scalar q0sq = 0.25 * (ex_space.x + ey_space.y + ez_space.z + 1.0);
-	Scalar q1sq = q0sq - 0.5 * (ey_space.y + ez_space.z);
-	Scalar q2sq = q0sq - 0.5 * (ex_space.x + ez_space.z);
-	Scalar q3sq = q0sq - 0.5 * (ex_space.x + ey_space.y);
-	
-	// some component must be greater than 1/4 since they sum to 1
-	// compute other components from it
-	if (q0sq >= 0.25) 
-	{
-		quat.x = sqrt(q0sq);
-		quat.y = (ey_space.z - ez_space.y) / (4.0 * quat.x);
-		quat.z = (ez_space.x - ex_space.z) / (4.0 * quat.x);
-		quat.w = (ex_space.y - ey_space.x) / (4.0 * quat.x);
-	} 
-	else if (q1sq >= 0.25) 
-	{
-		quat.y = sqrt(q1sq);
-		quat.x = (ey_space.z - ez_space.y) / (4.0 * quat.y);
-		quat.z = (ey_space.x + ex_space.y) / (4.0 * quat.y);
-		quat.w = (ex_space.z + ez_space.x) / (4.0 * quat.y);
-	} 
-	else if (q2sq >= 0.25) 
-	{
-		quat.z = sqrt(q2sq);
-		quat.x = (ez_space.x - ex_space.z) / (4.0 * quat.z);
-		quat.y = (ey_space.x + ex_space.y) / (4.0 * quat.z);
-		quat.w = (ez_space.y + ey_space.z) / (4.0 * quat.z);
-	} 
-	else if (q3sq >= 0.25) 
-	{
-		quat.w = sqrt(q3sq);
-		quat.x = (ex_space.y - ey_space.x) / (4.0 * quat.w);
-		quat.y = (ez_space.x + ex_space.z) / (4.0 * quat.w);
-		quat.z = (ez_space.y + ey_space.z) / (4.0 * quat.w);
-	} 
-	
-	// Normalize
-	Scalar norm = 1.0 / sqrt(quat.x * quat.x + quat.y * quat.y + quat.z * quat.z + quat.w * quat.w);
-	quat.x *= norm;
-	quat.y *= norm;
-	quat.z *= norm;
-	quat.w *= norm;
-	
-	}
+    {
+    
+    // enforce 3 evectors as a right-handed coordinate system
+    // flip 3rd evector if needed
+    Scalar ez0, ez1, ez2; // Cross product of first two vectors
+    ez0 = ex_space.y * ey_space.z - ex_space.z * ey_space.y;
+    ez1 = ex_space.z * ey_space.x - ex_space.x * ey_space.z;
+    ez2 = ex_space.x * ey_space.y - ex_space.y * ey_space.x;
+    
+    // then dot product with the third one
+    if (ez0 * ez_space.x + ez1 * ez_space.y + ez2 * ez_space.z < 0.0)
+        {
+        ez_space.x = -ez_space.x;
+        ez_space.y = -ez_space.y;
+        ez_space.z = -ez_space.z;
+        }
+        
+    // squares of quaternion components
+    Scalar q0sq = 0.25 * (ex_space.x + ey_space.y + ez_space.z + 1.0);
+    Scalar q1sq = q0sq - 0.5 * (ey_space.y + ez_space.z);
+    Scalar q2sq = q0sq - 0.5 * (ex_space.x + ez_space.z);
+    Scalar q3sq = q0sq - 0.5 * (ex_space.x + ey_space.y);
+    
+    // some component must be greater than 1/4 since they sum to 1
+    // compute other components from it
+    if (q0sq >= 0.25)
+        {
+        quat.x = sqrt(q0sq);
+        quat.y = (ey_space.z - ez_space.y) / (4.0 * quat.x);
+        quat.z = (ez_space.x - ex_space.z) / (4.0 * quat.x);
+        quat.w = (ex_space.y - ey_space.x) / (4.0 * quat.x);
+        }
+    else if (q1sq >= 0.25)
+        {
+        quat.y = sqrt(q1sq);
+        quat.x = (ey_space.z - ez_space.y) / (4.0 * quat.y);
+        quat.z = (ey_space.x + ex_space.y) / (4.0 * quat.y);
+        quat.w = (ex_space.z + ez_space.x) / (4.0 * quat.y);
+        }
+    else if (q2sq >= 0.25)
+        {
+        quat.z = sqrt(q2sq);
+        quat.x = (ez_space.x - ex_space.z) / (4.0 * quat.z);
+        quat.y = (ey_space.x + ex_space.y) / (4.0 * quat.z);
+        quat.w = (ez_space.y + ey_space.z) / (4.0 * quat.z);
+        }
+    else if (q3sq >= 0.25)
+        {
+        quat.w = sqrt(q3sq);
+        quat.x = (ex_space.y - ey_space.x) / (4.0 * quat.w);
+        quat.y = (ez_space.x + ex_space.z) / (4.0 * quat.w);
+        quat.z = (ez_space.y + ey_space.z) / (4.0 * quat.w);
+        }
+        
+    // Normalize
+    Scalar norm = 1.0 / sqrt(quat.x * quat.x + quat.y * quat.y + quat.z * quat.z + quat.w * quat.w);
+    quat.x *= norm;
+    quat.y *= norm;
+    quat.z *= norm;
+    quat.w *= norm;
+    
+    }
 
 

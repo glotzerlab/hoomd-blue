@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Name the unit test module
 #define BOOST_TEST_MODULE TablePotentialTests
 #include "boost_utf_configure.h"
+#include <boost/test/floating_point_comparison.hpp>
 
 #include <fstream>
 
@@ -83,16 +84,16 @@ const Scalar tol = 1e-6;
 const Scalar tol_small = 1e-4;
 
 //! Typedef'd TablePotential factory
-typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition> sysdef, 
-                                                    shared_ptr<NeighborList> nlist, 
+typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition> sysdef,
+                                                    shared_ptr<NeighborList> nlist,
                                                     unsigned int width)> table_potential_creator;
 
 //! performs some really basic checks on the TablePotential class
 void table_potential_basic_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
     {
-    #ifdef CUDA
+#ifdef CUDA
     g_gpu_error_checking = true;
-    #endif
+#endif
     
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, ExecutionConfiguration()));
@@ -115,13 +116,13 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol_small);
-
+    
     MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol_small);
-
+    
     // specify a table to interpolate
     vector<Scalar> V, F;
     V.push_back(10.0);  F.push_back(1.0);
@@ -129,7 +130,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     V.push_back(5.0);   F.push_back(2.0);
     fc_2->setTable(0, 0, V, F, 2.0, 4.0);
     
-    // compute the forces again and check that they are still 0            
+    // compute the forces again and check that they are still 0
     fc_2->compute(1);
     
     force_arrays = fc_2->acquire();
@@ -138,7 +139,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol_small);
-
+    
     MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
@@ -149,7 +150,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     arrays = pdata_2->acquireReadWrite();
     arrays.x[1] = Scalar(2.0);
     pdata_2->release();
-
+    
     fc_2->compute(2);
     
     force_arrays = fc_2->acquire();
@@ -158,7 +159,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 5.0, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], (1.0 / 6.0) * 2.0, tol);
-
+    
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 1.0, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
@@ -169,7 +170,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     arrays = pdata_2->acquireReadWrite();
     arrays.y[1] = Scalar(3.5);
     arrays.x[1] = Scalar(0.0);
-    pdata_2->release();    
+    pdata_2->release();
     
     // check the forces
     fc_2->compute(3);
@@ -179,7 +180,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 13.0/2.0, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], (1.0 / 6.0) * 4.0 * 3.5, tol);
-
+    
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 4.0, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
@@ -200,20 +201,20 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.pe[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol_small);
-
+    
     MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fy[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.pe[1], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol_small);
     }
- 
- //! checks to see if TablePotential correctly handles multiple types
+
+//! checks to see if TablePotential correctly handles multiple types
 void table_potential_type_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
     {
-    #ifdef CUDA
+#ifdef CUDA
     g_gpu_error_checking = true;
-    #endif
+#endif
     
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, ExecutionConfiguration()));
@@ -223,7 +224,7 @@ void table_potential_type_test(table_potential_creator table_creator, ExecutionC
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0; arrays.type[0] = 0;
     arrays.x[1] = Scalar(1.5); arrays.y[1] = arrays.z[1] = 0.0; arrays.type[1] = 1;
     arrays.x[2] = 0.0; arrays.y[2] = Scalar(1.5); arrays.z[2] = 0.0; arrays.type[2] = 0;
-    arrays.x[3] = Scalar(1.5); arrays.y[3] = Scalar(1.5); arrays.z[3] = 0.0; arrays.type[3] = 1;    
+    arrays.x[3] = Scalar(1.5); arrays.y[3] = Scalar(1.5); arrays.z[3] = 0.0; arrays.type[3] = 1;
     pdata->release();
     
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.0), Scalar(0.8)));
@@ -259,7 +260,7 @@ void table_potential_type_test(table_potential_creator table_creator, ExecutionC
     MY_BOOST_CHECK_SMALL(force_arrays.fz[0], tol_small);
     MY_BOOST_CHECK_SMALL(force_arrays.pe[0], 10.0+25.0);
     MY_BOOST_CHECK_CLOSE(force_arrays.virial[0], (8*1.5+6*1.5)*1.0/6.0, tol);
-
+    
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 8.0, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -3.0, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol_small);
@@ -278,10 +279,10 @@ void table_potential_type_test(table_potential_creator table_creator, ExecutionC
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 25.0/2.0 + 5.0, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.virial[3], (8*1.5 + 3.0*1.5)*1.0/6.0, tol);
     }
-          
+
 //! TablePotential creator for unit tests
-shared_ptr<TablePotential> base_class_table_creator(shared_ptr<SystemDefinition> sysdef, 
-                                                    shared_ptr<NeighborList> nlist, 
+shared_ptr<TablePotential> base_class_table_creator(shared_ptr<SystemDefinition> sysdef,
+                                                    shared_ptr<NeighborList> nlist,
                                                     unsigned int width)
     {
     return shared_ptr<TablePotential>(new TablePotential(sysdef, nlist, width));
@@ -289,8 +290,8 @@ shared_ptr<TablePotential> base_class_table_creator(shared_ptr<SystemDefinition>
 
 #ifdef ENABLE_CUDA
 //! TablePotentialGPU creator for unit tests
-shared_ptr<TablePotential> gpu_table_creator(shared_ptr<SystemDefinition> sysdef, 
-                                             shared_ptr<NeighborList> nlist, 
+shared_ptr<TablePotential> gpu_table_creator(shared_ptr<SystemDefinition> sysdef,
+                                             shared_ptr<NeighborList> nlist,
                                              unsigned int width)
     {
     nlist->setStorageMode(NeighborList::full);
@@ -323,7 +324,7 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_basic )
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
     table_potential_basic_test(table_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
-    
+
 //! boost test case for type test on GPU
 BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
     {
@@ -338,11 +339,11 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
     #ifdef CUDA
     g_gpu_error_checking = true;
     #endif
-    
+
     // this 2-particle test is just to get a plot of the potential and force vs r cut
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, ExecutionConfiguration()));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    
+
     ParticleDataArrays arrays = pdata_2->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
     arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
@@ -368,7 +369,7 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
 //        V.push_back(4.0 * (pow(1.0 / r, 12) - pow(1.0 / r, 6)));
 //        F.push_back(4.0 * (12.0 * pow(1.0 / r, 14) - 6 * pow(1.0 / r, 8)));
 //        }
-        
+
     // 1000 point gaussian test
     Scalar delta_r = (5.0) / (999);
     for (unsigned int i = 0; i < 1000; i++)
@@ -380,12 +381,12 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
         else
             F.push_back(1.5 / 0.5 * expf(-r / 0.5) / r);
         }
-    
+
     fc->setTable(0, 0, V, F, 0.0, 5.0);
-    
+
     ofstream f("table_dat.m");
     f << "table = [";
-    unsigned int count = 0;	
+    unsigned int count = 0;
     for (float r = 0.0; r <= 5.0; r+= 0.001)
         {
         // set the distance
@@ -393,18 +394,19 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
         arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
         arrays.x[1] = Scalar(r); arrays.y[1] = arrays.z[1] = 0.0;
         pdata_2->release();
-        
+
         // compute the forces
         fc->compute(count);
         count++;
-    
+
         ForceDataArrays force_arrays = fc->acquire();
-        f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;	
+        f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;
         }
     f << "];" << endl;
     f.close();
     }*/
-    
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

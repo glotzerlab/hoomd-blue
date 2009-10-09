@@ -1,38 +1,42 @@
-# Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-# Source Software License
-# Copyright (c) 2008 Ames Laboratory Iowa State University
-# All rights reserved.
+# -*- coding: iso-8859-1 -*-
+#Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+#(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+#Iowa State University and The Regents of the University of Michigan All rights
+#reserved.
 
-# Redistribution and use of HOOMD, in source and binary forms, with or
-# without modification, are permitted, provided that the following
-# conditions are met:
+#HOOMD-blue may contain modifications ("Contributions") provided, and to which
+#copyright is held, by various Contributors who have granted The Regents of the
+#University of Michigan the right to modify and/or distribute such Contributions.
 
-# * Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
+#Redistribution and use of HOOMD-blue, in source and binary forms, with or
+#without modification, are permitted, provided that the following conditions are
+#met:
 
-# * Redistributions in binary form must reproduce the above copyright
-# notice, this list of conditions and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
+#* Redistributions of source code must retain the above copyright notice, this
+#list of conditions, and the following disclaimer.
 
-# * Neither the name of the copyright holder nor the names HOOMD's
-# contributors may be used to endorse or promote products derived from this
-# software without specific prior written permission.
+#* Redistributions in binary form must reproduce the above copyright notice, this
+#list of conditions, and the following disclaimer in the documentation and/or
+#other materials provided with the distribution.
 
-# Disclaimer
+#* Neither the name of the copyright holder nor the names of HOOMD-blue's
+#contributors may be used to endorse or promote products derived from this
+#software without specific prior written permission.
 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-# CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+#Disclaimer
 
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+#ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+#INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+#LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+#OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+#ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # $Id$
 # $URL$
@@ -50,7 +54,8 @@ import globals;
 
 ## Defines a group of particles
 #
-# group should not be created directly in hoomd_script code. The following methods can be used to create particle groups.
+# group should not be created directly in hoomd_script code. The following methods can be used to create particle 
+# groups.
 # - group.all()
 # - group.type()
 # - group.tags()
@@ -80,42 +85,43 @@ import globals;
 # group_combined = groupA & group100_199;
 # \endcode
 class group:
-	## \internal
-	# \brief Creates a group
-	# 
-	# \param name Name of the group
-	# \param cpp_group an instance of hoomd.ParticleData that defines the group
-	def __init__(self, name, cpp_group):
-		# initialize the group
-		self.name = name;
-		self.cpp_group = cpp_group;
-	
-	## \internal
-	# \brief Creates a new group as the intersection of two given groups
-	# 
-	# \param a group to perform the intersection with
-	def __and__(self, a):
-		new_name = '(' + self.name + ' & ' + a.name + ')';
-		new_cpp_group = hoomd.ParticleGroup.groupIntersection(self.cpp_group, a.cpp_group);
-		return group(new_name, new_cpp_group);
-	
-	## \internal
-	# \brief Creates a new group as the union of two given groups
-	# 
-	# \param a group to perform the union with
-	def __or__(self, a):
-		new_name = '(' + self.name + ' | ' + a.name + ')';
-		new_cpp_group = hoomd.ParticleGroup.groupUnion(self.cpp_group, a.cpp_group);
-		return group(new_name, new_cpp_group);
-		
+    ## \internal
+    # \brief Creates a group
+    # 
+    # \param name Name of the group
+    # \param cpp_group an instance of hoomd.ParticleData that defines the group
+    def __init__(self, name, cpp_group):
+        # initialize the group
+        self.name = name;
+        self.cpp_group = cpp_group;
+    
+    ## \internal
+    # \brief Creates a new group as the intersection of two given groups
+    # 
+    # \param a group to perform the intersection with
+    def __and__(self, a):
+        new_name = '(' + self.name + ' & ' + a.name + ')';
+        new_cpp_group = hoomd.ParticleGroup.groupIntersection(self.cpp_group, a.cpp_group);
+        return group(new_name, new_cpp_group);
+    
+    ## \internal
+    # \brief Creates a new group as the union of two given groups
+    # 
+    # \param a group to perform the union with
+    def __or__(self, a):
+        new_name = '(' + self.name + ' | ' + a.name + ')';
+        new_cpp_group = hoomd.ParticleGroup.groupUnion(self.cpp_group, a.cpp_group);
+        return group(new_name, new_cpp_group);
+        
 ## Groups particles by type
 #
 # \param type Name of the particle type to add to the group
 # 
-# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script commands
-# (such as analyze.msd) to specify which particles should be operated on.
+# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script 
+# commands (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and examples.
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# examples.
 # 
 # \b Examples:
 # \code
@@ -123,35 +129,41 @@ class group:
 # groupB = group.type('B')
 # \endcode
 def type(type):
-	util.print_status_line();
-	
-	# check if initialization has occurred
-	if globals.system == None:
-		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-		raise RuntimeError('Error creating group');
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
 
-	# create the group
-	type_id = globals.system_definition.getParticleData().getTypeByName(type);
-	name = 'type ' + type;
-	cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.type, type_id, type_id);
+    # create the group
+    type_id = globals.system_definition.getParticleData().getTypeByName(type);
+    name = 'type ' + type;
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
+                                    hoomd.ParticleGroup.criteriaOption.type,
+                                    type_id,
+                                    type_id);
 
-	# notify the user of the created group
-	print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-	# return it in the wrapper class
-	return group(name, cpp_group);
-	
+    # return it in the wrapper class
+    return group(name, cpp_group);
+    
 ## Groups particles by tag
 #
 # \param tag_min First tag in the range to include (inclusive)
 # \param tag_max Last tag in the range to include (inclusive)
 # 
-# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be added to the group. 
+# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
+# added to the group. 
 #
-# Creates a particle group from particles that match the given tag range. The group can then be used by other hoomd_script commands
+# Creates a particle group from particles that match the given tag range. The group can then be used by other
+# hoomd_script commands
 # (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and examples.
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
 # 
 # \b Examples:
 # \code
@@ -159,60 +171,68 @@ def type(type):
 # half2 = group.tags(1000, 1999)
 # \endcode
 def tags(tag_min, tag_max=None):
-	util.print_status_line();
-	
-	# check if initialization has occurred
-	if globals.system == None:
-		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-		raise RuntimeError('Error creating group');
-	
-	# handle the optional argument	
-	if tag_max != None:
-		name = 'tags ' + str(tag_min) + '-' + str(tag_max);
-	else:
-		# if the option is not specified, tag_max is set equal to tag_min to include only that particle in the range
-		# and the name is chosen accordingly
-		tag_max = tag_min;
-		name = 'tag ' + str(tag_min);
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    # handle the optional argument
+    if tag_max != None:
+        name = 'tags ' + str(tag_min) + '-' + str(tag_max);
+    else:
+        # if the option is not specified, tag_max is set equal to tag_min to include only that particle in the range
+        # and the name is chosen accordingly
+        tag_max = tag_min;
+        name = 'tag ' + str(tag_min);
 
-	# create the group
-	cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
+    # create the group
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
+                                    hoomd.ParticleGroup.criteriaOption.tag,
+                                    tag_min,
+                                    tag_max);
 
-	# notify the user of the created group
-	print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-	# return it in the wrapper class
-	return group(name, cpp_group);
+    # return it in the wrapper class
+    return group(name, cpp_group);
 
 ## Groups all particles
 #
-# Creates a particle group from all particles in the simulation. The group can then be used by other hoomd_script commands
-# (such as analyze.msd) to specify which particles should be operated on.
+# Creates a particle group from all particles in the simulation. The group can then be used by other hoomd_script 
+# commands (such as analyze.msd) to specify which particles should be operated on.
 #
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and examples.
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# examples.
 # 
 # \b Examples:
 # \code
 # all = group.all()
 # \endcode
 def all():
-	util.print_status_line();
+    util.print_status_line();
 
-	# check if initialization has occurred
-	if globals.system == None:
-		print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-		raise RuntimeError('Error creating group');
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
 
-	# choose the tag range
-	tag_min = 0;
-	tag_max = globals.system_definition.getParticleData().getN()-1;
+    # choose the tag range
+    tag_min = 0;
+    tag_max = globals.system_definition.getParticleData().getN()-1;
 
-	# create the group
-	name = 'all';
-	cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(), hoomd.ParticleGroup.criteriaOption.tag, tag_min, tag_max);
+    # create the group
+    name = 'all';
+    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
+                                    hoomd.ParticleGroup.criteriaOption.tag,
+                                    tag_min,
+                                    tag_max);
 
-	# notify the user of the created group
-	print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-	# return it in the wrapper class
-	return group(name, cpp_group);
+    # return it in the wrapper class
+    return group(name, cpp_group);
+

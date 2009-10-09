@@ -1,47 +1,49 @@
 /*
-Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-Source Software License
-Copyright (c) 2008 Ames Laboratory Iowa State University
-All rights reserved.
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
-Redistribution and use of HOOMD, in source and binary forms, with or
-without modification, are permitted, provided that the following
-conditions are met:
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
 
-* Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
 
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
 
-* Neither the name of the copyright holder nor the names HOOMD's
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
 contributors may be used to endorse or promote products derived from this
 software without specific prior written permission.
 
 Disclaimer
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 // $Id$
 // $URL$
 // Maintainer: joaander
 
 /*! \file NVTUpdater.cc
-	\brief Defines the NVTUpdater class
+    \brief Defines the NVTUpdater class
 */
 
 #ifdef WIN32
@@ -59,73 +61,77 @@ using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef System to update
-	\param deltaT Time step to use
-	\param tau NVT period
-	\param T Temperature set point
+    \param deltaT Time step to use
+    \param tau NVT period
+    \param T Temperature set point
 */
-NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T) : Integrator(sysdef, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
-	{
-	if (m_tau <= 0.0)
-		cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
-	
-	m_Xi = 1.0;
-	m_eta = 1.0;
-	m_curr_T = computeTemperature(0);
-	m_dof = Scalar(3*m_pdata->getN() - 3);
-	}
-	
+NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
+                       Scalar deltaT,
+                       Scalar tau,
+                       boost::shared_ptr<Variant> T) 
+    : Integrator(sysdef, deltaT), m_tau(tau), m_T(T), m_accel_set(false)
+    {
+    if (m_tau <= 0.0)
+        cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
+        
+    m_Xi = 1.0;
+    m_eta = 1.0;
+    m_curr_T = computeTemperature(0);
+    m_dof = Scalar(3*m_pdata->getN() - 3);
+    }
+
 /*! In addition to what Integrator provides, NVTUpdater adds:
-		- nvt_xi
-		- nvt_eta
-	
-	See Logger for more information on what this is about.
+        - nvt_xi
+        - nvt_eta
+
+    See Logger for more information on what this is about.
 */
 std::vector< std::string > NVTUpdater::getProvidedLogQuantities()
-	{
-	vector<string> result = Integrator::getProvidedLogQuantities();
-	result.push_back("nvt_xi");
-	result.push_back("nvt_eta");
-	return result;
-	}
-	
-/*! \param quantity Name of the quantity to log
-	\param timestep Current time step of the simulation
+    {
+    vector<string> result = Integrator::getProvidedLogQuantities();
+    result.push_back("nvt_xi");
+    result.push_back("nvt_eta");
+    return result;
+    }
 
-	NVTUpdater calculates the conserved quantity as the sum of the kinetic and potential energies with the additional
-	ficticious energy term. The temperature quantity returns the already computed temperature of the system.
-	
-	Working out the math on paper starting from eq. 11 in "The Nose-Poincare Method for Constant Temperature 
-	Molecular Dynamics" yields the conserved quantity:
-	\f[ E_{\mathrm{ext}} = E + gkT_0 \left( \frac{\xi^2\tau^2}{2} + \eta \right) \f]
-	
-	All other quantity requests are passed up to Integrator::getLogValue().
+/*! \param quantity Name of the quantity to log
+    \param timestep Current time step of the simulation
+
+    NVTUpdater calculates the conserved quantity as the sum of the kinetic and potential energies with the additional
+    ficticious energy term. The temperature quantity returns the already computed temperature of the system.
+
+    Working out the math on paper starting from eq. 11 in "The Nose-Poincare Method for Constant Temperature
+    Molecular Dynamics" yields the conserved quantity:
+    \f[ E_{\mathrm{ext}} = E + gkT_0 \left( \frac{\xi^2\tau^2}{2} + \eta \right) \f]
+
+    All other quantity requests are passed up to Integrator::getLogValue().
 */
 Scalar NVTUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
-	{
-	if (quantity == string("conserved_quantity"))
-		{
-		Scalar g = Scalar(3*m_pdata->getN());
-		return computeKineticEnergy(timestep) + computePotentialEnergy(timestep) + 
-			g * m_T->getValue(timestep) * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
-		}
-	else if (quantity == string("temperature"))
-		{
-		return m_curr_T;
-		}
-	else if (quantity == string("nvt_xi"))
-		{
-		return m_Xi;
-		}
-	else if (quantity == string("nvt_eta"))
-		{
-		return m_eta;
-		}
-	else
-		{
-		// pass it on up to the base class
-		return Integrator::getLogValue(quantity, timestep);
-		}
-	}	
+    {
+    if (quantity == string("conserved_quantity"))
+        {
+        Scalar g = Scalar(3*m_pdata->getN());
+        return computeKineticEnergy(timestep) + computePotentialEnergy(timestep) +
+               g * m_T->getValue(timestep) * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
+        }
+    else if (quantity == string("temperature"))
+        {
+        return m_curr_T;
+        }
+    else if (quantity == string("nvt_xi"))
+        {
+        return m_Xi;
+        }
+    else if (quantity == string("nvt_eta"))
+        {
+        return m_eta;
+        }
+    else
+        {
+        // pass it on up to the base class
+        return Integrator::getLogValue(quantity, timestep);
+        }
+    }
 
 /*! \param timestep Current time step of the simulation
 */
@@ -313,14 +319,14 @@ void NVTUpdater::update(unsigned int timestep)
 	}
 	
 void export_NVTUpdater()
-	{
-	class_<NVTUpdater, boost::shared_ptr<NVTUpdater>, bases<Integrator>, boost::noncopyable>
-		("NVTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<Variant> >())
-		.def("setT", &NVTUpdater::setT)
-		.def("setTau", &NVTUpdater::setTau)
-		;
-		
-	}
+    {
+    class_<NVTUpdater, boost::shared_ptr<NVTUpdater>, bases<Integrator>, boost::noncopyable>
+    ("NVTUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<Variant> >())
+    .def("setT", &NVTUpdater::setT)
+    .def("setTau", &NVTUpdater::setTau)
+    ;
+    
+    }
 
 #ifdef WIN32
 #pragma warning( pop )

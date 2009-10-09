@@ -1,39 +1,42 @@
 /*
-Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-Source Software License
-Copyright (c) 2008 Ames Laboratory Iowa State University
-All rights reserved.
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
 
-Redistribution and use of HOOMD, in source and binary forms, with or
-without modification, are permitted, provided that the following
-conditions are met:
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
 
-* Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
 
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
 
-* Neither the name of the copyright holder nor the names HOOMD's
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
 contributors may be used to endorse or promote products derived from this
 software without specific prior written permission.
 
 Disclaimer
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // $Id$
@@ -41,7 +44,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file LJForceComputeGPU.cc
-	\brief Defines the LJForceComputeGPU class
+    \brief Defines the LJForceComputeGPU class
 */
 
 #ifdef WIN32
@@ -67,12 +70,12 @@ using namespace std;
 #endif
 
 /*! \param sysdef System to compute forces on
- 	\param nlist Neighborlist to use for computing the forces
-	\param r_cut Cuttoff radius beyond which the force is 0
-	\param slj	 Determines if Diameter Shifted LJ potential is being used
-	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
-	\note The LJForceComputeGPU does not own the Neighborlist, the caller should
-		delete the neighborlist when done.
+    \param nlist Neighborlist to use for computing the forces
+    \param r_cut Cuttoff radius beyond which the force is 0
+    \param slj   Determines if Diameter Shifted LJ potential is being used
+    \post memory is allocated and all parameters lj1 and lj2 are set to 0.0
+    \note The LJForceComputeGPU does not own the Neighborlist, the caller should
+        delete the neighborlist when done.
 */
 LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut) 
 	: LJForceCompute(sysdef, nlist, r_cut), m_block_size(64)
@@ -135,40 +138,40 @@ LJForceComputeGPU::LJForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
 	
 
 LJForceComputeGPU::~LJForceComputeGPU()
-	{
-	// free the coefficients on the GPU
-	exec_conf.tagAll(__FILE__, __LINE__);
-	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-		{
-		assert(d_coeffs[cur_gpu]);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_coeffs[cur_gpu]));
-		}
-	delete[] h_coeffs;
-	}
-	
+    {
+    // free the coefficients on the GPU
+    exec_conf.tagAll(__FILE__, __LINE__);
+    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+        {
+        assert(d_coeffs[cur_gpu]);
+        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)d_coeffs[cur_gpu]));
+        }
+    delete[] h_coeffs;
+    }
+
 /*! \param block_size Size of the block to run on the device
-	Performance of the code may be dependant on the block size run
-	on the GPU. \a block_size should be set to be a multiple of 32.
+    Performance of the code may be dependant on the block size run
+    on the GPU. \a block_size should be set to be a multiple of 32.
 */
 void LJForceComputeGPU::setBlockSize(int block_size)
-	{
-	m_block_size = block_size;
-	}
+    {
+    m_block_size = block_size;
+    }
 
 /*! \post The parameters \a lj1 and \a lj2 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
-	\note \a lj? are low level parameters used in the calculation. In order to specify
-	these for a normal lennard jones formula (with alpha), they should be set to the following.
-	- \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
-	- \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
-	
-	Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
-	is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
-	for will have lj1 and lj2 set to 0.0.
-	
-	\param typ1 Specifies one type of the pair
-	\param typ2 Specifies the second type of the pair
-	\param lj1 First parameter used to calcluate forces
-	\param lj2 Second parameter used to calculate forces
+    \note \a lj? are low level parameters used in the calculation. In order to specify
+    these for a normal lennard jones formula (with alpha), they should be set to the following.
+    - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
+    - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
+
+    Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
+    is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
+    for will have lj1 and lj2 set to 0.0.
+
+    \param typ1 Specifies one type of the pair
+    \param typ2 Specifies the second type of the pair
+    \param lj1 First parameter used to calcluate forces
+    \param lj2 Second parameter used to calculate forces
 */
 void LJForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar r_cut)
 	{
@@ -259,12 +262,12 @@ void LJForceComputeGPU::computeForces(unsigned int timestep)
 	}
 
 void export_LJForceComputeGPU()
-	{
-	class_<LJForceComputeGPU, boost::shared_ptr<LJForceComputeGPU>, bases<LJForceCompute>, boost::noncopyable >
-		("LJForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
-		.def("setBlockSize", &LJForceComputeGPU::setBlockSize)
-		;
-	}
+    {
+    class_<LJForceComputeGPU, boost::shared_ptr<LJForceComputeGPU>, bases<LJForceCompute>, boost::noncopyable >
+    ("LJForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+    .def("setBlockSize", &LJForceComputeGPU::setBlockSize)
+    ;
+    }
 
 #ifdef WIN32
 #pragma warning( pop )

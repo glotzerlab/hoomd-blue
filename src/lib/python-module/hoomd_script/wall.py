@@ -1,38 +1,42 @@
-# Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-# Source Software License
-# Copyright (c) 2008 Ames Laboratory Iowa State University
-# All rights reserved.
+# -*- coding: iso-8859-1 -*-
+#Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+#(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+#Iowa State University and The Regents of the University of Michigan All rights
+#reserved.
 
-# Redistribution and use of HOOMD, in source and binary forms, with or
-# without modification, are permitted, provided that the following
-# conditions are met:
+#HOOMD-blue may contain modifications ("Contributions") provided, and to which
+#copyright is held, by various Contributors who have granted The Regents of the
+#University of Michigan the right to modify and/or distribute such Contributions.
 
-# * Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
+#Redistribution and use of HOOMD-blue, in source and binary forms, with or
+#without modification, are permitted, provided that the following conditions are
+#met:
 
-# * Redistributions in binary form must reproduce the above copyright
-# notice, this list of conditions and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
+#* Redistributions of source code must retain the above copyright notice, this
+#list of conditions, and the following disclaimer.
 
-# * Neither the name of the copyright holder nor the names HOOMD's
-# contributors may be used to endorse or promote products derived from this
-# software without specific prior written permission.
+#* Redistributions in binary form must reproduce the above copyright notice, this
+#list of conditions, and the following disclaimer in the documentation and/or
+#other materials provided with the distribution.
 
-# Disclaimer
+#* Neither the name of the copyright holder nor the names of HOOMD-blue's
+#contributors may be used to endorse or promote products derived from this
+#software without specific prior written permission.
 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-# CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+#Disclaimer
 
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+#ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+#INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+#LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+#OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+#ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # $Id$
 # $URL$
@@ -62,12 +66,12 @@ import util;
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+#    \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#             = & 0            & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where
 # \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+#                                        \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 # and \f$ \vec{r} \f$ is the vector pointing from the %wall to the particle parallel to the wall's normal.
 #
 # The following coefficients must be set for each particle type using set_coeff(). 
@@ -82,78 +86,79 @@ import util;
 #
 # The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when wall.lj is specified (see __init__())
 class lj(force._force):
-	## Specify the Lennard-Jones %wall %force
-	#
-	# \param r_cut Cutoff radius
-	#
-	# \b Example:
-	# \code
-	# lj_wall = wall.lj(r_cut=3.0);
-	# \endcode
-	#
-	# \note Coefficients must be set with set_coeff() before the simulation can be run().
-	def __init__(self, r_cut):
-		util.print_status_line();
-		
-		# initialize the base class
-		force._force.__init__(self);
-		
-		# create the c++ mirror class
-		#if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-		self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
-		#elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-		#	self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
-		#else:
-		#	print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-		#	raise RuntimeError("Error creating wall.lj forces");
-		
-		# variable for tracking which particle type coefficients have been set
-		self.particle_types_set = [];
-		
-		globals.system.addCompute(self.cpp_force, self.force_name);
-		
-	## Sets the particle-wall interaction coefficients for a particular particle type
-	#
-	# \param particle_type Particle type to set coefficients for
-	# \param epsilon Coefficient \f$ \varepsilon \f$ in the %force
-	# \param sigma Coefficient \f$ \sigma \f$ in the %force
-	# \param alpha Coefficient \f$ \alpha \f$ in the %force
-	#
-	# Using set_coeff() requires that the specified %wall %force has been saved in a variable. i.e.
-	# \code
-	# lj_wall = wall.lj(r_cut=3.0)
-	# \endcode
-	#
-	# \b Examples:
-	# \code
-	# lj_wall.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
-	# lj_wall.set_coeff('B', epsilon=1.0, sigma=2.0, alpha=0.0)
-	# \endcode
-	#
-	# The coefficients for every particle type in the simulation must be set 
-	# before the run() can be started.
-	def set_coeff(self, particle_type, epsilon, sigma, alpha):
-		util.print_status_line();
-		
-		# calculate the parameters
-		lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-		lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-		# set the parameters for the appropriate type
-		self.cpp_force.setParams(globals.system_definition.getParticleData().getTypeByName(particle_type), lj1, lj2);
-		
-		# track which particle types we have set
-		if not particle_type in self.particle_types_set:
-			self.particle_types_set.append(particle_type);
-		
-	def update_coeffs(self):
-		# get a list of all particle types in the simulation
-		ntypes = globals.system_definition.getParticleData().getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-			
-		# check to see if all particle types have been set
-		for cur_type in type_list:
-			if not cur_type in self.particle_types_set:
-				print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in wall.lj\n";
-				raise RuntimeError("Error updating coefficients");
+    ## Specify the Lennard-Jones %wall %force
+    #
+    # \param r_cut Cutoff radius
+    #
+    # \b Example:
+    # \code
+    # lj_wall = wall.lj(r_cut=3.0);
+    # \endcode
+    #
+    # \note Coefficients must be set with set_coeff() before the simulation can be run().
+    def __init__(self, r_cut):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self);
+        
+        # create the c++ mirror class
+        #if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
+        #elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        #    self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
+        #else:
+        #    print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+        #    raise RuntimeError("Error creating wall.lj forces");
+        
+        # variable for tracking which particle type coefficients have been set
+        self.particle_types_set = [];
+        
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+    ## Sets the particle-wall interaction coefficients for a particular particle type
+    #
+    # \param particle_type Particle type to set coefficients for
+    # \param epsilon Coefficient \f$ \varepsilon \f$ in the %force
+    # \param sigma Coefficient \f$ \sigma \f$ in the %force
+    # \param alpha Coefficient \f$ \alpha \f$ in the %force
+    #
+    # Using set_coeff() requires that the specified %wall %force has been saved in a variable. i.e.
+    # \code
+    # lj_wall = wall.lj(r_cut=3.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # lj_wall.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
+    # lj_wall.set_coeff('B', epsilon=1.0, sigma=2.0, alpha=0.0)
+    # \endcode
+    #
+    # The coefficients for every particle type in the simulation must be set 
+    # before the run() can be started.
+    def set_coeff(self, particle_type, epsilon, sigma, alpha):
+        util.print_status_line();
+        
+        # calculate the parameters
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+        # set the parameters for the appropriate type
+        self.cpp_force.setParams(globals.system_definition.getParticleData().getTypeByName(particle_type), lj1, lj2);
+        
+        # track which particle types we have set
+        if not particle_type in self.particle_types_set:
+            self.particle_types_set.append(particle_type);
+        
+    def update_coeffs(self):
+        # get a list of all particle types in the simulation
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+            
+        # check to see if all particle types have been set
+        for cur_type in type_list:
+            if not cur_type in self.particle_types_set:
+                print >> sys.stderr, "\n***Error:", cur_type, " coefficients missing in wall.lj\n";
+                raise RuntimeError("Error updating coefficients");
+
