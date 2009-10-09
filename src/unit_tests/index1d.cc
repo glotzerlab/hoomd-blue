@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE( Index2D_1 )
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)1);
     BOOST_CHECK_EQUAL(a(0,0), (unsigned int)0);
     }
-    
+
 //! boost test case for 2x2 Index2D
 BOOST_AUTO_TEST_CASE( Index2D_2 )
     {
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE( Index2D_2 )
     BOOST_CHECK_EQUAL(a(0,1), (unsigned int)2);
     BOOST_CHECK_EQUAL(a(1,1), (unsigned int)3);
     }
-    
+
 //! boost test case for 3x3 Index2D
 BOOST_AUTO_TEST_CASE( Index2D_3 )
     {
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE( Index2D_3 )
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)9);
     BOOST_CHECK_EQUAL(a(0,0), (unsigned int)0);
     BOOST_CHECK_EQUAL(a(1,0), (unsigned int)1);
-    BOOST_CHECK_EQUAL(a(2,0), (unsigned int)2);    
+    BOOST_CHECK_EQUAL(a(2,0), (unsigned int)2);
     BOOST_CHECK_EQUAL(a(0,1), (unsigned int)3);
     BOOST_CHECK_EQUAL(a(1,1), (unsigned int)4);
     BOOST_CHECK_EQUAL(a(2,1), (unsigned int)5);
@@ -98,13 +98,13 @@ BOOST_AUTO_TEST_CASE( Index2D_3 )
     BOOST_CHECK_EQUAL(a(1,2), (unsigned int)7);
     BOOST_CHECK_EQUAL(a(2,2), (unsigned int)8);
     }
-    
+
 //! boost test case for 20x20 Index2D
 BOOST_AUTO_TEST_CASE( Index2D_20 )
     {
     Index2D a(20);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)20*20);
-
+    
     for (unsigned int i=0; i < 20; i++)
         for (unsigned int j=0; j < 20; j++)
             {
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_2 )
     BOOST_CHECK_EQUAL(a(1,0), (unsigned int)1);
     BOOST_CHECK_EQUAL(a(1,1), (unsigned int)2);
     }
-    
+
 //! boost test case for 3x3 Index2DUpperTriangler
 BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_3 )
     {
@@ -142,13 +142,13 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_3 )
     BOOST_CHECK_EQUAL(a(2,1), (unsigned int)4);
     BOOST_CHECK_EQUAL(a(2,2), (unsigned int)5);
     }
-    
+
 //! boost test case for 20x20 Index2DUpperTriangular
 BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_20 )
     {
     Index2DUpperTriangular a(20);
     BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)20*21/2);
-
+    
     unsigned int cur_idx = 0;
     for (unsigned int i=0; i < 20; i++)
         for (unsigned int j=i; j < 20; j++)
@@ -158,7 +158,8 @@ BOOST_AUTO_TEST_CASE( Index2DUpperTriangular_20 )
             cur_idx++;
             }
     }
-    
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+

@@ -1,40 +1,42 @@
 # -*- coding: iso-8859-1 -*-
+#Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+#(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+#Iowa State University and The Regents of the University of Michigan All rights
+#reserved.
 
-# Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
-# Source Software License
-# Copyright (c) 2008 Ames Laboratory Iowa State University
-# All rights reserved.
+#HOOMD-blue may contain modifications ("Contributions") provided, and to which
+#copyright is held, by various Contributors who have granted The Regents of the
+#University of Michigan the right to modify and/or distribute such Contributions.
 
-# Redistribution and use of HOOMD, in source and binary forms, with or
-# without modification, are permitted, provided that the following
-# conditions are met:
+#Redistribution and use of HOOMD-blue, in source and binary forms, with or
+#without modification, are permitted, provided that the following conditions are
+#met:
 
-# * Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
+#* Redistributions of source code must retain the above copyright notice, this
+#list of conditions, and the following disclaimer.
 
-# * Redistributions in binary form must reproduce the above copyright
-# notice, this list of conditions and the following disclaimer in the
-# documentation and/or other materials provided with the distribution.
+#* Redistributions in binary form must reproduce the above copyright notice, this
+#list of conditions, and the following disclaimer in the documentation and/or
+#other materials provided with the distribution.
 
-# * Neither the name of the copyright holder nor the names HOOMD's
-# contributors may be used to endorse or promote products derived from this
-# software without specific prior written permission.
+#* Neither the name of the copyright holder nor the names of HOOMD-blue's
+#contributors may be used to endorse or promote products derived from this
+#software without specific prior written permission.
 
-# Disclaimer
+#Disclaimer
 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
-# CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
-# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+#ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
 
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+#INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+#LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+#OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+#ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # $Id$
 # $URL$
@@ -110,140 +112,141 @@ import sys;
 # my_force.pair_coeff = force_field.my_coeffs
 # \endcode
 class coeff:
-	
-	## \internal
-	# \brief Initializes the class
-	# \details
-	# The main task to be performed during initialization is just to init some variables
-	# \param self Python required class instance variable
-	def __init__(self):
-		self.values = {};
-		
-	## \var values
-	# \internal
-	# \brief Contains the matrix of set values in a dictionary
-	
-	## Sets parameters for one type %pair
-	# \param a First particle type in the %pair
-	# \param b Second particle type in the %pair
-	# \param coeffs Named coefficients (see below for examples)
-	#
-	# Calling set() results in one or more parameters being set for a single type %pair.
-	# Particle types are identified by name, and parameters are also added by name. 
-	# Which parameters you need to specify depends on the %pair %force you are setting
-	# these coefficients for, see the corresponding documentation.
-	#
-	# All possible type pairs as defined in the simulation box must be specified before
-	# executing run(). You will receive an error if you fail to do so. It is not an error,
-	# however, to specify coefficients for particle types that do not exist in the simulation.
-	# This can be useful in defining a %force field for many different types of particles even
-	# when some simulations only include a subset.
-	#
-	# There is no need to specify coefficients for both pairs 'A','B' and 'B','A'. Specifying
-	# only one is sufficient.
-	#
-	# \b Examples:
-	# \code
-	# coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
-	# coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
-	# coeff.set('A', 'B', epsilon=1.5, sigma=1.0)
-	# \endcode
-	#
-	# \note Single parameters can be updated. If both epsilon and sigma have already been 
-	# set for a type %pair, then executing coeff.set('A', 'B', epsilon=1.1) will %update 
-	# the value of epsilon and leave sigma as it was previously set.
-	def set(self, a, b, **coeffs):
-		util.print_status_line();
-		
-		# create the pair if it hasn't been created it
-		if (not (a,b) in self.values) and (not (b,a) in self.values):
-			self.values[(a,b)] = {};
-			
-		# Find the pair to update
-		if (a,b) in self.values:
-			cur_pair = (a,b);
-		elif (b,a) in self.values:
-			cur_pair = (b,a);
-		else:
-			print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
-			raise RuntimeError("Error setting pair coeff");
-		
-		# update each of the values provided
-		if len(coeffs) == 0:
-			print >> sys.stderr, "\n***Error! No coefficents specified\n";
-		for name, val in coeffs.items():
-			self.values[cur_pair][name] = val;
-	
-	## \internal
-	# \brief Verifies set parameters form a full matrix with all values set
-	# \details
-	# \param self Python required self variable
-	# \param required_coeffs list of required variables
-	#
-	# This can only be run after the system has been initialized
-	def verify(self, *required_coeffs):
-		# first, check that the system has been initialized
-		if globals.system == None:
-			print >> sys.stderr, "\n***Error! Cannot verify pair coefficients before initialization\n";
-			raise RuntimeError('Error verifying pair coefficients');
-		
-		# get a list of types from the particle data
-		ntypes = globals.system_definition.getParticleData().getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-		
-		valid = True;
-		# loop over all possible pairs and verify that all required variables are set
-		for i in xrange(0,ntypes):
-			for j in xrange(i,ntypes):
-				a = type_list[i];
-				b = type_list[j];
-				
-				# find which half of the pair is set
-				if (a,b) in self.values:
-					cur_pair = (a,b);
-				elif (b,a) in self.values:
-					cur_pair = (b,a);
-				else:
-					print >> sys.stderr, "\n***Error! Type pair", (a,b), "not found in pair coeff\n"
-					valid = False;
-					continue;
-				
-				# verify that all required values are set by counting the matches
-				count = 0;
-				for coeff_name in self.values[cur_pair].keys():
-					if not coeff_name in required_coeffs:
-						print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), ", but is not used by the pair force";
-					else:
-						count += 1;
-				
-				if count != len(required_coeffs):
-					print >> sys.stderr, "\n***Error! Type pair", (a,b), "is missing required coefficients\n";
-					valid = False;
-				
-			
-		return valid;
-		
-	## \internal
-	# \brief Gets the value of a single pair coefficient
-	# \detail
-	# \param a First name in the type pair
-	# \param b Second name in the type pair
-	# \param coeff_name Coefficient to get
-	def get(self, a, b, coeff_name):
-		# Find the pair to update
-		if (a,b) in self.values:
-			cur_pair = (a,b);
-		elif (b,a) in self.values:
-			cur_pair = (b,a);
-		else:
-			print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
-			raise RuntimeError("Error setting pair coeff");
-		
-		return self.values[cur_pair][coeff_name];
-		
-		
+    
+    ## \internal
+    # \brief Initializes the class
+    # \details
+    # The main task to be performed during initialization is just to init some variables
+    # \param self Python required class instance variable
+    def __init__(self):
+        self.values = {};
+        
+    ## \var values
+    # \internal
+    # \brief Contains the matrix of set values in a dictionary
+    
+    ## Sets parameters for one type %pair
+    # \param a First particle type in the %pair
+    # \param b Second particle type in the %pair
+    # \param coeffs Named coefficients (see below for examples)
+    #
+    # Calling set() results in one or more parameters being set for a single type %pair.
+    # Particle types are identified by name, and parameters are also added by name. 
+    # Which parameters you need to specify depends on the %pair %force you are setting
+    # these coefficients for, see the corresponding documentation.
+    #
+    # All possible type pairs as defined in the simulation box must be specified before
+    # executing run(). You will receive an error if you fail to do so. It is not an error,
+    # however, to specify coefficients for particle types that do not exist in the simulation.
+    # This can be useful in defining a %force field for many different types of particles even
+    # when some simulations only include a subset.
+    #
+    # There is no need to specify coefficients for both pairs 'A','B' and 'B','A'. Specifying
+    # only one is sufficient.
+    #
+    # \b Examples:
+    # \code
+    # coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+    # coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
+    # coeff.set('A', 'B', epsilon=1.5, sigma=1.0)
+    # \endcode
+    #
+    # \note Single parameters can be updated. If both epsilon and sigma have already been 
+    # set for a type %pair, then executing coeff.set('A', 'B', epsilon=1.1) will %update 
+    # the value of epsilon and leave sigma as it was previously set.
+    def set(self, a, b, **coeffs):
+        util.print_status_line();
+        
+        # create the pair if it hasn't been created it
+        if (not (a,b) in self.values) and (not (b,a) in self.values):
+            self.values[(a,b)] = {};
+            
+        # Find the pair to update
+        if (a,b) in self.values:
+            cur_pair = (a,b);
+        elif (b,a) in self.values:
+            cur_pair = (b,a);
+        else:
+            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            raise RuntimeError("Error setting pair coeff");
+        
+        # update each of the values provided
+        if len(coeffs) == 0:
+            print >> sys.stderr, "\n***Error! No coefficents specified\n";
+        for name, val in coeffs.items():
+            self.values[cur_pair][name] = val;
+    
+    ## \internal
+    # \brief Verifies set parameters form a full matrix with all values set
+    # \details
+    # \param self Python required self variable
+    # \param required_coeffs list of required variables
+    #
+    # This can only be run after the system has been initialized
+    def verify(self, *required_coeffs):
+        # first, check that the system has been initialized
+        if globals.system == None:
+            print >> sys.stderr, "\n***Error! Cannot verify pair coefficients before initialization\n";
+            raise RuntimeError('Error verifying pair coefficients');
+        
+        # get a list of types from the particle data
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        valid = True;
+        # loop over all possible pairs and verify that all required variables are set
+        for i in xrange(0,ntypes):
+            for j in xrange(i,ntypes):
+                a = type_list[i];
+                b = type_list[j];
+                
+                # find which half of the pair is set
+                if (a,b) in self.values:
+                    cur_pair = (a,b);
+                elif (b,a) in self.values:
+                    cur_pair = (b,a);
+                else:
+                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "not found in pair coeff\n"
+                    valid = False;
+                    continue;
+                
+                # verify that all required values are set by counting the matches
+                count = 0;
+                for coeff_name in self.values[cur_pair].keys():
+                    if not coeff_name in required_coeffs:
+                        print "Notice: Possible typo? Pair coeff", coeff_name, "is specified for pair", (a,b), \
+                              ", but is not used by the pair force";
+                    else:
+                        count += 1;
+                
+                if count != len(required_coeffs):
+                    print >> sys.stderr, "\n***Error! Type pair", (a,b), "is missing required coefficients\n";
+                    valid = False;
+                
+            
+        return valid;
+        
+    ## \internal
+    # \brief Gets the value of a single pair coefficient
+    # \detail
+    # \param a First name in the type pair
+    # \param b Second name in the type pair
+    # \param coeff_name Coefficient to get
+    def get(self, a, b, coeff_name):
+        # Find the pair to update
+        if (a,b) in self.values:
+            cur_pair = (a,b);
+        elif (b,a) in self.values:
+            cur_pair = (b,a);
+        else:
+            print >> sys.stderr, "\nBug detected in pair.coeff. Please report\n"
+            raise RuntimeError("Error setting pair coeff");
+        
+        return self.values[cur_pair][coeff_name];
+        
+        
 ## Interface for controlling neighbor list parameters
 #
 # A neighbor list should not be directly created by you. One will be automatically
@@ -253,228 +256,229 @@ class coeff:
 # Any bonds defined in the simulation are automatically used to exclude bonded particle
 # pairs from appearing in the neighbor list.
 class nlist:
-	## \internal
-	# \brief Constructs a neighbor list
-	# \details
-	# \param self Python required instance variable
-	# \param r_cut Cutoff radius
-	def __init__(self, r_cut):
-		# check if initialization has occured
-		if globals.system == None:
-			print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
-			raise RuntimeError('Error creating neighbor list');
-		
-		# decide wether to create an all-to-all neighbor list or a binned one based on box size:
-		default_r_buff = 0.8;
-		
-		mode = "binned";
-		
-		box = globals.system_definition.getParticleData().getBox();
-		min_width_for_bin = (default_r_buff + r_cut)*3.0;
-		if (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin or (box.zhi - box.zlo) < min_width_for_bin:
-			if globals.system_definition.getParticleData().getN() >= 2000:
-				print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
-				print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list. If your simulation is confined to a 2D"
-				print "             plane, you can increase the smallest box dimension to enable the more efficient O(N) calculation.\n"
-			else:
-				print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
-				
-			mode = "nsq";
-		
-		# create the C++ mirror class
-		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			if mode == "binned":
-				self.cpp_nlist = hoomd.BinnedNeighborList(globals.system_definition, r_cut, default_r_buff)
-			elif mode == "nsq":
-				self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
-			else:
-				print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
-				raise RuntimeError("Error creating neighbor list");
-		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			if mode == "binned":
-				self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
-				self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
-			elif mode == "nsq":
-				self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.system_definition, r_cut, default_r_buff)
-			else:
-				print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
-				raise RuntimeError("Error creating neighbor list");
-		else:
-			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-			raise RuntimeError("Error creating neighbor list");
-			
-		self.cpp_nlist.setEvery(1);
-		self.cpp_nlist.addExclusionsFromBonds();
-		
-		globals.system.addCompute(self.cpp_nlist, "auto_nlist");
-		
-		# save the parameters we set
-		self.r_cut = r_cut;
-		self.r_buff = default_r_buff;
-		
-	## Change neighbor list parameters
-	# 
-	# \param r_buff (if set) changes the buffer radius around the cutoff
-	# \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list needs updating
-	# 
-	# set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
-	# can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
-	# to be updated less often, but more particles are included leading to slower %force computations. 
-	# Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
-	# slowing overall performance again. The sweet spot for the best performance needs to be found by 
-	# experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
-	# simulations.
-	#
-	# As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
-	# no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
-	# the neighbor list may not be updated when it needs to be. 
-	#
-	# For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
-	# needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
-	# of approximately 2 percent.
-	#
-	# \a check_period should be set so that no particle
-	# moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
-	# \b build is counted and printed in the neighbor list statistics at the end of a run().
-	#
-	# A single global neighbor list is created for the entire simulation. Change parameters by using
-	# the built-in variable \b %nlist.
-	#
-	# \b Examples:
-	# \code 
-	# nlist.set_params(r_buff = 0.9)
-	# nlist.set_params(check_period = 11)
-	# nlist.set_params(r_buff = 0.7, check_period = 4)
-	# \endcode
-	def set_params(self, r_buff=None, check_period=None):
-		util.print_status_line();
-		
-		if self.cpp_nlist == None:
-			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
-			raise RuntimeError('Error setting neighbor list parameters');
-		
-		# update the parameters
-		if r_buff != None:
-			self.cpp_nlist.setRCut(self.r_cut, r_buff);
-			self.r_buff = r_buff;
-			
-		if check_period != None:
-			self.cpp_nlist.setEvery(check_period);
+    ## \internal
+    # \brief Constructs a neighbor list
+    # \details
+    # \param self Python required instance variable
+    # \param r_cut Cutoff radius
+    def __init__(self, r_cut):
+        # check if initialization has occured
+        if globals.system == None:
+            print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
+            raise RuntimeError('Error creating neighbor list');
+        
+        # decide wether to create an all-to-all neighbor list or a binned one based on box size:
+        default_r_buff = 0.8;
+        
+        mode = "binned";
+        
+        box = globals.system_definition.getParticleData().getBox();
+        min_width_for_bin = (default_r_buff + r_cut)*3.0;
+        if (box.xhi - box.xlo) < min_width_for_bin or (box.yhi - box.ylo) < min_width_for_bin or (box.zhi - box.zlo) < min_width_for_bin:
+            if globals.system_definition.getParticleData().getN() >= 2000:
+                print "\n***Warning!: At least one simulation box dimension is less than (r_cut + r_buff)*3.0. This forces the use of an";
+                print "             EXTREMELY SLOW O(N^2) calculation for the neighbor list. If your simulation is confined to a 2D"
+                print "             plane, you can increase the smallest box dimension to enable the more efficient O(N) calculation.\n"
+            else:
+                print "Notice: The system is in a very small box, forcing the use of an O(N^2) neighbor list calculation."
+                
+            mode = "nsq";
+        
+        # create the C++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            if mode == "binned":
+                self.cpp_nlist = hoomd.BinnedNeighborList(globals.system_definition, r_cut, default_r_buff)
+            elif mode == "nsq":
+                self.cpp_nlist = hoomd.NeighborList(globals.system_definition, r_cut, default_r_buff)
+            else:
+                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                raise RuntimeError("Error creating neighbor list");
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            if mode == "binned":
+                self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
+                self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
+            elif mode == "nsq":
+                self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.system_definition, r_cut, default_r_buff)
+            else:
+                print >> sys.stderr, "\n***Error! Invalid neighbor list mode\n";
+                raise RuntimeError("Error creating neighbor list");
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating neighbor list");
+            
+        self.cpp_nlist.setEvery(1);
+        self.cpp_nlist.addExclusionsFromBonds();
+        
+        globals.system.addCompute(self.cpp_nlist, "auto_nlist");
+        
+        # save the parameters we set
+        self.r_cut = r_cut;
+        self.r_buff = default_r_buff;
+        
+    ## Change neighbor list parameters
+    # 
+    # \param r_buff (if set) changes the buffer radius around the cutoff
+    # \param check_period (if set) changes the period (in time steps) between checks to see if the neighbor list 
+    #        needs updating
+    # 
+    # set_params() changes one or more parameters of the neighbor list. \a r_buff and \a check_period 
+    # can have a significant effect on performance. As \a r_buff is made larger, the neighbor list needs
+    # to be updated less often, but more particles are included leading to slower %force computations. 
+    # Smaller values of \a r_buff lead to faster %force computation, but more often neighbor list updates,
+    # slowing overall performance again. The sweet spot for the best performance needs to be found by 
+    # experimentation. The default of \a r_buff = 0.8 works well in practice for Lennard-Jones liquid
+    # simulations.
+    #
+    # As \a r_buff is changed, \a check_period must be changed correspondingly. The neighbor list is updated
+    # no sooner than \a check_period time steps after the last %update. If \a check_period is set too high,
+    # the neighbor list may not be updated when it needs to be. 
+    #
+    # For safety, the default check_period is 1 to ensure that the neighbor list is always updated when it
+    # needs to be. Increasing this to an appropriate value for your simulation can lead to performance gains
+    # of approximately 2 percent.
+    #
+    # \a check_period should be set so that no particle
+    # moves a distance more than \a r_buff/2.0 during a the \a check_period. If this occurs, a \b dangerous
+    # \b build is counted and printed in the neighbor list statistics at the end of a run().
+    #
+    # A single global neighbor list is created for the entire simulation. Change parameters by using
+    # the built-in variable \b %nlist.
+    #
+    # \b Examples:
+    # \code 
+    # nlist.set_params(r_buff = 0.9)
+    # nlist.set_params(check_period = 11)
+    # nlist.set_params(r_buff = 0.7, check_period = 4)
+    # \endcode
+    def set_params(self, r_buff=None, check_period=None):
+        util.print_status_line();
+        
+        if self.cpp_nlist == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error setting neighbor list parameters');
+        
+        # update the parameters
+        if r_buff != None:
+            self.cpp_nlist.setRCut(self.r_cut, r_buff);
+            self.r_buff = r_buff;
+            
+        if check_period != None:
+            self.cpp_nlist.setEvery(check_period);
 
-	## Resets all exclusions in the neighborlist
-	#
-	# \param exclusions Select which interactions should be excluded from the pair interaction calculation.
-	#
-	# By default, only directly bonded particles are excluded from short range pair interactions. 
-	# reset_exclusions allows that setting to be overridden to add other exclusions or to remove
-	# the exclusion for bonded particles.
-	#
-	# Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
-	# All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
-	# 
-	# Valid types are:
-	# - \b %bond - Exclude particles that are directly bonded together
-	# - \b %angle - Exclude the two outside particles in all defined angles.
-	# - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
-	#
-	# The following types are determined soley by the bond topology. Every chain of particles in the simulation 
-	# connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
-	# angles or dihedrals are defined.
-	# - \b 1-2  - Same as bond
-	# - \b 1-3  - Exclude particles connected with a sequence of two bonds.
-	# - \b 1-4  - Exclude particles connected with a sequence of three bonds.
-	#
-	# \b WARNING: 
-	# 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
-	# atom and even 1-3 exclusions can reach that limit in branched molecules.
-	#
-	# \b Examples:
-	# \code 
-	# nlist.reset_exclusions(exclusions = ['1-2'])
-	# nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
-	# nlist.reset_exclusions(exclusions = ['bond', 'angle'])
-	# nlist.reset_exclusions(exclusions = [])
-	# \endcode
-	# 
-	def reset_exclusions(self, exclusions = None):
-		util.print_status_line();
-		
-		if self.cpp_nlist == None:
-			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
-			raise RuntimeError('Error resetting exclusions');
-		
-		# clear all of the existing exclusions
-		self.cpp_nlist.clearExclusions();
-		
-		if exclusions == None:
-			# confirm that no exclusions are left.
-			self.cpp_nlist.countExclusions();
-			return
-		
-		# exclusions given directly in bond/angle/dihedral notation
-		if 'bond' in exclusions:
-			self.cpp_nlist.addExclusionsFromBonds();
-			exclusions.remove('bond');
-		
-		if 'angle' in exclusions:
-			self.cpp_nlist.addExclusionsFromAngles();
-			exclusions.remove('angle');
-		
-		if 'dihedral' in exclusions:
-			self.cpp_nlist.addExclusionsFromDihedrals();
-			exclusions.remove('dihedral');
-		
-		# exclusions given in 1-2/1-3/1-4 notation.
-		if '1-2' in exclusions:
-			self.cpp_nlist.addExclusionsFromBonds();
-			exclusions.remove('1-2');
+    ## Resets all exclusions in the neighborlist
+    #
+    # \param exclusions Select which interactions should be excluded from the pair interaction calculation.
+    #
+    # By default, only directly bonded particles are excluded from short range pair interactions. 
+    # reset_exclusions allows that setting to be overridden to add other exclusions or to remove
+    # the exclusion for bonded particles.
+    #
+    # Specify a list of desired types in the \a exclusions argument (or an empty list to clear all exclusions).
+    # All desired exclusions have to be explicitly listed, i.e. '1-3' does \b not imply '1-2'.
+    # 
+    # Valid types are:
+    # - \b %bond - Exclude particles that are directly bonded together
+    # - \b %angle - Exclude the two outside particles in all defined angles.
+    # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
+    #
+    # The following types are determined soley by the bond topology. Every chain of particles in the simulation 
+    # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
+    # angles or dihedrals are defined.
+    # - \b 1-2  - Same as bond
+    # - \b 1-3  - Exclude particles connected with a sequence of two bonds.
+    # - \b 1-4  - Exclude particles connected with a sequence of three bonds.
+    #
+    # \b WARNING: 
+    # 1-4 exclusions currently cannot work due to a limit of 4 exclusions per
+    # atom and even 1-3 exclusions can reach that limit in branched molecules.
+    #
+    # \b Examples:
+    # \code 
+    # nlist.reset_exclusions(exclusions = ['1-2'])
+    # nlist.reset_exclusions(exclusions = ['1-2', '1-3', '1-4'])
+    # nlist.reset_exclusions(exclusions = ['bond', 'angle'])
+    # nlist.reset_exclusions(exclusions = [])
+    # \endcode
+    # 
+    def reset_exclusions(self, exclusions = None):
+        util.print_status_line();
+        
+        if self.cpp_nlist == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error resetting exclusions');
+        
+        # clear all of the existing exclusions
+        self.cpp_nlist.clearExclusions();
+        
+        if exclusions == None:
+            # confirm that no exclusions are left.
+            self.cpp_nlist.countExclusions();
+            return
+        
+        # exclusions given directly in bond/angle/dihedral notation
+        if 'bond' in exclusions:
+            self.cpp_nlist.addExclusionsFromBonds();
+            exclusions.remove('bond');
+        
+        if 'angle' in exclusions:
+            self.cpp_nlist.addExclusionsFromAngles();
+            exclusions.remove('angle');
+        
+        if 'dihedral' in exclusions:
+            self.cpp_nlist.addExclusionsFromDihedrals();
+            exclusions.remove('dihedral');
+        
+        # exclusions given in 1-2/1-3/1-4 notation.
+        if '1-2' in exclusions:
+            self.cpp_nlist.addExclusionsFromBonds();
+            exclusions.remove('1-2');
 
-		if '1-3' in exclusions:
-			self.cpp_nlist.addOneThreeExclusionsFromTopology();
-			exclusions.remove('1-3');
-			
-		if '1-4' in exclusions:
-			self.cpp_nlist.addOneFourExclusionsFromTopology();
-			exclusions.remove('1-4');
+        if '1-3' in exclusions:
+            self.cpp_nlist.addOneThreeExclusionsFromTopology();
+            exclusions.remove('1-3');
+            
+        if '1-4' in exclusions:
+            self.cpp_nlist.addOneFourExclusionsFromTopology();
+            exclusions.remove('1-4');
 
-		# if there are any items left in the exclusion list, we have an error.
-		if len(exclusions) > 0:
-			print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
-			raise RuntimeError('Error resetting exclusions');
+        # if there are any items left in the exclusion list, we have an error.
+        if len(exclusions) > 0:
+            print >> sys.stderr, "\nExclusion type(s):", exclusions, "are not supported\n";
+            raise RuntimeError('Error resetting exclusions');
 
-		# collect and print statistics about the number of exclusions.
-		self.cpp_nlist.countExclusions();
+        # collect and print statistics about the number of exclusions.
+        self.cpp_nlist.countExclusions();
 
-	## Benchmarks the neighbor list computation
-	# \param n Number of iterations to average the benchmark over
-	#
-	# \b Examples:
-	# \code
-	# t = nlist.benchmark(n = 100)
-	# \endcode
-	#
-	# The value returned by benchmark() is the average time to perform the neighbor list 
-	# computation, in milliseconds. The benchmark is performed by taking the current
-	# positions of all particles in the simulation and repeatedly calculating the neighbor list.
-	# Thus, you can benchmark different situations as you need to by simply 
-	# running a simulation to achieve the desired state before running benchmark().
-	#
-	# \note
-	# There is, however, one subtle side effect. If the benchmark() command is run 
-	# directly after the particle data is initialized with an init command, then the 
-	# results of the benchmark will not be typical of the time needed during the actual
-	# simulation. Particles are not reordered to improve cache performance until at least
-	# one time step is performed. Executing run(1) before the benchmark will solve this problem.
-	#
-	def benchmark(self, n):
-		# check that we have been initialized properly
-		if self.cpp_nlist == None:
-			print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
-			raise RuntimeError('Error benchmarking neighbor list');
-		
-		# run the benchmark
-		return self.cpp_nlist.benchmark(int(n))
-			
+    ## Benchmarks the neighbor list computation
+    # \param n Number of iterations to average the benchmark over
+    #
+    # \b Examples:
+    # \code
+    # t = nlist.benchmark(n = 100)
+    # \endcode
+    #
+    # The value returned by benchmark() is the average time to perform the neighbor list 
+    # computation, in milliseconds. The benchmark is performed by taking the current
+    # positions of all particles in the simulation and repeatedly calculating the neighbor list.
+    # Thus, you can benchmark different situations as you need to by simply 
+    # running a simulation to achieve the desired state before running benchmark().
+    #
+    # \note
+    # There is, however, one subtle side effect. If the benchmark() command is run 
+    # directly after the particle data is initialized with an init command, then the 
+    # results of the benchmark will not be typical of the time needed during the actual
+    # simulation. Particles are not reordered to improve cache performance until at least
+    # one time step is performed. Executing run(1) before the benchmark will solve this problem.
+    #
+    def benchmark(self, n):
+        # check that we have been initialized properly
+        if self.cpp_nlist == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
+            raise RuntimeError('Error benchmarking neighbor list');
+        
+        # run the benchmark
+        return self.cpp_nlist.benchmark(int(n))
+            
 ## \internal
 # \brief Creates the global neighbor list
 # \details
@@ -482,22 +486,22 @@ class nlist:
 # If no neighbor list has been created, create one. If there is one, increase its r_cut value
 # to be the maximum of the current and the one specified here
 def _update_global_nlist(r_cut):
-	# check to see if we need to create the neighbor list
-	if globals.neighbor_list == None:
-		globals.neighbor_list = nlist(r_cut);
-		# set the global neighbor list using the evil import __main__ trick to provide the user with a default variable
-		import __main__;
-		__main__.nlist = globals.neighbor_list;
-		
-	else:
-		# otherwise, we need to update r_cut
-		new_r_cut = max(r_cut, globals.neighbor_list.r_cut);
-		globals.neighbor_list.r_cut = new_r_cut;
-		globals.neighbor_list.cpp_nlist.setRCut(new_r_cut, globals.neighbor_list.r_buff);
-	
-	return globals.neighbor_list;
-	
-	
+    # check to see if we need to create the neighbor list
+    if globals.neighbor_list == None:
+        globals.neighbor_list = nlist(r_cut);
+        # set the global neighbor list using the evil import __main__ trick to provide the user with a default variable
+        import __main__;
+        __main__.nlist = globals.neighbor_list;
+        
+    else:
+        # otherwise, we need to update r_cut
+        new_r_cut = max(r_cut, globals.neighbor_list.r_cut);
+        globals.neighbor_list.r_cut = new_r_cut;
+        globals.neighbor_list.cpp_nlist.setRCut(new_r_cut, globals.neighbor_list.r_buff);
+    
+    return globals.neighbor_list;
+    
+    
 ## Lennard-Jones %pair %force
 #
 # The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
@@ -505,24 +509,26 @@ def _update_global_nlist(r_cut):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+# \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#           = & 0           & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where \f$ V(r) \f$ is chosen by a mode switch (see set_params())
 # \f{eqnarray*}
-#	V(r)  = & V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ no\_shift} \\
-#			 = & V_{\mathrm{LJ}}(r) - V_{\mathrm{LJ}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift}	\\
-#			 = & S(r) \cdot V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ xplor}	\\
-#	\f}
+# V(r)  = & V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ no\_shift} \\
+#       = & V_{\mathrm{LJ}}(r) - V_{\mathrm{LJ}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
+#       = & S(r) \cdot V_{\mathrm{LJ}}(r) & \mathrm{mode\ is\ xplor} \\
+# \f}
 # , \f$ S(r) \f$ is the XPLOR smoothing function
 # \f{eqnarray*} 
-#	S(r) = & 1 & r < r_{\mathrm{on}} \\
-#	= & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 - 3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3} & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
+# S(r) = & 1 & r < r_{\mathrm{on}} \\
+#      = & \frac{(r_{\mathrm{cut}}^2 - r^2)^2 \cdot (r_{\mathrm{cut}}^2 + 2r^2 - 
+#          3r_{\mathrm{on}}^2)}{(r_{\mathrm{cut}}^2 - r_{\mathrm{on}}^2)^3} 
+#        & r_{\mathrm{on}} \le r \le r_{\mathrm{cut}} \\
 #  = & 0 & r > r_{\mathrm{cut}} \\
 # \f}
 # , with \f$ r_{\mathrm{on}} = \lambda \cdot r_{\mathrm{cut}} \f$,
 # \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+#                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 # ,
 # and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
@@ -543,112 +549,114 @@ def _update_global_nlist(r_cut):
 #
 # The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.lj is specified (see __init__())
 class lj(force._force):
-	## Specify the Lennard-Jones %pair %force
-	#
-	# \param r_cut Cutoff radius (see documentation above)
-	#
-	# \b Example:
-	# \code
-	# lj = pair.lj(r_cut=3.0)
-	# lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
-	# \endcode
-	#
-	# \note Pair coefficients for all type pairs in the simulation must be
-	# set before it can be started with run()
-	def __init__(self, r_cut, slj=False):
-		util.print_status_line();
-		
-		# initialize the base class
-		force._force.__init__(self);
+    ## Specify the Lennard-Jones %pair %force
+    #
+    # \param r_cut Cutoff radius (see documentation above)
+    #
+    # \b Example:
+    # \code
+    # lj = pair.lj(r_cut=3.0)
+    # lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+    # \endcode
+    #
+    # \note Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, slj=False):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self);
 
-		r_cut_wc = r_cut;
-		
-		# Set neighborcutoff correctly if diameter shifted LJ will be used
-		if slj == True:		
-			maxdiam = globals.system_definition.getParticleData().getMaximumDiameter();
-			r_cut_wc = r_cut + maxdiam - 1.0;	
-		
-		# update the neighbor list
-		neighbor_list = _update_global_nlist(r_cut_wc);
-		
-		# create the c++ mirror class
-		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.LJForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.LJForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
-		else:
-			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-			raise RuntimeError("Error creating lj pair force");
-			
-			
-		globals.system.addCompute(self.cpp_force, self.force_name);
-		
-		# setup the coefficent matrix
-		self.pair_coeff = coeff();
-		
-		# Determine if diameter shifted LJ will be used
-		if slj != False:		
-			self.cpp_force.setSLJ(True)			
-		
-		
-	def update_coeffs(self):
-		# check that the pair coefficents are valid
-		if not self.pair_coeff.verify("epsilon", "sigma", "alpha"):
-			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.lj\n";
-			raise RuntimeError("Error updating pair coefficients");
-		
-		# set all the params
-		ntypes = globals.system_definition.getParticleData().getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-		
-		for i in xrange(0,ntypes):
-			for j in xrange(i,ntypes):
-				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
-				sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
-				alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
-				
-				lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
-				lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-				self.cpp_force.setParams(i, j, lj1, lj2);
-				
-	## Set parameters controlling the way forces are computed
-	#
-	# \param mode (if set) Set the mode with which potentials are handled at the cutoff
-	# \param fraction (if set) Change the fraction of \f$ r_{\mathrm{cut}} \f$ at which the XPLOR smoothing starts (default is 2.0/3.0). Only applies of \a mode is set to "xplor"
-	#
-	# valid values for \a mode are: "none" (the default), "shift", and "xplor"
-	#  - \b none - No shifting is performed and potentials are abruptly cut off
-	#  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-	#  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the cutoff
-	# (see above for formulas and more information)
-	#
-	# \b Examples:
-	# \code
-	# lj.set_params(mode="shift")
-	# lj.set_params(mode="no_shift")
-	# lj.set_params(mode="xplor", xplor_factor = 0.5)
-	# \endcode	
-	# 
-	def set_params(self, mode=None, fraction=None):
-		util.print_status_line();
-		
-		if mode != None:
-			if mode == "no_shift":
-				self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.no_shift)
-			elif mode == "shift":
-				self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.shift)
-			elif mode == "xplor":
-				self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.xplor)					
-			else:
-				print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-				raise RuntimeError("Error creating lj pair force");								
-		if fraction != None:
-			self.cpp_force.setXplorFraction(fraction);
-			
+        r_cut_wc = r_cut;
+        
+        # Set neighborcutoff correctly if diameter shifted LJ will be used
+        if slj == True:
+            maxdiam = globals.system_definition.getParticleData().getMaximumDiameter();
+            r_cut_wc = r_cut + maxdiam - 1.0;
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut_wc);
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.LJForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.LJForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating lj pair force");
+            
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent matrix
+        self.pair_coeff = coeff();
+        
+        # Determine if diameter shifted LJ will be used
+        if slj != False:
+            self.cpp_force.setSLJ(True)
+        
+        
+    def update_coeffs(self):
+        # check that the pair coefficents are valid
+        if not self.pair_coeff.verify("epsilon", "sigma", "alpha"):
+            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.lj\n";
+            raise RuntimeError("Error updating pair coefficients");
+        
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        for i in xrange(0,ntypes):
+            for j in xrange(i,ntypes):
+                epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
+                sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
+                alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
+                
+                lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+                lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+                self.cpp_force.setParams(i, j, lj1, lj2);
+                
+    ## Set parameters controlling the way forces are computed
+    #
+    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
+    # \param fraction (if set) Change the fraction of \f$ r_{\mathrm{cut}} \f$ at which the XPLOR smoothing starts 
+    #        (default is 2.0/3.0). Only applies of \a mode is set to "xplor"
+    #
+    # valid values for \a mode are: "none" (the default), "shift", and "xplor"
+    #  - \b none - No shifting is performed and potentials are abruptly cut off
+    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+    #  - \b xplor - A smoothing function is applied to gradually decrease both the force and potential to 0 at the 
+    #               cutoff
+    # (see above for formulas and more information)
+    #
+    # \b Examples:
+    # \code
+    # lj.set_params(mode="shift")
+    # lj.set_params(mode="no_shift")
+    # lj.set_params(mode="xplor", xplor_factor = 0.5)
+    # \endcode
+    # 
+    def set_params(self, mode=None, fraction=None):
+        util.print_status_line();
+        
+        if mode != None:
+            if mode == "no_shift":
+                self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.no_shift)
+            elif mode == "shift":
+                self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.shift)
+            elif mode == "xplor":
+                self.cpp_force.setShiftMode(hoomd.LJForceCompute.energyShiftMode.xplor)
+            else:
+                print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+                raise RuntimeError("Error creating lj pair force");
+        if fraction != None:
+            self.cpp_force.setXplorFraction(fraction);
+            
 ## CMM coarse-grain model %pair %force
 #
 # The command pair.cgcmm specifies that a special version of Lennard-Jones type %pair %force
@@ -658,18 +666,18 @@ class lj(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V_{\mathrm{LJ}}(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+# \vec{F}  = & -\nabla V_{\mathrm{LJ}}(r) & r < r_{\mathrm{cut}} \\
+#          = & 0                          & r \ge r_{\mathrm{cut}} \\
+# \f}
 # with being either
 # \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
+#                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
 # or
 # \f[ V_{\mathrm{LJ}}(r) = \frac{27}{4} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{9} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
+#                                                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f],
 # or
 # \f[ V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-# 									\alpha \left( \frac{\sigma}{r} \right)^{4} \right] \f],
+#                                                            \alpha \left( \frac{\sigma}{r} \right)^{4} \right] \f],
 # and \f$ \vec{r} \f$ being the vector pointing from one particle to the other in the %pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See pair or 
@@ -691,80 +699,80 @@ class lj(force._force):
 # The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
 
 class cgcmm(force._force):
-	## Specify the CG-CMM Lennard-Jones %pair %force
-	#
-	# \param r_cut Cuttoff radius (see documentation above)
-	#
-	# \b Example:
-	# \code
-	# cg1 = pair.cgcmm(r_cut=3.0)
-	# cg1.pair_coeff.set('A', 'A', epsilon=0.5, sigma=1.0, alpha=1.0, exponents='lj12_4')
-	# \endcode
-	#
-	# \note Pair coefficients for all type pairs in the simulation must be
-	# set before it can be started with run()
-	def __init__(self, r_cut):
-		util.print_status_line();
-		
-		# initialize the base class
-		force._force.__init__(self);
-		
-		# update the neighbor list
-		neighbor_list = _update_global_nlist(r_cut);
-		
-		# create the c++ mirror class
-		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
-		else:
-			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-			raise RuntimeError("Error creating cgcmm pair force");
-			
-			
-		globals.system.addCompute(self.cpp_force, self.force_name);
-		
-		# setup the coefficent matrix
-		self.pair_coeff = coeff();
-		
-	def update_coeffs(self):
-		# check that the pair coefficents are valid
-		if not self.pair_coeff.verify("epsilon", "sigma", "alpha", "exponents"):
-			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.cgcmm\n";
-			raise RuntimeError("Error updating pair coefficients");
-		
-		# set all the params
-		ntypes = globals.system_definition.getParticleData().getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-		
-		for i in xrange(0,ntypes):
-			for j in xrange(i,ntypes):
-				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
-				sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
-				alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
-				exponents = self.pair_coeff.get(type_list[i], type_list[j], "exponents");
-				# we support three variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
-				if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
-                                        prefactor = 2.59807621135332
-					lja = prefactor * epsilon * math.pow(sigma, 12.0);
-					ljb = -alpha * prefactor * epsilon * math.pow(sigma, 4.0);
-					self.cpp_force.setParams(i, j, lja, 0.0, 0.0, ljb);
-				elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
-					prefactor = 6.75
-					lja = prefactor * epsilon * math.pow(sigma, 9.0);
-					ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
-					self.cpp_force.setParams(i, j, 0.0, lja, ljb, 0.0);
-				elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
-					prefactor = 4.0
-					lja = prefactor * epsilon * math.pow(sigma, 12.0);
-					ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
-					self.cpp_force.setParams(i, j, lja, 0.0, ljb, 0.0);
-				else:
-					raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
+    ## Specify the CG-CMM Lennard-Jones %pair %force
+    #
+    # \param r_cut Cuttoff radius (see documentation above)
+    #
+    # \b Example:
+    # \code
+    # cg1 = pair.cgcmm(r_cut=3.0)
+    # cg1.pair_coeff.set('A', 'A', epsilon=0.5, sigma=1.0, alpha=1.0, exponents='lj12_4')
+    # \endcode
+    #
+    # \note Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.CGCMMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.CGCMMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.cgcmm'));
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating cgcmm pair force");
+            
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent matrix
+        self.pair_coeff = coeff();
+        
+    def update_coeffs(self):
+        # check that the pair coefficents are valid
+        if not self.pair_coeff.verify("epsilon", "sigma", "alpha", "exponents"):
+            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.cgcmm\n";
+            raise RuntimeError("Error updating pair coefficients");
+        
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        for i in xrange(0,ntypes):
+            for j in xrange(i,ntypes):
+                epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
+                sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
+                alpha = self.pair_coeff.get(type_list[i], type_list[j], "alpha");
+                exponents = self.pair_coeff.get(type_list[i], type_list[j], "exponents");
+                # we support three variants 124 (native), lj12_4 (LAMMPS), LJ12-4 (MPDyn)
+                if (exponents == 124) or  (exponents == 'lj12_4') or  (exponents == 'LJ12-4') :
+                    prefactor = 2.59807621135332
+                    lja = prefactor * epsilon * math.pow(sigma, 12.0);
+                    ljb = -alpha * prefactor * epsilon * math.pow(sigma, 4.0);
+                    self.cpp_force.setParams(i, j, lja, 0.0, 0.0, ljb);
+                elif (exponents == 96) or  (exponents == 'lj9_6') or  (exponents == 'LJ9-6') :
+                    prefactor = 6.75
+                    lja = prefactor * epsilon * math.pow(sigma, 9.0);
+                    ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
+                    self.cpp_force.setParams(i, j, 0.0, lja, ljb, 0.0);
+                elif (exponents == 126) or  (exponents == 'lj12_6') or  (exponents == 'LJ12-6') :
+                    prefactor = 4.0
+                    lja = prefactor * epsilon * math.pow(sigma, 12.0);
+                    ljb = -alpha * prefactor * epsilon * math.pow(sigma, 6.0);
+                    self.cpp_force.setParams(i, j, lja, 0.0, ljb, 0.0);
+                else:
+                    raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
 ## Gaussian %pair %force
 #
 # The command pair.gauss specifies that a Gaussian type %pair %force should be added to every
@@ -772,14 +780,14 @@ class cgcmm(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+#   \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#            = & 0            & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where \f$ V(r) \f$ is chosen by a mode switch (see set_params())
 # \f{eqnarray*}
-#	V(r)  = & V_{\mathrm{gauss}}(r) & \mathrm{mode\ is\ no\_shift} \\
-#			 = & V_{\mathrm{gauss}}(r) - V_{\mathrm{gauss}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift}	\\
-#	\f}
+# V(r)  = & V_{\mathrm{gauss}}(r) & \mathrm{mode\ is\ no\_shift} \\
+#       = & V_{\mathrm{gauss}}(r) - V_{\mathrm{gauss}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
+# \f}
 # ,
 # \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
 # ,
@@ -800,91 +808,91 @@ class cgcmm(force._force):
 #
 # The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.gauss is specified (see __init__())
 class gauss(force._force):
-	## Specify the Gaussian %pair %force
-	#
-	# \param r_cut Cutoff radius (see documentation above)
-	#
-	# \b Example:
-	# \code
-	# gauss = pair.gauss(r_cut=3.0)
-	# gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.5)
-	# \endcode
-	#
-	# \note Pair coefficients for all type pairs in the simulation must be
-	# set before it can be started with run()
-	def __init__(self, r_cut):
-		util.print_status_line();
-		
-		# initialize the base class
-		force._force.__init__(self);
-		
-		# update the neighbor list
-		neighbor_list = _update_global_nlist(r_cut);
-		
-		# create the c++ mirror class
-		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.GaussianForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.GaussianForceGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
-		else:
-			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-			raise RuntimeError("Error creating gauss pair force");
-			
-			
-		globals.system.addCompute(self.cpp_force, self.force_name);
-		
-		# setup the coefficent matrix
-		self.pair_coeff = coeff();
-		
-	def update_coeffs(self):
-		# check that the pair coefficents are valid
-		if not self.pair_coeff.verify("epsilon", "sigma"):
-			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.gauss\n";
-			raise RuntimeError("Error updating pair coefficients");
-		
-		# set all the params
-		ntypes = globals.system_definition.getParticleData().getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-		
-		for i in xrange(0,ntypes):
-			for j in xrange(i,ntypes):
-				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
-				sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
-				
-				self.cpp_force.setParams(i, j, epsilon, sigma);
-				
-	## Set parameters controlling the way forces are computed
-	#
-	# \param mode (if set) Set the mode with which potentials are handled at the cutoff
-	#
-	# valid values for \a mode are: "none" (the default), and "shift"
-	#  - \b none - No shifting is performed and potentials are abruptly cut off
-	#  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-	# (see above for formulas and more information)
-	#
-	# \b Examples:
-	# \code
-	# gauss.set_params(mode="shift")
-	# gauss.set_params(mode="no_shift")
-	# \endcode	
-	#
-	def set_params(self, mode=None):
-		util.print_status_line();
-		
-		if mode != None:
-			if mode == "no_shift":
-				self.cpp_force.setShiftMode(hoomd.GaussianForceCompute.energyShiftMode.no_shift)
-			elif mode == "shift":
-				self.cpp_force.setShiftMode(hoomd.GaussianForceCompute.energyShiftMode.shift)
-			else:
-				print >> sys.stderr, "\n***Error: invalid mode", mode, "\n";
-				raise RuntimeError("Error setting gauss parameters");
+    ## Specify the Gaussian %pair %force
+    #
+    # \param r_cut Cutoff radius (see documentation above)
+    #
+    # \b Example:
+    # \code
+    # gauss = pair.gauss(r_cut=3.0)
+    # gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.5)
+    # \endcode
+    #
+    # \note Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.GaussianForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.GaussianForceGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating gauss pair force");
+            
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent matrix
+        self.pair_coeff = coeff();
+        
+    def update_coeffs(self):
+        # check that the pair coefficents are valid
+        if not self.pair_coeff.verify("epsilon", "sigma"):
+            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.gauss\n";
+            raise RuntimeError("Error updating pair coefficients");
+        
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        for i in xrange(0,ntypes):
+            for j in xrange(i,ntypes):
+                epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
+                sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
+                
+                self.cpp_force.setParams(i, j, epsilon, sigma);
+                
+    ## Set parameters controlling the way forces are computed
+    #
+    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
+    #
+    # valid values for \a mode are: "none" (the default), and "shift"
+    #  - \b none - No shifting is performed and potentials are abruptly cut off
+    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+    # (see above for formulas and more information)
+    #
+    # \b Examples:
+    # \code
+    # gauss.set_params(mode="shift")
+    # gauss.set_params(mode="no_shift")
+    # \endcode
+    #
+    def set_params(self, mode=None):
+        util.print_status_line();
+        
+        if mode != None:
+            if mode == "no_shift":
+                self.cpp_force.setShiftMode(hoomd.GaussianForceCompute.energyShiftMode.no_shift)
+            elif mode == "shift":
+                self.cpp_force.setShiftMode(hoomd.GaussianForceCompute.energyShiftMode.shift)
+            else:
+                print >> sys.stderr, "\n***Error: invalid mode", mode, "\n";
+                raise RuntimeError("Error setting gauss parameters");
 
-		
+        
 ## Yukawa %pair %force
 #
 # The command pair.yukawa specifies that a Yukawa type %pair %force should be added to every
@@ -892,9 +900,9 @@ class gauss(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}}		\\
-#			 = & 0 			& r \ge r_{\mathrm{cut}}	\\
-#	\f}
+# \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
+#          = & 0            & r \ge r_{\mathrm{cut}} \\
+# \f}
 # where
 # \f[ V(r) = 4 \varepsilon \frac{ e^{\kappa r}}{r} \f]
 # and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
@@ -910,61 +918,61 @@ class gauss(force._force):
 #
 # The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.yukawa is specified (see __init__())
 class yukawa(force._force):
-	## Specify the Yukawa %pair %force
-	#
-	# \param r_cut Cuttoff radius (see documentation above)
-	# \param kappa Screening Length
-	#
-	# \b Example:
-	# \code
-	# myforce = pair.yukawa(r_cut=3.0, kappa = 5.0)
-	# myforce.pair_coeff.set('A', 'A', epsilon=1.0)
-	# \endcode
-	#
-	# \note Pair coefficients for all type pairs in the simulation must be
-	# set before it can be started with run()
-	def __init__(self, r_cut, kappa):
-		util.print_status_line();
-		
-		# initialize the base class
-		force._force.__init__(self);
-		
-		# update the neighbor list
-		neighbor_list = _update_global_nlist(r_cut);
-		
-		# create the c++ mirror class
-		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.YukawaForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut, kappa);
-		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.YukawaForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut, kappa);
-		else:
-			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-			raise RuntimeError("Error creating yukawa pair force");
-			
-			
-		globals.system.addCompute(self.cpp_force, self.force_name);
-		
-		# setup the coefficent matrix
-		self.pair_coeff = coeff();
-		
-	def update_coeffs(self):
-		# check that the pair coefficents are valid
-		if not self.pair_coeff.verify("epsilon"):
-			print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.yukawa\n";
-			raise RuntimeError("Error updating pair coefficients");
-		
-		# set all the params
-		ntypes = globals.system_definition.getParticleData().getNTypes();
-		type_list = [];
-		for i in xrange(0,ntypes):
-			type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-		
-		for i in xrange(0,ntypes):
-			for j in xrange(i,ntypes):
-				epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
-				
-				self.cpp_force.setParams(i, j, epsilon);
+    ## Specify the Yukawa %pair %force
+    #
+    # \param r_cut Cuttoff radius (see documentation above)
+    # \param kappa Screening Length
+    #
+    # \b Example:
+    # \code
+    # myforce = pair.yukawa(r_cut=3.0, kappa = 5.0)
+    # myforce.pair_coeff.set('A', 'A', epsilon=1.0)
+    # \endcode
+    #
+    # \note Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, kappa):
+        util.print_status_line();
+        
+        # initialize the base class
+        force._force.__init__(self);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.YukawaForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut, kappa);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.YukawaForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut, kappa);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating yukawa pair force");
+            
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent matrix
+        self.pair_coeff = coeff();
+        
+    def update_coeffs(self):
+        # check that the pair coefficents are valid
+        if not self.pair_coeff.verify("epsilon"):
+            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.yukawa\n";
+            raise RuntimeError("Error updating pair coefficients");
+        
+        # set all the params
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        for i in xrange(0,ntypes):
+            for j in xrange(i,ntypes):
+                epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
+                
+                self.cpp_force.setParams(i, j, epsilon);
 
 ## Tabulated %pair %force
 #
@@ -973,16 +981,16 @@ class yukawa(force._force):
 #
 # The %force \f$ \vec{F}\f$ is
 # \f{eqnarray*}
-#	\vec{F}(\vec{r})    = & 0 			& r < r_{\mathrm{min}} \\
+#  \vec{F}(\vec{r})     = & 0                           & r < r_{\mathrm{min}} \\
 #                       = & F_{\mathrm{user}}(r)\hat{r} & r < r_{\mathrm{max}} \\
-#                       = & 0 			& r \ge r_{\mathrm{max}} \\
-#	\f}
+#                       = & 0                           & r \ge r_{\mathrm{max}} \\
+# \f}
 # and the potential \f$ V(r) \f$ is
 # \f{eqnarray*}
-#	V(r)     = & 0 			& r < r_{\mathrm{min}} \\
+# V(r)       = & 0                    & r < r_{\mathrm{min}} \\
 #            = & V_{\mathrm{user}}(r) & r < r_{\mathrm{max}} \\
-#			 = & 0 			& r \ge r_{\mathrm{max}} \\
-#	\f}
+#            = & 0                    & r \ge r_{\mathrm{max}} \\
+# \f}
 # ,where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
 #
 # \f$  F_{\mathrm{user}}(r) \f$ and \f$ V_{\mathrm{user}}(r) \f$ are evaluated on \a width grid points between 
@@ -1067,7 +1075,7 @@ class table(force._force):
         for i in xrange(0, self.width):
             r = rmin + dr * i;
             (V,F) = func(r, rmin, rmax, **coeff);
-                 
+                
             # fill out the tables
             Vtable.append(V);
             Ftable.append(F);
@@ -1106,3 +1114,4 @@ class table(force._force):
         
         # update the neighbor list with the found maximum rmax
         _update_global_nlist(maxrmax);
+
