@@ -4,7 +4,6 @@
 #################################
 ## write a C++ include file and a hoomd_config.h file
 option(ENABLE_PLUGINAPI "Create headers and library variables to link c++ codes to the hoomd library" OFF)
-mark_as_advanced(ENABLE_PLUGINAPI)
 
 if (ENABLE_PLUGINAPI)
 # set up a hoomd_config.h file to include the appropriate precompiler directives
