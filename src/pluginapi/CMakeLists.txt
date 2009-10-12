@@ -12,7 +12,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.h.cmake ${CMAKE_CURRENT_BINARY
 ## set up a "hoomd.h" header file that includes the "config.h" file as well as the other headers 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "#ifndef _HOOMD_H\n#define _HOOMD_H\n\n")
 file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "#include \"config.h\"\n") 
-file(GLOB HEADER_FILES "${HOOMD_SOURCE_DIR}/*/*.h")
+file(GLOB HEADER_FILES "${HOOMD_SOURCE_DIR}/analyzers/*.h" "${HOOMD_SOURCE_DIR}/computes*/*.h" 
+                       "${HOOMD_SOURCE_DIR}/data_structures/*.h" "${HOOMD_SOURCE_DIR}/extern/*.h" 
+                       "${HOOMD_SOURCE_DIR}/system/*.h" "${HOOMD_SOURCE_DIR}/updaters*/*.h"
+                       "${HOOMD_SOURCE_DIR}/utils/*.h" "${HOOMD_BINARY_DIR}/utils/HOOMDVersion.h")
 foreach(_FILENAME ${HEADER_FILES})
     get_filename_component(_FILENAMENOPATH ${_FILENAME} NAME)
     string(REGEX MATCH "GPU" _MATCH "${_FILENAME}")
@@ -29,7 +32,7 @@ endforeach(_FILENAME ${HEADER_FILES})
 file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "\n#endif\n\n")
 
 # copy the headers into the include/hoomd folder
-file(GLOB files "${HOOMD_SOURCE_DIR}/*/*h")
+file(GLOB files "${HOOMD_SOURCE_DIR}/*/*h" "${HOOMD_BINARY_DIR}/utils/HOOMDVersion.h")
 install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
 file(GLOB files "${CMAKE_CURRENT_BINARY_DIR}/*.h")
 install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
