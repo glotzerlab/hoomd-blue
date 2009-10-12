@@ -48,6 +48,9 @@ do
         --libs)
         echo -n " @PLUGINAPI_LIBS@ "
         ;;
+        --ldpath)
+        echo -n "${HOOMD_ROOT}/@_HOOMD_LIB_RELPATH@"
+        ;;
         *)
         echo "Unknown option $i"
         ;;

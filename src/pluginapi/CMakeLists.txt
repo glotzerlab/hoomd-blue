@@ -42,7 +42,12 @@ set (PLUGINAPI_LIBS "")
 # the name of the hoomd library for linking changes between static and dynamic builds
 get_target_property(_HOOMD_LIB_LOC hoomd_python_module LOCATION)
 get_filename_component(_HOOMD_LIB_NAME ${_HOOMD_LIB_LOC} NAME)
-set(PLUGINAPI_LIBS "${PLUGINAPI_LIBS} \${HOOMD_ROOT}/lib/${_HOOMD_LIB_NAME} ")
+if (ENABLE_STATIC)
+set (_HOOMD_LIB_RELPATH "lib")
+else (ENABLE_STATIC)
+set (_HOOMD_LIB_RELPATH "lib/hoomd/python-module")
+endif (ENABLE_STATIC)
+set(PLUGINAPI_LIBS "${PLUGINAPI_LIBS} \${HOOMD_ROOT}/${_HOOMD_LIB_RELPATH}/${_HOOMD_LIB_NAME} ")
 
 # add all the common libs
 set (_SKIP_THIS_AND_NEXT 0)

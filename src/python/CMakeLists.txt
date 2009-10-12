@@ -63,7 +63,14 @@ if (ENABLE_STATIC)
         PROPERTIES PREFIX ""
         OUTPUT_NAME "hoomd"
         )
-    
+
+    # change the library name to something more sensible
+    set_target_properties(hoomd_python_module PROPERTIES OUTPUT_NAME "hoomd")
+    if (ENABLE_PLUGINAPI)
+    install(TARGETS hoomd_python_module
+        ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR})
+    endif (ENABLE_PLUGINAPI)
+
     # install the executable
     install(TARGETS hoomd
         RUNTIME DESTINATION ${LIB_INSTALL_DIR}
@@ -99,14 +106,6 @@ if (ENABLE_STATIC)
     endif (MSVC)
     
 endif (ENABLE_STATIC)
-
-if (ENABLE_PLUGINAPI)
-install(TARGETS hoomd_python_module         
-        RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-        LIBRARY DESTINATION ${LIB_BASE_INSTALL_DIR}
-        ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR})    
-endif (ENABLE_PLUGINAPI)
-
 
 #################################
 ## Create source file groups
