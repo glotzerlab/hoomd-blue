@@ -34,10 +34,14 @@ install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
 file(GLOB files "${CMAKE_CURRENT_BINARY_DIR}/*.h")
 install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
 
-## write a list of libraries used for linking.
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "#!/bin/bash\n\n")
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "HOOMD_LINK_LIBS=\" \\\n")
-#message(STATUS ${HOOMD_COMMON_LIBS})
+## build a list of libraries used for linking.
+set (PLUGINAPI_LIBS "")
+# the name of the hoomd library for linking changes between static and dynamic builds
+get_target_property(_HOOMD_LIB_LOC hoomd_python_module LOCATION)
+get_filename_component(_HOOMD_LIB_NAME ${_HOOMD_LIB_LOC} NAME)
+set(PLUGINAPI_LIBS "${PLUGINAPI_LIBS} \${HOOMD_ROOT}/lib/${_HOOMD_LIB_NAME} ")
+
+# add all the common libs
 set (_SKIP_THIS_AND_NEXT 0)
 set (_SKIP_THIS 0)
 foreach(_LIBRARY ${HOOMD_COMMON_LIBS})
@@ -48,14 +52,28 @@ foreach(_LIBRARY ${HOOMD_COMMON_LIBS})
         set (_SKIP_THIS 0)
         string(COMPARE EQUAL ${_LIBRARY} "optimized" _SKIP_THIS)
         if (NOT _SKIP_THIS AND NOT _SKIP_THIS_AND_NEXT)
-            file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "${_LIBRARY} \\\n")
+            set(PLUGINAPI_LIBS "${PLUGINAPI_LIBS} ${_LIBRARY} ")
         endif (NOT _SKIP_THIS AND NOT _SKIP_THIS_AND_NEXT)
     endif (_SKIP_THIS_AND_NEXT)
 endforeach(_LIBRARY ${HOOMD_COMMON_LIBS})
 
-# the name of the hoomd library for linking changes between static and dynamic builds
-get_target_property(_HOOMD_LIB_LOC hoomd_python_module LOCATION)
-get_filename_component(_HOOMD_LIB_NAME ${_HOOMD_LIB_LOC} NAME)
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "${CMAKE_INSTALL_PREFIX}/lib/${_HOOMD_LIB_NAME} \\\n")
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd_linker_setup.sh "-I${CMAKE_INSTALL_PREFIX}/include/hoomd\"")
+# add cudart (if CUDA is enabled)
+if (ENABLE_CUDA)
+set(PLUGINAPI_LIBS "${PLUGINAPI_LIBS} ${CUDA_CUDART_LIBRARY} ")
+endif (ENABLE_CUDA)
+
+## build a list of include directories needed
+set (PLUGINAPI_CFLAGS "")
+set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -I\${HOOMD_ROOT}/include/hoomd ")
+set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -isystem ${Boost_INCLUDE_DIR} ")
+set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -I${PYTHON_INCLUDE_PATH} ")
+
+if (ENABLE_CUDA)
+set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -I${CUDA_INCLUDE_DIRS} ")
+endif (ENABLE_CUDA)
+
+# configure the compiler options script and install it
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd-config.sh.in ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.sh @ONLY)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.sh DESTINATION ${BIN_INSTALL_DIR})
+
 endif (ENABLE_PLUGINAPI)
