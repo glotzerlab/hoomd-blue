@@ -53,10 +53,11 @@
 #include <string>
 #include <vector>
 
-//! Interface class for file format i/o through the molfile plugins from VMD.
-/*! Each instance of MolFilePlugin acts as a proxy for the corresponding
+/*! Interface class for file format i/o through the molfile plugins from VMD.
+  Each instance of MolFilePlugin acts as a proxy for the corresponding
   plugin from the molfile library and provides a plugin API independent
   interface to the required functionality, as far it is supported.
+  
   \ingroup utils
 */
 class MolFilePlugin
@@ -88,10 +89,11 @@ class MolFilePlugin
             return plugin_name;
             }
         
-        //! Compares plugin version information against external numbers.
-        // \param major major version number of external plugin
-        // \param minor minor version number of external plugin
-        // \return  1, 0, or -1, if the new plugin version is higher, same, or lower.
+        /*! Compares plugin version information against external numbers.
+          \param major major version number of external plugin
+          \param minor minor version number of external plugin
+          \return  1, 0, or -1, if the new plugin version is higher, same, or lower.
+        */
         int check_version(const int major, const int minor) const 
             {
             if (major > m_major)

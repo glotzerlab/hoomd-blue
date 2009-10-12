@@ -65,15 +65,21 @@
 using namespace boost::python;
 using namespace std;
 
-// C bindings for plugin function pointers
 extern "C" 
     {
+    //! define C binding for plugin initialize function pointer
     typedef int (*initfunc)(void);
+    //! define C binding for plugin register function pointer
     typedef int (*regfunc)(void *, vmdplugin_register_cb);
+    //! define C binding for plugin release function pointer
     typedef int (*finifunc)(void);
     }
 
-//! plugin registration callback function
+/*! Plugin registration callback function
+  \param v opaque pointer to the plugin manager class
+  \param plugin pointer to the plugin struct to be registered.
+  \return -1 if failed, 0 if successful or plugin already registerd.
+*/
 static int molfile_register_cb(void *v, vmdplugin_t *plugin) 
     {
     MolFilePluginMgr *mgr = (MolFilePluginMgr *)v;
@@ -105,19 +111,45 @@ static int molfile_register_cb(void *v, vmdplugin_t *plugin)
     return 0;
     }
 
-//! \param p opaque pointer to the plugin struct.
+/*! Public MolFilePlugin constructor. 
+  \param p opaque pointer to the plugin struct.
+
+  \note To be called from the plugin register callback.
+*/
 MolFilePlugin::MolFilePlugin(void *p)
     {
-    molfile_plugin_t *mfp = (molfile_plugin_t *)p;
-    m_major = mfp->majorv;
-    m_minor = mfp->minorv;
-    plugin_type = string(mfp->name);
-    plugin_name = string(mfp->prettyname);
-    plugin = p;
-    handle = NULL;
+    if (p != 0) 
+        {
+        molfile_plugin_t *mfp = (molfile_plugin_t *)p;
+        m_major = mfp->majorv;
+        m_minor = mfp->minorv;
+        plugin_type = string(mfp->name);
+        plugin_name = string(mfp->prettyname);
+        plugin = p;
+        handle = NULL;
+        }
+    else
+        {
+        plugin = 0;
+        m_major = 0;
+        m_minor = 0;
+        plugin_type = string("dummy");
+        plugin_name = string("Dummy molfile plugin");
+        handle = NULL;
+        }
     }
 
-//! \note open files/handles are not copied!
+/*! Copy constructor.
+  \param p plugin proxy class to be copied.
+  
+  The general strategy is the following:
+  Each MolFilePlugin class is responsible for just one file i/o stream.
+  When a new i/o request is made, the file format is handled to the 
+  MolFilePluginMgr class and that creates a copy of the plugin proxy,
+  which then will be used for i/o and so on. 
+ 
+  \note open files/handles are not copied, but there should be none anyways.
+*/
 MolFilePlugin::MolFilePlugin(const MolFilePlugin& p)
     {
     m_major = p.m_major;
@@ -136,8 +168,9 @@ MolFilePlugin::~MolFilePlugin()
 
 MolFilePluginMgr::MolFilePluginMgr()
     {
-    m_plist.reserve(2);
-    m_hlist.reserve(2);
+    // reserve some storage to reduce need for reallocation.
+    m_plist.reserve(64);
+    m_hlist.reserve(64);
     }
 
 MolFilePluginMgr::~MolFilePluginMgr()
@@ -158,14 +191,16 @@ MolFilePluginMgr::~MolFilePluginMgr()
         }
     }
 
-//! Test whether a plugin is suitable. 
-//  We first check if a plugin with the same type string already 
-//  exists and in that case the plugin has to have a higher version
-//  number to be accepted.
-//  \param p opaque pointer to the plugin struct.
-//  \return 0 if the plugin should be appended to the list of plugins,
-//  -1 if the same or a newer plugin is already available, and
-//  any other number >0 if the plugin with that index should be replaces.
+/*! Test whether a plugin is suitable. 
+  \param p opaque pointer to the plugin struct.
+  \return 0 if the plugin should be appended to the list of plugins,
+  -1 if the same or a newer plugin is already available, and
+  any other number >0 if the plugin with that index should be replaces.
+
+  We first check if a plugin with the same type string already 
+  exists and in that case the plugin has to have a higher version
+  number to be accepted.
+*/
 int MolFilePluginMgr::check_plugin(void *p) const
     {
     molfile_plugin_t *mfp = (molfile_plugin_t *)p;
@@ -185,10 +220,11 @@ int MolFilePluginMgr::check_plugin(void *p) const
     return 0;
     }
 
-//!
-// \param idx position at which the 
-// \param p molfile plugin proxy class to be added
-// \return index of plugin in the plugin list or -1.
+/*!
+ \param idx position at which the 
+ \param p molfile plugin proxy class to be added
+ \return index of plugin in the plugin list or -1.
+*/
 int MolFilePluginMgr::add_plugin(const unsigned int idx, MolFilePlugin *p)
     {
     if (idx == 0)
@@ -211,7 +247,9 @@ int MolFilePluginMgr::add_plugin(const unsigned int idx, MolFilePlugin *p)
         }
     }
 
-//! \param dsofile filename of the shared object to load
+/*!
+  \param dsofile filename of the shared object to load
+*/
 void MolFilePluginMgr::loadDSOFile(std::string dsofile)
     {
     void *handle = vmddlopen(dsofile.c_str());
@@ -265,6 +303,7 @@ void MolFilePluginMgr::loadDSOFile(std::string dsofile)
         ((regfunc) rfunc)(this, molfile_register_cb);
     }
 
+//! exports the MolFilePluginMgr class to python.
 void export_MolFilePluginMgr()
     {
     class_<MolFilePluginMgr, boost::shared_ptr<MolFilePluginMgr> >("MolFilePluginMgr", init< >())
