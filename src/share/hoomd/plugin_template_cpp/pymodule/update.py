@@ -45,3 +45,4 @@ class example(_updater):
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating example updater");
         self.setupUpdater(period);
+

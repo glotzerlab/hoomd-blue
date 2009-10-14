@@ -59,3 +59,4 @@ void export_ExampleUpdaterGPU();
 #endif // ENABLE_CUDA
 
 #endif // _EXAMPLE_UPDATER_H_
+

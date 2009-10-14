@@ -43,3 +43,4 @@ cudaError_t gpu_zero_velocities(const gpu_pdata_arrays &pdata)
         return cudaGetLastError();
         }
     }
+

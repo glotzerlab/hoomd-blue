@@ -15,3 +15,4 @@ BOOST_PYTHON_MODULE(_plugin_template)
     export_ExampleUpdaterGPU();
     #endif
     }
+
