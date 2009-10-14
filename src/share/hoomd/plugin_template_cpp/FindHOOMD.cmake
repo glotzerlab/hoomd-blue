@@ -33,9 +33,8 @@ set(HOOMD_ROOT ${_hoomd_root_guess} CACHE PATH "Root directory where HOOMD is in
 
 # search for the hoomd include directory
 find_path(HOOMD_INCLUDE_DIR
-          NAMES hoomd_config.h
+          NAMES hoomd/hoomd_config.h
           HINTS ${HOOMD_ROOT}/include
-          PATH_SUFFIXES hoomd
           )
 
 if (HOOMD_INCLUDE_DIR)
@@ -73,7 +72,7 @@ endif (NOT HOOMD_FOUND)
 if (HOOMD_FOUND)
 
 # read in hoomd_config.h
-file(STRINGS ${HOOMD_INCLUDE_DIR}/hoomd_config.h _hoomd_config_h_lines)
+file(STRINGS ${HOOMD_INCLUDE_DIR}/hoomd/hoomd_config.h _hoomd_config_h_lines)
 # go through all the lines in the file
 foreach(_line ${_hoomd_config_h_lines})
     # if this line is #define VARIABLE
