@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: akohlmey
+// Maintainer: blevine
 
 #include <boost/shared_ptr.hpp>
 

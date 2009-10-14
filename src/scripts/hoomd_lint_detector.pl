@@ -6,8 +6,8 @@ use File::Temp;
 
 # parameters for controlling what gets reported
 my $max_line_len = 121;
-my $overlength_threshold = 25;
-my $astyle_changes_threshold = 25;
+my $overlength_threshold = 10;
+my $astyle_changes_threshold = 10;
 
 my $skip_svn_processing = 0;
 
@@ -133,12 +133,6 @@ sub wanted
     
     # skip processing if this file is in the extern directory
     if ($File::Find::name =~ /\/extern\//)
-        {
-        return;
-        }
-    
-    # skip processing if this file is in the share directory
-    if ($File::Find::name =~ /\/share\//)
         {
         return;
         }

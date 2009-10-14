@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: akohlmey
+// Maintainer: dnlebard
 
 #ifdef WIN32
 #pragma warning( push )
@@ -62,7 +62,7 @@ using namespace std;
 #include "gpu_settings.h"
 #endif
 
-/*! \param sysdef System to compute bond forces on
+/*! \param pdata ParticleData to compute dihedral forces on
 */
 HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
     : HarmonicDihedralForceCompute(sysdef), m_block_size(64)

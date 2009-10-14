@@ -35,10 +35,5 @@ endif (NOT ENABLE_MINIMAL_INSTALL)
 ## install the license file
 install(FILES ${HOOMD_SOURCE_DIR}/LICENSE ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/hoomd_data_dir
         DESTINATION ${DATA_INSTALL_DIR}
-        )
-
-## install the plugin templates
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/plugin_template_cpp
-        DESTINATION ${DATA_INSTALL_DIR}
-        PATTERN ".svn" EXCLUDE
+        CONFIGURATIONS Release
         )

@@ -93,10 +93,10 @@ const Scalar tol = 1e-3;
 
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<SystemDefinition> sysdef,
-                                                   Scalar deltaT,
-                                                   Scalar Temp,
-                                                   unsigned int seed,
-                                                   bool use_diam)> bdnvtup_creator;
+												   Scalar deltaT,
+												   Scalar Temp,
+												   unsigned int seed,
+												   bool use_diam)> bdnvtup_creator;
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec_conf)
@@ -147,8 +147,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             //VarianceE += pow((KE-Scalar(1.5)*1000*Temp),2);
             AvgT += Scalar(2.0)*KE/(3*1000);
@@ -171,8 +170,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
     cout << "Calculating Diffusion Coefficient " << D << endl;
     cout << "Average Temperature " << AvgT << endl;
     
-    // Turning off Variance Check as requires too many calculations to converge for a unit test... 
-    // but have demonstrated that it works
+    // Turning off Variance Check as requires too many calculations to converge for a unit test... but have demonstrated that it works
     //cout << "Energy Variance " << VarianceE <<  " " << 3.0/2.0*Temp*Temp*1000 << endl;
     
     //Dividing a very large number by a very large number... not great accuracy!
@@ -202,8 +200,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             pdata->release();
@@ -249,8 +246,7 @@ void bd_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration exec
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             pdata->release();
@@ -321,8 +317,7 @@ void bd_updater_diamtests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration 
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             pdata->release();
@@ -370,8 +365,7 @@ void bd_updater_diamtests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration 
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             pdata->release();
@@ -453,8 +447,7 @@ void bd_twoparticles_updater_tests(bdnvtup_creator bdnvt_creator, ExecutionConfi
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             pdata->release();
@@ -540,8 +533,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             pdata->release();
@@ -569,8 +561,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
             {
             arrays = pdata->acquireReadWrite();
             KE = Scalar(0);
-            for (int j = 0; j < 1000; j++) 
-                KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
+            for (int j = 0; j < 1000; j++) KE += Scalar(0.5)*(arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
             // mass = 1.0;  k = 1.0;
             AvgT += Scalar(2.0)*KE/(3*1000);
             pdata->release();
@@ -591,10 +582,10 @@ void bd_updater_lj_tests(bdnvtup_creator bdnvt_creator, ExecutionConfiguration e
 
 //! BD_NVTUpdater factory for the unit tests
 shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
-                                                   Scalar deltaT,
-                                                   Scalar Temp,
-                                                   unsigned int seed,
-                                                   bool use_diam)
+												   Scalar deltaT,
+												   Scalar Temp,
+												   unsigned int seed,
+												   bool use_diam)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
     return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdater(sysdef, deltaT, T_variant, seed, use_diam));
@@ -603,10 +594,10 @@ shared_ptr<BD_NVTUpdater> base_class_bdnvt_creator(shared_ptr<SystemDefinition> 
 #ifdef ENABLE_CUDA
 //! BD_NVTUpdaterGPU factory for the unit tests
 shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
-                                            Scalar deltaT,
-                                            Scalar Temp,
-                                            unsigned int seed,
-                                            bool use_diam)
+											Scalar deltaT,
+											Scalar Temp,
+											unsigned int seed,
+											bool use_diam)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
     return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(sysdef, deltaT, T_variant, seed, use_diam));
@@ -653,7 +644,7 @@ BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_diamtests )
     {
     bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_updater_diamtests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bd_updater_diamtests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
     }
 
 //! two particle test for the GPU class
