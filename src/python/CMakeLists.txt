@@ -65,7 +65,11 @@ if (ENABLE_STATIC)
         )
 
     # change the library name to something more sensible
-    set_target_properties(hoomd_python_module PROPERTIES OUTPUT_NAME "hoomd")
+    if (WIN32)
+        set_target_properties(hoomd_python_module PROPERTIES OUTPUT_NAME "libhoomd")
+    else(WIN32)
+        set_target_properties(hoomd_python_module PROPERTIES OUTPUT_NAME "hoomd")
+    endif(WIN32)
     if (ENABLE_PLUGINAPI)
     install(TARGETS hoomd_python_module
         ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR})
