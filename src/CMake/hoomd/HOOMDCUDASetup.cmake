@@ -9,6 +9,8 @@ if (SINGLE_PRECISION)
     if (ENABLE_CUDA)
         find_package(CUDA REQUIRED)
 
+        include_directories(${CUDA_INCLUDE_DIRS})
+
         mark_as_advanced(CUDA_SDK_ROOT_DIR)
         if (CUDA_TOOLKIT_ROOT_DIR)
             mark_as_advanced(CUDA_TOOLKIT_ROOT_DIR)
