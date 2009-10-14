@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: dnlebard
+// Maintainer: akohlmey
 
 #ifndef _ANGLEDATA_CUH_
 #define _ANGLEDATA_CUH_

@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: dnlebard
+// Maintainer: akohlmey
 
 #include "gpu_settings.h"
 #include "HarmonicImproperForceGPU.cuh"
