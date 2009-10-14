@@ -13,31 +13,47 @@ project (HOOMD)
 set(CMAKE_MODULE_PATH 
     "${CMAKE_CURRENT_SOURCE_DIR}/CMake/python"
     "${CMAKE_CURRENT_SOURCE_DIR}/CMake/cuda"
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/hoomd"
     "${CMAKE_MODULE_PATH}")
-    
 
 # setup the install directories and setup HOOMD_VERSION
-include (CMakeInstSetup.txt)
+include (install_options.cmake)
+message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
-message(STATUS "Configuring HOOMD ${HOOMD_VERSION}")
-
-# Setup a number of misc options and libraries
-include (CMakeMiscSetup.txt)
+# Handle user build options
+include (build_options.cmake)
 # Find the boost libraries and set them up
-include (CMakeBoostSetup.txt)
+include (HOOMDBoostSetup)
 # Find CUDA and set it up
-include (CMakeCUDASetup.txt)
+include (HOOMDCUDASetup)
 # Set default CFlags
-include (CMakeCFlagsSetup.txt)
+include (HOOMDCFlagsSetup)
+# include some os specific options
+include (HOOMDOSSpecificSetup)
 # Configure some source files, include directories, and create variables listing all source files
-include (CMakeSRCSetup.txt)
-# Configure the FFT libraries
-include (CMakeFFTSetup.txt)
+include (src_setup.cmake)
+
+##################################
+## find the threads library
+find_package(Threads)
+
+#################################
+## setup python library and executable
+# find the python interpreter, first
+find_package(PythonInterp REQUIRED)
+# find the python libraries to link to
+find_package(PythonLibs REQUIRED)
+
+include_directories(${PYTHON_INCLUDE_PATH})
+
+#################################
+## hide some unit testing stuff users don't really need to see
+mark_as_advanced(DART_TESTING_TIMEOUT)
 
 ################################
 ## Define common libraries used by every target in HOOMD
 if (WIN32)
-    set(HOOMD_COMMON_LIBS hoomd_python_module ${FFTW_LIBRARY} ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
+    set(HOOMD_COMMON_LIBS hoomd_python_module ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
 else (WIN32)
     set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
             ${Boost_FILESYSTEM_LIBRARY}
@@ -64,7 +80,6 @@ else (WIN32)
     set(HOOMD_COMMON_LIBS
             ${BOOST_LIBS}
             ${CMAKE_THREAD_LIBS_INIT}
-            ${FFTW_LIBRARY}
             ${PYTHON_LIBRARIES}
             ${ADDITIONAL_LIBS}
             )
@@ -73,7 +88,6 @@ endif (WIN32)
 # setup the library compile mode
 if(ENABLE_STATIC)
     set(BUILD_SHARED_LIBS OFF)
-    add_definitions(-DBOOST_PYTHON_STATIC_LIB)
 else(ENABLE_STATIC)
     set(BUILD_SHARED_LIBS ON)
 endif(ENABLE_STATIC)
@@ -102,9 +116,3 @@ if (ENABLE_DOXYGEN)
 endif (ENABLE_DOXYGEN)
 
 add_subdirectory (installer)
-
-###############################
-# allow library linking for MacOS10.5
-if (APPLE)
-add_definitions(-mmacosx-version-min=10.4)
-endif (APPLE)

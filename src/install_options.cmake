@@ -27,6 +27,7 @@ set(HOOMD_VERSION_MAJOR "0")
 set(HOOMD_VERSION_MINOR "8")
 set(HOOMD_VERSION_PATCH "2")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
+set(HOOMD_VERSION_LONG "${HOOMD_VERSION}")
 if ("$URL$" MATCHES "codeblue.umich.edu/hoomd-blue/svn/tags")
 set(HOOMD_SUBVERSION_BUILD "0")
 else ("$URL$" MATCHES "codeblue.umich.edu/hoomd-blue/svn/tags")
@@ -46,9 +47,8 @@ endif (SVNVERSION_EXE)
 if(HOOMD_SUBVERSION_BUILD)
     string(REGEX REPLACE ":" "_" SVNVERSION_UNDERSCORE ${SVNVERSION})
     set(CPACK_PACKAGE_VERSION "${HOOMD_VERSION}_beta${SVNVERSION_UNDERSCORE}")
+    set(HOOMD_VERSION_LONG "${CPACK_PACKAGE_VERSION}")
 endif(HOOMD_SUBVERSION_BUILD)
 
-#################################
-## Minimal install option
-option(ENABLE_MINIMAL_INSTALL "When set to ON, only a minimal set of files neededo to run HOOMD are installed" OFF)
+
 
