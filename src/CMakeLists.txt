@@ -9,16 +9,12 @@ endif(COMMAND cmake_policy)
 
 
 project (HOOMD)
-# Specify cmake modules path to use our custom modules
-set(CMAKE_MODULE_PATH 
-    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/python"
-    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/cuda"
-    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/hoomd"
-    "${CMAKE_MODULE_PATH}")
-
 # setup the install directories and setup HOOMD_VERSION
 include (install_options.cmake)
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
+
+# bring in custom modules
+add_subdirectory (CMake)
 
 # Handle user build options
 include (build_options.cmake)
