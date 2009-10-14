@@ -43,45 +43,61 @@
 // $URL$
 // Maintainer: akohlmey
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
-#include <iostream>
-
-//! Name the unit test module
-#define BOOST_TEST_MODULE MolFilePluginTests
-#include "boost_utf_configure.h"
-
-#include "FileFormatManager.h"
-
-/*! \file molfile_test.cc
-    \brief Unit tests for MolFilePlugin and FileFormatManager
-    \ingroup unit_tests
+/*! \file FileFormatManager.h
+	\brief Declares the MolFilePlugin and FileFormatManager classes
 */
 
-using namespace std;
+#ifndef __FILE_FORMAT_MANAGER_H__
+#define __FILE_FORMAT_MANAGER_H__
 
-//! perform some simple checks on the Manager module for molfile plugins.
-BOOST_AUTO_TEST_CASE(FileFormatManager_test)
+#include "FileFormatProxy.h"
+#include "MolFilePlugin.h"
+
+#include <string>
+#include <vector>
+
+
+//! Class to manage I/O to various file formats.
+/*! 
+  \ingroup utils
+*/
+class FileFormatManager
     {
-    // constructor test
-    FileFormatManager mgr;
+    public:
+        //! Constructor
+        FileFormatManager();
+        //! Virtual destructor
+        ~FileFormatManager();
 
-    // these will not cause any failure, even if the files are not found.
-    // the python script layer will make sure that only files that exist
-    // will be handed to the plugin manager. for testing set LD_LIBRARY_PATH
-    // to an existing VMD molfile plugin installation.
-    mgr.loadMolFileDSOFile("hoomdplugin.so");
-    mgr.loadMolFileDSOFile("hoomdblueplugin.so");
-    mgr.loadMolFileDSOFile("psfplugin.so");
-    mgr.loadMolFileDSOFile("pdbplugin.so");
-    mgr.loadMolFileDSOFile("xyzplugin.so");
+    public: // n.b. the following methods have to be public so they can be called
+            // from the molfile register callback function. 
+        //! Check whether a new molfile plugin should be added to the list.
+        int check_molfile_plugin(void *p) const;
 
-    }
+        //! Add a new molfile plugin to the list of plugins at index idx.
+        //  idx = 0 means append, idx < 0 mean ignore.
+        int add_molfile_plugin(const unsigned int idx, MolFilePlugin *p);
 
-#ifdef WIN32
-#pragma warning( pop )
+    private:
+        //! list of format types supported by the file format manager.
+        enum { NONE=0, MOLFILE_PLUGIN, NATIVE_XML, NATIVE_DCD, NATIVE_MOL2 };
+
+        //! unload shared objects for molfile plugins
+        void unload_molfile_dso(void *handle);
+
+    public:
+        //! Load molfile plugin(s) from shared object of the given name.
+        void loadMolFileDSOFile(std::string dsofile);
+
+        //! fide a matching plugin by giving the plugin type. 
+        // If the type is NULL, try to guess from file name extension.
+        FileFormatProxy *findFormat(const char *type, const char *filename);
+        
+    private:
+        std::vector<FileFormatProxy *> m_proxy_list; //!< list of available I/O format classes.
+        std::vector<int> m_ftype_list;               //!< list of format types corresponding to proxy classes.
+        std::vector<void *> m_dsohandle_list;        //!< list of DSO handles for plugins.
+        std::vector<int> m_dsotype_list;             //!< list of types corresponding to DSO handles.
+    };
+
 #endif
-

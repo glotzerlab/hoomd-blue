@@ -43,45 +43,94 @@
 // $URL$
 // Maintainer: akohlmey
 
+/*! \file FileFormatManager.cc
+    \brief Defines MolFilePlugin and FileFormatManager classes
+*/
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include <iostream>
-
-//! Name the unit test module
-#define BOOST_TEST_MODULE MolFilePluginTests
-#include "boost_utf_configure.h"
-
 #include "FileFormatManager.h"
 
-/*! \file molfile_test.cc
-    \brief Unit tests for MolFilePlugin and FileFormatManager
-    \ingroup unit_tests
-*/
+// platform neutral interface to loading shared objects.
+#include "vmddlopen.h"
 
+#include <iostream>
+#include <boost/python.hpp>
+using namespace boost::python;
 using namespace std;
 
-//! perform some simple checks on the Manager module for molfile plugins.
-BOOST_AUTO_TEST_CASE(FileFormatManager_test)
+
+FileFormatManager::FileFormatManager()
     {
-    // constructor test
-    FileFormatManager mgr;
+    // reserve some storage to reduce need for reallocation.
+    m_proxy_list.reserve(64);
+    m_ftype_list.reserve(64);
+    m_dsohandle_list.reserve(64);
+    m_dsotype_list.reserve(64);
+    }
 
-    // these will not cause any failure, even if the files are not found.
-    // the python script layer will make sure that only files that exist
-    // will be handed to the plugin manager. for testing set LD_LIBRARY_PATH
-    // to an existing VMD molfile plugin installation.
-    mgr.loadMolFileDSOFile("hoomdplugin.so");
-    mgr.loadMolFileDSOFile("hoomdblueplugin.so");
-    mgr.loadMolFileDSOFile("psfplugin.so");
-    mgr.loadMolFileDSOFile("pdbplugin.so");
-    mgr.loadMolFileDSOFile("xyzplugin.so");
+FileFormatManager::~FileFormatManager()
+    {
+    unsigned int i;
+    
+    // delete format proxy classes.
+    for (i=0; i < m_proxy_list.size(); ++i)
+        delete m_proxy_list[i];
 
+    // release handles to DSOs.
+    for (i=0; i < m_dsohandle_list.size(); ++i)
+        {
+        switch (m_dsotype_list[i])
+            {
+            case MOLFILE_PLUGIN:
+                unload_molfile_dso(m_dsohandle_list[i]);
+                break;
+
+            case NONE: //fallthrough
+            default:
+                cerr << "Unknown DSO type. " << m_dsotype_list[i] << " Object not unloaded." << endl;
+            }
+        }
+    }
+
+/*!
+ \param idx position at which the 
+ \param p molfile plugin proxy class to be added
+ \return index of plugin in the plugin list or -1.
+*/
+int FileFormatManager::add_molfile_plugin(const unsigned int idx, MolFilePlugin *p)
+    {
+    if (idx == 0)
+        {
+        int i=m_proxy_list.size();
+        m_proxy_list.push_back(p);
+        return i;
+        }
+    
+    if (idx < m_proxy_list.size())
+        {
+        delete m_proxy_list[idx];
+        m_proxy_list[idx] = p;
+        return idx;
+        }
+    else
+        {
+        cerr << "Plugin Index " << idx << " out of range. Max.: " << m_proxy_list.size() -1 << endl;
+        return -1;
+        }
+    }
+
+
+//! exports the FileFormatManager class to python.
+void export_FileFormatManager()
+    {
+    class_<FileFormatManager, boost::shared_ptr<FileFormatManager> >("FileFormatManager", init< >())
+    .def("loadMolFileDSOFile", &FileFormatManager::loadMolFileDSOFile);
     }
 
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-

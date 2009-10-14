@@ -43,45 +43,72 @@
 // $URL$
 // Maintainer: akohlmey
 
+/*! \file FileFormatProxy.cc
+    \brief Implements the FileFormatProxy class
+*/
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include <iostream>
-
-//! Name the unit test module
-#define BOOST_TEST_MODULE MolFilePluginTests
-#include "boost_utf_configure.h"
-
-#include "FileFormatManager.h"
-
-/*! \file molfile_test.cc
-    \brief Unit tests for MolFilePlugin and FileFormatManager
-    \ingroup unit_tests
-*/
+#include "FileFormatProxy.h"
 
 using namespace std;
 
-//! perform some simple checks on the Manager module for molfile plugins.
-BOOST_AUTO_TEST_CASE(FileFormatManager_test)
+/*! Public FileFormatProxy constructor. 
+ */
+FileFormatProxy::FileFormatProxy()
+    : handle(0), m_major(0), m_minor(-1), m_read_caps(FCAP_NONE), m_write_caps(FCAP_NONE)
     {
-    // constructor test
-    FileFormatManager mgr;
-
-    // these will not cause any failure, even if the files are not found.
-    // the python script layer will make sure that only files that exist
-    // will be handed to the plugin manager. for testing set LD_LIBRARY_PATH
-    // to an existing VMD molfile plugin installation.
-    mgr.loadMolFileDSOFile("hoomdplugin.so");
-    mgr.loadMolFileDSOFile("hoomdblueplugin.so");
-    mgr.loadMolFileDSOFile("psfplugin.so");
-    mgr.loadMolFileDSOFile("pdbplugin.so");
-    mgr.loadMolFileDSOFile("xyzplugin.so");
-
+    format_type = string("dummy");
+    format_name = string("Dummy File Format");
     }
+
+/*! Copy constructor
+  \param p proxy class to be copied.
+  
+  The general strategy is the following: Each FileFormatProxy class (or one derived from it) is responsible 
+  for just one file i/o stream.  When a new i/o request is made, a copy of the class is generated.  The 
+  FileFormatManager class manages the master list and is usually queried to create a copy of theproxy,
+ 
+  \note open files/handles must not be copied.
+*/
+FileFormatProxy::FileFormatProxy(const FileFormatProxy& p) 
+    : format_type(p.format_type), format_name(p.format_name), handle(0), m_major(p.m_major), m_minor(p.m_minor),
+      m_read_caps(p.m_read_caps), m_write_caps(p.m_write_caps)
+    {
+    }
+
+FileFormatProxy::~FileFormatProxy()
+    {
+    // XXX: close active file and release references if needed.
+    }
+
+/*! Compares format version information against external numbers.
+  \param major major version number of external plugin
+  \param minor minor version number of external plugin
+  \return  1, 0, or -1, if the new plugin version is higher, same, or lower.
+  \note if m_major of a file format is negative, this format must not be overridden.
+*/
+int FileFormatProxy::check_version(const int major, const int minor) const 
+            {
+            // immutable file format.
+            if (m_major < 0)
+                return -1;
+            
+            if (major > m_major)
+                return 1;
+            else if (major <= m_major)
+                return -1;
+            else if (minor > m_minor) 
+                return 1;
+            else if (minor < m_minor)
+                return -1;
+            else 
+                return 0;
+            }
 
 #ifdef WIN32
 #pragma warning( pop )
 #endif
-
