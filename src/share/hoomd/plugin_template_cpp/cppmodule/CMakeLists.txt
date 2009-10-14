@@ -11,6 +11,7 @@ endif (ENABLE_CUDA)
 # build the C++ python module
 set(LIB_TARGET "_${PROJECT_NAME}")
 add_library(${LIB_TARGET} ${PLUGIN_SRC} ${PYMODULE_BUILD})
+target_link_libraries(${LIB_TARGET} ${HOOMD_LIBRARIES})
 # fix up the file name so it will work as a python module
 set_target_properties(${LIB_TARGET} PROPERTIES PREFIX "" OUTPUT_NAME "${LIB_TARGET}")
 if(APPLE)
@@ -22,4 +23,3 @@ endif(APPLE)
 install(TARGETS ${LIB_TARGET}
         LIBRARY DESTINATION lib/hoomd/python-module
         )
-

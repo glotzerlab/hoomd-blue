@@ -5,8 +5,15 @@
 #
 # Variables defined by this module:
 # FOUND_HOOMD :         set to true if HOOMD is found
-# HOOMD_LIBRARIES :     a list of all libraries needed to link to to access hoomd
+# HOOMD_LIBRARIES :     a list of all libraries needed to link to to access hoomd (uncached)
 # HOOMD_INCLUDE_DIR :   a list of all include directories that need to be set to include HOOMD
+# HOOMD_BIN_DIR :       the directory containing the hoomd runner executable
+# HOOMD_LIB :           a cached var locating the hoomd library to link to
+#
+# various ENABLE_ flags translated from hoomd_config.h so this plugin build can match the ABI of the installed hoomd
+# 
+# as a convenience (for the intended purpose of this find script), all include directories and definitions needed
+# to compile with all the various libs (boost, python, winsoc, etc...) are set within this script
 
 # see if we can find the HOOMD bin/ directory first. This usually works well if "hoomd" is in the path
 find_path(HOOMD_BIN_DIR
@@ -88,5 +95,26 @@ foreach(_line ${_hoomd_config_h_lines})
         set(${_var} OFF CACHE BOOL "Imported setting from hoomd_config.h, it matches the setting used to build HOOMD" FORCE)
     endif (${_line} MATCHES "#undef .*")
 endforeach()
+
+# run all of HOOMD's generic lib setup scripts
+set(CMAKE_MODULE_PATH ${HOOMD_ROOT}/share/hoomd/CMake/cuda
+                      ${HOOMD_ROOT}/share/hoomd/CMake/hoomd
+                      ${HOOMD_ROOT}/share/hoomd/CMake/python
+                      ${CMAKE_MODULE_PATH}
+                      )
+
+# Find the boost libraries and set them up
+include (HOOMDBoostSetup)
+# Find CUDA and set it up
+include (HOOMDCUDASetup)
+# Set default CFlags
+include (HOOMDCFlagsSetup)
+# include some os specific options
+include (HOOMDOSSpecificSetup)
+# setup common libraries used by all targets in this project
+include (HOOMDCommonLibsSetup)
+
+set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})
+include_directories(${HOOMD_INCLUDE_DIR})
 
 endif (HOOMD_FOUND)

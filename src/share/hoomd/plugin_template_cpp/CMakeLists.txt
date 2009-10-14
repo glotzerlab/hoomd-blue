@@ -5,6 +5,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_MODULE_PATH})
 find_package(HOOMD)
 
 # plugins must be built as shared libraries
+if (ENABLE_STATIC)
+    message(SEND_ERROR "Plugins cannot be built against a statically compiled hoomd")
+endif (ENABLE_STATIC)
+
 set(BUILD_SHARED_LIBS on)
 
 # collect all the sources together
