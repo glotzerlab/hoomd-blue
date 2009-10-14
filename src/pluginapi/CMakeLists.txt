@@ -1,5 +1,6 @@
 # $Id$
 # $URL$
+# Maintainer: joaander
 
 #################################
 ## write a C++ include file and a hoomd_config.h file
