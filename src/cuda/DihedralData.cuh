@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: dnlebard
+// Maintainer: akohlmey
 
 #ifndef _DIHEDRALDATA_CUH_
 #define _DIHEDRALDATA_CUH_

@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: dnlebard
+// Maintainer: akohlmey
 
 /*! \file AngleData.h
     \brief Declares AngleData and related classes

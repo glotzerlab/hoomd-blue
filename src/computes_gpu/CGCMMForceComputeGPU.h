@@ -41,7 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: blevine
+// Maintainer: akohlmey
 
 #include "CGCMMForceCompute.h"
 #include "NeighborList.h"
