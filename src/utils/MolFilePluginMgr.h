@@ -43,24 +43,24 @@
 // $URL$
 // Maintainer: akohlmey
 
-/*! \file MolFilePluginMgr.h
-	\brief Declares the MolFilePlugin and MolFilePluginMgr classes
+/*! \file MolFilePlugin.h
+	\brief Declares the MolFilePlugin class
 */
 
-#ifndef __MOLFILE_PLUGIN_MGR_H__
-#define __MOLFILE_PLUGIN_MGR_H__
+#ifndef __MOLFILE_PLUGIN_H__
+#define __MOLFILE_PLUGIN_H__
+
+#include "FileFormatProxy.h"
 
 #include <string>
 #include <vector>
 
-/*! Interface class for file format i/o through the molfile plugins from VMD.
-  Each instance of MolFilePlugin acts as a proxy for the corresponding
-  plugin from the molfile library and provides a plugin API independent
-  interface to the required functionality, as far it is supported.
-  
+
+//! Class for file i/o through molfile plugins from VMD.
+/*!
   \ingroup utils
-*/
-class MolFilePlugin
+ */
+class MolFilePlugin : public FileFormatProxy
 	{
     public:
         //! Constructor
@@ -69,84 +69,15 @@ class MolFilePlugin
         virtual ~MolFilePlugin();
 
     protected:
-        //! Copy Constructor (only to be accessed from MolFilePluginMgr)
-        MolFilePlugin(const MolFilePlugin& plugin);
-    
+        /*! Copy constructor */
+        MolFilePlugin(const MolFilePlugin& proxy);
+
     private:
         //! Default constructor is disabled
         MolFilePlugin();
 
-    public: 
-        //! Returns the file format string of a plugin
-        std::string get_type() const 
-            { 
-            return plugin_type;
-            }
-        
-        //! Returns a nicely formatted name for the plugin
-        std::string get_name() const
-            {
-            return plugin_name;
-            }
-        
-        /*! Compares plugin version information against external numbers.
-          \param major major version number of external plugin
-          \param minor minor version number of external plugin
-          \return  1, 0, or -1, if the new plugin version is higher, same, or lower.
-        */
-        int check_version(const int major, const int minor) const 
-            {
-            if (major > m_major)
-                return 1;
-            else if (major <= m_major)
-                return -1;
-            else if (minor > m_minor) 
-                return 1;
-            else if (minor < m_minor)
-                return -1;
-            else 
-                return 0;
-            }
-        
     private:
-        std::string plugin_type;   //!< canonical type name of the plugin
-        std::string plugin_name;   //!< "pretty" name of the plugin.
-        void *handle;              //!< data handle of the plugin.
         void *plugin;              //!< pointer to plugin.
-        int  m_major;              //!< major version number of the plugin.
-        int  m_minor;              //!< minor version number of the plugin.
-    };
-
-
-//! Class to manage molfile plugins from VMD.
-/*! 
-  \ingroup utils
-*/
-class MolFilePluginMgr
-    {
-    public:
-        //! Constructor
-        MolFilePluginMgr();
-        //! Virtual destructor
-        ~MolFilePluginMgr();
-
-        //! Check whether a new plugin should be added to the list.
-        int check_plugin(void *p) const;
-
-        //! Add a new plugin to the list of plugins at index idx.
-        //  idx = 0 means append, idx < 0 mean ignore.
-        int add_plugin(const unsigned int idx, MolFilePlugin *p);
-
-        //! Load plugin(s) from shared object of the given name.
-        void loadDSOFile(std::string dsofile);
-
-        //! file a matching plugin by giving the plugin type. 
-        // If the type is NULL, try guess from file name.
-        MolFilePlugin *findPlugin(const char *type, const char *filename);
-        
-    private:
-        std::vector<MolFilePlugin *> m_plist;   //!< list of available plugins.
-        std::vector<void *> m_hlist;            //!< list of DSO handles;
     };
 
 #endif

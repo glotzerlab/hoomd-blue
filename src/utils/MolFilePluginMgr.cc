@@ -43,8 +43,9 @@
 // $URL$
 // Maintainer: akohlmey
 
-/*! \file MolFilePluginMgr.cc
-    \brief Defines MolFilePlugin and MolFilePluginMgr classes
+/*! \file MolFilePlugin.cc
+    \brief Defines MolFilePlugin class and contains molfile plugin specific
+    methods of the FileFormatManager class.
 */
 
 #ifdef WIN32
@@ -52,7 +53,8 @@
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include "MolFilePluginMgr.h"
+#include "MolFilePlugin.h"
+#include "FileFormatManager.h"
 
 #include "vmdplugin.h"
 #include "molfile_plugin.h"
@@ -61,8 +63,6 @@
 #include "vmddlopen.h"
 
 #include <iostream>
-#include <boost/python.hpp>
-using namespace boost::python;
 using namespace std;
 
 extern "C" 
@@ -82,7 +82,7 @@ extern "C"
 */
 static int molfile_register_cb(void *v, vmdplugin_t *plugin) 
     {
-    MolFilePluginMgr *mgr = (MolFilePluginMgr *)v;
+    FileFormatManager *mgr = (FileFormatManager *)v;
 
     // check that the ABI version matches
     if (plugin->abiversion != vmdplugin_ABIVERSION) 
@@ -103,11 +103,11 @@ static int molfile_register_cb(void *v, vmdplugin_t *plugin)
     // check new plugin against already-loaded plugins.
     // return value -1 means "don't load", 0 means "add", 
     // >0 means "replace" plugin at index idx.
-    int idx = mgr->check_plugin(plugin);
+    int idx = mgr->check_molfile_plugin(plugin);
     if (idx < 0)
         return 0;
 
-    mgr->add_plugin(idx, new MolFilePlugin(plugin));
+    mgr->add_molfile_plugin(idx, new MolFilePlugin(plugin));
     return 0;
     }
 
@@ -123,8 +123,8 @@ MolFilePlugin::MolFilePlugin(void *p)
         molfile_plugin_t *mfp = (molfile_plugin_t *)p;
         m_major = mfp->majorv;
         m_minor = mfp->minorv;
-        plugin_type = string(mfp->name);
-        plugin_name = string(mfp->prettyname);
+        format_type = string(mfp->name);
+        format_name = string(mfp->prettyname);
         plugin = p;
         handle = NULL;
         }
@@ -132,30 +132,15 @@ MolFilePlugin::MolFilePlugin(void *p)
         {
         plugin = 0;
         m_major = 0;
-        m_minor = 0;
-        plugin_type = string("dummy");
-        plugin_name = string("Dummy molfile plugin");
+        m_minor = -1;
+        format_type = string("dummy");
+        format_name = string("Dummy molfile plugin");
         handle = NULL;
         }
     }
 
-/*! Copy constructor.
-  \param p plugin proxy class to be copied.
-  
-  The general strategy is the following:
-  Each MolFilePlugin class is responsible for just one file i/o stream.
-  When a new i/o request is made, the file format is handled to the 
-  MolFilePluginMgr class and that creates a copy of the plugin proxy,
-  which then will be used for i/o and so on. 
- 
-  \note open files/handles are not copied, but there should be none anyways.
-*/
-MolFilePlugin::MolFilePlugin(const MolFilePlugin& p)
+MolFilePlugin::MolFilePlugin(const MolFilePlugin &p)
     {
-    m_major = p.m_major;
-    m_minor = p.m_minor;
-    plugin_type = p.plugin_type;
-    plugin_name = p.plugin_name;
     plugin = p.plugin;
     handle = NULL;
     }
@@ -165,31 +150,11 @@ MolFilePlugin::~MolFilePlugin()
     // close open file and release references.
     }
 
-
-MolFilePluginMgr::MolFilePluginMgr()
-    {
-    // reserve some storage to reduce need for reallocation.
-    m_plist.reserve(64);
-    m_hlist.reserve(64);
-    }
-
-MolFilePluginMgr::~MolFilePluginMgr()
-    {
-    unsigned int i;
-    
-    // delete plugins proxy classes.
-    for (i=0; i < m_plist.size(); ++i)
-        delete m_plist[i];
-
-    // release handles to DSOs.
-    for (i=0; i < m_hlist.size(); ++i)
-        {
-        void *ffunc = vmddlsym(m_hlist[i], "vmdplugin_fini");
-        if (ffunc) 
-            ((finifunc)(ffunc))();
-        vmddlclose(m_hlist[i]);
-        }
-    }
+////////////////////////////////////////////////////////////////////////////////
+// VMD molfile specific methods from the FileFormatManager class.
+// better to put them here, so that we don't clutter too many 
+// files with molfile specific codes and includes.
+////////////////////////////////////////////////////////////////////////////////
 
 /*! Test whether a plugin is suitable. 
   \param p opaque pointer to the plugin struct.
@@ -201,17 +166,17 @@ MolFilePluginMgr::~MolFilePluginMgr()
   exists and in that case the plugin has to have a higher version
   number to be accepted.
 */
-int MolFilePluginMgr::check_plugin(void *p) const
+int FileFormatManager::check_molfile_plugin(void *p) const
     {
     molfile_plugin_t *mfp = (molfile_plugin_t *)p;
 
     // check if a plugin of the same file type already exists and return
     // its index number in case 
-    for (unsigned int i=0; i < m_plist.size(); ++i)
+    for (unsigned int i=0; i < m_proxy_list.size(); ++i)
         {
-        if (m_plist[i]->get_type() == string(mfp->name))
+        if (m_proxy_list[i]->get_type() == string(mfp->name))
             {
-            if (m_plist[i]->check_version(mfp->majorv, mfp->minorv) > 0)
+            if (m_proxy_list[i]->check_version(mfp->majorv, mfp->minorv) > 0)
                 return i;
             else
                 return -1;
@@ -221,36 +186,9 @@ int MolFilePluginMgr::check_plugin(void *p) const
     }
 
 /*!
- \param idx position at which the 
- \param p molfile plugin proxy class to be added
- \return index of plugin in the plugin list or -1.
-*/
-int MolFilePluginMgr::add_plugin(const unsigned int idx, MolFilePlugin *p)
-    {
-    if (idx == 0)
-        {
-        int i=m_plist.size();
-        m_plist.push_back(p);
-        return i;
-        }
-    
-    if (idx < m_plist.size())
-        {
-        delete m_plist[idx];
-        m_plist[idx] = p;
-        return idx;
-        }
-    else
-        {
-        cerr << "Plugin Index " << idx << " out of range. Max.: " << m_plist.size() -1 << endl;
-        return -1;
-        }
-    }
-
-/*!
   \param dsofile filename of the shared object to load
 */
-void MolFilePluginMgr::loadDSOFile(std::string dsofile)
+void FileFormatManager::loadMolFileDSOFile(std::string dsofile)
     {
     void *handle = vmddlopen(dsofile.c_str());
     if (!handle)
@@ -262,9 +200,9 @@ void MolFilePluginMgr::loadDSOFile(std::string dsofile)
     
     // need to check if we already have this same handle open.
     // we would get a segfault when loading the same symbols again.
-    for (unsigned int i=0; i < m_hlist.size(); ++i)
+    for (unsigned int i=0; i < m_dsohandle_list.size(); ++i)
         {
-        if (m_hlist[i] == handle)
+        if (m_dsohandle_list[i] == handle)
             {
             cout << "Already have a handle to the shared library " 
                  << dsofile << ". No further action required." << endl;
@@ -289,7 +227,8 @@ void MolFilePluginMgr::loadDSOFile(std::string dsofile)
         return;
         }
 
-    m_hlist.push_back(handle);
+    m_dsohandle_list.push_back(handle);
+    m_dsotype_list.push_back(MOLFILE_PLUGIN);
     
     // register contained plugins.
     void *rfunc = vmddlsym(handle, "vmdplugin_register");
@@ -303,12 +242,17 @@ void MolFilePluginMgr::loadDSOFile(std::string dsofile)
         ((regfunc) rfunc)(this, molfile_register_cb);
     }
 
-//! exports the MolFilePluginMgr class to python.
-void export_MolFilePluginMgr()
+/*! Unload Molfile plugins DSO.
+  \param handle handle to the dynamical shared object that contains the plugin(s).
+*/
+void FileFormatManager::unload_molfile_dso(void *handle)
     {
-    class_<MolFilePluginMgr, boost::shared_ptr<MolFilePluginMgr> >("MolFilePluginMgr", init< >())
-    .def("loadDSOFile", &MolFilePluginMgr::loadDSOFile);
+    void *ffunc = vmddlsym(handle, "vmdplugin_fini");
+    if (ffunc) 
+        ((finifunc)(ffunc))();
+    vmddlclose(handle);
     }
+
 
 #ifdef WIN32
 #pragma warning( pop )
