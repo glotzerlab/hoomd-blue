@@ -10,14 +10,14 @@ endif(COMMAND cmake_policy)
 
 project (HOOMD)
 # setup the install directories and setup HOOMD_VERSION
-include (install_options.cmake)
+include (CMake_install_options.cmake)
 message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
 # bring in custom modules
 add_subdirectory (CMake)
 
 # Handle user build options
-include (build_options.cmake)
+include (CMake_build_options.cmake)
 # Find the boost libraries and set them up
 include (HOOMDBoostSetup)
 # Find CUDA and set it up
@@ -29,7 +29,7 @@ include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
 include (HOOMDCommonLibsSetup)
 # Configure some source files, include directories, and create variables listing all source files
-include (src_setup.cmake)
+include (CMake_src_setup.cmake)
 
 # setup the library compile mode
 if(ENABLE_STATIC)
