@@ -16,3 +16,10 @@ set_target_properties(${LIB_TARGET} PROPERTIES PREFIX "" OUTPUT_NAME "${LIB_TARG
 if(APPLE)
     set_target_properties(${LIB_TARGET} PROPERTIES SUFFIX ".so")
 endif(APPLE)
+
+# install the library to the python-module directory (NOTE: maybe we should make a subdirectory to hold all the plugins
+# ? it could be hoomd_plugins. Doing so would keep things a little more organized on user's machines
+install(TARGETS ${LIB_TARGET}
+        LIBRARY DESTINATION lib/hoomd/python-module
+        )
+
