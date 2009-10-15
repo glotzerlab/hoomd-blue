@@ -236,6 +236,9 @@ void LJForceCompute::computeForces(unsigned int timestep)
     // for each particle
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
+        // access the particle's body
+        unsigned int bodyi = arrays.body[i];
+        
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar xi = arrays.x[i];
         Scalar yi = arrays.y[i];
@@ -269,6 +272,10 @@ void LJForceCompute::computeForces(unsigned int timestep)
             unsigned int k = list[j];
             // sanity check
             assert(k < m_pdata->getN());
+            
+            unsigned int bodyk = arrays.body[k];
+            if (bodyk != NO_BODY && bodyk == bodyi)
+                continue;
             
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar dx = xi - arrays.x[k];

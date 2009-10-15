@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
+texture<unsigned int, 1, cudaReadModeElementType> pdata_body_tex;
 
 //! Texture for reading particle diameters, only used if in slj mode
 texture<float, 1, cudaReadModeElementType> pdata_diam_tex;
@@ -112,7 +112,8 @@ template<bool ulf_workaround, unsigned int shift_mode, bool slj> __global__ void
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
     float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
-    
+    unsigned int my_body = tex1Dfetch(pdata_body_tex, idx_global);
+
     float diam;
     if (slj == true)
         {
@@ -147,6 +148,11 @@ template<bool ulf_workaround, unsigned int shift_mode, bool slj> __global__ void
             // prefetch the next value and set the current one
             cur_neigh = next_neigh;
             next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+            
+            // get the neighbor's body
+            unsigned int neigh_body = tex1Dfetch(pdata_body_tex, cur_neigh);
+            if (neigh_body != 0xffffffff && neigh_body == my_body)
+                continue;
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -284,6 +290,10 @@ cudaError_t gpu_compute_lj_forces(const gpu_force_data_arrays& force_data, const
     pdata_pos_tex.normalized = false;
     pdata_pos_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+    
+    error = cudaBindTexture(0, pdata_body_tex, pdata.body, sizeof(unsigned int) * pdata.N);
     if (error != cudaSuccess)
         return error;
         
