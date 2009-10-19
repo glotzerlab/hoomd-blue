@@ -373,3 +373,4 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_center_of_mass_tests)
     MY_BOOST_CHECK_CLOSE(com.y, -3.25, tol);
     MY_BOOST_CHECK_CLOSE(com.z, 3.875, tol);
     }
+
