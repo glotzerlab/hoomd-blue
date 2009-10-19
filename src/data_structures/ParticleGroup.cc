@@ -46,7 +46,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleGroup.h"
 
 #include <boost/python.hpp>
+#include <boost/bind.hpp>
 using namespace boost::python;
+using namespace boost;
 
 #include <algorithm>
 #include <iostream>
@@ -65,6 +67,7 @@ using namespace std;
 */
 ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOption criteria,
                              unsigned int min, unsigned int max)
+    : m_pdata(pdata), m_is_member(pdata->getN()), m_member_idx(pdata->getN(), pdata->getExecConf())
     {
     const ParticleDataArraysConst& arrays = pdata->acquireReadOnly();
     
@@ -87,7 +90,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOpti
             
             // add the tag to the list if it matches the criteria
             if (arrays.type[idx] <= max && arrays.type[idx] >= min)
-                m_members.push_back(tag);
+                m_member_tags.push_back(tag);
             }
         }
     else if (criteria == tag)
@@ -103,7 +106,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOpti
         for (unsigned int tag = min; tag <= max; tag++)
             {
             // add it to the list
-            m_members.push_back(tag);
+            m_member_tags.push_back(tag);
             }
         }
     else
@@ -113,6 +116,19 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOpti
         }
         
     pdata->release();
+    
+    // now that the tag list is completely set up and all memory is allocated, rebuild the index list
+    rebuildIndexList();
+    
+    // connect the rebuildIndexList method to be called whenever the particles are sorted
+    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
+    }
+
+ParticleGroup::~ParticleGroup()
+    {
+    // disconnect the sort connection, but only if there was a particle data to connect it to in the first place
+    if (m_pdata)
+        m_sort_connection.disconnect();
     }
 
 /*! \param a First particle group
@@ -127,8 +143,8 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup());
     
     // make the union
-    insert_iterator< vector<unsigned int> > ii(new_group->m_members, new_group->m_members.begin());
-    set_union(a->m_members.begin(), a->m_members.end(), b->m_members.begin(), b->m_members.end(), ii);
+    insert_iterator< vector<unsigned int> > ii(new_group->m_member_tags, new_group->m_member_tags.begin());
+    set_union(a->m_member_tags.begin(), a->m_member_tags.end(), b->m_member_tags.begin(), b->m_member_tags.end(), ii);
     
     // return the newly created group
     return new_group;
@@ -146,11 +162,48 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
     boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup());
     
     // make the union
-    insert_iterator< vector<unsigned int> > ii(new_group->m_members, new_group->m_members.begin());
-    set_intersection(a->m_members.begin(), a->m_members.end(), b->m_members.begin(), b->m_members.end(), ii);
+    insert_iterator< vector<unsigned int> > ii(new_group->m_member_tags, new_group->m_member_tags.begin());
+    set_intersection(a->m_member_tags.begin(), a->m_member_tags.end(), b->m_member_tags.begin(), b->m_member_tags.end(), ii);
     
     // return the newly created group
     return new_group;
+    }
+
+
+/*! \pre m_member_tags has been filled out, listing all particle tags in the group
+    \pre memory has been allocated for m_is_member and m_member_idx
+    \post m_is_member is updated so that it reflects the current indices of the particles in the group
+    \post m_member_idx is updated listing all particle indices belonging to the group, in index order
+*/
+void ParticleGroup::rebuildIndexList()
+    {
+    // start by rebuilding the bitset of member indices in the group
+    // it needs to be cleared first
+    m_is_member.reset();
+    
+    // then loop through every particle in the group and set its bit
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    for (unsigned int member_idx = 0; member_idx < m_member_tags.size(); member_idx++)
+        {
+        unsigned int idx = arrays.rtag[m_member_tags[member_idx]];
+        m_is_member[idx] = true;
+        }
+    m_pdata->release();
+    
+    // then loop through the bitset and add indices to the index list
+    ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::readwrite);
+    unsigned int cur_member = 0;
+    for (unsigned int idx = 0; idx < arrays.nparticles; idx++)
+        {
+        if (isMember(idx))
+            {
+            h_handle.data[cur_member] = idx;
+            cur_member++;
+            }
+        }
+    
+    // sanity check, the number of indices added to m_member_idx must be the same as the number of members in the group
+    assert(cur_member == m_member_tags.size());
     }
 
 void export_ParticleGroup()

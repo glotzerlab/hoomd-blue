@@ -49,6 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 #include "ParticleData.h"
 
@@ -56,24 +57,40 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __PARTICLE_GROUP_H__
 
 //! Describes a group of particles
-/*! Some computations in HOOMD need to only be performed on certain groups of particles. ParticleGroup facilitates
+/*! \b Overview
+    
+    Some computations in HOOMD need to only be performed on certain groups of particles. ParticleGroup facilitates
     that by providing a flexible interface for choosing these groups that can be used by any other class in HOOMD.
-    The most common use case is to iterate through all particles in the group, so the class will be optimized for
-    that.
+    
+    The following common use-cases are expected and the design is tuned to make these optimal.
+     - Iterate through all particles indices in the group, and the order of iteration doesn't matter, except for 
+       performance.
+     - Iterate through all particle tags in the group, in a well-defined order that does not change
+     - O(1) test if a particular particle index is in the group
 
-    Membership in the group can be determined by a range of particle types or tags. More complicated groups can be
-    built up by taking unions and intersections of existing groups.
+    Membership in the group is determined through a generic ParticleSelector class. See its documentation for details.
 
-    There are potential issues with the particle type changing over the course of a simulation. Those issues are
-    deferred for now. Groups will be evaluated on construction of the group and remain static for its lifetime.
+    Group membership is determined once at the instantiation of the group. Thus ParticleGroup only supports static
+    groups where membership does not change over the course of a simulation. Dynamic groups, if they are needed, 
+    may require a drastically different design to allow for efficient access.
 
-    Another issue to the design is how to handle ParticleData? Groups may very well be used inside of a loop where
-    the particle data has already been aquired, so ParticleGroup cannot hold onto a shared pointer and aquire again.
-    It can only realistically aquire the data on contstruction.
+    In many use-cases, ParticleGroup may be accessed many times within inner loops. Thus, it must not aquire any
+    ParticleData arrays within most of the get() calls as the caller must be allowed to leave their ParticleData 
+    aquired. Thus, all get() methods must return values from internal cached variables only. Those methods that
+    absolutely require the particle data be released before they are called will be documented as such.
 
-    Pulling all these issue together, the best data structure to represent the group is to determine group membership
-    on construction and generate a list of particle tags that belong to the group. In this way, iteration through the
-    group is efficient and there is no dependance on accessing the ParticleData within the iteration.
+    \b Data Structures and Implementation
+    
+    The initial and fundamental data structure in the group is a vector listing all of the particle tags in the group,
+    in a sorted tag order. This list can be accessed directly via getMemberTag() to meet the 2nd use case listed above.
+    In order to iterate through all particles in the group in a cache-efficient manner, an auxilliary list is stored
+    that lists all particle <i>indicies</i> that belong to the group. This list must be updated on every particle sort.
+    Thirdly, a dynamic bitset is used to store one bit per particle for efficient O(1) tests if a given particle is in 
+    the group.
+    
+    Finally, the common use case on the GPU using groups will include running one thread per particle in the group.
+    For that it needs a list of indices of all the particles in the group. To facilitates this, the list of indices
+    in the group will be stored in a GPUArray.
 
     \ingroup data_structs
 */
@@ -93,12 +110,15 @@ class ParticleGroup
         //! Constructs a particle group of all particles with the given criteria
         ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOption criteria, unsigned int min, unsigned int max);
         
+        //! Destructor
+        ~ParticleGroup();
+        
         //! Get the number of members in the group
         /*! \returns The number of particles that belong to this group
         */
         const unsigned int getNumMembers() const
             {
-            return (unsigned int)m_members.size();
+            return (unsigned int)m_member_tags.size();
             }
             
         //! Get a member from the group
@@ -108,7 +128,29 @@ class ParticleGroup
         const unsigned int getMemberTag(unsigned int i) const
             {
             assert(i < getNumMembers());
-            return m_members[i];
+            return m_member_tags[i];
+            }
+            
+        //! Get a member index from the group
+        /*! \param j Value from 0 to getNumMembers()-1 of the group member to get
+            \returns Index of the member at position \a j
+            \note getMemberTag(j) \b does \b NOT get the tag of the particle with index getMemberIndex(j). These two
+                  lists are stored in different orders. Access the ParticleData to convert between tags and indices.
+        */
+        const unsigned int getMemberIndex(unsigned int j) const
+            {
+            assert(j < getNumMembers());
+            ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::read);
+            return h_handle.data[j];
+            }
+
+        //! Test if a particle index is a member of the group
+        /*! \param idx Index of the particle to query (from 0 to the number of partilces in ParticleData -1)
+            \returns true if the particle with index \a idx is in the group
+        */
+        const bool isMember(unsigned int idx) const
+            {
+            return m_is_member[idx];
             }
             
         //! Make a new particle group from a union of two
@@ -118,7 +160,16 @@ class ParticleGroup
         
         
     private:
-        std::vector<unsigned int> m_members;    //!< Lists the tags of the paritcle members
+        boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
+        boost::dynamic_bitset<> m_is_member;            //!< One bit per particle, true if index is a member of the group
+        GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
+        boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
+        std::vector<unsigned int> m_member_tags;        //!< Lists the tags of the paritcle members
+
+
+        //! Helper function to rebuild the index lists afer the particles have been sorted
+        void rebuildIndexList();
+
     };
 
 //! Exports the ParticleGroup class to python

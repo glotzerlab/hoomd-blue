@@ -94,6 +94,126 @@ shared_ptr<ParticleData> create_pdata()
     pdata->release();
     return pdata;
     }
+    
+//! Checks that ParticleGroup can sucessfully initialize
+BOOST_AUTO_TEST_CASE( ParticleGroup_basic_test )
+    {
+    shared_ptr<ParticleData> pdata = create_pdata();
+    
+    // create an empty group
+    ParticleGroup a;
+    // copy construct it
+    ParticleGroup b(a);
+    // copy it
+    ParticleGroup c;
+    c = a;
+    }
+    
+//! Test copy and equals operators
+BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
+    {
+    shared_ptr<ParticleData> pdata = create_pdata();
+
+    // create another particle group of all particles
+    ParticleGroup tags_all(pdata, ParticleGroup::tag, 0, pdata->getN()-1);
+    // verify it
+    MY_BOOST_CHECK_EQUAL(tags_all.getNumMembers(), pdata->getN());
+    for (unsigned int i = 0; i < pdata->getN(); i++)
+        {
+        MY_BOOST_CHECK_EQUAL(tags_all.getMemberTag(i), i);
+        MY_BOOST_CHECK_EQUAL(tags_all.getMemberIndex(i), i);
+        MY_BOOST_CHECK_EQUAL(tags_all.isMember(i), true);
+        }
+        
+    // copy construct it
+    ParticleGroup copy1(tags_all);
+    // verify it
+    MY_BOOST_CHECK_EQUAL(copy1.getNumMembers(), pdata->getN());
+    for (unsigned int i = 0; i < pdata->getN(); i++)
+        {
+        MY_BOOST_CHECK_EQUAL(copy1.getMemberTag(i), i);
+        MY_BOOST_CHECK_EQUAL(copy1.getMemberIndex(i), i);
+        MY_BOOST_CHECK_EQUAL(copy1.isMember(i), true);
+        }
+        
+    // copy it
+    ParticleGroup copy2;
+    copy2 = copy1;
+    // verify it
+    MY_BOOST_CHECK_EQUAL(copy2.getNumMembers(), pdata->getN());
+    for (unsigned int i = 0; i < pdata->getN(); i++)
+        {
+        MY_BOOST_CHECK_EQUAL(copy2.getMemberTag(i), i);
+        MY_BOOST_CHECK_EQUAL(copy2.getMemberIndex(i), i);
+        MY_BOOST_CHECK_EQUAL(copy2.isMember(i), true);
+        }
+    }
+
+//! Checks that ParticleGroup can sucessfully handle particle resorts
+BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
+    {
+    shared_ptr<ParticleData> pdata = create_pdata();
+
+    ParticleGroup tags04(pdata, ParticleGroup::tag, 0, 4);
+    // verify the initial set
+    MY_BOOST_CHECK_EQUAL(tags04.getNumMembers(), 5);
+    for (unsigned int i = 0; i < 5; i++)
+        {
+        MY_BOOST_CHECK_EQUAL(tags04.getMemberTag(i), i);
+        MY_BOOST_CHECK_EQUAL(tags04.getMemberIndex(i), i);
+        }
+    
+    for (unsigned int i = 0; i < pdata->getN(); i++)
+        {
+        bool value = (i <= 4);
+        MY_BOOST_CHECK_EQUAL(tags04.isMember(i), value);
+        }
+        
+    // resort the particles
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    
+    // set the types
+    arrays.tag[0] = 9;
+    arrays.tag[1] = 8;
+    arrays.tag[2] = 7;
+    arrays.tag[3] = 6;
+    arrays.tag[4] = 5;
+    arrays.tag[5] = 4;
+    arrays.tag[6] = 3;
+    arrays.tag[7] = 2;
+    arrays.tag[8] = 1;
+    arrays.tag[9] = 0;
+
+    arrays.rtag[0] = 9;
+    arrays.rtag[1] = 8;
+    arrays.rtag[2] = 7;
+    arrays.rtag[3] = 6;
+    arrays.rtag[4] = 5;
+    arrays.rtag[5] = 4;
+    arrays.rtag[6] = 3;
+    arrays.rtag[7] = 2;
+    arrays.rtag[8] = 1;
+    arrays.rtag[9] = 0;
+    
+    pdata->release();
+    pdata->notifyParticleSort();
+    
+    // verify that the group has updated
+    const ParticleDataArraysConst& arrays_const = pdata->acquireReadOnly();
+    MY_BOOST_CHECK_EQUAL(tags04.getNumMembers(), 5);
+    for (unsigned int i = 0; i < 5; i++)
+        {
+        MY_BOOST_CHECK_EQUAL(tags04.getMemberTag(i), i);
+        // indices are in sorted order (tags 0-4 are particles 9-5)
+        MY_BOOST_CHECK_EQUAL(tags04.getMemberIndex(i), i + 5);
+        }
+    
+    for (unsigned int i = 0; i < pdata->getN(); i++)
+        {
+        bool value = (arrays_const.tag[i] <= 4);
+        MY_BOOST_CHECK_EQUAL(tags04.isMember(i), value);
+        }
+    }
 
 //! Checks that ParticleGroup can initialize by particle type
 BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
