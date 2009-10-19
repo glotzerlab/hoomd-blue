@@ -79,7 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     aquired. Thus, all get() methods must return values from internal cached variables only. Those methods that
     absolutely require the particle data be released before they are called will be documented as such.
 
-    \b Data Structures and Implementation
+    <b>Data Structures and Implementation</b>
     
     The initial and fundamental data structure in the group is a vector listing all of the particle tags in the group,
     in a sorted tag order. This list can be accessed directly via getMemberTag() to meet the 2nd use case listed above.
@@ -103,7 +103,10 @@ class ParticleGroup
             type,   //!< Select particles in the group by type
             tag     //!< Select particles in the group by tag
             };
-            
+        
+        //! \name Initialization methods
+        // @{
+                
         //! Constructs an empty particle group
         ParticleGroup() {};
         
@@ -113,6 +116,10 @@ class ParticleGroup
         //! Destructor
         ~ParticleGroup();
         
+        // @}
+        //! \name Accessor methods
+        // @{
+                
         //! Get the number of members in the group
         /*! \returns The number of particles that belong to this group
         */
@@ -152,12 +159,26 @@ class ParticleGroup
             {
             return m_is_member[idx];
             }
+        
+        //! Direct access to the index list
+        /*! \returns A GPUArray for directly accessing the index list, intended for use in using groups on the GPU
+            \note The caller \b must \b not write to or change the array.
+        */
+        const GPUArray<unsigned int>& getIndexArray()
+            {
+            return m_member_idx;
+            }
+            
+        // @}
+        //! \name Combination methods
+        // @{
             
         //! Make a new particle group from a union of two
         static boost::shared_ptr<ParticleGroup> groupUnion(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b);
         //! Make a new particle group from an intersection
         static boost::shared_ptr<ParticleGroup> groupIntersection(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b);
         
+        // @}
         
     private:
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
