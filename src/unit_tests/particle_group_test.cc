@@ -58,6 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Name the boost unit test module
 #define BOOST_TEST_MODULE ParticleGroupTests
 #include "boost_utf_configure.h"
+#include <boost/test/floating_point_comparison.hpp>
 
 #include "ParticleData.h"
 #include "Initializers.h"
@@ -66,10 +67,23 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
+//! Tolerance in percent to use for comparing various values to each other
+#ifdef SINGLE_PRECISION
+const Scalar tol = Scalar(1e-1);
+#else
+const Scalar tol = 1e-6;
+#endif
+//! Global tolerance for check_small comparisons
+const Scalar tol_small = 1e-4;
+
 //! Need a simple define for requireing two values which are unsigned
 #define MY_BOOST_REQUIRE_EQUAL(a,b) BOOST_REQUIRE_EQUAL(a,(unsigned int)(b))
 //! Need a simple define for checking two values which are unsigned
 #define MY_BOOST_CHECK_EQUAL(a,b) BOOST_CHECK_EQUAL(a,(unsigned int)(b))
+//! Helper macro for testing if two numbers are close
+#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
+//! Helper macro for testing if a number is small
+#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
 
 //! initializes the particle data used by the tests
 shared_ptr<ParticleData> create_pdata()
@@ -80,9 +94,23 @@ shared_ptr<ParticleData> create_pdata()
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
     // set the types
+    // currently, the position is only set on the first 3 particles, intended for use in the total and center of mass
+    // tests. Later, other particles will be added to test the new particle data selectors
     arrays.type[0] = 0;
+    arrays.x[0] = Scalar(0.0); arrays.y[0] = Scalar(0.0); arrays.z[0] = Scalar(0.0);
+    arrays.ix[0] = 0; arrays.iy[0] = 0; arrays.iz[0] = 0;
+    arrays.mass[0] = Scalar(1.0);
+    
     arrays.type[1] = 2;
+    arrays.x[1] = Scalar(1.0); arrays.y[1] = Scalar(2.0); arrays.z[1] = Scalar(3.0);
+    arrays.ix[1] = 1; arrays.iy[1] = -1; arrays.iz[1] = 2;
+    arrays.mass[1] = Scalar(2.0);
+    
     arrays.type[2] = 0;
+    arrays.x[2] = Scalar(-1.0); arrays.y[2] = Scalar(-2.0); arrays.z[2] = Scalar(-3.0);
+    arrays.ix[2] = 0; arrays.iy[2] = 0; arrays.iz[2] = 0;
+    arrays.mass[2] = Scalar(5.0);
+    
     arrays.type[3] = 1;
     arrays.type[4] = 3;
     arrays.type[5] = 0;
@@ -306,3 +334,42 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     MY_BOOST_CHECK_EQUAL(intersection_group->getMemberTag(1), 2);
     }
 
+//! Checks that the ParticleGroup::getTotalMass works correctly
+BOOST_AUTO_TEST_CASE( ParticleGroup_total_mass_tests)
+    {
+    shared_ptr<ParticleData> pdata = create_pdata();
+    
+    ParticleGroup group1(pdata, ParticleGroup::tag, 0, 0);
+    MY_BOOST_CHECK_CLOSE(group1.getTotalMass(), 1.0, tol);
+    
+    ParticleGroup group2(pdata, ParticleGroup::tag, 0, 1);
+    MY_BOOST_CHECK_CLOSE(group2.getTotalMass(), 3.0, tol);
+
+    ParticleGroup group3(pdata, ParticleGroup::tag, 0, 2);
+    MY_BOOST_CHECK_CLOSE(group3.getTotalMass(), 8.0, tol);
+    }
+    
+//! Checks that the ParticleGroup::getCenterOfMass works correctly
+BOOST_AUTO_TEST_CASE( ParticleGroup_center_of_mass_tests)
+    {
+    shared_ptr<ParticleData> pdata = create_pdata();
+    
+    Scalar3 com;
+    ParticleGroup group1(pdata, ParticleGroup::tag, 0, 0);
+    com = group1.getCenterOfMass();
+    MY_BOOST_CHECK_SMALL(com.x, tol_small);
+    MY_BOOST_CHECK_SMALL(com.y, tol_small);
+    MY_BOOST_CHECK_SMALL(com.z, tol_small);
+    
+    ParticleGroup group2(pdata, ParticleGroup::tag, 0, 1);
+    com = group2.getCenterOfMass();
+    MY_BOOST_CHECK_CLOSE(com.x, 7.3333333333, tol);
+    MY_BOOST_CHECK_CLOSE(com.y, -5.3333333333, tol);
+    MY_BOOST_CHECK_CLOSE(com.z, 15.333333333, tol);
+
+    ParticleGroup group3(pdata, ParticleGroup::tag, 0, 2);
+    com = group3.getCenterOfMass();
+    MY_BOOST_CHECK_CLOSE(com.x, 2.125, tol);
+    MY_BOOST_CHECK_CLOSE(com.y, -3.25, tol);
+    MY_BOOST_CHECK_CLOSE(com.z, 3.875, tol);
+    }

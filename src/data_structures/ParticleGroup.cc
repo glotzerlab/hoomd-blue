@@ -131,6 +131,60 @@ ParticleGroup::~ParticleGroup()
         m_sort_connection.disconnect();
     }
 
+/*! \returns Total mass of all particles in the group
+    \note This method aquires the ParticleData internally
+*/
+const Scalar ParticleGroup::getTotalMass() const
+    {
+    // grab the particle data
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    
+    // loop  through all indices in the group and total the mass
+    Scalar total_mass = 0.0;
+    for (unsigned int i = 0; i < getNumMembers(); i++)
+        {
+        unsigned int idx = getMemberIndex(i);
+        total_mass += arrays.mass[idx];
+        }
+    m_pdata->release();
+    return total_mass;
+    }
+    
+/*! \returns The center of mass of the group, in unwrapped coordinates
+    \note This method aquires the ParticleData internally
+*/
+const Scalar3 ParticleGroup::getCenterOfMass() const
+    {
+    // grab the particle data
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    
+    // grab the box dimensions
+    BoxDim box = m_pdata->getBox();
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    // loop  through all indices in the group and compute the weighted average of the positions
+    Scalar total_mass = 0.0;
+    Scalar3 center_of_mass = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
+    for (unsigned int i = 0; i < getNumMembers(); i++)
+        {
+        unsigned int idx = getMemberIndex(i);
+        Scalar mass = arrays.mass[idx];
+        total_mass += mass;
+        center_of_mass.x += mass * (arrays.x[idx] + Scalar(arrays.ix[idx]) * Lx);
+        center_of_mass.y += mass * (arrays.y[idx] + Scalar(arrays.iy[idx]) * Ly);
+        center_of_mass.z += mass * (arrays.z[idx] + Scalar(arrays.iz[idx]) * Lz);
+        }
+    center_of_mass.x /= total_mass;
+    center_of_mass.y /= total_mass;
+    center_of_mass.z /= total_mass;
+
+    m_pdata->release();
+    
+    return center_of_mass;
+    }
+
 /*! \param a First particle group
     \param b Second particle group
 

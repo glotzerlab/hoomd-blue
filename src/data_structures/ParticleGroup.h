@@ -164,11 +164,20 @@ class ParticleGroup
         /*! \returns A GPUArray for directly accessing the index list, intended for use in using groups on the GPU
             \note The caller \b must \b not write to or change the array.
         */
-        const GPUArray<unsigned int>& getIndexArray()
+        const GPUArray<unsigned int>& getIndexArray() const
             {
             return m_member_idx;
             }
-            
+        
+        // @}
+        //! \name Analysis methods
+        // @{
+        
+        //! Compute the total mass of the group
+        const Scalar getTotalMass() const;
+        //! Compute the center of mass of the group
+        const Scalar3 getCenterOfMass() const;
+        
         // @}
         //! \name Combination methods
         // @{
