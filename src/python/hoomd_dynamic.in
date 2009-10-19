@@ -46,5 +46,6 @@ if [ "$#" -eq 0 ]; then
 fi
 
 export PYTHONPATH="${HOOMD_ROOT}/lib/hoomd/python-module:${PYTHONPATH}"
+export DYLD_LIBRARY_PATH="${HOOMD_ROOT}/lib/hoomd/python-module:${DYLD_LIBRARY_PATH}"
 export HOOMD_ROOT
 python $*

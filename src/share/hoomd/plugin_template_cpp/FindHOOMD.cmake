@@ -113,7 +113,7 @@ include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
 include (HOOMDCommonLibsSetup)
 
-set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})
+set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS} ${CUDA_CUDART_LIBRARY})
 include_directories(${HOOMD_INCLUDE_DIR})
 
 endif (HOOMD_FOUND)
