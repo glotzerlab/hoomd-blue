@@ -114,6 +114,8 @@ class xml(analyze._analyzer):
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
     # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
     # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
+    # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml 
+    # file
     #
     # Using set_params() requires that the %dump was saved in a variable when it was specified.
     # \code
@@ -129,7 +131,20 @@ class xml(analyze._analyzer):
     # xml.set_params(bond=True)
     # xml.set_params(all=True)
     # \endcode
-    def set_params(self, all=None, position=None, image=None, velocity=None, mass=None, diameter=None, type=None, wall=None, bond=None, angle=None, dihedral=None, improper=None):
+    def set_params(self,
+                   all=None,
+                   position=None,
+                   image=None,
+                   velocity=None,
+                   mass=None,
+                   diameter=None,
+                   type=None,
+                   wall=None,
+                   bond=None,
+                   angle=None,
+                   dihedral=None,
+                   improper=None,
+                   acceleration=None):
         util.print_status_line();
     
         # check that proper initialization has occurred
@@ -139,6 +154,7 @@ class xml(analyze._analyzer):
             
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
+            acceleration = True;
 
         if position != None:
             self.cpp_analyzer.setOutputPosition(position);
@@ -172,6 +188,9 @@ class xml(analyze._analyzer):
             
         if improper != None:
             self.cpp_analyzer.setOutputImproper(improper);
+        
+        if acceleration != None:
+            self.cpp_analyzer.setOutputAccel(acceleration);
             
     ## Write a file at the current time step
     #

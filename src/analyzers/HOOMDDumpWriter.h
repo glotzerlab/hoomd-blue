@@ -109,6 +109,8 @@ class HOOMDDumpWriter : public Analyzer
         void setOutputImproper(bool enable);
         //! Enables/disables the writing of walls
         void setOutputWall(bool enable);
+        //! Enables/disables the writing of acceleration
+        void setOutputAccel(bool enable);
         
         //! Writes a file at the current time step
         void writeFile(std::string fname, unsigned int timestep);
@@ -125,7 +127,8 @@ class HOOMDDumpWriter : public Analyzer
         bool m_output_wall;         //!< true if the walls should be written
         bool m_output_dihedral;     //!< true if dihedrals should be written
         bool m_output_improper;     //!< true if impropers should be written
-    };
+        bool m_output_accel;        //!< true if acceleration should be written
+        };
 
 //! Exports the HOOMDDumpWriter class to python
 void export_HOOMDDumpWriter();
