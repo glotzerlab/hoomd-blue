@@ -397,7 +397,7 @@ BOOST_AUTO_TEST_CASE( NVEUpdater_boundary_tests )
     nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_boundary_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
-/*  //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
+//! Need work on NVEUpdaterGPU with rigid bodies to test these cases
 #ifdef ENABLE_CUDA
 //! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE( NVEUPdaterMultiGPU_comparison_tests)
     }
 
 #endif
-*/
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
