@@ -105,7 +105,7 @@ class ElectrostaticLongRangePPPM : public ForceCompute
         //! function making the charge assignment
         virtual void make_rho(void);
         
-        //!< Backinterpolate mesh grid points into continuum
+        //! Backinterpolate mesh grid points into continuum
         virtual void back_interpolate(CScalar *Grid,Scalar *Continuum);
         
         //! Delivers the charge density on the grid, convenient for unit testing
@@ -168,7 +168,10 @@ class ElectrostaticLongRangePPPM : public ForceCompute
         Scalar **P_coeff;            //!< Coefficients of Polynomial to distribute charge
         double **a_P;                //!< Pointer necessary to determine P_coeff
         double **b_P;                //!< Pointer necessary to determine P_coeff
+        
+        //! This method is undocumented
         void (ElectrostaticLongRangePPPM::*make_rho_helper)(void);
+        //! This method is undocumented
         void (ElectrostaticLongRangePPPM::*back_interpolate_helper)(CScalar *,Scalar *);
         Scalar *Denom_Coeff;   //!< Coefficients of the polynomial to compute the denominator of the influence function
         
