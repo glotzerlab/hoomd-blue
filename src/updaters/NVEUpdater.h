@@ -84,8 +84,6 @@ class NVEUpdater : public Integrator
         bool m_accel_set;   //!< Flag to tell if we have set the accelleration yet
         bool m_limit;       //!< True if we should limit the distance a particle moves in one step
         Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
-        
-        boost::shared_ptr<class NVERigidUpdater> m_rigid_updater;   //! The updater for rigid bodies, if any
     };
 
 //! Exports the NVEUpdater class to python

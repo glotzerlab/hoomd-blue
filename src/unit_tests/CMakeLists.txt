@@ -69,7 +69,7 @@ set(TEST_LIST
     temp_rescale_updater_test
     xml_reader_writer_test system_test
     ElectrostaticShortRange_force_test
-    nve_rigid_updater_test)
+    )
     
 if (ENABLE_FFT)
     set(TEST_LIST ${TEST_LIST} 
