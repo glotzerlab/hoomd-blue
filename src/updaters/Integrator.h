@@ -100,7 +100,7 @@ class Integrator : public Updater
         Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
         
         //! Destructor
-        ~Integrator();
+        virtual ~Integrator();
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);

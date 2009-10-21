@@ -60,12 +60,15 @@ using namespace boost::python;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \post The method is constructed with the given particle data and a NULL profiler.
 */
-IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef) 
-    : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()), m_deltaT(Scalar(0.0))
+IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
+                                                   boost::shared_ptr<ParticleGroup> group)
+    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()), 
+      m_deltaT(Scalar(0.0))
     {
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
+    assert(m_group);
     }
 
 /*! It is useful for the user to know where computation time is spent, so all integration methods
@@ -81,7 +84,7 @@ void IntegrationMethodTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
     {
     m_prof = prof;
     }
-    
+
 /*! \param deltaT New time step to set
 */
 void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
@@ -94,7 +97,7 @@ void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
 void export_IntegrationMethodTwoStep()
     {
     class_<IntegrationMethodTwoStep, boost::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition> >())
+        ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         ;
     }
 

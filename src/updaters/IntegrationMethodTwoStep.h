@@ -46,6 +46,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "SystemDefinition.h"
+#include "ParticleGroup.h"
 #include "Profiler.h"
 
 #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
@@ -55,8 +56,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares a base class for all two-step integration methods
 */
 
-//! Integrates the system forward in two steps
-/*! A large class of integrators can be implemented in two steps:
+//! Integrates part of the system forward in two steps
+/*! \b Overview
+    A large class of integrators can be implemented in two steps:
     - Update position and velocity (w/ current accel)
     - Sum accelerations at the current position
     - Update position and velocity again (w/ newly calculated accel)
@@ -68,9 +70,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     several two step integration methods. It calls the first step on all of them, then calculates the forces, and then
     calls the second step on all methods. In this way, the entire system will be integrated forward correctly.
     
-    While the design is meant for applying different integration methods to different groups, the specification of the
-    group which an integration method acts on is left op to the derived classes. There is no need to specifically
-    require that a group be passed in to the base class.
+    This design is chosen so that a single integration method is only applied to a group of particles. To enforce this
+    design constraint, the group is specified in the constructor to the base class method.
     
     However, some care needs to be put into thinking about the computation of the net force / accelerations. Prior to
     implementing IntegrationMethodTwoStep, Integrators on the CPU have the net force and acceleration summed in
@@ -84,7 +85,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     One small note: each IntegrationTwoStep will have a deltaT. The value of this will be set by the integrator when
     Integrator::setDeltaT is called to ensure that all integration methods have the same delta t set.
     
-    Design items still todo:
+    <b>Design requirements</b>
+    Due to the nature of allowing multiple integration methods to run at once, some strict guidlines need to be laid
+    down.
+    -# All methods must use the same \a deltaT (this is enforced by having IntegratorTwoStep call setDeltaT on all of
+       the methods inside it.
+    -# integrateStepOne uses the particle acceleration currently set to advance particle positions forward one full
+       step, and velocities are advanced forward a half step.
+    -# integrateStepTwo assigns the current particle acceleration from the net force and updates the velocities
+       forward for the second half step
+    -# each integration method only applies these operations to the particles contained within its group (exceptions
+       are allowed when box rescaling is needed)
+    
+    <b>Design items still left to do:</b>
     
     Interaction with logger: perhaps the integrator should forward log value queries on to the integration method? 
     each method could be given a user name so that they are logged in user-controlled columns. This provides a window
@@ -102,7 +115,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
     {
     public:
         //! Constructs the integration method and associates it with the system
-        IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef);
+        IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
         virtual ~IntegrationMethodTwoStep() {};
         
         //! Abstract method that performs the first step of the integration
@@ -113,7 +126,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Abstract method that performs the second step of the integration
         /*! \param timestep Current time step
         */
-        virtual void integrateStepTwo(unsigned int timestep) {}        
+        virtual void integrateStepTwo(unsigned int timestep) {}
         
         //! Sets the profiler for the integration method to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
@@ -121,8 +134,12 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Change the timestep
         void setDeltaT(Scalar deltaT);
         
+        //! Access the group
+        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }
+        
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
+        boost::shared_ptr<ParticleGroup> m_group;           //!< The group of particles this method works on
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this method is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         const ExecutionConfiguration& exec_conf;            //!< Cached reference to the execution configuration
@@ -132,4 +149,4 @@ class IntegrationMethodTwoStep : boost::noncopyable
 //! Exports the IntegrationMethodTwoStep class to python
 void export_IntegrationMethodTwoStep();
 
-#endif
+#endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
