@@ -220,26 +220,24 @@ cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata,
 //! Takes the second 1/2 step forward in the NVT integration step
 /*! \param pdata Particle Data to step forward in time
     \param d_nvt_data Temporary data storage used in the NVT temperature calculation
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
+    \param d_net_force Net force on each particle
     \param Xi current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
 extern "C" __global__ 
 void gpu_nvt_step_kernel(gpu_pdata_arrays pdata,
                          gpu_nvt_data d_nvt_data,
-                         float4 **force_data_ptrs,
-                         int num_forces,
+                         float4 *d_net_force,
                          float Xi,
                          float deltaT)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_global = idx_local + pdata.local_beg;
     
-    // note: assumes mass=1.0
-    float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
     if (idx_local < pdata.local_num)
         {
+        // read in the net force and calculate the acceleration
+        float4 accel = d_net_force[idx_local];
         float mass = pdata.mass[idx_global];
         accel.x /= mass;
         accel.y /= mass;
@@ -260,15 +258,13 @@ void gpu_nvt_step_kernel(gpu_pdata_arrays pdata,
 
 /*! \param pdata Particle Data to step forward in time
     \param d_nvt_data Temporary data storage used in the NVT temperature calculation
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
+    \param d_net_force Net force on each particle
     \param Xi current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
 cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata,
                          const gpu_nvt_data &d_nvt_data,
-                         float4 **force_data_ptrs,
-                         int num_forces,
+                         float4 *d_net_force,
                          float Xi,
                          float deltaT)
     {
@@ -283,7 +279,7 @@ cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata,
         return error;
         
     // run the kernel
-    gpu_nvt_step_kernel<<< grid, threads >>>(pdata, d_nvt_data, force_data_ptrs, num_forces, Xi, deltaT);
+    gpu_nvt_step_kernel<<< grid, threads >>>(pdata, d_nvt_data, d_net_force, Xi, deltaT);
     
     if (!g_gpu_error_checking)
         {

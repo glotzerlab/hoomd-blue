@@ -133,6 +133,8 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
     nve_up->addForceCompute(fc1);
     shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(sysdef, 0.0, 2.5, 0.0));
     nve_up->addForceCompute(fc2);
+    /*shared_ptr<ConstForceCompute> fc3(new ConstForceCompute(sysdef, 0.0, 0.0, 3.0));
+    nve_up->addForceCompute(fc3);*/
     
     // verify proper integration compared to x = x0 + v0 t + 1/2 a t^2, v = v0 + a t
     // roundoff errors prevent this from keeping within 0.1% error for long
@@ -426,21 +428,6 @@ BOOST_AUTO_TEST_CASE( NVEUPdaterGPU_comparison_tests)
     nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_compare_test(nve_creator, nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    }
-
-//! boost test case for comkparing CPU to multi-GPU updaters
-BOOST_AUTO_TEST_CASE( NVEUPdaterMultiGPU_comparison_tests)
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-
-    nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-    nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-    nve_updater_compare_test(nve_creator, nve_creator_gpu, exec_conf);
     }
 
 #endif

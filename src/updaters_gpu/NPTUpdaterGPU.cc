@@ -83,25 +83,13 @@ NPTUpdaterGPU::NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
     {
     const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
     
-    m_d_virial_data_ptrs.resize(exec_conf.gpu.size());
-    // allocate and initialize force data pointers (if running on a GPU)
-    if (!exec_conf.gpu.empty())
-        {
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            {
-            exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_d_virial_data_ptrs[cur_gpu]), sizeof(float*)*32));
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_d_virial_data_ptrs[cur_gpu], 0, sizeof(float*)*32));
-            }
-        }
-        
     // at least one GPU is needed
     if (exec_conf.gpu.size() == 0)
         {
         cerr << endl << "***Error! Creating a NPTUpdaterGPU with no GPU in the execution configuration." << endl << endl;
         throw std::runtime_error("Error initializing NPTUpdaterGPU.");
         }
-        
+    
     d_npt_data.resize(exec_conf.gpu.size());
     allocateNPTData(128);
     }
@@ -130,8 +118,6 @@ void NPTUpdaterGPU::allocateNPTData(int block_size)
         exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].partial_Wsum), d_npt_data[cur_gpu].NBlocks * sizeof(float)));
         exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].Wsum), sizeof(float)));
         local_num = d_pdata[cur_gpu].local_num;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&d_npt_data[cur_gpu].virial), local_num * sizeof(float)));
-        
         }
     m_pdata->release();
     
@@ -154,9 +140,6 @@ void NPTUpdaterGPU::freeNPTData()
         d_npt_data[cur_gpu].partial_Wsum = NULL;
         exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].Wsum));
         d_npt_data[cur_gpu].Wsum = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, d_npt_data[cur_gpu].virial));
-        d_npt_data[cur_gpu].virial = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)m_d_virial_data_ptrs[cur_gpu]));
         }
     }
 
@@ -168,60 +151,7 @@ void NPTUpdaterGPU::freeNPTData()
 void NPTUpdaterGPU::addForceCompute(boost::shared_ptr<ForceCompute> fc)
     {
     Integrator::addForceCompute(fc);
-    // add stuff for virials
-#ifdef ENABLE_CUDA
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    if (!exec_conf.gpu.empty())
-        {
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            {
-            exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-            // reinitialize the memory on the device
-            
-            // fill out the memory on the host
-            // this only needs to be done once since the output of acquireGPU is
-            // guaranteed not to change later
-            float *h_virial_data_ptrs[32];
-            for (int i = 0; i < 32; i++)
-                h_virial_data_ptrs[i] = NULL;
-                
-            for (unsigned int i = 0; i < m_forces.size(); i++)
-                h_virial_data_ptrs[i] = m_forces[i]->acquireGPU()[cur_gpu].d_data.virial;
-                
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void*)m_d_virial_data_ptrs[cur_gpu], (void*)h_virial_data_ptrs, sizeof(float*)*32, cudaMemcpyHostToDevice));
-            }
-        }
-#endif
     }
-
-/*! Call removeForceComputes() to completely wipe out the list of force computes
-    that the integrator uses to sum forces.
-    Removes virial compute.
-*/
-void NPTUpdaterGPU::removeForceComputes()
-    {
-#ifdef ENABLE_CUDA
-    
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    if (!exec_conf.gpu.empty())
-        {
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            {
-            exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-            
-            // reinitialize the memory on the device
-            float *h_virial_data_ptrs[32];
-            for (int i = 0; i < 32; i++)
-                h_virial_data_ptrs[i] = NULL;
-                
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void*)m_d_virial_data_ptrs[cur_gpu], (void*)h_virial_data_ptrs, sizeof(float*)*32, cudaMemcpyHostToDevice));
-            }
-        }
-        
-#endif
-    Integrator::removeForceComputes();
-    }
-
 
 /*! \param timestep Current time step of the simulation
 */
@@ -235,9 +165,8 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     if (!m_accel_set)
         {
         m_accel_set = true;
-        // use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
-        // is calculated correctly
-        computeAccelerationsGPU(timestep, "NPT", true);
+        // calculate the accelerations of the particles at the initial time step
+        computeAccelerations(timestep, "NPT");
         
         m_curr_T = computeTemperature(timestep);  // Compute temperature for the first time step
         m_curr_P = computePressure(timestep);     // Compute pressure for the first time step
@@ -293,8 +222,8 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     // the profiling for now
     if (m_prof) m_prof->pop(exec_conf);
     
-    // for the next half of the step, we need the accelerations at t+deltaT
-    computeAccelerationsGPU(timestep+1, "NPT", false);
+    // for the next half of the step, we need the net force at t+deltaT
+    computeNetForceGPU(timestep+1, "NVT");
     
     if (m_prof) m_prof->push(exec_conf, "NPT");
     
@@ -307,11 +236,13 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     
     // get the particle data arrays again so we can update the 2nd half of the step
     d_pdata = m_pdata->acquireReadWriteGPU();
+    // also access the net force data for reading
+    ArrayHandle<Scalar4> d_net_force(m_net_force, access_location::device, access_mode::read);
     
     // 2nd half time step; propagate velocities from t+1/2*deltaT to t+deltaT
     exec_conf.tagAll(__FILE__, __LINE__);
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_step, d_pdata[cur_gpu], d_npt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_Eta, m_deltaT));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_step, d_pdata[cur_gpu], d_npt_data[cur_gpu], d_net_force.data, m_Xi, m_Eta, m_deltaT));
     exec_conf.syncAll();
     
     m_pdata->release();
@@ -380,15 +311,15 @@ Scalar NPTUpdaterGPU::computePressure(unsigned int timestep)
     
     // acquire the particle data on the GPU
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    // also access the net virial data for reading
+    ArrayHandle<Scalar> d_net_virial(m_net_virial, access_location::device, access_mode::read);
     
     exec_conf.tagAll(__FILE__, __LINE__);
     
     // sum up virials and then total the Wsum on each GPU in parallel
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
         {
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_integrator_sum_virials, d_npt_data[cur_gpu], d_pdata[cur_gpu], m_d_virial_data_ptrs[cur_gpu], (int)m_forces.size()));
-        
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_pressure, d_npt_data[cur_gpu], d_pdata[cur_gpu]));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_pressure, d_npt_data[cur_gpu], d_pdata[cur_gpu], d_net_virial.data));
         
         exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_reduce_wsum, d_npt_data[cur_gpu]));
         }

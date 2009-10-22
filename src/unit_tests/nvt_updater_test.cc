@@ -1267,21 +1267,6 @@ BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
     nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
-//! boost test case for comparing the CPU and multi-GPU updaters
-BOOST_AUTO_TEST_CASE( NVTUpdaterMultiGPU_comparison_tests)
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
-    nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
-    nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, exec_conf);
-    }
-
 #endif
 
 #ifdef WIN32

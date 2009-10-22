@@ -207,8 +207,7 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
 
 //! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
 /*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
+    \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
@@ -216,8 +215,7 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
 */
 extern "C" __global__ 
 void gpu_nve_step_kernel(gpu_pdata_arrays pdata,
-                         float4 **force_data_ptrs,
-                         int num_forces,
+                         float4 *d_net_force,
                          float deltaT,
                          bool limit,
                          float limit_val)
@@ -226,11 +224,10 @@ void gpu_nve_step_kernel(gpu_pdata_arrays pdata,
     int idx_global = idx_local + pdata.local_beg;
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     
-    // note: assumes mass = 1.0
-    // sum the acceleration on this particle: (MEM TRANSFER: 16 bytes * number of forces FLOPS: 3 * number of forces)
-    float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
     if (idx_local < pdata.local_num)
         {
+        // read in the net forc and calculate the acceleration MEM TRANSFER: 16 bytes
+        float4 accel = d_net_force[idx_local];
         // MEM TRANSFER: 4 bytes   FLOPS: 3
         float mass = pdata.mass[idx_global];
         accel.x /= mass;
@@ -264,16 +261,14 @@ void gpu_nve_step_kernel(gpu_pdata_arrays pdata,
     }
 
 /*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
+    \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
 */
 cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
-                         float4 **force_data_ptrs,
-                         int num_forces,
+                         float4 *d_net_force,
                          float deltaT,
                          bool limit,
                          float limit_val)
@@ -290,7 +285,7 @@ cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
         return error;
         
     // run the kernel
-    gpu_nve_step_kernel<<< grid, threads >>>(pdata, force_data_ptrs, num_forces, deltaT, limit, limit_val);
+    gpu_nve_step_kernel<<< grid, threads >>>(pdata, d_net_force, deltaT, limit, limit_val);
     
     if (!g_gpu_error_checking)
         {
@@ -302,4 +297,3 @@ cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
         return cudaGetLastError();
         }
     }
-

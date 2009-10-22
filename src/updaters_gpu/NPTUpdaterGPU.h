@@ -77,9 +77,6 @@ class NPTUpdaterGPU : public NPTUpdater
         //! Overides addForceCompute to add virial computes
         virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
         
-        //! overides removeForceCompute to remove all virial computes
-        virtual void removeForceComputes();
-        
         //! Computes current pressure
         virtual Scalar computePressure(unsigned int timestep);
         
@@ -94,9 +91,6 @@ class NPTUpdaterGPU : public NPTUpdater
         
         //! Helper function to free data
         void freeNPTData();
-        
-        //! Virial data pointers on the device
-        vector<float **> m_d_virial_data_ptrs;
     };
 
 //! Exports the NPTUpdater class to python

@@ -52,60 +52,40 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 
-//! Sums up the net acceleration on the GPU for Integrator
-cudaError_t gpu_integrator_sum_accel(const gpu_pdata_arrays &pdata, float4** force_list, int num_forces);
-
-
-// only define device function when compiled with NVCC
-#ifdef NVCC
-
-//! A more efficient, GPU force sum to be used in an existing kernel
-/*! This __device__ method uses the same data structures as gpu_integrator_sum_accel,
-    but can be used in an existing kernel to avoid the overhead of additional kernel
-    launches.
-
-    \param idx_local Thread index
-    \param local_num number of particles local to this GPU
-    \param force_data_ptrs list of force data pointers
-    \param num_forces number of force pointes in the list
-
-    \a force_data_ptrs contains up to 32 pointers. Each points to N float4's in memory
-    All forces are summed into pdata.accel.
-
-    \returns Net force on the particle \a idx_local
-
-    \note Uses a small amount of shared memory. Every thread participating in the kernel must
-    call this function. Coalescing is achieved when idx_local = blockDim.x*blockIDx.x + threadIdx.x
+//! struct to pack up several force and virial arrays for addition
+/*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this 
+    struct for addition to the net force/virial in a single kernel call. If there is not a multiple of 5 forces to sum, 
+    set some of the pointers to NULL and they will be ignored.
 */
-__device__ float4 gpu_integrator_sum_forces_inline(unsigned int idx_local,
-                                                   unsigned int local_num,
-                                                   float4 **force_data_ptrs,
-                                                   int num_forces)
+struct gpu_force_list
     {
-    // each block loads in the pointers
-    __shared__ float4 *force_ptrs[32];
-    if (threadIdx.x < 32)
-        force_ptrs[threadIdx.x] = force_data_ptrs[threadIdx.x];
-    __syncthreads();
-    
-    float4 net_force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    if (idx_local < local_num)
-        {
-        // sum the net force
-        for (int i = 0; i < num_forces; i++)
-            {
-            float4 *d_force = force_ptrs[i];
-            float4 f = d_force[idx_local];
-            
-            net_force.x += f.x;
-            net_force.y += f.y;
-            net_force.z += f.z;
-            }
-        }
-    // return the result
-    return net_force;
-    }
-#endif
+    //! Initializes to NULL
+    gpu_force_list() 
+        : f0(NULL), f1(NULL), f2(NULL), f3(NULL), f4(NULL), f5(NULL),
+          v0(NULL), v1(NULL), v2(NULL), v3(NULL), v4(NULL), v5(NULL)
+          {
+          }
+          
+    float4 *f0; //!< Pointer to force array 0
+    float4 *f1; //!< Pointer to force array 1
+    float4 *f2; //!< Pointer to force array 2
+    float4 *f3; //!< Pointer to force array 3
+    float4 *f4; //!< Pointer to force array 4
+    float4 *f5; //!< Pointer to force array 5
+    float *v0;  //!< Pointer to virial array 0
+    float *v1;  //!< Pointer to virial array 1
+    float *v2;  //!< Pointer to virial array 2
+    float *v3;  //!< Pointer to virial array 3
+    float *v4;  //!< Pointer to virial array 4
+    float *v5;  //!< Pointer to virial array 5
+    };
+
+//! Sums up the net force and virial on the GPU for Integrator
+cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
+                                         float *d_net_virial,
+                                         const gpu_force_list& force_list,
+                                         unsigned int nparticles,
+                                         bool clear);
 
 #endif
 

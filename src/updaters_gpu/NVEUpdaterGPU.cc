@@ -89,9 +89,8 @@ void NVEUpdaterGPU::update(unsigned int timestep)
     if (!m_accel_set)
         {
         m_accel_set = true;
-        // use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
-        // is calculated correctly
-        computeAccelerationsGPU(timestep, "NVE", true);
+        // calculate the accelerations of the particles at the initial time step
+        computeAccelerations(timestep, "NVE");
         }
         
     if (m_prof)
@@ -124,19 +123,21 @@ void NVEUpdaterGPU::update(unsigned int timestep)
     // the profiling for now
     if (m_prof) m_prof->pop(exec_conf);
     
-    // for the next half of the step, we need the accelerations at t+deltaT
-    computeAccelerationsGPU(timestep+1, "NVE", false);
+    // for the next half of the step, we need the net force at t+deltaT
+    computeNetForceGPU(timestep+1, "NVE");
     
     if (m_prof) m_prof->push(exec_conf, "NVE");
     if (m_prof) m_prof->push(exec_conf, "Half-step 2");
     
     // get the particle data arrays again so we can update the 2nd half of the step
     d_pdata = m_pdata->acquireReadWriteGPU();
+    // also access the net force data for reading
+    ArrayHandle<Scalar4> d_net_force(m_net_force, access_location::device, access_mode::read);
     
     // call the post-step kernel on all GPUs in parallel
     exec_conf.tagAll(__FILE__, __LINE__);
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_step, d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_deltaT, m_limit, m_limit_val));
+        exec_conf.gpu[cur_gpu]->call(bind(gpu_nve_step, d_pdata[cur_gpu], d_net_force.data, m_deltaT, m_limit, m_limit_val));
         
     exec_conf.syncAll();
     m_pdata->release();
@@ -144,8 +145,8 @@ void NVEUpdaterGPU::update(unsigned int timestep)
     // and now the acceleration at timestep+1 is precalculated for the first half of the next step
     if (m_prof)
         {
-        mem_transfer = m_pdata->getN() * (16*m_forces.size() + 4 + 16 + 32);
-        flops = m_pdata->getN() * (3*m_forces.size() + 3 + 6);
+        mem_transfer = m_pdata->getN() * (16 + 4 + 16 + 32);
+        flops = m_pdata->getN() * (3 + 6);
         m_prof->pop(exec_conf, flops, mem_transfer);
         m_prof->pop();
         }

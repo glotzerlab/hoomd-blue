@@ -59,8 +59,7 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
 
 //! Kernel driver for the second part of the NVE update called by NVEUpdaterGPU
 cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
-                         float4 **force_data_ptrs,
-                         int num_forces,
+                         float4 *d_net_force,
                          float deltaT,
                          bool limit,
                          float limit_val);

@@ -134,9 +134,8 @@ void NVTUpdaterGPU::update(unsigned int timestep)
     if (!m_accel_set)
         {
         m_accel_set = true;
-        // use the option of computeAccelerationsGPU to populate pdata.accel so the first step is
-        // is calculated correctly
-        computeAccelerationsGPU(timestep, "NVT", true);
+        // calculate the accelerations of the particles at the initial time step
+        computeAccelerations(timestep, "NVT");
         }
         
     if (m_prof) m_prof->push(exec_conf, "NVT");
@@ -166,8 +165,8 @@ void NVTUpdaterGPU::update(unsigned int timestep)
     // the profiling for now
     if (m_prof) m_prof->pop(exec_conf);
     
-    // for the next half of the step, we need the accelerations at t+deltaT
-    computeAccelerationsGPU(timestep+1, "NVT", false);
+    // for the next half of the step, we need the net force at t+deltaT
+    computeNetForceGPU(timestep+1, "NVT");
     
     if (m_prof)
         {
@@ -206,10 +205,12 @@ void NVTUpdaterGPU::update(unsigned int timestep)
     
     // get the particle data arrays again so we can update the 2nd half of the step
     d_pdata = m_pdata->acquireReadWriteGPU();
+    // also access the net force data for reading
+    ArrayHandle<Scalar4> d_net_force(m_net_force, access_location::device, access_mode::read);
     
     exec_conf.tagAll(__FILE__, __LINE__);
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_step, d_pdata[cur_gpu], d_nvt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_deltaT));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_nvt_step, d_pdata[cur_gpu], d_nvt_data[cur_gpu], d_net_force.data, m_Xi, m_deltaT));
     exec_conf.syncAll();
     
     m_pdata->release();
@@ -217,7 +218,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
     // and now the acceleration at timestep+1 is precalculated for the first half of the next step
     if (m_prof)
         {
-        m_prof->pop(exec_conf, 15 * m_pdata->getN(), m_pdata->getN() * 16 * (3 + m_forces.size()));
+        m_prof->pop(exec_conf);
         m_prof->pop();
         }
     }

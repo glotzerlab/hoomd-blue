@@ -71,115 +71,6 @@ texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
 //! Shared data used by NPT kernels for sum reductions
 extern __shared__ float npt_sdata[];
 
-//! Sums virials from many different ForceComputes all in an inline function that can be included in any kernel.
-/*! \param idx_local Local index of the running thread
-    \param local_num Number of particles local to this GPU
-    \param virial_data_ptrs Pointer to a list of pointers which are the arrays of virial data from the various
-           ForceComputes
-    \param num_virials Number of virials listed in \a virial_data_ptrs
-
-    \note Every thread in the grid must call this function: it needs to __syncthreads()
-    \note A maximum of 32 virials can be given in virial_data_ptrs
-
-    gpu_integrator_sum_virials_inline() is designed to be run on one thread per particle with the
-    normal thread breakdown of idx_local = threadIdx.x + blockDim.x * blockIdx.x. Full memory coalescing
-    is achieved when this is the case. Each thread loops through the data pointers (which are cached
-    in shared memory) and sums up the virial for particle idx_local.
-
-    This inlined call is designed to be used from within other kernels.
-*/
-__device__ float gpu_integrator_sum_virials_inline(unsigned int idx_local,
-                                                   unsigned int local_num,
-                                                   float **virial_data_ptrs,
-                                                   int num_virials)
-    {
-    // each block loads in the pointers
-    __shared__ float *virial_ptrs[32];
-    if (threadIdx.x < 32)
-        virial_ptrs[threadIdx.x] = virial_data_ptrs[threadIdx.x];
-    __syncthreads();
-    
-    float virial = 0.0f;
-    if (idx_local < local_num)
-        {
-        // sum the virials
-        for (int i = 0; i < num_virials; i++)
-            {
-            float *d_virial = virial_ptrs[i];
-            float v = d_virial[idx_local];
-            virial += v;
-            }
-        }
-    // return the result
-    return virial;
-    }
-
-//! Sums the various virials on the GPU
-/*! \param nptdata NPT data storage structure
-    \param pdata Particle data arrays
-    \param virial_data_ptrs list of virial data pointers
-    \param num_virials number of virial points in the list
-
-    \a virial_data_ptrs contains up to 32 pointers. Each points to pdata.local_num float's in memory
-    All virials are summed into nptdata.virial
-
-    gpu_integrator_sum_virials_kernel() is a simple driver to that uses gpu_integrator_sum_virials_inline()
-    to compute the per-particle virial sums into the memory provided in nptdata.virial. One thread
-    per particle is run with an arbitrary block size (a multiple of the warp size for coalescing).
-*/
-extern "C" __global__ 
-void gpu_integrator_sum_virials_kernel(gpu_npt_data nptdata,
-                                       gpu_pdata_arrays pdata,
-                                       float **virial_data_ptrs,
-                                       int num_virials)
-    {
-    // calculate the index we will be handling
-    int idx_local = blockDim.x * blockIdx.x + threadIdx.x;
-    
-    float virial = gpu_integrator_sum_virials_inline(idx_local, pdata.local_num, virial_data_ptrs, num_virials);
-    
-    if (idx_local < pdata.local_num)
-        {
-        // write out the result
-        nptdata.virial[idx_local] = virial;
-        }
-    }
-
-/*! Every virial on every particle is summed up into \a nptpdata.virial
-
-    \param nptdata NPT data storage structure
-    \param pdata Particle data to write virial sum to
-    \param virial_list List of pointers to virial data to sum
-    \param num_virials Number of forces in \a virial_list
-
-    \returns Any error code from the kernel call retrieved via cudaGetLastError()
-
-    This is just a kernel driver for gpu_integrator_sum_virials_kernel(). See it for more details.
-*/
-cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata,
-                                       const gpu_pdata_arrays &pdata,
-                                       float** virial_list,
-                                       int num_virials)
-    {
-    // sanity check
-    assert(num_virials < 32);
-    
-    const int block_size = 192;
-    
-    gpu_integrator_sum_virials_kernel<<< pdata.local_num/block_size+1, block_size >>>(nptdata, pdata, virial_list, num_virials);
-    
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-    }
-
-
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
     \param box Box dimensions that the particles are to be scaled into
     \param d_npt_data NPT data structure for storing data specific to NPT integration
@@ -326,8 +217,7 @@ cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata,
 
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
     \param d_npt_data NPT data structure for storing data specific to NPT integration
-    \param force_data_ptrs Pointers to the forces in device memory
-    \param num_forces Number of forces in \a force_data_ptrs
+    \param d_net_force Net force on each particle
     \param exp_v_fac exp_v_fac = \f$\exp(-\frac 1 4 (\eta+\xi)*\delta T)\f$ is the scaling factor for
 velocity update and is a result of coupling to the thermo/barostat
     \param deltaT Time to advance (for one full step)
@@ -336,19 +226,17 @@ velocity update and is a result of coupling to the thermo/barostat
 extern "C" __global__ 
 void gpu_npt_step_kernel(gpu_pdata_arrays pdata,
                          gpu_npt_data d_npt_data,
-                         float4 **force_data_ptrs,
-                         int num_forces,
+                         float4 *d_net_force,
                          float exp_v_fac,
                          float deltaT)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // local particle index on this GPU
     int idx_global = idx_local + pdata.local_beg; // global particle index across all GPUs
     
-    // add up all forces
-    float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
-    
     if (idx_local < pdata.local_num)
         {
+        // read in the net force and compute the acceleration
+        float4 accel = d_net_force[idx_local];
         float mass = pdata.mass[idx_global];
         accel.x /= mass;
         accel.y /= mass;
@@ -372,8 +260,7 @@ void gpu_npt_step_kernel(gpu_pdata_arrays pdata,
 
 /*! \param pdata Particle Data to operate on
     \param d_npt_data NPT specific data structures
-    \param force_data_ptrs Pointers to the forces in device memory
-    \param num_forces Number of forces in \a force_data_ptrs
+    \param d_net_force Net force on each particle
     \param Xi theromstat variable in Nose-Hoover barostat
     \param Eta baromstat variable in Nose-Hoover barostat
     \param deltaT Time to move forward in one whole step
@@ -382,8 +269,7 @@ void gpu_npt_step_kernel(gpu_pdata_arrays pdata,
 */
 cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata,
                          const gpu_npt_data &d_npt_data,
-                         float4 **force_data_ptrs,
-                         int num_forces,
+                         float4 *d_net_force,
                          float Xi,
                          float Eta,
                          float deltaT)
@@ -402,7 +288,7 @@ cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata,
         return error;
         
     // run the kernel
-    gpu_npt_step_kernel<<< grid, threads >>>(pdata, d_npt_data, force_data_ptrs, num_forces, exp_v_fac, deltaT);
+    gpu_npt_step_kernel<<< grid, threads >>>(pdata, d_npt_data, d_net_force, exp_v_fac, deltaT);
     
     if (!g_gpu_error_checking)
         {
@@ -644,13 +530,14 @@ cudaError_t gpu_npt_reduce_wsum(const gpu_npt_data &d_npt_data)
 //! Computes the first-pass virial sum
 /*! \param d_npt_data NPT specific data structures
     \param pdata Particle data to compute temperature of
+    \param d_net_virial Net virial on each particle
 
     \a d_npt_data.NBlocks blocks are to be run with \a d_npt_data.block_size width. Each thread
     reads in the total virial on a single particle and then each block makes a
     parallel reduction pass to compute the partial virial sums. \a d_npt_data.NBlocks partial sums
     are written out to \a d_npt_data.partial_Wsum which will be later summed in gpu_npt_reduce_wsum_kernel().
 */
-extern "C" __global__ void gpu_npt_pressure_kernel(gpu_npt_data d_npt_data, gpu_pdata_arrays pdata)
+extern "C" __global__ void gpu_npt_pressure_kernel(gpu_npt_data d_npt_data, gpu_pdata_arrays pdata, float *d_net_virial)
     {
     
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x; // particle's local index on this GPU
@@ -658,7 +545,7 @@ extern "C" __global__ void gpu_npt_pressure_kernel(gpu_npt_data d_npt_data, gpu_
     float virial = 0.0f;
     if (idx_local < pdata.local_num)
         {
-        virial = d_npt_data.virial[idx_local];
+        virial = d_net_virial[idx_local];
         }
         
     npt_sdata[threadIdx.x] = virial;
@@ -683,10 +570,11 @@ extern "C" __global__ void gpu_npt_pressure_kernel(gpu_npt_data d_npt_data, gpu_
 
 /*! \param d_npt_data NPT specific data structures
     \param pdata Particle data to compute temperature of
+    \param d_net_virial Net virial on each particle
 
     This is just a driver function for gpu_npt_pressure_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata)
+cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata, float *d_net_virial)
     {
     // setup the grid to run the kernel
     int block_size = d_npt_data.block_size;
@@ -694,7 +582,7 @@ cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arr
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_npt_pressure_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data, pdata);
+    gpu_npt_pressure_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_npt_data, pdata, d_net_virial);
     
     if (!g_gpu_error_checking)
         {

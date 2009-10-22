@@ -136,19 +136,20 @@ class Integrator : public Updater
         virtual Scalar computeTotalMomentum(unsigned int timestep);
         
     protected:
-        Scalar m_deltaT;    //!< The time step
+        Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
+        GPUArray< Scalar4 > m_net_force;                            //!< The net force computed by this integrator
+        GPUArray< Scalar > m_net_virial;                            //!< The total per-particle virial computed
         
-        //! helper function to compute accelerations
+        //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep, const std::string& profile_name);
         
+        //! helper function to compute net force/virial
+        void computeNetForce(unsigned int timestep, const std::string& profile_name);
+        
 #ifdef ENABLE_CUDA
-        //! helper function to compute accelerations on the GPU
-        void computeAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
-        
-        //! Force data pointers on the device
-        vector<float4 **> m_d_force_data_ptrs;
-        
+        //! helper function to compute net force/virial on the GPU
+        void computeNetForceGPU(unsigned int timestep, const std::string& profile_name);
 #endif
     };
 
