@@ -213,24 +213,17 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
         m_prof->push("Sum accel");
         }
     
-    // now, get our own access to the arrays and add up the accelerations
+    // now, get our own access to the arrays and calculate the accelerations
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    
-    // start by zeroing the acceleration arrays
-    memset((void *)arrays.ax, 0, sizeof(Scalar)*arrays.nparticles);
-    memset((void *)arrays.ay, 0, sizeof(Scalar)*arrays.nparticles);
-    memset((void *)arrays.az, 0, sizeof(Scalar)*arrays.nparticles);
-    
-    // access the net force array
     ArrayHandle<Scalar4> h_net_force(m_net_force, access_location::host, access_mode::read);
     
     // now, add up the accelerations
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
         Scalar minv = Scalar(1.0) / arrays.mass[j];
-        arrays.ax[j] += h_net_force.data[j].x*minv;
-        arrays.ay[j] += h_net_force.data[j].y*minv;
-        arrays.az[j] += h_net_force.data[j].z*minv;
+        arrays.ax[j] = h_net_force.data[j].x*minv;
+        arrays.ay[j] = h_net_force.data[j].y*minv;
+        arrays.az[j] = h_net_force.data[j].z*minv;
         }
     
     m_pdata->release();
