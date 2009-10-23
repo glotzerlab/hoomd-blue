@@ -60,10 +60,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "ConstForceCompute.h"
-#include "NVEUpdater.h"
+#include "TwoStepNVE.h"
 #ifdef ENABLE_CUDA
-#include "NVEUpdaterGPU.h"
+#include "TwoStepNVEGPU.h"
 #endif
+
+#include "IntegratorTwoStep.h"
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
@@ -75,7 +77,7 @@ using namespace std;
 using namespace boost;
 
 /*! \file nve_updater_test.cc
-    \brief Implements unit tests for NVEUpdater and descendants
+    \brief Implements unit tests for TwoStepNVE and descendants
     \ingroup unit_tests
 */
 
@@ -92,10 +94,11 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT)> nveup_creator;
+typedef boost::function<shared_ptr<TwoStepNVE> (shared_ptr<SystemDefinition> sysdef,
+                                                shared_ptr<ParticleGroup> group)> twostepnve_creator;
 
 //! Integrate 1 particle through time and compare to an analytical solution
-void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;
@@ -106,6 +109,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
     // don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -127,14 +131,15 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
     pdata->release();
     
     Scalar deltaT = Scalar(0.0001);
-    shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
+    shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
+    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    nve_up->addIntegrationMethod(two_step_nve);
+    
     // also test the ability of the updater to add two force computes together properly
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1.5, 0.0, 0.0));
     nve_up->addForceCompute(fc1);
     shared_ptr<ConstForceCompute> fc2(new ConstForceCompute(sysdef, 0.0, 2.5, 0.0));
     nve_up->addForceCompute(fc2);
-    /*shared_ptr<ConstForceCompute> fc3(new ConstForceCompute(sysdef, 0.0, 0.0, 3.0));
-    nve_up->addForceCompute(fc3);*/
     
     // verify proper integration compared to x = x0 + v0 t + 1/2 a t^2, v = v0 + a t
     // roundoff errors prevent this from keeping within 0.1% error for long
@@ -168,7 +173,7 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, ExecutionConfigurati
     }
 
 //! Check that the particle movement limit works
-void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;
@@ -177,6 +182,7 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
     // create a simple 1 particle system
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -191,10 +197,13 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
     pdata->release();
     
     Scalar deltaT = Scalar(0.0001);
-    shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
+    shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef, group_all);
+    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    nve_up->addIntegrationMethod(two_step_nve);
+    
     // set the limit
     Scalar limit = Scalar(0.1);
-    nve_up->setLimit(limit);
+    two_step_nve->setLimit(limit);
     
     // create an insanely large force to test the limiting method
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 1e9, 2e9, 3e9));
@@ -232,7 +241,7 @@ void nve_updater_limit_tests(nveup_creator nve_creator, ExecutionConfiguration e
 
 
 //! Make a few particles jump across the boundary and verify that the updater works
-void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_boundary_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;
@@ -245,6 +254,7 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
     // build a 6 particle system with particles set to move across each boundary
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata_6, ParticleGroup::tag, 0, pdata_6->getN()-1));
     
     ParticleDataArrays arrays = pdata_6->acquireReadWrite();
     arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
@@ -262,7 +272,10 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
     pdata_6->release();
     
     Scalar deltaT = 1.0;
-    shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef_6, deltaT);
+    shared_ptr<TwoStepNVE> two_step_nve = nve_creator(sysdef_6, group_all);
+    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef_6, deltaT));
+    nve_up->addIntegrationMethod(two_step_nve);
+    
     // no forces on these particles
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef_6, 0, 0.0, 0.0));
     nve_up->addForceCompute(fc1);
@@ -288,8 +301,10 @@ void nve_updater_boundary_tests(nveup_creator nve_creator, ExecutionConfiguratio
     pdata_6->release();
     }
 
-//! Compares the output from one NVEUpdater to another
-void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_creator2, ExecutionConfiguration exec_conf)
+//! Compares the output from one TwoStepNVE to another
+void nve_updater_compare_test(twostepnve_creator nve_creator1,
+                              twostepnve_creator nve_creator2,
+                              ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;
@@ -303,9 +318,12 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
     rand_init1.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(rand_init1, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
+    shared_ptr<ParticleGroup> group_all1(new ParticleGroup(pdata1, ParticleGroup::tag, 0, pdata1->getN()-1));
+
     rand_init2.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(rand_init2, exec_conf));
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
+    shared_ptr<ParticleGroup> group_all2(new ParticleGroup(pdata2, ParticleGroup::tag, 0, pdata2->getN()-1));
     
     shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
     shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
@@ -324,8 +342,13 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
     fc1->setParams(0,0,lj1,lj2);
     fc2->setParams(0,0,lj1,lj2);
     
-    shared_ptr<NVEUpdater> nve1 = nve_creator1(sysdef1, Scalar(0.005));
-    shared_ptr<NVEUpdater> nve2 = nve_creator2(sysdef2, Scalar(0.005));
+    shared_ptr<TwoStepNVE> two_step_nve1 = nve_creator1(sysdef1, group_all1);
+    shared_ptr<IntegratorTwoStep> nve1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
+    nve1->addIntegrationMethod(two_step_nve1);
+
+    shared_ptr<TwoStepNVE> two_step_nve2 = nve_creator2(sysdef2, group_all2);
+    shared_ptr<IntegratorTwoStep> nve2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
+    nve2->addIntegrationMethod(two_step_nve2);
     
     nve1->addForceCompute(fc1);
     nve2->addForceCompute(fc2);
@@ -364,69 +387,69 @@ void nve_updater_compare_test(nveup_creator nve_creator1, nveup_creator nve_crea
         }
     }
 
-//! NVEUpdater factory for the unit tests
-shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+//! TwoStepNVE factory for the unit tests
+shared_ptr<TwoStepNVE> base_class_nve_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group)
     {
-    return shared_ptr<NVEUpdater>(new NVEUpdater(sysdef, deltaT));
+    return shared_ptr<TwoStepNVE>(new TwoStepNVE(sysdef, group));
     }
 
 #ifdef ENABLE_CUDA
-//! NVEUpdaterGPU factory for the unit tests
-shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+//! TwoStepNVEGPU factory for the unit tests
+shared_ptr<TwoStepNVE> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group)
     {
-    return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(sysdef, deltaT));
+    return shared_ptr<TwoStepNVE>(new TwoStepNVEGPU(sysdef, group));
     }
 #endif
 
 
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVE_integrate_tests )
     {
-    nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+    twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 //! boost test case for base class limit tests
-BOOST_AUTO_TEST_CASE( NVEUpdater_limit_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVE_limit_tests )
     {
-    nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+    twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 //! boost test case for base class boundary tests
-BOOST_AUTO_TEST_CASE( NVEUpdater_boundary_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVE_boundary_tests )
     {
-    nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+    twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_boundary_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
 #ifdef ENABLE_CUDA
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_integrate_tests )
     {
-    nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+    twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for base class limit tests
-BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_limit_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_limit_tests )
     {
-    nveup_creator nve_creator = bind(gpu_nve_creator, _1, _2);
+    twostepnve_creator nve_creator = bind(gpu_nve_creator, _1, _2);
     nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for base class boundary tests
-BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_boundary_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_boundary_tests )
     {
-    nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+    twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     nve_updater_boundary_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for comparing the GPU and CPU NVEUpdaters
-BOOST_AUTO_TEST_CASE( NVEUPdaterGPU_comparison_tests)
+BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_comparison_tests)
     {
-    nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-    nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
+    twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
+    twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
     nve_updater_compare_test(nve_creator, nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 

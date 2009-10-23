@@ -69,7 +69,8 @@ IntegratorTwoStep::~IntegratorTwoStep()
     {
     }
 
-/*! Sets the profiler both for this class and all of the containted integration methods
+/*! \param prof The profiler to set
+    Sets the profiler both for this class and all of the containted integration methods
 */
 void IntegratorTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
     {
@@ -103,11 +104,16 @@ void IntegratorTwoStep::update(unsigned int timestep)
         (*method)->integrateStepOne(timestep);
     
     // compute the net force on all particles
-    // TODO!!!!!!!!
+#ifdef ENABLE_CUDA
+    if (exec_conf.exec_mode == ExecutionConfiguration::GPU)
+        computeNetForceGPU(timestep+1, "Integrate");
+    else
+#endif
+        computeNetForce(timestep+1, "Integrate");
     
     // perform the second step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->integrateStepTwo(timestep);
+        (*method)->integrateStepTwo(timestep, m_net_force, m_net_virial);
     
     if (m_prof)
         m_prof->pop();

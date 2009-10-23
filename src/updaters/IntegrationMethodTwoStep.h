@@ -125,8 +125,14 @@ class IntegrationMethodTwoStep : boost::noncopyable
         
         //! Abstract method that performs the second step of the integration
         /*! \param timestep Current time step
+            \param net_force The net force on each particle in the system
+            \param net_virial The net virial on each particle in the system
         */
-        virtual void integrateStepTwo(unsigned int timestep) {}
+        virtual void integrateStepTwo(unsigned int timestep,
+                                      const GPUArray< Scalar4 >& net_force,
+                                      const GPUArray< Scalar >& net_virial)
+            {
+            }
         
         //! Sets the profiler for the integration method to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
@@ -139,7 +145,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
         
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
-        boost::shared_ptr<ParticleGroup> m_group;           //!< The group of particles this method works on
+        const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this method is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         const ExecutionConfiguration& exec_conf;            //!< Cached reference to the execution configuration
