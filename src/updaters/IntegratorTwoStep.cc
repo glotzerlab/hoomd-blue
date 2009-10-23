@@ -69,6 +69,17 @@ IntegratorTwoStep::~IntegratorTwoStep()
     {
     }
 
+/*! Sets the profiler both for this class and all of the containted integration methods
+*/
+void IntegratorTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
+    {
+    Integrator::setProfiler(prof);
+    
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        (*method)->setProfiler(prof);
+    }
+
 /*! \param timestep Current time step of the simulation
     \post All integration methods previously added with addIntegrationMethod() are applied in order to move the system
           state variables forward to \a timestep+1.

@@ -77,6 +77,9 @@ class IntegratorTwoStep : public Integrator
         //! Destructor
         virtual ~IntegratorTwoStep();
         
+        //! Sets the profiler for the compute to use
+        virtual void setProfiler(boost::shared_ptr<Profiler> prof);
+        
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
         
