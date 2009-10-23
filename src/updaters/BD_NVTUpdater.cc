@@ -71,6 +71,7 @@ using namespace std;
     \param deltaT Time step to use
     \param Temp Temperature to set
     \param seed Random seed to use for the random force compuataion
+    \param use_diam Unknown
 */
 BD_NVTUpdater::BD_NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
                              Scalar deltaT,

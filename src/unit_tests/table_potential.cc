@@ -64,7 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-/*! \file table_potential_test.cc
+/*! \file table_potential.cc
     \brief Implements unit tests for TablePotential and descendants
     \ingroup unit_tests
 */
