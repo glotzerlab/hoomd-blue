@@ -58,6 +58,7 @@ using namespace boost::python;
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
+    \param group The group of particles this integration method is to work on
     \post The method is constructed with the given particle data and a NULL profiler.
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
@@ -89,8 +90,6 @@ void IntegrationMethodTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
 */
 void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
     {
-    if (m_deltaT <= 0.0)
-        cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
     m_deltaT = deltaT;
     }
 
