@@ -72,7 +72,6 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param r_cut Cuttoff radius beyond which the force is 0
-    \param slj   Determines if Diameter Shifted LJ potential is being used
     \post memory is allocated and all parameters lj1 and lj2 are set to 0.0
     \note The LJForceComputeGPU does not own the Neighborlist, the caller should
         delete the neighborlist when done.

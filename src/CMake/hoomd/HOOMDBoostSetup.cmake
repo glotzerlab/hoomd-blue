@@ -7,13 +7,14 @@
 
 # setup the boost static linkage
 if(ENABLE_STATIC)
-set(Boost_USE_STATIC_LIBS "ON")
+    set(Boost_USE_STATIC_LIBS "ON")
+    add_definitions(-DBOOST_PYTHON_STATIC_LIB)
 else(ENABLE_STATIC)
-if(WIN32)
-    message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
-        you really want this feature, make it work yourself")
-endif(WIN32)
-set(Boost_USE_STATIC_LIBS "OFF")
+    if(WIN32)
+        message(FATAL_ERROR "Dynamically linking boost to HOOMD on windows is a hopeless cause. If 
+            you really want this feature, make it work yourself")
+    endif(WIN32)
+    set(Boost_USE_STATIC_LIBS "OFF")
 endif(ENABLE_STATIC)
 
 # setup some additional boost versions so that the newest versions of boost will be found
@@ -42,7 +43,7 @@ link_directories(${Boost_LIBRARY_DIRS})
 # also enable stdcall boost::bind support on windows for CUDA runtime API calls
 # but it isn't needed in 64 bit
 if (NOT CMAKE_CL_64)
-add_definitions(-DBOOST_BIND_ENABLE_STDCALL)
+    add_definitions(-DBOOST_BIND_ENABLE_STDCALL)
 endif (NOT CMAKE_CL_64)
 
 # hide the diagnostic lib definitions variable

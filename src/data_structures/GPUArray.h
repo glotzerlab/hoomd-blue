@@ -341,7 +341,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
         h_data(NULL)
     {
     // make m_pitch the next multiple of 16 larger or equal to the given width
-    m_pitch = (width + (16 - width & 15));
+    m_pitch = (width + (16 - (width & 15)));
     
     // setup the number of elements
     m_num_elements = m_pitch * m_height;

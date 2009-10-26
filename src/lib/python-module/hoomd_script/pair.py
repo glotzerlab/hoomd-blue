@@ -539,7 +539,7 @@ def _update_global_nlist(r_cut):
 # - \f$ \alpha \f$ - \c alpha
 #
 # The following parameters are set globally via set_params()
-# - mode - mode (default = "no_shift)
+# - mode - mode (default = "no_shift")
 # - \f$ \lambda \f$ - \c xplor_factor (default = 2.0/3.0)
 #
 # \b Example:
@@ -552,6 +552,7 @@ class lj(force._force):
     ## Specify the Lennard-Jones %pair %force
     #
     # \param r_cut Cutoff radius (see documentation above)
+    # \param slj Unknown
     #
     # \b Example:
     # \code

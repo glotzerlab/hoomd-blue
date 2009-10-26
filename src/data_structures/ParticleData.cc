@@ -142,9 +142,6 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 /*! \param N Number of particles to allocate memory for
     \param n_types Number of particle types that will exist in the data arrays
     \param box Box the particles live in
-        \param n_angle_types Number of angles to create
-        \param n_dihedral_types Number of dihedrals to create
-        \param n_improper_types Number of impropers to create
     \param exec_conf ExecutionConfiguration to use when executing code on the GPU
 
     \post \c x,\c y,\c z,\c vx,\c vy,\c vz,\c ax,\c ay, and \c az are allocated and initialized to 0.0

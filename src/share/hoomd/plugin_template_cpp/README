@@ -1,0 +1,38 @@
+Files that come in this template:
+ - CMakeLists.txt   : main CMake configuration file for the plugin
+ - FindHOOMD.cmake  : script to find a HOOMD-Blue installation to link against
+ - README           : This file
+ - cppmodule        : Directory containing C++ and CUDA source code that interacts with HOOMD
+ - pymodule         : Directory containing python UI level source code that drives the C++ module
+ 
+To compile this example plugin, follow steps similar to those in compiling HOOMD-Blue. The process of finding a HOOMD 
+installation to link to will be fully automatic IF you have hoomd_install_dir/bin in your PATH when running ccmake.
+
+Note that plugins can only be built against a hoomd build that has been installed via a package or compiled and then
+installed via 'make install'. Note also that ENABLE_PLUGINAPI must be set ON. Finally, note that plugins can only be
+built against hoomd when it is built as a shared library.
+
+$ mkdir plugin_build
+$ cd plugin_build
+$ ccmake /hoomd_install_dir/share/hoomd/plugin_template_cpp 
+(follow normal cmake steps)
+$ make -j6
+$ make install
+
+After running make install, you will find that the plugin has been copied into 
+/hoomd_install_dir/lib/hoomd/python_module/hoomd_plugins/plugin_template (assuming you didn't change 
+CMAKE_INSTALL_PREFIX.
+
+The plugin can now be used in any hoomd script.
+Example of how to use an installed plugin:
+
+from hoomd_script import *
+from hoomd_plugins import plugin_template
+init.create_random(N=1000, phi_p=0.20)
+plugin_template.update.example(period=10)
+
+To create a plugin that actually does something useful
+ - copy plugin_template_cpp to a new location
+ - change the PROJECT() line in CMakeLists.txt to the name of your new plugin. This is the name that it will install to
+ - Modify the source in cppmodule and pymodule. The existing files in those directories serve as examples and include
+   many of the details in comments.

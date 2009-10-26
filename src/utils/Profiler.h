@@ -162,6 +162,7 @@ class Profiler
         //! Output helper function
         void output(std::ostream &o);
         
+        //! friend operator to enable stream output
         friend std::ostream& operator<<(std::ostream &o, Profiler& prof);
     };
 

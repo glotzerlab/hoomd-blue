@@ -67,6 +67,7 @@ using namespace std;
     \param Temp Temperature of the bath of random particles
     \param deltaT Length of the computation timestep
     \param seed Seed for initializing the RNG
+    \param use_diam Unknown
 */
 StochasticForceCompute::StochasticForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
                                                Scalar deltaT,
