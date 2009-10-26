@@ -290,7 +290,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
             Scalar rsq = dx*dx + dy*dy + dz*dz;
             
             // Shift the distance if diameter-shifted LJ force being used
-            Scalar r, radj;
+            Scalar r = Scalar(0.0), radj = Scalar(0.0);
             if (m_slj)
                 {
                 r = sqrt(rsq);
