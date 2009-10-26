@@ -91,7 +91,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     // if we haven't been called before, then the accelerations have not been set and we need to calculate them
     if (m_first_step)
         {
-        m_first_step = true;
+        m_first_step = false;
         computeAccelerations(timestep, "Integrate");
         }
     
