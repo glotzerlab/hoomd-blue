@@ -195,7 +195,7 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep,
     
     // profile this step
     if (m_prof)
-        m_prof->push("NVE step 1");
+        m_prof->push("NVE step 2");
     
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
@@ -241,6 +241,8 @@ void export_TwoStepNVE()
     {
     class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, boost::noncopyable>
         ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+        .def("setLimit", &TwoStepNVE::setLimit)
+        .def("removeLimit", &TwoStepNVE::removeLimit)
         ;
     }
 
