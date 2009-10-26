@@ -445,11 +445,43 @@ $ g++ -o test test.cc `hoomd-config.sh --cflags --libs`
 
 <b>Method 2: Write a full-fledged plugin in python only</b><br>
 
-TODO:
+Some plugins can be implemented fully in python, providing high-level code for configuring or running simulations. 
 
+In order to use such a plugin, one must first:
+ -# Compile hoomd normally
+ -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
+ -# Add \c hoomd_install_location/bin to your \c PATH as usual
+ -# Add \c `hoomd-config.sh --ldpath to your DYLD / LD library paths (if you compiled with ENABLE_STATIC=off)
+
+Create a directory to contain the python module for the plugin:
+\code
+cd hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
+mkdir plugin_name
+cd plugin_name
+touch __init__.py
+\endcode
+
+\b Note: It is <i>highly</i> recommended that you develop your plugin in a directory outside hoomd_install_location
+and using a revision control software. You wouldn't want to loose the code you've written when hoomd is uninstalled!
+In this case, you can just copy the module to the hoomd-plugins directory to install it.
+\code
+cp -R plugin_name hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
+\endcode
+
+Once the plugin is written and installed, it can be used in a hoomd script like so:
+\code
+from hoomd_script import *
+from hoomd_plugins import plugin_name
+
+init.whatever(...)
+plugin_name.whatever(...)
+\endcode
 
 <b>Method 3: Write a full-fledged plugin with C++ code included</b><br>
 
-TODO:
+For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin 
+that incorporates such code, set ENABLE_PLUGIN_API on and 'make install' hoomd as in <b>Method 1</b>. Then copy the
+directory hoomd_install_location/share/hoomd/plugin_template_cpp to a new working space and modify it to implement your
+plugin. See the README file in that directory for full documentation.
 
 */
