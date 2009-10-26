@@ -5,7 +5,7 @@ Files that come in this template:
  - cppmodule        : Directory containing C++ and CUDA source code that interacts with HOOMD
  - pymodule         : Directory containing python UI level source code that drives the C++ module
  
-To compile this example plugin, follow steps similar to thsoe in compiling HOOMD-Blue. The process of finding a HOOMD 
+To compile this example plugin, follow steps similar to those in compiling HOOMD-Blue. The process of finding a HOOMD 
 installation to link to will be fully automatic IF you have hoomd_install_dir/bin in your PATH when running ccmake.
 
 Note that plugins can only be built against a hoomd build that has been installed via a package or compiled and then
