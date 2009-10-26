@@ -9,71 +9,31 @@ endif(COMMAND cmake_policy)
 
 
 project (HOOMD)
-# Specify cmake modules path to use our custom modules
-set(CMAKE_MODULE_PATH 
-    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/python"
-    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/cuda"
-    "${CMAKE_MODULE_PATH}")
-    
-
 # setup the install directories and setup HOOMD_VERSION
-include (CMakeInstSetup.txt)
+include (CMake_install_options.cmake)
+message(STATUS "Configuring HOOMD ${HOOMD_VERSION_LONG}")
 
-message(STATUS "Configuring HOOMD ${HOOMD_VERSION}")
+# bring in custom modules
+add_subdirectory (CMake)
 
-# Setup a number of misc options and libraries
-include (CMakeMiscSetup.txt)
+# Handle user build options
+include (CMake_build_options.cmake)
 # Find the boost libraries and set them up
-include (CMakeBoostSetup.txt)
+include (HOOMDBoostSetup)
 # Find CUDA and set it up
-include (CMakeCUDASetup.txt)
+include (HOOMDCUDASetup)
 # Set default CFlags
-include (CMakeCFlagsSetup.txt)
+include (HOOMDCFlagsSetup)
+# include some os specific options
+include (HOOMDOSSpecificSetup)
+# setup common libraries used by all targets in this project
+include (HOOMDCommonLibsSetup)
 # Configure some source files, include directories, and create variables listing all source files
-include (CMakeSRCSetup.txt)
-# Configure the FFT libraries
-include (CMakeFFTSetup.txt)
-
-################################
-## Define common libraries used by every target in HOOMD
-if (WIN32)
-    set(HOOMD_COMMON_LIBS hoomd_python_module ${FFTW_LIBRARY} ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
-else (WIN32)
-    set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
-            ${Boost_FILESYSTEM_LIBRARY}
-            ${Boost_PYTHON_LIBRARY}
-            ${Boost_PROGRAM_OPTIONS_LIBRARY}
-            ${Boost_SIGNALS_LIBRARY}
-            )
-    if (Boost_SYSTEM_LIBRARY)
-        set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
-    endif (Boost_SYSTEM_LIBRARY)
-
-    ## An update to to CentOS5's python broke linking of the hoomd exe. According
-    ## to an ancient post online, adding -lutil fixed this in python 2.2
-    set(ADDITIONAL_LIBS "")
-    if (UNIX AND NOT APPLE)
-        find_library(UTIL_LIB util /usr/lib)
-        find_library(DL_LIB dl /usr/lib)
-        set(ADDITIONAL_LIBS ${UTIL_LIB} ${DL_LIB})
-        if (DL_LIB AND UTIL_LIB)
-        mark_as_advanced(UTIL_LIB DL_LIB)
-        endif (DL_LIB AND UTIL_LIB)
-    endif (UNIX AND NOT APPLE)
-
-    set(HOOMD_COMMON_LIBS
-            ${BOOST_LIBS}
-            ${CMAKE_THREAD_LIBS_INIT}
-            ${FFTW_LIBRARY}
-            ${PYTHON_LIBRARIES}
-            ${ADDITIONAL_LIBS}
-            )
-endif (WIN32)
+include (CMake_src_setup.cmake)
 
 # setup the library compile mode
 if(ENABLE_STATIC)
     set(BUILD_SHARED_LIBS OFF)
-    add_definitions(-DBOOST_PYTHON_STATIC_LIB)
 else(ENABLE_STATIC)
     set(BUILD_SHARED_LIBS ON)
 endif(ENABLE_STATIC)
@@ -85,10 +45,12 @@ add_subdirectory (microbenchmarks EXCLUDE_FROM_ALL)
 add_subdirectory (share)
 add_subdirectory (scripts)
 add_subdirectory (python)
+add_subdirectory (pluginapi)
 
 ################################
 # set up unit tests
 include(CTest)
+mark_as_advanced(DART_TESTING_TIMEOUT)
 if (BUILD_TESTING)
     add_subdirectory (unit_tests)
 endif (BUILD_TESTING)
@@ -101,9 +63,3 @@ if (ENABLE_DOXYGEN)
 endif (ENABLE_DOXYGEN)
 
 add_subdirectory (installer)
-
-###############################
-# allow library linking for MacOS10.5
-if (APPLE)
-add_definitions(-mmacosx-version-min=10.4)
-endif (APPLE)
