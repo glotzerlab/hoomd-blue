@@ -47,7 +47,7 @@ Table of contents:
  - \ref sec_compiling_linux
  - \ref sec_building_mac
  - \ref sec_build_options
-
+ - \ref sec_build_plugin
 <hr>
 
 \section sec_software_req Software Prerequisites
@@ -339,6 +339,8 @@ Here is a list of all the build options that can be changed by CMake.
 	- Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
 		and possible missing output from the generated documentation.
  - \b ENABLE_MINIMAL_INSTALL - when set to ON, only the minum number of files installed need to run hoomd simulations and benchmarks
+ - \b ENABLE_PLUGINAPI - Enables the installation of header files and libraries needed to build plugins for HOOMD 
+ 	  (see \ref sec_build_plugin) 
  - \b BUILD_TESTING - Enables the compilation of unit tests
  - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
  - \b SINGLE_PRECISION - Controls precision
@@ -376,4 +378,110 @@ You really shouldn't change these from their defaults unless you really know wha
 		Example:
  		\code ccmake -D ENABLE_STATIC=OFF ../src
  		\endcode
+
+\section sec_build_plugin Building a plugin for HOOMD-blue
+
+There are several methods that can be used to build code that interfaces with hoomd. 
+
+<b>Method 1: Build an executable that uses hoomd as a library</b><br>
+
+First, understand that building an executable linked to hoomd for the purposes of running a simulation is not a 
+supported configuration. The developers will not respond to or fix bugs found while using such a setup. There are many
+levels of configuration and performance tuning that are handled at the python script level, and the C++ API is mainly
+designed to interface with python.
+
+However, there are many cases when building a simple quick test executable is desirable (i.e. to test or debug a new 
+feature that does not yet have a python interface). So a simple method to build such executables is provided.
+
+To setup for use:
+ -# set \b ENABLE_PLUGINAPI to on in the main hoomd build options.
+ -# Compile hoomd normally
+ -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
+ -# Add \c hoomd_install_location/bin to your \c PATH as usual
+ -# Add \c `hoomd-config.sh --ldpath to your DYLD / LD library paths (if you compiled with ENABLE_STATIC=off)
+
+Here is a short example program that does nothing except calculate lj pair forces once.
+
+\code
+// include hoomd.h to get all of the built in hoomd classes
+#include "hoomd.h"
+using namespace boost;
+
+int main()
+    {
+    const unsigned int N = 5000;
+
+    ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
+
+    // create a random particle system to sum forces on
+    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+
+    shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
+
+    shared_ptr<LJForceCompute> fc1(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
+
+    // setup some values for alpha and sigma
+    Scalar epsilon = Scalar(1.0);
+    Scalar sigma = Scalar(1.2);
+    Scalar alpha = Scalar(0.45);
+    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+
+    // specify the force parameters
+    fc1->setParams(0,0,lj1,lj2);
+
+    // compute the forces
+    fc1->compute(0);
+    }
+\endcode
+
+To compile this sample (or any code written similarly), just run
+\code
+$ g++ -o test test.cc `hoomd-config.sh --cflags --libs`
+\endcode
+(obviously, this works on linux and mac only)
+
+<b>Method 2: Write a full-fledged plugin in python only</b><br>
+
+Some plugins can be implemented fully in python, providing high-level code for configuring or running simulations. 
+
+In order to use such a plugin, one must first:
+ -# Compile hoomd normally
+ -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
+ -# Add \c hoomd_install_location/bin to your \c PATH as usual
+ -# Add \c `hoomd-config.sh --ldpath to your DYLD / LD library paths (if you compiled with ENABLE_STATIC=off)
+
+Create a directory to contain the python module for the plugin:
+\code
+cd hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
+mkdir plugin_name
+cd plugin_name
+touch __init__.py
+\endcode
+
+\b Note: It is <i>highly</i> recommended that you develop your plugin in a directory outside hoomd_install_location
+and using a revision control software. You wouldn't want to loose the code you've written when hoomd is uninstalled!
+In this case, you can just copy the module to the hoomd-plugins directory to install it.
+\code
+cp -R plugin_name hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
+\endcode
+
+Once the plugin is written and installed, it can be used in a hoomd script like so:
+\code
+from hoomd_script import *
+from hoomd_plugins import plugin_name
+
+init.whatever(...)
+plugin_name.whatever(...)
+\endcode
+
+<b>Method 3: Write a full-fledged plugin with C++ code included</b><br>
+
+For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin 
+that incorporates such code, set ENABLE_PLUGIN_API on and 'make install' hoomd as in <b>Method 1</b>. Then copy the
+directory hoomd_install_location/share/hoomd/plugin_template_cpp to a new working space and modify it to implement your
+plugin. See the README file in that directory for full documentation.
+
 */

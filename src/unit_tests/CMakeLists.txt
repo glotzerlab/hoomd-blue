@@ -46,6 +46,7 @@ enable_testing()
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
     index1d
+    molfile_test
     gpu_array_test
     pdata_test
     particle_group_test
