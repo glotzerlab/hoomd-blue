@@ -92,6 +92,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MSDAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
+#include "IntegratorTwoStep.h"
 #include "IntegrationMethodTwoStep.h"
 #include "TwoStepNVE.h"
 #include "TwoStepNVT.h"
@@ -415,6 +416,7 @@ BOOST_PYTHON_MODULE(hoomd)
     // updaters
     export_Updater();
     export_Integrator();
+    export_IntegratorTwoStep();
     export_IntegrationMethodTwoStep();
     export_TempRescaleUpdater();
     export_ZeroMomentumUpdater();
