@@ -69,3 +69,4 @@ cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
                              float limit_val);
 
 #endif //__TWO_STEP_NVE_GPU_CUH__
+

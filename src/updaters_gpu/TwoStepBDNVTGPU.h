@@ -89,3 +89,4 @@ class TwoStepBDNVTGPU : public TwoStepBDNVT
 void export_TwoStepBDNVTGPU();
 
 #endif // #ifndef __TWO_STEP_BDNVT_GPU_H__
+

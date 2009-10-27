@@ -156,3 +156,4 @@ class IntegrationMethodTwoStep : boost::noncopyable
 void export_IntegrationMethodTwoStep();
 
 #endif // #ifndef __INTEGRATION_METHOD_TWO_STEP_H__
+

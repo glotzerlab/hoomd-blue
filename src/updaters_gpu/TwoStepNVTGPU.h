@@ -89,3 +89,4 @@ class TwoStepNVTGPU : public TwoStepNVT
 void export_TwoStepNVTGPU();
 
 #endif // #ifndef __TWO_STEP_NVT_GPU_H__
+

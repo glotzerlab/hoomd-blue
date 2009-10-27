@@ -297,3 +297,4 @@ cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
         return cudaGetLastError();
         }
     }
+

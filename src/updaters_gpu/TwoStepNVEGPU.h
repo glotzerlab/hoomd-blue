@@ -77,3 +77,4 @@ class TwoStepNVEGPU : public TwoStepNVE
 void export_TwoStepNVEGPU();
 
 #endif // #ifndef __TWO_STEP_NVE_GPU_H__
+
