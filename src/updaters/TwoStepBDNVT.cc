@@ -181,7 +181,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep,
 
 void export_TwoStepBDNVT()
     {
-    class_<TwoStepBDNVT, boost::shared_ptr<TwoStepBDNVT>, boost::noncopyable>
+    class_<TwoStepBDNVT, boost::shared_ptr<TwoStepBDNVT>, bases<TwoStepNVE>, boost::noncopyable>
         ("TwoStepBDNVT", init< boost::shared_ptr<SystemDefinition>,
                          boost::shared_ptr<ParticleGroup>,
                          boost::shared_ptr<Variant>,

@@ -218,7 +218,7 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep,
 
 void export_TwoStepNVT()
     {
-    class_<TwoStepNVT, boost::shared_ptr<TwoStepNVT>, boost::noncopyable>
+    class_<TwoStepNVT, boost::shared_ptr<TwoStepNVT>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNVT", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
                        Scalar,

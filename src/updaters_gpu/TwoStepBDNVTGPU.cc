@@ -170,7 +170,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep,
 
 void export_TwoStepBDNVTGPU()
     {
-    class_<TwoStepBDNVTGPU, boost::shared_ptr<TwoStepBDNVTGPU>, boost::noncopyable>
+    class_<TwoStepBDNVTGPU, boost::shared_ptr<TwoStepBDNVTGPU>, bases<TwoStepBDNVT>, boost::noncopyable>
         ("TwoStepBDNVTGPU", init< boost::shared_ptr<SystemDefinition>,
                          boost::shared_ptr<ParticleGroup>,
                          boost::shared_ptr<Variant>,

@@ -149,7 +149,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep,
 
 void export_TwoStepNVEGPU()
     {
-    class_<TwoStepNVEGPU, boost::shared_ptr<TwoStepNVEGPU>, boost::noncopyable>
+    class_<TwoStepNVEGPU, boost::shared_ptr<TwoStepNVEGPU>, bases<TwoStepNVE>, boost::noncopyable>
         ("TwoStepNVEGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         ;
     }

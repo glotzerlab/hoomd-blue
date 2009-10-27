@@ -239,7 +239,7 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep,
 
 void export_TwoStepNVE()
     {
-    class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, boost::noncopyable>
+    class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)
