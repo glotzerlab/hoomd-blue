@@ -63,6 +63,9 @@ system = None;
 ## Global variable that tracks the all of the force computes specified in the script so far
 forces = [];
 
+## Global variable that tracks all the integration methods that have been specified in the script so far
+integration_methods = [];
+
 ## Global variable tracking the last _integrator set
 integrator = None;
 
@@ -76,11 +79,12 @@ loggers = [];
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def _clear():
-    global system_definition, system, forces, integrator, neighbor_list, loggers;
+    global system_definition, system, forces, integration_methods, integrator, neighbor_list, loggers;
     
     system_definition = None;
     system = None;
     forces = [];
+    integration_methods = [];
     integrator = None;
     neighbor_list = None;
     loggers = [];
