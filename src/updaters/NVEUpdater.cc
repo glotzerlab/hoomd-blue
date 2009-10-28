@@ -124,7 +124,10 @@ void NVEUpdater::update(unsigned int timestep)
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
     
     // if there is any rigid body
-    unsigned int n_bodies = rigid_data->getNumBodies();
+    unsigned int n_bodies = 0;
+    if (rigid_data)
+        n_bodies = rigid_data->getNumBodies();
+    
     if (n_bodies > 0 && !m_rigid_updater)
         {
         // allocate the rigid updater

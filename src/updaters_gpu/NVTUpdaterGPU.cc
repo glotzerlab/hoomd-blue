@@ -150,7 +150,10 @@ void NVTUpdaterGPU::update(unsigned int timestep)
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
     
     // if there is any rigid body
-    unsigned int n_bodies = rigid_data->getNumBodies();
+    unsigned int n_bodies = 0;
+    if (rigid_data)
+        n_bodies = rigid_data->getNumBodies();
+
     if (n_bodies > 0 && !m_rigid_updater)
         m_rigid_updater = boost::shared_ptr<NVTRigidUpdater> (new NVTRigidUpdater(m_sysdef, m_deltaT, m_T));
         
@@ -298,13 +301,16 @@ void NVTUpdaterGPU::update(unsigned int timestep)
     m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
     
     // Update rigid body thermostats here
-    float Ksum_t, Ksum_r;
-    exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rigid_data[0]));
-    
-    exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_t, d_nvt_rigid_data[0].Ksum_t, sizeof(float), cudaMemcpyDeviceToHost));
-    exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_r, d_nvt_rigid_data[0].Ksum_r, sizeof(float), cudaMemcpyDeviceToHost));
-    
-    m_rigid_updater->updateThermostats(Ksum_t, Ksum_r, timestep);
+    if (m_rigid_updater)
+        {
+        float Ksum_t, Ksum_r;
+        exec_conf.gpu[0]->callAsync(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rigid_data[0]));
+        
+        exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_t, d_nvt_rigid_data[0].Ksum_t, sizeof(float), cudaMemcpyDeviceToHost));
+        exec_conf.gpu[0]->call(bind(cudaMemcpy, &Ksum_r, d_nvt_rigid_data[0].Ksum_r, sizeof(float), cudaMemcpyDeviceToHost));
+        
+        m_rigid_updater->updateThermostats(Ksum_t, Ksum_r, timestep);
+        }
     
     // get the particle data arrays again so we can update the 2nd half of the step
     d_pdata = m_pdata->acquireReadWriteGPU();
