@@ -55,10 +55,11 @@ Table of contents:
 
 \section sec_index_integration Integration methods
 \link hoomd_script.integrate integrate\endlink: 
- - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>\copybrief hoomd_script::integrate::bdnvt </i> 
- - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>\copybrief hoomd_script::integrate::npt </i> 
- - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
- - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
+ - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>\copybrief hoomd_script::integrate::mode_standard </i>
+   - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>\copybrief hoomd_script::integrate::bdnvt </i> 
+   - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>\copybrief hoomd_script::integrate::npt </i> 
+   - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
+   - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
  
 \section sec_index_update Update particle properties during the simulation
 \link hoomd_script.update update\endlink:

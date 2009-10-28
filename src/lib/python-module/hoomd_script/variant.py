@@ -133,7 +133,7 @@ class linear_interp(_variant):
     # \code
     # L = variant.linear_interp(points = [(0, 10), (100, 20), (200, 5)])
     # V = variant.linear_interp(points = [(0, 10), (1e6, 20)])
-    # integrate.nvt(dt = 0.005, tau = 0.5, 
+    # integrate.nvt(all, tau = 0.5, 
     #     T = variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)])
     # \endcode
     def __init__(self, points):

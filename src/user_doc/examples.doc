@@ -2,15 +2,15 @@
 
 Examples:
  - \ref sec_example_dump<br>
- 	<i>The simulation trajectory is written to a file which can be viewed in visualization software such as VMD</i>
+     <i>The simulation trajectory is written to a file which can be viewed in visualization software such as VMD</i>
  - \ref sec_example_imd<br>
- 	<i>A running simulation is connected to VMD which displays the current system state updated in real-time</i>
+     <i>A running simulation is connected to VMD which displays the current system state updated in real-time</i>
  - \ref sec_example_polygen<br>
- 	<i>The polymer generator can generate complicated initial conditions for bead-spring polymer systems</i>
+     <i>The polymer generator can generate complicated initial conditions for bead-spring polymer systems</i>
  - \ref sec_example_hoomd_xml<br>
- 	<i>None of the built-in generators works for you? Write an input file describing the initial condition and load it in.</i>
+     <i>None of the built-in generators works for you? Write an input file describing the initial condition and load it in.</i>
  - \ref sec_example_loop<br>
-	<i>One simulation in a script not enough? Use a simple python loop to run many in a row!</i>
+    <i>One simulation in a script not enough? Use a simple python loop to run many in a row!</i>
 <hr>
 
 \section sec_example_dump Example 1: Using dump files
@@ -29,7 +29,9 @@ lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(all, T=1.2, tau=0.5)
 
 # dump a .mol2 file for the structure information
 mol2 = dump.mol2()
@@ -82,7 +84,9 @@ lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(all, T=1.2, tau=0.5)
 
 # dump a .mol2 file for the structure information
 mol2 = dump.mol2()
@@ -159,7 +163,9 @@ mol2.write(filename="example3.mol2")
 dump.dcd(filename="example3.dcd", period=100000)
 
 # integrate NVT for a bunch of time steps
-integrate.nvt(dt=0.005, T=T, tau=0.5)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(all, T=1.2, tau=0.5)
 run(2000)
 
 # uncomment the next run() command if you have a few hours to spare 
@@ -248,7 +254,9 @@ mol2.write(filename="example4.mol2")
 dump.dcd(filename="example4.dcd", period=10)
 
 # integrate NVT for a bunch of time steps
-integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(all, T=1.2, tau=0.5)
 run(2000)
 \endcode
 
@@ -268,23 +276,25 @@ size_array = range(1000,2000,100)
 
 # loop over the system sizes in the array
 for size in size_array:
-	# create size random particles of name A
-	init.create_random(N=size, phi_p=0.01, name='A')
-	
-	# specify Lennard-Jones interactions between particle pairs
-	lj = pair.lj(r_cut=3.0)
-	lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
-	
-	# integrate at constant temperature
-	integrate.nvt(dt=0.005, T=1.2, tau=0.5)
-	
-	# run 10,000 time steps
-	run(10e3)
-	
-	# we need to clear all saved variables before resetting and
-	# starting the next simulation so there is no memory leak
-	del lj
-	init.reset()
+    # create size random particles of name A
+    init.create_random(N=size, phi_p=0.01, name='A')
+    
+    # specify Lennard-Jones interactions between particle pairs
+    lj = pair.lj(r_cut=3.0)
+    lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+    
+    # integrate at constant temperature
+    all = group.all()
+    integrate.mode_standard(dt=0.005)
+    integrate.nvt(all, T=1.2, tau=0.5)
+    
+    # run 10,000 time steps
+    run(10e3)
+    
+    # we need to clear all saved variables before resetting and
+    # starting the next simulation so there is no memory leak
+    del lj
+    init.reset()
 
 \endcode
 

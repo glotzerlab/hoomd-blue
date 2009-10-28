@@ -44,7 +44,7 @@ So you have HOOMD-blue installed. <b>Now what!?</b> <br>
 Let's start with the classic MD simulation, the Lennard-Jones liquid. Place \em N particles randomly
 in a box and allow them to interact with the following potential between pairs of particles:
 \f[ V(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-								\left( \frac{\sigma}{r} \right)^{6} \right] \f]
+                                \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 To configure HOOMD-blue to perform this simulation, a simple Python script must be written.
 \code
 from hoomd_script import *
@@ -57,14 +57,16 @@ lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+all = group.all();
+integrate.mode_standard(dt=0.005)
+integrate.nvt(all, T=1.2, tau=0.5)
 
 # run 10,000 time steps
 run(10e3)
 \endcode
 
 If you don't know Python, don't worry. You can learn everything about it that you need to know for HOOMD-blue scripts
-here. Of course if you did know more Python (which is a full-fledged object oriented programming language:
+here. Of course if you do know Python (which is a full-fledged object oriented programming language:
 tutorials at http://www.python.org) then you could make use of its capabilities in setting up 
 complicated simulations.
 
@@ -78,9 +80,9 @@ $ hoomd test.hoomd
 \endcode
 And you should see output that looks something like this:
 \code
-HOOMD 0.8.0
-Compiled: Tue Oct 28 08:33:32 CDT 2008
-Copyright, 2008, Ames Laboratory Iowa State University
+HOOMD-blue 0.9.0
+Compiled: Wed Oct 28 06:58:46 EDT 2009
+Copyright 2008, 2009 Ames Laboratory Iowa State University and the Regents of the University of Michigan
 -----
 http://codeblue.umich.edu/hoomd-blue/
 This code is the implementation of the algorithms discussed in:
@@ -91,16 +93,19 @@ This code is the implementation of the algorithms discussed in:
 test.hoomd:004  |  init.create_random(N=100, phi_p=0.01, name='A')
 test.hoomd:007  |  lj = pair.lj(r_cut=3.0)
 test.hoomd:008  |  lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
-test.hoomd:011  |  integrate.nvt(dt=0.005, T=1.2, tau=0.5)
-test.hoomd:014  |  run(10e3)
+test.hoomd:011  |  all = group.all();
+Group "all" created containing 100 particles
+test.hoomd:012  |  integrate.mode_standard(dt=0.005)
+test.hoomd:013  |  integrate.nvt(all, T=1.2, tau=0.5)
+test.hoomd:016  |  run(10e3)
 ** starting run **
-Time 00:00:00 | Step 10000 / 10000 | TPS 41990.9 | ETA 00:00:00
-Average TPS: 41976.2
+Time 00:00:00 | Step 10000 / 10000 | TPS 35417.9 | ETA 00:00:00
+Average TPS: 35405
 ---------
 -- Neighborlist stats:
-449 updates / 20 forced updates
-n_neigh_min: 0 / n_neigh_max: 10 / n_neigh_avg: 2.23
-bins_min: 0 / bins_max: 4 / bins_avg: 1.5625
+370 normal updates / 100 forced updates / 0 dangerous updates
+n_neigh_min: 0 / n_neigh_max: 10 / n_neigh_avg: 2.41
+bins_min: 0 / bins_max: 6 / bins_avg: 1.5625
 ** run complete **
 \endcode
 
@@ -119,8 +124,8 @@ Each hoomd_script command prints the file and line where it was run along with t
 This can be potentially very useful in debugging problems as it will allow you to hone in on the command in the 
 script that is producing the error message.
 
-When a \link hoomd_script.run() run()\endlink command is executed, hoomd steps the simulation forward that many time steps. While
-it is doing so, it periodically prints out status lines like the one seen above.
+When a \link hoomd_script.run() run()\endlink command is executed, hoomd steps the simulation forward that many time
+steps. While it is doing so, it periodically prints out status lines like the one seen above.
 \code
 Time 00:00:00 | Step 10000 / 10000 | TPS 41990.9 | ETA 00:00:00
 \endcode
@@ -146,9 +151,9 @@ In this example, only the neighbor list prints statistics.
 \code
 ---------
 -- Neighborlist stats:
-449 updates / 20 forced updates
-n_neigh_min: 0 / n_neigh_max: 10 / n_neigh_avg: 2.23
-bins_min: 0 / bins_max: 4 / bins_avg: 1.5625
+370 normal updates / 100 forced updates / 0 dangerous updates
+n_neigh_min: 0 / n_neigh_max: 10 / n_neigh_avg: 2.41
+bins_min: 0 / bins_max: 6 / bins_avg: 1.5625
 \endcode
 Differently configured simulation scripts may print additional information here.
 
@@ -182,35 +187,43 @@ lj = pair.lj(r_cut=3.0)
  (use a separate line and variable name for each one). All specified forces are added together during the simulation.<br>
  Documentation for \link hoomd_script.pair.lj pair.lj\endlink<br><br>
  -# The parameters of the force must also be specified before the simulation is \link hoomd_script.run() run()\endlink (you will get 
- 	an error if you forget). The next line sets the parameters \a epsilon, \a sigma, and \a alpha for the Lennard-Jones force
- 	betwen particles of types A and A.
+     an error if you forget). The next line sets the parameters \a epsilon, \a sigma, and \a alpha for the Lennard-Jones force
+     betwen particles of types A and A.
 \code
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 \endcode
-	The example script only has a single particle type in the simulation, so one line is sufficient. In more complicated 
-	simulations with more than one particle type every unqiue pair must be specified (i.e. 'A'-'A', 'A'-'B', and 'B'-B').
-	Use one line like that above for each pair.<br><br>
- -# After that, we choose the integrator to move particles forward in time. Unlike with the forces, there is only one integrator
- 	(specifying another will overwrite the first). Also, there \b must be one integrator. If you try running the simulation without
- 	one hoomd will print an error message. Here, we create a Nos&eacute;-Hoover thermostat and set the timestep \a dt to be 0.005, the 
- 	temperature target \a T at 1.2 and the parameter \a tau to 0.5. 
+    The example script only has a single particle type in the simulation, so one line is sufficient. In more complicated 
+    simulations with more than one particle type every unqiue pair must be specified (i.e. 'A'-'A', 'A'-'B', and 'B'-B').
+    Use one line like that above for each pair.<br><br>
+ -# After that, we choose the integrator to move particles forward in time. As with forces, more than one integration
+    method can be applied, as long as they are set on different groups. However, only one integration \b mode can be
+    active at a time (specifying another will overwrite the first). Also, there \b must be an integration mode set. If
+    you try running the simulation without one hoomd will print an error message. Here, we specify a standard
+    integration mode with a time step \a dt set to 0.005. The Nos&eacute;-Hoover thermostat is applied to a group
+    containing all particles, with the temperature target \a T set at 1.2 and the parameter \a tau at 0.5. Like with
+    the pair force above, the group is saved in a variable to be used a few lines later in the script.
 \code
-integrate.nvt(dt=0.005, T=1.2, tau=0.5 )
+all = group.all();
+integrate.mode_standard(dt=0.005)
+integrate.nvt(all, T=1.2, tau=0.5)
 \endcode
-	After the initialization and before the \link hoomd_script.run() run()\endlink command, the order in which commands are called
-	doesn't matter. The NVT integrator could just as easily been specified before the pair force.<br>
-	Documentation for \link hoomd_script.integrate.nvt integrate.nvt\endlink<br><br>
+    After the initialization and before the \link hoomd_script.run() run()\endlink command, the order in which commands are called
+    doesn't matter. The NVT integrator could just as easily been specified before the pair force.<br>
+    Documentation for \link hoomd_script.group group\endlink<br>
+    Documentation for \link hoomd_script.integrate integrate\endlink<br>
+    Documentation for \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink<br>
+    Documentation for \link hoomd_script.integrate.nvt integrate.nvt\endlink<br><br>
  -# Finally, the run command actually takes the job settings previously specified and runs the simulation through time.
 \code
 run(10e3)
 \endcode
-	This simple example only runs for 10,000 steps but real simulations might be run for 10's of millions, spending days of computation time
-	in this single command. There is no limit that there be a single run command in a given script. If your simulation needs to turn
-	off a certain force or change integrators and then continue, you can do that. Just execute the commands to make the changes after the first
-	run and before the second.<br>
-	Documentation for \link hoomd_script.run() run()\endlink
-	
-<hr>	
+    This simple example only runs for 10,000 steps but real simulations might be run for 10's of millions, spending days of computation time
+    in this single command. There is no limit that there be a single run command in a given script. If your simulation needs to turn
+    off a certain force or change integrators and then continue, you can do that. Just execute the commands to make the changes after the first
+    run and before the second.<br>
+    Documentation for \link hoomd_script.run() run()\endlink
+    
+<hr>    
 <h2>The anatomy of a %hoomd_script command</h2>
 
 The init line is as good an example as any.
@@ -240,18 +253,18 @@ Check the documentation for a specific command to see what the arguments are and
 i.e. see \link hoomd_script.init.create_random init.create_random\endlink). Here 
 is a copy of the documentation for init.create_random:
 \code
-init.create_random  	
-	(  	   	N,
-		  	phi_p,
-		  	name = "A",
-		  	min_dist = 1.0	 
-	)
-	
+init.create_random      
+    (         N,
+              phi_p,
+              name = "A",
+              min_dist = 1.0
+    )
+    
 Parameters:
-    	N 	Number of particles to create
-    	phi_p 	Packing fraction of particles in the simulation box
-    	name 	Name of the particle type to create
-    	min_dist 	Minimum distance particles will be separated by
+        N     Number of particles to create
+        phi_p     Packing fraction of particles in the simulation box
+        name     Name of the particle type to create
+        min_dist     Minimum distance particles will be separated by
 \endcode
 
 First of all, notice in the header for the command that some arguments are listed with an = sign, like \c name="A". This means

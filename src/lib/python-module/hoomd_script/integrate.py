@@ -45,28 +45,40 @@
 ## \package hoomd_script.integrate
 # \brief Commands that integrate the equations of motion
 #
-# Commands beginning with integrate. specify the integrator to use when
-# advancing particles forward in time. By default, no integrator is
-# specified. An integrator can specified anywhere before executing the 
-# run() command, which will then use the last integrator set. 
-# If a number of integrators are created in the script,
-# the last one is the only one to take effect. For example:
-# \code
-# integrate.nvt(dt=0.005, T=1.2, tau=0.5)
-# integrate.nve(dt=0.005) 
-# run(100)
-# \endcode
-# In this example, the nvt integration is ignored as the creation of the
-# nve integrator overwrote it.
+# To integrate the system forward in time, an integration mode must be set. Only one integration mode can be active at
+# a time, and the last \c integrate.mode_* command before the run() command is the one that will take effect. It is 
+# possible to set one mode, run() for a certain number of steps and then switch to another mode before the next run()
+# command.
 #
-# However, it is valid to run() a number of time steps with one integrator
-# and then replace it with another before the next run().
+# The most commonly used mode is integrate.mode_standard . It specifies a standard mode where, at each time
+# step, all of the specified forces are evaluated and used in moving the system forward to the next step.
+# integrate.mode_standard doesn't integrate any particles by itself, one or more compatible integration methods must
+# be specified before the run() command. Like commands that specify forces, integration methods are \b persistent and
+# remain set until they are disabled (this differs greatly from HOOMD-blue behavior in all versions prior to 0.9.0).
+# The benefit and reason for this change is that now multiple integration methods can be specified on different particle
+# groups, allowing portions of the system to be fixed, integrated at a different temperature, etc...
+#
+# To clarify, the following series of commands will run for 1000 time steps in the NVT ensemble and then switch to
+# NVE for another 1000 steps.
+#
+# \code
+# all = group.all()
+# integrate.mode_standard(dt=0.005)
+# nvt = integrate.nvt(all, T=1.2, tau=0.5)
+# run(1000)
+# nvt.disable()
+# integrate.nve(all)
+# run(1000)
+# \endcode
+#
+# For more detailed information on the interaction of integration methods and integration modes, see
+# integrate.mode_standard.
 #
 # Some integrators provide parameters that can be changed between runs.
 # In order to access the integrator to change it, it needs to be saved
 # in a variable. For example:
 # \code
-# integrator = integrate.nvt(dt=0.005, T=1.2, tau=0.5)
+# integrator = integrate.nvt(all, T=1.2, tau=0.5)
 # run(100)
 # integrator.set_params(T=1.0)
 # run(100)
@@ -257,7 +269,7 @@ class _integration_method:
 #
 # By itself, integrate.mode_standard does nothing. You must specify one or more integration methods to apply to the
 # system. Each integration method can be applied to only a specific group of particles enabling advanced simulation
-# techniques.
+# techniques. See Example (TODO) for a demonstration.
 #
 # The following commands can be used to specify the integration methods used by integrate.mode_standard.
 # - integrate.nve
