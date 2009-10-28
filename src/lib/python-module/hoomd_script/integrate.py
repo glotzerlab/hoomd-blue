@@ -592,7 +592,7 @@ class bdnvt(_integration_method):
     # typeA = group.type('A');
     # integrate.bdnvt(typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
-    def __init__(self, group, T, seed=0, use_diam=False, limit=None):
+    def __init__(self, group, T, seed=0, gamma_diam=False, limit=None):
         util.print_status_line();
         
         # initialize base class
@@ -605,7 +605,7 @@ class bdnvt(_integration_method):
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
             self.cpp_method = hoomd.TwoStepBDNVT(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.BD_TwoStepBDNVTGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVTGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating BD NVT integrator");
