@@ -124,6 +124,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     
     array.type[0] = 3;
     
+    array.body[0] = NO_BODY;
+    
     array.x[1] = Scalar(1.2);
     array.y[1] = Scalar(2.1);
     array.z[1] = Scalar(-3.4);
@@ -141,6 +143,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     array.diameter[1] = Scalar(4.8);
     
     array.type[1] = 0;
+    
+    array.body[1] = 1;
     
     array.x[2] = Scalar(-1.2);
     array.y[2] = Scalar(2.1);
@@ -160,6 +164,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     
     array.type[2] = 1;
     
+    array.body[2] = 1;
+    
     array.x[3] = Scalar(-1.25);
     array.y[3] = Scalar(2.15);
     array.z[3] = Scalar(3.45);
@@ -177,6 +183,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     array.diameter[3] = Scalar(4.85);
     
     array.type[3] = 1;
+    
+    array.body[3] = 0;
     
     pdata->release();
     
@@ -701,6 +709,51 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_CHECK_EQUAL(line, "</improper>");
         f.close();
         }
+    
+    // thirteenth test: the body array
+        {
+        writer->setOutputImproper(false);
+        writer->setOutputBody(true);
+        
+        // make sure the first output file is deleted
+        remove_all("test.0000000120.xml");
+        BOOST_REQUIRE(!exists("test.0000000120.xml"));
+        
+        // write the file
+        writer->analyze(120);
+        
+        // assume that the first lines tested in the first case are still OK and skip them
+        ifstream f("test.0000000120.xml");
+        string line;
+        getline(f, line); // <?xml
+        getline(f, line); // <HOOMD_xml
+        getline(f, line); // <Configuration
+        getline(f, line); // <Box
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "<body num=\"4\">");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "-1");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "1");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "0");
+        BOOST_REQUIRE(!f.bad());
+        
+        getline(f, line);
+        BOOST_CHECK_EQUAL(line, "</body>");
+        f.close();
+        }
         
     remove_all("test.0000000000.xml");
     remove_all("test.0000000010.xml");
@@ -714,6 +767,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     remove_all("test.0000000090.xml");
     remove_all("test.0000000100.xml");
     remove_all("test.0000000110.xml");
+    remove_all("test.0000000120.xml");
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
@@ -992,6 +1046,14 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
 11.0\n\
 12.0\n\
 </diameter>\n\
+<body>\n\
+-1\n\
+0\n\
+1\n\
+2\n\
+3\n\
+4\n\
+</body>\n\
 <type>\n\
 5\n\
 4\n\
@@ -1068,6 +1130,8 @@ im_b 5 4 3 2\n\
         MY_BOOST_CHECK_CLOSE(arrays.diameter[i], Scalar(i+7), tol);
         
         MY_BOOST_CHECK_CLOSE(arrays.charge[i], Scalar(i)*Scalar(10.0), tol);
+        
+        BOOST_CHECK_EQUAL(arrays.body[i], (unsigned int)(i-1));
         
         // checking that the type is correct becomes tricky because types are identified by
         // string

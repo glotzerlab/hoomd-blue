@@ -97,6 +97,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     m_parser_map["mass"] = bind(&HOOMDInitializer::parseMassNode, this, _1);
     m_parser_map["diameter"] = bind(&HOOMDInitializer::parseDiameterNode, this, _1);
     m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
+    m_parser_map["body"] = bind(&HOOMDInitializer::parseBodyNode, this, _1);
     m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
     m_parser_map["angle"] = bind(&HOOMDInitializer::parseAngleNode, this, _1);
     m_parser_map["dihedral"] = bind(&HOOMDInitializer::parseDihedralNode, this, _1);
@@ -222,6 +223,15 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.type[i] = m_type_array[i];
         }
+    
+    if (m_body_array.size() != 0)
+        {
+        assert(m_body_array.size() == m_pos_array.size());
+        
+        for (unsigned int i = 0; i < m_pos_array.size(); i++)
+            pdata.body[i] = m_body_array[i];
+        }
+        
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -387,6 +397,8 @@ void HOOMDInitializer::readFile(const string &fname)
     if (m_diameter_array.size() > 0)
         cout << m_diameter_array.size() << " diameters" << endl;
     cout << getNumParticleTypes() <<  " particle types" << endl;
+    if (m_body_array.size() > 0)
+        cout << m_body_array.size() << " particle body values" << endl;        
     if (m_bonds.size() > 0)
         cout << m_bonds.size() << " bonds" << endl;
     if (m_angles.size() > 0)
@@ -633,6 +645,41 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
             parser >> type;
             
             m_type_array.push_back(getTypeId(type));
+            }
+        }
+    else
+        {
+        if (!num_attr_zero(node))
+            cout << "***Warning! Found type node with no text. Possible typo." << endl;
+        }
+    }
+
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b body node and fills out m_body_array. The number
+    of particles in the array is determined dynamically.
+*/
+void HOOMDInitializer::parseBodyNode(const XMLNode &node)
+    {
+    // check that this is actually a type node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("body"));
+    
+    // extract the data from the node
+    istringstream parser;
+    if (node.getText())
+        {
+        parser.str(node.getText());
+        while (parser.good())
+            {
+            // handle -1 as NO_BODY
+            int body;
+            parser >> body;
+            
+            if (body == -1)
+                m_body_array.push_back(NO_BODY);
+            else
+                m_body_array.push_back(body);
             }
         }
     else

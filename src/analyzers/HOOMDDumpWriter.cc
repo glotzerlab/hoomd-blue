@@ -79,7 +79,7 @@ HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std
         : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), m_output_image(false),
         m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false),
         m_output_bond(false), m_output_angle(false), m_output_wall(false), m_output_dihedral(false),
-        m_output_improper(false), m_output_accel(false)
+        m_output_improper(false), m_output_accel(false), m_output_body(false)
     {
     }
 
@@ -159,6 +159,12 @@ void HOOMDDumpWriter::setOutputImproper(bool enable)
 void HOOMDDumpWriter::setOutputAccel(bool enable)
     {
     m_output_accel = enable;
+    }
+/*! \param enable Set to true to output body to the XML file on the next call to analyze()
+*/
+void HOOMDDumpWriter::setOutputBody(bool enable)
+    {
+    m_output_body = enable;
     }
 
 /*! \param fname File name to write
@@ -347,6 +353,28 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
             }
         f <<"</type>" <<endl;
         }
+    
+    // If the body flag is true output the bodies of all particles to an xml file
+    if  (m_output_body)
+        {
+        f <<"<body num=\"" << m_pdata->getN() << "\">" <<endl;
+        for (unsigned int j = 0; j < arrays.nparticles; j++)
+            {
+            unsigned int i;
+            i = arrays.rtag[j];
+            
+            unsigned int body;
+            int out;
+            body = arrays.body[i];
+            if (body == NO_BODY)
+                out = -1;
+            else
+                out = (int)body;
+            
+            f << out << endl;
+            }
+        f <<"</body>" <<endl;
+        }
         
     // if the bond flag is true, output the bonds to the xml file
     if (m_output_bond)
@@ -467,6 +495,7 @@ void export_HOOMDDumpWriter()
     .def("setOutputMass", &HOOMDDumpWriter::setOutputMass)
     .def("setOutputDiameter", &HOOMDDumpWriter::setOutputDiameter)
     .def("setOutputType", &HOOMDDumpWriter::setOutputType)
+    .def("setOutputBody", &HOOMDDumpWriter::setOutputBody)
     .def("setOutputBond", &HOOMDDumpWriter::setOutputBond)
     .def("setOutputAngle", &HOOMDDumpWriter::setOutputAngle)
     .def("setOutputDihedral", &HOOMDDumpWriter::setOutputDihedral)
