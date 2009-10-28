@@ -415,7 +415,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
     if (m_prof)
         {
         m_prof->push(profile_name);
-        m_prof->push("Net force");
+        m_prof->push(exec_conf, "Net force");
         }
     
     // access the net force and virial arrays
@@ -484,8 +484,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
     
     if (m_prof)
         {
-        m_prof->pop();
-        m_prof->pop();
+        m_prof->pop(exec_conf);
+        m_prof->pop(exec_conf);
         }
     }
 #endif

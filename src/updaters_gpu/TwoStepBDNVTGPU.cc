@@ -134,7 +134,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep,
     
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE step 1");
+        m_prof->push(exec_conf, "NVE step 2");
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);

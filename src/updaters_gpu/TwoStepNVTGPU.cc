@@ -146,7 +146,7 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep,
         exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_num_blocks));
         
         if (m_prof)
-            m_prof->pop();
+            m_prof->pop(exec_conf);
         }
     
     // phase 1.5, move the state variables forward
