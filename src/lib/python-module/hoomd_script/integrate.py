@@ -691,5 +691,5 @@ class bdnvt(_integration_method):
         # change the parameters
         for i in xrange(0,ntypes):
             if a == type_list[i]:
-                self.method.setGamma(i,gamma);
+                self.cpp_method.setGamma(i,gamma);
 
