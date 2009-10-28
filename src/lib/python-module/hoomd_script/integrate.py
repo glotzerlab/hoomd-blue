@@ -300,7 +300,7 @@ class mode_standard(_integrator):
     # \code
     # integrator_mode.set_params(dt=0.007)
     # \endcode
-    def set_params(self, dt=None, T=None, tau=None):
+    def set_params(self, dt=None):
         util.print_status_line();
         # check that proper initialization has occured
         if self.cpp_integrator == None:
@@ -522,7 +522,7 @@ class nve(_integration_method):
             self.cpp_method.setLimit(limit);
     
     ## Changes parameters of an existing integrator
-    # \param limit New limit to set. Removes the limit if limit is None.
+    # \param limit (if set) New limit value to set. Removes the limit if limit is False
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -533,9 +533,9 @@ class nve(_integration_method):
     # \b Examples:
     # \code
     # integrator.set_params(limit=0.01)
-    # integrator.set_params(limit=None)
+    # integrator.set_params(limit=False)
     # \endcode
-    def set_params(self, dt=None):
+    def set_params(self, limit=None):
         util.print_status_line();
         # check that proper initialization has occured
         if self.cpp_method == None:
@@ -544,9 +544,11 @@ class nve(_integration_method):
         
         # change the parameters
         if limit != None:
-            self.cpp_method.setLimit(limit);
-        else:
-            self.cpp_method.removeLimit();
+            if limit == False:
+                self.cpp_method.removeLimit();
+            else:
+                self.cpp_method.setLimit(limit);
+            
 
 ## NVT integration via Brownian dynamics
 #
