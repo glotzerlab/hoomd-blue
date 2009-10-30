@@ -68,7 +68,9 @@ set(TEST_LIST
     nvt_updater_test
     zero_momentum_updater_test
     temp_rescale_updater_test
-    xml_reader_writer_test system_test
+    xml_reader_writer_test 
+    system_test
+    binary_reader_writer_test
     ElectrostaticShortRange_force_test
     )
     
