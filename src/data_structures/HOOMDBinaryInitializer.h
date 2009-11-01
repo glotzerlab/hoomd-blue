@@ -102,6 +102,9 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
         
+        //! Returns the integrator variables (if applicable)
+        virtual std::vector<IntegratorVariables> getIntegratorVariables() const;
+
         //! Initializes the particle data arrays
         virtual void initArrays(const ParticleDataArrays &pdata) const;
         
@@ -207,6 +210,7 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
         unsigned int m_timestep;                    //!< The time stamp
+        std::vector<IntegratorVariables> m_integrator_variables; //!< Integrator variables read in from file
         
         std::vector<std::string> m_type_mapping;          //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;     //!< The created mapping between bond types and ids

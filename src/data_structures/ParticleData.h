@@ -204,6 +204,19 @@ struct BoxDim
     BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z);
     };
 
+//! Stores integrator variables
+/*! The integration state is necessary for exact restarts.  Extended systems 
+    integrators in the spirit of Nose-Hoover store the positions, velocities, 
+    etc. of the fictitious variables.  Other integrators store a random number 
+    seed.
+    \ingroup data_structs
+*/
+struct IntegratorVariables
+    {
+    std::string type;                   //!<The type of integrator (NVT, NPT, etc.)
+    std::vector<Scalar> variable;       //!<Variables that define the integration state
+    };
+
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
 const unsigned int NO_BODY = 0xffffffff;
 
@@ -319,6 +332,12 @@ class ParticleDataInitializer
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const = 0;
         
+        //! Returns the integrator variables (if applicable)
+        virtual std::vector<IntegratorVariables> getIntegratorVariables() const 
+            {
+            return std::vector<IntegratorVariables>(0);
+            }
+
         //! Initializes the particle data arrays
         virtual void initArrays(const ParticleDataArrays &pdata) const = 0;
         
@@ -429,6 +448,11 @@ class ParticleData : boost::noncopyable
         const BoxDim& getBox() const;
         //! Set the simulation box
         void setBox(const BoxDim &box);
+        //! Get a list of integrator variables
+        const std::vector<IntegratorVariables>& getIntegratorVariables();
+        //! Set the integrator variables
+        void setIntegratorVariables(const std::vector<IntegratorVariables>&);
+
         //! Access the execution configuration
         const ExecutionConfiguration& getExecConf()
             {
@@ -466,7 +490,7 @@ class ParticleData : boost::noncopyable
         const ParticleDataArraysConst& acquireReadOnly();
         //! Acquire read/write access to the particle data
         const ParticleDataArrays& acquireReadWrite();
-        
+                
 #ifdef ENABLE_CUDA
         //! Acquire read access to the particle data on the GPU
         std::vector<gpu_pdata_arrays>& acquireReadOnlyGPU();
@@ -532,6 +556,8 @@ class ParticleData : boost::noncopyable
         ParticleDataArrays m_arrays;                //!< Pointers into m_data for particle access
         ParticleDataArraysConst m_arrays_const;     //!< Pointers into m_data for const particle access
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
+
+        std::vector<IntegratorVariables> m_integrator_variables;    //!<List of integrator variables
         
 #ifdef ENABLE_CUDA
         

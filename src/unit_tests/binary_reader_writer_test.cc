@@ -135,6 +135,19 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     
     pdata1->release();
     
+    // add some integrator states
+    std::string name1 = "nvt", name2 = "langevin";
+    Scalar var1(1.2), var2(0.1234), var3(1234324);
+    std::vector<IntegratorVariables> iv;
+    iv.resize(2);
+    iv[0].type = name1;
+    iv[1].type = name2;
+    iv[0].variable.resize(2);
+    iv[0].variable[0] = var1;
+    iv[0].variable[1] = var2;
+    iv[1].variable.resize(1, var3);
+    pdata1->setIntegratorVariables(iv);
+    
     // add a couple walls for fun
     sysdef1->getWallData()->addWall(Wall(1,0,0, 0,1,0));
     sysdef1->getWallData()->addWall(Wall(0,1,0, 0,0,1));
@@ -156,10 +169,6 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     
     // create the writer
     shared_ptr<HOOMDBinaryDumpWriter> writer(new HOOMDBinaryDumpWriter(sysdef1, "test"));
-    writer->setOutputPosition(true);
-    writer->setOutputVelocity(true);
-    writer->setOutputType(true);
-    //writer->setOutputMass(true);
     
     remove_all("test.0000000000.bin");
     BOOST_REQUIRE(!exists("test.0000000000.bin"));
@@ -210,15 +219,28 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_CHECK_EQUAL(array2.type[1], (unsigned int)type1);
 
     pdata2->release();
+    
+    //integrator variables check
+    std::vector<IntegratorVariables> iv1, iv2;
+    iv1 = pdata1->getIntegratorVariables();
+    iv2 = pdata2->getIntegratorVariables();
 
+    BOOST_CHECK_EQUAL(iv1.size(), (unsigned int) 2);
+    BOOST_CHECK_EQUAL(iv2.size(), (unsigned int) 2);
+    BOOST_CHECK_EQUAL(iv1[0].type, name1);
+    BOOST_CHECK_EQUAL(iv2[0].type, name1);
+    BOOST_CHECK_EQUAL(iv1[1].type, name2);
+    BOOST_CHECK_EQUAL(iv2[1].type, name2);
+    BOOST_CHECK_EQUAL(iv1[0].variable[0], var1);
+    BOOST_CHECK_EQUAL(iv1[0].variable[1], var2);
+    BOOST_CHECK_EQUAL(iv1[1].variable[0], var3);
+    BOOST_CHECK_EQUAL(iv2[0].variable[0], var1);
+    BOOST_CHECK_EQUAL(iv2[0].variable[1], var2);
+    BOOST_CHECK_EQUAL(iv2[1].variable[0], var3);
+    
     //
     // create the writer
     shared_ptr<HOOMDBinaryDumpWriter> writer2(new HOOMDBinaryDumpWriter(sysdef1, "test"));
-    writer->setOutputPosition(true);
-    writer->setOutputVelocity(false);
-    writer->setOutputMass(true);
-    writer->setOutputImage(true);
-    writer->setOutputDiameter(true);
     
     remove_all("test.0000000010.bin");
     BOOST_REQUIRE(!exists("test.0000000010.bin"));

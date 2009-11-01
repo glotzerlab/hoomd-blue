@@ -188,322 +188,323 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     Ly=Scalar(box.yhi-box.ylo);
     Lz=Scalar(box.zhi-box.zlo);
         
-    //always write out the timestep and box
+    //write out the timestep and box
     f.write((char*)&timestep, sizeof(int));	
     f.write((char*)&Lx, sizeof(Scalar));	
     f.write((char*)&Ly, sizeof(Scalar));	
     f.write((char*)&Lz, sizeof(Scalar));	
     
-    // If the position flag is true output the position of all particles to the file
-    f.write((char*)&m_output_position, sizeof(bool));		
-    if (m_output_position)
+    //output the position of all particles to the file
+    {
+    unsigned int np = m_pdata->getN();
+    f.write((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
-        unsigned int np = m_pdata->getN();
-        f.write((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        // use the rtag data to output the particles in the order they were read in
+        int i;
+        i= arrays.rtag[j];
+        
+        Scalar x = (arrays.x[i]);
+        Scalar y = (arrays.y[i]);
+        Scalar z = (arrays.z[i]);
+        
+        f.write((char*)&x, sizeof(Scalar));	
+        f.write((char*)&y, sizeof(Scalar));	
+        f.write((char*)&z, sizeof(Scalar));	
+        
+        if (!f.good())
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= arrays.rtag[j];
-            
-            Scalar x = (arrays.x[i]);
-            Scalar y = (arrays.y[i]);
-            Scalar z = (arrays.z[i]);
-            
-            f.write((char*)&x, sizeof(Scalar));	
-            f.write((char*)&y, sizeof(Scalar));	
-            f.write((char*)&z, sizeof(Scalar));	
-            
-            if (!f.good())
-                {
-                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-                throw runtime_error("Error writing HOOMD dump file");
-                }
+            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+            throw runtime_error("Error writing HOOMD dump file");
             }
         }
+    }
         
-    // If the image flag is true, output the image of each particle to the file
-    f.write((char*)&m_output_image, sizeof(bool));		
-    if (m_output_image)
+    // Output the image of each particle to the file
+    {
+    unsigned int np = m_pdata->getN();
+    f.write((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
-        unsigned int np = m_pdata->getN();
-        f.write((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
+        // use the rtag data to output the particles in the order they were read in
+        int i;
+        i= arrays.rtag[j];
+        
+        int x = (arrays.ix[i]);
+        int y = (arrays.iy[i]);
+        int z = (arrays.iz[i]);
+        
+        f.write((char*)&x, sizeof(int));	
+        f.write((char*)&y, sizeof(int));	
+        f.write((char*)&z, sizeof(int));	
+        
+        if (!f.good())
             {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= arrays.rtag[j];
-            
-            int x = (arrays.ix[i]);
-            int y = (arrays.iy[i]);
-            int z = (arrays.iz[i]);
-            
-            f.write((char*)&x, sizeof(int));	
-            f.write((char*)&y, sizeof(int));	
-            f.write((char*)&z, sizeof(int));	
-            
-            if (!f.good())
-                {
-                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-                throw runtime_error("Error writing HOOMD dump file");
-                }
+            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+            throw runtime_error("Error writing HOOMD dump file");
             }
         }
-        
-    // If the velocity flag is true output the velocity of all particles to the file
-    f.write((char*)&m_output_velocity, sizeof(bool));		
-    if (m_output_velocity)
-        {
-        unsigned int np = m_pdata->getN();
-        f.write((char*)&np, sizeof(unsigned int));	
-        
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
-            {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= arrays.rtag[j];
-            
-            Scalar vx = arrays.vx[i];
-            Scalar vy = arrays.vy[i];
-            Scalar vz = arrays.vz[i];
-
-            f.write((char*)&vx, sizeof(Scalar));	
-            f.write((char*)&vy, sizeof(Scalar));	
-            f.write((char*)&vz, sizeof(Scalar));	
-
-            if (!f.good())
-                {
-                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-                throw runtime_error("Error writing HOOMD dump file");
-                }
-            }            
-        }
-
-    // If the velocity flag is true output the velocity of all particles to the file
-    f.write((char*)&m_output_accel, sizeof(bool));		
-    if (m_output_accel)
-        {
-        unsigned int np = m_pdata->getN();
-        f.write((char*)&np, sizeof(unsigned int));	
-        
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
-            {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= arrays.rtag[j];
-            
-            Scalar ax = arrays.ax[i];
-            Scalar ay = arrays.ay[i];
-            Scalar az = arrays.az[i];
-
-            f.write((char*)&ax, sizeof(Scalar));	
-            f.write((char*)&ay, sizeof(Scalar));	
-            f.write((char*)&az, sizeof(Scalar));	
-
-            if (!f.good())
-                {
-                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-                throw runtime_error("Error writing HOOMD dump file");
-                }
-            }            
-        }
-        
-    // If the mass flag is true output the mass of all particles to the file
-    f.write((char*)&m_output_mass, sizeof(bool));		
-    if (m_output_mass)
-        {
-        unsigned int np = m_pdata->getN();
-        f.write((char*)&np, sizeof(unsigned int));	
-        
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
-            {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= arrays.rtag[j];
-            
-            Scalar mass = arrays.mass[i];
-            f.write((char*)&mass, sizeof(Scalar));	
-            if (!f.good())
-                {
-                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-                throw runtime_error("Error writing HOOMD dump file");
-                }
-            }            
-        }
-        
-    // If the diameter flag is true output the diameter of all particles to the file
-    f.write((char*)&m_output_diameter, sizeof(bool));		
-    if (m_output_diameter)
-        {
-        unsigned int np = m_pdata->getN();
-        f.write((char*)&np, sizeof(unsigned int));	
-        
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
-            {
-            // use the rtag data to output the particles in the order they were read in
-            int i;
-            i= arrays.rtag[j];
-            
-            Scalar diameter = arrays.diameter[i];
-            f.write((char*)&diameter, sizeof(Scalar));	
-            if (!f.good())
-                {
-                cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-                throw runtime_error("Error writing HOOMD dump file");
-                }
-            }            
-        }
-        
-    // If the Type flag is true output the types of all particles to an xml file
-    f.write((char*)&m_output_type, sizeof(bool));		
-    if  (m_output_type)
-        {
-        unsigned int np = m_pdata->getN();
-        f.write((char*)&np, sizeof(unsigned int));	
-
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
-            {
-            int i;
-            i= arrays.rtag[j];
-            std::string name = m_pdata->getNameByType(arrays.type[i]);
-            unsigned int len = name.size();
-            f.write((char*)&len, sizeof(unsigned int));	
-            f.write(name.c_str(), len*sizeof(char));	
-            }
-        }
-        
-    // if the bond flag is true, output the bonds to the xml file
-    f.write((char*)&m_output_bond, sizeof(bool));		
-    if (m_output_bond)
-        {
-        unsigned int nb = m_sysdef->getBondData()->getNumBonds();
-        f.write((char*)&nb, sizeof(unsigned int));	
-        shared_ptr<BondData> bond_data = m_sysdef->getBondData();
-        
-        // loop over all bonds and write them out
-        for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
-            {
-            Bond bond = bond_data->getBond(i);
-
-            std::string name = bond_data->getNameByType(bond.type);
-            unsigned int len = name.size();
-            f.write((char*)&len, sizeof(unsigned int));	
-            f.write(name.c_str(), name.size()*sizeof(char));	
-            unsigned int a = bond.a;
-            unsigned int b = bond.b;
-            f.write((char*)&a, sizeof(unsigned int));	
-            f.write((char*)&b, sizeof(unsigned int));	            
-            }            
-        }
-        
-    // if the angle flag is true, output the angles to the xml file
-    f.write((char*)&m_output_angle, sizeof(bool));		
-    if (m_output_angle)
-        {
-        unsigned int na = m_sysdef->getAngleData()->getNumAngles();
-        f.write((char*)&na, sizeof(unsigned int));	
-
-        shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
-        
-        // loop over all angles and write them out
-        for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
-            {
-            Angle angle = angle_data->getAngle(i);
-            
-            std::string name = angle_data->getNameByType(angle.type);
-            unsigned int len = name.size();
-            f.write((char*)&len, sizeof(unsigned int));	
-            f.write(name.c_str(), name.size()*sizeof(char));	
-            unsigned int a = angle.a;
-            unsigned int b = angle.b;
-            unsigned int c = angle.c;
-            f.write((char*)&a, sizeof(unsigned int));	
-            f.write((char*)&b, sizeof(unsigned int));	            
-            f.write((char*)&c, sizeof(unsigned int));	            
-            }            
-        }
-        
-    // if dihedral is true, write out dihedrals to the xml file
-    f.write((char*)&m_output_dihedral, sizeof(bool));		
-    if (m_output_dihedral)
-        {
-        unsigned int nd = m_sysdef->getDihedralData()->getNumDihedrals();
-        f.write((char*)&nd, sizeof(unsigned int));	
-
-        shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
-        
-        // loop over all angles and write them out
-        for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
-            {
-            Dihedral dihedral = dihedral_data->getDihedral(i);
-            
-            std::string name = dihedral_data->getNameByType(dihedral.type);
-            unsigned int len = name.size();
-            f.write((char*)&len, sizeof(unsigned int));	
-            f.write(name.c_str(), name.size()*sizeof(char));	
-            unsigned int a = dihedral.a;
-            unsigned int b = dihedral.b;
-            unsigned int c = dihedral.c;
-            unsigned int d = dihedral.d;
-            f.write((char*)&a, sizeof(unsigned int));	
-            f.write((char*)&b, sizeof(unsigned int));	            
-            f.write((char*)&c, sizeof(unsigned int));	            
-            f.write((char*)&d, sizeof(unsigned int));	            
-            }            
-        }
-        
-    // if improper is true, write out impropers to the xml file
-    f.write((char*)&m_output_improper, sizeof(bool));		
-    if (m_output_improper)
-        {
-        unsigned int ni = m_sysdef->getImproperData()->getNumDihedrals();
-        f.write((char*)&ni, sizeof(unsigned int));	
-                
-        shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
-        
-        // loop over all angles and write them out
-        for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
-            {
-            Dihedral dihedral = improper_data->getDihedral(i);
-
-            std::string name = improper_data->getNameByType(dihedral.type);
-            unsigned int len = name.size();
-            f.write((char*)&len, sizeof(unsigned int));	
-            f.write(name.c_str(), name.size()*sizeof(char));	
-            unsigned int a = dihedral.a;
-            unsigned int b = dihedral.b;
-            unsigned int c = dihedral.c;
-            unsigned int d = dihedral.d;
-            f.write((char*)&a, sizeof(unsigned int));	
-            f.write((char*)&b, sizeof(unsigned int));	            
-            f.write((char*)&c, sizeof(unsigned int));	            
-            f.write((char*)&d, sizeof(unsigned int));            
-            }            
-        }
-        
-    // if the wall flag is true, output the walls to the xml file
-    f.write((char*)&m_output_wall, sizeof(bool));		
-    if (m_output_wall)
-        {
-        shared_ptr<WallData> wall_data = m_sysdef->getWallData();
-
-        unsigned int nw = wall_data->getNumWalls();
-        f.write((char*)&nw, sizeof(unsigned int));	
-        
-        // loop over all walls and write them out
-        for (unsigned int i = 0; i < nw; i++)
-            {
-            Wall wall = wall_data->getWall(i);
-            
-            f.write((char*)&(wall.origin_x), sizeof(Scalar));	
-            f.write((char*)&(wall.origin_y), sizeof(Scalar));	
-            f.write((char*)&(wall.origin_z), sizeof(Scalar));	
-            f.write((char*)&(wall.normal_x), sizeof(Scalar));	
-            f.write((char*)&(wall.normal_y), sizeof(Scalar));	
-            f.write((char*)&(wall.normal_z), sizeof(Scalar));	
-            }
-        }
+    }
     
+    // Output the velocity of all particles to the file
+    {
+    unsigned int np = m_pdata->getN();
+    f.write((char*)&np, sizeof(unsigned int));	
+    
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        // use the rtag data to output the particles in the order they were read in
+        int i;
+        i= arrays.rtag[j];
+        
+        Scalar vx = arrays.vx[i];
+        Scalar vy = arrays.vy[i];
+        Scalar vz = arrays.vz[i];
+
+        f.write((char*)&vx, sizeof(Scalar));	
+        f.write((char*)&vy, sizeof(Scalar));	
+        f.write((char*)&vz, sizeof(Scalar));	
+
+        if (!f.good())
+            {
+            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+        }            
+    }
+
+    /*
+    // Output the acceleration of all particles to the file
+    {
+    unsigned int np = m_pdata->getN();
+    f.write((char*)&np, sizeof(unsigned int));	
+    
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        // use the rtag data to output the particles in the order they were read in
+        int i;
+        i= arrays.rtag[j];
+        
+        Scalar ax = arrays.ax[i];
+        Scalar ay = arrays.ay[i];
+        Scalar az = arrays.az[i];
+
+        f.write((char*)&ax, sizeof(Scalar));	
+        f.write((char*)&ay, sizeof(Scalar));	
+        f.write((char*)&az, sizeof(Scalar));	
+
+        if (!f.good())
+            {
+            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+        }            
+    }
+    */
+    
+    // Output the mass of all particles to the file
+    {
+    unsigned int np = m_pdata->getN();
+    f.write((char*)&np, sizeof(unsigned int));	
+    
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        // use the rtag data to output the particles in the order they were read in
+        int i;
+        i= arrays.rtag[j];
+        
+        Scalar mass = arrays.mass[i];
+        f.write((char*)&mass, sizeof(Scalar));	
+        if (!f.good())
+            {
+            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+        }            
+    }
+        
+    // Output the diameter of all particles to the file
+    {
+    unsigned int np = m_pdata->getN();
+    f.write((char*)&np, sizeof(unsigned int));	
+    
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        // use the rtag data to output the particles in the order they were read in
+        int i;
+        i= arrays.rtag[j];
+        
+        Scalar diameter = arrays.diameter[i];
+        f.write((char*)&diameter, sizeof(Scalar));	
+        if (!f.good())
+            {
+            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+            throw runtime_error("Error writing HOOMD dump file");
+            }
+        }            
+    }
+        
+    // Output the types of all particles to an xml file
+    {
+    unsigned int np = m_pdata->getN();
+    f.write((char*)&np, sizeof(unsigned int));	
+
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+        {
+        int i;
+        i= arrays.rtag[j];
+        std::string name = m_pdata->getNameByType(arrays.type[i]);
+        unsigned int len = name.size();
+        f.write((char*)&len, sizeof(unsigned int));	
+        f.write(name.c_str(), len*sizeof(char));	
+        }
+    }
+    
+    //Output the integrator states to the binary file
+    {
+    const std::vector<IntegratorVariables>& v = m_pdata->getIntegratorVariables();
+    unsigned int ni = v.size();
+    f.write((char*)&ni, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < ni; j++)
+        {
+        unsigned int len = v[j].type.size();
+        f.write((char*)&len, sizeof(unsigned int));	
+        if (len != 0) 
+            {
+            f.write(v[j].type.c_str(), len*sizeof(char));
+            }
+        unsigned int nv = v[j].variable.size();
+        f.write((char*)&nv, sizeof(unsigned int));	
+        for (unsigned int k=0; k<nv; k++)
+            {
+            Scalar var = v[j].variable[k];
+            f.write((char*)&var, sizeof(Scalar));	
+            }
+        }
+    }
+    
+    // Output the bonds to the binary file
+    {
+    unsigned int nb = m_sysdef->getBondData()->getNumBonds();
+    f.write((char*)&nb, sizeof(unsigned int));	
+    shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    
+    // loop over all bonds and write them out
+    for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
+        {
+        Bond bond = bond_data->getBond(i);
+
+        std::string name = bond_data->getNameByType(bond.type);
+        unsigned int len = name.size();
+        f.write((char*)&len, sizeof(unsigned int));	
+        f.write(name.c_str(), name.size()*sizeof(char));	
+        unsigned int a = bond.a;
+        unsigned int b = bond.b;
+        f.write((char*)&a, sizeof(unsigned int));	
+        f.write((char*)&b, sizeof(unsigned int));	            
+        }            
+    }
+        
+    // Output the angles to the binary file
+    {
+    unsigned int na = m_sysdef->getAngleData()->getNumAngles();
+    f.write((char*)&na, sizeof(unsigned int));	
+
+    shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
+    
+    // loop over all angles and write them out
+    for (unsigned int i = 0; i < angle_data->getNumAngles(); i++)
+        {
+        Angle angle = angle_data->getAngle(i);
+        
+        std::string name = angle_data->getNameByType(angle.type);
+        unsigned int len = name.size();
+        f.write((char*)&len, sizeof(unsigned int));	
+        f.write(name.c_str(), name.size()*sizeof(char));	
+        unsigned int a = angle.a;
+        unsigned int b = angle.b;
+        unsigned int c = angle.c;
+        f.write((char*)&a, sizeof(unsigned int));	
+        f.write((char*)&b, sizeof(unsigned int));	            
+        f.write((char*)&c, sizeof(unsigned int));	            
+        }            
+    }
+        
+    // Write out dihedrals to the binary file
+    {
+    unsigned int nd = m_sysdef->getDihedralData()->getNumDihedrals();
+    f.write((char*)&nd, sizeof(unsigned int));	
+
+    shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
+    
+    // loop over all angles and write them out
+    for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
+        {
+        Dihedral dihedral = dihedral_data->getDihedral(i);
+        
+        std::string name = dihedral_data->getNameByType(dihedral.type);
+        unsigned int len = name.size();
+        f.write((char*)&len, sizeof(unsigned int));	
+        f.write(name.c_str(), name.size()*sizeof(char));	
+        unsigned int a = dihedral.a;
+        unsigned int b = dihedral.b;
+        unsigned int c = dihedral.c;
+        unsigned int d = dihedral.d;
+        f.write((char*)&a, sizeof(unsigned int));	
+        f.write((char*)&b, sizeof(unsigned int));	            
+        f.write((char*)&c, sizeof(unsigned int));	            
+        f.write((char*)&d, sizeof(unsigned int));	            
+        }            
+    }
+        
+    // Write out impropers to the binary file
+    {
+    unsigned int ni = m_sysdef->getImproperData()->getNumDihedrals();
+    f.write((char*)&ni, sizeof(unsigned int));	
+            
+    shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
+    
+    // loop over all angles and write them out
+    for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
+        {
+        Dihedral dihedral = improper_data->getDihedral(i);
+
+        std::string name = improper_data->getNameByType(dihedral.type);
+        unsigned int len = name.size();
+        f.write((char*)&len, sizeof(unsigned int));	
+        f.write(name.c_str(), name.size()*sizeof(char));	
+        unsigned int a = dihedral.a;
+        unsigned int b = dihedral.b;
+        unsigned int c = dihedral.c;
+        unsigned int d = dihedral.d;
+        f.write((char*)&a, sizeof(unsigned int));	
+        f.write((char*)&b, sizeof(unsigned int));	            
+        f.write((char*)&c, sizeof(unsigned int));	            
+        f.write((char*)&d, sizeof(unsigned int));            
+        }            
+    }
+        
+    // Output the walls to the binary file
+    {
+    shared_ptr<WallData> wall_data = m_sysdef->getWallData();
+
+    unsigned int nw = wall_data->getNumWalls();
+    f.write((char*)&nw, sizeof(unsigned int));	
+    
+    // loop over all walls and write them out
+    for (unsigned int i = 0; i < nw; i++)
+        {
+        Wall wall = wall_data->getWall(i);
+        
+        f.write((char*)&(wall.origin_x), sizeof(Scalar));	
+        f.write((char*)&(wall.origin_y), sizeof(Scalar));	
+        f.write((char*)&(wall.origin_z), sizeof(Scalar));	
+        f.write((char*)&(wall.normal_x), sizeof(Scalar));	
+        f.write((char*)&(wall.normal_y), sizeof(Scalar));	
+        f.write((char*)&(wall.normal_z), sizeof(Scalar));	
+        }
+    }
+        
     if (!f.good())
         {
         cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;

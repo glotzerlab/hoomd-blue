@@ -134,11 +134,15 @@ class Integrator : public Updater
         
         //! helper function to compute total momentum
         virtual Scalar computeTotalMomentum(unsigned int timestep);
-        
+                
     protected:
         Scalar m_deltaT;    //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
+        unsigned int m_unique_id;
         
+        const IntegratorVariables& getIntegratorVariables();
+        void setIntegratorVariables(const IntegratorVariables&);
+
         //! helper function to compute accelerations
         void computeAccelerations(unsigned int timestep, const std::string& profile_name);
         
@@ -150,6 +154,9 @@ class Integrator : public Updater
         vector<float4 **> m_d_force_data_ptrs;
         
 #endif
+
+    private:
+        static unsigned int s_integrator_count;
     };
 
 //! Exports the NVEUpdater class to python

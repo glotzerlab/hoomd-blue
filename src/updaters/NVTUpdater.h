@@ -107,8 +107,8 @@ class NVTUpdater : public Integrator
     protected:
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
-        Scalar m_Xi;                    //!< Friction coeff
-        Scalar m_eta;                   //!< Added degree of freedom
+        //Scalar m_Xi;                    //!< Friction coeff
+        //Scalar m_eta;                   //!< Added degree of freedom
         bool m_accel_set;               //!< Flag to tell if we have set the accelleration yet
         Scalar m_curr_T;                //!< Current calculated temperature of the system
         Scalar m_dof;                   //!< Number of degrees of freedom

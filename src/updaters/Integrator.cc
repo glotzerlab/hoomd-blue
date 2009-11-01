@@ -65,10 +65,12 @@ using namespace boost;
 
 using namespace std;
 
+unsigned int Integrator::s_integrator_count = 0;
+
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
+Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT), m_unique_id(s_integrator_count++)
     {
     if (m_deltaT <= 0.0)
         cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
@@ -254,6 +256,28 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
         cerr << endl << "***Error! " << quantity << " is not a valid log quantity for Integrator" << endl;
         throw runtime_error("Error getting log value");
         }
+    }
+
+const IntegratorVariables& Integrator::getIntegratorVariables()
+    {
+    if (m_pdata->getIntegratorVariables().size() <= m_unique_id) 
+        {
+        std::vector<IntegratorVariables> var = m_pdata->getIntegratorVariables();
+        var.resize(m_unique_id+1);
+        m_pdata->setIntegratorVariables(var);
+        }
+    return m_pdata->getIntegratorVariables()[m_unique_id];
+    }
+
+void Integrator::setIntegratorVariables(const IntegratorVariables& variables)
+    {
+    std::vector<IntegratorVariables> var = m_pdata->getIntegratorVariables();
+    if (var.size() <= m_unique_id) 
+        {
+        var.resize(m_unique_id+1);
+        }
+        var[m_unique_id] = variables;
+        m_pdata->setIntegratorVariables(var);
     }
 
 /*! \param timestep Current timestep

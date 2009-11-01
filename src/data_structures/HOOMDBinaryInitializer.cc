@@ -162,7 +162,21 @@ void HOOMDBinaryInitializer::initArrays(const ParticleDataArrays &pdata) const
             pdata.vz[i] = m_vel_array[i].z;
             }
         }
+
+    /*
+    if (m_acc_array.size() != 0)
+        {
+        assert(m_acc_array.size() == m_pos_array.size());
         
+        for (unsigned int i = 0; i < m_acc_array.size(); i++)
+            {
+            pdata.ax[i] = m_acc_array[i].x;
+            pdata.ay[i] = m_acc_array[i].y;
+            pdata.az[i] = m_acc_array[i].z;
+            }
+        }
+    */
+    
     if (m_mass_array.size() != 0)
         {
         assert(m_mass_array.size() == m_pos_array.size());
@@ -193,7 +207,7 @@ void HOOMDBinaryInitializer::initArrays(const ParticleDataArrays &pdata) const
         
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.type[i] = m_type_array[i];
-        }
+        }        
     }
 
 /*! \param wall_data WallData to initialize with the data read from the file
@@ -205,7 +219,12 @@ void HOOMDBinaryInitializer::initWallData(boost::shared_ptr<WallData> wall_data)
         wall_data->addWall(m_walls[i]);
     }
 
-/*! \param fname File name of the hoomd_xml file to read in
+std::vector<IntegratorVariables> HOOMDBinaryInitializer::getIntegratorVariables() const
+    {
+        return m_integrator_variables;
+    }
+
+/*! \param fname File name of the hoomd_binary file to read in
     \post Internal data arrays and members are filled out from which futre calls
     like initArrays will use to intialize the ParticleData
 
@@ -249,244 +268,241 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_box_read = true;
         
     //parse positions
-    bool positions_flag = false;
-    f.read((char*)&positions_flag, sizeof(bool));
-    if (positions_flag) 
+    {
+    unsigned int np = 0;
+    f.read((char*)&np, sizeof(unsigned int));
+    for (unsigned int j = 0; j < np; j++)
         {
-        unsigned int np = 0;
-        f.read((char*)&np, sizeof(unsigned int));
-        for (unsigned int j = 0; j < np; j++)
-            {
-            Scalar x, y, z;
-            f.read((char*)&x, sizeof(Scalar));	
-            f.read((char*)&y, sizeof(Scalar));	
-            f.read((char*)&z, sizeof(Scalar));	
-            m_pos_array.push_back(vec(x,y,z));
-            }
+        Scalar x, y, z;
+        f.read((char*)&x, sizeof(Scalar));	
+        f.read((char*)&y, sizeof(Scalar));	
+        f.read((char*)&z, sizeof(Scalar));	
+        m_pos_array.push_back(vec(x,y,z));
         }
+    }
 
     //parse images
-    bool image_flag = false;
-    f.read((char*)&image_flag, sizeof(bool));
-    if (image_flag) 
+    {
+    unsigned int np = 0;
+    f.read((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < np; j++)
         {
-        unsigned int np = 0;
-        f.read((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < np; j++)
-            {
-            int x, y, z;
-            f.read((char*)&x, sizeof(int));	
-            f.read((char*)&y, sizeof(int));	
-            f.read((char*)&z, sizeof(int));	
-            m_image_array.push_back(vec_int(x,y,z));
-            }
+        int x, y, z;
+        f.read((char*)&x, sizeof(int));	
+        f.read((char*)&y, sizeof(int));	
+        f.read((char*)&z, sizeof(int));	
+        m_image_array.push_back(vec_int(x,y,z));
         }
+    }
 
     //parse velocities
-    bool velocities_flag = false;
-    f.read((char*)&velocities_flag, sizeof(bool));
-    if (velocities_flag) 
+    {
+    unsigned int np = 0;
+    f.read((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < np; j++)
         {
-        unsigned int np = 0;
-        f.read((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < np; j++)
-            {
-            Scalar vx, vy, vz;
-            f.read((char*)&vx, sizeof(Scalar));	
-            f.read((char*)&vy, sizeof(Scalar));	
-            f.read((char*)&vz, sizeof(Scalar));	
-            m_vel_array.push_back(vec(vx,vy,vz));
-            }
+        Scalar vx, vy, vz;
+        f.read((char*)&vx, sizeof(Scalar));	
+        f.read((char*)&vy, sizeof(Scalar));	
+        f.read((char*)&vz, sizeof(Scalar));	
+        m_vel_array.push_back(vec(vx,vy,vz));
         }
+    }
 
+/*
     //parse accelerations
-    bool accelerations_flag = false;
-    f.read((char*)&accelerations_flag, sizeof(bool));
-    if (accelerations_flag) 
+    {
+    unsigned int np = 0;
+    f.read((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < np; j++)
         {
-        unsigned int np = 0;
-        f.read((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < np; j++)
-            {
-            Scalar ax, ay, az;
-            f.read((char*)&ax, sizeof(Scalar));	
-            f.read((char*)&ay, sizeof(Scalar));	
-            f.read((char*)&az, sizeof(Scalar));	
-            m_vel_array.push_back(vec(ax,ay,az));
-            }
+        Scalar ax, ay, az;
+        f.read((char*)&ax, sizeof(Scalar));	
+        f.read((char*)&ay, sizeof(Scalar));	
+        f.read((char*)&az, sizeof(Scalar));	
+        m_acc_array.push_back(vec(ax,ay,az));
         }
+    }
+*/
 
     //parse masses
-    bool masses_flag = false;
-    f.read((char*)&masses_flag, sizeof(bool));
-    if (masses_flag) 
+    {
+    unsigned int np = 0;
+    f.read((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < np; j++)
         {
-        unsigned int np = 0;
-        f.read((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < np; j++)
-            {
-            Scalar mass;
-            f.read((char*)&mass, sizeof(Scalar));	
-            m_mass_array.push_back(mass);
-            }
+        Scalar mass;
+        f.read((char*)&mass, sizeof(Scalar));	
+        m_mass_array.push_back(mass);
         }
+    }
 
     //parse diameters
-    bool diameters_flag = false;
-    f.read((char*)&diameters_flag, sizeof(bool));
-    if (diameters_flag) 
+    {
+    unsigned int np = 0;
+    f.read((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < np; j++)
         {
-        unsigned int np = 0;
-        f.read((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < np; j++)
-            {
-            Scalar diameter;
-            f.read((char*)&diameter, sizeof(Scalar));	
-            m_diameter_array.push_back(diameter);
-            }
+        Scalar diameter;
+        f.read((char*)&diameter, sizeof(Scalar));	
+        m_diameter_array.push_back(diameter);
         }
+    }
 
     //parse types
-    bool types_flag = false;
-    f.read((char*)&types_flag, sizeof(bool));
-    if (types_flag) 
+    {
+    unsigned int np = 0;
+    f.read((char*)&np, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < np; j++)
         {
-        unsigned int np = 0;
-        f.read((char*)&np, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < np; j++)
+        unsigned int len;
+        f.read((char*)&len, sizeof(unsigned int));
+        char type_cstr[len+1];
+        f.read(type_cstr, len*sizeof(char));
+        type_cstr[len] = '\0';
+        std::string type = type_cstr;
+        m_type_array.push_back(getTypeId(type));
+        }
+    }
+    
+    //parse integrator states
+    {
+    std::vector<IntegratorVariables> v;
+    unsigned int ni = 0;
+    f.read((char*)&ni, sizeof(unsigned int));
+    v.resize(ni);
+    for (unsigned int j = 0; j < ni; j++)
+        {
+        unsigned int len;
+        f.read((char*)&len, sizeof(unsigned int));
+        if (len != 0)
             {
-            unsigned int len;
-            f.read((char*)&len, sizeof(unsigned int));
             char type_cstr[len+1];
             f.read(type_cstr, len*sizeof(char));
             type_cstr[len] = '\0';
-            string type = type_cstr;
-            m_type_array.push_back(getTypeId(type));
+            std::string type = type_cstr;
+            v[j].type = type;
+            }
+        v[j].variable.clear();
+        unsigned int nv = 0;
+        f.read((char*)&nv, sizeof(unsigned int));	
+        for (unsigned int k=0; k<nv; k++)
+            {
+            Scalar var;
+            f.read((char*)&var, sizeof(Scalar));
+            v[j].variable.push_back(var);
             }
         }
+        m_integrator_variables = v;
+    }
     
     //parse bonds
-    bool bonds_flag = false;
-    f.read((char*)&bonds_flag, sizeof(bool));
-    if (bonds_flag) 
+    {
+    unsigned int nb = 0;
+    f.read((char*)&nb, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < nb; j++)
         {
-        unsigned int nb = 0;
-        f.read((char*)&nb, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < nb; j++)
-            {
-            unsigned int len;
-            f.read((char*)&len, sizeof(unsigned int));
-            char bondtype_cstr[len+1];
-            f.read(bondtype_cstr, len*sizeof(char));
-            bondtype_cstr[len] = '\0';
-            string type_name = bondtype_cstr;
-            
-            unsigned int a, b;
-            f.read((char*)&a, sizeof(unsigned int));
-            f.read((char*)&b, sizeof(unsigned int));
-            
-            m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
-            }
+        unsigned int len;
+        f.read((char*)&len, sizeof(unsigned int));
+        char bondtype_cstr[len+1];
+        f.read(bondtype_cstr, len*sizeof(char));
+        bondtype_cstr[len] = '\0';
+        string type_name = bondtype_cstr;
+        
+        unsigned int a, b;
+        f.read((char*)&a, sizeof(unsigned int));
+        f.read((char*)&b, sizeof(unsigned int));
+        
+        m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
         }
+    }
 
     //parse angles
-    bool angles_flag = false;
-    f.read((char*)&angles_flag, sizeof(bool));
-    if (angles_flag) 
+    {
+    unsigned int na = 0;
+    f.read((char*)&na, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < na; j++)
         {
-        unsigned int na = 0;
-        f.read((char*)&na, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < na; j++)
-            {
-            unsigned int len;
-            f.read((char*)&len, sizeof(unsigned int));
-            char angletype_cstr[len+1];
-            f.read(angletype_cstr, len*sizeof(char));
-            angletype_cstr[len] = '\0';
-            string type_name = angletype_cstr;
-            
-            unsigned int a, b, c;
-            f.read((char*)&a, sizeof(unsigned int));
-            f.read((char*)&b, sizeof(unsigned int));
-            f.read((char*)&c, sizeof(unsigned int));
-            
-            m_angles.push_back(Angle(getAngleTypeId(type_name), a, b, c));
-            }
+        unsigned int len;
+        f.read((char*)&len, sizeof(unsigned int));
+        char angletype_cstr[len+1];
+        f.read(angletype_cstr, len*sizeof(char));
+        angletype_cstr[len] = '\0';
+        string type_name = angletype_cstr;
+        
+        unsigned int a, b, c;
+        f.read((char*)&a, sizeof(unsigned int));
+        f.read((char*)&b, sizeof(unsigned int));
+        f.read((char*)&c, sizeof(unsigned int));
+        
+        m_angles.push_back(Angle(getAngleTypeId(type_name), a, b, c));
         }
+    }
 
     //parse dihedrals
-    bool dihedrals_flag = false;
-    f.read((char*)&dihedrals_flag, sizeof(bool));
-    if (dihedrals_flag) 
+    {
+    unsigned int nd = 0;
+    f.read((char*)&nd, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < nd; j++)
         {
-        unsigned int nd = 0;
-        f.read((char*)&nd, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < nd; j++)
-            {
-            unsigned int len;
-            f.read((char*)&len, sizeof(unsigned int));
-            char dihedraltype_cstr[len+1];
-            f.read(dihedraltype_cstr, len*sizeof(char));
-            dihedraltype_cstr[len] = '\0';
-            string type_name = dihedraltype_cstr;
-            
-            unsigned int a, b, c, d;
-            f.read((char*)&a, sizeof(unsigned int));
-            f.read((char*)&b, sizeof(unsigned int));
-            f.read((char*)&c, sizeof(unsigned int));
-            f.read((char*)&d, sizeof(unsigned int));
-            
-            m_dihedrals.push_back(Dihedral(getDihedralTypeId(type_name), a, b, c, d));
-            }
+        unsigned int len;
+        f.read((char*)&len, sizeof(unsigned int));
+        char dihedraltype_cstr[len+1];
+        f.read(dihedraltype_cstr, len*sizeof(char));
+        dihedraltype_cstr[len] = '\0';
+        string type_name = dihedraltype_cstr;
+        
+        unsigned int a, b, c, d;
+        f.read((char*)&a, sizeof(unsigned int));
+        f.read((char*)&b, sizeof(unsigned int));
+        f.read((char*)&c, sizeof(unsigned int));
+        f.read((char*)&d, sizeof(unsigned int));
+        
+        m_dihedrals.push_back(Dihedral(getDihedralTypeId(type_name), a, b, c, d));
         }
+    }
 
     //parse impropers
-    bool impropers_flag = false;
-    f.read((char*)&impropers_flag, sizeof(bool));
-    if (impropers_flag) 
+    {
+    unsigned int nd = 0;
+    f.read((char*)&nd, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < nd; j++)
         {
-        unsigned int nd = 0;
-        f.read((char*)&nd, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < nd; j++)
-            {
-            unsigned int len;
-            f.read((char*)&len, sizeof(unsigned int));
-            char impropertype_cstr[len+1];
-            f.read(impropertype_cstr, len*sizeof(char));
-            impropertype_cstr[len] = '\0';
-            string type_name = impropertype_cstr;
-            
-            unsigned int a, b, c, d;
-            f.read((char*)&a, sizeof(unsigned int));
-            f.read((char*)&b, sizeof(unsigned int));
-            f.read((char*)&c, sizeof(unsigned int));
-            f.read((char*)&d, sizeof(unsigned int));
-            
-            m_impropers.push_back(Dihedral(getImproperTypeId(type_name), a, b, c, d));
-            }
+        unsigned int len;
+        f.read((char*)&len, sizeof(unsigned int));
+        char impropertype_cstr[len+1];
+        f.read(impropertype_cstr, len*sizeof(char));
+        impropertype_cstr[len] = '\0';
+        string type_name = impropertype_cstr;
+        
+        unsigned int a, b, c, d;
+        f.read((char*)&a, sizeof(unsigned int));
+        f.read((char*)&b, sizeof(unsigned int));
+        f.read((char*)&c, sizeof(unsigned int));
+        f.read((char*)&d, sizeof(unsigned int));
+        
+        m_impropers.push_back(Dihedral(getImproperTypeId(type_name), a, b, c, d));
         }
+    }
     
     //charges?
     
     //parse walls
-    bool wall_flag = false;
-    f.read((char*)&wall_flag, sizeof(bool));
-    if (wall_flag)
+    {
+    unsigned int nw = 0;
+    f.read((char*)&nw, sizeof(unsigned int));	
+    for (unsigned int j = 0; j < nw; j++)
         {
-        unsigned int nw = 0;
-        f.read((char*)&nw, sizeof(unsigned int));	
-        for (unsigned int j = 0; j < nw; j++)
-            {
-            Scalar ox, oy, oz, nx, ny, nz;
-            f.read((char*)&(ox), sizeof(Scalar));	
-            f.read((char*)&(oy), sizeof(Scalar));	
-            f.read((char*)&(oz), sizeof(Scalar));	
-            f.read((char*)&(nx), sizeof(Scalar));	
-            f.read((char*)&(ny), sizeof(Scalar));	
-            f.read((char*)&(nz), sizeof(Scalar));	
-            m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
-            }
+        Scalar ox, oy, oz, nx, ny, nz;
+        f.read((char*)&(ox), sizeof(Scalar));	
+        f.read((char*)&(oy), sizeof(Scalar));	
+        f.read((char*)&(oz), sizeof(Scalar));	
+        f.read((char*)&(nx), sizeof(Scalar));	
+        f.read((char*)&(ny), sizeof(Scalar));	
+        f.read((char*)&(nz), sizeof(Scalar));	
+        m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
         }
+    }
     
     // check for required items in the file
     if (!m_box_read)
@@ -494,12 +510,12 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         cerr << endl
              << "***Error! A <box> node is required to define the dimensions of the simulation box"
              << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
     if (m_pos_array.size() == 0)
         {
         cerr << endl << "***Error! No particles defined in <position> node" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
         
     // check for potential user errors
@@ -507,41 +523,41 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         {
         cerr << endl << "***Error! " << m_vel_array.size() << " velocities != " << m_pos_array.size()
              << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
     if (m_mass_array.size() != 0 && m_mass_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_mass_array.size() << " masses != " << m_pos_array.size()
              << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
     if (m_diameter_array.size() != 0 && m_diameter_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_diameter_array.size() << " diameters != " << m_pos_array.size()
              << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
     if (m_image_array.size() != 0 && m_image_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_image_array.size() << " images != " << m_pos_array.size()
              << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
     if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_pos_array.size()
              << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
     if (m_charge_array.size() != 0 && m_charge_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_charge_array.size() << " charge values != " << m_pos_array.size()
              << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_xml file");
+        throw runtime_error("Error extracting data from hoomd_binary file");
         }
         
     // notify the user of what we have accomplished
-    cout << "--- hoomd_xml file read summary" << endl;
+    cout << "--- hoomd_binary file read summary" << endl;
     cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
     if (m_image_array.size() > 0)
         cout << m_image_array.size() << " images" << endl;
@@ -552,6 +568,8 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     if (m_diameter_array.size() > 0)
         cout << m_diameter_array.size() << " diameters" << endl;
     cout << getNumParticleTypes() <<  " particle types" << endl;
+    if (m_integrator_variables.size() > 0)
+        cout << m_integrator_variables.size() << " integrator states" << endl;
     if (m_bonds.size() > 0)
         cout << m_bonds.size() << " bonds" << endl;
     if (m_angles.size() > 0)

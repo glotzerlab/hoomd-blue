@@ -73,10 +73,43 @@ NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
         
-    m_Xi = 1.0;
-    m_eta = 1.0;
     m_curr_T = computeTemperature(0);
     m_dof = Scalar(3*m_pdata->getN() - 3);
+
+    bool reset = false;
+    IntegratorVariables v = getIntegratorVariables();
+    if (v.type == "")
+        reset = true;
+    else if (v.type != "nvt" && v.type != "")
+        {
+        cout << "***Warning! Integrator #"<<  m_unique_id <<" type nvt does not match type ";
+        cout << v.type << " found in restart file. " << endl;
+        cout << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
+        cout << "Continuing while ignoring restart information..." << endl;
+        reset = true;
+        }
+   else if (v.type == "nvt")
+        {
+        if (v.variable.size() != (unsigned int)2)
+            {
+            cout << "***Warning! Integrator #"<<  m_unique_id <<" type nvt "<<endl;
+            cout << "appears to contain bad or incomplete restart information. " << endl;
+            cout << "Continuing while ignoring restart information..." << endl;
+            reset = true;
+            }
+        }
+   
+   if (reset) 
+        {
+        v.type = "nvt";
+        v.variable.resize(2);
+        Scalar xi = Scalar(1.0);
+        Scalar eta = Scalar(1.0);
+        v.variable[0] = xi;
+        v.variable[1] = eta;
+        }
+
+    setIntegratorVariables(v);
     }
 
 /*! In addition to what Integrator provides, NVTUpdater adds:
@@ -110,8 +143,11 @@ Scalar NVTUpdater::getLogValue(const std::string& quantity, unsigned int timeste
     if (quantity == string("conserved_quantity"))
         {
         Scalar g = Scalar(3*m_pdata->getN());
+        IntegratorVariables v = getIntegratorVariables();
+        Scalar xi = v.variable[0];
+        Scalar eta = v.variable[1];
         return computeKineticEnergy(timestep) + computePotentialEnergy(timestep) +
-               g * m_T->getValue(timestep) * (m_Xi*m_Xi*m_tau*m_tau / Scalar(2.0) + m_eta);
+               g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
         }
     else if (quantity == string("temperature"))
         {
@@ -119,11 +155,13 @@ Scalar NVTUpdater::getLogValue(const std::string& quantity, unsigned int timeste
         }
     else if (quantity == string("nvt_xi"))
         {
-        return m_Xi;
+        Scalar chi = getIntegratorVariables().variable[0];
+        return chi;
         }
     else if (quantity == string("nvt_eta"))
         {
-        return m_eta;
+        Scalar eta = getIntegratorVariables().variable[1];
+        return eta;
         }
     else
         {
@@ -164,13 +202,17 @@ void NVTUpdater::update(unsigned int timestep)
     assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
     assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
     
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
     // now we can get on with the Nose-Hoover
     // first half step: update the velocities and positions
     // sum up K while we are doing the loop
     Scalar Ksum = 0.0;
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
-        Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * m_Xi);
+        Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * xi);
         
         arrays.vx[j] = (arrays.vx[j] + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT) * denominv;
         arrays.x[j] += m_deltaT * arrays.vx[j];
@@ -185,14 +227,14 @@ void NVTUpdater::update(unsigned int timestep)
         }
         
     // need previous xi to update eta
-    Scalar xi_prev = m_Xi;
+    Scalar xi_prev = xi;
     
     // update Xi
     m_curr_T = Ksum / m_dof;
-    m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
     
     // update eta
-    m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
+    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
     
     // We aren't done yet! Need to fix the periodic boundary conditions
     // this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
@@ -270,12 +312,13 @@ void NVTUpdater::update(unsigned int timestep)
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
-        arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - m_Xi * arrays.vx[j]);
-        arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - m_Xi * arrays.vy[j]);
-        arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - m_Xi * arrays.vz[j]);
+        arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - xi * arrays.vx[j]);
+        arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - xi * arrays.vy[j]);
+        arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - xi * arrays.vz[j]);
         }
         
     m_pdata->release();
+    setIntegratorVariables(v);
     
     // and now the acceleration at timestep+1 is precalculated for the first half of the next step
     if (m_prof)
