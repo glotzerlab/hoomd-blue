@@ -258,6 +258,8 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
         }
     }
 
+/*! \return a reference to the integrator variables for the current integrator
+*/
 const IntegratorVariables& Integrator::getIntegratorVariables()
     {
     if (m_pdata->getIntegratorVariables().size() <= m_unique_id) 
@@ -267,6 +269,40 @@ const IntegratorVariables& Integrator::getIntegratorVariables()
         m_pdata->setIntegratorVariables(var);
         }
     return m_pdata->getIntegratorVariables()[m_unique_id];
+    }
+
+/*! \param v is the restart variables for the current integrator
+    \param type is the type of expected integrator type
+    \param nvariables is the expected number of variables
+    
+    If the either the integrator type or number of variables does not match the
+    expected values, this function throws the appropriate warning and returns
+    "false."  Otherwise, the function returns true.
+*/
+bool Integrator::restartInfoIsGood(IntegratorVariables& v, std::string type, unsigned int nvariables)
+    {
+    bool good = true;
+    if (v.type == "")
+        good = false;
+    else if (v.type != type && v.type != "")
+        {
+        cout << "***Warning! Integrator #"<<  m_unique_id <<" type "<< type <<" does not match type ";
+        cout << v.type << " found in restart file. " << endl;
+        cout << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
+        cout << "Continuing while ignoring restart information..." << endl;
+        good = false;
+        }
+   else if (v.type == type)
+        {
+        if (v.variable.size() != nvariables)
+            {
+            cout << "***Warning! Integrator #"<<  m_unique_id <<" type nvt "<<endl;
+            cout << "appears to contain bad or incomplete restart information. " << endl;
+            cout << "Continuing while ignoring restart information..." << endl;
+            good = false;
+            }
+        }
+    return good;
     }
 
 void Integrator::setIntegratorVariables(const IntegratorVariables& variables)

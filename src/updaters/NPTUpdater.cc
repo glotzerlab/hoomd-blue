@@ -79,8 +79,20 @@ NPTUpdater::NPTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
     if (m_tauP <= 0.0)
         cout << "***Warning! tauP set less than 0.0 in NPTUpdater" << endl;
         
-    m_Xi = 0.0;  // Initialize m_Xi and m_Eta
-    m_Eta = 0.0;
+    IntegratorVariables v = getIntegratorVariables();
+
+   if (!restartInfoIsGood(v, "npt", 2)) 
+        {
+        v.type = "npt";
+        v.variable.resize(2);
+        Scalar xi = Scalar(1.0);
+        Scalar eta = Scalar(1.0);
+        // Initialize xi and eta
+        v.variable[0] = xi;
+        v.variable[1] = eta;
+        }
+    setIntegratorVariables(v);
+
     const BoxDim& box = m_pdata->getBox();
     // sanity check
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
@@ -149,14 +161,18 @@ void NPTUpdater::update(unsigned int timestep)
         m_prof->push("Half-step 1");
         }
         
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
         
-    // advance thermostat(m_Xi) half a time step
+    // advance thermostat(xi) half a time step
     
-    m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
+    xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
     
-    // advance barostat (m_Eta) half time step
+    // advance barostat (eta) half time step
     
-    m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
+    eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
     
     
     // propagate velocites for a half time step
@@ -168,8 +184,8 @@ void NPTUpdater::update(unsigned int timestep)
     assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
     assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
     
-    Scalar exp_v_fac = exp(-Scalar(1.0/4.0)*(m_Eta+m_Xi)*m_deltaT);
-    Scalar exp_r_fac = exp(Scalar(1.0/2.0)*m_Eta*m_deltaT);
+    Scalar exp_v_fac = exp(-Scalar(1.0/4.0)*(eta+xi)*m_deltaT);
+    Scalar exp_r_fac = exp(Scalar(1.0/2.0)*eta*m_deltaT);
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
         arrays.vx[j] = arrays.vx[j]*exp_v_fac*exp_v_fac + Scalar(1.0/2.0)*m_deltaT*exp_v_fac*arrays.ax[j]; // update velocity
@@ -184,11 +200,11 @@ void NPTUpdater::update(unsigned int timestep)
         
     // advance volume
     
-    m_V *= exp(Scalar(3.0)*m_Eta*m_deltaT);
+    m_V *= exp(Scalar(3.0)*eta*m_deltaT);
     
     // get the scaling factor for the box (V_new/V_old)^(1/3)
     
-    Scalar box_len_scale = exp(m_Eta*m_deltaT);
+    Scalar box_len_scale = exp(eta*m_deltaT);
     m_Lx *= box_len_scale;
     m_Ly *= box_len_scale;
     m_Lz *= box_len_scale;
@@ -239,10 +255,7 @@ void NPTUpdater::update(unsigned int timestep)
     m_pdata->release();
     
     // rescale simulation box
-    
     m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
-    
-    
     
     // functions that computeAccelerations calls profile themselves, so suspend
     // the profiling for now
@@ -270,7 +283,7 @@ void NPTUpdater::update(unsigned int timestep)
         
     // get the particle data arrays again so we can update the 2nd half of the step
     arrays = m_pdata->acquireReadWrite();
-    exp_v_fac = exp(-Scalar(1.0/4.0)*(m_Eta+m_Xi)*m_deltaT);
+    exp_v_fac = exp(-Scalar(1.0/4.0)*(eta+xi)*m_deltaT);
     
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
@@ -286,19 +299,19 @@ void NPTUpdater::update(unsigned int timestep)
     m_pdata->release();
     
     
-    // Update m_Eta
+    // Update eta
     
-    m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
+    eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
     
-    // Update m_Xi
+    // Update xi
     
-    m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
-    
-    
+    xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
     
     //and we are done!
     
-    
+    //set the integrator variables
+    setIntegratorVariables(v);
+
     if (m_prof)
         {
         m_prof->pop();

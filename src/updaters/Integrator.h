@@ -140,8 +140,14 @@ class Integrator : public Updater
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
         unsigned int m_unique_id;
         
+        //! helper function to get the integrator variables from the particle data
         const IntegratorVariables& getIntegratorVariables();
+
+        //! helper function to store the integrator variables in the particle data
         void setIntegratorVariables(const IntegratorVariables&);
+
+        //! helper function to check if the restart information (if applicable) is useable 
+        bool restartInfoIsGood(IntegratorVariables& v, std::string type, unsigned int nvariables);
 
         //! helper function to compute accelerations
         void computeAccelerations(unsigned int timestep, const std::string& profile_name);

@@ -248,14 +248,17 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     // access the particle data arrays
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-    
+    IntegratorVariables integrator_variables = getIntegratorVariables();
+    Scalar& xi = integrator_variables.variable[0];
+    Scalar& eta = integrator_variables.variable[1];
+
     if (m_prof) m_prof->push(exec_conf, "Half-step 1");
     
-    // advance thermostat (m_Xi) half a time step
-    m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - 1.0f)*m_deltaT;
+    // advance thermostat (xi) half a time step
+    xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - 1.0f)*m_deltaT;
     
-    // advance barostat (m_Eta) half time step
-    m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
+    // advance barostat (eta) half time step
+    eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
     
     
     // perform first half of the time step; propagate velocities for 1/2*deltaT and
@@ -264,7 +267,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     exec_conf.tagAll(__FILE__, __LINE__);
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
         {
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_pre_step, d_pdata[cur_gpu], box, d_npt_data[cur_gpu], m_Xi, m_Eta, m_deltaT));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_pre_step, d_pdata[cur_gpu], box, d_npt_data[cur_gpu], xi, eta, m_deltaT));
         }
     exec_conf.syncAll();
     
@@ -272,10 +275,10 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     
     // advance volume
     
-    m_V *= exp(3.0f*m_Eta*m_deltaT);
+    m_V *= exp(3.0f*eta*m_deltaT);
     
     // rescale box length
-    float box_len_scale = exp(m_Eta*m_deltaT);
+    float box_len_scale = exp(eta*m_deltaT);
     m_Lx *= box_len_scale;
     m_Ly *= box_len_scale;
     m_Lz *= box_len_scale;
@@ -311,7 +314,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     // 2nd half time step; propagate velocities from t+1/2*deltaT to t+deltaT
     exec_conf.tagAll(__FILE__, __LINE__);
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_step, d_pdata[cur_gpu], d_npt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), m_Xi, m_Eta, m_deltaT));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_npt_step, d_pdata[cur_gpu], d_npt_data[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size(), xi, eta, m_deltaT));
     exec_conf.syncAll();
     
     m_pdata->release();
@@ -323,11 +326,13 @@ void NPTUpdaterGPU::update(unsigned int timestep)
         m_prof->pop();
         }
         
-    // Update barostat variable m_Eta to t+deltaT
-    m_Eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
+    // Update barostat variable eta to t+deltaT
+    eta += (1.0f/2.0f)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))*(m_curr_P - m_P->getValue(timestep))*m_deltaT;
     
-    // Update thermostat variable m_Xi to t+deltaT
-    m_Xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - 1.0f)*m_deltaT;
+    // Update thermostat variable xi to t+deltaT
+    xi += (1.0f/2.0f)/(m_tau*m_tau)*(m_curr_T/m_T->getValue(timestep) - 1.0f)*m_deltaT;
+    
+    setIntegratorVariables(integrator_variables);
     }
 
 /*! \param timestep Current time step of the simulation

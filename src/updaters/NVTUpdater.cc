@@ -76,30 +76,9 @@ NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
     m_curr_T = computeTemperature(0);
     m_dof = Scalar(3*m_pdata->getN() - 3);
 
-    bool reset = false;
     IntegratorVariables v = getIntegratorVariables();
-    if (v.type == "")
-        reset = true;
-    else if (v.type != "nvt" && v.type != "")
-        {
-        cout << "***Warning! Integrator #"<<  m_unique_id <<" type nvt does not match type ";
-        cout << v.type << " found in restart file. " << endl;
-        cout << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
-        cout << "Continuing while ignoring restart information..." << endl;
-        reset = true;
-        }
-   else if (v.type == "nvt")
-        {
-        if (v.variable.size() != (unsigned int)2)
-            {
-            cout << "***Warning! Integrator #"<<  m_unique_id <<" type nvt "<<endl;
-            cout << "appears to contain bad or incomplete restart information. " << endl;
-            cout << "Continuing while ignoring restart information..." << endl;
-            reset = true;
-            }
-        }
-   
-   if (reset) 
+
+   if (!restartInfoIsGood(v, "nvt", 2)) 
         {
         v.type = "nvt";
         v.variable.resize(2);
@@ -108,7 +87,6 @@ NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
         v.variable[0] = xi;
         v.variable[1] = eta;
         }
-
     setIntegratorVariables(v);
     }
 

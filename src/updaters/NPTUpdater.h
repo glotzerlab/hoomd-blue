@@ -118,8 +118,8 @@ class NPTUpdater : public Integrator
         Scalar m_tauP;                  //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
-        Scalar m_Xi;                    //!< Friction coeff
-        Scalar m_Eta;                   //!< barostat friction
+        //Scalar m_Xi;                    //!< Friction coeff
+        //Scalar m_Eta;                   //!< barostat friction
         bool m_accel_set;               //!< Flag to tell if we have set the accelleration yet
         Scalar m_curr_P;                //!< Current (instanteneous) pressure
         Scalar m_curr_T;                //!< Current (instanteneous)temperature
