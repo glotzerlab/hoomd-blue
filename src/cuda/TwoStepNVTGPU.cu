@@ -258,7 +258,6 @@ texture<float4, 1, cudaReadModeElementType> net_force_tex;
 /*! \param pdata Particle Data to step forward in time
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
-    \param d_net_force Net force on each particle
     \param Xi current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
@@ -266,7 +265,6 @@ extern "C" __global__
 void gpu_nvt_step_two_kernel(gpu_pdata_arrays pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             float4 *d_net_force,
                              float Xi,
                              float deltaT)
     {
@@ -277,8 +275,6 @@ void gpu_nvt_step_two_kernel(gpu_pdata_arrays pdata,
         {
         unsigned int idx = d_group_members[group_idx];
    
-        // update positions to the next timestep and update velocities to the next half step
-        float4 pos = tex1Dfetch(pdata_pos_tex, idx);
         // read in the net force and calculate the acceleration
         float4 accel = tex1Dfetch(net_force_tex, idx);
         float mass = tex1Dfetch(pdata_mass_tex, idx);
@@ -335,7 +331,7 @@ cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
         return error;
         
     // run the kernel
-    gpu_nvt_step_two_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, d_net_force, Xi, deltaT);
+    gpu_nvt_step_two_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, Xi, deltaT);
     
     if (!g_gpu_error_checking)
         {
