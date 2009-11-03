@@ -87,8 +87,8 @@ HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
 */
 unsigned int HOOMDBinaryInitializer::getNumParticles() const
     {
-    assert(m_pos_array.size() > 0);
-    return (unsigned int)m_pos_array.size();
+    assert(m_x_array.size() > 0);
+    return (unsigned int)m_x_array.size();
     }
 
 /*! \returns Numer of particle types parsed from the XML file
@@ -126,87 +126,34 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
 */
 void HOOMDBinaryInitializer::initArrays(const ParticleDataArrays &pdata) const
     {
-    assert(m_pos_array.size() > 0 && m_pos_array.size() == pdata.nparticles);
+    assert(m_x_array.size() > 0 && m_x_array.size() == pdata.nparticles);
     
     // loop through all the particles and set them up
-    for (unsigned int i = 0; i < m_pos_array.size(); i++)
+    for (unsigned int i = 0; i < m_x_array.size(); i++)
         {
-        pdata.x[i] = m_pos_array[i].x;
-        pdata.y[i] = m_pos_array[i].y;
-        pdata.z[i] = m_pos_array[i].z;
-        
-        pdata.tag[i] = i;
-        pdata.rtag[i] = i;
-        }
-        
-    if (m_image_array.size() != 0)
-        {
-        assert(m_image_array.size() == m_pos_array.size());
-        
-        for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            {
-            pdata.ix[i] = m_image_array[i].x;
-            pdata.iy[i] = m_image_array[i].y;
-            pdata.iz[i] = m_image_array[i].z;
-            }
-        }
-        
-    if (m_vel_array.size() != 0)
-        {
-        assert(m_vel_array.size() == m_pos_array.size());
-        
-        for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            {
-            pdata.vx[i] = m_vel_array[i].x;
-            pdata.vy[i] = m_vel_array[i].y;
-            pdata.vz[i] = m_vel_array[i].z;
-            }
-        }
+        pdata.tag[i] = m_tag_array[i];
+        pdata.rtag[i] = m_rtag_array[i];
 
-    /*
-    if (m_acc_array.size() != 0)
-        {
-        assert(m_acc_array.size() == m_pos_array.size());
+        pdata.x[i] = m_x_array[i];
+        pdata.y[i] = m_y_array[i];
+        pdata.z[i] = m_z_array[i];
+
+        pdata.ix[i] = m_ix_array[i];
+        pdata.iy[i] = m_iy_array[i];
+        pdata.iz[i] = m_iz_array[i];
         
-        for (unsigned int i = 0; i < m_acc_array.size(); i++)
-            {
-            pdata.ax[i] = m_acc_array[i].x;
-            pdata.ay[i] = m_acc_array[i].y;
-            pdata.az[i] = m_acc_array[i].z;
-            }
-        }
-    */
-    
-    if (m_mass_array.size() != 0)
-        {
-        assert(m_mass_array.size() == m_pos_array.size());
-        
-        for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.mass[i] = m_mass_array[i];
-        }
-        
-    if (m_diameter_array.size() != 0)
-        {
-        assert(m_diameter_array.size() == m_pos_array.size());
-        
-        for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.diameter[i] = m_diameter_array[i];
-        }
-        
-    if (m_charge_array.size() != 0)
-        {
-        assert(m_charge_array.size() == m_pos_array.size());
-        
-        for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.charge[i] = m_charge_array[i];
-        }
-        
-    if (m_type_array.size() != 0)
-        {
-        assert(m_type_array.size() == m_pos_array.size());
-        
-        for (unsigned int i = 0; i < m_pos_array.size(); i++)
-            pdata.type[i] = m_type_array[i];
+        pdata.vx[i] = m_vx_array[i];
+        pdata.vy[i] = m_vy_array[i];
+        pdata.vz[i] = m_vz_array[i];
+
+        pdata.ax[i] = m_ax_array[i];
+        pdata.ay[i] = m_ay_array[i];
+        pdata.az[i] = m_az_array[i];
+
+        pdata.mass[i] = m_mass_array[i];
+        pdata.type[i] = m_type_array[i];
+        pdata.diameter[i] = m_diameter_array[i];
+        pdata.charge[i] = m_charge_array[i];
         }        
     }
 
@@ -266,94 +213,42 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&Lz, sizeof(Scalar));	
     m_box = BoxDim(Lx,Ly,Lz);
     m_box_read = true;
-        
-    //parse positions
-    {
+    
+    //allocate memory for particle arrays
     unsigned int np = 0;
     f.read((char*)&np, sizeof(unsigned int));
-    for (unsigned int j = 0; j < np; j++)
-        {
-        Scalar x, y, z;
-        f.read((char*)&x, sizeof(Scalar));	
-        f.read((char*)&y, sizeof(Scalar));	
-        f.read((char*)&z, sizeof(Scalar));	
-        m_pos_array.push_back(vec(x,y,z));
-        }
-    }
-
-    //parse images
-    {
-    unsigned int np = 0;
-    f.read((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < np; j++)
-        {
-        int x, y, z;
-        f.read((char*)&x, sizeof(int));	
-        f.read((char*)&y, sizeof(int));	
-        f.read((char*)&z, sizeof(int));	
-        m_image_array.push_back(vec_int(x,y,z));
-        }
-    }
-
-    //parse velocities
-    {
-    unsigned int np = 0;
-    f.read((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < np; j++)
-        {
-        Scalar vx, vy, vz;
-        f.read((char*)&vx, sizeof(Scalar));	
-        f.read((char*)&vy, sizeof(Scalar));	
-        f.read((char*)&vz, sizeof(Scalar));	
-        m_vel_array.push_back(vec(vx,vy,vz));
-        }
-    }
-
-/*
-    //parse accelerations
-    {
-    unsigned int np = 0;
-    f.read((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < np; j++)
-        {
-        Scalar ax, ay, az;
-        f.read((char*)&ax, sizeof(Scalar));	
-        f.read((char*)&ay, sizeof(Scalar));	
-        f.read((char*)&az, sizeof(Scalar));	
-        m_acc_array.push_back(vec(ax,ay,az));
-        }
-    }
-*/
-
-    //parse masses
-    {
-    unsigned int np = 0;
-    f.read((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < np; j++)
-        {
-        Scalar mass;
-        f.read((char*)&mass, sizeof(Scalar));	
-        m_mass_array.push_back(mass);
-        }
-    }
-
-    //parse diameters
-    {
-    unsigned int np = 0;
-    f.read((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < np; j++)
-        {
-        Scalar diameter;
-        f.read((char*)&diameter, sizeof(Scalar));	
-        m_diameter_array.push_back(diameter);
-        }
-    }
+    m_tag_array.resize(np); m_rtag_array.resize(np);
+    m_x_array.resize(np); m_y_array.resize(np); m_z_array.resize(np);
+    m_ix_array.resize(np); m_iy_array.resize(np); m_iz_array.resize(np);
+    m_vx_array.resize(np); m_vy_array.resize(np); m_vz_array.resize(np);
+    m_ax_array.resize(np); m_ay_array.resize(np); m_az_array.resize(np);
+    m_mass_array.resize(np); 
+    m_diameter_array.resize(np); 
+    m_type_array.resize(np);
+    m_charge_array.resize(np);
+    
+    //parse particle arrays
+    f.read((char*)&(m_tag_array[0]), np*sizeof(unsigned int));	
+    f.read((char*)&(m_rtag_array[0]), np*sizeof(unsigned int));	
+    f.read((char*)&(m_x_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_y_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_z_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_ix_array[0]), np*sizeof(int));	
+    f.read((char*)&(m_iy_array[0]), np*sizeof(int));	
+    f.read((char*)&(m_iz_array[0]), np*sizeof(int));	
+    f.read((char*)&(m_vx_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_vy_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_vz_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_ax_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_ay_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_az_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_mass_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_diameter_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_type_array[0]), np*sizeof(unsigned int));	
+    f.read((char*)&(m_charge_array[0]), np*sizeof(Scalar));	
 
     //parse types
-    {
-    unsigned int np = 0;
-    f.read((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < np; j++)
+    for (unsigned int i = 0; i < np; i++)
         {
         unsigned int len;
         f.read((char*)&len, sizeof(unsigned int));
@@ -361,10 +256,9 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read(type_cstr, len*sizeof(char));
         type_cstr[len] = '\0';
         std::string type = type_cstr;
-        m_type_array.push_back(getTypeId(type));
+        m_type_array[i] = getTypeId(type);
         }
-    }
-    
+
     //parse integrator states
     {
     std::vector<IntegratorVariables> v;
@@ -512,46 +406,60 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
              << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-    if (m_pos_array.size() == 0)
+    if (m_x_array.size() == 0)
         {
-        cerr << endl << "***Error! No particles defined in <position> node" << endl << endl;
+        cerr << endl << "***Error! No particles found in binary file" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-        
+    if (m_x_array.size() != m_y_array.size() || m_x_array.size() != m_z_array.size())
+        {
+        cerr << endl << "***Error! Particle position array sizes don't match" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_binary file");
+        }
+    if (m_vx_array.size() != m_vy_array.size() || m_vx_array.size() != m_vz_array.size())
+        {
+        cerr << endl << "***Error! Particle velocity array sizes don't match" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_binary file");
+        }
+    if (m_ax_array.size() != m_ay_array.size() || m_ax_array.size() != m_az_array.size())
+        {
+        cerr << endl << "***Error! Particle acceleration array sizes don't match" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_binary file");
+        }        
     // check for potential user errors
-    if (m_vel_array.size() != 0 && m_vel_array.size() != m_pos_array.size())
+    if (m_vx_array.size() != m_x_array.size())
         {
-        cerr << endl << "***Error! " << m_vel_array.size() << " velocities != " << m_pos_array.size()
+        cerr << endl << "***Error! " << m_vx_array.size() << " velocities != " << m_x_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-    if (m_mass_array.size() != 0 && m_mass_array.size() != m_pos_array.size())
+    if (m_mass_array.size() != m_x_array.size())
         {
-        cerr << endl << "***Error! " << m_mass_array.size() << " masses != " << m_pos_array.size()
+        cerr << endl << "***Error! " << m_mass_array.size() << " masses != " << m_x_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-    if (m_diameter_array.size() != 0 && m_diameter_array.size() != m_pos_array.size())
+    if (m_diameter_array.size() != m_x_array.size())
         {
-        cerr << endl << "***Error! " << m_diameter_array.size() << " diameters != " << m_pos_array.size()
+        cerr << endl << "***Error! " << m_diameter_array.size() << " diameters != " << m_x_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-    if (m_image_array.size() != 0 && m_image_array.size() != m_pos_array.size())
+    if (m_ix_array.size() != m_x_array.size())
         {
-        cerr << endl << "***Error! " << m_image_array.size() << " images != " << m_pos_array.size()
+        cerr << endl << "***Error! " << m_ix_array.size() << " images != " << m_x_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-    if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
+    if (m_type_array.size() != m_x_array.size())
         {
-        cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_pos_array.size()
+        cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_x_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
-    if (m_charge_array.size() != 0 && m_charge_array.size() != m_pos_array.size())
+    if (m_charge_array.size() != m_x_array.size())
         {
-        cerr << endl << "***Error! " << m_charge_array.size() << " charge values != " << m_pos_array.size()
+        cerr << endl << "***Error! " << m_charge_array.size() << " charge values != " << m_x_array.size()
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
@@ -559,10 +467,10 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     // notify the user of what we have accomplished
     cout << "--- hoomd_binary file read summary" << endl;
     cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
-    if (m_image_array.size() > 0)
-        cout << m_image_array.size() << " images" << endl;
-    if (m_vel_array.size() > 0)
-        cout << m_vel_array.size() << " velocities" << endl;
+    if (m_ix_array.size() > 0)
+        cout << m_ix_array.size() << " images" << endl;
+    if (m_vx_array.size() > 0)
+        cout << m_vx_array.size() << " velocities" << endl;
     if (m_mass_array.size() > 0)
         cout << m_mass_array.size() << " masses" << endl;
     if (m_diameter_array.size() > 0)

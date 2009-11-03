@@ -181,6 +181,14 @@ class System
             return m_cur_tstep;
             }
             
+        // -------------- Misc methods
+
+        //! Get the system definition
+        boost::shared_ptr<SystemDefinition> getSystemDefinition()
+            {
+            return m_sysdef;
+            }
+        
     private:
         //! Holds an item in the list of analyzers
         struct analyzer_item

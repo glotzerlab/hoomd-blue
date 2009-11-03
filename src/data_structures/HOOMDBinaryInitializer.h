@@ -157,49 +157,23 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         BoxDim m_box;   //!< Simulation box read from the file
         bool m_box_read;    //!< Stores the box we read in
         
-        //! simple vec for storing particle data
-        struct vec
-            {
-            //! Default construtor
-            vec() : x(0.0), y(0.0), z(0.0)
-                {
-                }
-            //! Constructs a vec with given components
-            /*! \param xp x-component
-                \param yp y-component
-                \param zp z-component
-            */
-            vec(Scalar xp, Scalar yp, Scalar zp) : x(xp), y(yp), z(zp)
-                {
-                }
-            Scalar x;   //!< x-component
-            Scalar y;   //!< y-component
-            Scalar z;   //!< z-component
-            };
-            
-        //! simple integer vec for storing particle data
-        struct vec_int
-            {
-            //! Default construtor
-            vec_int() : x(0), y(0), z(0)
-                {
-                }
-            //! Constructs a vec with given components
-            /*! \param xp x-component
-                \param yp y-component
-                \param zp z-component
-            */
-            vec_int(int xp, int yp, int zp) : x(xp), y(yp), z(zp)
-                {
-                }
-            int x;  //!< x-component
-            int y;  //!< y-component
-            int z;  //!< z-component
-            };
-            
-        std::vector< vec > m_pos_array;             //!< positions of all particles loaded
-        std::vector< vec_int > m_image_array;       //!< images of all particles loaded
-        std::vector< vec > m_vel_array;             //!< velocities of all particles loaded
+        std::vector< unsigned int > m_tag_array;     //!< tags of all particles loaded
+        std::vector< unsigned int > m_rtag_array;    //!< inverse tags of all particles loaded
+
+        std::vector< Scalar > m_x_array;            //!< x position of all particles loaded
+        std::vector< Scalar > m_y_array;            //!< y position of all particles loaded
+        std::vector< Scalar > m_z_array;            //!< z position of all particles loaded
+        std::vector< Scalar > m_vx_array;           //!< x velocity of all particles loaded
+        std::vector< Scalar > m_vy_array;           //!< y velocity of all particles loaded
+        std::vector< Scalar > m_vz_array;           //!< z velocity of all particles loaded
+        std::vector< Scalar > m_ax_array;           //!< x acceleration of all particles loaded
+        std::vector< Scalar > m_ay_array;           //!< y acceleration of all particles loaded
+        std::vector< Scalar > m_az_array;           //!< z acceleration of all particles loaded
+
+        std::vector< int > m_ix_array;              //!< x image of all particles loaded
+        std::vector< int > m_iy_array;              //!< y image of all particles loaded
+        std::vector< int > m_iz_array;              //!< z image of all particles loaded
+        
         std::vector< Scalar > m_mass_array;         //!< masses of all particles loaded
         std::vector< Scalar > m_diameter_array;     //!< diameters of all particles loaded
         std::vector< unsigned int > m_type_array;   //!< type values for all particles loaded

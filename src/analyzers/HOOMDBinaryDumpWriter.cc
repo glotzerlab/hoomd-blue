@@ -175,7 +175,6 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         throw runtime_error("Error writing hoomd binary dump file");
         }
     
-		
     // write the version of the binary format used
     int version = 1;
     f.write((char*)&version, sizeof(int));
@@ -194,171 +193,42 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f.write((char*)&Ly, sizeof(Scalar));	
     f.write((char*)&Lz, sizeof(Scalar));	
     
-    //output the position of all particles to the file
-    {
+    //write out particle data
     unsigned int np = m_pdata->getN();
     f.write((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
-        {
-        // use the rtag data to output the particles in the order they were read in
-        int i;
-        i= arrays.rtag[j];
-        
-        Scalar x = (arrays.x[i]);
-        Scalar y = (arrays.y[i]);
-        Scalar z = (arrays.z[i]);
-        
-        f.write((char*)&x, sizeof(Scalar));	
-        f.write((char*)&y, sizeof(Scalar));	
-        f.write((char*)&z, sizeof(Scalar));	
-        
-        if (!f.good())
-            {
-            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-        }
-    }
-        
-    // Output the image of each particle to the file
-    {
-    unsigned int np = m_pdata->getN();
-    f.write((char*)&np, sizeof(unsigned int));	
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
-        {
-        // use the rtag data to output the particles in the order they were read in
-        int i;
-        i= arrays.rtag[j];
-        
-        int x = (arrays.ix[i]);
-        int y = (arrays.iy[i]);
-        int z = (arrays.iz[i]);
-        
-        f.write((char*)&x, sizeof(int));	
-        f.write((char*)&y, sizeof(int));	
-        f.write((char*)&z, sizeof(int));	
-        
-        if (!f.good())
-            {
-            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-        }
-    }
-    
-    // Output the velocity of all particles to the file
-    {
-    unsigned int np = m_pdata->getN();
-    f.write((char*)&np, sizeof(unsigned int));	
-    
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
-        {
-        // use the rtag data to output the particles in the order they were read in
-        int i;
-        i= arrays.rtag[j];
-        
-        Scalar vx = arrays.vx[i];
-        Scalar vy = arrays.vy[i];
-        Scalar vz = arrays.vz[i];
+    f.write((char*)arrays.tag, np*sizeof(unsigned int));	
+    f.write((char*)arrays.rtag, np*sizeof(unsigned int));	
+    f.write((char*)arrays.x, np*sizeof(Scalar));	
+    f.write((char*)arrays.y, np*sizeof(Scalar));	
+    f.write((char*)arrays.z, np*sizeof(Scalar));	
+    f.write((char*)arrays.ix, np*sizeof(int));	
+    f.write((char*)arrays.iy, np*sizeof(int));	
+    f.write((char*)arrays.iz, np*sizeof(int));	
+    f.write((char*)arrays.vx, np*sizeof(Scalar));	
+    f.write((char*)arrays.vy, np*sizeof(Scalar));	
+    f.write((char*)arrays.vz, np*sizeof(Scalar));	
+    f.write((char*)arrays.ax, np*sizeof(Scalar));	
+    f.write((char*)arrays.ay, np*sizeof(Scalar));	
+    f.write((char*)arrays.az, np*sizeof(Scalar));	
+    f.write((char*)arrays.mass, np*sizeof(Scalar));	
+    f.write((char*)arrays.diameter, np*sizeof(Scalar));	
+    f.write((char*)arrays.type, np*sizeof(unsigned int));	
+    f.write((char*)arrays.charge, np*sizeof(Scalar));	
 
-        f.write((char*)&vx, sizeof(Scalar));	
-        f.write((char*)&vy, sizeof(Scalar));	
-        f.write((char*)&vz, sizeof(Scalar));	
-
-        if (!f.good())
-            {
-            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-        }            
-    }
-
-    /*
-    // Output the acceleration of all particles to the file
-    {
-    unsigned int np = m_pdata->getN();
-    f.write((char*)&np, sizeof(unsigned int));	
-    
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
+    //write out types
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
-        // use the rtag data to output the particles in the order they were read in
-        int i;
-        i= arrays.rtag[j];
-        
-        Scalar ax = arrays.ax[i];
-        Scalar ay = arrays.ay[i];
-        Scalar az = arrays.az[i];
-
-        f.write((char*)&ax, sizeof(Scalar));	
-        f.write((char*)&ay, sizeof(Scalar));	
-        f.write((char*)&az, sizeof(Scalar));	
-
-        if (!f.good())
-            {
-            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-        }            
-    }
-    */
-    
-    // Output the mass of all particles to the file
-    {
-    unsigned int np = m_pdata->getN();
-    f.write((char*)&np, sizeof(unsigned int));	
-    
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
-        {
-        // use the rtag data to output the particles in the order they were read in
-        int i;
-        i= arrays.rtag[j];
-        
-        Scalar mass = arrays.mass[i];
-        f.write((char*)&mass, sizeof(Scalar));	
-        if (!f.good())
-            {
-            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-        }            
-    }
-        
-    // Output the diameter of all particles to the file
-    {
-    unsigned int np = m_pdata->getN();
-    f.write((char*)&np, sizeof(unsigned int));	
-    
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
-        {
-        // use the rtag data to output the particles in the order they were read in
-        int i;
-        i= arrays.rtag[j];
-        
-        Scalar diameter = arrays.diameter[i];
-        f.write((char*)&diameter, sizeof(Scalar));	
-        if (!f.good())
-            {
-            cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
-            throw runtime_error("Error writing HOOMD dump file");
-            }
-        }            
-    }
-        
-    // Output the types of all particles to an xml file
-    {
-    unsigned int np = m_pdata->getN();
-    f.write((char*)&np, sizeof(unsigned int));	
-
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
-        {
-        int i;
-        i= arrays.rtag[j];
         std::string name = m_pdata->getNameByType(arrays.type[i]);
         unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));	
-        f.write(name.c_str(), len*sizeof(char));	
+        f.write((char*)&len, sizeof(unsigned int)); 
+        f.write(name.c_str(), len*sizeof(char));   
         }
-    }
+
+    if (!f.good())
+        {
+        cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
+        throw runtime_error("Error writing HOOMD dump file");
+        }
     
     //Output the integrator states to the binary file
     {
@@ -393,7 +263,6 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
         {
         Bond bond = bond_data->getBond(i);
-
         std::string name = bond_data->getNameByType(bond.type);
         unsigned int len = name.size();
         f.write((char*)&len, sizeof(unsigned int));	
