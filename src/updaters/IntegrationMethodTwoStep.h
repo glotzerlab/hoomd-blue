@@ -79,9 +79,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     and acceleration within the 2nd step of the integrator. In an interaction with groups, this is not going to work
     out. If one integration method worked one way and another worked the other in the same IntegratorTwoStep, then
     the net force / acceleration would probably not be calculated properly. To avoid this problem, a net force and
-    virial will summed as each force compute is called and will thus always be correct and up to date. Each individual
-    integration method will then compute and fill out the particle's acceleration.
-    
+    virial will summed within Integrator::computeNetForce() / Integrator::computeNetForceGPU() which is called at the
+    proper time in IntegratorTwoStep() (and presumably other integration routines).
+        
     One small note: each IntegrationTwoStep will have a deltaT. The value of this will be set by the integrator when
     Integrator::setDeltaT is called to ensure that all integration methods have the same delta t set.
     
@@ -125,12 +125,8 @@ class IntegrationMethodTwoStep : boost::noncopyable
         
         //! Abstract method that performs the second step of the integration
         /*! \param timestep Current time step
-            \param net_force The net force on each particle in the system
-            \param net_virial The net virial on each particle in the system
         */
-        virtual void integrateStepTwo(unsigned int timestep,
-                                      const GPUArray< Scalar4 >& net_force,
-                                      const GPUArray< Scalar >& net_virial)
+        virtual void integrateStepTwo(unsigned int timestep)
             {
             }
         

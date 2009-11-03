@@ -87,9 +87,7 @@ class TwoStepBDNVT : public TwoStepNVE
         void setGamma(unsigned int typ, Scalar gamma);
         
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep, 
-                                      const GPUArray< Scalar4 >& net_force,
-                                      const GPUArray< Scalar >& net_virial);
+        virtual void integrateStepTwo(unsigned int timestep);
     
     protected:
         boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath

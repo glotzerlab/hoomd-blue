@@ -851,6 +851,10 @@ void ParticleData::allocate(unsigned int N)
         }
         
 #endif
+    GPUArray< Scalar4 > net_force(getN(), getExecConf());
+    m_net_force.swap(net_force);
+    GPUArray< Scalar > net_virial(getN(), getExecConf());
+    m_net_virial.swap(net_virial);
     }
 
 /*! \pre Memory has been allocated

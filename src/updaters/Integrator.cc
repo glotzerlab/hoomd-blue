@@ -72,12 +72,6 @@ Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT
     {
     if (m_deltaT <= 0.0)
         cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
-    
-    // intialize the net force and virial arrays
-    GPUArray<Scalar4> net_force(m_pdata->getN(), m_pdata->getExecConf());
-    m_net_force.swap(net_force);
-    GPUArray<Scalar> net_virial(m_pdata->getN(), m_pdata->getExecConf());
-    m_net_virial.swap(net_virial);
     }
 
 Integrator::~Integrator()
@@ -215,7 +209,7 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
     
     // now, get our own access to the arrays and calculate the accelerations
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    ArrayHandle<Scalar4> h_net_force(m_net_force, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
     
     // now, add up the accelerations
     for (unsigned int j = 0; j < arrays.nparticles; j++)
@@ -361,17 +355,19 @@ void Integrator::computeNetForce(unsigned int timestep, const std::string& profi
         }
     
     // access the net force and virial arrays
-    ArrayHandle<Scalar4> h_net_force(m_net_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_net_virial(m_net_virial, access_location::host, access_mode::overwrite);
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
     
     // start by zeroing the net force and virial arrays
-    memset((void *)h_net_force.data, 0, sizeof(Scalar4)*m_net_force.getNumElements());
-    memset((void *)h_net_virial.data, 0, sizeof(Scalar)*m_net_virial.getNumElements());
+    memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+    memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
     
     // now, add up the net forces
     unsigned int nparticles = m_pdata->getN();
-    assert(nparticles == m_net_force.getNumElements());
-    assert(nparticles == m_net_virial.getNumElements());
+    assert(nparticles == net_force.getNumElements());
+    assert(nparticles == net_virial.getNumElements());
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         {
         ForceDataArrays force_arrays = (*force_compute)->acquire();
@@ -419,16 +415,18 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
         }
     
     // access the net force and virial arrays
-    ArrayHandle<Scalar4> d_net_force(m_net_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_net_virial(m_net_virial, access_location::device, access_mode::overwrite);
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
     
     // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
     // will do that
     
     // now, add up the accelerations
     unsigned int nparticles = m_pdata->getN();
-    assert(nparticles == m_net_force.getNumElements());
-    assert(nparticles == m_net_virial.getNumElements());
+    assert(nparticles == net_force.getNumElements());
+    assert(nparticles == net_virial.getNumElements());
     
     // sum all the forces into the net force
     // perform the sum in groups of 6 to avoid kernel launch and memory access overheads

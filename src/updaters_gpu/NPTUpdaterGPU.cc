@@ -237,7 +237,7 @@ void NPTUpdaterGPU::update(unsigned int timestep)
     // get the particle data arrays again so we can update the 2nd half of the step
     d_pdata = m_pdata->acquireReadWriteGPU();
     // also access the net force data for reading
-    ArrayHandle<Scalar4> d_net_force(m_net_force, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     
     // 2nd half time step; propagate velocities from t+1/2*deltaT to t+deltaT
     exec_conf.tagAll(__FILE__, __LINE__);
@@ -312,7 +312,7 @@ Scalar NPTUpdaterGPU::computePressure(unsigned int timestep)
     // acquire the particle data on the GPU
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     // also access the net virial data for reading
-    ArrayHandle<Scalar> d_net_virial(m_net_virial, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_net_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
     
     exec_conf.tagAll(__FILE__, __LINE__);
     

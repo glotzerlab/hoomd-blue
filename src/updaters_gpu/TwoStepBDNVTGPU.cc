@@ -121,16 +121,11 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
     }
         
 /*! \param timestep Current time step
-    \param net_force The net force on each particle in the system
-    \param net_virial The net virial on each particle in the system
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep, 
-                                       const GPUArray< Scalar4 >& net_force,
-                                       const GPUArray< Scalar >& net_virial)
+void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     {
-    assert(!net_force.isNull());
-    assert(!net_virial.isNull());
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step
     if (m_prof)

@@ -75,9 +75,7 @@ class TwoStepNVTGPU : public TwoStepNVT
         virtual void integrateStepOne(unsigned int timestep);
         
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep, 
-                                      const GPUArray< Scalar4 >& net_force,
-                                      const GPUArray< Scalar >& net_virial);
+        virtual void integrateStepTwo(unsigned int timestep);
     protected:
         unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
         unsigned int m_num_blocks;        //!< Number of blocks of \a block_size to launch when updating particles

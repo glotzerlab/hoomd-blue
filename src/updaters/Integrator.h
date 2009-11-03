@@ -138,8 +138,6 @@ class Integrator : public Updater
     protected:
         Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
-        GPUArray< Scalar4 > m_net_force;                            //!< The net force computed by this integrator
-        GPUArray< Scalar > m_net_virial;                            //!< The total per-particle virial computed
         
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep, const std::string& profile_name);

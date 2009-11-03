@@ -516,6 +516,12 @@ class ParticleData : boost::noncopyable
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
         
+        //! Get the net force array
+        const GPUArray< Scalar4 >& getNetForce() const { return m_net_force; }
+        
+        //! Get the net virial array
+        const GPUArray< Scalar >& getNetVirial() const { return m_net_virial; }
+        
     private:
         BoxDim m_box;                               //!< The simulation box
         const ExecutionConfiguration m_exec_conf;   //!< The execution configuration
@@ -532,6 +538,9 @@ class ParticleData : boost::noncopyable
         ParticleDataArrays m_arrays;                //!< Pointers into m_data for particle access
         ParticleDataArraysConst m_arrays_const;     //!< Pointers into m_data for const particle access
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
+        
+        GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
+        GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle
         
 #ifdef ENABLE_CUDA
         

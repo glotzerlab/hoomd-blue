@@ -119,7 +119,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     
     // perform the second step of the integration on all groups
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
-        (*method)->integrateStepTwo(timestep, m_net_force, m_net_virial);
+        (*method)->integrateStepTwo(timestep);
     
     if (m_prof)
         m_prof->pop();

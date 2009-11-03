@@ -80,9 +80,7 @@ class TwoStepBDNVTGPU : public TwoStepBDNVT
         virtual void integrateStepOne(unsigned int timestep);
         
         //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep, 
-                                  const GPUArray< Scalar4 >& net_force,
-                                  const GPUArray< Scalar >& net_virial);
+        virtual void integrateStepTwo(unsigned int timestep);
     };
 
 //! Exports the TwoStepBDNVTGPU class to python

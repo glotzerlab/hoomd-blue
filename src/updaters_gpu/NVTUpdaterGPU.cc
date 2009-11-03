@@ -206,7 +206,7 @@ void NVTUpdaterGPU::update(unsigned int timestep)
     // get the particle data arrays again so we can update the 2nd half of the step
     d_pdata = m_pdata->acquireReadWriteGPU();
     // also access the net force data for reading
-    ArrayHandle<Scalar4> d_net_force(m_net_force, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     
     exec_conf.tagAll(__FILE__, __LINE__);
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)

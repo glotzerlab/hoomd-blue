@@ -142,7 +142,7 @@ void BD_NVTUpdaterGPU::update(unsigned int timestep)
     // get the particle data arrays again so we can update the 2nd half of the step
     d_pdata = m_pdata->acquireReadWriteGPU();
     // also access the net force data for reading
-    ArrayHandle<Scalar4> d_net_force(m_net_force, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     
     // call the post-step kernel on all GPUs in parallel
     exec_conf.tagAll(__FILE__, __LINE__);
