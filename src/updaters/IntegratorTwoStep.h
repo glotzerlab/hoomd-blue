@@ -94,7 +94,8 @@ class IntegratorTwoStep : public Integrator
     protected:
         std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
         
-        bool m_first_step;  //!< True before the first call to update()
+        bool m_first_step;      //!< True before the first call to update()
+        bool m_gave_warning;    //!< True if a warning has been given about no methods added
     };
 
 //! Exports the IntegratorTwoStep class to python

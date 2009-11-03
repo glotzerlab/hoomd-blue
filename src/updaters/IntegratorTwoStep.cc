@@ -61,7 +61,7 @@ using namespace boost::python;
 using namespace boost;
 
 IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_first_step(true)
+    : Integrator(sysdef, deltaT), m_first_step(true), m_gave_warning(false)
     {
     }
 
@@ -88,6 +88,13 @@ void IntegratorTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
 */
 void IntegratorTwoStep::update(unsigned int timestep)
     {
+    // issue a warning if no integration methods are set
+    if (!m_gave_warning && m_methods.size() == 0)
+        {
+        cout << "***Warning! No integration methods are set, continuing anyways." << endl;
+        m_gave_warning = true;
+        }
+    
     // if we haven't been called before, then the accelerations have not been set and we need to calculate them
     if (m_first_step)
         {
@@ -173,6 +180,7 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
 void IntegratorTwoStep::removeAllIntegrationMethods()
     {
     m_methods.clear();
+    m_gave_warning = false;
     }
 
 void export_IntegratorTwoStep()
