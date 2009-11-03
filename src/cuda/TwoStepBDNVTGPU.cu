@@ -136,9 +136,6 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         // ******** first, calculate the additional BD force
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
         float4 vel = tex1Dfetch(pdata_vel_tex, idx);
-        // read in the type of our particle. A texture read of only the fourth part of the position float4 (where type is stored) is used.
-        // (MEM TRANSFER: 4 bytes)
-        unsigned int typ = tex1Dfetch(pdata_type_tex, idx*4 + 3);
         // read in the tag of our particle.
         // (MEM TRANSFER: 4 bytes)
         unsigned int ptag = tex1Dfetch(pdata_tag_tex, idx);
@@ -153,6 +150,9 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
             }
         else
             {
+            // read in the type of our particle. A texture read of only the fourth part of the position float4
+            // (where type is stored) is used.
+            unsigned int typ = tex1Dfetch(pdata_type_tex, idx*4 + 3);
             gamma = s_gammas[typ];
             }
         
@@ -256,7 +256,8 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
         return error;
     
     // run the kernel
-    gpu_bdnvt_step_two_kernel<<< grid, threads >>>(pdata,
+    gpu_bdnvt_step_two_kernel<<< grid, threads, sizeof(float)*bdnvt_args.n_types >>>
+                                                  (pdata,
                                                    d_group_members,
                                                    group_size,
                                                    d_net_force,
