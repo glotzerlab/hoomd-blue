@@ -49,10 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TWO_STEP_NVT_GPU_H__
 
 /*! \file TwoStepNVTGPU.h
-    \brief Declares the TwoStepNVEGPU class
+    \brief Declares the TwoStepNVTGPU class
 */
 
-//! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
+//! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
     
     In order to compute efficiently and limit the number of kernel launches integrateStepOne() performs a first
