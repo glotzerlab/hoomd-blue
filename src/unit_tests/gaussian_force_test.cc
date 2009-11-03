@@ -448,20 +448,6 @@ BOOST_AUTO_TEST_CASE( GaussForceGPU_compare )
     gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
-//! boost test case for comparing multi-GPU output to base class output
-BOOST_AUTO_TEST_CASE( GaussForceMultiGPU_compare )
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
-    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
-    gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, exec_conf);
-    }
 #endif
 
 #ifdef WIN32

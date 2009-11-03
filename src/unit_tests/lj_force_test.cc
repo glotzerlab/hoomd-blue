@@ -539,20 +539,6 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_compare )
     lj_force_comparison_test(lj_creator_base, lj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
-//! boost test case for comparing multi-GPU output to base class output
-BOOST_AUTO_TEST_CASE( LJForceMultiGPU_compare )
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2, _3);
-    ljforce_creator lj_creator_base = bind(base_class_lj_creator, _1, _2, _3);
-    lj_force_comparison_test(lj_creator_base, lj_creator_gpu, exec_conf);
-    }
 #endif
 
 /*BOOST_AUTO_TEST_CASE(potential_writer)
