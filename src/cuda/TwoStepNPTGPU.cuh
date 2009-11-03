@@ -92,12 +92,12 @@ cudaError_t gpu_npt_group_temperature(float *d_partial_sum2K,
                                       unsigned int num_blocks);
 
 //! Kernel driver for calculating the initial pass whole system sumW/sum2K on the GPU
-cudaError_t gpu_npt_pressure(float *d_partial_sum2K,
-                             float *d_partial_sumW,
-                             gpu_pdata_arrays pdata,
-                             float *d_net_virial,
-                             unsigned int block_size,
-                             unsigned int num_blocks);
+cudaError_t gpu_npt_pressure2(float *d_partial_sum2K,
+                              float *d_partial_sumW,
+                              gpu_pdata_arrays pdata,
+                              float *d_net_virial,
+                              unsigned int block_size,
+                              unsigned int num_blocks);
 
 #endif
 

@@ -509,10 +509,10 @@ cudaError_t gpu_npt_group_temperature(float *d_partial_sum2K,
     two. The final reduction to a single value is performed in another kernel.
 */
 extern "C" __global__ 
-void gpu_npt_pressure_kernel(float *d_partial_sum2K,
-                             float *d_partial_sumW,
-                             gpu_pdata_arrays pdata,
-                             float *d_net_virial)
+void gpu_npt_pressure_kernel2(float *d_partial_sum2K,
+                              float *d_partial_sumW,
+                              gpu_pdata_arrays pdata,
+                              float *d_net_virial)
     {
     
     int idx = blockIdx.x * blockDim.x + threadIdx.x; // particle's index
@@ -581,19 +581,19 @@ void gpu_npt_pressure_kernel(float *d_partial_sum2K,
 
     This is just a driver function for gpu_npt_pressure_kernel(). See it for more details.
 */
-cudaError_t gpu_npt_pressure(float *d_partial_sum2K,
-                             float *d_partial_sumW,
-                             gpu_pdata_arrays pdata,
-                             float *d_net_virial,
-                             unsigned int block_size,
-                             unsigned int num_blocks)
+cudaError_t gpu_npt_pressure2(float *d_partial_sum2K,
+                              float *d_partial_sumW,
+                              gpu_pdata_arrays pdata,
+                              float *d_net_virial,
+                              unsigned int block_size,
+                              unsigned int num_blocks)
     {
     // setup the grid to run the kernel
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // run the kernel
-    gpu_npt_pressure_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_partial_sum2K,
+    gpu_npt_pressure_kernel2<<< grid, threads, block_size*sizeof(float) >>>(d_partial_sum2K,
                                                                            d_partial_sumW,
                                                                            pdata,
                                                                            d_net_virial);

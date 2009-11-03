@@ -220,7 +220,7 @@ Scalar TwoStepNPTGPU::computePressure(unsigned int timestep)
         ArrayHandle<Scalar> d_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
         
         // do the partial sum
-        exec_conf.gpu[0]->call(bind(gpu_npt_pressure,
+        exec_conf.gpu[0]->call(bind(gpu_npt_pressure2,
                                       d_partial_sum2K.data,
                                       d_partial_sumW.data,
                                       d_pdata[0],

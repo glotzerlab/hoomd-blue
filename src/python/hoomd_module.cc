@@ -97,6 +97,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVE.h"
 #include "TwoStepNVT.h"
 #include "TwoStepBDNVT.h"
+#include "TwoStepNPT.h"
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "SFCPackUpdater.h"
@@ -113,6 +114,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
+#include "TwoStepNPTGPU.h"
 #include "NVTUpdaterGPU.h"
 #include "NVEUpdaterGPU.h"
 #include "NPTUpdaterGPU.h"
@@ -429,10 +431,12 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVE();
     export_TwoStepNVT();
     export_TwoStepBDNVT();
+    export_TwoStepNPT();
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();
+    export_TwoStepNPTGPU();
     export_NVEUpdaterGPU();
     export_NVTUpdaterGPU();
     export_NPTUpdaterGPU();

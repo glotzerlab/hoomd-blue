@@ -275,6 +275,7 @@ class _integration_method:
 # - integrate.nve
 # - integrate.nvt
 # - integrate.bdnvt
+# - integrate.npt
 #
 # There can only be one integration mode active at a time. If there are more than one integrate.mode_* commands in
 # a hoomd script, only the most recent before a given run() will take effect.
@@ -402,10 +403,14 @@ class nvt(_integration_method):
 ## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat
 #
 # integrate.npt performs constant pressure, constant temperature simulations using the standard
-# Nos&eacute;-Hoover thermosta/Anderson barostat. 
-class npt(_integrator):
+# Nos&eacute;-Hoover thermosta/Anderson barostat.
+#
+# integrate.nvt is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+class npt(_integration_method):
     ## Specifies the NPT integrator
-    # \param dt Each time step of the simulation run() will advance the real time of the system forward by \a dt
+    # \param group Group of particles on which to apply this method.
     # \param T Temperature set point for the Nos&eacute;-Hoover thermostat
     # \param P Pressure set point for the Anderson barostat
     # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
@@ -422,11 +427,11 @@ class npt(_integrator):
     # integrate.npt(dt=0.005, T=1.0, tau=0.5, tauP=1.0, P=2.0)
     # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
     # \endcode
-    def __init__(self, dt, T, tau, P, tauP):
+    def __init__(self, group, T, tau, P, tauP):
         util.print_status_line();
         
         # initialize base class
-        _integrator.__init__(self);
+        _integration_method.__init__(self);
         
         # setup the variant inputs
         T = variant._setup_variant_input(T);
@@ -434,17 +439,14 @@ class npt(_integrator):
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_integrator = hoomd.NPTUpdater(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_integrator = hoomd.NPTUpdaterGPU(globals.system_definition, dt, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating NVT integrator");
-            
-        globals.system.setIntegrator(self.cpp_integrator);
+            raise RuntimeError("Error creating NPT integrator");
     
     ## Changes parameters of an existing integrator
-    # \param dt New time step delta (if set)
     # \param T New temperature (if set)
     # \param tau New coupling constant (if set)
     # \param P New pressure (if set)
@@ -453,38 +455,34 @@ class npt(_integrator):
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
     # \code
-    # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65)
+    # integrator = integrate.npt(tau=1.0, T=0.65)
     # \endcode
     #
     # \b Examples:
     # \code
-    # integrator.set_params(dt=0.007)
     # integrator.set_params(tau=0.6)
     # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
     # \endcode
-    def set_params(self, dt=None, T=None, tau=None, P=None, tauP=None):
+    def set_params(self, T=None, tau=None, P=None, tauP=None):
         util.print_status_line();
         # check that proper initialization has occurred
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
+        if self.cpp_method == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError('Error updating npt params');
         
         # change the parameters
-        if dt != None:
-            self.cpp_integrator.setDeltaT(dt);
         if T != None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
-            self.cpp_integrator.setT(T.cpp_variant);
+            self.cpp_method.setT(T.cpp_variant);
         if tau != None:
-            self.cpp_integrator.setTau(tau);
+            self.cpp_method.setTau(tau);
         if P != None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
-            self.cpp_integrator.setP(P.cpp_variant);
+            self.cpp_method.setP(P.cpp_variant);
         if tauP != None:
-            self.cpp_integrator.setTauP(tauP);
-
+            self.cpp_method.setTauP(tauP);
 
 ## NVE Integration via Velocity-Verlet
 #
