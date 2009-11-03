@@ -84,10 +84,10 @@ class TwoStepNPTGPU : public TwoStepNPT
         GPUArray<float> m_sumW;           //!< Total sum of W on the GPU
 
         //! helper function to compute pressure
-        // virtual Scalar computePressure(unsigned int timestep);
+        virtual Scalar computePressure(unsigned int timestep);
         
         //! helper function to compute group temperature
-        // virtual Scalar computeGroupTemperature(unsigned int timestep);
+        virtual Scalar computeGroupTemperature(unsigned int timestep);
     };
 
 //! Exports the TwoStepNPTGPU class to python

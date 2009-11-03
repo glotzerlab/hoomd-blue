@@ -96,7 +96,7 @@ TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     GPUArray<float> partial_sum2K(m_full_num_blocks, m_pdata->getExecConf());
     m_partial_sum2K.swap(partial_sum2K);
     GPUArray<float> partial_sumW(m_full_num_blocks, m_pdata->getExecConf());
-    m_partial_sum2K.swap(partial_sumW);
+    m_partial_sumW.swap(partial_sumW);
     }
 
 /*! \param timestep Current time step
@@ -206,6 +206,89 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
+    }
+
+Scalar TwoStepNPTGPU::computePressure(unsigned int timestep)
+    {
+    // grab access to the particle data
+    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
+    
+    // first, run kernels on the GPU to compute the sum2K and sumW values
+        {
+        ArrayHandle<float> d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
+        ArrayHandle<float> d_partial_sumW(m_partial_sumW, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
+        
+        // do the partial sum
+        exec_conf.gpu[0]->call(bind(gpu_npt_pressure,
+                                      d_partial_sum2K.data,
+                                      d_partial_sumW.data,
+                                      d_pdata[0],
+                                      d_virial.data,
+                                      m_block_size,
+                                      m_full_num_blocks));
+        
+        ArrayHandle<float> d_sum2K(m_sum2K, access_location::device, access_mode::overwrite);
+        ArrayHandle<float> d_sumW(m_sumW, access_location::device, access_mode::overwrite);
+        // reduce the partial sums
+        exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_full_num_blocks));
+        exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sumW.data, d_partial_sumW.data, m_full_num_blocks));
+        }
+    
+    // now, access the data on the host
+    ArrayHandle<float> h_sum2K(m_sum2K, access_location::host, access_mode::read);
+    float ke_total = h_sum2K.data[0];
+    ArrayHandle<float> h_sumW(m_sumW, access_location::host, access_mode::read);
+    float W = h_sumW.data[0];
+    
+    ke_total *= 0.5;
+    Scalar T = Scalar(2.0 * ke_total / m_dof);
+    // volume
+    BoxDim box = m_pdata->getBox();
+    Scalar volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+    
+    // done!
+    m_pdata->release();
+    
+    // pressure: P = (N * K_B * T + W)/V
+    Scalar N = Scalar(m_pdata->getN());
+    return (N * T + W) / volume;
+    }
+        
+Scalar TwoStepNPTGPU::computeGroupTemperature(unsigned int timestep)
+    {
+    // grab access to the particle data
+    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
+
+    // first, run kernels on the GPU to compute the sum2K value
+        {
+        ArrayHandle<float> d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        unsigned int group_size = m_group->getIndexArray().getNumElements();
+        
+        // do the partial sum
+        exec_conf.gpu[0]->call(bind(gpu_npt_group_temperature,
+                                      d_partial_sum2K.data,
+                                      d_pdata[0],
+                                      d_index_array.data,
+                                      group_size,
+                                      m_block_size,
+                                      m_group_num_blocks));
+        
+        ArrayHandle<float> d_sum2K(m_sum2K, access_location::device, access_mode::overwrite);
+        // reduce the partial sums
+        exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_group_num_blocks));
+        }
+    
+    // now, access the data on the host
+    ArrayHandle<float> h_sum2K(m_sum2K, access_location::host, access_mode::read);
+    float ke_total = h_sum2K.data[0];
+    
+    ke_total *= 0.5;
+    
+    // done!
+    m_pdata->release();
+    return 2.0 * ke_total / m_group_dof;
     }
 
 void export_TwoStepNPTGPU()
