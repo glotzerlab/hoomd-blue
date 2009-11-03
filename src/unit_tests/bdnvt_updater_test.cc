@@ -101,7 +101,7 @@ typedef boost::function<shared_ptr<TwoStepBDNVT> (shared_ptr<SystemDefinition> s
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -285,7 +285,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, ExecutionConfigura
     
     cout << endl << "Test 2" << endl;
     cout << "Test setting diameter" << endl;
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -407,7 +407,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, ExecutionConfigura
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -497,7 +497,7 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, Execution
 //! Apply the Stochastic BD Bath to 1000 LJ Particles
 void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
