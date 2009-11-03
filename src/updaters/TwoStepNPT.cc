@@ -211,7 +211,7 @@ void TwoStepNPT::integrateStepTwo(unsigned int timestep)
     {
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
    
-    // compute temperature for the next hlf time step
+    // compute temperature for the next half time step
     m_curr_group_T = computeGroupTemperature(timestep+1);
     // compute pressure for the next half time step
     m_curr_P = computePressure(timestep+1);

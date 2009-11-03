@@ -61,7 +61,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TwoStepNPT.h"
 #ifdef ENABLE_CUDA
-// #include "TwoStepNPTGPU.h"
+#include "TwoStepNPTGPU.h"
 #endif
 #include "IntegratorTwoStep.h"
 
@@ -178,7 +178,7 @@ shared_ptr<TwoStepNPT> base_class_npt_creator(shared_ptr<SystemDefinition> sysde
     }
 
 #ifdef ENABLE_CUDA
-/*//! NPTUpdaterGPU factory for the unit tests
+//! NPTUpdaterGPU factory for the unit tests
 shared_ptr<TwoStepNPT> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef,
                                        shared_ptr<ParticleGroup> group,
                                        Scalar tau,
@@ -189,26 +189,26 @@ shared_ptr<TwoStepNPT> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef,
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
     return shared_ptr<TwoStepNPT>(new TwoStepNPTGPU(sysdef, group, tau, tauP, T_variant, P_variant));
-    }*/
+    }
 #endif
 
 
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( TwoStepNPT_tests )
+/*BOOST_AUTO_TEST_CASE( TwoStepNPT_tests )
     {
     twostepnpt_creator npt_creator = bind(base_class_npt_creator, _1, _2,_3,_4,_5,_6);
     npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
-    }
+    }*/
 
 
 #ifdef ENABLE_CUDA
 
-/*//! boost test case for base class integration tests
+//! boost test case for base class integration tests
 BOOST_AUTO_TEST_CASE( TwoStepNPTGPU_tests )
     {
     twostepnpt_creator npt_creator = bind(gpu_npt_creator, _1, _2,_3,_4,_5,_6);
     npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    }*/
+    }
 
 #endif
 
