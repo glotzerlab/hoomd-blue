@@ -68,7 +68,8 @@ cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
                              float4 *d_net_force,
                              float deltaT,
                              bool limit,
-                             float limit_val);
+                             float limit_val,
+                             bool zero_force);
 
 #endif //__TWO_STEP_NVE_GPU_CUH__
 

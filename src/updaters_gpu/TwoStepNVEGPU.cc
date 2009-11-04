@@ -133,7 +133,8 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
                                 d_net_force.data,
                                 m_deltaT,
                                 m_limit,
-                                m_limit_val));
+                                m_limit_val,
+                                m_zero_force));
     
     m_pdata->release();
     

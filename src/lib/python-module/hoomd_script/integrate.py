@@ -492,6 +492,11 @@ class npt(_integration_method):
 # After a few thousand time steps with the limit set, the system should be in a safe state 
 # to continue with unconstrained integration.
 #
+# Another use-case for integrate.nve is to fix the velocity of a certain group of particles. This can be achieved by
+# setting the velocity of those particles in the initial condition and setting the \a zero_force option to True
+# for that group. A True value for \a zero_force causes integrate.nve to ignore any net force on each particle and
+# integrate them forward in time with a constant velocity.
+#
 # \note With an active limit, Newton's third law is effectively \b not obeyed and the system 
 # can gain linear momentum. Activate the update.zero_momentum updater during the limited nve
 # run to prevent this.
@@ -503,6 +508,8 @@ class nve(_integration_method):
     ## Specifies the NVE integration method
     # \param group Group of particles on which to apply this method.
     # \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
+    # \param zero_force When set to true, particles in the \a group are integrated forward in time with constant
+    #                   velocity and any net force on them is ignored.
     #
     # \b Examples:
     # \code
@@ -511,8 +518,9 @@ class nve(_integration_method):
     # integrator = integrate.nve(all)
     # typeA = group.type('A')
     # integrate.nve(typeA, limit=0.01)
+    # integrate.nve(typeA, zero_force=True)
     # \endcode
-    def __init__(self, group, limit=None):
+    def __init__(self, group, limit=None, zero_force=False):
         util.print_status_line();
         
         # initialize base class
@@ -530,9 +538,12 @@ class nve(_integration_method):
         # set the limit
         if limit != None:
             self.cpp_method.setLimit(limit);
-    
+        
+        self.cpp_method.setZeroForce(zero_force);
+        
     ## Changes parameters of an existing integrator
     # \param limit (if set) New limit value to set. Removes the limit if limit is False
+    # \param zero_force (if set) New value for the zero force option
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -545,7 +556,7 @@ class nve(_integration_method):
     # integrator.set_params(limit=0.01)
     # integrator.set_params(limit=False)
     # \endcode
-    def set_params(self, limit=None):
+    def set_params(self, limit=None, zero_force=None):
         util.print_status_line();
         # check that proper initialization has occured
         if self.cpp_method == None:
@@ -558,7 +569,9 @@ class nve(_integration_method):
                 self.cpp_method.removeLimit();
             else:
                 self.cpp_method.setLimit(limit);
-            
+        
+        if zero_force != None:
+            self.cpp_method.setZeroForce(zero_force);
 
 ## NVT integration via Brownian dynamics
 #

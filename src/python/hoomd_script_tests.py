@@ -496,6 +496,13 @@ class integrate_nve_tests (unittest.TestCase):
         integrate.nve(all);
         run(100);
     
+    # tests creation of the method with options
+    def test(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all, limit=0.01, zero_force=True);
+        run(100);
+    
     # test set_params
     def test_set_params(self):
         all = group.all();
@@ -504,6 +511,7 @@ class integrate_nve_tests (unittest.TestCase):
         nve = integrate.nve(all);
         nve.set_params(limit=False);
         nve.set_params(limit=0.1);
+        nve.set_params(zero_force=False);
         
     
     def tearDown(self):

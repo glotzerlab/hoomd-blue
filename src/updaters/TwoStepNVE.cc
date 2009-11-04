@@ -201,11 +201,18 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         
-        // first, calculate acceleration from the net force
-        Scalar minv = Scalar(1.0) / arrays.mass[j];
-        arrays.ax[j] = h_net_force.data[j].x*minv;
-        arrays.ay[j] = h_net_force.data[j].y*minv;
-        arrays.az[j] = h_net_force.data[j].z*minv;
+        if (m_zero_force)
+            {
+            arrays.ax[j] = arrays.ay[j] = arrays.az[j] = 0.0;
+            }
+        else
+            {
+            // first, calculate acceleration from the net force
+            Scalar minv = Scalar(1.0) / arrays.mass[j];
+            arrays.ax[j] = h_net_force.data[j].x*minv;
+            arrays.ay[j] = h_net_force.data[j].y*minv;
+            arrays.az[j] = h_net_force.data[j].z*minv;
+            }
         
         // then, update the velocity
         arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
@@ -238,6 +245,7 @@ void export_TwoStepNVE()
         ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)
+        .def("setZeroForce", &TwoStepNVE::setZeroForce)
         ;
     }
 
