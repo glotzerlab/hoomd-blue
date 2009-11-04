@@ -1319,6 +1319,12 @@ void export_ParticleData()
     .def("getExecConf", &ParticleData::getExecConf, return_internal_reference<>())
     .def("__str__", &print_ParticleData)
     ;
+    
+    class_<Scalar3>("Scalar3", init<>())
+        .def_readwrite("x", &Scalar3::x)
+        .def_readwrite("y", &Scalar3::y)
+        .def_readwrite("z", &Scalar3::z)
+        ;
     }
 
 #ifdef WIN32
