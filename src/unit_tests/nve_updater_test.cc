@@ -109,7 +109,8 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfig
     // don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -182,7 +183,8 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfigurat
     // create a simple 1 particle system
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -254,7 +256,8 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, ExecutionConfigu
     // build a 6 particle system with particles set to move across each boundary
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata_6, ParticleGroup::tag, 0, pdata_6->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef_6, 0, pdata_6->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef_6, selector_all));
     
     ParticleDataArrays arrays = pdata_6->acquireReadWrite();
     arrays.x[0] = Scalar(-9.6); arrays.y[0] = 0; arrays.z[0] = 0.0;
@@ -318,12 +321,14 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     rand_init1.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(rand_init1, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
-    shared_ptr<ParticleGroup> group_all1(new ParticleGroup(pdata1, ParticleGroup::tag, 0, pdata1->getN()-1));
+    shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
+    shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
 
     rand_init2.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(rand_init2, exec_conf));
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
-    shared_ptr<ParticleGroup> group_all2(new ParticleGroup(pdata2, ParticleGroup::tag, 0, pdata2->getN()-1));
+    shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
+    shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
     
     shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
     shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));

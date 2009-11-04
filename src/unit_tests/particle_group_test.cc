@@ -86,11 +86,12 @@ const Scalar tol_small = 1e-4;
 #define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
 
 //! initializes the particle data used by the tests
-shared_ptr<ParticleData> create_pdata()
+shared_ptr<SystemDefinition> create_sysdef()
     {
     // initialize a box with 10 particles of 4 groups
     BoxDim box(10.0);
-    shared_ptr<ParticleData> pdata(new ParticleData(10, box, 4));
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, box, 4));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
     // set the types
@@ -120,13 +121,14 @@ shared_ptr<ParticleData> create_pdata()
     arrays.type[9] = 3;
     
     pdata->release();
-    return pdata;
+    return sysdef;
     }
     
 //! Checks that ParticleGroup can sucessfully initialize
 BOOST_AUTO_TEST_CASE( ParticleGroup_basic_test )
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     // create an empty group
     ParticleGroup a;
@@ -140,10 +142,12 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_basic_test )
 //! Test copy and equals operators
 BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // create another particle group of all particles
-    ParticleGroup tags_all(pdata, ParticleGroup::tag, 0, pdata->getN()-1);
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    ParticleGroup tags_all(sysdef, selector_all);
     // verify it
     MY_BOOST_CHECK_EQUAL(tags_all.getNumMembers(), pdata->getN());
     for (unsigned int i = 0; i < pdata->getN(); i++)
@@ -180,9 +184,11 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
 //! Checks that ParticleGroup can sucessfully handle particle resorts
 BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
-    ParticleGroup tags04(pdata, ParticleGroup::tag, 0, 4);
+    shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    ParticleGroup tags04(sysdef, selector04);
     // verify the initial set
     MY_BOOST_CHECK_EQUAL(tags04.getNumMembers(), 5);
     for (unsigned int i = 0; i < 5; i++)
@@ -246,10 +252,12 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
 //! Checks that ParticleGroup can initialize by particle type
 BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     // create a group of type 0 and check it
-    ParticleGroup type0(pdata, ParticleGroup::type, 0, 0);
+    shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
+    ParticleGroup type0(sysdef, selector0);
     MY_BOOST_REQUIRE_EQUAL(type0.getNumMembers(), 4);
     MY_BOOST_CHECK_EQUAL(type0.getMemberTag(0), 0);
     MY_BOOST_CHECK_EQUAL(type0.getMemberTag(1), 2);
@@ -257,25 +265,29 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     MY_BOOST_CHECK_EQUAL(type0.getMemberTag(3), 8);
     
     // create a group of type 1 and check it
-    ParticleGroup type1(pdata, ParticleGroup::type, 1, 1);
+    shared_ptr<ParticleSelector> selector1(new ParticleSelectorType(sysdef, 1, 1));
+    ParticleGroup type1(sysdef, selector1);
     MY_BOOST_REQUIRE_EQUAL(type1.getNumMembers(), 2);
     MY_BOOST_CHECK_EQUAL(type1.getMemberTag(0), 3);
     MY_BOOST_CHECK_EQUAL(type1.getMemberTag(1), 6);
     
     // create a group of type 2 and check it
-    ParticleGroup type2(pdata, ParticleGroup::type, 2, 2);
+    shared_ptr<ParticleSelector> selector2(new ParticleSelectorType(sysdef, 2, 2));
+    ParticleGroup type2(sysdef, selector2);
     MY_BOOST_REQUIRE_EQUAL(type2.getNumMembers(), 2);
     MY_BOOST_CHECK_EQUAL(type2.getMemberTag(0), 1);
     MY_BOOST_CHECK_EQUAL(type2.getMemberTag(1), 7);
     
     // create a group of type 3 and check it
-    ParticleGroup type3(pdata, ParticleGroup::type, 3, 3);
+    shared_ptr<ParticleSelector> selector3(new ParticleSelectorType(sysdef, 3, 3));
+    ParticleGroup type3(sysdef, selector3);
     MY_BOOST_REQUIRE_EQUAL(type3.getNumMembers(), 2);
     MY_BOOST_CHECK_EQUAL(type3.getMemberTag(0), 4);
     MY_BOOST_CHECK_EQUAL(type3.getMemberTag(1), 9);
     
     // create a group of all types and check it
-    ParticleGroup alltypes(pdata, ParticleGroup::type, 0, 3);
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorType(sysdef, 0, 3));
+    ParticleGroup alltypes(sysdef, selector_all);
     MY_BOOST_REQUIRE_EQUAL(alltypes.getNumMembers(), 10);
     for (unsigned int i = 0; i < 10; i++)
         MY_BOOST_CHECK_EQUAL(alltypes.getMemberTag(i), i);
@@ -284,10 +296,12 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
 //! Checks that ParticleGroup can initialize by particle tag
 BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     // create a group of tags 0-4 and check it
-    ParticleGroup tags05(pdata, ParticleGroup::tag, 0, 4);
+    shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    ParticleGroup tags05(sysdef, selector04);
     MY_BOOST_REQUIRE_EQUAL(tags05.getNumMembers(), 5);
     MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(0), 0);
     MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(1), 1);
@@ -296,7 +310,8 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(4), 4);
     
     // create a group of tags 5-9 and check it
-    ParticleGroup tags59(pdata, ParticleGroup::tag, 5, 9);
+    shared_ptr<ParticleSelector> selector59(new ParticleSelectorTag(sysdef, 5, 9));
+    ParticleGroup tags59(sysdef, selector59);
     MY_BOOST_REQUIRE_EQUAL(tags59.getNumMembers(), 5);
     MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(0), 5);
     MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(1), 6);
@@ -308,13 +323,16 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
 //! Checks that the ParticleGroup boolean operation work correctly
 BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     // create a group of tags 0-4
-    boost::shared_ptr<ParticleGroup> tags04(new ParticleGroup(pdata, ParticleGroup::tag, 0, 4));
+    shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
+    shared_ptr<ParticleGroup> tags04(new ParticleGroup(sysdef, selector04));
     
     // create a group of type 0
-    boost::shared_ptr<ParticleGroup> type0(new ParticleGroup(pdata, ParticleGroup::type, 0, 0));
+    shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
+    shared_ptr<ParticleGroup> type0(new ParticleGroup(sysdef, selector0));
     
     // make a union of the two groups and check it
     boost::shared_ptr<ParticleGroup> union_group = ParticleGroup::groupUnion(type0, tags04);
@@ -337,37 +355,39 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
 //! Checks that the ParticleGroup::getTotalMass works correctly
 BOOST_AUTO_TEST_CASE( ParticleGroup_total_mass_tests)
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
-    ParticleGroup group1(pdata, ParticleGroup::tag, 0, 0);
+    ParticleGroup group1(sysdef, shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
     MY_BOOST_CHECK_CLOSE(group1.getTotalMass(), 1.0, tol);
     
-    ParticleGroup group2(pdata, ParticleGroup::tag, 0, 1);
+    ParticleGroup group2(sysdef, shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
     MY_BOOST_CHECK_CLOSE(group2.getTotalMass(), 3.0, tol);
 
-    ParticleGroup group3(pdata, ParticleGroup::tag, 0, 2);
+    ParticleGroup group3(sysdef, shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
     MY_BOOST_CHECK_CLOSE(group3.getTotalMass(), 8.0, tol);
     }
     
 //! Checks that the ParticleGroup::getCenterOfMass works correctly
 BOOST_AUTO_TEST_CASE( ParticleGroup_center_of_mass_tests)
     {
-    shared_ptr<ParticleData> pdata = create_pdata();
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
     Scalar3 com;
-    ParticleGroup group1(pdata, ParticleGroup::tag, 0, 0);
+    ParticleGroup group1(sysdef, shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 0)));
     com = group1.getCenterOfMass();
     MY_BOOST_CHECK_SMALL(com.x, tol_small);
     MY_BOOST_CHECK_SMALL(com.y, tol_small);
     MY_BOOST_CHECK_SMALL(com.z, tol_small);
     
-    ParticleGroup group2(pdata, ParticleGroup::tag, 0, 1);
+    ParticleGroup group2(sysdef, shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 1)));
     com = group2.getCenterOfMass();
     MY_BOOST_CHECK_CLOSE(com.x, 7.3333333333, tol);
     MY_BOOST_CHECK_CLOSE(com.y, -5.3333333333, tol);
     MY_BOOST_CHECK_CLOSE(com.z, 15.333333333, tol);
 
-    ParticleGroup group3(pdata, ParticleGroup::tag, 0, 2);
+    ParticleGroup group3(sysdef, shared_ptr<ParticleSelector>(new ParticleSelectorTag(sysdef, 0, 2)));
     com = group3.getCenterOfMass();
     MY_BOOST_CHECK_CLOSE(com.x, 2.125, tol);
     MY_BOOST_CHECK_CLOSE(com.y, -3.25, tol);

@@ -44,17 +44,78 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 /*! \file ParticleGroup.h
-    \brief Declares the ParticleGroup class
+    \brief Declares the ParticleGroup and related classes
 */
 
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
 
-#include "ParticleData.h"
+#include "SystemDefinition.h"
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
+
+//! Utility class to select particles based on given conditions
+/*! \b Overview
+    
+    In order to flexibly specify the particles that belong to a given ParticleGroup, it will simple take a
+    ParticleSelector as a parameter in its constructor. The selector will provide a true/false membership test that will
+    be applied to each particle tag, selecting those that belong in the group. As it is specified via a virtual class,
+    the group definition can be expanded to include any concievable selection criteria.
+    
+    <b>Implementation details</b>
+    So that an infinite range of selection criteria can be applied (i.e. particles with mass > 2.0, or all particles
+    bonded to particle j, ...) the selector will get a reference to the SystemDefinition on construction, along with
+    any parameters to specify the selection criteria. Then, a simple isSelected() test is provided that will acquire the
+    needed data and will return true if that particle meets the criteria.
+    
+    The base class isSelected() method will simply reject all particles. Derived classes will implement specific
+    selection semantics.
+*/
+class ParticleSelector
+    {
+    public:
+        //! constructs a ParticleSelector
+        ParticleSelector(boost::shared_ptr<SystemDefinition> sysdef);
+        virtual ~ParticleSelector() {}
+
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    protected:
+        boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
+        boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
+    };
+
+//! Select particles based on their tag
+class ParticleSelectorTag : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sysdef, unsigned int tag_min, unsigned int tag_max);
+        virtual ~ParticleSelectorTag() {}
+        
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    protected:
+        unsigned int m_tag_min;     //!< Minimum tag to select
+        unsigned int m_tag_max;     //!< Maximum tag to select (inclusive)
+    };
+
+//! Select particles based on their type
+class ParticleSelectorType : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorType(boost::shared_ptr<SystemDefinition> sysdef, unsigned int typ_min, unsigned int typ_max);
+        virtual ~ParticleSelectorType() {}
+        
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    protected:
+        unsigned int m_typ_min;     //!< Minimum type to select
+        unsigned int m_typ_max;     //!< Maximum type to select (inclusive)
+    };
 
 //! Describes a group of particles
 /*! \b Overview
@@ -97,21 +158,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class ParticleGroup
     {
     public:
-        //! Option to pass to ParticleGroup::ParticleGroup() on construction to choose which criteria to apply
-        enum criteriaOption
-            {
-            type,   //!< Select particles in the group by type
-            tag     //!< Select particles in the group by tag
-            };
-        
         //! \name Initialization methods
         // @{
                 
         //! Constructs an empty particle group
         ParticleGroup() {};
         
-        //! Constructs a particle group of all particles with the given criteria
-        ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOption criteria, unsigned int min, unsigned int max);
+        //! Constructs a particle group of all particles that meet the given selection
+        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector);
         
         //! Destructor
         ~ParticleGroup();

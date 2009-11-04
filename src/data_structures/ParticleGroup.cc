@@ -55,67 +55,124 @@ using namespace boost;
 using namespace std;
 
 /*! \file ParticleGroup.cc
-    \brief Defines the ParticleGroup class
+    \brief Defines the ParticleGroup and related classes
 */
 
-/*! \param pdata Particle data to build the group from
-    \param criteria Criteria to select particles by
-    \param min First value in the range to include
-    \param max Last value in the range to include
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelector
+
+/*! \param sysdef System the particles are to be selected from
+*/
+ParticleSelector::ParticleSelector(boost::shared_ptr<SystemDefinition> sysdef)
+    : m_sysdef(sysdef), m_pdata(sysdef->getParticleData())
+    {
+    assert(m_sysdef);
+    assert(m_pdata);
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the particle is selected
+    \returns false if it is not
+*/
+bool ParticleSelector::isSelected(unsigned int tag) const
+    {
+    // base class doesn't do anything useful
+    return false;
+    }
+
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorTag
+
+/*! \param sysdef System the particles are to be selected from
+    \param tag_min Minimum tag to select (inclusive)
+    \param tag_max Maximum tag to select (inclusive)
+*/
+ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sysdef,
+                                         unsigned int tag_min,
+                                         unsigned int tag_max)
+    : ParticleSelector(sysdef), m_tag_min(tag_min), m_tag_max(tag_max)
+    {
+    // make a quick check on the sanity of the input data
+    if (m_tag_max < m_tag_min)
+        cout << "***Warning! max < min specified when selecting particle tags" << endl;
+    
+    if (m_tag_max >= m_pdata->getN())
+        {
+        cerr << endl << "***Error! Cannot select particles with tags larger than the number of particles " 
+             << endl << endl;
+        throw runtime_error("Error selecting particles");
+        }
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if \a m_tag_min <= \a tag <= \a m_tag_max
+*/
+bool ParticleSelectorTag::isSelected(unsigned int tag) const
+    {
+    assert(tag < m_pdata->getN());
+    return (m_tag_min <= tag && tag <= m_tag_max);
+    }
+
+//////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorType
+
+/*! \param sysdef System the particles are to be selected from
+    \param typ_min Minimum type id to select (inclusive)
+    \param typ_max Maximum type id to select (inclusive)
+*/
+ParticleSelectorType::ParticleSelectorType(boost::shared_ptr<SystemDefinition> sysdef,
+                                           unsigned int typ_min,
+                                           unsigned int typ_max)
+    : ParticleSelector(sysdef), m_typ_min(typ_min), m_typ_max(typ_max)
+    {
+    // make a quick check on the sanity of the input data
+    if (m_typ_max < m_typ_min)
+        cout << "***Warning! max < min specified when selecting particle types" << endl;
+    
+    if (m_typ_max >= m_pdata->getNTypes())
+        cout << "***Warning! Requesting for the selection of a non-existant particle type" << endl;
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag is in the inclusive range [ \a m_typ_min, \a m_typ_max ]
+*/
+bool ParticleSelectorType::isSelected(unsigned int tag) const
+    {
+    assert(tag < m_pdata->getN());
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    
+    // identify the index of the current particle tag
+    unsigned int idx = arrays.rtag[tag];
+    unsigned int typ = arrays.type[idx];
+    
+    // see if it matches the criteria
+    bool result = (m_typ_min <= typ && typ <= m_typ_max);
+    
+    m_pdata->release();
+    return result;
+    }
+
+//////////////////////////////////////////////////////////////////////////////
+// ParticleGroup
+
+/*! \param sysdef System definition to build the group from
+    \param selector ParticleSelector used to choose the group members
 
     Particles where criteria falls within the range [min,max] (inclusive) are added to the group.
 */
-ParticleGroup::ParticleGroup(boost::shared_ptr<ParticleData> pdata, criteriaOption criteria,
-                             unsigned int min, unsigned int max)
-    : m_pdata(pdata), m_is_member(pdata->getN()), m_member_idx(pdata->getN(), pdata->getExecConf())
+ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector)
+    : m_pdata(sysdef->getParticleData()),
+      m_is_member(m_pdata->getN()),
+      m_member_idx(m_pdata->getN(), m_pdata->getExecConf())
     {
-    const ParticleDataArraysConst& arrays = pdata->acquireReadOnly();
-    
-    // make a quick check on the sanity of the input data
-    if (max < min)
-        cout << "***Warning! max < min specified when creating a ParticleGroup" << endl;
-        
-    // switch based on the given criteria
-    if (criteria == type)
+    // assign all of the particles that belong to the group
+    // for each particle in the data
+    for (unsigned int tag = 0; tag < m_pdata->getN(); tag++)
         {
-        // perform an input check on the data
-        if (max >= pdata->getNTypes())
-            cout << "***Warning! Requesting for non-existant particle type to be added to a ParticleGroup" << endl;
-            
-        // for each particle in the data
-        for (unsigned int tag = 0; tag < arrays.nparticles; tag++)
-            {
-            // identify the index of the current particle tag
-            unsigned int idx = arrays.rtag[tag];
-            
-            // add the tag to the list if it matches the criteria
-            if (arrays.type[idx] <= max && arrays.type[idx] >= min)
-                m_member_tags.push_back(tag);
-            }
-        }
-    else if (criteria == tag)
-        {
-        // perform an input check on the data
-        if (max >= pdata->getN())
-            {
-            cerr << endl << "***Error! Cannot create a group with tags larger than the number of particles " << endl << endl;
-            throw runtime_error("Error creating ParticleGroup");
-            }
-            
-        // for each particle in the range
-        for (unsigned int tag = min; tag <= max; tag++)
-            {
-            // add it to the list
+        // add the tag to the list if it matches the selection
+        if (selector->isSelected(tag))
             m_member_tags.push_back(tag);
-            }
         }
-    else
-        {
-        cerr << endl << "***Error! Invalid critera specified when creating a ParticleGroup" << endl << endl;
-        throw runtime_error("Error creating ParticleGroup");
-        }
-        
-    pdata->release();
     
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
@@ -262,17 +319,25 @@ void ParticleGroup::rebuildIndexList()
 
 void export_ParticleGroup()
     {
-    scope in_particlegroup = class_<ParticleGroup, boost::shared_ptr<ParticleGroup>, boost::noncopyable>
-                             ("ParticleGroup", init< boost::shared_ptr<ParticleData>, ParticleGroup::criteriaOption, unsigned int, unsigned int >())
-                             .def("getNumMembers", &ParticleGroup::getNumMembers)
-                             .def("getMemberTag", &ParticleGroup::getMemberTag)
-                             .def("groupUnion", &ParticleGroup::groupUnion)
-                             .def("groupIntersection", &ParticleGroup::groupIntersection)
-                             ;
-                             
-    enum_<ParticleGroup::criteriaOption>("criteriaOption")
-    .value("type", ParticleGroup::type)
-    .value("tag", ParticleGroup::tag)
-    ;
+    class_<ParticleGroup, boost::shared_ptr<ParticleGroup>, boost::noncopyable>
+            ("ParticleGroup", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector> >())
+            .def("getNumMembers", &ParticleGroup::getNumMembers)
+            .def("getMemberTag", &ParticleGroup::getMemberTag)
+            .def("groupUnion", &ParticleGroup::groupUnion)
+            .def("groupIntersection", &ParticleGroup::groupIntersection)
+            ;
+    
+    class_<ParticleSelector, boost::shared_ptr<ParticleSelector>, boost::noncopyable>
+            ("ParticleSelector", init< boost::shared_ptr<SystemDefinition> >())
+            .def("isSelected", &ParticleSelector::isSelected)
+            ;
+    
+    class_<ParticleSelectorTag, boost::shared_ptr<ParticleSelectorTag>, bases<ParticleSelector>, boost::noncopyable>
+        ("ParticleSelectorTag", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+        ;
+        
+    class_<ParticleSelectorType, boost::shared_ptr<ParticleSelectorType>, bases<ParticleSelector>, boost::noncopyable>
+        ("ParticleSelectorTtype", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+        ;
     }
 

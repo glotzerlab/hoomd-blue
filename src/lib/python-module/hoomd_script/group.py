@@ -139,10 +139,8 @@ def type(type):
     # create the group
     type_id = globals.system_definition.getParticleData().getTypeByName(type);
     name = 'type ' + type;
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
-                                    hoomd.ParticleGroup.criteriaOption.type,
-                                    type_id,
-                                    type_id);
+    selector = hoomd.ParticleSelectorType(globals.system_definition, type_id, type_id);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
@@ -188,10 +186,8 @@ def tags(tag_min, tag_max=None):
         name = 'tag ' + str(tag_min);
 
     # create the group
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
-                                    hoomd.ParticleGroup.criteriaOption.tag,
-                                    tag_min,
-                                    tag_max);
+    selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
@@ -225,10 +221,8 @@ def all():
 
     # create the group
     name = 'all';
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
-                                    hoomd.ParticleGroup.criteriaOption.tag,
-                                    tag_min,
-                                    tag_max);
+    selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';

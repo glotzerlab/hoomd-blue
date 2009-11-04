@@ -112,7 +112,8 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration
     //also put everything in a huge box so boundary conditions don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -296,7 +297,8 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, ExecutionConfigura
     //also put everything in a huge box so boundary conditions don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -417,7 +419,8 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, Execution
     //also put everything in a huge box so boundary conditions don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -505,7 +508,8 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfigurat
     // Build a 1000 particle system with particles scattered on the x, y, and z axes.
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     

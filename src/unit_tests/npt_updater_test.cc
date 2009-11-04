@@ -116,7 +116,8 @@ void npt_updater_test(twostepnpt_creator npt_creator, ExecutionConfiguration exe
     rand_init.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(pdata, ParticleGroup::tag, 0, pdata->getN()-1));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
     
