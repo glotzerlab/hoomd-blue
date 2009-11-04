@@ -153,6 +153,44 @@ bool ParticleSelectorType::isSelected(unsigned int tag) const
     }
 
 //////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorCuboid
+
+ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max)
+    :ParticleSelector(sysdef), m_min(min), m_max(max)
+    {
+    // make a quick check on the sanity of the input data
+    if (m_min.x >= m_max.x || m_min.y >= m_max.y || m_min.z >= m_max.z)
+        cout << "***Warning! max < min specified when selecting particle in a cuboid" << endl;
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag is in the cuboid
+    
+    Evaluation is performed by \a m_min.x <= x < \a m_max.x so that multiple cuboids stacked next to each other
+    do not have overlapping sets of particles.
+*/
+bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
+    {
+    assert(tag < m_pdata->getN());
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    
+    // identify the index of the current particle tag
+    unsigned int idx = arrays.rtag[tag];
+    Scalar3 pos;
+    pos.x = arrays.x[idx];
+    pos.y = arrays.y[idx];
+    pos.z = arrays.z[idx];
+    
+    // see if it matches the criteria
+    bool result = (m_min.x <= pos.x && pos.x < m_max.x &&
+                   m_min.y <= pos.y && pos.y < m_max.y &&
+                   m_min.z <= pos.z && pos.z < m_max.z);
+    
+    m_pdata->release();
+    return result;
+    }
+
+//////////////////////////////////////////////////////////////////////////////
 // ParticleGroup
 
 /*! \param sysdef System definition to build the group from
@@ -337,7 +375,11 @@ void export_ParticleGroup()
         ;
         
     class_<ParticleSelectorType, boost::shared_ptr<ParticleSelectorType>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorTtype", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+        ("ParticleSelectorType", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+        ;
+    
+    class_<ParticleSelectorCuboid, boost::shared_ptr<ParticleSelectorCuboid>, bases<ParticleSelector>, boost::noncopyable>
+        ("ParticleSelectorCuboid", init< boost::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
         ;
     }
 

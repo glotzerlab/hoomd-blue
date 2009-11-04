@@ -230,3 +230,72 @@ def all():
     # return it in the wrapper class
     return group(name, cpp_group);
 
+## Groups particles in a cuboid
+#
+# \param name User-assigned name for this group
+# \param xmin (if set) Lower left x-coordinate of the cuboid
+# \param xmax (if set) Upper right x-coordinate of the cuboid
+# \param ymin (if set) Lower left y-coordinate of the cuboid
+# \param ymax (if set) Upper right y-coordinate of the cuboid
+# \param zmin (if set) Lower left z-coordinate of the cuboid
+# \param zmax (if set) Upper right z-coordinate of the cuboid
+#
+# If any of the above parameters is not set, it will automatically be placed slightly outside of the simulation box
+# dimension, allowing easy specification of slabs.
+#
+# Creates a particle group from particles that fall in the defined cuboid. Membership tests are performed via
+# xmin <= x < xmax (and so forth for y and z) so that directly adjacent cuboids do not have overlapping group members.
+#
+# The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should be
+# operated on.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
+#
+# \b Examples:
+# \code
+# slab = group.cuboid(name="slab", ymin=-3, ymax=3)
+# cube = grouip.cuboid(name="cube", xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
+# \endcode
+def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None):
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    # handle the optional arguments
+    box = globals.system_definition.getParticleData().getBox();
+    if xmin == None:
+        xmin = box.xlo - 0.5;
+    if xmax == None:
+        xmax = box.xhi + 0.5;
+    if ymin == None:
+        ymin = box.ylo - 0.5;
+    if ymax == None:
+        ymax = box.yhi + 0.5;
+    if zmin == None:
+        zmin = box.zlo - 0.5;
+    if zmax == None:
+        zmax = box.zhi + 0.5;
+    
+    ll = hoomd.Scalar3();
+    ur = hoomd.Scalar3();
+    ll.x = float(xmin);
+    ll.y = float(ymin);
+    ll.z = float(zmin);
+    ur.x = float(xmax);
+    ur.y = float(ymax);
+    ur.z = float(zmax);
+    
+    # create the group
+    selector = hoomd.ParticleSelectorCuboid(globals.system_definition, ll, ur);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+

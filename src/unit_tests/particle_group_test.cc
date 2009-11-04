@@ -113,13 +113,25 @@ shared_ptr<SystemDefinition> create_sysdef()
     arrays.mass[2] = Scalar(5.0);
     
     arrays.type[3] = 1;
-    arrays.type[4] = 3;
-    arrays.type[5] = 0;
-    arrays.type[6] = 1;
-    arrays.type[7] = 2;
-    arrays.type[8] = 0;
-    arrays.type[9] = 3;
+    arrays.x[3] = Scalar(-4.0); arrays.y[3] = Scalar(-4.0); arrays.z[3] = Scalar(-4.0);
     
+    arrays.type[4] = 3;
+    arrays.x[4] = Scalar(-3.5); arrays.y[4] = Scalar(-4.5); arrays.z[4] = Scalar(-5.0);
+    
+    arrays.type[5] = 0;
+    arrays.x[5] = Scalar(-5.0); arrays.y[5] = Scalar(-4.5); arrays.z[5] = Scalar(-3.5);
+    
+    arrays.type[6] = 1;
+    arrays.x[6] = Scalar(4.0); arrays.y[6] = Scalar(4.0); arrays.z[6] = Scalar(4.0);
+    
+    arrays.type[7] = 2;
+    arrays.x[7] = Scalar(3.5); arrays.y[7] = Scalar(4.5); arrays.z[7] = Scalar(-5.0);
+    
+    arrays.type[8] = 0;
+    arrays.x[8] = Scalar(5.0); arrays.y[8] = Scalar(4.5); arrays.z[8] = Scalar(3.5);
+    
+    arrays.type[9] = 3;
+    arrays.x[9] = Scalar(5.0); arrays.y[9] = Scalar(5.0); arrays.z[9] = Scalar(5.0);
     pdata->release();
     return sysdef;
     }
@@ -318,6 +330,40 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(2), 7);
     MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(3), 8);
     MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(4), 9);
+    }
+
+//! Checks that ParticleGroup can initialize by cuboid
+BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
+    {
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // create a group containing only particle 0
+    shared_ptr<ParticleSelector> selector0(new ParticleSelectorCuboid(sysdef,
+                                                                      make_scalar3(-0.5, -0.5, -0.5),
+                                                                      make_scalar3( 0.5,  0.5,  0.5)));
+    ParticleGroup tags0(sysdef, selector0);
+    MY_BOOST_REQUIRE_EQUAL(tags0.getNumMembers(), 1);
+    MY_BOOST_CHECK_EQUAL(tags0.getMemberTag(0), 0);
+    
+    // create a group containing particles 0 and 1
+    shared_ptr<ParticleSelector> selector1(new ParticleSelectorCuboid(sysdef,
+                                                                      make_scalar3(-0.5, -0.5, -0.5),
+                                                                      make_scalar3( 1.5,  2.5,  3.5)));
+    ParticleGroup tags1(sysdef, selector1);
+    MY_BOOST_REQUIRE_EQUAL(tags1.getNumMembers(), 2);
+    MY_BOOST_CHECK_EQUAL(tags1.getMemberTag(0), 0);
+    MY_BOOST_CHECK_EQUAL(tags1.getMemberTag(1), 1);
+    
+    // create a group containing particles 0, 1 and 2
+    shared_ptr<ParticleSelector> selector2(new ParticleSelectorCuboid(sysdef,
+                                                                      make_scalar3(-1.5, -2.5, -3.5),
+                                                                      make_scalar3( 1.5,  2.5,  3.5)));
+    ParticleGroup tags2(sysdef, selector2);
+    MY_BOOST_REQUIRE_EQUAL(tags2.getNumMembers(), 3);
+    MY_BOOST_CHECK_EQUAL(tags2.getMemberTag(0), 0);
+    MY_BOOST_CHECK_EQUAL(tags2.getMemberTag(1), 1);
+    MY_BOOST_CHECK_EQUAL(tags2.getMemberTag(2), 2);
     }
 
 //! Checks that the ParticleGroup boolean operation work correctly

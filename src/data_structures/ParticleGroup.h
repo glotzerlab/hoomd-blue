@@ -117,6 +117,21 @@ class ParticleSelectorType : public ParticleSelector
         unsigned int m_typ_max;     //!< Maximum type to select (inclusive)
     };
 
+//! Select particles in the space defined by a cuboid
+class ParticleSelectorCuboid : public ParticleSelector
+    {
+    public:
+        //! Constructs the selector
+        ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max);
+        virtual ~ParticleSelectorCuboid() {}
+        
+        //! Test if a particle meets the selection criteria
+        virtual bool isSelected(unsigned int tag) const;
+    protected:
+        Scalar3 m_min;     //!< Minimum type to select (inclusive)
+        Scalar3 m_max;     //!< Maximum type to select (exclusive)
+    };
+
 //! Describes a group of particles
 /*! \b Overview
     
