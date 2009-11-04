@@ -199,7 +199,8 @@ bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
     Particles where criteria falls within the range [min,max] (inclusive) are added to the group.
 */
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector)
-    : m_pdata(sysdef->getParticleData()),
+    : m_sysdef(sysdef),
+      m_pdata(sysdef->getParticleData()),
       m_is_member(m_pdata->getN()),
       m_member_idx(m_pdata->getN(), m_pdata->getExecConf())
     {
@@ -211,6 +212,28 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
         if (selector->isSelected(tag))
             m_member_tags.push_back(tag);
         }
+    
+    // now that the tag list is completely set up and all memory is allocated, rebuild the index list
+    rebuildIndexList();
+    
+    // connect the rebuildIndexList method to be called whenever the particles are sorted
+    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::rebuildIndexList, this));
+    }
+
+/*! \param sysdef System definition to build the group from
+    \param member_tags List of particle tags that belong to the group
+    
+    All particles specified in \a member_tags will be added to the group.
+*/
+ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags)
+    : m_sysdef(sysdef),
+      m_pdata(sysdef->getParticleData()),
+      m_is_member(m_pdata->getN()),
+      m_member_idx(m_pdata->getN(), m_pdata->getExecConf()),
+      m_member_tags(member_tags)
+    {
+    // let's make absolutely sure that the tag order given from outside is sorted
+    sort(m_member_tags.begin(), m_member_tags.end());
     
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
@@ -286,14 +309,18 @@ const Scalar3 ParticleGroup::getCenterOfMass() const
     \returns A shared pointer to a newly created particle group that contains all the elements present in \a a and
     \a b
 */
-boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b)
+boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<ParticleGroup> a,
+                                                           boost::shared_ptr<ParticleGroup> b)
     {
-    // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup());
+    // vector to store the new list of tags
+    vector<unsigned int> member_tags;
     
     // make the union
-    insert_iterator< vector<unsigned int> > ii(new_group->m_member_tags, new_group->m_member_tags.begin());
+    insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
     set_union(a->m_member_tags.begin(), a->m_member_tags.end(), b->m_member_tags.begin(), b->m_member_tags.end(), ii);
+    
+    // create the new particle group
+    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
     
     // return the newly created group
     return new_group;
@@ -305,19 +332,45 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
     \returns A shared pointer to a newly created particle group that contains only the elements present in both \a a and
     \a b
 */
-boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b)
+boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_ptr<ParticleGroup> a,
+                                                                  boost::shared_ptr<ParticleGroup> b)
     {
-    // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup());
+    // vector to store the new list of tags
+    vector<unsigned int> member_tags;
     
-    // make the union
-    insert_iterator< vector<unsigned int> > ii(new_group->m_member_tags, new_group->m_member_tags.begin());
+    // make the intersection
+    insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
     set_intersection(a->m_member_tags.begin(), a->m_member_tags.end(), b->m_member_tags.begin(), b->m_member_tags.end(), ii);
+    
+    // create the new particle group
+    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
     
     // return the newly created group
     return new_group;
     }
 
+/*! \param a First particle group
+    \param b Second particle group
+
+    \returns A shared pointer to a newly created particle group that contains only the elements present in \a a, and
+    not any present in \a b
+*/
+boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_ptr<ParticleGroup> a,
+                                                                boost::shared_ptr<ParticleGroup> b)
+    {
+    // vector to store the new list of tags
+    vector<unsigned int> member_tags;
+    
+    // make the difference
+    insert_iterator< vector<unsigned int> > ii(member_tags, member_tags.begin());
+    set_difference(a->m_member_tags.begin(), a->m_member_tags.end(), b->m_member_tags.begin(), b->m_member_tags.end(), ii);
+    
+    // create the new particle group
+    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
+    
+    // return the newly created group
+    return new_group;
+    }
 
 /*! \pre m_member_tags has been filled out, listing all particle tags in the group
     \pre memory has been allocated for m_is_member and m_member_idx
@@ -363,6 +416,7 @@ void export_ParticleGroup()
             .def("getMemberTag", &ParticleGroup::getMemberTag)
             .def("groupUnion", &ParticleGroup::groupUnion)
             .def("groupIntersection", &ParticleGroup::groupIntersection)
+            .def("groupDifference", &ParticleGroup::groupDifference)
             ;
     
     class_<ParticleSelector, boost::shared_ptr<ParticleSelector>, boost::noncopyable>

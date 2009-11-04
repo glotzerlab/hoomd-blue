@@ -141,7 +141,8 @@ class ParticleSelectorCuboid : public ParticleSelector
     The following common use-cases are expected and the design is tuned to make these optimal.
      - Iterate through all particles indices in the group, and the order of iteration doesn't matter, except for 
        performance.
-     - Iterate through all particle tags in the group, in a well-defined order that does not change
+     - Iterate through all particle tags in the group, in a well-defined order that does not change (namely, a sorted
+       tag order is required)
      - O(1) test if a particular particle index is in the group
 
     Membership in the group is determined through a generic ParticleSelector class. See its documentation for details.
@@ -181,6 +182,9 @@ class ParticleGroup
         
         //! Constructs a particle group of all particles that meet the given selection
         ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector);
+        
+        //! Constructs a particle group given a list of tags
+        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags);
         
         //! Destructor
         ~ParticleGroup();
@@ -252,13 +256,19 @@ class ParticleGroup
         // @{
             
         //! Make a new particle group from a union of two
-        static boost::shared_ptr<ParticleGroup> groupUnion(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b);
+        static boost::shared_ptr<ParticleGroup> groupUnion(boost::shared_ptr<ParticleGroup> a,
+                                                           boost::shared_ptr<ParticleGroup> b);
         //! Make a new particle group from an intersection
-        static boost::shared_ptr<ParticleGroup> groupIntersection(boost::shared_ptr<ParticleGroup> a, boost::shared_ptr<ParticleGroup> b);
+        static boost::shared_ptr<ParticleGroup> groupIntersection(boost::shared_ptr<ParticleGroup> a,
+                                                                  boost::shared_ptr<ParticleGroup> b);
+        //! Make a new particle group from an difference
+        static boost::shared_ptr<ParticleGroup> groupDifference(boost::shared_ptr<ParticleGroup> a,
+                                                                boost::shared_ptr<ParticleGroup> b);
         
         // @}
         
     private:
+        boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
         boost::dynamic_bitset<> m_is_member;            //!< One bit per particle, true if index is a member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
