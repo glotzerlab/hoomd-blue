@@ -102,10 +102,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ZeroMomentumUpdater.h"
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
-#include "NVTUpdater.h"
-#include "NPTUpdater.h"
-#include "NVEUpdater.h"
-#include "BD_NVTUpdater.h"
 #include "System.h"
 #include "Variant.h"
 
@@ -115,10 +111,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTGPU.h"
-#include "NVTUpdaterGPU.h"
-#include "NVEUpdaterGPU.h"
-#include "NPTUpdaterGPU.h"
-#include "BD_NVTUpdaterGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
@@ -126,7 +118,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "GaussianForceGPU.h"
-#include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
@@ -424,10 +415,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ZeroMomentumUpdater();
     export_SFCPackUpdater();
     export_BoxResizeUpdater();
-    export_NVTUpdater();
-    export_NPTUpdater();
-    export_NVEUpdater();
-    export_BD_NVTUpdater();
     export_TwoStepNVE();
     export_TwoStepNVT();
     export_TwoStepBDNVT();
@@ -437,10 +424,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();
     export_TwoStepNPTGPU();
-    export_NVEUpdaterGPU();
-    export_NVTUpdaterGPU();
-    export_NPTUpdaterGPU();
-    export_BD_NVTUpdaterGPU();
 #endif
     
     // system

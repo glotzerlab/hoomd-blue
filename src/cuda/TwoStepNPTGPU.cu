@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepNPTGPU.cuh"
-#include "Integrator.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32

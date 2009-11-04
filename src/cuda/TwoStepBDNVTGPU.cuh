@@ -47,6 +47,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
 */
 
+#include "ParticleData.cuh"
+
 #ifndef __TWO_STEP_BDNVT_GPU_CUH__
 #define __TWO_STEP_BDNVT_GPU_CUH__
 

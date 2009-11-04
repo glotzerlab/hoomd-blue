@@ -43,8 +43,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "NVTUpdaterGPU.cuh"
-#include "Integrator.cuh"
+#include "TwoStepNVTGPU.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32

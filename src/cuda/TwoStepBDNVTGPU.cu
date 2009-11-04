@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "Integrator.cuh"
 #include "TwoStepBDNVTGPU.cuh"
 #include "gpu_settings.h"
 
