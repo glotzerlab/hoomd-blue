@@ -1,0 +1,268 @@
+# -*- coding: iso-8859-1 -*-
+#Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+#(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+#Iowa State University and The Regents of the University of Michigan All rights
+#reserved.
+
+#HOOMD-blue may contain modifications ("Contributions") provided, and to which
+#copyright is held, by various Contributors who have granted The Regents of the
+#University of Michigan the right to modify and/or distribute such Contributions.
+
+#Redistribution and use of HOOMD-blue, in source and binary forms, with or
+#without modification, are permitted, provided that the following conditions are
+#met:
+
+#* Redistributions of source code must retain the above copyright notice, this
+#list of conditions, and the following disclaimer.
+
+#* Redistributions in binary form must reproduce the above copyright notice, this
+#list of conditions, and the following disclaimer in the documentation and/or
+#other materials provided with the distribution.
+
+#* Neither the name of the copyright holder nor the names of HOOMD-blue's
+#contributors may be used to endorse or promote products derived from this
+#software without specific prior written permission.
+
+#Disclaimer
+
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+#ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+#INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+#LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+#OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+#ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# $Id$
+# $URL$
+# Maintainer: joaander
+
+import hoomd
+
+## \package hoomd_script.data
+# \brief Data access translation classes
+#
+# Commands in the data package provide high-level access to all of the particle, bond and other data that define the
+# current state of the system. By writing python code that modifies this data, any concievable initialization of the
+# system can be achieved. Data can be read and additional analysis perfomred during or after simulation runs as well.
+# Basically, the user's imagination is the limit to what can be done with the data.
+
+# The only thing to be aware of is that accessing the data in this way can slow a simulation significantly if performed
+# too often. As a general guidline, consider writing a high performance C++ updater plugin (\ref sec_build_plugin)
+# if particle data needs to be modified more often than once every few hundred time steps.
+#
+# TODO: provide a whole set of documentation by example here: the documentation of the classes involved will be sparse
+# and the user directed to this example documentation to learn how to use it
+
+## Access system data
+#
+# system_data provides access to the different data structions that define the current state of the simulation.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# system_data, documented by example.
+#
+class system_data:
+    ## \internal
+    # \brief create a system_data
+    #
+    # \param sysdef SystemDefinition to connect
+    def __init__(self, sysdef):
+        self.sysdef = sysdef;
+        self.particles = particle_data(sysdef.getParticleData());
+
+    ## \var sysdef
+    # \internal
+    # \brief SystemDefinition to which this instance is connected
+
+## Access particle data
+#
+# particle_data provides access to the per-particle data of all particles in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# particle_data, documented by example.
+#
+class particle_data:
+    ## \internal
+    # \brief particle_data iterator
+    class particle_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+            
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+    
+    ## \internal
+    # \brief create a particle_data
+    #
+    # \param pdata ParticleData to connect
+    def __init__(self, pdata):
+        self.pdata = pdata;
+    
+    ## \var pdata
+    # \internal
+    # \brief ParticleData to which this instance is connected
+
+    ## \internal
+    # \brief Get a particle_proxy reference to the particle with tag \a tag
+    # \param tag Particle tag to access
+    def __getitem__(self, tag):
+        if tag >= len(self):
+            raise IndexError;
+        return particle_data_proxy(self.pdata, tag);
+    
+    ## \internal
+    # \brief Set a particle's properties
+    # \param tag Particle tag to set
+    # \param p Value containing properties to set
+    def __setitem__(self, tag, p):
+        raise RuntimeError('__setitem__ not implemented');
+    
+    ## \internal
+    # \brief Get the number of particles
+    def __len__(self):
+        return self.pdata.getN();
+    
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Particle Data for %d particles of %d type(s)" % (self.pdata.getN(), self.pdata.getNTypes());
+        return result
+    
+    ## \internal
+    # \brief Return ourselves as an interator
+    def __iter__(self):
+        return particle_data.particle_data_iterator(self);
+
+## Access a single particle via a proxy
+#
+# particle_data_proxy provides access to all of the properties of a single particle in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# particle_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c tag          : An integer indexing the particle in the system. Tags run from 0 to N-1;
+# - \c acceleration : A 3-tuple of floats   (x, y, z) Note that acceleration is a calculated quantity and cannot be set
+# - \c typeid       : An integer defining the type id
+#
+# The following attributes can be both read and set
+# - \c position     : A 3-tuple of floats   (x, y, z)
+# - \c image        : A 3-tuple of integers (x, y, z)
+# - \c velocity     : A 3-tuple of floats   (x, y, z)
+# - \c charge       : A single float
+# - \c mass         : A single float
+# - \c diameter     : A single float
+# - \c type         : A string naming the type
+#
+# In the current version of the API, only already defined type names can be used. A future improvement will allow 
+# dynamic creation of new type names from within the python API.
+#
+class particle_data_proxy:
+    ## \internal
+    # \brief create a particle_data_proxy
+    #
+    # \param pdata ParticleData to which this proxy belongs
+    # \param tag Tag of this particle in \a pdata
+    def __init__(self, pdata, tag):
+        self.pdata = pdata;
+        self.tag = tag;
+    
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "tag         : " + str(self.tag) + "\n"
+        result += "position    : " + str(self.position) + "\n";
+        result += "image       : " + str(self.image) + "\n";
+        result += "velocity    : " + str(self.velocity) + "\n";
+        result += "acceleration: " + str(self.acceleration) + "\n";
+        result += "charge      : " + str(self.charge) + "\n";
+        result += "mass        : " + str(self.mass) + "\n";
+        result += "type        : " + str(self.type) + "\n";
+        result += "typeid      : " + str(self.typeid) + "\n";
+        return result;
+    
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):        
+        if name == "position":
+            pos = self.pdata.getPosition(self.tag);
+            return (pos.x, pos.y, pos.z);
+        if name == "velocity":
+            vel = self.pdata.getVelocity(self.tag);
+            return (vel.x, vel.y, vel.z);
+        if name == "acceleration":
+            accel = self.pdata.getAcceleration(self.tag);
+            return (accel.x, accel.y, accel.z);
+        if name == "image":
+            image = self.pdata.getImage(self.tag);
+            return (image.x, image.y, image.z);
+        if name == "charge":
+            return self.pdata.getCharge(self.tag);
+        if name == "mass":
+            return self.pdata.getMass(self.tag);
+        if name == "diameter":
+            return self.pdata.getDiameter(self.tag);
+        if name == "typeid":
+            return self.pdata.getType(self.tag);
+        if name == "type":
+            typeid = self.pdata.getType(self.tag);
+            return self.pdata.getNameByType(typeid);
+        
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
+    
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "position":
+            v = hoomd.Scalar3();
+            v.x = float(value[0]);
+            v.y = float(value[1]);
+            v.z = float(value[2]);
+            self.pdata.setPosition(self.tag, v);
+            return;
+        if name == "velocity":
+            v = hoomd.Scalar3();
+            v.x = float(value[0]);
+            v.y = float(value[1]);
+            v.z = float(value[2]);
+            self.pdata.setVelocity(self.tag, v);
+            return;
+        if name == "image":
+            v = hoomd.uint3();
+            v.x = int(value[0]);
+            v.y = int(value[1]);
+            v.z = int(value[2]);
+            self.pdata.setImage(self.tag, v);
+            return;
+        if name == "charge":
+            self.pdata.setCharge(self.tag, float(value));
+            return;
+        if name == "mass":
+            self.pdata.setMass(self.tag, float(value));
+            return;
+        if name == "diameter":
+            self.pdata.setDiameter(self.tag, value);
+            return;
+        if name == "type":
+            typeid = self.pdata.getTypeByName(value);
+            self.pdata.setType(self.tag, typeid);
+            return;
+        if name == "typeid":
+            raise AttributeError;
+        if name == "acceleration":
+            raise AttributeError;
+ 
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
+        

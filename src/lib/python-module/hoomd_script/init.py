@@ -67,26 +67,6 @@ _options = {};
 #
 # \sa \ref page_quick_start
 
-## Access system data
-#
-# TODO: document me
-class system_data:
-    ## \internal
-    # \brief create a system_data
-    #
-    # \param sysdef System definition to associate with
-    def __init__(self, sysdef):
-        self.sysdef = sysdef;
-        self.pdata = sysdef.getParticleData()
-        self.particles = xrange(0,self.pdata.getN());
-    
-    ## Get the position of a particle
-    # \param tag Specify the particle tag to query
-    def get_particle_position(self, tag):
-        pos = self.pdata.getPosition(tag);
-        return (pos.x, pos.y, pos.z);
-    
-
 ## Resets all hoomd_script variables
 #
 # After calling init.reset() all global variables used in hoomd_script are cleared and all allocated
