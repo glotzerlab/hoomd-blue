@@ -1340,6 +1340,11 @@ void export_ParticleData()
         .def_readwrite("y", &Scalar3::y)
         .def_readwrite("z", &Scalar3::z)
         ;
+    class_<uint3>("uint3", init<>())
+        .def_readwrite("x", &uint3::x)
+        .def_readwrite("y", &uint3::y)
+        .def_readwrite("z", &uint3::z)
+        ;
     }
 
 #ifdef WIN32
