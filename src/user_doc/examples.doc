@@ -11,6 +11,8 @@ Examples:
      <i>None of the built-in generators works for you? Write an input file describing the initial condition and load it in.</i>
  - \ref sec_example_loop<br>
     <i>One simulation in a script not enough? Use a simple python loop to run many in a row!</i>
+ - \ref sec_example_pyinit<br>
+     <i>None of the built-in generators works \b AND you don't want to read an xml file? Just create your initial condition on the fly with python!</i>
 <hr>
 
 \section sec_example_dump Example 1: Using dump files
@@ -296,6 +298,68 @@ for size in size_array:
     del lj
     init.reset()
 
+\endcode
+
+\section sec_example_pyinit Example 6: Using python code to set the simulation initial condition
+
+This example performs a simulation of a Lennard-Jones liquid of two types of particles A and B. The initial condition
+is a simple cubic lattice, with the top half of the box containing particles of type B and the bottom half type A.
+
+It demonstrates several use-cases for accessing particle data from within python that could be easily copied
+and used in other scripts.
+ - Initialization of all particle positions
+ - Initialization of a thermal velocity distribution
+ - Changing the type of a group of particles
+
+For more information on python and a tutorial on the python language,
+check out http://www.python.org . Details about the relevant commands in hoomd_script can be found here:
+ - \link hoomd_script.init.create_empty init.create_empty\endlink
+ - hoomd_script.data
+
+\code
+from hoomd_script import *
+import random
+
+# parameters of the simple cubic crystal
+a = 1.2
+m = 10
+
+system = init.create_empty(N=m*m*m, box=(m*a, m*a, m*a), n_particle_types=2)
+
+# initialize a simple cubic array of particles
+lo = - m*a / 2.0;
+for p in system.particles:
+    (i, j, k) = (p.tag % m, p.tag/m % m, p.tag/m**2  % m)
+    p.position = (lo + i*a + a/2, lo + j*a + a/2, lo + k*a + a/2)
+
+# make the top half type B
+top = group.cuboid(name="top", ymin=0)
+for p in top:
+    p.type = 'B'
+
+# initialize the velocities to be a thermal distribution
+random.seed(1234);
+T = 1.0
+for p in system.particles:
+    mass = p.mass;
+    vx = random.gauss(0, T / mass)
+    vy = random.gauss(0, T / mass)
+    vz = random.gauss(0, T / mass)
+    p.velocity = (vx, vy, vz)
+
+# simple lennard jones potential
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+# integrate forward in the nve ensemble
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nve(all)
+
+# run for 20k steps
+run(20000)
 \endcode
 
 */

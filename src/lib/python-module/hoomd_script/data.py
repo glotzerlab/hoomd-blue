@@ -47,17 +47,121 @@ import hoomd
 ## \package hoomd_script.data
 # \brief Data access translation classes
 #
-# Commands in the data package provide high-level access to all of the particle, bond and other data that define the
-# current state of the system. By writing python code that modifies this data, any concievable initialization of the
-# system can be achieved. Data can be read and additional analysis perfomred during or after simulation runs as well.
-# Basically, the user's imagination is the limit to what can be done with the data.
-
-# The only thing to be aware of is that accessing the data in this way can slow a simulation significantly if performed
-# too often. As a general guidline, consider writing a high performance C++ updater plugin (\ref sec_build_plugin)
-# if particle data needs to be modified more often than once every few hundred time steps.
+# Code in the data package provide high-level access to all of the particle, bond and other %data that define the
+# current state of the system. By writing python code that modifies this %data, any concievable initialization of the
+# system can be achieved without needing to invoke external tools or generate xml files. Data can be read and additional
+# analysis perfomred during or after simulation runs as well. Basically, the user's imagination is the limit to what can
+# be done with the %data.
 #
-# TODO: provide a whole set of documentation by example here: the documentation of the classes involved will be sparse
-# and the user directed to this example documentation to learn how to use it
+# The only thing to be aware of is that accessing the %data in this way can slow a simulation significantly if performed
+# too often. As a general guidline, consider writing a high performance C++ / GPU  plugin (\ref sec_build_plugin)
+# if particle %data needs to accessed more often than once every few thousand time steps.
+#
+# <h2>Documentation by example</h2>
+#
+# For most of the cases below, it is assumed that the result of the initialization command was saved at the beginning
+# of the script, like so:
+# \code
+# system = init.read_xml(filename="input.xml")
+# \endcode
+# 
+# <h3>Particle properties</h3>
+# For a list of all particle properties that can be read and/or set, see the particle_data_proxy. The examples
+# here only demonstrate changing a few of them.
+#
+# With the result of an init command saved in the variable \c system (see above), \c system.particles is a window
+# into all of the particles in the system. It behaves like standard python list in many ways.
+# - Its length (the number of particles in the system) can be queried
+# \code
+# >>> len(system.particles)
+# 64000
+# \endcode
+# - A short summary can be printed of the list 
+# \code
+# >>> print system.particles
+# Particle Data for 64000 particles of 1 type(s)
+# \endcode
+# - Individual particles can be accessed at random.
+# \code
+# >>> i = 4
+# >>> p = system.particles[i]
+# \endcode
+# - Various properties can be accessed of any particle
+# \code
+# >>> p.tag
+# 4
+# >>> p.position
+# (27.296911239624023, -3.5986068248748779, 10.364067077636719)
+# >>> p.velocity
+# (-0.60267972946166992, 2.6205904483795166, -1.7868227958679199)
+# >>> p.mass
+# 1.0
+# >>> p.diameter
+# 1.0
+# >>> p.type
+# 'A'
+# \endcode
+# (note that p can be replaced with system.particles.[i] above and the results are the same)
+# - Particle properties can be set in the same way:
+# \code
+# >>> p.position = (1,2,3)
+# >>> p.position
+# (1.0, 2.0, 3.0)
+# \endcode
+# - Finally, all particles can be easily looped over
+# \code
+# for p in system.particles:
+#     p.velocity = (0,0,0)
+# \endcode
+#
+# Performance is decent, but not great. The for loop above that sets all velocities to 0 takes 0.86 seconds to execute
+# on a 2.93 GHz core2 iMac. The interface has been designed to be flexible and easy to use for the widest variety of
+# initialization tasks, not efficiency.
+#
+# There is a second way to access the particle data. Any defined group can be used in exactly the same way as
+# \c system.particles above, only the particles accessed will be those just belonging to the group. For a specific
+# example, the following will set the velocity of all particles of type A to 0.
+# \code
+# groupA = group.type(name="a-particles", type='A')
+# for p in groupA:
+#     p.velocity = (0,0,0)
+# \endcode
+# <hr>
+# <b>Proxy references</b>
+# 
+# For advanced code using the particle data access from python, it is important to uderstand that the hoomd_script
+# particles are accessed as proxies. This means that after
+# \code
+# p = system.particles[i]
+# \endcode
+# is executed, \a p \b doesn't store the position, velocity, ... of particle \a i. Instead, it just stores \a i and
+# provides an interface to get/set the properties on demand. This has some side effects. They aren't necessarily 
+# bad side effects, just some to be aware of.
+# - First, it means that \a p (or any other proxy reference) always references the current state of the particle.
+# As an example, note how the position of particle p moves after the run() command.
+# \code
+# >>> p.position
+# (-21.317455291748047, -23.883811950683594, -22.159387588500977)
+# >>> run(1000)
+# ** starting run **
+# ** run complete **
+# >>> p.position
+# (-19.774742126464844, -23.564577102661133, -21.418502807617188)
+# \endcode
+# - Second, it means that copies of the proxy reference cannot be changed independantly.
+# \code
+# p.position
+# >>> a = p
+# >>> a.position
+# (-19.774742126464844, -23.564577102661133, -21.418502807617188)
+# >>> p.position = (0,0,0)
+# >>> a.position
+# (0.0, 0.0, 0.0)
+# \endcode
+#
+# If you need to store some particle properties at one time in the simulation and access them again later, you will need
+# to make copies of the actual property values themselves and not of the proxy references.
+#
 
 ## Access system data
 #
@@ -116,7 +220,7 @@ class particle_data:
     # \brief Get a particle_proxy reference to the particle with tag \a tag
     # \param tag Particle tag to access
     def __getitem__(self, tag):
-        if tag >= len(self):
+        if tag >= len(self) or tag < 0:
             raise IndexError;
         return particle_data_proxy(self.pdata, tag);
     
@@ -139,7 +243,7 @@ class particle_data:
         return result
     
     ## \internal
-    # \brief Return ourselves as an interator
+    # \brief Return an interator
     def __iter__(self):
         return particle_data.particle_data_iterator(self);
 
@@ -187,6 +291,7 @@ class particle_data_proxy:
         result += "acceleration: " + str(self.acceleration) + "\n";
         result += "charge      : " + str(self.charge) + "\n";
         result += "mass        : " + str(self.mass) + "\n";
+        result += "diameter    : " + str(self.diameter) + "\n";
         result += "type        : " + str(self.type) + "\n";
         result += "typeid      : " + str(self.typeid) + "\n";
         return result;

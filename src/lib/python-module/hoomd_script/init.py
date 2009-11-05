@@ -53,6 +53,7 @@ import sys;
 import util;
 import gc;
 import os;
+import data;
 
 ## \internal
 # \brief Parsed command line options
@@ -111,6 +112,75 @@ def reset():
 
     del sysdef
     gc.collect();
+    
+## Create an empty system
+#
+# \param N Number of particles to create
+# \param box A 3-tuple of floats specifying the box lengths (Lx, Ly, Lz)
+# \param n_particle_types Number of particle types to create
+# \param n_bond_types Number of bond types to create
+# \param n_angle_types Number of angle types to create
+# \param n_dihedral_types Number of dihedral types to create
+# \param n_improper_types Number of improper types to create
+#
+# \b Examples:
+# \code
+# system = init.create_empty(N=1000, box=(10, 10, 10)
+# system = init.create_empty(N=64000, box=(20,20,20), n_particle_types=2)
+# system = init.create_empty(N=64000, box=(20,20,20), n_bond_types=1, n_dihedral_types=2, n_improper_types=4)
+# \endcode
+#
+# After init.create_empty returns, the requested number of particles will have been created <b>but all of them
+# will have <i> DEFAULT VALUES</i> </b> and further initialization \b MUST be performed. See hoomd_script.data
+# for full details on how such initialization can be performed.
+#
+# Specifically, all created particles will be:
+# - At position 0,0,0
+# - Have velocity 0,0,0
+# - In box image 0,0,0
+# - Have the type 'A'
+# - Have charge 0
+# - Have a mass of 1.0
+#
+# Furthermore, as a current limitation in the way create_empty works the defined particle type names are:
+# 'A', 'B', 'C', ... up to \a n_particle_types types. An intuituve way for resetting these types to user-defined ones
+# will come in a future enhancement.
+# 
+# \note The resulting empty system must have its particles fully initialized via python code, \b BEFORE
+# any other hoomd_script commands are executed. As as example of what might go wrong, if the pair.lj command were to be
+# run before the initial particle positions were set, \b all particles would have position 0,0,0 and the memory 
+# initialized by the neighbor list would be so large that the memory allocation would fail.
+#
+# \sa hoomd_script.data
+# \sa \ref page_example_scripts
+#
+def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
+    util.print_status_line();
+    
+    # parse command line
+    _parse_command_line();
+    
+    # check if initialization has already occurred
+    if (globals.system_definition != None):
+        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        raise RuntimeError('Error initializing');
+
+    # create the empty system
+    boxdim = hoomd.BoxDim(box[0], box[1], box[2]);
+    globals.system_definition = hoomd.SystemDefinition(N,
+                                                       boxdim,
+                                                       n_particle_types,
+                                                       n_bond_types,
+                                                       n_angle_types,
+                                                       n_dihedral_types,
+                                                       n_improper_types,
+                                                       _create_exec_conf());
+    
+    # initialize the system
+    globals.system = hoomd.System(globals.system_definition, 0);
+    
+    _perform_common_init_tasks();
+    return data.system_data(globals.system_definition);
 
 ## Reads initial system state from an XML file
 #
@@ -122,6 +192,7 @@ def reset():
 # init.read_xml(filename="data.xml")
 # init.read_xml(filename="directory/data.xml")
 # init.read_xml(filename="restart.xml", time_step=0)
+# system = init.read_xml(filename="data.xml")
 # \endcode
 #
 # All particles, bonds, etc...  are read from the XML file given, 
@@ -132,6 +203,9 @@ def reset():
 #
 # If \a time_step is specified, it's value will be used as the initial time 
 # step of the simulation instead of the one read from the XML file.
+#
+# The result of init.read_xml can be saved in a variable and later used to read and/or change particle properties
+# later in the script. See hoomd_script.data for more information.
 #
 def read_xml(filename, time_step = None):
     util.print_status_line();
@@ -156,7 +230,7 @@ def read_xml(filename, time_step = None):
         globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
     
     _perform_common_init_tasks();
-    return globals.system_definition;
+    return data.system_data(globals.system_definition);
 
 
 ## Generates N randomly positioned particles of the same type
@@ -170,6 +244,7 @@ def read_xml(filename, time_step = None):
 # \code
 # init.create_random(N=2400, phi_p=0.20)
 # init.create_random(N=2400, phi_p=0.40, min_dist=0.5)
+# system = init.create_random(N=2400, phi_p=0.20)
 # \endcode
 #
 # \a N particles are randomly placed in the simulation box. The 
@@ -178,6 +253,9 @@ def read_xml(filename, time_step = None):
 # is related to the packing fraction by \f$n = 6/\pi \cdot \phi_P\f$
 # assuming the particles have a radius of 0.5.
 # All particles are created with the same type, given by \a name.
+# 
+# The result of init.create_random can be saved in a variable and later used to read and/or change particle properties
+# later in the script. See hoomd_script.data for more information.
 #
 def create_random(N, phi_p, name="A", min_dist=0.7):
     util.print_status_line();
@@ -223,7 +301,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
     globals.system = hoomd.System(globals.system_definition, 0);
     
     _perform_common_init_tasks();
-    return globals.system_definition;
+    return data.system_data(globals.system_definition);
 
 
 ## Generates any number of randomly positioned polymers of configurable types
@@ -319,6 +397,9 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # to generate a configuration of rings, you may need to write your own specialized initial configuration
 # generator that writes HOOMD XML input files (see \ref page_xml_file_format). HOOMD's built-in polymer generator
 # attempts to be as general as possible, but unfortunately cannot work in every possible case.
+# 
+# The result of init.create_random_polymers can be saved in a variable and later used to read and/or change particle
+# properties later in the script. See hoomd_script.data for more information.
 #
 def create_random_polymers(box, polymers, separation, seed=1):
     util.print_status_line();
@@ -437,7 +518,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
     globals.system = hoomd.System(globals.system_definition, 0);
     
     _perform_common_init_tasks();
-    return globals.system_definition;
+    return data.system_data(globals.system_definition);
 
 ## Performs common initialization tasks
 #

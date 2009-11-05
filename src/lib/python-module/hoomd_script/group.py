@@ -46,6 +46,7 @@ import hoomd;
 import sys;
 import util;
 import globals;
+import data;
 
 ## \package hoomd_script.group
 # \brief Commands for grouping particles
@@ -70,7 +71,7 @@ import globals;
 # Once a group has been created, it can be combined with others via set operations to form more complicated groups.
 # Available operations are:
 # - group.difference()
-# - group.intersect()
+# - group.intersection()
 # - group.union()
 #
 # \b Examples:
@@ -89,7 +90,40 @@ import globals;
 # all = group.all()
 # group_notA = group.difference(name="notA", a=all, b=groupA)
 # \endcode
+#
+# A group can also be queried with python sequence semantics.
+#
+# \b Examples:
+# \code
+# groupA = group.type('A')
+# # print the number of particles in group A
+# print len(groupA)
+# # print the position of the first particle in the group
+# print groupA[0].position
+# # set the velocity of all particles in groupA to 0
+# for p in groupA:
+#     p.velocity = (0,0,0)
+# \endcode
+#
+# For more information and examples on accessing the %data in this way, see hoomd_script.data.
+# 
 class group:
+    ## \internal
+    # \brief group iterator
+    class group_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+            
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+    
     ## \internal
     # \brief Creates a group
     # 
@@ -99,6 +133,34 @@ class group:
         # initialize the group
         self.name = name;
         self.cpp_group = cpp_group;
+    
+    ## \internal
+    # \brief Get a particle_proxy reference to the i'th particle in the group
+    # \param i Index of the particle in the group to get
+    def __getitem__(self, i):
+        if i >= len(self) or i < 0:
+            raise IndexError;
+        tag = self.cpp_group.getMemberTag(i);
+        return data.particle_data_proxy(globals.system_definition.getParticleData(), tag);
+    
+    def __setitem__(self, i, p):
+        raise RuntimeError('__setitem__ not implemented');
+
+    ## \internal
+    # \brief Get the number of particles in the group
+    def __len__(self):
+        return self.cpp_group.getNumMembers();
+
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Particle Group " + self.name + " containing " + str(len(self)) + " particles";
+        return result;
+
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return group.group_iterator(self);
 
 ## \name Group specifications
 

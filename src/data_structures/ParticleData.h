@@ -658,7 +658,7 @@ class ParticleData : boost::noncopyable
             m_arrays.mass[idx] = mass;
             release();
             }
-        //! Get the current diameter of a particle
+        //! Set the current diameter of a particle
         void setDiameter(unsigned int tag, Scalar diameter)
             {
             assert(tag < getN());

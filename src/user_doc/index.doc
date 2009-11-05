@@ -48,6 +48,7 @@ Table of contents:
 
 \section sec_index_init Initialization commands 
 \link hoomd_script.init init\endlink:
+ - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>\copybrief hoomd_script::init::create_empty() </i>
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>\copybrief hoomd_script::init::create_random_polymers() </i>
@@ -140,3 +141,4 @@ Table of contents:
  - \link hoomd_script.tune.find_optimal_block_sizes() tune.find_optimal_block_sizes\endlink - <i>\copybrief hoomd_script::tune::find_optimal_block_sizes </i>
 
 */
+
