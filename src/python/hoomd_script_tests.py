@@ -477,6 +477,7 @@ class integrate_npt_tests (unittest.TestCase):
         npt.set_params(tau=0.6);
         npt.set_params(P=0.5);
         npt.set_params(tauP=0.6);
+        npt.set_params(partial_scale=True);
         run(100);
     
     def tearDown(self):

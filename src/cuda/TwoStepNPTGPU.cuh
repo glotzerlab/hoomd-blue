@@ -61,6 +61,7 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
                              unsigned int group_size,
                              unsigned int block_size,
                              unsigned int num_blocks,
+                             bool partial_scale,
                              float Xi,
                              float Eta,
                              float deltaT);
@@ -69,6 +70,7 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
 cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize& box,
                              unsigned int block_size,
+                             bool partial_scale,
                              float Eta,
                              float deltaT);
 

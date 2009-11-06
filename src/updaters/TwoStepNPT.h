@@ -102,6 +102,14 @@ class TwoStepNPT : public IntegrationMethodTwoStep
             m_tauP = tauP;
             }
         
+        //! Set the partial scale option
+        /*! \param partial_scale New partial_scale option to set
+        */
+        void setPartialScale(bool partial_scale)
+            {
+            m_partial_scale = partial_scale;
+            }
+        
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         
@@ -109,6 +117,7 @@ class TwoStepNPT : public IntegrationMethodTwoStep
         virtual void integrateStepTwo(unsigned int timestep);
     
     protected:
+        bool m_partial_scale;           //!< True if only the particles in the group should be scaled to the new box
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_T; //!< Temperature set point

@@ -75,6 +75,7 @@ extern __shared__ float npt_sdata[];
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
+    \param partial_scale Set to true to only scale those particles in the group
     \param exp_v_fac exp_v_fac = \f$\exp(-\frac 1 4 (\eta+\xi)*\delta T)\f$ is the scaling factor for
 velocity update and is a result of coupling to the thermo/barostat
     \param exp_r_fac exp_r_fac = \f$\exp(\frac 1 2 \eta\delta T)\f$ is the scaling factor for
@@ -85,6 +86,7 @@ extern "C" __global__
 void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
+                             bool partial_scale,
                              float exp_v_fac,
                              float exp_r_fac,
                              float deltaT)
@@ -124,6 +126,13 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
         vel.z = vel.z*exp_v_fac*exp_v_fac + (1.0f/2.0f) * deltaT*exp_v_fac*accel.z;
         pz = pz + vel.z*exp_r_fac_inv*deltaT;
         
+        if (partial_scale)
+            {
+            px *= exp_r_fac*exp_r_fac;
+            py *= exp_r_fac*exp_r_fac;
+            pz *= exp_r_fac*exp_r_fac;
+            }
+        
         float4 pos2;
         pos2.x = px;
         pos2.y = py;
@@ -141,6 +150,7 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
     \param group_size Number of members in the group
     \param block_size Size of the block to execute on the GPU
     \param num_blocks Number of blocks to execute on the GPU
+    \param partial_scale Set to true to only scale those particles in the group
     \param Xi theromstat variable in Nose-Hoover barostat
     \param Eta barostat variable in Nose-Hoover barostat
     \param deltaT Time to move forward in one whole step
@@ -152,6 +162,7 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
                              unsigned int group_size,
                              unsigned int block_size,
                              unsigned int num_blocks,
+                             bool partial_scale,
                              float Xi,
                              float Eta,
                              float deltaT)
@@ -178,7 +189,13 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
     float exp_r_fac = exp(1.0f/2.0f*Eta*deltaT);        // position scaling
     
     // run the kernel
-    gpu_npt_step_one_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, exp_v_fac, exp_r_fac, deltaT);
+    gpu_npt_step_one_kernel<<< grid, threads >>>(pdata,
+                                                 d_group_members,
+                                                 group_size,
+                                                 partial_scale,
+                                                 exp_v_fac,
+                                                 exp_r_fac,
+                                                 deltaT);
     
     if (!g_gpu_error_checking)
         {
@@ -193,6 +210,7 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
     
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
     \param box The new box the particles where the particles now reside
+    \param partial_scale Set to true to only scale those particles in the group
     \param box_len_scale Scaling factor by which to scale particle positions
     
     Scale all of the particle positions to fit inside the new box. ALL particles are scaled, not just those belonging
@@ -202,6 +220,7 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
 extern "C" __global__ 
 void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
                              gpu_boxsize box,
+                             bool partial_scale,
                              float box_len_scale)
     {
     // determine which particle this thread works on
@@ -213,10 +232,17 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
         // fetch particle position
         float4 pos = tex1Dfetch(pdata_pos_tex, idx);
         
-        float px = pos.x * box_len_scale;
-        float py = pos.y * box_len_scale;
-        float pz = pos.z * box_len_scale;
-        float pw = pos.w * box_len_scale;
+        float px = pos.x;
+        float py = pos.y;
+        float pz = pos.z;
+        float pw = pos.w;
+        
+        if (!partial_scale)
+            {
+            px *= box_len_scale;
+            py *= box_len_scale;
+            pz *= box_len_scale;
+            }
         
         // read in the image flags
         int4 image = tex1Dfetch(pdata_image_tex, idx);
@@ -249,6 +275,7 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
     \param box The new box the particles where the particles now reside
     \param block_size Size of the block to execute on the GPU
+    \param partial_scale Set to true to only scale those particles in the group
     \param Eta barostat variable in Nose-Hoover barostat
     \param deltaT Time to move forward in one whole step
 
@@ -257,6 +284,7 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
 cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize& box,
                              unsigned int block_size,
+                             bool partial_scale,
                              float Eta,
                              float deltaT)
     {
@@ -285,7 +313,7 @@ cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
         return error;
         
     // run the kernel
-    gpu_npt_boxscale_kernel<<< grid, threads >>>(pdata, scaled_box, box_len_scale);
+    gpu_npt_boxscale_kernel<<< grid, threads >>>(pdata, scaled_box, partial_scale, box_len_scale);
     
     if (!g_gpu_error_checking)
         {

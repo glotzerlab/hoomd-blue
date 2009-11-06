@@ -415,6 +415,8 @@ class npt(_integration_method):
     # \param P Pressure set point for the Anderson barostat
     # \param tau Coupling constant for the Nos&eacute;-Hoover thermostat.
     # \param tauP Coupling constant for the barostat
+    # \param partial_scale If False (the default), \b all particles in the box are scaled due to the box size changes
+    #                      during NPT integration. If True, only those particles that belong to \a group will be scaled.
     #
     # Both \a T and \a P can be variant types, allowing for temperature/pressure ramps in simulation runs.
     #
@@ -427,7 +429,7 @@ class npt(_integration_method):
     # integrate.npt(dt=0.005, T=1.0, tau=0.5, tauP=1.0, P=2.0)
     # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
     # \endcode
-    def __init__(self, group, T, tau, P, tauP):
+    def __init__(self, group, T, tau, P, tauP, partial_scale=False):
         util.print_status_line();
         
         # initialize base class
@@ -445,12 +447,16 @@ class npt(_integration_method):
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NPT integrator");
-    
+        
+        self.cpp_method.setPartialScale(partial_scale);
+        
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
     # \param tau New coupling constant (if set)
     # \param P New pressure (if set)
     # \param tauP New barostat coupling constant (if set)
+    # \param partial_scale (if set) Change whether all particles in the box are scaled (False), or just those in the
+    #                      group (True)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -463,7 +469,7 @@ class npt(_integration_method):
     # integrator.set_params(tau=0.6)
     # integrator.set_params(dt=3e-3, T=2.0, P=1.0)
     # \endcode
-    def set_params(self, T=None, tau=None, P=None, tauP=None):
+    def set_params(self, T=None, tau=None, P=None, tauP=None, partial_scale=None):
         util.print_status_line();
         # check that proper initialization has occurred
         if self.cpp_method == None:
@@ -483,6 +489,8 @@ class npt(_integration_method):
             self.cpp_method.setP(P.cpp_variant);
         if tauP != None:
             self.cpp_method.setTauP(tauP);
+        if partial_scale != None:
+            self.cpp_method.setPartialScale(partial_scale);
 
 ## NVE Integration via Velocity-Verlet
 #

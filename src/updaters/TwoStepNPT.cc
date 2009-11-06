@@ -70,7 +70,7 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P)
-    : IntegrationMethodTwoStep(sysdef, group), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P)
+    : IntegrationMethodTwoStep(sysdef, group), m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in TwoStepNPT" << endl;
@@ -139,6 +139,13 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
         
         arrays.vz[j] = arrays.vz[j]*exp_v_fac*exp_v_fac + Scalar(1.0/2.0)*m_deltaT*exp_v_fac*arrays.az[j];
         arrays.z[j] = arrays.z[j] + arrays.vz[j]*exp_r_fac_inv*m_deltaT;
+        
+        if (m_partial_scale)
+            {
+            arrays.x[j] *= exp_r_fac * exp_r_fac;
+            arrays.y[j] *= exp_r_fac * exp_r_fac;
+            arrays.z[j] *= exp_r_fac * exp_r_fac;
+            }
         }
     
     // advance volume
@@ -156,9 +163,12 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     
     for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
-        arrays.x[j] *= box_len_scale;
-        arrays.y[j] *= box_len_scale;
-        arrays.z[j] *= box_len_scale;
+        if (!m_partial_scale)
+            {
+            arrays.x[j] *= box_len_scale;
+            arrays.y[j] *= box_len_scale;
+            arrays.z[j] *= box_len_scale;
+            }
         
         // wrap the particle around the box
         if (arrays.x[j] >= Scalar(m_Lx/2.0))
@@ -326,6 +336,7 @@ void export_TwoStepNPT()
         .def("setP", &TwoStepNPT::setP)
         .def("setTau", &TwoStepNPT::setTau)
         .def("setTauP", &TwoStepNPT::setTauP)
+        .def("setPartialScale", &TwoStepNPT::setPartialScale)
         ;
     }
 

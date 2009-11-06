@@ -131,6 +131,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
                                 group_size,
                                 m_block_size,
                                 m_group_num_blocks,
+                                m_partial_scale,
                                 m_Xi,
                                 m_Eta,
                                 m_deltaT));
@@ -151,6 +152,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     exec_conf.gpu[0]->call(bind(gpu_npt_boxscale, d_pdata[0],
                                                   box,
                                                   m_block_size,
+                                                  m_partial_scale,
                                                   m_Eta,
                                                   m_deltaT));
     
