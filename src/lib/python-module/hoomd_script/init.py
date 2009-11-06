@@ -143,7 +143,7 @@ def reset():
 # - Have a mass of 1.0
 #
 # Furthermore, as a current limitation in the way create_empty works the defined particle type names are:
-# 'A', 'B', 'C', ... up to \a n_particle_types types. An intuituve way for resetting these types to user-defined ones
+# 'A', 'B', 'C', ... up to \a n_particle_types types. An intuitive way for resetting these types to user-defined ones
 # will come in a future enhancement.
 # 
 # \note The resulting empty system must have its particles fully initialized via python code, \b BEFORE

@@ -269,7 +269,7 @@ class _integration_method:
 #
 # By itself, integrate.mode_standard does nothing. You must specify one or more integration methods to apply to the
 # system. Each integration method can be applied to only a specific group of particles enabling advanced simulation
-# techniques. See Example (TODO) for a demonstration.
+# techniques.
 #
 # The following commands can be used to specify the integration methods used by integrate.mode_standard.
 # - integrate.nve

@@ -159,7 +159,7 @@ You will then see a screen that looks like this:
 
 Click configure. You should now see a screen like this:
 \image html cmake_linux_setup.png
-Choose your preferred build environemnt and click OK. This guide assumes that "Unix Makefiles" was chosen.
+Choose your preferred build environment and click OK. This guide assumes that "Unix Makefiles" was chosen.
 
 Now you should see a screen like this:
 \image html cmake_linux_firstpress.png
@@ -169,7 +169,7 @@ If you are building with GPU support enabled, check the ENABLE_CUDA box.
 To generate the makefiles now, click \b configure several times until all the red settings turn white,
 then click \b generate.
 
-You can also scroll down the list of options. Setting the chekcbox options will
+You can also scroll down the list of options. Setting the checkbox options will
 control whether certain features are compiled in. You must click configure after 
 any change. Note that in some cases, changing an option to ON will cause other
 options to appear. Some options controlled by changing text strings.
@@ -260,7 +260,7 @@ If you are building with GPU support enabled, check the ENABLE_CUDA box.
 
 To generate the makefiles (or XCode project) now, click \b configure several times until all the red settings turn white, then click \b generate.
 
-You can also scroll down the list of options. Setting the chekcbox options will
+You can also scroll down the list of options. Setting the checkbox options will
 control whether certain features are compiled in. You must click configure after 
 any change. Note that in some cases, changing an option to ON will cause other
 options to appear. Some options controlled by changing text strings.

@@ -48,13 +48,13 @@ import hoomd
 # \brief Data access translation classes
 #
 # Code in the data package provide high-level access to all of the particle, bond and other %data that define the
-# current state of the system. By writing python code that modifies this %data, any concievable initialization of the
+# current state of the system. By writing python code that modifies this %data, any conceivable initialization of the
 # system can be achieved without needing to invoke external tools or generate xml files. Data can be read and additional
-# analysis perfomred during or after simulation runs as well. Basically, the user's imagination is the limit to what can
+# analysis performed during or after simulation runs as well. Basically, the user's imagination is the limit to what can
 # be done with the %data.
 #
 # The only thing to be aware of is that accessing the %data in this way can slow a simulation significantly if performed
-# too often. As a general guidline, consider writing a high performance C++ / GPU  plugin (\ref sec_build_plugin)
+# too often. As a general guideline, consider writing a high performance C++ / GPU  plugin (\ref sec_build_plugin)
 # if particle %data needs to accessed more often than once every few thousand time steps.
 #
 # <h2>Documentation by example</h2>
@@ -129,7 +129,7 @@ import hoomd
 # <hr>
 # <b>Proxy references</b>
 # 
-# For advanced code using the particle data access from python, it is important to uderstand that the hoomd_script
+# For advanced code using the particle data access from python, it is important to understand that the hoomd_script
 # particles are accessed as proxies. This means that after
 # \code
 # p = system.particles[i]
@@ -148,7 +148,7 @@ import hoomd
 # >>> p.position
 # (-19.774742126464844, -23.564577102661133, -21.418502807617188)
 # \endcode
-# - Second, it means that copies of the proxy reference cannot be changed independantly.
+# - Second, it means that copies of the proxy reference cannot be changed independently.
 # \code
 # p.position
 # >>> a = p
@@ -165,7 +165,7 @@ import hoomd
 
 ## Access system data
 #
-# system_data provides access to the different data structions that define the current state of the simulation.
+# system_data provides access to the different data structures that define the current state of the simulation.
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # system_data, documented by example.
 #
