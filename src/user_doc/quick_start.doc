@@ -59,7 +59,7 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 # integrate at constant temperature
 all = group.all();
 integrate.mode_standard(dt=0.005)
-integrate.nvt(all, T=1.2, tau=0.5)
+integrate.nvt(group=all, T=1.2, tau=0.5)
 
 # run 10,000 time steps
 run(10e3)
@@ -96,7 +96,7 @@ test.hoomd:008  |  lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0
 test.hoomd:011  |  all = group.all();
 Group "all" created containing 100 particles
 test.hoomd:012  |  integrate.mode_standard(dt=0.005)
-test.hoomd:013  |  integrate.nvt(all, T=1.2, tau=0.5)
+test.hoomd:013  |  integrate.nvt(group=all, T=1.2, tau=0.5)
 test.hoomd:016  |  run(10e3)
 ** starting run **
 Time 00:00:00 | Step 10000 / 10000 | TPS 35417.9 | ETA 00:00:00
@@ -205,7 +205,7 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 \code
 all = group.all();
 integrate.mode_standard(dt=0.005)
-integrate.nvt(all, T=1.2, tau=0.5)
+integrate.nvt(group=all, T=1.2, tau=0.5)
 \endcode
     After the initialization and before the \link hoomd_script.run() run()\endlink command, the order in which commands are called
     doesn't matter. The NVT integrator could just as easily been specified before the pair force.<br>

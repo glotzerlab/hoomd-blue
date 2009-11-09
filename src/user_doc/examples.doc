@@ -33,7 +33,7 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 # integrate at constant temperature
 all = group.all()
 integrate.mode_standard(dt=0.005)
-integrate.nvt(all, T=1.2, tau=0.5)
+integrate.nvt(group=all, T=1.2, tau=0.5)
 
 # dump a .mol2 file for the structure information
 mol2 = dump.mol2()
@@ -88,7 +88,7 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
 # integrate at constant temperature
 all = group.all()
 integrate.mode_standard(dt=0.005)
-integrate.nvt(all, T=1.2, tau=0.5)
+integrate.nvt(group=all, T=1.2, tau=0.5)
 
 # dump a .mol2 file for the structure information
 mol2 = dump.mol2()
@@ -167,7 +167,7 @@ dump.dcd(filename="example3.dcd", period=100000)
 # integrate NVT for a bunch of time steps
 all = group.all()
 integrate.mode_standard(dt=0.005)
-integrate.nvt(all, T=1.2, tau=0.5)
+integrate.nvt(group=all, T=1.2, tau=0.5)
 run(2000)
 
 # uncomment the next run() command if you have a few hours to spare 
@@ -258,7 +258,7 @@ dump.dcd(filename="example4.dcd", period=10)
 # integrate NVT for a bunch of time steps
 all = group.all()
 integrate.mode_standard(dt=0.005)
-integrate.nvt(all, T=1.2, tau=0.5)
+integrate.nvt(group=all, T=1.2, tau=0.5)
 run(2000)
 \endcode
 
@@ -288,7 +288,7 @@ for size in size_array:
     # integrate at constant temperature
     all = group.all()
     integrate.mode_standard(dt=0.005)
-    integrate.nvt(all, T=1.2, tau=0.5)
+    integrate.nvt(group=all, T=1.2, tau=0.5)
     
     # run 10,000 time steps
     run(10e3)
@@ -356,7 +356,7 @@ lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
 # integrate forward in the nve ensemble
 all = group.all()
 integrate.mode_standard(dt=0.005)
-integrate.nve(all)
+integrate.nve(group=all)
 
 # run for 20k steps
 run(20000)

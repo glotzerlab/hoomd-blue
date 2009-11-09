@@ -64,10 +64,10 @@
 # \code
 # all = group.all()
 # integrate.mode_standard(dt=0.005)
-# nvt = integrate.nvt(all, T=1.2, tau=0.5)
+# nvt = integrate.nvt(group=all, T=1.2, tau=0.5)
 # run(1000)
 # nvt.disable()
-# integrate.nve(all)
+# integrate.nve(group=all)
 # run(1000)
 # \endcode
 #
@@ -78,7 +78,7 @@
 # In order to access the integrator to change it, it needs to be saved
 # in a variable. For example:
 # \code
-# integrator = integrate.nvt(all, T=1.2, tau=0.5)
+# integrator = integrate.nvt(group=all, T=1.2, tau=0.5)
 # run(100)
 # integrator.set_params(T=1.0)
 # run(100)
@@ -347,10 +347,10 @@ class nvt(_integration_method):
     # \b Examples:
     # \code
     # all = group.all()
-    # integrate.nvt(all, T=1.0, tau=0.5)
-    # integrator = integrate.nvt(all, tau=1.0, T=0.65)
+    # integrate.nvt(group=all, T=1.0, tau=0.5)
+    # integrator = integrate.nvt(group=all, tau=1.0, T=0.65)
     # typeA = group.type('A')
-    # integrator = integrate.nvt(typeA, tau=1.0, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+    # integrator = integrate.nvt(group=typeA, tau=1.0, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
     def __init__(self, group, T, tau):
         util.print_status_line();
@@ -377,7 +377,7 @@ class nvt(_integration_method):
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
     # \code
-    # integrator = integrate.nvt(all, tau=1.0, T=0.65)
+    # integrator = integrate.nvt(group=all, tau=1.0, T=0.65)
     # \endcode
     #
     # \b Examples:
@@ -522,11 +522,11 @@ class nve(_integration_method):
     # \b Examples:
     # \code
     # all = group.all()
-    # integrate.nve(all)
-    # integrator = integrate.nve(all)
+    # integrate.nve(group=all)
+    # integrator = integrate.nve(group=all)
     # typeA = group.type('A')
-    # integrate.nve(typeA, limit=0.01)
-    # integrate.nve(typeA, zero_force=True)
+    # integrate.nve(group=typeA, limit=0.01)
+    # integrate.nve(group=typeA, zero_force=True)
     # \endcode
     def __init__(self, group, limit=None, zero_force=False):
         util.print_status_line();
@@ -556,7 +556,7 @@ class nve(_integration_method):
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
     # \code
-    # integrator = integrate.nve(all)
+    # integrator = integrate.nve(group=all)
     # \endcode
     #
     # \b Examples:
@@ -619,11 +619,11 @@ class bdnvt(_integration_method):
     # \b Examples:
     # \code
     # all = group.all();
-    # integrate.bdnvt(all, T=1.0, seed=5)
-    # integrator = integrate.bdnvt(all, T=1.0, seed=100)
-    # integrate.bdnvt(all, T=1.0, limit=0.01, gamma_diam=1)
+    # integrate.bdnvt(group=all, T=1.0, seed=5)
+    # integrator = integrate.bdnvt(group=all, T=1.0, seed=100)
+    # integrate.bdnvt(group=all, T=1.0, limit=0.01, gamma_diam=1)
     # typeA = group.type('A');
-    # integrate.bdnvt(typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+    # integrate.bdnvt(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
     def __init__(self, group, T, seed=0, gamma_diam=False, limit=None):
         util.print_status_line();
@@ -653,7 +653,7 @@ class bdnvt(_integration_method):
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
     # \code
-    # integrator = integrate.bdnvt(all, T=1.0)
+    # integrator = integrate.bdnvt(group=all, T=1.0)
     # \endcode
     #
     # \b Examples:
