@@ -426,7 +426,7 @@ class npt(_integration_method):
     #
     # \b Examples:
     # \code
-    # integrate.npt(dt=0.005, T=1.0, tau=0.5, tauP=1.0, P=2.0)
+    # integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
     # integrator = integrate.npt(tau=1.0, dt=5e-3, T=0.65, tauP = 1.2, P=2.0)
     # \endcode
     def __init__(self, group, T, tau, P, tauP, partial_scale=False):
