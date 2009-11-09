@@ -44,7 +44,7 @@
 // Maintainer: akohlmey
 
 /*! \file FileFormatProxy.h
-	\brief Declares the FileFormatProxy base class for 
+    \brief Declares the FileFormatProxy base class for 
     transparent i/o to molecular file formats.
 */
 
@@ -62,14 +62,14 @@
   \ingroup utils
 */
 class FileFormatProxy
-	{
+    {
     public:
         //! Constructor
         FileFormatProxy();
         //! Destructor
         virtual ~FileFormatProxy();
 
-	enum { FCAP_NONE=0, 
+    enum { FCAP_NONE=0, 
            FCAP_ATOMTYPE=1<<0,
            FCAP_POSITION=1<<1, 
            FCAP_VELOCITY=1<<2, 
@@ -113,3 +113,4 @@ class FileFormatProxy
     };
 
 #endif
+
