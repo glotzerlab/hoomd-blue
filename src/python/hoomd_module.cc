@@ -376,6 +376,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMForceCompute();
     export_GaussianForceCompute();
     export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
+    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_LJWallForceCompute();
     export_TempCompute();
     export_NeighborList();

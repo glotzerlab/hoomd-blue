@@ -49,6 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPair.h"
 #include "PotentialPairEvaluatorLJ.h"
 
+#ifdef ENABLE_CUDA
+#include "PotentialPairGPU.h"
+#include "PotentialPairLJGPU.cuh"
+#endif
+
 /*! \file PairPotentials.h
     \brief Handy list of typedefs for all of the templated pair potentials in hoomd
 */
@@ -59,6 +64,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Pair potential force compute for lj forces
 typedef PotentialPair<PotentialPairEvaluatorLJ> PotentialPairLJ;
+
+#ifdef ENABLE_CUDA
+//! Pair potential force compute for lj forces on the GPU
+typedef PotentialPairGPU< PotentialPairEvaluatorLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
+#endif
 
 #endif // __PAIR_POTENTIALS_H__
 
