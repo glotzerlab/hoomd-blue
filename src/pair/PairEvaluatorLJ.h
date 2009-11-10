@@ -43,12 +43,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-// todo, write and include a hoomdmath include file here
-
 #ifndef __PAIR_EVALUATOR_LJ_H__
 #define __PAIR_EVALUATOR_LJ_H__
 
-/*! \file PairEvaluatorLJ.h
+#include "HOOMDMath.h"
+
+/*! \file PotentialPairEvaluatorLJ.h
     \brief Defines the pair evaluator class for LJ potentials
     \details As the prototypical example of a MD pair potential, this also serves as the primary documetnation and
     base reference for the implementation of pair evaluators.
@@ -65,9 +65,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Class for evaluating the LJ pair potential
 /*! <b>General Overview</b>
 
-    PairPotentialEvaluatorLJ is a low level computation class that computes the LJ pair potential V(r). As the standard
+    PotentialPairEvaluatorLJ is a low level computation class that computes the LJ pair potential V(r). As the standard
     MD potential, it also serves as a well documented example of how to write additional pair potentials. "Standard"
-    pair potentials in hoomd are all handled via the template class PairPotential. PairPotential takes a potential
+    pair potentials in hoomd are all handled via the template class PotentialPair. PotentialPair takes a potential
     evaluator as a template argument. In this way, all the complicated data mangament and other details of computing
     the pair force and potential on every single particle is only written once in the template class and the difference
     V(r) potentials that can be calculated are simply handled within the evaluator class. Template instantiation is
@@ -80,14 +80,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     Diameter and charge are not always needed by a given pair evaluator, so it must provide the functions
     needsDiameter() and needsCharge() which return boolean values signifying if they need those quantities or not. A
-    false return value notifies PairPotential that it need not even load those valuse from memory, boosting performance.
+    false return value notifies PotentialPair that it need not even load those valuse from memory, boosting performance.
     
     If needsDiameter() returns true, a setDiameter(Scalar di, Scalar dj) method will be called to set the two diameters.
     Similarly, if needsCharge() returns true, a setCharge(Scalar qi, Scalar qj) method will be called to set the two
     charges.
     
     All other parameters are common among all pair potentials and passed into the constructor. Parameters are handled
-    in a special way: the pair evaluator class (and PairPotential) manage only a single parameter variable for each
+    in a special way: the pair evaluator class (and PotentialPair) manage only a single parameter variable for each
     type pair. Pair potentials that need more than 1 parameter can specify that their param_type be a compound
     structure and reference that. For coalesced read performance on G200 GPUs, it is highly recommended that param_type
     is one of the following types: Scalar, Scalar2, Scalar4.
@@ -122,7 +122,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     If r_on is greater than r_cut, set energy_shift true. If r_on is less than r_cut, set energy_shift false and 
     perform the xplor smoothing.)
 */
-class PairPotentialEvaluatorLJ
+class PotentialPairEvaluatorLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
