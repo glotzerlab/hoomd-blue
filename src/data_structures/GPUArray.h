@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 
 #include <iostream>
+#include <stdexcept>
 #include <algorithm>
 #include <boost/bind.hpp>
 
