@@ -54,15 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 #include <cuda_runtime_api.h>
 #include "gpu_settings.h"
-#else
-
-// GPUArray is likely to be used with various vector types defined in cuda (float4, etc...)
-// for builds on systems where CUDA is not available, include copies of the relevant CUDA header
-// files for convenience
-#include "cudacpu_vector_types.h"
-#include "cudacpu_vector_functions.h"
-
 #endif
+
 #include "ExecutionConfiguration.h"
 
 #include <iostream>
