@@ -6,6 +6,7 @@
 ## Setup include directories and file lists for sub directories
 include_directories(${HOOMD_SOURCE_DIR}/utils ${HOOMD_SOURCE_DIR}/data_structures ${HOOMD_SOURCE_DIR}/computes
                     ${HOOMD_SOURCE_DIR}/updaters ${HOOMD_SOURCE_DIR}/cuda ${HOOMD_SOURCE_DIR}/analyzers
+                    ${HOOMD_SOURCE_DIR}/pair
                     ${HOOMD_SOURCE_DIR}/computes_gpu
                     ${HOOMD_SOURCE_DIR}/updaters_gpu
                     ${HOOMD_SOURCE_DIR}/system
