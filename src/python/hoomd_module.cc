@@ -79,6 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TablePotential.h"
 #include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
+#include "PairPotentials.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
@@ -374,6 +375,7 @@ BOOST_PYTHON_MODULE(hoomd)
     //export_YukawaForceCompute();
     export_CGCMMForceCompute();
     export_GaussianForceCompute();
+    export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
     export_LJWallForceCompute();
     export_TempCompute();
     export_NeighborList();

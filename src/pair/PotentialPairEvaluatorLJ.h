@@ -46,6 +46,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __PAIR_EVALUATOR_LJ_H__
 #define __PAIR_EVALUATOR_LJ_H__
 
+#ifndef NVCC
+#include <string>
+#endif
+
 #include "HOOMDMath.h"
 
 /*! \file PotentialPairEvaluatorLJ.h
@@ -116,11 +120,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     - \a lj1 = 4.0 * epsilon * pow(sigma,12.0)
     - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
     
-    (note: handling of energy_shift / shift_mode with mixed LJ/WCA. No shift and shifting of all energies will be done
-    via a template parameter that gets translated into energy_shift. When the xplor shift mode is active, we don't want
-    to shift or switch WCA but we DO want to do that to LJ. This can be done by specifying r_on for each type pair.
-    If r_on is greater than r_cut, set energy_shift true. If r_on is less than r_cut, set energy_shift false and 
-    perform the xplor smoothing.)
 */
 class PotentialPairEvaluatorLJ
     {
@@ -133,41 +132,61 @@ class PotentialPairEvaluatorLJ
             \param _rcutsq Sqauared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
-        DEVICE PairEvaluatorLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        DEVICE PotentialPairEvaluatorLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
             : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
             {
             }
         
         //! LJ doesn't use diameter
         DEVICE static bool needsDiameter() { return false; }
+        //! Accept the optional diameter values
+        /*! \param di Diameter of particle i
+            \param dj Diameter of particle j
+        */
+        DEVICE void setDiameter(Scalar di, Scalar dj) { }
+
         //! LJ doesn't use charge
         DEVICE static bool needsCharge() { return false; }
-
+        //! Accept the optional diameter values
+        /*! \param qi Charge of particle i
+            \param qj Charge of particle j
+        */
+        DEVICE void setCharge(Scalar qi, Scalar qj) { }
+        
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
             \param pair_eng Output parameter to write the computed pair energy
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
+            \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
+                  in PotentialPair.
         */
         DEVICE void evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
-            if (rsq < rcutsq)
+            // compute the force divided by r in force_divr
+            Scalar r2inv = Scalar(1.0)/rsq;
+            Scalar r6inv = r2inv * r2inv * r2inv;
+            force_divr= r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
+            
+            pair_eng = r6inv * (lj1*r6inv - lj2);
+            
+            if (energy_shift)
                 {
-                // compute the force divided by r in force_divr
-                Scalar r2inv = Scalar(1.0)/rsq;
-                Scalar r6inv = r2inv * r2inv * r2inv;
-                force_divr= r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
-                
-                pair_eng = r6inv * (lj1*r6inv - lj2);
-                
-                if (energy_shift)
-                    pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
-                }
-            else
-                {
-                force_divr = Scalar(0.0);
-                pair_eng = Scalar(0.0);
+                Scalar rcut2inv = Scalar(1.0)/rcutsq;
+                Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+                pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
                 }
             }
+        
+        #ifndef NVCC
+        //! Get the name of this potential
+        /*! \returns The potential name. Must be short and all lowercase, as this is the name energies will be logged as
+            via analyze.log.
+        */
+        static std::string getName()
+            {
+            return std::string("lj");
+            }
+        #endif
 
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
