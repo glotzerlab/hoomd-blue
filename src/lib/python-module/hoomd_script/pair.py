@@ -619,7 +619,7 @@ class pair(force._force):
     # mypair.set_params(mode="xplor")
     # \endcode
     # 
-    def set_params(self, mode=None, fraction=None):
+    def set_params(self, mode=None):
         util.print_status_line();
         
         if mode != None:
