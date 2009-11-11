@@ -43,7 +43,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander / Everyone is free to add additional potentials
 
-/*! \file PotentialPairLJGPU.cuh
+/*! \file AllDriverPotentialPairGPU.cuh
     \brief Declares driver functions for computing all types of pair forces on the GPU
 */
 
