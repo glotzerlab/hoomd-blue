@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
-#include "PotentialPairLJGPU.cuh"
+#include "AllDriverPotentialPairGPU.cuh"
 #endif
 
 /*! \file AllPairPotentials.h

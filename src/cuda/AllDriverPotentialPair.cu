@@ -41,14 +41,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: joaander / Everyone is free to add additional potentials
 
-/*! \file PotentialPairLJGPU.cu
-    \brief Defines the driver function for computing LJ pair forces on the GPU
+/*! \file AllDriverPotentialPairGPU.cu
+    \brief Defines the driver functions for computing all types of pair forces on the GPU
 */
 
 #include "EvaluatorPairLJ.h"
-#include "PotentialPairLJGPU.cuh"
+#include "AllDriverPotentialPairGPU.cuh"
 
 /*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairLJ>(). See it for details.
 
