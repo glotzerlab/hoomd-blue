@@ -126,7 +126,7 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
     typename evaluator::param_type *s_params = (typename evaluator::param_type *)(&s_data[2*ntypes*sizeof(float)]);
     
     // load in the per type pair parameters
-    Index2DUpperTriangular typpair_idx(ntypes);
+    Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
         {
@@ -348,7 +348,7 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
     if (error != cudaSuccess)
         return error;
     
-    Index2DUpperTriangular typpair_idx(ntypes);
+    Index2D typpair_idx(ntypes);
     unsigned int shared_bytes = (2*sizeof(float) + sizeof(typename evaluator::param_type)) 
                                 * typpair_idx.getNumElements();
     

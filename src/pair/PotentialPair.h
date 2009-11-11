@@ -152,7 +152,7 @@ class PotentialPair : public ForceCompute
     protected:
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
-        Index2DUpperTriangular m_typpair_idx;       //!< Helper class for indexing per type pair arrays
+        Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
         GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
         GPUArray<param_type> m_params;   //!< Pair parameters per type pair
@@ -177,7 +177,7 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     // initialize the per type pair memory
     unsigned int ntypes = m_pdata->getNTypes();
     assert(ntypes > 0);
-    m_typpair_idx = Index2DUpperTriangular(ntypes);
+    m_typpair_idx = Index2D(ntypes);
     
     GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_pdata->getExecConf());
     m_rcutsq.swap(rcutsq);
