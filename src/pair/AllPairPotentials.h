@@ -54,7 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PotentialPairLJGPU.cuh"
 #endif
 
-/*! \file PairPotentials.h
+/*! \file AllPairPotentials.h
     \brief Handy list of typedefs for all of the templated pair potentials in hoomd
 */
 

@@ -60,7 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "PairPotentials.h"
+#include "AllPairPotentials.h"
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"

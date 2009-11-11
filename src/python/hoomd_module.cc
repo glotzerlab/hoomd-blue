@@ -79,7 +79,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TablePotential.h"
 #include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
-#include "PairPotentials.h"
+#include "AllPairPotentials.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
