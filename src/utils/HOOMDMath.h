@@ -52,7 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // for vector types
 #ifdef ENABLE_CUDA
-#include <cuda_runtime_api.h>
+#include <cuda_runtime.h>
 #else
 
 // for builds on systems where CUDA is not available, include copies of the CUDA header
@@ -121,7 +121,7 @@ HOSTDEVICE inline Scalar3 make_scalar3(Scalar x, Scalar y, Scalar z)
     }
 
 //! make a scalar4 value
-HOSTDEVICE inline Scalar4 make_scalar2(Scalar x, Scalar y, Scalar z, Scalar w)
+HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     {
     Scalar4 retval;
     retval.x = x;
@@ -130,6 +130,9 @@ HOSTDEVICE inline Scalar4 make_scalar2(Scalar x, Scalar y, Scalar z, Scalar w)
     retval.w = w;
     return retval;
     }
+
+//! Export relevant hoomd math functions to python
+void export_hoomd_math_functions();
 
 #endif // __HOOMD_MATH_H__
 

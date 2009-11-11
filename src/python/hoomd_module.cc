@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
 
+#include "HOOMDMath.h"
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
@@ -340,6 +341,7 @@ BOOST_PYTHON_MODULE(hoomd)
     InstallSIGINTHandler();
     
     // utils
+    export_hoomd_math_functions();
     export_ClockSource();
     export_Profiler();
     
