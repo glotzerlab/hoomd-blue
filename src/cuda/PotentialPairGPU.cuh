@@ -82,25 +82,29 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the potentials and 
-    forces for each pair is handled via the template class evaluator.
+    forces for each pair is handled via the template class \a evaluator.
 
     \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
-    \param d_coeffs Coefficients to the lennard jones force.
-    \param coeff_width Width of the coefficient matrix
-    \param r_cutsq Precalculated r_cut*r_cut, where r_cut is the radius beyond which forces are
-        set to 0
-    \param rcut6inv Precalculated 1/r_cut**6
-    \param xplor_denom_inv Precalculated 1/xplor denominator
-    \param r_on_sq Precalculated r_on*r_on (for xplor)
     \param box Box dimensions used to implement periodic boundary conditions
-
-    \a coeffs is a pointer to a matrix in memory. \c coeffs[i*coeff_width+j].x is \a lj1 for the type pair \a i, \a j.
-    Similarly, .y is the \a lj2 parameter. The values in d_coeffs are read into shared memory, so
-    \c coeff_width*coeff_width*sizeof(float2) bytes of extern shared memory must be allocated for the kernel call.
-
-    Developer information:
+    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_params Parameters for the potential, stored per type pair
+    \param d_rcutsq rcut squared, stored per type pair
+    \param d_ronsq ron squared, stored per type pair
+    \param ntypes Number of types in the simulation
+    
+    \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
+    unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
+    amount of shared memory must be allocatd for this kernel launch. The amount is
+    (2*sizeof(float) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
+    
+    Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
+    \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+    \tparam ulf_workaround Set to true to enable a workaround for the annoying ULF bug
+    \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
+                       (See PotentialPair for a discussion on what that entails)
+    
+    <b>Implementation details</b>
     Each block will calculate the forces on a block of particles.
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
@@ -220,7 +224,9 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
             unsigned int typpair = typpair_idx(__float_as_int(posi.w), __float_as_int(posj.w));
             float rcutsq = s_rcutsq[typpair];
             typename evaluator::param_type param = s_params[typpair];
-            float ronsq = s_ronsq[typpair];
+            float ronsq = 0.0f;
+            if (shift_mode == 2)
+                ronsq = s_ronsq[typpair];
             
             bool energy_shift = false;
             if (shift_mode == 1)
@@ -290,6 +296,18 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
     }
 
 //! Kernel driver that computes lj forces on the GPU for LJForceComputeGPU
+/*! \param force_data Device memory array to write calculated forces to
+    \param pdata Particle data on the GPU to calculate forces on
+    \param box Box dimensions used to implement periodic boundary conditions
+    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_params Parameters for the potential, stored per type pair
+    \param d_rcutsq rcut squared, stored per type pair
+    \param d_ronsq ron squared, stored per type pair
+    \param ntypes Number of types in the simulation
+    \param args Additional options
+    
+    This is just a driver function for gpu_compute_pair_forces_kernel(), see it for details.
+*/
 template< class evaluator >
 cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
                                     const gpu_pdata_arrays &pdata,
@@ -317,7 +335,7 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
     if (error != cudaSuccess)
         return error;
 
-    // bind the diamter textu
+    // bind the diamter texture
     pdata_diam_tex.normalized = false;
     pdata_diam_tex.filterMode = cudaFilterModePoint;
     error = cudaBindTexture(0, pdata_diam_tex, pdata.diameter, sizeof(float) * pdata.N);

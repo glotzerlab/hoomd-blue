@@ -109,6 +109,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     For profiling and logging, PotentialPair needs to know the name of the potential. For now, that will be queried from
     the evaluator. Perhapsin the future we could allow users to change that so multiple pair potentials could be logged
     independantly.
+    
+    \sa export_PotentialPair()
 */
 template < class evaluator >
 class PotentialPair : public ForceCompute
@@ -491,6 +493,9 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     }
 
 //! Export this pair potential to python
+/*! \param name Name of the class in the exported python module
+    \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
+*/
 template < class T > void export_PotentialPair(const std::string& name)
     {
     boost::python::scope in_pair = 

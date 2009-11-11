@@ -62,7 +62,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
-//! TODO document me
+//! Template class for computing pair potentials on the GPU
+/*! Derived from PotentialPair, this class provides exactly the same interface for computing pair potentials and forces.
+    In the same way as PotentialPair, this class serves as a shell dealing with all the details common to every pair
+    potential calculation while the \a evaluator calculates V(r) in a generic way.
+    
+    Due to technical limitations, the instantiation of PotentialPairGPU cannot create a CUDA kernel automatically
+    with the \a evaluator. Instead, a .cu file must be written that provides a driver function to call 
+    gpu_compute_pair_forces() instantiated with the same evaluator. (See PotentialPairLJGPU.cu and 
+    PotentialPairLJGPU.cuh for an example). That function is then passed into this class as another template parameter
+    \a gpu_cgpf
+    
+    \tparam evaluator EvaluatorPair class used to evaluate V(r) and F(r)/r
+    \tparam gpu_cgpf Driver function that calls gpu_compute_pair_forces<evaluator>()
+    
+    \sa export_PotentialPairGPU()
+*/
 template< class evaluator, cudaError_t gpu_cgpf(const gpu_force_data_arrays& force_data,
                                                 const gpu_pdata_arrays &pdata,
                                                 const gpu_boxsize &box,
@@ -217,6 +232,10 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     }
 
 //! Export this pair potential to python
+/*! \param name Name of the class in the exported python module
+    \tparam T Class type to export. \b Must be an instantiated PotentialPairGPU class template.
+    \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
+*/
 template < class T, class Base > void export_PotentialPairGPU(const std::string& name)
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
