@@ -52,7 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 
-/*! \file PotentialPairEvaluatorLJ.h
+/*! \file EvaluatorPairLJ.h
     \brief Defines the pair evaluator class for LJ potentials
     \details As the prototypical example of a MD pair potential, this also serves as the primary documetnation and
     base reference for the implementation of pair evaluators.
@@ -69,7 +69,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Class for evaluating the LJ pair potential
 /*! <b>General Overview</b>
 
-    PotentialPairEvaluatorLJ is a low level computation class that computes the LJ pair potential V(r). As the standard
+    EvaluatorPairLJ is a low level computation class that computes the LJ pair potential V(r). As the standard
     MD potential, it also serves as a well documented example of how to write additional pair potentials. "Standard"
     pair potentials in hoomd are all handled via the template class PotentialPair. PotentialPair takes a potential
     evaluator as a template argument. In this way, all the complicated data mangament and other details of computing
@@ -121,7 +121,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     - \a lj2 = alpha * 4.0 * epsilon * pow(sigma,6.0);
     
 */
-class PotentialPairEvaluatorLJ
+class EvaluatorPairLJ
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
@@ -132,7 +132,7 @@ class PotentialPairEvaluatorLJ
             \param _rcutsq Sqauared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
-        DEVICE PotentialPairEvaluatorLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
+        DEVICE EvaluatorPairLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
             : rsq(_rsq), rcutsq(_rcutsq), lj1(_params.x), lj2(_params.y)
             {
             }

@@ -47,7 +47,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __PAIR_POTENTIALS__H__
 
 #include "PotentialPair.h"
-#include "PotentialPairEvaluatorLJ.h"
+#include "EvaluatorPairLJ.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
@@ -63,11 +63,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Pair potential force compute for lj forces
-typedef PotentialPair<PotentialPairEvaluatorLJ> PotentialPairLJ;
+typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
-typedef PotentialPairGPU< PotentialPairEvaluatorLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
+typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
 #endif
 
 #endif // __PAIR_POTENTIALS_H__

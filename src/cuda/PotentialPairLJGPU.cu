@@ -47,10 +47,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the driver function for computing LJ pair forces on the GPU
 */
 
-#include "PotentialPairEvaluatorLJ.h"
+#include "EvaluatorPairLJ.h"
 #include "PotentialPairLJGPU.cuh"
 
-/*! This is just a driver function for gpu_compute_pair_forces<PotentialPairEvaluatorLJ>(). See it for details.
+/*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairLJ>(). See it for details.
 
     \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
@@ -72,13 +72,13 @@ cudaError_t gpu_compute_ljtemp_forces(const gpu_force_data_arrays& force_data,
                                       int ntypes,
                                       const pair_args& args)
     {
-    return gpu_compute_pair_forces<PotentialPairEvaluatorLJ>(force_data,
-                                                             pdata,
-                                                             box,
-                                                             nlist,
-                                                             d_params,
-                                                             d_rcutsq,
-                                                             d_ronsq,
-                                                             ntypes,
-                                                             args);
+    return gpu_compute_pair_forces<EvaluatorPairLJ>(force_data,
+                                                    pdata,
+                                                    box,
+                                                    nlist,
+                                                    d_params,
+                                                    d_rcutsq,
+                                                    d_ronsq,
+                                                    ntypes,
+                                                    args);
     }

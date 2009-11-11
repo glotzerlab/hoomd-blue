@@ -77,7 +77,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     PotentialPair computes standard pair potentials (and forces) between all particle pairs in the simulation. It
     employs the use of a neighbor list to limit the number of computations done to only those particles with the 
     cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
-    by an evaluator class (e.g. PotentialPairEvaluatorLJ) which is passed in as a template parameter so the compuations
+    by an evaluator class (e.g. EvaluatorPairLJ) which is passed in as a template parameter so the compuations
     are performed as efficiently as possible.
     
     PotentialPair handles most of the gory internal details common to all standard pair potentials.
