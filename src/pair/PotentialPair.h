@@ -100,8 +100,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     <b>Implementation details</b>
     
-    rcutsq, ronsq, and the params are stored per particle type pair. To save space, Index2DUpperTriangular is used
-    to index the 1D array while only storing one unique value for each pair. All of these values are stored in GPUArray
+    rcutsq, ronsq, and the params are stored per particle type pair. It wastas a little bit of space, but benchmarks
+    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
+    and indexing with Index2DUpperTriangular. All of these values are stored in GPUArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
     element of the parameters.
@@ -209,6 +210,7 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
     
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[m_typpair_idx(typ1, typ2)] = param;
+    h_params.data[m_typpair_idx(typ2, typ1)] = param;
     }
 
 /*! \param typ1 First type index in the pair
@@ -229,6 +231,7 @@ void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, S
     
     ArrayHandle<Scalar> h_rcutsq(m_rcutsq, access_location::host, access_mode::readwrite);
     h_rcutsq.data[m_typpair_idx(typ1, typ2)] = rcut * rcut;
+    h_rcutsq.data[m_typpair_idx(typ2, typ1)] = rcut * rcut;
     }
 
 /*! \param typ1 First type index in the pair
@@ -249,6 +252,7 @@ void PotentialPair< evaluator >::setRon(unsigned int typ1, unsigned int typ2, Sc
     
     ArrayHandle<Scalar> h_ronsq(m_ronsq, access_location::host, access_mode::readwrite);
     h_ronsq.data[m_typpair_idx(typ1, typ2)] = ron * ron;
+    h_ronsq.data[m_typpair_idx(typ2, typ1)] = ron * ron;
     }
 
 /*! PotentialPair provides:
