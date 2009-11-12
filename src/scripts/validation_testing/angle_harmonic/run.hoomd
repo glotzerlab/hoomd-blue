@@ -35,7 +35,7 @@ L = math.pow(math.pi * N / (6.0 * phi_P), 1.0/3.0);
 init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[typeA, typeB, typeC, typeD], separation=dict(A=0.35, B=0.35, C=0.35, D=0.35))
 
 # add the angles
-angle_data = globals.particle_data.getAngleData();
+angle_data = globals.system_definition.getAngleData();
 for start in xrange(0,8000*4,4):
     angle_data.addAngle(hoomd.Angle(0, start, start+1, start+2));
     angle_data.addAngle(hoomd.Angle(0, start+1, start+2, start+3));

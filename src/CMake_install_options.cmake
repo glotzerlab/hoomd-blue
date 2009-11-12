@@ -24,8 +24,8 @@ endif (WIN32)
 ################################
 ## Version information
 set(HOOMD_VERSION_MAJOR "0")
-set(HOOMD_VERSION_MINOR "8")
-set(HOOMD_VERSION_PATCH "2")
+set(HOOMD_VERSION_MINOR "9")
+set(HOOMD_VERSION_PATCH "0")
 set(HOOMD_VERSION "${HOOMD_VERSION_MAJOR}.${HOOMD_VERSION_MINOR}.${HOOMD_VERSION_PATCH}")
 set(HOOMD_VERSION_LONG "${HOOMD_VERSION}")
 if ("$URL$" MATCHES "codeblue.umich.edu/hoomd-blue/svn/tags")

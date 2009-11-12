@@ -44,7 +44,7 @@
 // Maintainer: akohlmey
 
 /*! \file FileFormatManager.h
-	\brief Declares the MolFilePlugin and FileFormatManager classes
+    \brief Declares the MolFilePlugin and FileFormatManager classes
 */
 
 #ifndef __FILE_FORMAT_MANAGER_H__
@@ -101,3 +101,4 @@ class FileFormatManager
     };
 
 #endif
+

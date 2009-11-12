@@ -151,7 +151,7 @@ sub wanted
         ($message, $line_count) = process_file_lines($fname);
         $full_message .= $message;
         $full_message .= process_file_svn($fname);
-        $full_message .= process_file_astyle($fname, $line_count);
+        #$full_message .= process_file_astyle($fname, $line_count);
 
         if ($full_message)
             {

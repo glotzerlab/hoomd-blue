@@ -44,7 +44,7 @@
 // Maintainer: akohlmey
 
 /*! \file MolFilePlugin.h
-	\brief Declares the MolFilePlugin class
+    \brief Declares the MolFilePlugin class
 */
 
 #ifndef __MOLFILE_PLUGIN_H__
@@ -61,7 +61,7 @@
   \ingroup utils
  */
 class MolFilePlugin : public FileFormatProxy
-	{
+    {
     public:
         //! Constructor
         MolFilePlugin(void *p);
@@ -81,3 +81,4 @@ class MolFilePlugin : public FileFormatProxy
     };
 
 #endif
+

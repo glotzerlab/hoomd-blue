@@ -257,3 +257,4 @@ void FileFormatManager::unload_molfile_dso(void *handle)
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+
