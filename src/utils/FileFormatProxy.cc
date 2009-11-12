@@ -112,3 +112,4 @@ int FileFormatProxy::check_version(const int major, const int minor) const
 #ifdef WIN32
 #pragma warning( pop )
 #endif
+
