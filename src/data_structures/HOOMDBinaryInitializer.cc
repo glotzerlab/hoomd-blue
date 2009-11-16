@@ -127,7 +127,7 @@ void HOOMDBinaryInitializer::setTimeStep(unsigned int ts)
 void HOOMDBinaryInitializer::initArrays(const ParticleDataArrays &pdata) const
     {
     assert(m_x_array.size() > 0 && m_x_array.size() == pdata.nparticles);
-    
+        
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_x_array.size(); i++)
         {
@@ -166,9 +166,13 @@ void HOOMDBinaryInitializer::initWallData(boost::shared_ptr<WallData> wall_data)
         wall_data->addWall(m_walls[i]);
     }
 
-std::vector<IntegratorVariables> HOOMDBinaryInitializer::getIntegratorVariables() const
+void HOOMDBinaryInitializer::initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data ) const
     {
-        return m_integrator_variables;
+    for (unsigned int i=0; i<m_integrator_variables.size(); i++)
+        {
+        integrator_data->registerIntegrator(i);
+        integrator_data->setIntegratorVariables(i, m_integrator_variables[i]);
+        }
     }
 
 /*! \param fname File name of the hoomd_binary file to read in
@@ -244,11 +248,13 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&(m_az_array[0]), np*sizeof(Scalar));	
     f.read((char*)&(m_mass_array[0]), np*sizeof(Scalar));	
     f.read((char*)&(m_diameter_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_type_array[0]), np*sizeof(unsigned int));	
     f.read((char*)&(m_charge_array[0]), np*sizeof(Scalar));	
 
     //parse types
-    for (unsigned int i = 0; i < np; i++)
+    unsigned int ntypes = 0;
+    f.read((char*)&ntypes, sizeof(unsigned int));
+    m_type_mapping.resize(ntypes);
+    for (unsigned int i = 0; i < ntypes; i++)
         {
         unsigned int len;
         f.read((char*)&len, sizeof(unsigned int));
@@ -256,8 +262,9 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read(type_cstr, len*sizeof(char));
         type_cstr[len] = '\0';
         std::string type = type_cstr;
-        m_type_array[i] = getTypeId(type);
+        m_type_mapping[i] = type;
         }
+    f.read((char*)&(m_type_array[0]), np*sizeof(unsigned int));	
 
     //parse integrator states
     {

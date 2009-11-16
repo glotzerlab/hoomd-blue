@@ -87,6 +87,7 @@ NVTUpdater::NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
         v.variable[0] = xi;
         v.variable[1] = eta;
         }
+
     setIntegratorVariables(v);
     }
 

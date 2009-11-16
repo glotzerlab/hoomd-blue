@@ -135,18 +135,21 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     
     pdata1->release();
     
+    shared_ptr<IntegratorData> idata = sysdef1->getIntegratorData();
     // add some integrator states
     std::string name1 = "nvt", name2 = "langevin";
     Scalar var1(1.2), var2(0.1234), var3(1234324);
-    std::vector<IntegratorVariables> iv;
-    iv.resize(2);
-    iv[0].type = name1;
-    iv[1].type = name2;
-    iv[0].variable.resize(2);
-    iv[0].variable[0] = var1;
-    iv[0].variable[1] = var2;
-    iv[1].variable.resize(1, var3);
-    pdata1->setIntegratorVariables(iv);
+    IntegratorVariables iv0, iv1;
+    iv0.type = name1;
+    iv1.type = name2;
+    iv0.variable.resize(2);
+    iv0.variable[0] = var1;
+    iv0.variable[1] = var2;
+    iv1.variable.resize(1, var3);
+    idata->registerIntegrator(0);
+    idata->setIntegratorVariables(0, iv0);
+    idata->registerIntegrator(1);
+    idata->setIntegratorVariables(1, iv1);
     
     // add a couple walls for fun
     sysdef1->getWallData()->addWall(Wall(1,0,0, 0,1,0));
@@ -221,22 +224,24 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     pdata2->release();
     
     //integrator variables check
-    std::vector<IntegratorVariables> iv1, iv2;
-    iv1 = pdata1->getIntegratorVariables();
-    iv2 = pdata2->getIntegratorVariables();
+    IntegratorVariables iv1_0, iv2_0, iv1_1, iv2_1;
+    iv1_0 = sysdef1->getIntegratorData()->getIntegratorVariables(0);
+    iv1_1 = sysdef1->getIntegratorData()->getIntegratorVariables(1);
+    iv2_0 = sysdef2->getIntegratorData()->getIntegratorVariables(0);
+    iv2_1 = sysdef2->getIntegratorData()->getIntegratorVariables(1);
 
-    BOOST_CHECK_EQUAL(iv1.size(), (unsigned int) 2);
-    BOOST_CHECK_EQUAL(iv2.size(), (unsigned int) 2);
-    BOOST_CHECK_EQUAL(iv1[0].type, name1);
-    BOOST_CHECK_EQUAL(iv2[0].type, name1);
-    BOOST_CHECK_EQUAL(iv1[1].type, name2);
-    BOOST_CHECK_EQUAL(iv2[1].type, name2);
-    BOOST_CHECK_EQUAL(iv1[0].variable[0], var1);
-    BOOST_CHECK_EQUAL(iv1[0].variable[1], var2);
-    BOOST_CHECK_EQUAL(iv1[1].variable[0], var3);
-    BOOST_CHECK_EQUAL(iv2[0].variable[0], var1);
-    BOOST_CHECK_EQUAL(iv2[0].variable[1], var2);
-    BOOST_CHECK_EQUAL(iv2[1].variable[0], var3);
+    BOOST_CHECK_EQUAL(sysdef1->getIntegratorData()->getNumIntegrators(), (unsigned int) 2);
+    BOOST_CHECK_EQUAL(sysdef2->getIntegratorData()->getNumIntegrators(), (unsigned int) 2);
+    BOOST_CHECK_EQUAL(iv1_0.type, name1);
+    BOOST_CHECK_EQUAL(iv2_0.type, name1);
+    BOOST_CHECK_EQUAL(iv1_1.type, name2);
+    BOOST_CHECK_EQUAL(iv2_1.type, name2);
+    BOOST_CHECK_EQUAL(iv1_0.variable[0], var1);
+    BOOST_CHECK_EQUAL(iv1_0.variable[1], var2);
+    BOOST_CHECK_EQUAL(iv1_1.variable[0], var3);
+    BOOST_CHECK_EQUAL(iv2_0.variable[0], var1);
+    BOOST_CHECK_EQUAL(iv2_0.variable[1], var2);
+    BOOST_CHECK_EQUAL(iv2_1.variable[0], var3);
     
     //
     // create the writer

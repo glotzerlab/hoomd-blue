@@ -293,7 +293,6 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
     
     setBox(init.getBox());        
     init.initArrays(m_arrays);
-    setIntegratorVariables(init.getIntegratorVariables());
             
     // it is an error for particles to be initialized outside of their box
     if (!inBox(false))
@@ -358,20 +357,6 @@ void ParticleData::setBox(const BoxDim &box)
 #endif
     
     m_boxchange_signal();
-    }
-
-/*! \return A reference to the integrator variables
-*/
-const std::vector<IntegratorVariables>& ParticleData::getIntegratorVariables()
-    {
-    return m_integrator_variables;
-    }
-    
-/*! \param variables New variables to set
-*/
-void ParticleData::setIntegratorVariables(const std::vector<IntegratorVariables>& variables)
-    {    
-        m_integrator_variables = variables;
     }
 
 /*! Access to the particle data is granted only when acquired. The data may be living

@@ -74,7 +74,9 @@ Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT
     {
     if (m_deltaT <= 0.0)
         cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
-        
+    
+    m_sysdef->getIntegratorData()->registerIntegrator(m_unique_id);
+    
 #ifdef ENABLE_CUDA
     m_d_force_data_ptrs.resize(exec_conf.gpu.size());
     
@@ -262,13 +264,7 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 const IntegratorVariables& Integrator::getIntegratorVariables()
     {
-    if (m_pdata->getIntegratorVariables().size() <= m_unique_id) 
-        {
-        std::vector<IntegratorVariables> var = m_pdata->getIntegratorVariables();
-        var.resize(m_unique_id+1);
-        m_pdata->setIntegratorVariables(var);
-        }
-    return m_pdata->getIntegratorVariables()[m_unique_id];
+    return m_sysdef->getIntegratorData()->getIntegratorVariables(m_unique_id);
     }
 
 /*! \param v is the restart variables for the current integrator
@@ -307,13 +303,7 @@ bool Integrator::restartInfoIsGood(IntegratorVariables& v, std::string type, uns
 
 void Integrator::setIntegratorVariables(const IntegratorVariables& variables)
     {
-    std::vector<IntegratorVariables> var = m_pdata->getIntegratorVariables();
-    if (var.size() <= m_unique_id) 
-        {
-        var.resize(m_unique_id+1);
-        }
-        var[m_unique_id] = variables;
-        m_pdata->setIntegratorVariables(var);
+    m_sysdef->getIntegratorData()->setIntegratorVariables(m_unique_id, variables);
     }
 
 /*! \param timestep Current timestep

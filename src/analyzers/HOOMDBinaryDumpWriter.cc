@@ -76,89 +76,8 @@ using namespace boost;
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDBinaryDumpWriter::HOOMDBinaryDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
-        : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), m_output_image(false),
-        m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false),
-        m_output_bond(false), m_output_angle(false), m_output_wall(false), m_output_dihedral(false),
-        m_output_improper(false), m_output_accel(false)
+        : Analyzer(sysdef), m_base_fname(base_fname)
     {
-    }
-
-/*! \param enable Set to true to enable the writing of particle positions to the files in analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputPosition(bool enable)
-    {
-    m_output_position = enable;
-    }
-
-/*! \param enable Set to true to enable the writing of particle images to the files in analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputImage(bool enable)
-    {
-    m_output_image = enable;
-    }
-
-/*!\param enable Set to true to output particle velocities to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputVelocity(bool enable)
-    {
-    m_output_velocity = enable;
-    }
-
-/*!\param enable Set to true to output particle masses to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputMass(bool enable)
-    {
-    m_output_mass = enable;
-    }
-
-/*!\param enable Set to true to output particle diameters to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputDiameter(bool enable)
-    {
-    m_output_diameter = enable;
-    }
-
-/*! \param enable Set to true to output particle types to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputType(bool enable)
-    {
-    m_output_type = enable;
-    }
-/*! \param enable Set to true to output bonds to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputBond(bool enable)
-    {
-    m_output_bond = enable;
-    }
-/*! \param enable Set to true to output angles to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputAngle(bool enable)
-    {
-    m_output_angle = enable;
-    }
-/*! \param enable Set to true to output walls to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputWall(bool enable)
-    {
-    m_output_wall = enable;
-    }
-/*! \param enable Set to true to output dihedrals to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputDihedral(bool enable)
-    {
-    m_output_dihedral = enable;
-    }
-/*! \param enable Set to true to output impropers to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputImproper(bool enable)
-    {
-    m_output_improper = enable;
-    }
-/*! \param enable Set to true to output acceleration to the XML file on the next call to analyze()
-*/
-void HOOMDBinaryDumpWriter::setOutputAccel(bool enable)
-    {
-    m_output_accel = enable;
     }
 
 /*! \param fname File name to write
@@ -212,18 +131,21 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     f.write((char*)arrays.az, np*sizeof(Scalar));	
     f.write((char*)arrays.mass, np*sizeof(Scalar));	
     f.write((char*)arrays.diameter, np*sizeof(Scalar));	
-    f.write((char*)arrays.type, np*sizeof(unsigned int));	
     f.write((char*)arrays.charge, np*sizeof(Scalar));	
 
-    //write out types
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    //write out types and type mapping
+    unsigned int ntypes = m_pdata->getNTypes();
+    f.write((char*)&ntypes, sizeof(unsigned int));	
+    for (unsigned int i = 0; i < ntypes; i++)
         {
-        std::string name = m_pdata->getNameByType(arrays.type[i]);
+        std::string name = m_pdata->getNameByType(i);
         unsigned int len = name.size();
         f.write((char*)&len, sizeof(unsigned int)); 
         f.write(name.c_str(), len*sizeof(char));   
         }
+    f.write((char*)arrays.type, np*sizeof(unsigned int));	
 
+    
     if (!f.good())
         {
         cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
@@ -232,22 +154,23 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     //Output the integrator states to the binary file
     {
-    const std::vector<IntegratorVariables>& v = m_pdata->getIntegratorVariables();
-    unsigned int ni = v.size();
+    shared_ptr<IntegratorData> integrator_data = m_sysdef->getIntegratorData();
+    unsigned int ni = integrator_data->getNumIntegrators();
     f.write((char*)&ni, sizeof(unsigned int));	
     for (unsigned int j = 0; j < ni; j++)
         {
-        unsigned int len = v[j].type.size();
+        IntegratorVariables v = integrator_data->getIntegratorVariables(j);
+        unsigned int len = v.type.size();
         f.write((char*)&len, sizeof(unsigned int));	
         if (len != 0) 
             {
-            f.write(v[j].type.c_str(), len*sizeof(char));
+            f.write(v.type.c_str(), len*sizeof(char));
             }
-        unsigned int nv = v[j].variable.size();
+        unsigned int nv = v.variable.size();
         f.write((char*)&nv, sizeof(unsigned int));	
         for (unsigned int k=0; k<nv; k++)
             {
-            Scalar var = v[j].variable[k];
+            Scalar var = v.variable[k];
             f.write((char*)&var, sizeof(Scalar));	
             }
         }
@@ -402,18 +325,6 @@ void export_HOOMDBinaryDumpWriter()
     {
     class_<HOOMDBinaryDumpWriter, boost::shared_ptr<HOOMDBinaryDumpWriter>, bases<Analyzer>, boost::noncopyable>
     ("HOOMDBinaryDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
-    .def("setOutputPosition", &HOOMDBinaryDumpWriter::setOutputPosition)
-    .def("setOutputImage", &HOOMDBinaryDumpWriter::setOutputImage)
-    .def("setOutputVelocity", &HOOMDBinaryDumpWriter::setOutputVelocity)
-    .def("setOutputMass", &HOOMDBinaryDumpWriter::setOutputMass)
-    .def("setOutputDiameter", &HOOMDBinaryDumpWriter::setOutputDiameter)
-    .def("setOutputType", &HOOMDBinaryDumpWriter::setOutputType)
-    .def("setOutputBond", &HOOMDBinaryDumpWriter::setOutputBond)
-    .def("setOutputAngle", &HOOMDBinaryDumpWriter::setOutputAngle)
-    .def("setOutputDihedral", &HOOMDBinaryDumpWriter::setOutputDihedral)
-    .def("setOutputImproper", &HOOMDBinaryDumpWriter::setOutputImproper)
-    .def("setOutputWall", &HOOMDBinaryDumpWriter::setOutputWall)
-    .def("setOutputAccel", &HOOMDBinaryDumpWriter::setOutputAccel)
     .def("writeFile", &HOOMDBinaryDumpWriter::writeFile)
     ;
     }

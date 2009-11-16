@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
+#include "IntegratorData.h"
 #include "xmlParser.h"
 
 #include <string>
@@ -102,9 +103,6 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
         
-        //! Returns the integrator variables (if applicable)
-        virtual std::vector<IntegratorVariables> getIntegratorVariables() const;
-
         //! Initializes the particle data arrays
         virtual void initArrays(const ParticleDataArrays &pdata) const;
         
@@ -138,6 +136,9 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         //! Initialize the improper data
         virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
         
+        //! Initialize the integrator data
+        virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data ) const;
+
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);        

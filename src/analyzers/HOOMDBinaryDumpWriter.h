@@ -86,48 +86,11 @@ class HOOMDBinaryDumpWriter : public Analyzer
         HOOMDBinaryDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname);
         
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
-        //! Enables/disables the writing of particle positions
-        void setOutputPosition(bool enable);
-        //! Enables/disables the writing of particle images
-        void setOutputImage(bool enable);
-        //! Enables/disables the writing of particle velocities
-        void setOutputVelocity(bool enable);
-        //! Enables/disables the writing of particle masses
-        void setOutputMass(bool enable);
-        //! Enables/disables the writing of particle diameters
-        void setOutputDiameter(bool enable);
-        //! Enables/disables the writing of particle types
-        void setOutputType(bool enable);
-        //! Enables/disables the writing of bonds
-        void setOutputBond(bool enable);
-        //! Enables/disables the writing of angles
-        void setOutputAngle(bool enable);
-        //! Enables/disables the writing of dihedrals
-        void setOutputDihedral(bool enable);
-        //! Enables/disables the writing of impropers
-        void setOutputImproper(bool enable);
-        //! Enables/disables the writing of walls
-        void setOutputWall(bool enable);
-        //! Enables/disables the writing of acceleration
-        void setOutputAccel(bool enable);
-        
+        void analyze(unsigned int timestep);        
         //! Writes a file at the current time step
         void writeFile(std::string fname, unsigned int timestep);
     private:
         std::string m_base_fname;   //!< String used to store the file name of the XML file
-        bool m_output_position;     //!< true if the particle positions should be written
-        bool m_output_image;        //!< true if the particle positions should be written
-        bool m_output_velocity;     //!< true if the particle velocities should be written
-        bool m_output_mass;         //!< true if the particle masses should be written
-        bool m_output_diameter;     //!< true if the particle diameters should be written
-        bool m_output_type;         //!< true if the particle types should be written
-        bool m_output_bond;         //!< true if the bonds should be written
-        bool m_output_angle;        //!< true if the angles should be written
-        bool m_output_wall;         //!< true if the walls should be written
-        bool m_output_dihedral;     //!< true if dihedrals should be written
-        bool m_output_improper;     //!< true if impropers should be written
-        bool m_output_accel;        //!< true if acceleration should be written
         };
 
 //! Exports the HOOMDBinaryDumpWriter class to python

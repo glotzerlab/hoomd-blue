@@ -170,6 +170,9 @@ class AngleData;
 // Forward declaration of DihedralData
 class DihedralData;
 
+// Forward declaration of IntegratorData
+class IntegratorData;
+
 //! Defines a simple structure to deal with complex numbers
 /*! This structure is useful to deal with complex numbers for such situations
     as Fourier transforms. Note that we do not need any to define any operations and the
@@ -202,19 +205,6 @@ struct BoxDim
     BoxDim(Scalar Len);
     //! Constructs a box from -Len_x/2 to Len_x/2 for each dimension x
     BoxDim(Scalar Len_x, Scalar Len_y, Scalar Len_z);
-    };
-
-//! Stores integrator variables
-/*! The integration state is necessary for exact restarts.  Extended systems 
-    integrators in the spirit of Nose-Hoover store the positions, velocities, 
-    etc. of the fictitious variables.  Other integrators store a random number 
-    seed.
-    \ingroup data_structs
-*/
-struct IntegratorVariables
-    {
-    std::string type;                   //!<The type of integrator (NVT, NPT, etc.)
-    std::vector<Scalar> variable;       //!<Variables that define the integration state
     };
 
 //! Sentinel value in \a body to signify that this particle does not belong to a rigid body
@@ -332,12 +322,6 @@ class ParticleDataInitializer
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const = 0;
         
-        //! Returns the integrator variables (if applicable)
-        virtual std::vector<IntegratorVariables> getIntegratorVariables() const 
-            {
-            return std::vector<IntegratorVariables>(0);
-            }
-
         //! Initializes the particle data arrays
         virtual void initArrays(const ParticleDataArrays &pdata) const = 0;
         
@@ -346,6 +330,13 @@ class ParticleDataInitializer
             This base class defines an empty method, as walls are optional
         */
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const {}
+
+        //! Initialize the integrator variables
+        /*! \param integrator_data Shared pointer to the IntegratorData to initialize
+            This base class defines an empty method, since initializing the 
+            integrator variables is optional
+        */
+        virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data) const {}
         
         //! Intialize the type mapping
         virtual std::vector<std::string> getTypeMapping() const = 0;
@@ -448,10 +439,6 @@ class ParticleData : boost::noncopyable
         const BoxDim& getBox() const;
         //! Set the simulation box
         void setBox(const BoxDim &box);
-        //! Get a list of integrator variables
-        const std::vector<IntegratorVariables>& getIntegratorVariables();
-        //! Set the integrator variables
-        void setIntegratorVariables(const std::vector<IntegratorVariables>&);
 
         //! Access the execution configuration
         const ExecutionConfiguration& getExecConf()
@@ -556,8 +543,6 @@ class ParticleData : boost::noncopyable
         ParticleDataArrays m_arrays;                //!< Pointers into m_data for particle access
         ParticleDataArraysConst m_arrays_const;     //!< Pointers into m_data for const particle access
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
-
-        std::vector<IntegratorVariables> m_integrator_variables;    //!<List of integrator variables
         
 #ifdef ENABLE_CUDA
         
