@@ -367,9 +367,12 @@ template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(f
     allocate();
     memclear();
     
-    // copy over the data to the host, any future GPU aquire will result in a copy
-    ArrayHandle<T> h_handle(from, access_location::host, access_mode::read);
-    memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+    // copy over the data to the new GPUArray
+    if (m_num_elements > 0)
+        {
+        ArrayHandle<T> h_handle(from, access_location::host, access_mode::read);
+        memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+        }
     }
 
 template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
@@ -378,7 +381,6 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
         {
         // sanity check
         assert(!m_acquired && !rhs.m_acquired);
-        assert(h_data);
         
         // free current memory
         deallocate();
@@ -396,9 +398,12 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
         allocate();
         memclear();
         
-        // copy over the data to the host
-        ArrayHandle<T> h_handle(rhs, access_location::host, access_mode::read);
-        memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+        // copy over the data to the new GPUArray
+        if (m_num_elements > 0)
+            {
+            ArrayHandle<T> h_handle(rhs, access_location::host, access_mode::read);
+            memcpy(h_data, h_handle.data, sizeof(T)*m_num_elements);
+            }
         }
         
     return *this;

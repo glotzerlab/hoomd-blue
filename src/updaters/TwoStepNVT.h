@@ -43,35 +43,30 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVTUpdater.h
-    \brief Declares the NVTUpdater class
+#include "IntegrationMethodTwoStep.h"
+#include "Variant.h"
+
+#ifndef __TWO_STEP_NVT_H__
+#define __TWO_STEP_NVT_H__
+
+/*! \file TwoStepNVT.h
+    \brief Declares the TwoStepNVT class
 */
 
-#include "Updater.h"
-#include "Integrator.h"
-#include "Variant.h"
-#include <vector>
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NVTUPDATER_H__
-#define __NVTUPDATER_H__
-
-//! NVT Integration via the Nose-Hoover thermostat
-/*! This updater performes constant N, constant volume, constant temperature (NVT) dynamics. Particle positions and velocities are
-    updated according to the Nose-Hoover algorithm. The forces that drive this motion are defined external to this class
-    in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on
-    each particle.
-
+//! Integrates part of the system forward in two steps in the NVT ensemble
+/*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface
+    
     \ingroup updaters
 */
-class NVTUpdater : public Integrator
+class TwoStepNVT : public IntegrationMethodTwoStep
     {
     public:
-        //! Constructor
-        NVTUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar tau, boost::shared_ptr<Variant> T);
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        //! Constructs the integration method and associates it with the system
+        TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
+                   boost::shared_ptr<ParticleGroup> group,
+                   Scalar tau,
+                   boost::shared_ptr<Variant> T);
+        virtual ~TwoStepNVT() {};
         
         //! Update the temperature
         /*! \param T New temperature to set
@@ -80,7 +75,7 @@ class NVTUpdater : public Integrator
             {
             m_T = T;
             }
-            
+        
         //! Update the tau value
         /*! \param tau New time constant to set
         */
@@ -88,12 +83,6 @@ class NVTUpdater : public Integrator
             {
             m_tau = tau;
             }
-            
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
-        
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
         //! Sets the number of degrees of freedom
         /*! One unit test is in a non-periodic box with a small number of particles and needs to
@@ -104,18 +93,24 @@ class NVTUpdater : public Integrator
             {
             m_dof = dof;
             }
+        
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    
     protected:
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         Scalar m_Xi;                    //!< Friction coeff
         Scalar m_eta;                   //!< Added degree of freedom
-        bool m_accel_set;               //!< Flag to tell if we have set the accelleration yet
         Scalar m_curr_T;                //!< Current calculated temperature of the system
         Scalar m_dof;                   //!< Number of degrees of freedom
     };
 
-//! Exports the NVTUpdater class to python
-void export_NVTUpdater();
+//! Exports the TwoStepNVT class to python
+void export_TwoStepNVT();
 
-#endif
+#endif // #ifndef __TWO_STEP_NVT_H__
 

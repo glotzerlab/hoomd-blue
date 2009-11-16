@@ -48,17 +48,19 @@ Table of contents:
 
 \section sec_index_init Initialization commands 
 \link hoomd_script.init init\endlink:
- - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
+ - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>\copybrief hoomd_script::init::create_empty() </i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>\copybrief hoomd_script::init::create_random_polymers() </i>
+ - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
  - \link hoomd_script.init.reset() init.reset\endlink - <i>\copybrief hoomd_script::init::reset() </i>
 
 \section sec_index_integration Integration methods
 \link hoomd_script.integrate integrate\endlink: 
- - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>\copybrief hoomd_script::integrate::bdnvt </i> 
- - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>\copybrief hoomd_script::integrate::npt </i> 
- - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
- - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
+ - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>\copybrief hoomd_script::integrate::mode_standard </i>
+   - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>\copybrief hoomd_script::integrate::bdnvt </i> 
+   - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>\copybrief hoomd_script::integrate::npt </i> 
+   - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
+   - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
  
 \section sec_index_update Update particle properties during the simulation
 \link hoomd_script.update update\endlink:
@@ -120,9 +122,15 @@ Table of contents:
 
 \section sec_index_group Define groups of particles
 \link hoomd_script.group group\endlink:
- - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
- - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
- - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
+ - Create groups
+  - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
+  - \link hoomd_script.group.cuboid() group.cuboid\endlink - <i>\copybrief hoomd_script::group::cuboid</i>
+  - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
+  - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
+ - Combine groups
+  - \link hoomd_script.group.difference() group.difference\endlink - <i>\copybrief hoomd_script::group::difference </i>
+  - \link hoomd_script.group.intersection() group.intersection\endlink - <i>\copybrief hoomd_script::group::intersection </i>
+  - \link hoomd_script.group.union() group.union\endlink - <i>\copybrief hoomd_script::group::union </i>
 
 \section sec_index_variant Define quantities that vary over time
 \link hoomd_script.variant variant\endlink:
@@ -133,3 +141,4 @@ Table of contents:
  - \link hoomd_script.tune.find_optimal_block_sizes() tune.find_optimal_block_sizes\endlink - <i>\copybrief hoomd_script::tune::find_optimal_block_sizes </i>
 
 */
+

@@ -98,7 +98,7 @@ class Updater : boost::noncopyable
         virtual void update(unsigned int timestep) = 0;
         
         //! Sets the profiler for the compute to use
-        void setProfiler(boost::shared_ptr<Profiler> prof);
+        virtual void setProfiler(boost::shared_ptr<Profiler> prof);
         
         //! Returns a list of log quantities this compute calculates
         /*! The base class implementation just returns an empty vector. Derived classes should override

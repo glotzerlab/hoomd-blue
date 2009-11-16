@@ -38,56 +38,68 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
 // $Id$
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVEUpdater.h
-    \brief Declares an updater that implements NVE dynamics
+#include "Integrator.h"
+#include "IntegrationMethodTwoStep.h"
+
+#ifndef __INTEGRATOR_TWO_STEP_H__
+#define __INTEGRATOR_TWO_STEP_H__
+
+/*! \file IntegratorTwoStep.h
+    \brief Declares an integrator for performing two-step integration on multiple groups
 */
 
-#include "Updater.h"
-#include "Integrator.h"
-#include <vector>
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NVEUPDATER_H__
-#define __NVEUPDATER_H__
-
-//! Updates particle positions and velocities
-/*! This updater performes constant N, constant volume, constant energy (NVE) dynamics. Particle positions and 
-    velocities are updated according to the velocity verlet algorithm. The forces that drive this motion are defined 
-    external to this class in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be 
-    summed to produce a net force on each particle.
-
+//! Integrates the system forward one step with possibly multiple methods
+/*! See IntegrationMethodTwoStep for most of the design notes regarding group integration. IntegratorTwoStep merely
+    implements most of the things discussed there.
+    
+    Notable design elements:
+    - setDeltaT results in deltaT being set on all current integration methods
+    - to ensure that new methods also get set, addIntegrationMethod() also calls setDeltaT on the method
+    - to interface with the python script, a removeAllIntegrationMethods() method is provided to clear the list so they
+      can be cleared and re-added from hoomd_script's internal list
+    
+    To ensure that the user does not make a mistake and specify more than one method operating on a single particle,
+    the particle groups are checked for intersections whenever a new method is added in addIntegrationMethod()
+    
     \ingroup updaters
 */
-class NVEUpdater : public Integrator
+class IntegratorTwoStep : public Integrator
     {
     public:
         //! Constructor
-        NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+        IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
         
-        //! Sets the movement limit
-        void setLimit(Scalar limit);
+        //! Destructor
+        virtual ~IntegratorTwoStep();
         
-        //! Removes the limit
-        void removeLimit();
+        //! Sets the profiler for the compute to use
+        virtual void setProfiler(boost::shared_ptr<Profiler> prof);
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
         
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+        //! Change the timestep
+        virtual void setDeltaT(Scalar deltaT);
         
+        //! Add a new integration method to the list that will be run
+        virtual void addIntegrationMethod(boost::shared_ptr<IntegrationMethodTwoStep> new_method);
+        
+        //! Remove all integration methods
+        virtual void removeAllIntegrationMethods();
     protected:
-        bool m_accel_set;   //!< Flag to tell if we have set the accelleration yet
-        bool m_limit;       //!< True if we should limit the distance a particle moves in one step
-        Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
+        std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
+        
+        bool m_first_step;      //!< True before the first call to update()
+        bool m_gave_warning;    //!< True if a warning has been given about no methods added
     };
 
-//! Exports the NVEUpdater class to python
-void export_NVEUpdater();
+//! Exports the IntegratorTwoStep class to python
+void export_IntegratorTwoStep();
 
-#endif
+#endif // #ifndef __INTEGRATOR_TWO_STEP_H__
 

@@ -51,13 +51,16 @@ lj.pair_coeff.set('C', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.nvt(dt=0.005, tau=0.5, T=1.0)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+nvt = integrate.nvt(all, tau=0.5, T=1.0)
 
 # equilibrate
 run(50000)
 
 # test the profile of NVE
-integrate.nve(dt=0.005)
+nvt.disable()
+integrate.nve(all)
 run(50000, profile=True)
 
 # dump every 10k steps

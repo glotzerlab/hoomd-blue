@@ -51,7 +51,9 @@ lj.pair_coeff.set('C', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.bdnvt(dt=0.005, T=1.0)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.bdnvt(all, T=1.0)
 
 # equilibrate
 run(50000, profile=True)

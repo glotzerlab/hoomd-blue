@@ -420,20 +420,6 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
     bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
-//! boost test case for comparing calculation on the CPU to multi-gpu ones
-BOOST_AUTO_TEST_CASE( HarmonicBondForce_MultiGPU_compare)
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
-    bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-    bond_force_comparison_tests(bf_creator, bf_creator_gpu, exec_conf);
-    }
 #endif
 
 //! boost test case for constant forces

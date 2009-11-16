@@ -428,21 +428,6 @@ BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_compare )
     shiftedlj_force_comparison_test(shiftedlj_creator_base, shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
-//! boost test case for comparing multi-GPU output to base class output
-BOOST_AUTO_TEST_CASE( ShiftedLJForceMultiGPU_compare )
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);
-    shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
-    shiftedlj_force_comparison_test(shiftedlj_creator_base, shiftedlj_creator_gpu, exec_conf);
-    }
-
 #endif
 
 #ifdef WIN32

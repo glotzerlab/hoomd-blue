@@ -330,8 +330,6 @@ class imd(_analyzer):
 # - \b bond_fene_energy (bond.fene) - Total fene bond potential energy
 # - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
-# - \b nvt_xi (integrate.nvt) - \f$ \xi \f$ value in the NVT integrator
-# - \b nvt_eta (integrate.nvt) - \f$ \eta \f$ value in the NVT integrator
 #
 class log(_analyzer):
     ## Initialize the log

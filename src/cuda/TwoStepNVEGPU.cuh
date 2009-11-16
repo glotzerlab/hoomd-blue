@@ -41,37 +41,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: phillicl
+// Maintainer: joaander
 
-#include "ForceCompute.cuh"
-#include "ParticleData.cuh"
-
-/*! \file StochasticForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the stochastic forces. Used by StochasticForceComputeGPU.
+/*! \file TwoStepNVEGPU.cuh
+    \brief Declares GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
 
-#ifndef __STOCHASTICFORCEGPU_CUH__
-#define __STOCHASTICFORCEGPU_CUH__
+#include "ParticleData.cuh"
 
-//! Kernel driver that computes stochastic forces on the GPU for StochasticForceComputeGPU
-cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_data,
-                                          const gpu_pdata_arrays &pdata,
-                                          float dt,
-                                          float T,
-                                          float *d_gammas,
-                                          unsigned int seed,
-                                          unsigned int iteration,
-                                          int gamma_length,
-                                          int block_size);
+#ifndef __TWO_STEP_NVE_GPU_CUH__
+#define __TWO_STEP_NVE_GPU_CUH__
 
-//! Kernel driver that computes stochastic forces on the GPU for StochasticForceComputeGPU if gamma is specified by diameter
-cudaError_t gpu_compute_stochastic_forces_diam(const gpu_force_data_arrays& force_data,
-                                               const gpu_pdata_arrays &pdata,
-                                               float dt,
-                                               float T,
-                                               unsigned int seed,
-                                               unsigned int iteration,
-                                               int block_size);
+//! Kernel driver for the first part of the NVE update called by TwoStepNVEGPU
+cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             const gpu_boxsize &box,
+                             float deltaT,
+                             bool limit,
+                             float limit_val);
 
-#endif
+//! Kernel driver for the second part of the NVE update called by TwoStepNVEGPU
+cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             float4 *d_net_force,
+                             float deltaT,
+                             bool limit,
+                             float limit_val,
+                             bool zero_force);
+
+#endif //__TWO_STEP_NVE_GPU_CUH__
 
