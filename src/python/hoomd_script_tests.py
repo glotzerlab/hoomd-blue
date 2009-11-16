@@ -560,7 +560,7 @@ class pair_lj_tests (unittest.TestCase):
     # basic test of creation
     def test(self):
         lj = pair.lj(r_cut=3.0);
-        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0);
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
         lj.update_coeffs();
 
     # test missing coefficients
@@ -577,7 +577,6 @@ class pair_lj_tests (unittest.TestCase):
     # test set params
     def test_set_params(self):
         lj = pair.lj(r_cut=3.0);
-        lj.set_params(fraction=0.5);
         lj.set_params(mode="no_shift");
         lj.set_params(mode="shift");
         lj.set_params(mode="xplor");
