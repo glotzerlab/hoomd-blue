@@ -1336,17 +1336,6 @@ void export_ParticleData()
     .def("setBody", &ParticleData::setBody)
     .def("setType", &ParticleData::setType)
     ;
-    
-    class_<Scalar3>("Scalar3", init<>())
-        .def_readwrite("x", &Scalar3::x)
-        .def_readwrite("y", &Scalar3::y)
-        .def_readwrite("z", &Scalar3::z)
-        ;
-    class_<uint3>("uint3", init<>())
-        .def_readwrite("x", &uint3::x)
-        .def_readwrite("y", &uint3::y)
-        .def_readwrite("z", &uint3::z)
-        ;
     }
 
 #ifdef WIN32
