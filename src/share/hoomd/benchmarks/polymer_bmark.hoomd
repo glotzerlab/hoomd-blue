@@ -27,7 +27,9 @@ lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # NVT integration
-integrate.nvt(dt=0.005, T=T, tau=0.5)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(group=all, T=T, tau=0.5)
 
 # warm up the system
 run(4000)

@@ -161,6 +161,7 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
         print "***Warning! Starting a run without an integrator set";
     else:
         globals.integrator.update_forces();
+        globals.integrator.update_methods();
     
     for logger in globals.loggers:
         logger.update_quantities();

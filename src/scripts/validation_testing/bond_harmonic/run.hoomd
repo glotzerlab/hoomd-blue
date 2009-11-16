@@ -55,7 +55,9 @@ harmonic = bond.harmonic();
 harmonic.set_coeff('polymer', k=330.0, r0=0.84)
 
 # integrate at constant temperature
-integrate.nvt(dt=0.005, tau=0.5, T=1.0)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(all, tau=0.5, T=1.0)
 
 # equilibrate
 run(50000, profile=True)

@@ -41,37 +41,50 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: phillicl
+// Maintainer: joaander
 
-#include "ForceCompute.cuh"
-#include "ParticleData.cuh"
+#include "TwoStepNVT.h"
 
-/*! \file StochasticForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the stochastic forces. Used by StochasticForceComputeGPU.
+#ifndef __TWO_STEP_NVT_GPU_H__
+#define __TWO_STEP_NVT_GPU_H__
+
+/*! \file TwoStepNVTGPU.h
+    \brief Declares the TwoStepNVTGPU class
 */
 
-#ifndef __STOCHASTICFORCEGPU_CUH__
-#define __STOCHASTICFORCEGPU_CUH__
+//! Integrates part of the system forward in two steps in the NVT ensemble on the GPU
+/*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface, runs on the GPU
+    
+    In order to compute efficiently and limit the number of kernel launches integrateStepOne() performs a first
+    pass reduction on the sum of m*v^2 and stores the partial reductions. A second kernel is then launched to recude
+    those to a final \a sum2K, which is a scalar but stored in a GPUArray for convenience.
+    
+    \ingroup updaters
+*/
+class TwoStepNVTGPU : public TwoStepNVT
+    {
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                      boost::shared_ptr<ParticleGroup> group,
+                      Scalar tau,
+                      boost::shared_ptr<Variant> T);
+        virtual ~TwoStepNVTGPU() {};
+        
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    protected:
+        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
+        unsigned int m_num_blocks;        //!< Number of blocks of \a block_size to launch when updating particles
+        GPUArray<float> m_partial_sum2K;  //!< Partial sums from the first pass reduction
+        GPUArray<float> m_sum2K;          //!< Total sum of 2K on the GPU
+    };
 
-//! Kernel driver that computes stochastic forces on the GPU for StochasticForceComputeGPU
-cudaError_t gpu_compute_stochastic_forces(const gpu_force_data_arrays& force_data,
-                                          const gpu_pdata_arrays &pdata,
-                                          float dt,
-                                          float T,
-                                          float *d_gammas,
-                                          unsigned int seed,
-                                          unsigned int iteration,
-                                          int gamma_length,
-                                          int block_size);
+//! Exports the TwoStepNVTGPU class to python
+void export_TwoStepNVTGPU();
 
-//! Kernel driver that computes stochastic forces on the GPU for StochasticForceComputeGPU if gamma is specified by diameter
-cudaError_t gpu_compute_stochastic_forces_diam(const gpu_force_data_arrays& force_data,
-                                               const gpu_pdata_arrays &pdata,
-                                               float dt,
-                                               float T,
-                                               unsigned int seed,
-                                               unsigned int iteration,
-                                               int block_size);
-
-#endif
+#endif // #ifndef __TWO_STEP_NVT_GPU_H__
 

@@ -41,39 +41,40 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: phillicl
+// Maintainer: joaander
 
-/*! \file BD_NVTUpdaterGPU.h
-    \brief Declares the BD_NVTUpdaterGPU class
+/*! \file TwoStepNVTGPU.cuh
+    \brief Declares GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
 */
 
-#include "BD_NVTUpdater.h"
+#include "ParticleData.cuh"
 
-#include <boost/shared_ptr.hpp>
+#ifndef __TWO_STEP_NVT_GPU_CUH__
+#define __TWO_STEP_NVT_GPU_CUH__
 
-#ifndef __BD_NVTUPDATER_GPU_H__
-#define __BD_NVTUPDATER_GPU_H__
+//! Kernel driver for the first part of the NVT update called by TwoStepNVTGPU
+cudaError_t gpu_nvt_step_one(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             const gpu_boxsize &box,
+                             float *d_partial_sum2K,
+                             unsigned int block_size,
+                             unsigned int num_blocks,
+                             float Xi,
+                             float deltaT);
 
-//! Brownian dynamics integration of particles
-/*! \ingroup updaters
-    See BD_NVTUpdater for details. This class implements the same calculations on the GPU.
-*/
-class BD_NVTUpdaterGPU : public BD_NVTUpdater
-    {
-    public:
-        //! Constructor
-        BD_NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         Scalar deltaT,
-                         boost::shared_ptr<Variant> Temp,
-                         unsigned int seed,
-                         bool use_diam);
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-    };
+//! Kernel driver for the Ksum reduction final pass called by NVTUpdaterGPU
+cudaError_t gpu_nvt_reduce_sum2K(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks);
 
-//! Exports the BD_NVTUpdaterGPU class to python
-void export_BD_NVTUpdaterGPU();
+//! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
+cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             float4 *d_net_force,
+                             unsigned int block_size,
+                             unsigned int num_blocks,
+                             float Xi,
+                             float deltaT);
 
-#endif
+#endif //__TWO_STEP_NVT_GPU_CUH__
 

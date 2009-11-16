@@ -51,7 +51,9 @@ lj.pair_coeff.set('C', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature and pressure
-integrate.npt(dt=0.005, T=1.0, tau=0.5, P=0.4, tauP=0.5)
+integrate.mode_standard(dt=0.005)
+all = group.all()
+integrate.npt(group=all, T=1.0, tau=0.5, P=0.4, tauP=0.5)
 
 # equilibrate
 run(50000, profile=True)

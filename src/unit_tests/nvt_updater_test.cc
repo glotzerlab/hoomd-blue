@@ -59,10 +59,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 
 #include "ConstForceCompute.h"
-#include "NVTUpdater.h"
+#include "TwoStepNVT.h"
 #ifdef ENABLE_CUDA
-#include "NVTUpdaterGPU.h"
+#include "TwoStepNVTGPU.h"
 #endif
+#include "IntegratorTwoStep.h"
 
 #include "LJForceCompute.h"
 #include "BinnedNeighborList.h"
@@ -1100,29 +1101,35 @@ double q_reference[]  = { 1.6 , 1.6000093706007106 , 1.6000373852098038 ,
 
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<NVTUpdater> (shared_ptr<SystemDefinition> sysdef,
-                                                Scalar deltaT,
-                                                Scalar Q,
-                                                Scalar T)> nvtup_creator;
+typedef boost::function<shared_ptr<TwoStepNVT> (shared_ptr<SystemDefinition> sysdef,
+                                                 shared_ptr<ParticleGroup> group,
+                                                 Scalar Q,
+                                                 Scalar T)> twostepnvt_creator;
 
 //! NVTUpdater creator
-shared_ptr<NVTUpdater> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)
+shared_ptr<TwoStepNVT> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef,
+                                              shared_ptr<ParticleGroup> group,
+                                              Scalar Q,
+                                              Scalar T)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<NVTUpdater>(new NVTUpdater(sysdef, deltaT, Q, T_variant));
+    return shared_ptr<TwoStepNVT>(new TwoStepNVT(sysdef, group, Q, T_variant));
     }
 
 #ifdef ENABLE_CUDA
 //! NVTUpdaterGPU factory for the unit tests
-shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)
+shared_ptr<TwoStepNVT> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef,
+                                       shared_ptr<ParticleGroup> group,
+                                       Scalar Q,
+                                       Scalar T)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<NVTUpdater>(new NVTUpdaterGPU(sysdef, deltaT, Q, T_variant));
+    return shared_ptr<TwoStepNVT>(new TwoStepNVTGPU(sysdef, group, Q, T_variant));
     }
 #endif
 
 //! Integrate 1 particle through time and compare to a mathematical solution
-void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfiguration exec_conf)
+void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;
@@ -1133,6 +1140,9 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
     // don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 4, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -1150,8 +1160,10 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
     Scalar Q = Scalar(2.0);
     Scalar T = Scalar(1.5/3.0);
     Scalar tau = sqrt(Q / (Scalar(3.0) * T));
-    shared_ptr<NVTUpdater> nvt_up = nvt_creator(sysdef, deltaT, tau, T);
-    nvt_up->setDOF(3.0f);
+    shared_ptr<IntegratorTwoStep> nvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    shared_ptr<TwoStepNVT> two_step_nvt = nvt_creator(sysdef, group_all, tau, T);
+    nvt_up->addIntegrationMethod(two_step_nvt);
+    two_step_nvt->setDOF(3.0f);
     
     // see what happens with a constant force
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
@@ -1170,7 +1182,7 @@ void nvt_updater_integrate_tests(nvtup_creator nvt_creator, ExecutionConfigurati
     }
 
 //! Compares the output from one NVEUpdater to another
-void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_creator2, ExecutionConfiguration exec_conf)
+void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
     g_gpu_error_checking = true;
@@ -1184,10 +1196,15 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
     rand_init1.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(rand_init1, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
+    shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
+    shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
+
     rand_init2.setSeed(12345);
     shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(rand_init2, exec_conf));
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
-    
+    shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
+    shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
+
     shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
     shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
     
@@ -1205,8 +1222,13 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
     fc1->setParams(0,0,lj1,lj2);
     fc2->setParams(0,0,lj1,lj2);
     
-    shared_ptr<NVTUpdater> nvt1 = nvt_creator1(sysdef1, Scalar(0.005), Scalar(0.5), Scalar(1.2));
-    shared_ptr<NVTUpdater> nvt2 = nvt_creator2(sysdef2, Scalar(0.005), Scalar(0.5), Scalar(1.2));
+    shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
+    shared_ptr<TwoStepNVT> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, Scalar(0.5), Scalar(1.2));
+    nvt1->addIntegrationMethod(two_step_nvt1);
+    
+    shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
+    shared_ptr<TwoStepNVT> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, Scalar(0.5), Scalar(1.2));
+    nvt2->addIntegrationMethod(two_step_nvt2);
     
     nvt1->addForceCompute(fc1);
     nvt2->addForceCompute(fc2);
@@ -1246,7 +1268,7 @@ void nvt_updater_compare_test(nvtup_creator nvt_creator1, nvtup_creator nvt_crea
     }
 
 //! Compares the output of NVTUpdater to a mathematica solution of a 1D problem
-BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
+BOOST_AUTO_TEST_CASE( TwoStepNVT_mathematica_compare )
     {
     nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
@@ -1254,32 +1276,17 @@ BOOST_AUTO_TEST_CASE( NVTUpdater_mathematica_compare )
 
 #ifdef ENABLE_CUDA
 //! Compares the output of NVTUpdaterGPU to a mathematica solution of a 1D problem
-BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_mathematica_compare )
+BOOST_AUTO_TEST_CASE( TwoStepNVTGPU_mathematica_compare )
     {
     nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters
-BOOST_AUTO_TEST_CASE( NVTUPdaterGPU_comparison_tests)
+BOOST_AUTO_TEST_CASE( TwoStepNVTGPU_comparison_tests)
     {
-    nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
-    nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
+    twostepnvt_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
+    twostepnvt_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
     nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    }
-
-//! boost test case for comparing the CPU and multi-GPU updaters
-BOOST_AUTO_TEST_CASE( NVTUpdaterMultiGPU_comparison_tests)
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
-    nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
-    nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, exec_conf);
     }
 
 #endif

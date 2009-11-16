@@ -43,37 +43,56 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVEUpdaterGPU.h
-    \brief Declares the NVEUpdaterGPU class
+#include "IntegrationMethodTwoStep.h"
+
+#ifndef __TWO_STEP_NVE_H__
+#define __TWO_STEP_NVE_H__
+
+/*! \file TwoStepNVE.h
+    \brief Declares the TwoStepNVE class
 */
 
-#include "NVEUpdater.h"
-
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NVEUPDATER_GPU_H__
-#define __NVEUPDATER_GPU_H__
-
-//! NVE via velocity verlet on the GPU
-/*! NVEUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
-
-    The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
-
+//! Integrates part of the system forward in two steps in the NVE ensemble
+/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
+    
     \ingroup updaters
 */
-class NVEUpdaterGPU : public NVEUpdater
+class TwoStepNVE : public IntegrationMethodTwoStep
     {
     public:
-        //! Constructor
-        NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+        //! Constructs the integration method and associates it with the system
+        TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
+        virtual ~TwoStepNVE() {};
         
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        //! Sets the movement limit
+        void setLimit(Scalar limit);
         
+        //! Removes the limit
+        void removeLimit();
+        
+        //! Sets the zero force option
+        /*! \param zero_force Set to true to specify that the integration with a zero net force on each of the particles
+                              in the group
+        */
+        void setZeroForce(bool zero_force) 
+            {
+            m_zero_force = zero_force;
+            }
+        
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    
+    protected:
+        bool m_limit;       //!< True if we should limit the distance a particle moves in one step
+        Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
+        bool m_zero_force;  //!< True if the integration step should ignore computed forces
     };
 
-//! Exports the NVEUpdaterGPU class to python
-void export_NVEUpdaterGPU();
+//! Exports the TwoStepNVE class to python
+void export_TwoStepNVE();
 
-#endif
+#endif // #ifndef __TWO_STEP_NVE_H__
 

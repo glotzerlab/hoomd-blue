@@ -43,67 +43,63 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVTUpdaterGPU.h
-    \brief Declares the NVTUpdaterGPU class
+#include "Integrator.h"
+#include "IntegrationMethodTwoStep.h"
+
+#ifndef __INTEGRATOR_TWO_STEP_H__
+#define __INTEGRATOR_TWO_STEP_H__
+
+/*! \file IntegratorTwoStep.h
+    \brief Declares an integrator for performing two-step integration on multiple groups
 */
 
-#include "NPTUpdater.h"
-#include "NPTUpdaterGPU.cuh"
-
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NPTUPDATER_GPU_H__
-#define __NPTUPDATER_GPU_H__
-
-//! NPT
-/*! \ingroup updaters
+//! Integrates the system forward one step with possibly multiple methods
+/*! See IntegrationMethodTwoStep for most of the design notes regarding group integration. IntegratorTwoStep merely
+    implements most of the things discussed there.
+    
+    Notable design elements:
+    - setDeltaT results in deltaT being set on all current integration methods
+    - to ensure that new methods also get set, addIntegrationMethod() also calls setDeltaT on the method
+    - to interface with the python script, a removeAllIntegrationMethods() method is provided to clear the list so they
+      can be cleared and re-added from hoomd_script's internal list
+    
+    To ensure that the user does not make a mistake and specify more than one method operating on a single particle,
+    the particle groups are checked for intersections whenever a new method is added in addIntegrationMethod()
+    
+    \ingroup updaters
 */
-class NPTUpdaterGPU : public NPTUpdater
+class IntegratorTwoStep : public Integrator
     {
     public:
         //! Constructor
-        NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                      Scalar deltaT,
-                      Scalar tau,
-                      Scalar tauP,
-                      boost::shared_ptr<Variant> T,
-                      boost::shared_ptr<Variant> P);
+        IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
         
-        virtual ~NPTUpdaterGPU();
+        //! Destructor
+        virtual ~IntegratorTwoStep();
+        
+        //! Sets the profiler for the compute to use
+        virtual void setProfiler(boost::shared_ptr<Profiler> prof);
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
         
-        //! Overides addForceCompute to add virial computes
-        virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+        //! Change the timestep
+        virtual void setDeltaT(Scalar deltaT);
         
-        //! overides removeForceCompute to remove all virial computes
-        virtual void removeForceComputes();
+        //! Add a new integration method to the list that will be run
+        virtual void addIntegrationMethod(boost::shared_ptr<IntegrationMethodTwoStep> new_method);
         
-        //! Computes current pressure
-        virtual Scalar computePressure(unsigned int timestep);
+        //! Remove all integration methods
+        virtual void removeAllIntegrationMethods();
+    protected:
+        std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
         
-        //! Computes current temperature
-        virtual Scalar computeTemperature(unsigned int timestep);
-        
-    private:
-        std::vector<gpu_npt_data> d_npt_data;   //!< Temp data on the device needed to implement NPT
-        
-        //! Helper function to allocate data
-        void allocateNPTData(int block_size);
-        
-        //! Helper function to free data
-        void freeNPTData();
-        
-        //! Virial data pointers on the device
-        vector<float **> m_d_virial_data_ptrs;
+        bool m_first_step;      //!< True before the first call to update()
+        bool m_gave_warning;    //!< True if a warning has been given about no methods added
     };
 
-//! Exports the NPTUpdater class to python
-void export_NPTUpdaterGPU();
+//! Exports the IntegratorTwoStep class to python
+void export_IntegratorTwoStep();
 
-extern "C" cudaError_t integrator_sum_virials(gpu_pdata_arrays *pdata, float** virial_list, int num_virials, gpu_npt_data* nptdata);
-
-
-#endif
+#endif // #ifndef __INTEGRATOR_TWO_STEP_H__
 

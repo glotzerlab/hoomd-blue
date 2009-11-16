@@ -43,50 +43,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file Integrator.cuh
-    \brief Declares methods and data structures used by the Integrator class on the GPU
+/*! \file TwoStepBDNVTGPU.cuh
+    \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
 */
-
-#ifndef __INTEGRATOR_CUH__
-#define __INTEGRATOR_CUH__
 
 #include "ParticleData.cuh"
-#include "RigidData.cuh"
 
-//! struct to pack up several force and virial arrays for addition
-/*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this 
-    struct for addition to the net force/virial in a single kernel call. If there is not a multiple of 5 forces to sum, 
-    set some of the pointers to NULL and they will be ignored.
-*/
-struct gpu_force_list
+#ifndef __TWO_STEP_BDNVT_GPU_CUH__
+#define __TWO_STEP_BDNVT_GPU_CUH__
+
+//! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
+struct bdnvt_step_two_args
     {
-    //! Initializes to NULL
-    gpu_force_list() 
-        : f0(NULL), f1(NULL), f2(NULL), f3(NULL), f4(NULL), f5(NULL),
-          v0(NULL), v1(NULL), v2(NULL), v3(NULL), v4(NULL), v5(NULL)
-          {
-          }
-          
-    float4 *f0; //!< Pointer to force array 0
-    float4 *f1; //!< Pointer to force array 1
-    float4 *f2; //!< Pointer to force array 2
-    float4 *f3; //!< Pointer to force array 3
-    float4 *f4; //!< Pointer to force array 4
-    float4 *f5; //!< Pointer to force array 5
-    float *v0;  //!< Pointer to virial array 0
-    float *v1;  //!< Pointer to virial array 1
-    float *v2;  //!< Pointer to virial array 2
-    float *v3;  //!< Pointer to virial array 3
-    float *v4;  //!< Pointer to virial array 4
-    float *v5;  //!< Pointer to virial array 5
+    float *d_gamma;         //!< Device array listing per-type gammas
+    unsigned int n_types;   //!< Number of types in \a d_gamma
+    bool gamma_diam;        //!< Set to true to use diameters as gammas
+    float T;                //!< Current temperature
+    unsigned int timestep;  //!< Current timestep
+    unsigned int seed;      //!< User chosen random number seed
     };
 
-//! Sums up the net force and virial on the GPU for Integrator
-cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
-                                         float *d_net_virial,
-                                         const gpu_force_list& force_list,
-                                         unsigned int nparticles,
-                                         bool clear);
+//! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
+cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
+                               unsigned int *d_group_members,
+                               unsigned int group_size,
+                               float4 *d_net_force,
+                               const bdnvt_step_two_args& bdnvt_args,
+                               float deltaT,
+                               bool limit,
+                               float limit_val);
 
-#endif
+#endif //__TWO_STEP_BDNVT_GPU_CUH__
 

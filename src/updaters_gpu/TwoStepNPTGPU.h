@@ -41,58 +41,57 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: phillicl
+// Maintainer: joaander
 
-#include "StochasticForceCompute.h"
-#include "StochasticForceGPU.cuh"
+#include "TwoStepNPT.h"
 
-#include <boost/shared_ptr.hpp>
+#ifndef __TWO_STEP_NPT_GPU_H__
+#define __TWO_STEP_NPT_GPU_H__
 
-/*! \file StochasticForceComputeGPU.h
-    \brief Declares a class for computing lennard jones forces on the GPU
+/*! \file TwoStepNPTGPU.h
+    \brief Declares the TwoStepNPTGPU class
 */
 
-#ifndef __STOCHASTICFORCECOMPUTEGPU_H__
-#define __STOCHASTICFORCECOMPUTEGPU_H__
-
-//! Computes a stochastic force on each particle using the GPU
-/*! Stochastic forces are calculated much faster on the GPU. This class
-    has the same public interface as StochasticForceCompute so that they can be used interchangably.
-
-    \b Developer information: <br>
-    This class operates as a wrapper around CUDA code written in C and compiled by
-    nvcc. See stochasticforce_kernel.cu for detailed internal documentation.
-    \ingroup computes
+//! Integrates part of the system forward in two steps in the NPT ensemble on the GPU
+/*! Implements Nose-Hoover/Anderson NPT integration through the IntegrationMethodTwoStep interface, runs on the GPU
+    
+    \ingroup updaters
 */
-class StochasticForceComputeGPU : public StochasticForceCompute
+class TwoStepNPTGPU : public TwoStepNPT
     {
     public:
-        //! Constructs the compute
-        StochasticForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                  Scalar deltaT,
-                                  boost::shared_ptr<Variant> Temp,
-                                  unsigned int seed,
-                                  bool use_diam);
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                      boost::shared_ptr<ParticleGroup> group,
+                      Scalar tau,
+                      Scalar tauP,
+                      boost::shared_ptr<Variant> T,
+                      boost::shared_ptr<Variant> P);
+        virtual ~TwoStepNPTGPU() {};
         
-        //! Destructor
-        virtual ~StochasticForceComputeGPU();
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
         
-        //! Set the force parameters
-        virtual void setParams(unsigned int typ, Scalar gamma);
-        
-        //! Sets the block size to run at
-        void setBlockSize(int block_size);
-        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
     protected:
-        vector<float *> d_gammas;       //!< Pointer to the coefficients on the GPU
-        float * h_gammas;               //!< Pointer to the coefficients on the host
-        int m_block_size;               //!< The block size to run on the GPU
+        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
+        unsigned int m_group_num_blocks;  //!< Number of blocks of \a block_size to launch when updating the group
+        unsigned int m_full_num_blocks;   //!< Number of blocks to launch when updating all particles
+        GPUArray<float> m_partial_sum2K;  //!< Partial sums from the first pass reduction
+        GPUArray<float> m_sum2K;          //!< Total sum of 2K on the GPU
+        GPUArray<float> m_partial_sumW;   //!< Partial sums for the first pass reduction of W
+        GPUArray<float> m_sumW;           //!< Total sum of W on the GPU
+
+        //! helper function to compute pressure
+        virtual Scalar computePressure(unsigned int timestep);
         
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-        
+        //! helper function to compute group temperature
+        virtual Scalar computeGroupTemperature(unsigned int timestep);
     };
 
+//! Exports the TwoStepNPTGPU class to python
+void export_TwoStepNPTGPU();
 
-#endif
+#endif // #ifndef __TWO_STEP_NPT_GPU_H__
 
