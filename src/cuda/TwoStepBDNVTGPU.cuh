@@ -43,37 +43,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVEUpdaterGPU.h
-    \brief Declares the NVEUpdaterGPU class
+/*! \file TwoStepBDNVTGPU.cuh
+    \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
 */
 
-#include "NVEUpdater.h"
+#include "ParticleData.cuh"
 
-#include <boost/shared_ptr.hpp>
+#ifndef __TWO_STEP_BDNVT_GPU_CUH__
+#define __TWO_STEP_BDNVT_GPU_CUH__
 
-#ifndef __NVEUPDATER_GPU_H__
-#define __NVEUPDATER_GPU_H__
-
-//! NVE via velocity verlet on the GPU
-/*! NVEUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
-
-    The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
-
-    \ingroup updaters
-*/
-class NVEUpdaterGPU : public NVEUpdater
+//! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
+struct bdnvt_step_two_args
     {
-    public:
-        //! Constructor
-        NVEUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
-        
+    float *d_gamma;         //!< Device array listing per-type gammas
+    unsigned int n_types;   //!< Number of types in \a d_gamma
+    bool gamma_diam;        //!< Set to true to use diameters as gammas
+    float T;                //!< Current temperature
+    unsigned int timestep;  //!< Current timestep
+    unsigned int seed;      //!< User chosen random number seed
     };
 
-//! Exports the NVEUpdaterGPU class to python
-void export_NVEUpdaterGPU();
+//! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
+cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
+                               unsigned int *d_group_members,
+                               unsigned int group_size,
+                               float4 *d_net_force,
+                               const bdnvt_step_two_args& bdnvt_args,
+                               float deltaT,
+                               bool limit,
+                               float limit_val);
 
-#endif
+#endif //__TWO_STEP_BDNVT_GPU_CUH__
 

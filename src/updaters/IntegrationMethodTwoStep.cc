@@ -43,49 +43,64 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file Integrator.cuh
-    \brief Declares methods and data structures used by the Integrator class on the GPU
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
+#include "IntegrationMethodTwoStep.h"
+
+/*! \file IntegrationMethodTwoStep.h
+    \brief Contains code for the IntegrationMethodTwoStep class
 */
 
-#ifndef __INTEGRATOR_CUH__
-#define __INTEGRATOR_CUH__
-
-#include "ParticleData.cuh"
-
-//! struct to pack up several force and virial arrays for addition
-/*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this 
-    struct for addition to the net force/virial in a single kernel call. If there is not a multiple of 5 forces to sum, 
-    set some of the pointers to NULL and they will be ignored.
+/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
+    \param group The group of particles this integration method is to work on
+    \post The method is constructed with the given particle data and a NULL profiler.
 */
-struct gpu_force_list
+IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
+                                                   boost::shared_ptr<ParticleGroup> group)
+    : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()), 
+      m_deltaT(Scalar(0.0))
     {
-    //! Initializes to NULL
-    gpu_force_list() 
-        : f0(NULL), f1(NULL), f2(NULL), f3(NULL), f4(NULL), f5(NULL),
-          v0(NULL), v1(NULL), v2(NULL), v3(NULL), v4(NULL), v5(NULL)
-          {
-          }
-          
-    float4 *f0; //!< Pointer to force array 0
-    float4 *f1; //!< Pointer to force array 1
-    float4 *f2; //!< Pointer to force array 2
-    float4 *f3; //!< Pointer to force array 3
-    float4 *f4; //!< Pointer to force array 4
-    float4 *f5; //!< Pointer to force array 5
-    float *v0;  //!< Pointer to virial array 0
-    float *v1;  //!< Pointer to virial array 1
-    float *v2;  //!< Pointer to virial array 2
-    float *v3;  //!< Pointer to virial array 3
-    float *v4;  //!< Pointer to virial array 4
-    float *v5;  //!< Pointer to virial array 5
-    };
+    // sanity check
+    assert(m_sysdef);
+    assert(m_pdata);
+    assert(m_group);
+    }
 
-//! Sums up the net force and virial on the GPU for Integrator
-cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
-                                         float *d_net_virial,
-                                         const gpu_force_list& force_list,
-                                         unsigned int nparticles,
-                                         bool clear);
+/*! It is useful for the user to know where computation time is spent, so all integration methods
+    should profile themselves. This method sets the profiler for them to use.
+    This method does not need to be called, as Computes will not profile themselves
+    on a NULL profiler
+    \param prof Pointer to a profiler for the compute to use. Set to NULL
+        (boost::shared_ptr<Profiler>()) to stop the
+        analyzer from profiling itself.
+    \note Derived classes MUST check if m_prof is set before calling any profiler methods.
+*/
+void IntegrationMethodTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
+    {
+    m_prof = prof;
+    }
 
+/*! \param deltaT New time step to set
+*/
+void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
+    {
+    m_deltaT = deltaT;
+    }
+
+void export_IntegrationMethodTwoStep()
+    {
+    class_<IntegrationMethodTwoStep, boost::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
+        ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+        ;
+    }
+
+#ifdef WIN32
+#pragma warning( pop )
 #endif
 

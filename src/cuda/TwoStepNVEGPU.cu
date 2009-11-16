@@ -43,8 +43,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "Integrator.cuh"
-#include "NVEUpdaterGPU.cuh"
+#include "TwoStepNVEGPU.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -55,8 +54,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
-/*! \file NVEUpdaterGPU.cu
-    \brief Defines GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
+/*! \file TwoStepNVEGPU.cu
+    \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
 
 //! The texture for reading the pdata pos array
@@ -68,27 +67,47 @@ texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 //! The texture for reading in the pdata image array
 texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
 
-//! Takes the first half-step forward in the velocity-verlet NVE integration
+//! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param pdata Particle data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param box Box dimensions for periodic boundary condition handling
     \param deltaT timestep
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
-    \param box Box dimensions for periodic boundary condition handling
+    
+    This kernel must be executed with a 1D grid of any block size such that the number of threads is greater than or
+    equal to the number of members in the group. The kernel's implementation simply reads one particle in each thread
+    and updates that particle.
+    
+    <b>Performance notes:</b>
+    Particle properties are read via the texture cache to optimize the bandwidth obtained with sparse groups. The writes
+    in sparse groups will not be coalesced. However, because ParticleGroup sorts the index list the writes will be as
+    contiguous as possible leading to fewer memory transactions on compute 1.3 hardware and more cache hits on Fermi.
 */
 extern "C" __global__ 
-void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, float deltaT, bool limit, float limit_val)
+void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             gpu_boxsize box,
+                             float deltaT,
+                             bool limit,
+                             float limit_val)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
-    // do velocity verlet update
-    // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
-    // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx_local < pdata.local_num)
+    if (group_idx < group_size)
         {
+        unsigned int idx = d_group_members[group_idx];
+    
+        // do velocity verlet update
+        // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
+        // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
+
         // read the particle's posision (MEM TRANSFER: 16 bytes)
-        float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+        float4 pos = tex1Dfetch(pdata_pos_tex, idx);
         
         float px = pos.x;
         float py = pos.y;
@@ -96,8 +115,8 @@ void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, float delt
         float pw = pos.w;
         
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
-        float4 accel = tex1Dfetch(pdata_accel_tex, idx_global);
+        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
+        float4 accel = tex1Dfetch(pdata_accel_tex, idx);
         
         // update the position (FLOPS: 15)
         float dx = vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
@@ -126,11 +145,10 @@ void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, float delt
         vel.y += (1.0f/2.0f) * accel.y * deltaT;
         vel.z += (1.0f/2.0f) * accel.z * deltaT;
         
-        // read in the particle's image
-        // read the particle's velocity and acceleration (MEM TRANSFER: 16 bytes)
-        int4 image = tex1Dfetch(pdata_image_tex, idx_global);
+        // read in the particle's image (MEM TRANSFER: 16 bytes)
+        int4 image = tex1Dfetch(pdata_image_tex, idx);
         
-        // time to fix the periodic boundary conditions (FLOPS: 15)
+        // fix the periodic boundary conditions (FLOPS: 15)
         float x_shift = rintf(px * box.Lxinv);
         px -= box.Lx * x_shift;
         image.x += (int)x_shift;
@@ -150,20 +168,26 @@ void gpu_nve_pre_step_kernel(gpu_pdata_arrays pdata, gpu_boxsize box, float delt
         pos2.w = pw;
         
         // write out the results (MEM_TRANSFER: 48 bytes)
-        pdata.pos[idx_global] = pos2;
-        pdata.vel[idx_global] = vel;
-        pdata.image[idx_global] = image;
+        pdata.pos[idx] = pos2;
+        pdata.vel[idx] = vel;
+        pdata.image[idx] = image;
         }
     }
 
 /*! \param pdata Particle data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
-    \param deltaT Amount of real time to step forward in one time step
+    \param deltaT timestep
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
+    
+    See gpu_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
-cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
+cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
                              const gpu_boxsize &box,
                              float deltaT,
                              bool limit,
@@ -171,7 +195,7 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (pdata.local_num/block_size) + 1, 1, 1);
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures
@@ -192,7 +216,7 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
         return error;
         
     // run the kernel
-    gpu_nve_pre_step_kernel<<< grid, threads >>>(pdata, box, deltaT, limit, limit_val);
+    gpu_nve_step_one_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, box, deltaT, limit, limit_val);
     
     if (!g_gpu_error_checking)
         {
@@ -205,40 +229,56 @@ cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
         }
     }
 
-//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
+//! The texture for reading the net force array
+texture<float4, 1, cudaReadModeElementType> net_force_tex;
+//! The texture for reading the particle mass array
+texture<float, 1, cudaReadModeElementType> pdata_mass_tex;
+
+//! Takes the first half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
+    \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
+    
+    This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
 */
 extern "C" __global__ 
-void gpu_nve_step_kernel(gpu_pdata_arrays pdata,
-                         float4 **force_data_ptrs,
-                         int num_forces,
-                         float deltaT,
-                         bool limit,
-                         float limit_val)
+void gpu_nve_step_two_kernel(gpu_pdata_arrays pdata,
+                            unsigned int *d_group_members,
+                            unsigned int group_size,
+                            float4 *d_net_force,
+                            float deltaT,
+                            bool limit,
+                            float limit_val,
+                            bool zero_force)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
-    // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    // note: assumes mass = 1.0
-    // sum the acceleration on this particle: (MEM TRANSFER: 16 bytes * number of forces FLOPS: 3 * number of forces)
-    float4 accel = gpu_integrator_sum_forces_inline(idx_local, pdata.local_num, force_data_ptrs, num_forces);
-    if (idx_local < pdata.local_num)
+    if (group_idx < group_size)
         {
-        // MEM TRANSFER: 4 bytes   FLOPS: 3
-        float mass = pdata.mass[idx_global];
-        accel.x /= mass;
-        accel.y /= mass;
-        accel.z /= mass;
+        unsigned int idx = d_group_members[group_idx];
         
+        // read in the net forc and calculate the acceleration MEM TRANSFER: 16 bytes
+        float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        if (!zero_force)
+            {
+            accel = tex1Dfetch(net_force_tex, idx);
+            // MEM TRANSFER: 4 bytes   FLOPS: 3
+            float mass = tex1Dfetch(pdata_mass_tex, idx);
+            accel.x /= mass;
+            accel.y /= mass;
+            accel.z /= mass;
+            }
+        
+        // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // read the current particle velocity (MEM TRANSFER: 16 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
+        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
         
         // update the velocity (FLOPS: 6)
         vel.x += (1.0f/2.0f) * accel.x * deltaT;
@@ -257,40 +297,61 @@ void gpu_nve_step_kernel(gpu_pdata_arrays pdata,
             }
             
         // write out data (MEM TRANSFER: 32 bytes)
-        pdata.vel[idx_global] = vel;
+        pdata.vel[idx] = vel;
         // since we calculate the acceleration, we need to write it for the next step
-        pdata.accel[idx_global] = accel;
+        pdata.accel[idx] = accel;
         }
     }
 
 /*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
+    \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
+
+    This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
-cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
-                         float4 **force_data_ptrs,
-                         int num_forces,
-                         float deltaT,
-                         bool limit,
-                         float limit_val)
+cudaError_t gpu_nve_step_two(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             float4 *d_net_force,
+                             float deltaT,
+                             bool limit,
+                             float limit_val,
+                             bool zero_force)
     {
     
     // setup the grid to run the kernel
-    int block_size = 192;
-    dim3 grid( (pdata.local_num/block_size) + 1, 1, 1);
+    int block_size = 256;
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    // bind the texture
+    // bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+    
+    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+    
+    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
         return error;
         
     // run the kernel
-    gpu_nve_step_kernel<<< grid, threads >>>(pdata, force_data_ptrs, num_forces, deltaT, limit, limit_val);
+    gpu_nve_step_two_kernel<<< grid, threads >>>(pdata,
+                                                 d_group_members,
+                                                 group_size,
+                                                 d_net_force,
+                                                 deltaT,
+                                                 limit,
+                                                 limit_val,
+                                                 zero_force);
     
     if (!g_gpu_error_checking)
         {

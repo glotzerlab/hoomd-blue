@@ -43,65 +43,63 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#ifndef _NPT_UPDATER_GPU_CUH_
-#define _NPT_UPDATER_GPU_CUH_
+#ifndef __TWOSTEPNPTGPU_CUH__
+#define __TWOSTEPNPTGPU_CUH__
 
 #include <stdio.h>
 #include <cuda_runtime.h>
 
 #include "ParticleData.cuh"
 
-/*! \file NPTUpdaterGPU.cuh
-    \brief Declares GPU kernel code for NPT integration on the GPU. Used by NPTUpdaterGPU.
+/*! \file TwoStepNPTGPU.cuh
+    \brief Declares GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTGPU.
 */
 
-//! Data structure storing needed intermediate values for NPT integration
-struct gpu_npt_data
-    {
-    float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
-    float *Ksum;    //!< fully reduced Ksum on one GPU
-    float *partial_Wsum; //!< NBlocks elements, each is a partial sum of virials
-    float *Wsum;  //!< fully reduced Psum on one GPU
-    float *virial;  //!< Stores virials
-    int NBlocks;    //!< Number of blocks in the computation
-    int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
-    };
-
-
-//! Sums virials on the GPU. Used by NPTUpdaterGPU.
-cudaError_t gpu_integrator_sum_virials(const gpu_npt_data &nptdata,
-                                       const gpu_pdata_arrays &pdata,
-                                       float** virial_list,
-                                       int num_virials);
-
 //! Kernel driver for the the first step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_pre_step(const gpu_pdata_arrays &pdata,
-                             const gpu_boxsize &box,
-                             const gpu_npt_data &d_npt_data,
+cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             unsigned int block_size,
+                             unsigned int num_blocks,
+                             bool partial_scale,
                              float Xi,
                              float Eta,
                              float deltaT);
 
+//! Kernel driver to scale the particles into a new box on the GPU
+cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
+                             const gpu_boxsize& box,
+                             unsigned int block_size,
+                             bool partial_scale,
+                             float Eta,
+                             float deltaT);
+
 //! Kernel driver for the the second step of the computation called by NPTUpdaterGPU
-cudaError_t gpu_npt_step(const gpu_pdata_arrays &pdata,
-                         const gpu_npt_data &d_npt_data,
-                         float4 **force_data_ptrs,
-                         int num_forces,
-                         float Xi,
-                         float Eta,
-                         float deltaT);
+cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             float4 *d_net_force,
+                             unsigned int block_size,
+                             unsigned int num_blocks,
+                             float Xi,
+                             float Eta,
+                             float deltaT);
 
-//! Kernel driver for calculating the final pass Ksum on the GPU. Used by NPTUpdaterGPU
-cudaError_t gpu_npt_reduce_ksum(const gpu_npt_data &d_npt_data);
+//! Kernel driver for calculating the iinitial pass group 2K sum on the GPU
+cudaError_t gpu_npt_group_temperature(float *d_partial_sum2K,
+                                      const gpu_pdata_arrays& pdata,
+                                      unsigned int *d_group_members,
+                                      unsigned int group_size,
+                                      unsigned int block_size,
+                                      unsigned int num_blocks);
 
-//! Kernel driver for calculating the initial pass Ksum on the GPU. Used by NPTUpdaterGPU
-cudaError_t gpu_npt_temperature(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata);
-
-//! Kernel driver for calculating the final pass Wsum on the GPU. Used by NPTUpdaterGPU
-cudaError_t gpu_npt_reduce_wsum(const gpu_npt_data &d_npt_data);
-
-//! Kernel driver for calculating the initial pass Wsum on the GPU. Used by NPTUpdaterGPU
-cudaError_t gpu_npt_pressure(const gpu_npt_data &d_npt_data, const gpu_pdata_arrays &pdata);
+//! Kernel driver for calculating the initial pass whole system sumW/sum2K on the GPU
+cudaError_t gpu_npt_pressure2(float *d_partial_sum2K,
+                              float *d_partial_sumW,
+                              gpu_pdata_arrays pdata,
+                              float *d_net_virial,
+                              unsigned int block_size,
+                              unsigned int num_blocks);
 
 #endif
 

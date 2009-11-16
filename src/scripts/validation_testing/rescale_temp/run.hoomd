@@ -51,7 +51,9 @@ lj.pair_coeff.set('C', 'D', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('D', 'D', epsilon=1.0, sigma=1.0, alpha=1.0)
 
 # integrate at constant temperature
-integrate.nve(dt=0.005)
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nve(all)
 update.rescale_temp(T=1.0, period=10)
 update.zero_momentum(period=10)
 

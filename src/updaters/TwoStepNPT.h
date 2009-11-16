@@ -43,40 +43,32 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NPTUpdater.h
-    \brief Declares the NPTUpdater class
+#include "IntegrationMethodTwoStep.h"
+#include "Variant.h"
+
+#ifndef __TWO_STEP_NPT_H__
+#define __TWO_STEP_NPT_H__
+
+/*! \file TwoStepNPT.h
+    \brief Declares the TwoStepNPT class
 */
 
-#include "Updater.h"
-#include "Integrator.h"
-#include "Variant.h"
-#include <vector>
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NPTUPDATER_H__
-#define __NPTUPDATER_H__
-
-//! NPT Integration via the Nose-Hoover thermostat and Anderson barostat
-/*! This updater performes constant N, constant pressure, constant temperature (NVT) dynamics. Particle positions and 
-    velocities are updated according to the Nose-Hoover/Anderson algorithm. The forces that drive this motion are 
-    defined external to this class in ForceCompute. Any number of ForceComputes can be given, the resulting forces will
-    be summed to produce a net force on each particle.
-
+//! Integrates part of the system forward in two steps in the NPT ensemble
+/*! Implements Nose-Hoover/Anderson NPT integration through the IntegrationMethodTwoStep interface
+    
     \ingroup updaters
 */
-class NPTUpdater : public Integrator
+class TwoStepNPT : public IntegrationMethodTwoStep
     {
     public:
-        //! Constructor
-        NPTUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-                   Scalar deltaT,
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
+                   boost::shared_ptr<ParticleGroup> group,
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
                    boost::shared_ptr<Variant> P);
-        
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        virtual ~TwoStepNPT() {};
         
         //! Update the temperature
         /*! \param T New temperature to set
@@ -85,15 +77,7 @@ class NPTUpdater : public Integrator
             {
             m_T = T;
             }
-            
-        //! Update the tau value
-        /*! \param tau New time constant to set
-        */
-        virtual void setTau(Scalar tau)
-            {
-            m_tau = tau;
-            }
-            
+        
         //! Update the pressure
         /*! \param P New pressure to set
         */
@@ -101,7 +85,15 @@ class NPTUpdater : public Integrator
             {
             m_P = P;
             }
-            
+        
+        //! Update the tau value
+        /*! \param tau New time constant to set
+        */
+        virtual void setTau(Scalar tau)
+            {
+            m_tau = tau;
+            }
+        
         //! Update the nuP value
         /*! \param tauP New pressure constant to set
         */
@@ -109,29 +101,47 @@ class NPTUpdater : public Integrator
             {
             m_tauP = tauP;
             }
-            
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
+        //! Set the partial scale option
+        /*! \param partial_scale New partial_scale option to set
+        */
+        void setPartialScale(bool partial_scale)
+            {
+            m_partial_scale = partial_scale;
+            }
+        
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    
     protected:
+        bool m_partial_scale;           //!< True if only the particles in the group should be scaled to the new box
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
         Scalar m_Xi;                    //!< Friction coeff
         Scalar m_Eta;                   //!< barostat friction
-        bool m_accel_set;               //!< Flag to tell if we have set the accelleration yet
-        Scalar m_curr_P;                //!< Current (instanteneous) pressure
-        Scalar m_curr_T;                //!< Current (instanteneous)temperature
+        Scalar m_curr_group_T;          //!< Current group temperature
+        Scalar m_curr_P;                //!< Current system pressure
+        Scalar m_group_dof;             //!< Number of degrees of freedom in the integrated group
+        Scalar m_dof;                   //!< Number of degrees of freedom in the entire system
         Scalar m_V;                     //!< Current volume
         Scalar m_Lx;                    //!< Box length in x direction
         Scalar m_Ly;                    //!< Box length in y direction
         Scalar m_Lz;                    //!< Box length in z direction
         
+        //! helper function to compute pressure
+        virtual Scalar computePressure(unsigned int timestep);
+        
+        //! helper function to compute group temperature
+        virtual Scalar computeGroupTemperature(unsigned int timestep);
     };
 
-//! Exports the NPTUpdater class to python
-void export_NPTUpdater();
+//! Exports the TwoStepNVT class to python
+void export_TwoStepNPT();
 
-#endif
+#endif // #ifndef __TWO_STEP_NPT_H__
 

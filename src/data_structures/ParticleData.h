@@ -454,6 +454,177 @@ class ParticleData : boost::noncopyable
         //! Gets the name of a given particle type index
         std::string getNameByType(unsigned int type);
         
+        //! Get the net force array
+        const GPUArray< Scalar4 >& getNetForce() const { return m_net_force; }
+        
+        //! Get the net virial array
+        const GPUArray< Scalar >& getNetVirial() const { return m_net_virial; }
+        
+        //! Get the current position of a particle
+        Scalar3 getPosition(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            Scalar3 result = make_scalar3(m_arrays.x[idx], m_arrays.y[idx], m_arrays.z[idx]);
+            release();
+            return result;
+            }
+        //! Get the current velocity of a particle
+        Scalar3 getVelocity(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            Scalar3 result = make_scalar3(m_arrays.vx[idx], m_arrays.vy[idx], m_arrays.vz[idx]);
+            release();
+            return result;
+            }
+        //! Get the current acceleration of a particle
+        Scalar3 getAcceleration(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            Scalar3 result = make_scalar3(m_arrays.ax[idx], m_arrays.ay[idx], m_arrays.az[idx]);
+            release();
+            return result;
+            }
+        //! Get the current image flags of a particle
+        uint3 getImage(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            uint3 result = make_uint3(m_arrays.ix[idx], m_arrays.iy[idx], m_arrays.iz[idx]);
+            release();
+            return result;
+            }
+        //! Get the current charge of a particle
+        Scalar getCharge(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            Scalar result = m_arrays.charge[idx];
+            release();
+            return result;
+            }
+        //! Get the current mass of a particle
+        Scalar getMass(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            Scalar result = m_arrays.mass[idx];
+            release();
+            return result;
+            }
+        //! Get the current diameter of a particle
+        Scalar getDiameter(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            Scalar result = m_arrays.diameter[idx];
+            release();
+            return result;
+            }
+        //! Get the current diameter of a particle
+        unsigned int getBody(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            unsigned int result = m_arrays.body[idx];
+            release();
+            return result;
+            }
+        //! Get the current type of a particle
+        unsigned int getType(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            unsigned int result = m_arrays.type[idx];
+            release();
+            return result;
+            }
+
+        //! Set the current position of a particle
+        void setPosition(unsigned int tag, const Scalar3& pos)
+            {
+            assert(tag < getN());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.x[idx] = pos.x; m_arrays.y[idx] = pos.y; m_arrays.z[idx] = pos.z;
+            release();
+            }
+        //! Set the current velocity of a particle
+        void setVelocity(unsigned int tag, const Scalar3& vel)
+            {
+            assert(tag < getN());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.vx[idx] = vel.x; m_arrays.vy[idx] = vel.y; m_arrays.vz[idx] = vel.z;
+            release();
+            }
+        //! Set the current image flags of a particle
+        void setImage(unsigned int tag, const uint3& image)
+            {
+            assert(tag < getN());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.ix[idx] = image.x; m_arrays.iy[idx] = image.y; m_arrays.iz[idx] = image.z;
+            release();
+            }
+        //! Set the current charge of a particle
+        void setCharge(unsigned int tag, Scalar charge)
+            {
+            assert(tag < getN());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.charge[idx] = charge;
+            release();
+            }
+        //! Set the current mass of a particle
+        void setMass(unsigned int tag, Scalar mass)
+            {
+            assert(tag < getN());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.mass[idx] = mass;
+            release();
+            }
+        //! Set the current diameter of a particle
+        void setDiameter(unsigned int tag, Scalar diameter)
+            {
+            assert(tag < getN());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.diameter[idx] = diameter;
+            release();
+            }
+        //! Set the current diameter of a particle
+        void setBody(unsigned int tag, unsigned int body)
+            {
+            assert(tag < getN());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.body[idx] = body;
+            release();
+            }
+        //! Get the current type of a particle
+        void setType(unsigned int tag, unsigned int typ)
+            {
+            assert(tag < getN());
+            assert(typ < getNTypes());
+            acquireReadWrite();
+            unsigned int idx = m_arrays.rtag[tag];
+            m_arrays.type[idx] = typ;
+            release();
+            }
+
     private:
         BoxDim m_box;                               //!< The simulation box
         const ExecutionConfiguration m_exec_conf;   //!< The execution configuration
@@ -470,6 +641,9 @@ class ParticleData : boost::noncopyable
         ParticleDataArrays m_arrays;                //!< Pointers into m_data for particle access
         ParticleDataArraysConst m_arrays_const;     //!< Pointers into m_data for const particle access
         boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
+        
+        GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
+        GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle
         
 #ifdef ENABLE_CUDA
         

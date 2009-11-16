@@ -43,67 +43,56 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVTUpdaterGPU.h
-    \brief Declares the NVTUpdaterGPU class
+#include "IntegrationMethodTwoStep.h"
+
+#ifndef __TWO_STEP_NVE_H__
+#define __TWO_STEP_NVE_H__
+
+/*! \file TwoStepNVE.h
+    \brief Declares the TwoStepNVE class
 */
 
-#include "NPTUpdater.h"
-#include "NPTUpdaterGPU.cuh"
-
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NPTUPDATER_GPU_H__
-#define __NPTUPDATER_GPU_H__
-
-//! NPT
-/*! \ingroup updaters
+//! Integrates part of the system forward in two steps in the NVE ensemble
+/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
+    
+    \ingroup updaters
 */
-class NPTUpdaterGPU : public NPTUpdater
+class TwoStepNVE : public IntegrationMethodTwoStep
     {
     public:
-        //! Constructor
-        NPTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                      Scalar deltaT,
-                      Scalar tau,
-                      Scalar tauP,
-                      boost::shared_ptr<Variant> T,
-                      boost::shared_ptr<Variant> P);
+        //! Constructs the integration method and associates it with the system
+        TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
+        virtual ~TwoStepNVE() {};
         
-        virtual ~NPTUpdaterGPU();
+        //! Sets the movement limit
+        void setLimit(Scalar limit);
         
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        //! Removes the limit
+        void removeLimit();
         
-        //! Overides addForceCompute to add virial computes
-        virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+        //! Sets the zero force option
+        /*! \param zero_force Set to true to specify that the integration with a zero net force on each of the particles
+                              in the group
+        */
+        void setZeroForce(bool zero_force) 
+            {
+            m_zero_force = zero_force;
+            }
         
-        //! overides removeForceCompute to remove all virial computes
-        virtual void removeForceComputes();
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
         
-        //! Computes current pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
-        //! Computes current temperature
-        virtual Scalar computeTemperature(unsigned int timestep);
-        
-    private:
-        std::vector<gpu_npt_data> d_npt_data;   //!< Temp data on the device needed to implement NPT
-        
-        //! Helper function to allocate data
-        void allocateNPTData(int block_size);
-        
-        //! Helper function to free data
-        void freeNPTData();
-        
-        //! Virial data pointers on the device
-        vector<float **> m_d_virial_data_ptrs;
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    
+    protected:
+        bool m_limit;       //!< True if we should limit the distance a particle moves in one step
+        Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
+        bool m_zero_force;  //!< True if the integration step should ignore computed forces
     };
 
-//! Exports the NPTUpdater class to python
-void export_NPTUpdaterGPU();
+//! Exports the TwoStepNVE class to python
+void export_TwoStepNVE();
 
-extern "C" cudaError_t integrator_sum_virials(gpu_pdata_arrays *pdata, float** virial_list, int num_virials, gpu_npt_data* nptdata);
-
-
-#endif
+#endif // #ifndef __TWO_STEP_NVE_H__
 

@@ -94,23 +94,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MSDAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
+#include "IntegratorTwoStep.h"
+#include "IntegrationMethodTwoStep.h"
+#include "TwoStepNVE.h"
+#include "TwoStepNVT.h"
+#include "TwoStepBDNVT.h"
+#include "TwoStepNPT.h"
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
-#include "NVTUpdater.h"
-#include "NPTUpdater.h"
-#include "NVEUpdater.h"
-#include "BD_NVTUpdater.h"
 #include "System.h"
 #include "Variant.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
-#include "NVTUpdaterGPU.h"
-#include "NVEUpdaterGPU.h"
-#include "NPTUpdaterGPU.h"
-#include "BD_NVTUpdaterGPU.h"
+#include "TwoStepNVEGPU.h"
+#include "TwoStepNVTGPU.h"
+#include "TwoStepBDNVTGPU.h"
+#include "TwoStepNPTGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
 #include "LJForceComputeGPU.h"
@@ -118,7 +120,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceComputeGPU.h"
 #include "TablePotentialGPU.h"
 #include "GaussianForceGPU.h"
-#include "StochasticForceComputeGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
@@ -413,19 +414,21 @@ BOOST_PYTHON_MODULE(hoomd)
     // updaters
     export_Updater();
     export_Integrator();
+    export_IntegratorTwoStep();
+    export_IntegrationMethodTwoStep();
     export_TempRescaleUpdater();
     export_ZeroMomentumUpdater();
     export_SFCPackUpdater();
     export_BoxResizeUpdater();
-    export_NVTUpdater();
-    export_NPTUpdater();
-    export_NVEUpdater();
-    export_BD_NVTUpdater();
+    export_TwoStepNVE();
+    export_TwoStepNVT();
+    export_TwoStepBDNVT();
+    export_TwoStepNPT();
 #ifdef ENABLE_CUDA
-    export_NVEUpdaterGPU();
-    export_NVTUpdaterGPU();
-    export_NPTUpdaterGPU();
-    export_BD_NVTUpdaterGPU();
+    export_TwoStepNVEGPU();
+    export_TwoStepNVTGPU();
+    export_TwoStepBDNVTGPU();
+    export_TwoStepNPTGPU();
 #endif
     
     // system

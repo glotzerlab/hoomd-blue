@@ -43,47 +43,48 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVTUpdaterGPU.cuh
-    \brief Declares GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.
+#include "TwoStepBDNVT.h"
+
+#ifndef __TWO_STEP_BDNVT_GPU_H__
+#define __TWO_STEP_BDNVT_GPU_H__
+
+/*! \file TwoStepBDNVTGPU.h
+    \brief Declares the TwoStepBDNVTGPU class
 */
 
-#include "ParticleData.cuh"
-
-#ifndef __NVTUPDATER_CUH__
-#define __NVTUPDATER_CUH__
-
-//! Stores intermediate values for NVT integration
-/*! NVT integration (NVTUpdaterGPU) requires summing up the kinetic energy of the system.
-    gpu_nvt_data stores the needed auxiliary data structure needed to do the standard reduction
-    sum.
-
-    \ingroup gpu_data_structs
+//! Integrates part of the system forward in two steps in the NVT ensemble (via brownian dynamics)
+/*! Implements velocity-verlet NVE integration with additional brownian dynamics forces through the
+    IntegrationMethodTwoStep interface, runs on the GPU.
+    
+    This class must inherit from TwoStepBDNVT so that it has that interface. However, is based off of the NVE
+    integration base routines. Rather than doing some evil multiple inheritance here, the integrateStepOne() from
+    TwoStepNVEGPU will simply be duplicated here.
+    
+    In order to implement integrateStepTwo with the added BD forces, integrateStepTwo needs is reimplemened for
+    BDNVT.
+    
+    \ingroup updaters
 */
-struct gpu_nvt_data
+class TwoStepBDNVTGPU : public TwoStepBDNVT
     {
-    float *partial_Ksum; //!< NBlocks elements, each is a partial sum of m*v^2
-    float *Ksum;    //!< fully reduced Ksum on one GPU
-    int NBlocks;    //!< Number of blocks in the computation
-    int block_size; //!< Block size of the kernel to be run on the device (must be a power of 2)
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                        boost::shared_ptr<ParticleGroup> group,
+                        boost::shared_ptr<Variant> T,
+                        unsigned int seed,
+                        bool gamma_diam);
+        virtual ~TwoStepBDNVTGPU() {};
+        
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
     };
 
-//! Kernel driver for the first part of the NVT update called by NVTUpdaterGPU
-cudaError_t gpu_nvt_pre_step(const gpu_pdata_arrays &pdata,
-                             const gpu_boxsize &box,
-                             const gpu_nvt_data &d_nvt_data,
-                             float Xi,
-                             float deltaT);
+//! Exports the TwoStepBDNVTGPU class to python
+void export_TwoStepBDNVTGPU();
 
-//! Kernel driver for the Ksum reduction final pass called by NVTUpdaterGPU
-cudaError_t gpu_nvt_reduce_ksum(const gpu_nvt_data &d_nvt_data);
-
-//! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
-cudaError_t gpu_nvt_step(const gpu_pdata_arrays &pdata,
-                         const gpu_nvt_data &d_nvt_data,
-                         float4 **force_data_ptrs,
-                         int num_forces,
-                         float Xi,
-                         float deltaT);
-
-#endif
+#endif // #ifndef __TWO_STEP_BDNVT_GPU_H__
 
