@@ -30,6 +30,8 @@ include (HOOMDOSSpecificSetup)
 include (HOOMDCommonLibsSetup)
 # Configure some source files, include directories, and create variables listing all source files
 include (CMake_src_setup.cmake)
+# macros
+include (CMake_macros.cmake)
 
 # setup the library compile mode
 if(ENABLE_STATIC)
