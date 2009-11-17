@@ -11,6 +11,10 @@ using namespace boost;
 #include "ExampleUpdater.cuh"
 #endif
 
+/*! \file ExampleUpdater.cc
+    \brief Definition of ExampleUpdater
+*/
+
 // ********************************
 // here follows the code for ExampleUpdater on the CPU
 
