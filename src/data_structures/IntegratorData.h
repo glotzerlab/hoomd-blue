@@ -105,7 +105,7 @@ class IntegratorData
         /*! \param i set integrator variables for integrator i
             \param v Variables to set
         */
-        void setIntegratorVariables(int i, const IntegratorVariables& v)
+        void setIntegratorVariables(unsigned int i, const IntegratorVariables& v)
             {
             assert(i < m_integrator_variables.size()); m_integrator_variables[i] = v;
             }
