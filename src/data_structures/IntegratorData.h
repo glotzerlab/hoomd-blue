@@ -103,6 +103,7 @@ class IntegratorData
             
         //! Set a collection of integrator variables
         /*! \param i set integrator variables for integrator i
+            \param v Variables to set
         */
         void setIntegratorVariables(int i, const IntegratorVariables& v)
             {
@@ -111,7 +112,7 @@ class IntegratorData
             
     private:
     
-        std::vector<IntegratorVariables> m_integrator_variables;
+        std::vector<IntegratorVariables> m_integrator_variables;        //!< List of the integrator variables defined
         
     };
 
