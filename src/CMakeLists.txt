@@ -28,10 +28,10 @@ include (HOOMDCFlagsSetup)
 include (HOOMDOSSpecificSetup)
 # setup common libraries used by all targets in this project
 include (HOOMDCommonLibsSetup)
+# macros
+include (HOOMDMacros)
 # Configure some source files, include directories, and create variables listing all source files
 include (CMake_src_setup.cmake)
-# macros
-include (CMake_macros.cmake)
 
 # setup the library compile mode
 if(ENABLE_STATIC)

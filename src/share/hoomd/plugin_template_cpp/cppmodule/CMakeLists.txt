@@ -17,6 +17,7 @@ set_target_properties(${LIB_TARGET} PROPERTIES PREFIX "" OUTPUT_NAME "${LIB_TARG
 if(APPLE)
     set_target_properties(${LIB_TARGET} PROPERTIES SUFFIX ".so")
 endif(APPLE)
+fix_cudart_rpath(${LIB_TARGET})
 
 # install the library to the hoomd_plugins directory
 install(TARGETS ${LIB_TARGET}
