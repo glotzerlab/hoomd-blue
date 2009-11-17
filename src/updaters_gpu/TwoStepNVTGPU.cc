@@ -97,7 +97,10 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVT step 1");
-    
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+
     // access all the needed data
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
@@ -115,7 +118,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                                 d_partial_sum2K.data,
                                 m_block_size,
                                 m_num_blocks,
-                                m_Xi,
+                                xi,
                                 m_deltaT));
     // done profiling
     if (m_prof)
@@ -129,6 +132,10 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
 void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     {
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
     
     // phase 1, reduce to find the final sum2K
         {
@@ -149,10 +156,10 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
         ArrayHandle<float> h_sum2K(m_sum2K, access_location::host, access_mode::read);
             
         // next, update the state variables Xi and eta
-        Scalar xi_prev = m_Xi;
+        Scalar xi_prev = xi;
         m_curr_T = h_sum2K.data[0] / m_dof;
-        m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
-        m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
+        xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
+        eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
         }
     
     // profile this step
@@ -172,10 +179,11 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
                                 d_net_force.data,
                                 m_block_size,
                                 m_num_blocks,
-                                m_Xi,
+                                xi,
                                 m_deltaT));
     
     m_pdata->release();
+    setIntegratorVariables(v);
     
     // done profiling
     if (m_prof)

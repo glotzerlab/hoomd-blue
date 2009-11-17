@@ -66,15 +66,26 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
                        Scalar tau,
                        boost::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group), m_tau(tau), m_T(T)
+    : IntegrationMethodTwoStep(sysdef, group, true), m_tau(tau), m_T(T)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
     
-    m_Xi = Scalar(1.0);
-    m_eta = Scalar(1.0);
     m_curr_T = Scalar(0.0);
     m_dof = Scalar(3*m_group->getNumMembers() - 3);
+    
+    // set initial state
+    IntegratorVariables v = getIntegratorVariables();
+
+    if (!restartInfoIsValid(v, "nvt", 2))
+        {
+        v.type = "nvt";
+        v.variable.resize(2);
+        v.variable[0] = Scalar(1.0);
+        v.variable[1] = Scalar(1.0);
+        }
+
+    setIntegratorVariables(v);
     }
 
 /*! \param timestep Current time step
@@ -86,11 +97,15 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 1");
-    
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     
     // precompute loop invariant quantities
-    Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * m_Xi);
+    Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * xi);
     
     // perform the first half step of nose-hoover
     // add up a total of 2*K while we loop through the particles, as well
@@ -114,10 +129,10 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         }
     
     // next, update the state variables Xi and eta
-    Scalar xi_prev = m_Xi;
+    Scalar xi_prev = xi;
     m_curr_T = sum2K / m_dof;
-    m_Xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
-    m_eta += m_deltaT / Scalar(2.0) * (m_Xi + xi_prev);
+    xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
     
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
     const BoxDim& box = m_pdata->getBox();
@@ -166,6 +181,7 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         }
     
     m_pdata->release();
+    setIntegratorVariables(v);
     
     // done profiling
     if (m_prof)
@@ -182,7 +198,10 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 2");
-    
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+        
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
@@ -199,9 +218,9 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
         arrays.az[j] = h_net_force.data[j].z*minv;
         
         // then, update the velocity
-        arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - m_Xi * arrays.vx[j]);
-        arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - m_Xi * arrays.vy[j]);
-        arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - m_Xi * arrays.vz[j]);
+        arrays.vx[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ax[j] - xi * arrays.vx[j]);
+        arrays.vy[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.ay[j] - xi * arrays.vy[j]);
+        arrays.vz[j] += Scalar(1.0/2.0) * m_deltaT * (arrays.az[j] - xi * arrays.vz[j]);
         }
     
     m_pdata->release();
