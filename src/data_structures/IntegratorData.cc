@@ -39,21 +39,29 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: WallData.cc 2262 2009-10-30 06:59:14Z askeys $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/binary-restart/src/data_structures/WallData.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
-/*! \file WallData.cc
-    \brief Contains all code for WallData.
+/*! \file IntegratorData.cc
+    \brief Contains all code for IntegratorData.
  */
 
 #include "IntegratorData.h"
         
-void IntegratorData::registerIntegrator(unsigned int i)
+unsigned int IntegratorData::registerIntegrator()
     {
+    // assign the next available slot
+    unsigned int i = m_num_registered;
+    m_num_registered++;
+    
+    // grow the vector if it needs to be
     if (i >= m_integrator_variables.size()) 
         {
         m_integrator_variables.resize(i+1);
         }
+    
+    // return the handle
+    return i;
     }
 

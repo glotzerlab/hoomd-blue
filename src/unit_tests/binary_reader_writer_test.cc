@@ -146,10 +146,10 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     iv0.variable[0] = var1;
     iv0.variable[1] = var2;
     iv1.variable.resize(1, var3);
-    idata->registerIntegrator(0);
-    idata->setIntegratorVariables(0, iv0);
-    idata->registerIntegrator(1);
-    idata->setIntegratorVariables(1, iv1);
+    unsigned int i0 = idata->registerIntegrator();
+    idata->setIntegratorVariables(i0, iv0);
+    unsigned int i1 = idata->registerIntegrator();
+    idata->setIntegratorVariables(i1, iv1);
     
     // add a couple walls for fun
     sysdef1->getWallData()->addWall(Wall(1,0,0, 0,1,0));

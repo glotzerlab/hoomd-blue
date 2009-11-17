@@ -39,12 +39,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: WallData.h 2262 2009-10-30 06:59:14Z askeys $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/binary-restart/src/data_structures/WallData.h $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
-/*! \file WallData.h
-    \brief Contains declarations for WallData.
+/*! \file IntegratorData.h
+    \brief Contains declarations for IntegratorData.
  */
 
 #ifndef __INTEGRATORDATA_H__
@@ -69,7 +69,15 @@ struct IntegratorVariables
 
 //! Stores all integrator variables in the simulation
 /*! IntegratorData keeps track of the parameters for all of the integrators 
-    defined in the simulation. 
+    defined in the simulation, so that they can be saved and reloaded from data files.
+    
+    Each integrator must register with IntegratorData by calling registerIntegrator(), which returns an unsinged int
+    to be used to access the variables for that integrator. The same sequence of registerIntegrator() calls will produce
+    the same set of handles, so they can be used to read existing state values after loading data from a file.
+    
+    The state of current registered integrators is reset when a new IntegratorData is constructed. This is consistent
+    with the above use-case, as the construction of a new IntegratorData means the construction of a new SystemData, and
+    hence a new series of constructed Integrators, which will then re-register.
     
     \ingroup data_structs
 */
@@ -77,13 +85,13 @@ class IntegratorData
     {
     public:
         //! Constructs an empty list with no integrator variables
-        IntegratorData() {}
+        IntegratorData() : m_num_registered(0) {}
         
         //! Destructor
         ~IntegratorData() {}
         
         //! Register an integrator (should occur during integrator construction)
-        void registerIntegrator(unsigned int);
+        unsigned int registerIntegrator();
         
         //! Get the number of integrator variables
         /*! \return Number of integrator variables present
@@ -93,6 +101,16 @@ class IntegratorData
             return (unsigned int)m_integrator_variables.size();
             }
             
+        //! Load a number of integrator variables
+        /*! \param n Number of variables to load
+            When loading from a file, a given number of integrator variables must be preloaded without registering them.
+            This method does that. After calling load(n), setIntegratorVariables() can be called for \a i up to \a n-1
+        */
+        void load(unsigned int n)
+            {
+            m_integrator_variables.resize(n);
+            }
+        
         //! Get a collection of integrator variables
         /*! \param i access integrator variables for integrator i
         */
@@ -111,7 +129,7 @@ class IntegratorData
             }
             
     private:
-    
+        unsigned int m_num_registered;                                  //!< Number of integrators that have registered
         std::vector<IntegratorVariables> m_integrator_variables;        //!< List of the integrator variables defined
         
     };

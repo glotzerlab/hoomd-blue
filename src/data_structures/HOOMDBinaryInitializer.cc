@@ -168,9 +168,9 @@ void HOOMDBinaryInitializer::initWallData(boost::shared_ptr<WallData> wall_data)
 
 void HOOMDBinaryInitializer::initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data ) const
     {
+    integrator_data->load(m_integrator_variables.size());
     for (unsigned int i=0; i<m_integrator_variables.size(); i++)
         {
-        integrator_data->registerIntegrator(i);
         integrator_data->setIntegratorVariables(i, m_integrator_variables[i]);
         }
     }
