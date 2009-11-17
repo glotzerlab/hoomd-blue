@@ -56,6 +56,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements Nose-Hoover/Anderson NPT integration through the IntegrationMethodTwoStep interface
     
+    Integrator variables mapping:
+     - [0] -> xi
+     - [1] -> eta
+
     \ingroup updaters
 */
 class TwoStepNPT : public IntegrationMethodTwoStep
@@ -122,8 +126,6 @@ class TwoStepNPT : public IntegrationMethodTwoStep
         Scalar m_tauP;                  //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
-        Scalar m_Xi;                    //!< Friction coeff
-        Scalar m_Eta;                   //!< barostat friction
         Scalar m_curr_group_T;          //!< Current group temperature
         Scalar m_curr_P;                //!< Current system pressure
         Scalar m_group_dof;             //!< Number of degrees of freedom in the integrated group
