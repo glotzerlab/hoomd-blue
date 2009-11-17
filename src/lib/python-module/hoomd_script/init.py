@@ -232,6 +232,46 @@ def read_xml(filename, time_step = None):
     _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
 
+## Reads initial system state from a binary file
+#
+# \param filename File to read
+#
+# \b Examples:
+# \code
+# init.read_bin(filename="data.bin")
+# init.read_bin(filename="directory/data.bin")
+# system = init.read_bin(filename="data.bin")
+# \endcode
+#
+# All particles, bonds, etc...  are read from the binary file given, 
+# setting the initial condition of the simulation.
+# After this command completes, the system is initialized allowing 
+# other commands in hoomd_script to be run. For more details
+# on the file format read by this command, see \ref page_xml_file_format.
+#
+# The result of init.read_xml can be saved in a variable and later used to read and/or change particle properties
+# later in the script. See hoomd_script.data for more information.
+#
+def read_bin(filename):
+    util.print_status_line();
+    
+    # parse command line
+    _parse_command_line();
+
+    # check if initialization has already occurred
+    if (globals.system_definition != None):
+        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        raise RuntimeError('Error initializing');
+
+    # read in the data
+    initializer = hoomd.HOOMDBinaryInitializer(filename);
+    globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
+    
+    # initialize the system
+    globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
+    
+    _perform_common_init_tasks();
+    return data.system_data(globals.system_definition);
 
 ## Generates N randomly positioned particles of the same type
 #

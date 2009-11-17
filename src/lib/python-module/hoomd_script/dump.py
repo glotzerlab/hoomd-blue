@@ -218,6 +218,84 @@ class xml(analyze._analyzer):
         
         self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
 
+## Writes simulation snapshots in a binary format
+#
+# Every \a period time steps, a new file will be created. The state of the 
+# particles at that time step is written to the file in a binary format.
+#
+# \sa \ref page_xml_file_format
+class bin(analyze._analyzer):
+    ## Initialize the hoomd_bin writer
+    #
+    # \param filename (optional) Base of the file name
+    # \param period (optional) Number of time steps between file dumps
+    # 
+    # \b Examples:
+    # \code
+    # dump.bin(filename="particles", period=1000)
+    # bin = dump.bin(filename="particles", period=1e5)
+    # bin = dump.bin()
+    # \endcode
+    #
+    # If period is set, a new file will be created every \a period steps. The time step at which 
+    # the file is created is added to the file name in a fixed width format to allow files to easily 
+    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
+    # \c particles.0000000000.bin
+    #
+    # Binary files include the \b entire state of the system, including the time step, particle positions,
+    # velocities, et cetera, and the internal state variables of any relevant integration methods. All data is saved
+    # exactly as it appears in memory so that loading the data with init.read_bin is as close as possible as one
+    # can get to exactly restarting the simulation as if it has never stopped.
+    #
+    # If \a period is not specified, then no periodic updates will occur. Instead, the write()
+    # command must be executed to write an output file.
+    #
+    # \note The binary file format may change from one hoomd release to the next. Efforts will be made so that
+    # newer versions of hoomd can read previous version's binary format, but support is not guarunteed. The intended
+    # use case for dump.bin() is for saving data to restart and/or continue jobs that fail or reach a wall clock time
+    # limit. If you need to store data in a system and version independant manner, use dump.xml().
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    def __init__(self, filename="dump", period=None):
+        util.print_status_line();
+    
+        # initialize base class
+        analyze._analyzer.__init__(self);
+        
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.HOOMDBinaryDumpWriter(globals.system_definition, filename);
+        
+        if period != None:
+            self.setupAnalyzer(period);
+            self.enabled = False;
+            self.prev_period = 1;
+
+    ## Write a file at the current time step
+    #
+    # \param filename File name to write to
+    #
+    # The periodic file writes can be temporarily overridden and a file with any file name
+    # written at the current time step.
+    #
+    # Executing write() requires that the %dump was saved in a variable when it was specified.
+    # \code
+    # xml = dump.xml()
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # xml.write(filename="start.xml")
+    # \endcode
+    def write(self, filename):
+        util.print_status_line();
+        
+        # check that proper initialization has occured
+        if self.cpp_analyzer == None:
+            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
+            raise RuntimeError('Error writing xml');
+        
+        self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
+
 ## Writes a simulation snapshot in the MOL2 format
 #
 # Every \a period time steps, a new file will be created. The state of the 
