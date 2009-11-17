@@ -43,51 +43,55 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVTUpdaterGPU.h
-    \brief Declares the NVTUpdaterGPU class
+#include "TwoStepNPT.h"
+
+#ifndef __TWO_STEP_NPT_GPU_H__
+#define __TWO_STEP_NPT_GPU_H__
+
+/*! \file TwoStepNPTGPU.h
+    \brief Declares the TwoStepNPTGPU class
 */
 
-#include "NVTUpdater.h"
-#include "NVTUpdaterGPU.cuh"
-
-#include <boost/shared_ptr.hpp>
-
-#ifndef __NVTUPDATER_GPU_H__
-#define __NVTUPDATER_GPU_H__
-
-//! NVT via Nose-Hoover on the GPU
-/*! NVTUpdaterGPU implements exactly the same caclulations as NVTUpdater, but on the GPU.
-
-    The GPU kernel that accomplishes this can be found in gpu_nvt_kernel.cu
-
+//! Integrates part of the system forward in two steps in the NPT ensemble on the GPU
+/*! Implements Nose-Hoover/Anderson NPT integration through the IntegrationMethodTwoStep interface, runs on the GPU
+    
     \ingroup updaters
 */
-class NVTUpdaterGPU : public NVTUpdater
+class TwoStepNPTGPU : public TwoStepNPT
     {
     public:
-        //! Constructor
-        NVTUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                      Scalar deltaT,
+        //! Constructs the integration method and associates it with the system
+        TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                      boost::shared_ptr<ParticleGroup> group,
                       Scalar tau,
-                      boost::shared_ptr<Variant> T);
+                      Scalar tauP,
+                      boost::shared_ptr<Variant> T,
+                      boost::shared_ptr<Variant> P);
+        virtual ~TwoStepNPTGPU() {};
         
-        virtual ~NVTUpdaterGPU();
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
         
-        //! Take one timestep forward
-        virtual void update(unsigned int timestep);
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    protected:
+        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
+        unsigned int m_group_num_blocks;  //!< Number of blocks of \a block_size to launch when updating the group
+        unsigned int m_full_num_blocks;   //!< Number of blocks to launch when updating all particles
+        GPUArray<float> m_partial_sum2K;  //!< Partial sums from the first pass reduction
+        GPUArray<float> m_sum2K;          //!< Total sum of 2K on the GPU
+        GPUArray<float> m_partial_sumW;   //!< Partial sums for the first pass reduction of W
+        GPUArray<float> m_sumW;           //!< Total sum of W on the GPU
+
+        //! helper function to compute pressure
+        virtual Scalar computePressure(unsigned int timestep);
         
-    private:
-        std::vector<gpu_nvt_data> d_nvt_data;   //!< Temp data on the device needed to implement NVT
-        
-        //! Helper function to allocate data
-        void allocateNVTData(int block_size);
-        
-        //! Helper function to free data
-        void freeNVTData();
+        //! helper function to compute group temperature
+        virtual Scalar computeGroupTemperature(unsigned int timestep);
     };
 
-//! Exports the NVTUpdater class to python
-void export_NVTUpdaterGPU();
+//! Exports the TwoStepNPTGPU class to python
+void export_TwoStepNPTGPU();
 
-#endif
+#endif // #ifndef __TWO_STEP_NPT_GPU_H__
 

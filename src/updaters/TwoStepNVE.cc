@@ -43,28 +43,26 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVEUpdater.cc
-    \brief Defines the NVEUpdater class
-*/
-
 #ifdef WIN32
 #pragma warning( push )
-#pragma warning( disable : 4103 4244 )
+#pragma warning( disable : 4244 )
 #endif
 
 #include <boost/python.hpp>
 using namespace boost::python;
 
-#include "NVEUpdater.h"
-#include <math.h>
+#include "TwoStepNVE.h"
 
-using namespace std;
-
-/*! \param sysdef System to update
-    \param deltaT Time step to use
+/*! \file TwoStepNVE.h
+    \brief Contains code for the TwoStepNVE class
 */
-NVEUpdater::NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Integrator(sysdef, deltaT),
-        m_accel_set(false), m_limit(false), m_limit_val(1.0)
+
+/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
+    \param group The group of particles this integration method is to work on
+*/
+TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
+                       boost::shared_ptr<ParticleGroup> group)
+    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0)
     {
     }
 
@@ -73,83 +71,38 @@ NVEUpdater::NVEUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT
     Once the limit is set, future calls to update() will never move a particle
     a distance larger than the limit in a single time step
 */
-void NVEUpdater::setLimit(Scalar limit)
-    {
-    assert(limit > 0.0);
-    
+void TwoStepNVE::setLimit(Scalar limit)
+    {    
     m_limit = true;
     m_limit_val = limit;
     }
 
 /*! Disables the limit, allowing particles to move normally
 */
-void NVEUpdater::removeLimit()
+void TwoStepNVE::removeLimit()
     {
     m_limit = false;
     }
 
-/*! \param quantity Name of the quantity to log
-    \param timestep Current time step of the simulation
-
-    NVEUpdater calculates the conserved quantity as the sum of the kinetic and potential energies.
-    All other quantity requests are passed up to Integrator::getLogValue().
+/*! \param timestep Current time step
+    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
+          method.
 */
-Scalar NVEUpdater::getLogValue(const std::string& quantity, unsigned int timestep)
+void TwoStepNVE::integrateStepOne(unsigned int timestep)
     {
-    if (quantity == string("conserved_quantity"))
-        {
-        return computeKineticEnergy(timestep) + computePotentialEnergy(timestep);
-        }
-    else
-        {
-        // pass it on up to the base class
-        return Integrator::getLogValue(quantity, timestep);
-        }
-    }
-
-/*! Uses velocity verlet
-    \param timestep Current time step of the simulation
-
-    \pre Associated ParticleData is initialized, and particle positions and velocities
-        are set for time timestep
-    \post Forces and accelerations are computed and particle's positions, velocities
-        and accelartions are updated to their values at timestep+1.
-*/
-void NVEUpdater::update(unsigned int timestep)
-    {
-    assert(m_pdata);
-    
-    static bool gave_warning = false;
-    if (m_forces.size() == 0 && !gave_warning)
-        {
-        cout << "Notice: No forces defined in NVEUpdater, Continuing anyways" << endl;
-        gave_warning = true;
-        }
-        
-    // if we haven't been called before, then the accelerations have not been set and we need to calculate them
-    if (!m_accel_set)
-        {
-        m_accel_set = true;
-        computeAccelerations(timestep, "NVE");
-        }
-        
+    // profile this step
     if (m_prof)
-        {
-        m_prof->push("NVE");
-        m_prof->push("Half-step 1");
-        }
-        
-    // access the particle data arrays
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-    assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
-    assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
+        m_prof->push("NVE step 1");
     
-    // now we can get on with the velocity verlet
+    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    
+    // perform the first half step of velocity verlet
     // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
     // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
+        unsigned int j = m_group->getMemberIndex(group_idx);
         Scalar dx = arrays.vx[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT*m_deltaT;
         Scalar dy = arrays.vy[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT*m_deltaT;
         Scalar dz = arrays.vz[j]*m_deltaT + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT*m_deltaT;
@@ -174,21 +127,18 @@ void NVEUpdater::update(unsigned int timestep)
         arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
         arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
         }
-        
-    // We aren't done yet! Need to fix the periodic boundary conditions
-    // this implementation only works if the particles go a wee bit outside the box, which is all that should ever happen under normal circumstances
-    // get a local copy of the simulation box too
+    
+    // particles may have been moved slightly outside the box by the above steps, wrap them back into place
     const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     
     // precalculate box lenghts
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
+        unsigned int j = m_group->getMemberIndex(group_idx);
         // wrap the particle around the box
         if (arrays.x[j] >= box.xhi)
             {
@@ -223,33 +173,48 @@ void NVEUpdater::update(unsigned int timestep)
             arrays.iz[j]--;
             }
         }
-        
-    // release the particle data arrays
+    
     m_pdata->release();
     
-    // functions that computeAccelerations calls profile themselves, so suspend
-    // the profiling for now
+    // done profiling
     if (m_prof)
-        {
         m_prof->pop();
-        m_prof->pop();
-        }
+    }
         
-    // for the next half of the step, we need the accelerations at t+deltaT
-    computeAccelerations(timestep+1, "NVE");
+/*! \param timestep Current time step
+    \post particle velocities are moved forward to timestep+1
+*/
+void TwoStepNVE::integrateStepTwo(unsigned int timestep)
+    {
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
+    // profile this step
     if (m_prof)
-        {
-        m_prof->push("NVE");
-        m_prof->push("Half-step 2");
-        }
-        
-    // get the particle data arrays again so we can update the 2nd half of the step
-    arrays = m_pdata->acquireReadWrite();
+        m_prof->push("NVE step 2");
+    
+    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-    for (unsigned int j = 0; j < arrays.nparticles; j++)
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        
+        if (m_zero_force)
+            {
+            arrays.ax[j] = arrays.ay[j] = arrays.az[j] = 0.0;
+            }
+        else
+            {
+            // first, calculate acceleration from the net force
+            Scalar minv = Scalar(1.0) / arrays.mass[j];
+            arrays.ax[j] = h_net_force.data[j].x*minv;
+            arrays.ay[j] = h_net_force.data[j].y*minv;
+            arrays.az[j] = h_net_force.data[j].z*minv;
+            }
+        
+        // then, update the velocity
         arrays.vx[j] += Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT;
         arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
         arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
@@ -266,24 +231,22 @@ void NVEUpdater::update(unsigned int timestep)
                 }
             }
         }
-        
-    // release the particle data arrays
+    
     m_pdata->release();
     
-    // and now the acceleration at timestep+1 is precalculated for the first half of the next step
+    // done profiling
     if (m_prof)
-        {
         m_prof->pop();
-        m_prof->pop();
-        }
     }
 
-void export_NVEUpdater()
+void export_TwoStepNVE()
     {
-    class_<NVEUpdater, boost::shared_ptr<NVEUpdater>, bases<Integrator>, boost::noncopyable>
-    ("NVEUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar >())
-    .def("setLimit", &NVEUpdater::setLimit)
-    .def("removeLimit", &NVEUpdater::removeLimit);
+    class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
+        ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+        .def("setLimit", &TwoStepNVE::setLimit)
+        .def("removeLimit", &TwoStepNVE::removeLimit)
+        .def("setZeroForce", &TwoStepNVE::setZeroForce)
+        ;
     }
 
 #ifdef WIN32

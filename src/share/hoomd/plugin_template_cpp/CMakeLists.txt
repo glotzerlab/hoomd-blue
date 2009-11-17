@@ -11,9 +11,10 @@ endif (ENABLE_STATIC)
 
 set(BUILD_SHARED_LIBS on)
 
-# collect all the sources together
+# add subdirectories
 add_subdirectory(cppmodule)
 add_subdirectory(pymodule)
+add_subdirectory(doc)
 
 # ovveride the CMAKE_INSTALL_PREFIX on the first run to ${HOOMD_ROOT}
 # ${HOOMD_ROOT} will likely be the most common installation directory, but users may want to override

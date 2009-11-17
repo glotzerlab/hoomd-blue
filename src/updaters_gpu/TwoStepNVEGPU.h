@@ -43,27 +43,36 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file NVEUpdaterGPU.cuh
-    \brief Declares GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
+#include "TwoStepNVE.h"
+
+#ifndef __TWO_STEP_NVE_GPU_H__
+#define __TWO_STEP_NVE_GPU_H__
+
+/*! \file TwoStepNVEGPU.h
+    \brief Declares the TwoStepNVEGPU class
 */
 
-#ifndef __NVEUPDATER_CUH__
-#define __NVEUPDATER_CUH__
+//! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
+/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface, runs on the GPU
+    
+    \ingroup updaters
+*/
+class TwoStepNVEGPU : public TwoStepNVE
+    {
+    public:
+        //! Constructs the integration method and associates it with the system
+        TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
+        virtual ~TwoStepNVEGPU() {};
+        
+        //! Performs the first step of the integration
+        virtual void integrateStepOne(unsigned int timestep);
+        
+        //! Performs the second step of the integration
+        virtual void integrateStepTwo(unsigned int timestep);
+    };
 
-//! Kernel driver for the first part of the NVE update called by NVEUpdaterGPU
-cudaError_t gpu_nve_pre_step(const gpu_pdata_arrays &pdata,
-                             const gpu_boxsize &box,
-                             float deltaT,
-                             bool limit,
-                             float limit_val);
+//! Exports the TwoStepNVEGPU class to python
+void export_TwoStepNVEGPU();
 
-//! Kernel driver for the second part of the NVE update called by NVEUpdaterGPU
-cudaError_t gpu_nve_step(const gpu_pdata_arrays &pdata,
-                         float4 **force_data_ptrs,
-                         int num_forces,
-                         float deltaT,
-                         bool limit,
-                         float limit_val);
-
-#endif
+#endif // #ifndef __TWO_STEP_NVE_GPU_H__
 

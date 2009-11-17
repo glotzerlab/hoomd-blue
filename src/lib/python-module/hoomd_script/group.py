@@ -46,6 +46,7 @@ import hoomd;
 import sys;
 import util;
 import globals;
+import data;
 
 ## \package hoomd_script.group
 # \brief Commands for grouping particles
@@ -57,8 +58,9 @@ import globals;
 # group should not be created directly in hoomd_script code. The following methods can be used to create particle 
 # groups.
 # - group.all()
-# - group.type()
+# - group.cuboid()
 # - group.tags()
+# - group.type()
 #
 # The above methods assign a descriptive name based on the criteria chosen. That name can be easily changed if desired:
 # \code
@@ -66,9 +68,11 @@ import globals;
 # groupA.name = "my new group name"
 # \endcode
 #
-# Once a group has been created, it can be combined with others to form more complicated groups. To create a new group
-# that contains the intersection of all the particles present in two different groups, use the & operator. Similarly, 
-# the | operator creates a new group that is the a union of all particles in two different groups.
+# Once a group has been created, it can be combined with others via set operations to form more complicated groups.
+# Available operations are:
+# - group.difference()
+# - group.intersection()
+# - group.union()
 #
 # \b Examples:
 # \code
@@ -76,15 +80,50 @@ import globals;
 # # tags 100-199
 # groupA = group.type('A')
 # group100_199 = group.tags(100, 199);
-# group_combined = groupA | group100_199;
+# group_combined = group.union(name="combined", a=groupA, b=group100_199);
 #
 # # create a group containing all particles in group A that also have 
 # # tags 100-199
-# groupA = group.type('A')
-# group100_199 = group.tags(100, 199);
-# group_combined = groupA & group100_199;
+# group_combined2 = group.intersection(name="combined2", a=groupA, b=group100_199);
+#
+# # create a group containing all particles that are not in group A
+# all = group.all()
+# group_notA = group.difference(name="notA", a=all, b=groupA)
 # \endcode
+#
+# A group can also be queried with python sequence semantics.
+#
+# \b Examples:
+# \code
+# groupA = group.type('A')
+# # print the number of particles in group A
+# print len(groupA)
+# # print the position of the first particle in the group
+# print groupA[0].position
+# # set the velocity of all particles in groupA to 0
+# for p in groupA:
+#     p.velocity = (0,0,0)
+# \endcode
+#
+# For more information and examples on accessing the %data in this way, see hoomd_script.data.
+# 
 class group:
+    ## \internal
+    # \brief group iterator
+    class group_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+            
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+    
     ## \internal
     # \brief Creates a group
     # 
@@ -96,108 +135,36 @@ class group:
         self.cpp_group = cpp_group;
     
     ## \internal
-    # \brief Creates a new group as the intersection of two given groups
-    # 
-    # \param a group to perform the intersection with
-    def __and__(self, a):
-        new_name = '(' + self.name + ' & ' + a.name + ')';
-        new_cpp_group = hoomd.ParticleGroup.groupIntersection(self.cpp_group, a.cpp_group);
-        return group(new_name, new_cpp_group);
+    # \brief Get a particle_proxy reference to the i'th particle in the group
+    # \param i Index of the particle in the group to get
+    def __getitem__(self, i):
+        if i >= len(self) or i < 0:
+            raise IndexError;
+        tag = self.cpp_group.getMemberTag(i);
+        return data.particle_data_proxy(globals.system_definition.getParticleData(), tag);
     
+    def __setitem__(self, i, p):
+        raise RuntimeError('__setitem__ not implemented');
+
     ## \internal
-    # \brief Creates a new group as the union of two given groups
-    # 
-    # \param a group to perform the union with
-    def __or__(self, a):
-        new_name = '(' + self.name + ' | ' + a.name + ')';
-        new_cpp_group = hoomd.ParticleGroup.groupUnion(self.cpp_group, a.cpp_group);
-        return group(new_name, new_cpp_group);
-        
-## Groups particles by type
-#
-# \param type Name of the particle type to add to the group
-# 
-# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script 
-# commands (such as analyze.msd) to specify which particles should be operated on.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
-# examples.
-# 
-# \b Examples:
-# \code
-# groupA = group.type('A')
-# groupB = group.type('B')
-# \endcode
-def type(type):
-    util.print_status_line();
-    
-    # check if initialization has occurred
-    if globals.system == None:
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-        raise RuntimeError('Error creating group');
+    # \brief Get the number of particles in the group
+    def __len__(self):
+        return self.cpp_group.getNumMembers();
 
-    # create the group
-    type_id = globals.system_definition.getParticleData().getTypeByName(type);
-    name = 'type ' + type;
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
-                                    hoomd.ParticleGroup.criteriaOption.type,
-                                    type_id,
-                                    type_id);
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Particle Group " + self.name + " containing " + str(len(self)) + " particles";
+        return result;
 
-    # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return group.group_iterator(self);
 
-    # return it in the wrapper class
-    return group(name, cpp_group);
-    
-## Groups particles by tag
-#
-# \param tag_min First tag in the range to include (inclusive)
-# \param tag_max Last tag in the range to include (inclusive)
-# 
-# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
-# added to the group. 
-#
-# Creates a particle group from particles that match the given tag range. The group can then be used by other
-# hoomd_script commands
-# (such as analyze.msd) to specify which particles should be operated on.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-# 
-# \b Examples:
-# \code
-# half1 = group.tags(0, 999)
-# half2 = group.tags(1000, 1999)
-# \endcode
-def tags(tag_min, tag_max=None):
-    util.print_status_line();
-    
-    # check if initialization has occurred
-    if globals.system == None:
-        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
-        raise RuntimeError('Error creating group');
-    
-    # handle the optional argument
-    if tag_max != None:
-        name = 'tags ' + str(tag_min) + '-' + str(tag_max);
-    else:
-        # if the option is not specified, tag_max is set equal to tag_min to include only that particle in the range
-        # and the name is chosen accordingly
-        tag_max = tag_min;
-        name = 'tag ' + str(tag_min);
+## \name Group specifications
 
-    # create the group
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
-                                    hoomd.ParticleGroup.criteriaOption.tag,
-                                    tag_min,
-                                    tag_max);
-
-    # notify the user of the created group
-    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
-
-    # return it in the wrapper class
-    return group(name, cpp_group);
+# {@
 
 ## Groups all particles
 #
@@ -225,14 +192,239 @@ def all():
 
     # create the group
     name = 'all';
-    cpp_group = hoomd.ParticleGroup(globals.system_definition.getParticleData(),
-                                    hoomd.ParticleGroup.criteriaOption.tag,
-                                    tag_min,
-                                    tag_max);
+    selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
     # return it in the wrapper class
     return group(name, cpp_group);
+
+## Groups particles in a cuboid
+#
+# \param name User-assigned name for this group
+# \param xmin (if set) Lower left x-coordinate of the cuboid
+# \param xmax (if set) Upper right x-coordinate of the cuboid
+# \param ymin (if set) Lower left y-coordinate of the cuboid
+# \param ymax (if set) Upper right y-coordinate of the cuboid
+# \param zmin (if set) Lower left z-coordinate of the cuboid
+# \param zmax (if set) Upper right z-coordinate of the cuboid
+#
+# If any of the above parameters is not set, it will automatically be placed slightly outside of the simulation box
+# dimension, allowing easy specification of slabs.
+#
+# Creates a particle group from particles that fall in the defined cuboid. Membership tests are performed via
+# xmin <= x < xmax (and so forth for y and z) so that directly adjacent cuboids do not have overlapping group members.
+#
+# The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should be
+# operated on.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
+#
+# \b Examples:
+# \code
+# slab = group.cuboid(name="slab", ymin=-3, ymax=3)
+# cube = grouip.cuboid(name="cube", xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
+# \endcode
+def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None):
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    # handle the optional arguments
+    box = globals.system_definition.getParticleData().getBox();
+    if xmin == None:
+        xmin = box.xlo - 0.5;
+    if xmax == None:
+        xmax = box.xhi + 0.5;
+    if ymin == None:
+        ymin = box.ylo - 0.5;
+    if ymax == None:
+        ymax = box.yhi + 0.5;
+    if zmin == None:
+        zmin = box.zlo - 0.5;
+    if zmax == None:
+        zmax = box.zhi + 0.5;
+    
+    ll = hoomd.Scalar3();
+    ur = hoomd.Scalar3();
+    ll.x = float(xmin);
+    ll.y = float(ymin);
+    ll.z = float(zmin);
+    ur.x = float(xmax);
+    ur.y = float(ymax);
+    ur.z = float(zmax);
+    
+    # create the group
+    selector = hoomd.ParticleSelectorCuboid(globals.system_definition, ll, ur);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+## Groups particles by tag
+#
+# \param tag_min First tag in the range to include (inclusive)
+# \param tag_max Last tag in the range to include (inclusive)
+# \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
+#
+# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
+# added to the group. 
+#
+# Creates a particle group from particles that match the given tag range. The group can then be used by other
+# hoomd_script commands
+# (such as analyze.msd) to specify which particles should be operated on.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
+# 
+# \b Examples:
+# \code
+# half1 = group.tags(name="first-half", tag_min=0, tag_max=999)
+# half2 = group.tags(name="second-half", tag_min=1000, tag_max=1999)
+# \endcode
+def tags(tag_min, tag_max=None, name=None):
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    # handle the optional argument
+    if tag_max != None:
+        if name == None:
+            name = 'tags ' + str(tag_min) + '-' + str(tag_max);
+    else:
+        # if the option is not specified, tag_max is set equal to tag_min to include only that particle in the range
+        # and the name is chosen accordingly
+        tag_max = tag_min;
+        if name == None:
+            name = 'tag ' + str(tag_min);
+
+    # create the group
+    selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+## Groups particles by type
+#
+# \param type Name of the particle type to add to the group
+# \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
+#
+# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script 
+# commands (such as analyze.msd) to specify which particles should be operated on.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and 
+# examples.
+#
+# \b Examples:
+# \code
+# groupA = group.type(name='a-particles', type='A')
+# groupB = group.type(name='b-particles', type='B')
+# \endcode
+def type(type, name=None):
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if globals.system == None:
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+
+    # create the group
+    type_id = globals.system_definition.getParticleData().getTypeByName(type);
+    if name == None:
+        name = 'type ' + type;
+    selector = hoomd.ParticleSelectorType(globals.system_definition, type_id, type_id);
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+# @}
+
+## \name Group combinations
+
+# {@
+
+## Create a new group from the set difference of two existing groups
+#
+# \param name User-assigned name for this group
+# \param a First group
+# \param b Second group
+#
+# A new group is created that contains particles that are present in group \a and \b not in \a group b. This can be
+# useful for inverting the sense of a group (see below).
+#
+# \b Examples:
+# \code
+# groupA = group.type(name='groupA', type='A')
+# all = group.all()
+# nottypeA = group.union(name="particles-not-typeA", a=all, b=groupA)
+# \endcode
+def difference(name, a, b):
+    new_cpp_group = hoomd.ParticleGroup.groupDifference(a.cpp_group, b.cpp_group);
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles';
+    return group(name, new_cpp_group);
+
+## Create a new group from the set intersection of two existing groups
+#
+# \param name User-assigned name for this group
+# \param a First group
+# \param b Second group
+#
+# A new group is created that contains only those particles present in both groups \a a and \a b, and is given name
+# \a name.
+#
+# \b Examples:
+# \code
+# groupA = group.type(name='groupA', type='A')
+# group100_199 = group.tags(name='100_199', tag_min=100, tag_max=199);
+# groupC = group.intersection(name="groupC", a=groupA, b=group100_199)
+# \endcode
+def intersection(name, a, b):
+    new_cpp_group = hoomd.ParticleGroup.groupIntersection(a.cpp_group, b.cpp_group);
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles';
+    return group(name, new_cpp_group);
+
+## Create a new group from the set union of two existing groups
+#
+# \param name User-assigned name for this group
+# \param a First group
+# \param b Second group
+#
+# A new group is created that contains all particles present in either of the two groups \a a and \a b, and is given 
+# name \a name.
+#
+# \b Examples:
+# \code
+# groupA = group.type(name='groupA', type='A')
+# groupB = group.type(name='groupB', type='B')
+# groupAB = group.union(name="ab-particles", a=groupA, b=groupB)
+# \endcode
+def union(name, a, b):
+    new_cpp_group = hoomd.ParticleGroup.groupUnion(a.cpp_group, b.cpp_group);
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembers()) + ' particles';
+    return group(name, new_cpp_group);
+
+# @}
 

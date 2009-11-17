@@ -482,19 +482,5 @@ BOOST_AUTO_TEST_CASE( HarmonicImproperForceComputeGPU_compare )
     improper_force_comparison_tests(tf_creator, tf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
-//! boost test case for comparing calculation on the CPU to multi-gpu ones
-BOOST_AUTO_TEST_CASE( HarmonicImproperForce_MultiGPU_compare)
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    improperforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
-    improperforce_creator tf_creator = bind(base_class_tf_creator, _1);
-    improper_force_comparison_tests(tf_creator, tf_creator_gpu, exec_conf);
-    }
 #endif
 

@@ -399,13 +399,15 @@ class integrate_nvt_tests (unittest.TestCase):
         
     # tests basic creation of the dump
     def test(self):
-        integrate.nvt(dt=0.005, T=1.2, tau=0.5);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nvt(all, T=1.2, tau=0.5);
         run(100);
     
     # test set_params
     def test_set_params(self):
-        nvt = integrate.nvt(dt=0.005, T=1.2, tau=0.5);
-        nvt.set_params(dt=0.001);
+        all = group.all();
+        nvt = integrate.nvt(all, T=1.2, tau=0.5);
         nvt.set_params(T=1.3);
         nvt.set_params(tau=0.6);
     
@@ -419,22 +421,32 @@ class integrate_bdnvt_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         force.constant(fx=0.1, fy=0.1, fz=0.1)
         
-    # tests basic creation of the dump
+    # tests basic creation of the integration method
     def test(self):
-        integrate.bdnvt(dt=0.005, T=1.2, limit=0.1, seed=52);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        bd = integrate.bdnvt(all, T=1.2, limit=0.1, seed=52);
         run(100);
-        integrate.bdnvt(dt=0.005, T=1.2, limit=0.1);
-        integrate.bdnvt(dt=0.005, T=1.2);
+        bd.disable();
+        bd = integrate.bdnvt(all, T=1.2, limit=0.1);
+        run(100);
+        bd.disable();
+        bd = integrate.bdnvt(all, T=1.2);
+        run(100);
+        bd.disable();
+        bd = integrate.bdnvt(all, T=1.2, gamma_diam=True);
+        bd.disable();
     
     # test set_params
     def test_set_params(self):
-        bd = integrate.bdnvt(dt=0.005, T=1.2);
-        bd.set_params(dt=0.001);
+        all = group.all();
+        bd = integrate.bdnvt(all, T=1.2);
         bd.set_params(T=1.3);
 
     # test set_gamma
     def test_set_gamma(self):
-        bd = integrate.bdnvt(dt=0.005, T=1.2);
+        all = group.all();
+        bd = integrate.bdnvt(all, T=1.2);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
     
@@ -451,17 +463,22 @@ class integrate_npt_tests (unittest.TestCase):
         
     # tests basic creation of the dump
     def test(self):
-        integrate.npt(dt=0.005, T=1.2, tau=0.5, P=1.0, tauP=0.5);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5);
         run(100);
     
     # test set_params
     def test_set_params(self):
-        npt = integrate.npt(dt=0.005, T=1.2, tau=0.5, P=1.0, tauP=0.5);
-        npt.set_params(dt=0.001);
+        integrate.mode_standard(dt=0.005);
+        all = group.all();
+        npt = integrate.npt(all, T=1.2, tau=0.5, P=1.0, tauP=0.5);
         npt.set_params(T=1.3);
         npt.set_params(tau=0.6);
         npt.set_params(P=0.5);
         npt.set_params(tauP=0.6);
+        npt.set_params(partial_scale=True);
+        run(100);
     
     def tearDown(self):
         globals._clear();
@@ -475,13 +492,28 @@ class integrate_nve_tests (unittest.TestCase):
                 
     # tests basic creation of the dump
     def test(self):
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
+        run(100);
+    
+    # tests creation of the method with options
+    def test(self):
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all, limit=0.01, zero_force=True);
         run(100);
     
     # test set_params
     def test_set_params(self):
-        nve = integrate.nve(dt=0.005);
-        nve.set_params(dt=0.001);
+        all = group.all();
+        mode = integrate.mode_standard(dt=0.005);
+        mode.set_params(dt=0.001);
+        nve = integrate.nve(all);
+        nve.set_params(limit=False);
+        nve.set_params(limit=0.1);
+        nve.set_params(zero_force=False);
+        
     
     def tearDown(self):
         globals._clear();
@@ -671,13 +703,17 @@ class wall_lj_tests (unittest.TestCase):
     def test_set_coeff(self):
         lj_wall = wall.lj(r_cut=3.0);
         lj_wall.set_coeff('A', epsilon=1.0, sigma=1.0, alpha=1.0)
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         run(100);
         
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         lj_wall = wall.lj(r_cut=3.0);
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
@@ -702,13 +738,17 @@ class bond_harmonic_tests (unittest.TestCase):
     def test_set_coeff(self):
         harmonic = bond.harmonic();
         harmonic.set_coeff('polymer', k=1.0, r0=1.0)
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         run(100);
         
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         harmonic = bond.harmonic();
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
@@ -737,13 +777,17 @@ class angle_harmonic_tests (unittest.TestCase):
     def test_set_coeff(self):
         harmonic = angle.harmonic();
         harmonic.set_coeff('angleA', k=1.0, t0=0.78125)
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         run(100);
         
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         harmonic = angle.harmonic();
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
@@ -772,13 +816,17 @@ class angle_cgcmm_tests (unittest.TestCase):
     def test_set_coeff(self):
         cgcmm = angle.cgcmm();
         cgcmm.set_coeff('angleA', k=3.0, t0=0.7851, exponents=126, epsilon=1.0, sigma=0.53)
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         run(100);
         
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         cgcmm = angle.cgcmm();
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
@@ -808,13 +856,17 @@ class dihedral_harmonic_tests (unittest.TestCase):
     def test_set_coeff(self):
         harmonic = dihedral.harmonic();
         harmonic.set_coeff('dihedralA', k=1.0, d=1, n=4)
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         run(100);
         
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         harmonic = dihedral.harmonic();
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
@@ -843,13 +895,17 @@ class improper_harmonic_tests (unittest.TestCase):
     def test_set_coeff(self):
         harmonic = improper.harmonic();
         harmonic.set_coeff('dihedralA', k=30.0, chi=1.57)
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         run(100);
         
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         harmonic = improper.harmonic();
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
@@ -874,13 +930,17 @@ class bond_fene_tests (unittest.TestCase):
     def test_set_coeff(self):
         fene = bond.fene();
         fene.set_coeff('polymer', k=30.0, r0=1.5, sigma=1.0, epsilon=2.0)
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         run(100);
         
     # test coefficient not set checking
     def test_set_coeff_fail(self):
         fene = bond.fene();
-        integrate.nve(dt=0.005);
+        all = group.all();
+        integrate.mode_standard(dt=0.005);
+        integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):

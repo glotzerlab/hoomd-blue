@@ -528,20 +528,6 @@ BOOST_AUTO_TEST_CASE( CGCMMForceGPU_compare )
     cgcmm_force_comparison_test(cgcmm_creator_base, cgcmm_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
-//! boost test case for comparing multi-GPU output to base class output
-BOOST_AUTO_TEST_CASE( CGCMMForceMultiGPU_compare )
-    {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    ExecutionConfiguration exec_conf(gpu_list);
-    
-    cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
-    cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_comparison_test(cgcmm_creator_base, cgcmm_creator_gpu, exec_conf);
-    }
 #endif
 
 #ifdef WIN32

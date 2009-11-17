@@ -3,6 +3,10 @@
 // include gpu_settings.h for g_gpu_error_checking
 #include <hoomd/gpu_settings.h>
 
+/*! \file ExampleUpdater.cu
+    \brief CUDA kernels for ExampleUpdater
+*/
+
 // First, the kernel code for zeroing the velocities on the GPU
 //! Kernel that zeroes velocities on the GPU
 /*! \param pdata Particle data arrays to zero the velocities of

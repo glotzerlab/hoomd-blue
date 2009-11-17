@@ -6,6 +6,10 @@
 // need to include the particle data definition
 #include <hoomd/ParticleData.cuh>
 
+/*! \file ExampleUpdater.cuh
+    \brief Declaration of CUDA kernels for ExampleUpdater
+*/
+
 // A C API call to run a CUDA kernel is needed for ExampleUpdaterGPU to call
 //! Zeros velocities on the GPU
 extern "C" cudaError_t gpu_zero_velocities(const gpu_pdata_arrays &pdata);

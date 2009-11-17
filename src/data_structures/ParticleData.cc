@@ -850,6 +850,10 @@ void ParticleData::allocate(unsigned int N)
         }
         
 #endif
+    GPUArray< Scalar4 > net_force(getN(), getExecConf());
+    m_net_force.swap(net_force);
+    GPUArray< Scalar > net_virial(getN(), getExecConf());
+    m_net_virial.swap(net_virial);
     }
 
 /*! \pre Memory has been allocated
@@ -1313,7 +1317,35 @@ void export_ParticleData()
     .def("setProfiler", &ParticleData::setProfiler)
     .def("getExecConf", &ParticleData::getExecConf, return_internal_reference<>())
     .def("__str__", &print_ParticleData)
+    .def("getPosition", &ParticleData::getPosition)
+    .def("getVelocity", &ParticleData::getVelocity)
+    .def("getAcceleration", &ParticleData::getAcceleration)
+    .def("getImage", &ParticleData::getImage)
+    .def("getCharge", &ParticleData::getCharge)
+    .def("getMass", &ParticleData::getMass)
+    .def("getDiameter", &ParticleData::getDiameter)
+    .def("getBody", &ParticleData::getBody)
+    .def("getType", &ParticleData::getType)
+    .def("setPosition", &ParticleData::setPosition)
+    .def("setVelocity", &ParticleData::setVelocity)
+    .def("setImage", &ParticleData::setImage)
+    .def("setCharge", &ParticleData::setCharge)
+    .def("setMass", &ParticleData::setMass)
+    .def("setDiameter", &ParticleData::setDiameter)
+    .def("setBody", &ParticleData::setBody)
+    .def("setType", &ParticleData::setType)
     ;
+    
+    class_<Scalar3>("Scalar3", init<>())
+        .def_readwrite("x", &Scalar3::x)
+        .def_readwrite("y", &Scalar3::y)
+        .def_readwrite("z", &Scalar3::z)
+        ;
+    class_<uint3>("uint3", init<>())
+        .def_readwrite("x", &uint3::x)
+        .def_readwrite("y", &uint3::y)
+        .def_readwrite("z", &uint3::z)
+        ;
     }
 
 #ifdef WIN32

@@ -65,45 +65,17 @@ using namespace boost;
 
 using namespace std;
 
-unsigned int Integrator::s_integrator_count = 0;
-
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT), m_unique_id(s_integrator_count++)
+Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
     {
     if (m_deltaT <= 0.0)
         cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
-    
-    m_sysdef->getIntegratorData()->registerIntegrator(m_unique_id);
-    
-#ifdef ENABLE_CUDA
-    m_d_force_data_ptrs.resize(exec_conf.gpu.size());
-    
-    // allocate and initialize force data pointers (if running on a GPU)
-    if (!exec_conf.gpu.empty())
-        {
-        exec_conf.tagAll(__FILE__, __LINE__);
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            {
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&m_d_force_data_ptrs[cur_gpu]), sizeof(float4*)*32));
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_d_force_data_ptrs[cur_gpu], 0, sizeof(float4*)*32));
-            }
-        }
-#endif
     }
 
 Integrator::~Integrator()
     {
-#ifdef ENABLE_CUDA
-    // free the force data pointers on the GPU
-    if (!exec_conf.gpu.empty())
-        {
-        exec_conf.tagAll(__FILE__, __LINE__);
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void *)m_d_force_data_ptrs[cur_gpu]));
-        }
-#endif
     }
 
 /*! \param fc ForceCompute to add
@@ -112,30 +84,6 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
     {
     assert(fc);
     m_forces.push_back(fc);
-    
-#ifdef ENABLE_CUDA
-    // add the force data pointer to the list of pointers on the GPU
-    if (!exec_conf.gpu.empty())
-        {
-        exec_conf.tagAll(__FILE__, __LINE__);
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            {
-            // reinitialize the memory on the device
-            
-            // fill out the memory on the host
-            // this only needs to be done once since the output of acquireGPU is
-            // guaranteed not to change later
-            float4 *h_force_data_ptrs[32];
-            for (int i = 0; i < 32; i++)
-                h_force_data_ptrs[i] = NULL;
-                
-            for (unsigned int i = 0; i < m_forces.size(); i++)
-                h_force_data_ptrs[i] = m_forces[i]->acquireGPU()[cur_gpu].d_data.force;
-                
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs[cur_gpu], (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
-            }
-        }
-#endif
     }
 
 /*! Call removeForceComputes() to completely wipe out the list of force computes
@@ -144,22 +92,6 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 void Integrator::removeForceComputes()
     {
     m_forces.clear();
-    
-#ifdef ENABLE_CUDA
-    if (!exec_conf.gpu.empty())
-        {
-        exec_conf.tagAll(__FILE__, __LINE__);
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            {
-            // reinitialize the memory on the device
-            float4 *h_force_data_ptrs[32];
-            for (int i = 0; i < 32; i++)
-                h_force_data_ptrs[i] = NULL;
-                
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, (void*)m_d_force_data_ptrs[cur_gpu], (void*)h_force_data_ptrs, sizeof(float4*)*32, cudaMemcpyHostToDevice));
-            }
-        }
-#endif
     }
 
 /*! \param deltaT New time step to set
@@ -260,99 +192,39 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
         }
     }
 
-/*! \return a reference to the integrator variables for the current integrator
-*/
-const IntegratorVariables& Integrator::getIntegratorVariables()
-    {
-    return m_sysdef->getIntegratorData()->getIntegratorVariables(m_unique_id);
-    }
-
-/*! \param v is the restart variables for the current integrator
-    \param type is the type of expected integrator type
-    \param nvariables is the expected number of variables
-    
-    If the either the integrator type or number of variables does not match the
-    expected values, this function throws the appropriate warning and returns
-    "false."  Otherwise, the function returns true.
-*/
-bool Integrator::restartInfoIsGood(IntegratorVariables& v, std::string type, unsigned int nvariables)
-    {
-    bool good = true;
-    if (v.type == "")
-        good = false;
-    else if (v.type != type && v.type != "")
-        {
-        cout << "***Warning! Integrator #"<<  m_unique_id <<" type "<< type <<" does not match type ";
-        cout << v.type << " found in restart file. " << endl;
-        cout << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
-        cout << "Continuing while ignoring restart information..." << endl;
-        good = false;
-        }
-   else if (v.type == type)
-        {
-        if (v.variable.size() != nvariables)
-            {
-            cout << "***Warning! Integrator #"<<  m_unique_id <<" type nvt "<<endl;
-            cout << "appears to contain bad or incomplete restart information. " << endl;
-            cout << "Continuing while ignoring restart information..." << endl;
-            good = false;
-            }
-        }
-    return good;
-    }
-
-void Integrator::setIntegratorVariables(const IntegratorVariables& variables)
-    {
-    m_sysdef->getIntegratorData()->setIntegratorVariables(m_unique_id, variables);
-    }
-
 /*! \param timestep Current timestep
     \param profiler_name Name of the profiler element to continue timing under
     \post \c arrays.ax, \c arrays.ay, and \c arrays.az are set based on the forces computed by the ForceComputes
 */
 void Integrator::computeAccelerations(unsigned int timestep, const std::string& profiler_name)
     {
-    // compute the forces
-    for (unsigned int i = 0; i < m_forces.size(); i++)
-        {
-        assert(m_forces[i]);
-        m_forces[i]->compute(timestep);
-        }
-        
+    // compute the net forces
+    computeNetForce(timestep, profiler_name);
+    
     if (m_prof)
         {
         m_prof->push(profiler_name);
         m_prof->push("Sum accel");
         }
-        
-    // now, get our own access to the arrays and add up the accelerations
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
     
-    // start by zeroing the acceleration arrays
-    memset((void *)arrays.ax, 0, sizeof(Scalar)*arrays.nparticles);
-    memset((void *)arrays.ay, 0, sizeof(Scalar)*arrays.nparticles);
-    memset((void *)arrays.az, 0, sizeof(Scalar)*arrays.nparticles);
+    // now, get our own access to the arrays and calculate the accelerations
+    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_net_force(m_pdata->getNetForce(), access_location::host, access_mode::read);
     
     // now, add up the accelerations
-    for (unsigned int i = 0; i < m_forces.size(); i++)
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
-        assert(m_forces[i]);
-        ForceDataArrays force_arrays = m_forces[i]->acquire();
-        
-        for (unsigned int j = 0; j < arrays.nparticles; j++)
-            {
-            Scalar minv = Scalar(1.0) / arrays.mass[j];
-            arrays.ax[j] += force_arrays.fx[j]*minv;
-            arrays.ay[j] += force_arrays.fy[j]*minv;
-            arrays.az[j] += force_arrays.fz[j]*minv;
-            }
+        Scalar minv = Scalar(1.0) / arrays.mass[j];
+        arrays.ax[j] = h_net_force.data[j].x*minv;
+        arrays.ay[j] = h_net_force.data[j].y*minv;
+        arrays.az[j] = h_net_force.data[j].z*minv;
         }
-        
+    
     m_pdata->release();
     
     if (m_prof)
         {
-        m_prof->pop(7*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*4*m_pdata->getN()*(2*m_forces.size()) + sizeof(Scalar)*3*m_pdata->getN());
+        m_prof->pop();
         m_prof->pop();
         }
     }
@@ -463,71 +335,157 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
     return Scalar(p_tot);
     }
 
-#ifdef ENABLE_CUDA
-
-/*! \param timestep Current timestep
-    \param profiler_name Name of the profiler element to continue timing under
-    \param sum_accel If set to true, forces will be summed into pdata.accel
-
-    \post All forces are computed on the GPU.
-
-    \post If \a sum_accel is set, \c gpu_pdata_arrays.accel is filled out on the GPU are set based on the
-        forces computed by the ForceComputes. If it is not set, you need to sum them in your own
-        integration kernel (see below)
-
-    \note Setting sum_accel to true is convenient, but incurs an extra kernel call's overhead in a
-        performance hit. This is measured to be ~2% in real simulations. If at all possible,
-        design the integrator to use sum_accel=false and perform the sum in the integrator using
-        integrator_sum_forces_inline()
+/*! \param timestep Current time step of the simulation
+    \param profile_name Name to profile the force summation under
+    \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
+    \note The summation step is performed <b>on the CPU</b> and will result in a lot of data traffic back and forth
+          if the forces and/or integrater are on the GPU. Call computeNetForcesGPU() to sum the forces on the GPU
 */
-void Integrator::computeAccelerationsGPU(unsigned int timestep, const std::string& profiler_name, bool sum_accel)
+void Integrator::computeNetForce(unsigned int timestep, const std::string& profile_name)
     {
-    if (exec_conf.gpu.empty())
+    // compute all the forces first
+    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        (*force_compute)->compute(timestep);
+    
+    if (m_prof)
         {
-        cerr << endl << "***Error! Integrator asked to compute GPU accelerations but there is no GPU in the execution configuration" << endl << endl;
-        throw runtime_error("Error computing accelerations");
+        m_prof->push(profile_name);
+        m_prof->push("Net force");
         }
-        
-    // compute the forces
-    for (unsigned int i = 0; i < m_forces.size(); i++)
+    
+    // access the net force and virial arrays
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
+    
+    // start by zeroing the net force and virial arrays
+    memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+    memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
+    
+    // now, add up the net forces
+    unsigned int nparticles = m_pdata->getN();
+    assert(nparticles == net_force.getNumElements());
+    assert(nparticles == net_virial.getNumElements());
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         {
-        assert(m_forces[i]);
-        m_forces[i]->compute(timestep);
-        
-        // acquire each computation on the GPU as we go
-        m_forces[i]->acquireGPU();
+        ForceDataArrays force_arrays = (*force_compute)->acquire();
+    
+        for (unsigned int j = 0; j < nparticles; j++)
+            {
+            h_net_force.data[j].x += force_arrays.fx[j];
+            h_net_force.data[j].y += force_arrays.fy[j];
+            h_net_force.data[j].z += force_arrays.fz[j];
+            h_net_force.data[j].w += force_arrays.pe[j];
+            h_net_virial.data[j] += force_arrays.virial[j];
+            }
         }
-        
-    // only perform the sum if requested
-    if (sum_accel)
+    
+    if (m_prof)
         {
-        if (m_prof)
-            {
-            m_prof->push(profiler_name);
-            m_prof->push(exec_conf, "Sum accel");
-            }
-            
-        // acquire the particle data on the GPU and add the forces into the acceleration
-        vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-        
-        // call the force sum kernel on all GPUs in parallel
-        exec_conf.tagAll(__FILE__, __LINE__);
-        for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-            exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_integrator_sum_accel, d_pdata[cur_gpu], m_d_force_data_ptrs[cur_gpu], (int)m_forces.size()));
-            
-        exec_conf.syncAll();
-        
-        // done
-        m_pdata->release();
-        
-        if (m_prof)
-            {
-            m_prof->pop(exec_conf, 6*m_pdata->getN()*m_forces.size(), sizeof(Scalar)*5*m_pdata->getN()*(1+m_forces.size()));
-            m_prof->pop();
-            }
+        m_prof->pop();
+        m_prof->pop();
         }
     }
 
+#ifdef ENABLE_CUDA
+/*! \param timestep Current time step of the simulation
+    \param profile_name Name to profile the force summation under
+    \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and \a m_net_virial
+    \note The summation step is performed <b>on the GPU</b>.
+*/
+void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& profile_name)
+    {
+    if (exec_conf.gpu.size() != 1)
+        {
+        cerr << endl << "***Error! Only 1 GPU is supported" << endl << endl;
+        throw runtime_error("Error computing accelerations");
+        }
+    
+    // compute all the forces first
+    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
+        (*force_compute)->compute(timestep);
+    
+    if (m_prof)
+        {
+        m_prof->push(profile_name);
+        m_prof->push(exec_conf, "Net force");
+        }
+    
+    // access the net force and virial arrays
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
+    
+    // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
+    // will do that
+    
+    // now, add up the accelerations
+    unsigned int nparticles = m_pdata->getN();
+    assert(nparticles == net_force.getNumElements());
+    assert(nparticles == net_virial.getNumElements());
+    
+    // sum all the forces into the net force
+    // perform the sum in groups of 6 to avoid kernel launch and memory access overheads
+    for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
+        {
+        // grab the device pointers for the current set
+        gpu_force_list force_list;
+        const vector<ForceDataArraysGPU>& force0 = m_forces[cur_force]->acquireGPU();
+        force_list.f0 = force0[0].d_data.force;
+        force_list.v0 = force0[0].d_data.virial;
+        
+        if (cur_force+1 < m_forces.size())
+            {
+            const vector<ForceDataArraysGPU>& force1 = m_forces[cur_force+1]->acquireGPU();
+            force_list.f1 = force1[0].d_data.force;
+            force_list.v1 = force1[0].d_data.virial;
+            }
+        if (cur_force+2 < m_forces.size())
+            {
+            const vector<ForceDataArraysGPU>& force2 = m_forces[cur_force+2]->acquireGPU();
+            force_list.f2 = force2[0].d_data.force;
+            force_list.v2 = force2[0].d_data.virial;
+            }
+        if (cur_force+3 < m_forces.size())
+            {
+            const vector<ForceDataArraysGPU>& force3 = m_forces[cur_force+3]->acquireGPU();
+            force_list.f3 = force3[0].d_data.force;
+            force_list.v3 = force3[0].d_data.virial;
+            }
+        if (cur_force+4 < m_forces.size())
+            {
+            const vector<ForceDataArraysGPU>& force4 = m_forces[cur_force+4]->acquireGPU();
+            force_list.f4 = force4[0].d_data.force;
+            force_list.v4 = force4[0].d_data.virial;
+            }
+        if (cur_force+5 < m_forces.size())
+            {
+            const vector<ForceDataArraysGPU>& force5 = m_forces[cur_force+5]->acquireGPU();
+            force_list.f5 = force5[0].d_data.force;
+            force_list.v5 = force5[0].d_data.virial;
+            }
+        
+        // clear on the first iteration only
+        bool clear = (cur_force == 0);
+        
+        exec_conf.gpu[0]->call(bind(gpu_integrator_sum_net_force, 
+                                         d_net_force.data,
+                                         d_net_virial.data,
+                                         force_list,
+                                         nparticles,
+                                         clear));
+        }
+    
+    if (m_prof)
+        {
+        m_prof->pop(exec_conf);
+        m_prof->pop(exec_conf);
+        }
+    }
 #endif
 
 /*! The base class integrator actually does nothing in update()

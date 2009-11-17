@@ -100,7 +100,7 @@ class Integrator : public Updater
         Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
         
         //! Destructor
-        ~Integrator();
+        virtual ~Integrator();
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -136,33 +136,19 @@ class Integrator : public Updater
         virtual Scalar computeTotalMomentum(unsigned int timestep);
                 
     protected:
-        Scalar m_deltaT;    //!< The time step
+        Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
-        unsigned int m_unique_id;
         
-        //! helper function to get the integrator variables from the particle data
-        const IntegratorVariables& getIntegratorVariables();
-
-        //! helper function to store the integrator variables in the particle data
-        void setIntegratorVariables(const IntegratorVariables&);
-
-        //! helper function to check if the restart information (if applicable) is useable 
-        bool restartInfoIsGood(IntegratorVariables& v, std::string type, unsigned int nvariables);
-
-        //! helper function to compute accelerations
+        //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep, const std::string& profile_name);
         
+        //! helper function to compute net force/virial
+        void computeNetForce(unsigned int timestep, const std::string& profile_name);
+        
 #ifdef ENABLE_CUDA
-        //! helper function to compute accelerations on the GPU
-        void computeAccelerationsGPU(unsigned int timestep, const std::string& profile_name, bool sum_accel);
-        
-        //! Force data pointers on the device
-        vector<float4 **> m_d_force_data_ptrs;
-        
+        //! helper function to compute net force/virial on the GPU
+        void computeNetForceGPU(unsigned int timestep, const std::string& profile_name);
 #endif
-
-    private:
-        static unsigned int s_integrator_count;
     };
 
 //! Exports the NVEUpdater class to python
