@@ -69,7 +69,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool gamma_diam)
-    : TwoStepNVE(sysdef, group), m_T(T), m_seed(seed), m_saru(seed), m_gamma_diam(gamma_diam)
+    : TwoStepNVE(sysdef, group), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
     {
     // allocate memory for the per-type gamma storage and initialize them to 1.0
     GPUArray<Scalar> gamma(m_pdata->getNTypes(), m_pdata->getExecConf());
@@ -118,6 +118,9 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
     
+    // initialize the RNG
+    Saru saru(m_seed, timestep);
+    
     // a(t+deltaT) gets modified with the bd forces
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
     unsigned int group_size = m_group->getNumMembers();
@@ -127,9 +130,9 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         
         // first, calculate the BD forces
         // Generate three random numbers
-        Scalar rx = m_saru.d(-1,1);
-        Scalar ry = m_saru.d(-1,1);
-        Scalar rz =  m_saru.d(-1,1);
+        Scalar rx = saru.d(-1,1);
+        Scalar ry = saru.d(-1,1);
+        Scalar rz =  saru.d(-1,1);
         
         Scalar gamma;
         if (m_gamma_diam)

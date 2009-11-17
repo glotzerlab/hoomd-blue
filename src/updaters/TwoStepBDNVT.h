@@ -92,7 +92,6 @@ class TwoStepBDNVT : public TwoStepNVE
     protected:
         boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
-        Saru m_saru;                      //!< Random number generator to use
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
         
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
