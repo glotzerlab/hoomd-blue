@@ -269,6 +269,8 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_CHECK_EQUAL(array3.iy[1], iy1);
     BOOST_CHECK_EQUAL(array3.iz[2], iz2);
 
+    remove_all("test.0000000000.bin");
+    remove_all("test.0000000010.bin");
     }
     
 #ifdef WIN32
