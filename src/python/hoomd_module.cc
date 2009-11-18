@@ -75,7 +75,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicImproperForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
 #include "FENEBondForceCompute.h"
-#include "LJForceCompute.h"
 //#include "YukawaForceCompute.h"
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
@@ -117,7 +116,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPTGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
-#include "LJForceComputeGPU.h"
 //#include "YukawaForceComputeGPU.h"
 #include "CGCMMForceComputeGPU.h"
 #include "TablePotentialGPU.h"
@@ -377,7 +375,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceCompute();
     export_TablePotential();
     export_FENEBondForceCompute();
-    export_LJForceCompute();
     //export_YukawaForceCompute();
     export_CGCMMForceCompute();
     export_GaussianForceCompute();
@@ -390,7 +387,6 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_CUDA
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();
-    export_LJForceComputeGPU();
 //  export_YukawaForceComputeGPU();
     export_CGCMMForceComputeGPU();
     export_TablePotentialGPU();

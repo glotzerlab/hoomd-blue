@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
-#include "LJForceCompute.h"
+#include "AllPairPotentials.h"
 
 #include <math.h>
 
@@ -121,8 +121,8 @@ void npt_updater_test(twostepnpt_creator npt_creator, ExecutionConfiguration exe
     
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
     
-    shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
-    
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    fc->setRcut(0, 0, Scalar(2.5));
     
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -132,7 +132,7 @@ void npt_updater_test(twostepnpt_creator npt_creator, ExecutionConfiguration exe
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     
     // specify the force parameters
-    fc->setParams(0,0,lj1,lj2);
+    fc->setParams(0,0,make_scalar2(lj1,lj2));
     
     
     shared_ptr<TwoStepNPT> two_step_npt = npt_creator(sysdef, group_all, Scalar(1.0),Scalar(1.0),T,P);
