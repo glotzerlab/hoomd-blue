@@ -77,10 +77,6 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     if (m_tauP <= 0.0)
         cout << "***Warning! tauP set less than 0.0 in TwoStepNPT" << endl;
     
-    // Initialize Xi and Eta
-    m_Xi = Scalar(0.0);
-    m_Eta = Scalar(0.0);
-    
     // precalculate box lengths
     const BoxDim& box = m_pdata->getBox();
     
@@ -97,6 +93,22 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     // compute the current pressure and temperature on construction
     m_curr_group_T = computeGroupTemperature(0);
     m_curr_P = computePressure(0);
+    
+    // set initial state
+    IntegratorVariables v = getIntegratorVariables();
+
+    if (!restartInfoTestValid(v, "npt", 2))
+        {
+        v.type = "npt";
+        v.variable.resize(2);
+        v.variable[0] = Scalar(0.0);
+        v.variable[1] = Scalar(0.0);
+        setValidRestart(false);
+        }
+    else
+        setValidRestart(true);
+
+    setIntegratorVariables(v);
     }
 
 /*! \param timestep Current time step
@@ -108,20 +120,24 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 1");
-    
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     
-    // advance thermostat(m_Xi) half a time step
-    m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
+    // advance thermostat(xi) half a time step
+    xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
     
-    // advance barostat (m_Eta) half time step
+    // advance barostat (eta) half time step
     Scalar N = Scalar(m_group->getNumMembers());
-    m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
+    eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
             *(m_curr_P - m_P->getValue(timestep))*m_deltaT;    
     
     // precompute loop invariant quantities
-    Scalar exp_v_fac = exp(-Scalar(1.0/4.0)*(m_Eta+m_Xi)*m_deltaT);
-    Scalar exp_r_fac = exp(Scalar(1.0/2.0)*m_Eta*m_deltaT);
+    Scalar exp_v_fac = exp(-Scalar(1.0/4.0)*(eta+xi)*m_deltaT);
+    Scalar exp_r_fac = exp(Scalar(1.0/2.0)*eta*m_deltaT);
     Scalar exp_r_fac_inv = Scalar(1.0) / exp_r_fac;
         
     // perform the first half step of NPT
@@ -149,10 +165,10 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
         }
     
     // advance volume
-    m_V *= exp(Scalar(3.0)*m_Eta*m_deltaT);
+    m_V *= exp(Scalar(3.0)*eta*m_deltaT);
     
     // get the scaling factor for the box (V_new/V_old)^(1/3)
-    Scalar box_len_scale = exp(m_Eta*m_deltaT);
+    Scalar box_len_scale = exp(eta*m_deltaT);
     m_Lx *= box_len_scale;
     m_Ly *= box_len_scale;
     m_Lz *= box_len_scale;
@@ -206,6 +222,7 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
         }
     
     m_pdata->release();
+    setIntegratorVariables(v);
         
     // done profiling
     if (m_prof)
@@ -230,11 +247,15 @@ void TwoStepNPT::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push("NPT step 2");
 
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
     // compute loop invariant quantities
-    Scalar exp_v_fac = exp(-Scalar(1.0/4.0)*(m_Eta+m_Xi)*m_deltaT);
+    Scalar exp_v_fac = exp(-Scalar(1.0/4.0)*(eta+xi)*m_deltaT);
     
     // perform second half step of NPT integration
     unsigned int group_size = m_group->getNumMembers();
@@ -256,12 +277,13 @@ void TwoStepNPT::integrateStepTwo(unsigned int timestep)
     
     // Update state variables
     Scalar N = Scalar(m_group->getNumMembers());
-    m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
+    eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
                             *(m_curr_P - m_P->getValue(timestep))*m_deltaT;
-    m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
+    xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
     
     m_pdata->release();
-    
+    setIntegratorVariables(v);
+        
     // done profiling
     if (m_prof)
         m_prof->pop();

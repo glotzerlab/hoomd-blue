@@ -291,9 +291,9 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
     m_data_location = cpu;
 #endif
     
-    setBox(init.getBox());
+    setBox(init.getBox());        
     init.initArrays(m_arrays);
-    
+            
     // it is an error for particles to be initialized outside of their box
     if (!inBox(false))
         {
@@ -358,7 +358,6 @@ void ParticleData::setBox(const BoxDim &box)
     
     m_boxchange_signal();
     }
-
 
 /*! Access to the particle data is granted only when acquired. The data may be living
     in the graphics card memory, so accesses may be expensive as they involve copying
