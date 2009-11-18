@@ -231,23 +231,29 @@ class bin(analyze._analyzer):
     # \param period (optional) Number of time steps between file dumps
     # \param file1 (optional) First alternating file name to write
     # \param file2 (optional) Second alternating file name to write
+    # \param compress Set to False to disable gzip compression
     # 
     # \b Examples:
     # \code
+    # dump.bin(file1="restart.1.bin.gz", file2="restart.2.bin.gz", period=1e5)
     # dump.bin(filename="particles", period=1000)
-    # bin = dump.bin(filename="particles", period=1e5)
+    # bin = dump.bin(filename="particles", period=1e5, compress=False)
     # bin = dump.bin()
     # \endcode
     #
     # If period is set, a new file will be created every \a period steps. The time step at which 
     # the file is created is added to the file name in a fixed width format to allow files to easily 
     # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
-    # \c particles.0000000000.bin
+    # \c particles.0000000000.bin (.gz if \a compress = True)
+    #
+    # If \a compress is True (the default), output will be gzip compressed for a significant savings. init.read_bin()
+    # will autodetect whether or not the data needs to be decompressed by the ".gz" file extension.
     #
     # If \a file1 and \a file2 are specified, then the output is written every \a period time steps alternating
     # between those two files. This use-case is useful when only the most recent state of the system is needed
     # to continue a job. The alternation between two files is so that if the job ends or crashes while writing one of
-    # of the files, the other is still available for use.
+    # of the files, the other is still available for use. Make sure to include a .gz file extension if compression
+    # is enabled.
     #
     # Binary files include the \b entire state of the system, including the time step, particle positions,
     # velocities, et cetera, and the internal state variables of any relevant integration methods. All data is saved
@@ -269,7 +275,7 @@ class bin(analyze._analyzer):
     # limit. If you need to store data in a system and version independant manner, use dump.xml().
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, file1=None, file2=None):
+    def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
         util.print_status_line();
     
         # initialize base class
@@ -277,6 +283,7 @@ class bin(analyze._analyzer):
         
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.HOOMDBinaryDumpWriter(globals.system_definition, filename);
+        self.cpp_analyzer.enableCompression(compress)
         
         # handle the alternation setting
         # first, check that they are both set

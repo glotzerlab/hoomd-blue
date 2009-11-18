@@ -63,9 +63,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 #include <boost/python.hpp>
-using namespace boost::python;
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#ifdef ENABLE_ZLIB
+#include <boost/iostreams/filter/gzip.hpp>
+#endif
 
+using namespace boost::python;
 using namespace boost;
+using namespace boost::iostreams;
 
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
@@ -198,9 +204,27 @@ static string read_string(istream &f)
 */
 void HOOMDBinaryInitializer::readFile(const string &fname)
     {
+    // check to see if the file has a .gz extension or not and enable decompression if it is
+    bool enable_decompression = false;
+    string ext = fname.substr(fname.size()-3, fname.size());
+    if (ext == string(".gz"))
+         enable_decompression = true;
+    
+    #ifndef ENABLE_ZLIB
+    cerr << endl << "***Error! HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
+    cerr << "enabled in this build of hoomd" << endl << endl;
+    throw runtime_error("Error reading binary file");
+    #endif
+    
     // Open the file
     cout<< "Reading " << fname << "..." << endl;
-    ifstream f(fname.c_str(), ios::in|ios::binary);
+    // setup the file input for decompression
+    filtering_istream f;
+    #ifdef ENABLE_ZLIB
+    if (enable_decompression)
+        f.push(gzip_decompressor());
+    #endif
+    f.push(file_source(fname.c_str(), ios::in | ios::binary));
     
     // handle errors
     if (f.fail())
@@ -215,7 +239,12 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&file_magic, sizeof(int));
     if (magic != file_magic)
         {
-        cout << endl << "***Error! " << fname << " does not appear to be a hoomd_bin file" << endl << endl;
+        cerr << endl << "***Error! " << fname << " does not appear to be a hoomd_bin file." << endl;
+        if (enable_decompression)
+            cerr << "Is it perhaps an uncompressed file with an erroneous .gz extension?" << endl << endl;
+        else
+            cerr << "Is it perhaps a compressed file without a .gz extension?" << endl << endl;
+
         throw runtime_error("Error reading binary file");
         }
     

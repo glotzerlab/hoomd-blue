@@ -3,6 +3,13 @@
 # Maintainer: joaander
 
 #################################
+## Optional use of zlib to compress binary output files
+option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" ON)
+if (ENABLE_ZLIB)
+    add_definitions(-DENABLE_ZLIB)
+endif(ENABLE_ZLIB)
+
+#################################
 ## Minimal install option
 option(ENABLE_MINIMAL_INSTALL "When set to ON, only a minimal set of files needed to to run HOOMD are installed" OFF)
 

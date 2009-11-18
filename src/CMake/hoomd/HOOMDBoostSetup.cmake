@@ -26,7 +26,7 @@ find_package(Boost 1.32.0 COMPONENTS thread filesystem python signals program_op
 # if we get boost 1.35 or greator, we need to get the system library too
 
 if (Boost_MINOR_VERSION GREATER 34)
-find_package(Boost 1.35.0 COMPONENTS thread filesystem python signals system unit_test_framework program_options REQUIRED)
+find_package(Boost 1.35.0 COMPONENTS thread filesystem python signals system unit_test_framework program_options iostreams REQUIRED)
 endif (Boost_MINOR_VERSION GREATER 34)
 
 # add include directories

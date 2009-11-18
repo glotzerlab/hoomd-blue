@@ -61,6 +61,12 @@ using namespace boost::python;
 #include <iomanip>
 #include <boost/shared_ptr.hpp>
 
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#ifdef ENABLE_ZLIB
+#include <boost/iostreams/filter/gzip.hpp>
+#endif
+
 #include "HOOMDBinaryDumpWriter.h"
 #include "BondData.h"
 #include "AngleData.h"
@@ -69,6 +75,7 @@ using namespace boost::python;
 
 using namespace std;
 using namespace boost;
+using namespace boost::iostreams;
 
 //! Helper function to write a string out to a file in binary mode
 static void write_string(ostream &f, const string& str)
@@ -85,7 +92,7 @@ static void write_string(ostream &f, const string& str)
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDBinaryDumpWriter::HOOMDBinaryDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
-        : Analyzer(sysdef), m_base_fname(base_fname), m_alternating(false), m_cur_file(1)
+        : Analyzer(sysdef), m_base_fname(base_fname), m_alternating(false), m_cur_file(1), m_enable_compression(false)
     {
     }
 
@@ -94,8 +101,30 @@ HOOMDBinaryDumpWriter::HOOMDBinaryDumpWriter(boost::shared_ptr<SystemDefinition>
 */
 void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     {
-    // open the file for writing
-    ofstream f(fname.c_str(), ios::out|ios::binary);
+    // check the file extension and warn the user
+    string ext = fname.substr(fname.size()-3, fname.size());
+    bool gz_ext = false;
+    if (ext == string(".gz"))
+         gz_ext = true;
+         
+    if (gz_ext && !m_enable_compression)
+        {
+        cout << endl << "***Warning! Writing compressed binary file without a .gz extension.";
+        cout << "init.read_bin will not recognize that this file is compressed" << endl << endl;
+        }
+    if (!gz_ext && m_enable_compression)
+        {
+        cout << endl << "***Warning! Writing uncompressed binary file with a .gz extension.";
+        cout << "init.read_bin will not recognize that this file is uncompressed" << endl << endl;
+        }
+
+    // setup the file output for compression
+    filtering_ostream f;
+    #ifdef ENABLE_ZLIB
+    if (m_enable_compression)
+        f.push(gzip_compressor());
+    #endif
+    f.push(file_sink(fname.c_str(), ios::out | ios::binary));
     
     if (!f.good())
         {
@@ -318,7 +347,6 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         throw runtime_error("Error writing HOOMD dump file");
         }
         
-    f.close();
     m_pdata->release();
     
     }
@@ -332,6 +360,8 @@ void HOOMDBinaryDumpWriter::analyze(unsigned int timestep)
         {
         ostringstream full_fname;
         string filetype = ".bin";
+        if (m_enable_compression)
+            filetype += ".gz";
         
         // Generate a filename with the timestep padded to ten zeros
         full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
@@ -351,7 +381,6 @@ void HOOMDBinaryDumpWriter::analyze(unsigned int timestep)
             fname = m_fname2;
             m_cur_file = 1;
             }
-        cout << "Writing to alternating file: " << fname << endl;
         writeFile(fname, timestep);
         }
     }
@@ -365,6 +394,22 @@ void HOOMDBinaryDumpWriter::setAlternatingWrites(const std::string& fname1, cons
     m_fname1 = fname1;
     m_fname2 = fname2;
     }
+    
+/* \param enable_compression Set to true to enable compression, falst to disable it
+*/
+void HOOMDBinaryDumpWriter::enableCompression(bool enable_compression)
+    {
+    #ifdef ENABLE_ZLIB
+    m_enable_compression = enable_compression;
+    #else
+    m_enable_compression = false;
+    if (enable_compression)
+        {
+        cout << endl << "***Warning! This build of hoomd was compiled with ENABLE_ZLIB=off.";
+        cout << "binary data output will NOT be compressed" << endl << endl;
+        }
+    #endif
+    }
 
 void export_HOOMDBinaryDumpWriter()
     {
@@ -372,6 +417,7 @@ void export_HOOMDBinaryDumpWriter()
     ("HOOMDBinaryDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
     .def("writeFile", &HOOMDBinaryDumpWriter::writeFile)
     .def("setAlternatingWrites", &HOOMDBinaryDumpWriter::setAlternatingWrites)
+    .def("enableCompression", &HOOMDBinaryDumpWriter::enableCompression)
     ;
     }
 
