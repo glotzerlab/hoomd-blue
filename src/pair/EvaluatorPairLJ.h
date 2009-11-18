@@ -113,6 +113,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     can similarly be put inside an ifdef NVCC block.
     
     <b>LJ specifics</b>
+    
+    EvaluatorPairLJ evaluates the function:
+    \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+                                            \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+    broken up as follows for efficiency
+    \f[ V_{\mathrm{LJ}}(r) = r^{-6} \cdot \left( 4 \varepsilon \sigma^{12} \cdot r^{-6} - 
+                                            4 \alpha \varepsilon \sigma^{6} \right) \f]
+    . Similarly,
+    \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{LJ}}}{\partial r} = r^{-2} \cdot r^{-6} \cdot 
+            \left( 12 \cdot 4 \varepsilon \sigma^{12} \cdot r^{-6} - 6 \cdot 4 \alpha \varepsilon \sigma^{6} \right) \f]
+        
     The LJ potential does not need diameter or charge. Two parameters are specified and stored in a Scalar2. \a lj1 is
     placed in \a params.x and \a lj2 is in \a params.y.
     
