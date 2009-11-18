@@ -159,22 +159,30 @@ class EvaluatorPairLJ
             \param energy_shift If true, the potential must be shifted so that V(r) is continuous at the cutoff
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed 
                   in PotentialPair.
+            
+            \return True if they are evaluated or false if they are not because we are beyond the cuttoff
         */
-        DEVICE void evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
+        DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            Scalar r2inv = Scalar(1.0)/rsq;
-            Scalar r6inv = r2inv * r2inv * r2inv;
-            force_divr= r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
-            
-            pair_eng = r6inv * (lj1*r6inv - lj2);
-            
-            if (energy_shift)
+            if (rsq < rcutsq)
                 {
-                Scalar rcut2inv = Scalar(1.0)/rcutsq;
-                Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-                pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
+                Scalar r2inv = Scalar(1.0)/rsq;
+                Scalar r6inv = r2inv * r2inv * r2inv;
+                force_divr= r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
+                
+                pair_eng = r6inv * (lj1*r6inv - lj2);
+                
+                if (energy_shift)
+                    {
+                    Scalar rcut2inv = Scalar(1.0)/rcutsq;
+                    Scalar rcut6inv = rcut2inv * rcut2inv * rcut2inv;
+                    pair_eng -= rcut6inv * (lj1*rcut6inv - lj2);
+                    }
+                return true;
                 }
+            else
+                return false;
             }
         
         #ifndef NVCC

@@ -240,53 +240,48 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
                 }
             
             // evaluate the potential
-            if (rsq < rcutsq)
+            float force_divr = 0.0f;
+            float pair_eng = 0.0f;
+            
+            evaluator eval(rsq, rcutsq, param);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, dj);
+            if (evaluator::needsCharge())
+                eval.setCharge(di, dj);
+            
+            eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+            
+            if (shift_mode == 2)
                 {
-                float force_divr = 0.0f;
-                float pair_eng = 0.0f;
-                
-                evaluator eval(rsq, rcutsq, param);
-                if (evaluator::needsDiameter())
-                    eval.setDiameter(di, dj);
-                if (evaluator::needsCharge())
-                    eval.setCharge(di, dj);
-                
-                eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-                
-                if (shift_mode == 2)
+                if (rsq >= ronsq && rsq < rcutsq)
                     {
-                    if (rsq >= ronsq)
-                        {
-                        // Implement XPLOR smoothing (FLOPS: 16)
-                        Scalar old_pair_eng = pair_eng;
-                        Scalar old_force_divr = force_divr;
-                        
-                        // calculate 1.0 / (xplor denominator)
-                        Scalar xplor_denom_inv =
-                            Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
-                        
-                        Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
-                        Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
-                                   (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
-                        Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
-                        
-                        // make modifications to the old pair energy and force
-                        pair_eng = old_pair_eng * s;
-                        // note: I'm not sure why the minus sign needs to be there: my notes have a +
-                        // But this is verified correct via plotting
-                        force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
-                        }
+                    // Implement XPLOR smoothing (FLOPS: 16)
+                    Scalar old_pair_eng = pair_eng;
+                    Scalar old_force_divr = force_divr;
+                    
+                    // calculate 1.0 / (xplor denominator)
+                    Scalar xplor_denom_inv =
+                        Scalar(1.0) / ((rcutsq - ronsq) * (rcutsq - ronsq) * (rcutsq - ronsq));
+                    
+                    Scalar rsq_minus_r_cut_sq = rsq - rcutsq;
+                    Scalar s = rsq_minus_r_cut_sq * rsq_minus_r_cut_sq *
+                               (rcutsq + Scalar(2.0) * rsq - Scalar(3.0) * ronsq) * xplor_denom_inv;
+                    Scalar ds_dr_divr = Scalar(12.0) * (rsq - ronsq) * rsq_minus_r_cut_sq * xplor_denom_inv;
+                    
+                    // make modifications to the old pair energy and force
+                    pair_eng = old_pair_eng * s;
+                    force_divr = s * old_force_divr - ds_dr_divr * old_pair_eng;
                     }
-                
-                // calculate the virial (FLOPS: 3)
-                virial += float(1.0/6.0) * rsq * force_divr;
-                
-                // add up the force vector components (FLOPS: 7)
-                force.x += dx * force_divr;
-                force.y += dy * force_divr;
-                force.z += dz * force_divr;
-                force.w += pair_eng;
                 }
+            
+            // calculate the virial (FLOPS: 3)
+            virial += float(1.0/6.0) * rsq * force_divr;
+            
+            // add up the force vector components (FLOPS: 7)
+            force.x += dx * force_divr;
+            force.y += dy * force_divr;
+            force.z += dz * force_divr;
+            force.w += pair_eng;
             }
         }
         

@@ -413,23 +413,23 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                     energy_shift = true;
                 }
             
-            if (rsq < rcutsq)
+            // compute the force and potential energy
+            Scalar force_divr = Scalar(0.0);
+            Scalar pair_eng = Scalar(0.0);
+            evaluator eval(rsq, rcutsq, param);
+            if (evaluator::needsDiameter())
+                eval.setDiameter(di, dj);
+            if (evaluator::needsCharge())
+                eval.setCharge(di, dj);
+            
+            bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
+            
+            if (evaluated)
                 {
-                // compute the force and potential energy
-                Scalar force_divr = Scalar(0.0);
-                Scalar pair_eng = Scalar(0.0);
-                evaluator eval(rsq, rcutsq, param);
-                if (evaluator::needsDiameter())
-                    eval.setDiameter(di, dj);
-                if (evaluator::needsCharge())
-                    eval.setCharge(di, dj);
-                
-                eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
-                
                 // modify the potential for xplor shifting
                 if (m_shift_mode == xplor)
                     {
-                    if (rsq >= ronsq)
+                    if (rsq >= ronsq && rsq < rcutsq)
                         {
                         // Implement XPLOR smoothing (FLOPS: 16)
                         Scalar old_pair_eng = pair_eng;
