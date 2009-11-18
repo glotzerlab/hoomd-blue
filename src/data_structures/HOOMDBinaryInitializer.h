@@ -142,21 +142,8 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);        
-        //! Helper function for identifying the particle type id
-        unsigned int getTypeId(const std::string& name);
-        //! Helper function for identifying the bond type id
-        unsigned int getBondTypeId(const std::string& name);
-        //! Helper function for identifying the angle type id
-        unsigned int getAngleTypeId(const std::string& name);
-        //! Helper function for identifying the dihedral type id
-        unsigned int getDihedralTypeId(const std::string& name);
-        //! Helper function for identifying the improper type id
-        unsigned int getImproperTypeId(const std::string& name);
-        
-        std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
-        
+                
         BoxDim m_box;   //!< Simulation box read from the file
-        bool m_box_read;    //!< Stores the box we read in
         
         std::vector< unsigned int > m_tag_array;     //!< tags of all particles loaded
         std::vector< unsigned int > m_rtag_array;    //!< inverse tags of all particles loaded

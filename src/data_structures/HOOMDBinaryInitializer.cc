@@ -74,8 +74,6 @@ HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
     {
     // initialize member variables
     m_timestep = 0;
-    m_box_read = false;
-        
     // read in the file
     readFile(fname);
     }
@@ -245,7 +243,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&Ly, sizeof(Scalar));
     f.read((char*)&Lz, sizeof(Scalar));
     m_box = BoxDim(Lx,Ly,Lz);
-    m_box_read = true;
     
     //allocate memory for particle arrays
     unsigned int np = 0;
@@ -399,8 +396,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         }
     }
     
-    //charges?
-    
     //parse walls
     {
     unsigned int nw = 0;
@@ -419,68 +414,9 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     }
     
     // check for required items in the file
-    if (!m_box_read)
-        {
-        cerr << endl
-             << "***Error! A <box> node is required to define the dimensions of the simulation box"
-             << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
     if (m_x_array.size() == 0)
         {
         cerr << endl << "***Error! No particles found in binary file" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_x_array.size() != m_y_array.size() || m_x_array.size() != m_z_array.size())
-        {
-        cerr << endl << "***Error! Particle position array sizes don't match" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_vx_array.size() != m_vy_array.size() || m_vx_array.size() != m_vz_array.size())
-        {
-        cerr << endl << "***Error! Particle velocity array sizes don't match" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_ax_array.size() != m_ay_array.size() || m_ax_array.size() != m_az_array.size())
-        {
-        cerr << endl << "***Error! Particle acceleration array sizes don't match" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }        
-    // check for potential user errors
-    if (m_vx_array.size() != m_x_array.size())
-        {
-        cerr << endl << "***Error! " << m_vx_array.size() << " velocities != " << m_x_array.size()
-             << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_mass_array.size() != m_x_array.size())
-        {
-        cerr << endl << "***Error! " << m_mass_array.size() << " masses != " << m_x_array.size()
-             << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_diameter_array.size() != m_x_array.size())
-        {
-        cerr << endl << "***Error! " << m_diameter_array.size() << " diameters != " << m_x_array.size()
-             << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_ix_array.size() != m_x_array.size())
-        {
-        cerr << endl << "***Error! " << m_ix_array.size() << " images != " << m_x_array.size()
-             << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_type_array.size() != m_x_array.size())
-        {
-        cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_x_array.size()
-             << " positions" << endl << endl;
-        throw runtime_error("Error extracting data from hoomd_binary file");
-        }
-    if (m_charge_array.size() != m_x_array.size())
-        {
-        cerr << endl << "***Error! " << m_charge_array.size() << " charge values != " << m_x_array.size()
-             << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_binary file");
         }
         
@@ -495,6 +431,8 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         cout << m_mass_array.size() << " masses" << endl;
     if (m_diameter_array.size() > 0)
         cout << m_diameter_array.size() << " diameters" << endl;
+    if (m_charge_array.size() > 0)
+        cout << m_charge_array.size() << " charges" << endl;
     cout << getNumParticleTypes() <<  " particle types" << endl;
     if (m_integrator_variables.size() > 0)
         cout << m_integrator_variables.size() << " integrator states" << endl;
@@ -506,96 +444,8 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         cout << m_dihedrals.size() << " dihedrals" << endl;
     if (m_impropers.size() > 0)
         cout << m_impropers.size() << " impropers" << endl;
-    if (m_charge_array.size() > 0)
-        cout << m_charge_array.size() << " charges" << endl;
     if (m_walls.size() > 0)
         cout << m_walls.size() << " walls" << endl;
-    }
-
-/*! \param name Name to get type id of
-    If \a name has already been added, this returns the type index of that name.
-    If \a name has not yet been added, it is added to the list and the new id is returned.
-*/
-unsigned int HOOMDBinaryInitializer::getTypeId(const std::string& name)
-    {
-    // search for the type mapping
-    for (unsigned int i = 0; i < m_type_mapping.size(); i++)
-        {
-        if (m_type_mapping[i] == name)
-            return i;
-        }
-    // add a new one if it is not found
-    m_type_mapping.push_back(name);
-    return (unsigned int)m_type_mapping.size()-1;
-    }
-
-/*! \param name Name to get type id of
-    If \a name has already been added, this returns the type index of that name.
-    If \a name has not yet been added, it is added to the list and the new id is returned.
-*/
-unsigned int HOOMDBinaryInitializer::getBondTypeId(const std::string& name)
-    {
-    // search for the type mapping
-    for (unsigned int i = 0; i < m_bond_type_mapping.size(); i++)
-        {
-        if (m_bond_type_mapping[i] == name)
-            return i;
-        }
-    // add a new one if it is not found
-    m_bond_type_mapping.push_back(name);
-    return (unsigned int)m_bond_type_mapping.size()-1;
-    }
-
-/*! \param name Name to get type id of
-    If \a name has already been added, this returns the type index of that name.
-    If \a name has not yet been added, it is added to the list and the new id is returned.
-*/
-unsigned int HOOMDBinaryInitializer::getAngleTypeId(const std::string& name)
-    {
-    // search for the type mapping
-    for (unsigned int i = 0; i < m_angle_type_mapping.size(); i++)
-        {
-        if (m_angle_type_mapping[i] == name)
-            return i;
-        }
-    // add a new one if it is not found
-    m_angle_type_mapping.push_back(name);
-    return (unsigned int)m_angle_type_mapping.size()-1;
-    }
-
-/*! \param name Name to get type id of
-    If \a name has already been added, this returns the type index of that name.
-    If \a name has not yet been added, it is added to the list and the new id is returned.
-*/
-unsigned int HOOMDBinaryInitializer::getDihedralTypeId(const std::string& name)
-    {
-    // search for the type mapping
-    for (unsigned int i = 0; i < m_dihedral_type_mapping.size(); i++)
-        {
-        if (m_dihedral_type_mapping[i] == name)
-            return i;
-        }
-    // add a new one if it is not found
-    m_dihedral_type_mapping.push_back(name);
-    return (unsigned int)m_dihedral_type_mapping.size()-1;
-    }
-
-
-/*! \param name Name to get type id of
-    If \a name has already been added, this returns the type index of that name.
-    If \a name has not yet been added, it is added to the list and the new id is returned.
-*/
-unsigned int HOOMDBinaryInitializer::getImproperTypeId(const std::string& name)
-    {
-    // search for the type mapping
-    for (unsigned int i = 0; i < m_improper_type_mapping.size(); i++)
-        {
-        if (m_improper_type_mapping[i] == name)
-            return i;
-        }
-    // add a new one if it is not found
-    m_improper_type_mapping.push_back(name);
-    return (unsigned int)m_improper_type_mapping.size()-1;
     }
 
 /*! \return Number of bond types determined from the XML file
