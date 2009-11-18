@@ -53,11 +53,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.h"
 #include "AngleData.h"
 #include "DihedralData.h"
+#include "IntegratorData.h"
 
 #include <boost/shared_ptr.hpp>
 
 #ifndef __SYSTEM_DEFINITION_H__
 #define __SYSTEM_DEFINITION_H__
+
 
 //! Container class for all data needed to define the MD system
 /*! SystemDefinition is a big bucket where all of the data defining the MD system goes.
@@ -153,12 +155,13 @@ class SystemDefinition
             return m_improper_data;
             }
 
-        //! Write restart file
-        void writeRestart(unsigned int timestep);
+        //! Returns the integrator variables (if applicable)
+        boost::shared_ptr<IntegratorData> getIntegratorData() 
+            {
+            return m_integrator_data;
+            }
 
-        //! Read restart file
-        void readRestart(const std::string& file_name);
-
+            
     private:
         boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
         boost::shared_ptr<BondData> m_bond_data;            //!< Bond data for the system
@@ -167,6 +170,8 @@ class SystemDefinition
         boost::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system
         boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
         boost::shared_ptr<DihedralData> m_improper_data;    //!< Improper data for the system
+        boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
+
     };
 
 //! Exports SystemDefinition to python

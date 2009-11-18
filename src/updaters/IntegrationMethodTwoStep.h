@@ -85,6 +85,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     One small note: each IntegrationTwoStep will have a deltaT. The value of this will be set by the integrator when
     Integrator::setDeltaT is called to ensure that all integration methods have the same delta t set.
     
+    <b>Integrator variables</b>
+    
+    Integrator variables are registered and tracked, if needed, through the IntegratorData interface. Because of the
+    need for valid restart tracking (see below), \b all integrators register even if they do not need to save state
+    information.
+    
+    Furthermore, the base class IntegratorTwoStep needs to know whether or not it should recalculate the "first step"
+    accelerations. Accelerations are saved in the restart file, so if a restart is valid for all of the integration
+    methods, it should skip that step. To facilitate this, derived classes should call setValidRestart(true) if they
+    have valid restart information.
+    
     <b>Design requirements</b>
     Due to the nature of allowing multiple integration methods to run at once, some strict guidlines need to be laid
     down.
@@ -115,7 +126,8 @@ class IntegrationMethodTwoStep : boost::noncopyable
     {
     public:
         //! Constructs the integration method and associates it with the system
-        IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
+        IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
+                                 boost::shared_ptr<ParticleGroup> group);
         virtual ~IntegrationMethodTwoStep() {};
         
         //! Abstract method that performs the first step of the integration
@@ -139,6 +151,9 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Access the group
         boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }
         
+        //! Get whether this restart was valid
+        bool isValidRestart() { return m_valid_restart; }
+        
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
@@ -146,6 +161,28 @@ class IntegrationMethodTwoStep : boost::noncopyable
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         const ExecutionConfiguration& exec_conf;            //!< Cached reference to the execution configuration
         Scalar m_deltaT;                                    //!< The time step
+        
+        //! helper function to get the integrator variables from the particle data
+        const IntegratorVariables& getIntegratorVariables()
+            {
+            return m_sysdef->getIntegratorData()->getIntegratorVariables(m_integrator_id);
+            }
+
+        //! helper function to store the integrator variables in the particle data
+        void setIntegratorVariables(const IntegratorVariables& variables)
+            {
+            m_sysdef->getIntegratorData()->setIntegratorVariables(m_integrator_id, variables);
+            }            
+
+        //! helper function to check if the restart information (if applicable) is useable 
+        bool restartInfoTestValid(IntegratorVariables& v, std::string type, unsigned int nvariables);
+        
+        //! Set whether this restart is valid
+        void setValidRestart(bool b) { m_valid_restart = b; }
+    
+    private:
+        unsigned int m_integrator_id;                       //!< Registered integrator id to access the state variables
+        bool m_valid_restart;                               //!< True if the restart info was valid when loading
     };
 
 //! Exports the IntegrationMethodTwoStep class to python

@@ -92,10 +92,14 @@ class IntegratorTwoStep : public Integrator
         //! Remove all integration methods
         virtual void removeAllIntegrationMethods();
     protected:
+        //! Helper method to test if all added methods have valid restart information
+        bool isValidRestart();
+
         std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
         
         bool m_first_step;      //!< True before the first call to update()
         bool m_gave_warning;    //!< True if a warning has been given about no methods added
+    
     };
 
 //! Exports the IntegratorTwoStep class to python

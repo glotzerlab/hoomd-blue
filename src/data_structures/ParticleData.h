@@ -170,6 +170,9 @@ class AngleData;
 // Forward declaration of DihedralData
 class DihedralData;
 
+// Forward declaration of IntegratorData
+class IntegratorData;
+
 //! Defines a simple structure to deal with complex numbers
 /*! This structure is useful to deal with complex numbers for such situations
     as Fourier transforms. Note that we do not need any to define any operations and the
@@ -327,6 +330,13 @@ class ParticleDataInitializer
             This base class defines an empty method, as walls are optional
         */
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const {}
+
+        //! Initialize the integrator variables
+        /*! \param integrator_data Shared pointer to the IntegratorData to initialize
+            This base class defines an empty method, since initializing the 
+            integrator variables is optional
+        */
+        virtual void initIntegratorData(boost::shared_ptr<IntegratorData> integrator_data) const {}
         
         //! Intialize the type mapping
         virtual std::vector<std::string> getTypeMapping() const = 0;
@@ -429,6 +439,7 @@ class ParticleData : boost::noncopyable
         const BoxDim& getBox() const;
         //! Set the simulation box
         void setBox(const BoxDim &box);
+
         //! Access the execution configuration
         const ExecutionConfiguration& getExecConf()
             {
@@ -466,7 +477,7 @@ class ParticleData : boost::noncopyable
         const ParticleDataArraysConst& acquireReadOnly();
         //! Acquire read/write access to the particle data
         const ParticleDataArrays& acquireReadWrite();
-        
+                
 #ifdef ENABLE_CUDA
         //! Acquire read access to the particle data on the GPU
         std::vector<gpu_pdata_arrays>& acquireReadOnlyGPU();

@@ -51,6 +51,7 @@ Table of contents:
  - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>\copybrief hoomd_script::init::create_empty() </i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>\copybrief hoomd_script::init::create_random_polymers() </i>
+ - \link hoomd_script.init.read_bin() init.read_bin\endlink - <i>\copybrief hoomd_script::init::read_bin() </i>
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
  - \link hoomd_script.init.reset() init.reset\endlink - <i>\copybrief hoomd_script::init::reset() </i>
 
@@ -80,6 +81,7 @@ Table of contents:
  - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>\copybrief hoomd_script::dump::dcd </i>
  - \link hoomd_script.dump.mol2 dump.mol2\endlink - <i>\copybrief hoomd_script::dump::mol2 </i>
  - \link hoomd_script.dump.pdb dump.pdb\endlink - <i>\copybrief hoomd_script::dump::pdb </i>
+ - \link hoomd_script.dump.bin dump.bin\endlink - <i>\copybrief hoomd_script::dump::bin </i>
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>\copybrief hoomd_script::dump::xml </i>
 
 <h2>Commands that specify forces</h2>

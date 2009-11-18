@@ -96,6 +96,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_improper_types));
+    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
@@ -130,6 +131,9 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
     
     m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumImproperTypes()));
     init.initImproperData(m_improper_data);
+
+    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
+    init.initIntegratorData(m_integrator_data);
     }
 
 /*! Initialize required data before runs
@@ -144,172 +148,6 @@ int SystemDefinition::init()
     }
 
 
-/*! Write restart file
-
-*/
-void SystemDefinition::writeRestart(unsigned int timestep)
-    {
-    BoxDim box = m_particle_data->getBox();
-    
-    char file_name[100];
-    sprintf(file_name, "restart_%d.txt", timestep);
-    FILE *fp = fopen(file_name, "w");
-    
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    
-    // Particles
-    ParticleDataArrays arrays = m_particle_data->acquireReadWrite();
-    fprintf(fp, "%d\n", arrays.nparticles);
-    fprintf(fp, "%d\n", m_particle_data->getNTypes());
-    fprintf(fp, "%d\n", m_bond_data->getNBondTypes());
-    fprintf(fp, "%f\t%f\t%f\n", Lx, Ly, Lz);
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        {
-        fprintf(fp, "%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\n", arrays.type[i], arrays.body[i],
-                arrays.x[i], arrays.y[i], arrays.z[i],
-                arrays.vx[i], arrays.vy[i], arrays.vz[i]);
-        }
-        
-    m_particle_data->release();
-    
-    // Rigid bodies
-    unsigned int n_bodies = m_rigid_data->getNumBodies();
-    
-    fprintf(fp, "%d\n", n_bodies);
-    if (n_bodies <= 0)
-        {
-        fclose(fp);
-        return;
-        }
-        
-        
-        {
-        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-        
-        ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-        
-        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-        
-        ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
-        unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
-        
-        for (unsigned int body = 0; body < n_bodies; body++)
-            {
-            fprintf(fp, "%f\t%f\t%f\n", moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y, moment_inertia_handle.data[body].z);
-            fprintf(fp, "%f\t%f\t%f\n", com_handle.data[body].x, com_handle.data[body].y, com_handle.data[body].z);
-            
-            fprintf(fp, "%f\t%f\t%f\t%f\n", orientation_handle.data[body].x, orientation_handle.data[body].y, orientation_handle.data[body].z, orientation_handle.data[body].w);
-            fprintf(fp, "%f\t%f\t%f\n", ex_space_handle.data[body].x, ex_space_handle.data[body].y, ex_space_handle.data[body].z);
-            fprintf(fp, "%f\t%f\t%f\n", ey_space_handle.data[body].x, ey_space_handle.data[body].y, ey_space_handle.data[body].z);
-            fprintf(fp, "%f\t%f\t%f\n", ez_space_handle.data[body].x, ez_space_handle.data[body].y, ez_space_handle.data[body].z);
-            
-            unsigned int len = body_size_handle.data[body];
-            for (unsigned int j = 0; j < len; j++)
-                {
-                unsigned int localidx = body * particle_pos_pitch + j;
-                fprintf(fp, "%f\t%f\t%f\n", particle_pos_handle.data[localidx].x, particle_pos_handle.data[localidx].y, particle_pos_handle.data[localidx].z);
-                }
-            }
-            
-        }
-        
-    fclose(fp);
-    }
-
-/*! Read restart file
-
-*/
-void SystemDefinition::readRestart(const std::string& file_name)
-    {
-    ParticleDataArrays arrays = m_particle_data->acquireReadWrite();
-    
-    unsigned int nparticles, natomtypes, nbondtypes;
-    
-    FILE *fp = fopen(file_name.c_str(), "r");
-    fscanf(fp, "%d\n", &nparticles);
-    fscanf(fp, "%d\n", &natomtypes);
-    fscanf(fp, "%d\n", &nbondtypes);
-    
-    if (nparticles != arrays.nparticles || natomtypes != m_particle_data->getNTypes() || nbondtypes != m_bond_data->getNBondTypes())
-        {
-        printf("Restart file does not match!\n");
-        return;
-        }
-        
-    double Lx, Ly, Lz;
-    BoxDim box;
-    fscanf(fp, "%lf\t%lf\t%lf\n", &Lx, &Ly, &Lz);
-    box.xlo = -0.5 * Lx;
-    box.xhi = 0.5 * Lx;
-    box.ylo = -0.5 * Ly;
-    box.yhi = 0.5 * Ly;
-    box.zlo = -0.5 * Lz;
-    box.zhi = 0.5 * Lz;
-    
-    m_particle_data->setBox(box);
-    for (unsigned int i = 0; i < nparticles; i++)
-        {
-        fscanf(fp, "%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\n", &arrays.type[i], &arrays.body[i],
-               &arrays.x[i], &arrays.y[i], &arrays.z[i],
-               &arrays.vx[i], &arrays.vy[i], &arrays.vz[i]);
-        }
-        
-    m_particle_data->release();
-    
-    // Rigid bodies
-    unsigned int n_bodies = m_rigid_data->getNumBodies();
-    fscanf(fp, "%d\n", &n_bodies);
-    if (n_bodies <= 0)
-        {
-        fclose(fp);
-        return;
-        }
-        
-        {
-        ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::readwrite);
-        
-        ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
-        
-        ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::readwrite);
-        unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
-        
-        for (unsigned int body = 0; body < n_bodies; body++)
-            {
-            fscanf(fp, "%f\t%f\t%f\n", &moment_inertia_handle.data[body].x, &moment_inertia_handle.data[body].y, &moment_inertia_handle.data[body].z);
-            fscanf(fp, "%f\t%f\t%f\n", &com_handle.data[body].x, &com_handle.data[body].y, &com_handle.data[body].z);
-            
-            fscanf(fp, "%f\t%f\t%f\t%f\n", &orientation_handle.data[body].x, &orientation_handle.data[body].y, &orientation_handle.data[body].z, &orientation_handle.data[body].w);
-            fscanf(fp, "%f\t%f\t%f\n", &ex_space_handle.data[body].x, &ex_space_handle.data[body].y, &ex_space_handle.data[body].z);
-            fscanf(fp, "%f\t%f\t%f\n", &ey_space_handle.data[body].x, &ey_space_handle.data[body].y, &ey_space_handle.data[body].z);
-            fscanf(fp, "%f\t%f\t%f\n", &ez_space_handle.data[body].x, &ez_space_handle.data[body].y, &ez_space_handle.data[body].z);
-            
-            unsigned int len = body_size_handle.data[body];
-            for (unsigned int j = 0; j < len; j++)
-                {
-                unsigned int localidx = body * particle_pos_pitch + j;
-                fscanf(fp, "%f\t%f\t%f\n", &particle_pos_handle.data[localidx].x, &particle_pos_handle.data[localidx].y, &particle_pos_handle.data[localidx].z);
-                }
-                
-            }
-        }
-        
-    fclose(fp);
-    
-    }
-
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
@@ -322,6 +160,7 @@ void export_SystemDefinition()
     .def("getDihedralData", &SystemDefinition::getDihedralData)
     .def("getImproperData", &SystemDefinition::getImproperData)
     .def("getWallData", &SystemDefinition::getWallData)
+    .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
     ;
     }

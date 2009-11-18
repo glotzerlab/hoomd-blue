@@ -64,12 +64,14 @@ using namespace boost::python;
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
                                                    boost::shared_ptr<ParticleGroup> group)
     : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()), 
-      m_deltaT(Scalar(0.0))
+      m_deltaT(Scalar(0.0)), m_valid_restart(false)
     {
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
     assert(m_group);
+    
+    m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
     }
 
 /*! It is useful for the user to know where computation time is spent, so all integration methods
@@ -91,6 +93,43 @@ void IntegrationMethodTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
 void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
     {
     m_deltaT = deltaT;
+    }
+
+
+/*! \param v is the restart variables for the current integrator
+    \param type is the type of expected integrator type
+    \param nvariables is the expected number of variables
+    
+    If the either the integrator type or number of variables does not match the
+    expected values, this function throws the appropriate warning and returns
+    "false."  Otherwise, the function returns true.
+*/
+bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std::string type, unsigned int nvariables)
+    {
+    bool good = true;
+    if (v.type == "")
+        good = false;
+    else if (v.type != type && v.type != "")
+        {
+        cout << endl;
+        cout << "***Warning! Integrator #"<<  m_integrator_id <<" type "<< type <<" does not match type ";
+        cout << v.type << " found in restart file. " << endl;
+        cout << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
+        cout << "Continuing while ignoring restart information..." << endl << endl;
+        good = false;
+        }
+    else if (v.type == type)
+        {
+        if (v.variable.size() != nvariables)
+            {
+            cout << endl;
+            cout << "***Warning! Integrator #"<< m_integrator_id <<" type "<< type << endl;
+            cout << "appears to contain bad or incomplete restart information. " << endl;
+            cout << "Continuing while ignoring restart information..." << endl << endl;
+            good = false;
+            }
+        }
+    return good;
     }
 
 void export_IntegrationMethodTwoStep()

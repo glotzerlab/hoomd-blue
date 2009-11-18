@@ -15,6 +15,13 @@ find_package(PythonLibs REQUIRED)
 
 include_directories(${PYTHON_INCLUDE_PATH})
 
+# find ZLIB
+if (ENABLE_ZLIB)
+find_package(ZLIB REQUIRED)
+
+include_directories(${ZLIB_INCLUDE_DIR})
+endif (ENABLE_ZLIB)
+
 ################################
 ## Define common libraries used by every target in HOOMD
 if (WIN32)
@@ -25,6 +32,7 @@ else (WIN32)
             ${Boost_PYTHON_LIBRARY}
             ${Boost_PROGRAM_OPTIONS_LIBRARY}
             ${Boost_SIGNALS_LIBRARY}
+            ${Boost_IOSTREAMS_LIBRARY}
             )
     if (Boost_SYSTEM_LIBRARY)
         set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SYSTEM_LIBRARY})
@@ -46,6 +54,7 @@ else (WIN32)
             ${BOOST_LIBS}
             ${CMAKE_THREAD_LIBS_INIT}
             ${PYTHON_LIBRARIES}
+            ${ZLIB_LIBRARIES}
             ${ADDITIONAL_LIBS}
             )
 endif (WIN32)

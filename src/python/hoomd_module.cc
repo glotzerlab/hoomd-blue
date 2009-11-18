@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "Initializers.h"
 #include "HOOMDInitializer.h"
+#include "HOOMDBinaryInitializer.h"
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "ForceCompute.h"
@@ -85,6 +86,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "HOOMDDumpWriter.h"
+#include "HOOMDBinaryDumpWriter.h"
 #include "PDBDumpWriter.h"
 #include "MOL2DumpWriter.h"
 #include "DCDDumpWriter.h"
@@ -358,6 +360,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_RandomInitializerWithWalls();
     export_SimpleCubicInitializer();
     export_HOOMDInitializer();
+    export_HOOMDBinaryInitializer();
     export_RandomGenerator();
     
     // computes
@@ -399,6 +402,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Analyzer();
     export_IMDInterface();
     export_HOOMDDumpWriter();
+    export_HOOMDBinaryDumpWriter();
     export_PDBDumpWriter();
     export_DCDDumpWriter();
     export_MOL2DumpWriter();

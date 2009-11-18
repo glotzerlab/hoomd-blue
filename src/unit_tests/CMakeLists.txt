@@ -68,7 +68,9 @@ set(TEST_LIST
     nvt_updater_test
     zero_momentum_updater_test
     temp_rescale_updater_test
-    xml_reader_writer_test system_test
+    xml_reader_writer_test 
+    system_test
+    binary_reader_writer_test
     ElectrostaticShortRange_force_test
     nve_rigid_updater_test
     nvt_rigid_updater_test
@@ -102,10 +104,11 @@ foreach (CUR_TEST ${TEST_LIST})
     endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     
     target_link_libraries(${CUR_TEST} hoomd_python_module ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
+    fix_cudart_rpath(${CUR_TEST})
 
     # add it to the unit test list
     get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
-
+    
     # unfortunately, this needs to be handled differently in visual studio
     if (MSVC)
         add_test(${CUR_TEST} ${EXECUTABLE_OUTPUT_PATH}/${CUR_TEST})

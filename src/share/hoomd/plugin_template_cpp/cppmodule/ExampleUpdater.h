@@ -7,6 +7,10 @@
 #ifndef _EXAMPLE_UPDATER_H_
 #define _EXAMPLE_UPDATER_H_
 
+/*! \file ExampleUpdater.h
+    \brief Declaration of ExampleUpdater
+*/
+
 // First, hoomd.h should be included
 # include <hoomd/hoomd.h>
 

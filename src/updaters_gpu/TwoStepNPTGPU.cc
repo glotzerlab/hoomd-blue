@@ -107,7 +107,11 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NPT step 1");
-    
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
     // access all the needed data
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
@@ -116,11 +120,11 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle< float > d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
 
     // advance thermostat(m_Xi) half a time step
-    m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
+    xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
     
     // advance barostat (m_Eta) half time step
     Scalar N = Scalar(m_group->getNumMembers());
-    m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
+    eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
             *(m_curr_P - m_P->getValue(timestep))*m_deltaT; 
 
     // perform the particle update on the GPU
@@ -132,15 +136,15 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
                                 m_block_size,
                                 m_group_num_blocks,
                                 m_partial_scale,
-                                m_Xi,
-                                m_Eta,
+                                xi,
+                                eta,
                                 m_deltaT));
     
     // advance volume
-    m_V *= exp(Scalar(3.0)*m_Eta*m_deltaT);
+    m_V *= exp(Scalar(3.0)*eta*m_deltaT);
     
     // get the scaling factor for the box (V_new/V_old)^(1/3)
-    Scalar box_len_scale = exp(m_Eta*m_deltaT);
+    Scalar box_len_scale = exp(eta*m_deltaT);
     m_Lx *= box_len_scale;
     m_Ly *= box_len_scale;
     m_Lz *= box_len_scale;
@@ -153,7 +157,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
                                                   box,
                                                   m_block_size,
                                                   m_partial_scale,
-                                                  m_Eta,
+                                                  eta,
                                                   m_deltaT));
     
     // done profiling
@@ -179,7 +183,11 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NPT step 2");
-    
+
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -193,17 +201,18 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
                                 d_net_force.data,
                                 m_block_size,
                                 m_group_num_blocks,
-                                m_Xi,
-                                m_Eta,
+                                xi,
+                                eta,
                                 m_deltaT));
 
     // Update state variables
     Scalar N = Scalar(m_group->getNumMembers());
-    m_Eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
+    eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
                             *(m_curr_P - m_P->getValue(timestep))*m_deltaT;
-    m_Xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
+    xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
 
     m_pdata->release();
+    setIntegratorVariables(v);
     
     // done profiling
     if (m_prof)
