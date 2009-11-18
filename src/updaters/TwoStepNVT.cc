@@ -66,7 +66,7 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
                        Scalar tau,
                        boost::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group, true), m_tau(tau), m_T(T)
+    : IntegrationMethodTwoStep(sysdef, group), m_tau(tau), m_T(T)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
@@ -77,13 +77,16 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
-    if (!restartInfoIsValid(v, "nvt", 2))
+    if (!restartInfoTestValid(v, "nvt", 2))
         {
         v.type = "nvt";
         v.variable.resize(2);
         v.variable[0] = Scalar(1.0);
         v.variable[1] = Scalar(1.0);
+        setValidRestart(false);
         }
+    else
+        setValidRestart(true);
 
     setIntegratorVariables(v);
     }

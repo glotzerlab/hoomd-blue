@@ -71,6 +71,20 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            bool gamma_diam)
     : TwoStepNVE(sysdef, group), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
     {
+    // set a named, but otherwise blank set of integrator variables
+    IntegratorVariables v = getIntegratorVariables();
+
+    if (!restartInfoTestValid(v, "bdnvt", 0))
+        {
+        v.type = "bdnvt";
+        v.variable.resize(0);
+        setValidRestart(false);
+        }
+    else
+        setValidRestart(true);
+
+    setIntegratorVariables(v);
+
     // allocate memory for the per-type gamma storage and initialize them to 1.0
     GPUArray<Scalar> gamma(m_pdata->getNTypes(), m_pdata->getExecConf());
     m_gamma.swap(gamma);

@@ -64,6 +64,19 @@ TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group)
     : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0)
     {
+    // set a named, but otherwise blank set of integrator variables
+    IntegratorVariables v = getIntegratorVariables();
+
+    if (!restartInfoTestValid(v, "nve", 0))
+        {
+        v.type = "nve";
+        v.variable.resize(0);
+        setValidRestart(false);
+        }
+    else
+        setValidRestart(true);
+
+    setIntegratorVariables(v);
     }
 
 /*! \param limit Distance to limit particle movement each time step

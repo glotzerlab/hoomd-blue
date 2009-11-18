@@ -70,7 +70,7 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P)
-    : IntegrationMethodTwoStep(sysdef, group, true), m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P)
+    : IntegrationMethodTwoStep(sysdef, group), m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in TwoStepNPT" << endl;
@@ -97,13 +97,16 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
-    if (!restartInfoIsValid(v, "npt", 2))
+    if (!restartInfoTestValid(v, "npt", 2))
         {
         v.type = "npt";
         v.variable.resize(2);
         v.variable[0] = Scalar(0.0);
         v.variable[1] = Scalar(0.0);
+        setValidRestart(false);
         }
+    else
+        setValidRestart(true);
 
     setIntegratorVariables(v);
     }

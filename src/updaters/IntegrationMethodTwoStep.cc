@@ -59,24 +59,19 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param register_variables Set to true to register integrator variables for this method
     \post The method is constructed with the given particle data and a NULL profiler.
 */
 IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
-                                                   boost::shared_ptr<ParticleGroup> group,
-                                                   bool register_variables)
+                                                   boost::shared_ptr<ParticleGroup> group)
     : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), exec_conf(m_pdata->getExecConf()), 
-      m_deltaT(Scalar(0.0))
+      m_deltaT(Scalar(0.0)), m_valid_restart(false)
     {
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
     assert(m_group);
     
-    if (register_variables)
-        m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
-    else
-        m_integrator_id = 0xffffffff;
+    m_integrator_id = m_sysdef->getIntegratorData()->registerIntegrator();
     }
 
 /*! It is useful for the user to know where computation time is spent, so all integration methods
@@ -109,26 +104,28 @@ void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
     expected values, this function throws the appropriate warning and returns
     "false."  Otherwise, the function returns true.
 */
-bool IntegrationMethodTwoStep::restartInfoIsValid(IntegratorVariables& v, std::string type, unsigned int nvariables)
+bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std::string type, unsigned int nvariables)
     {
     bool good = true;
     if (v.type == "")
         good = false;
     else if (v.type != type && v.type != "")
         {
+        cout << endl;
         cout << "***Warning! Integrator #"<<  m_integrator_id <<" type "<< type <<" does not match type ";
         cout << v.type << " found in restart file. " << endl;
         cout << "Ensure that the integrator order is consistent for restarted simulations. " << endl;
-        cout << "Continuing while ignoring restart information..." << endl;
+        cout << "Continuing while ignoring restart information..." << endl << endl;
         good = false;
         }
     else if (v.type == type)
         {
         if (v.variable.size() != nvariables)
             {
+            cout << endl;
             cout << "***Warning! Integrator #"<< m_integrator_id <<" type "<< type << endl;
             cout << "appears to contain bad or incomplete restart information. " << endl;
-            cout << "Continuing while ignoring restart information..." << endl;
+            cout << "Continuing while ignoring restart information..." << endl << endl;
             good = false;
             }
         }
@@ -138,7 +135,7 @@ bool IntegrationMethodTwoStep::restartInfoIsValid(IntegratorVariables& v, std::s
 void export_IntegrationMethodTwoStep()
     {
     class_<IntegrationMethodTwoStep, boost::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, bool >())
+        ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
         ;
     }
 
