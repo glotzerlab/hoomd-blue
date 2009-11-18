@@ -134,7 +134,7 @@ class Integrator : public Updater
         
         //! helper function to compute total momentum
         virtual Scalar computeTotalMomentum(unsigned int timestep);
-        
+                
     protected:
         Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes

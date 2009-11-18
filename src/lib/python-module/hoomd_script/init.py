@@ -207,6 +207,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 # The result of init.read_xml can be saved in a variable and later used to read and/or change particle properties
 # later in the script. See hoomd_script.data for more information.
 #
+# \sa dump.xml
 def read_xml(filename, time_step = None):
     util.print_status_line();
     
@@ -232,6 +233,50 @@ def read_xml(filename, time_step = None):
     _perform_common_init_tasks();
     return data.system_data(globals.system_definition);
 
+## Reads initial system state from a binary file
+#
+# \param filename File to read
+#
+# \b Examples:
+# \code
+# init.read_bin(filename="data.bin.gz")
+# init.read_bin(filename="directory/data.bin")
+# system = init.read_bin(filename="data.bin.gz")
+# \endcode
+#
+# All particles, bonds, etc...  are read from the binary file given, setting the initial condition of the simulation.
+# Binary restart files also include state information needed to continue integrating time forward as if the previous job
+# had never stopped. For more information see dump.bin.
+#
+# After this command completes, the system is initialized allowing other commands in hoomd_script to be run.
+#
+# The precense or lack of a .gz extension determines whether init.read_bin will attempt to decompress the %data
+# before reading it.
+#
+# The result of init.read_bin can be saved in a variable and later used to read and/or change particle properties
+# later in the script. See hoomd_script.data for more information.
+#
+# \sa dump.bin
+def read_bin(filename):
+    util.print_status_line();
+    
+    # parse command line
+    _parse_command_line();
+
+    # check if initialization has already occurred
+    if (globals.system_definition != None):
+        print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
+        raise RuntimeError('Error initializing');
+
+    # read in the data
+    initializer = hoomd.HOOMDBinaryInitializer(filename);
+    globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
+    
+    # initialize the system
+    globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
+    
+    _perform_common_init_tasks();
+    return data.system_data(globals.system_definition);
 
 ## Generates N randomly positioned particles of the same type
 #

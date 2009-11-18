@@ -56,6 +56,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface
     
+    Integrator variables mapping:
+     - [0] -> xi
+     - [1] -> eta
+    
     \ingroup updaters
 */
 class TwoStepNVT : public IntegrationMethodTwoStep
@@ -103,8 +107,6 @@ class TwoStepNVT : public IntegrationMethodTwoStep
     protected:
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
-        Scalar m_Xi;                    //!< Friction coeff
-        Scalar m_eta;                   //!< Added degree of freedom
         Scalar m_curr_T;                //!< Current calculated temperature of the system
         Scalar m_dof;                   //!< Number of degrees of freedom
     };

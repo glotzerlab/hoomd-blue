@@ -218,6 +218,115 @@ class xml(analyze._analyzer):
         
         self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
 
+## Writes simulation snapshots in a binary format
+#
+# Every \a period time steps, a new file will be created. The state of the 
+# particles at that time step is written to the file in a binary format.
+#
+# \sa \ref page_xml_file_format
+class bin(analyze._analyzer):
+    ## Initialize the hoomd_bin writer
+    #
+    # \param filename (optional) Base of the file name
+    # \param period (optional) Number of time steps between file dumps
+    # \param file1 (optional) First alternating file name to write
+    # \param file2 (optional) Second alternating file name to write
+    # \param compress Set to False to disable gzip compression
+    # 
+    # \b Examples:
+    # \code
+    # dump.bin(file1="restart.1.bin.gz", file2="restart.2.bin.gz", period=1e5)
+    # dump.bin(filename="particles", period=1000)
+    # bin = dump.bin(filename="particles", period=1e5, compress=False)
+    # bin = dump.bin()
+    # \endcode
+    #
+    # If period is set, a new file will be created every \a period steps. The time step at which 
+    # the file is created is added to the file name in a fixed width format to allow files to easily 
+    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
+    # \c particles.0000000000.bin (.gz if \a compress = True)
+    #
+    # If \a compress is True (the default), output will be gzip compressed for a significant savings. init.read_bin()
+    # will autodetect whether or not the %data needs to be decompressed by the ".gz" file extension.
+    #
+    # If \a file1 and \a file2 are specified, then the output is written every \a period time steps alternating
+    # between those two files. This use-case is useful when only the most recent state of the system is needed
+    # to continue a job. The alternation between two files is so that if the job ends or crashes while writing one of
+    # of the files, the other is still available for use. Make sure to include a .gz file extension if compression
+    # is enabled.
+    #
+    # Binary files include the \b entire state of the system, including the time step, particle positions,
+    # velocities, et cetera, and the internal state variables of any relevant integration methods. All %data is saved
+    # exactly as it appears in memory so that loading the %data with init.read_bin is as close as possible as one
+    # can get to exactly restarting the simulation as if it has never stopped. Restarts that continue 100%
+    # \b exactly, bit for bit, as they would have if they had never stopped are possible under certain circumstances.
+    #
+    # For the integration state information to be read and properly associated with the correct integrator, there must
+    # the same number of integrator modes and methods <b>and in the same order</b> in the continuation script as are in
+    # the initial job script. One way to ensure this is to copy the initial script and comment out all of the run()
+    # commands up until the point that the restart file was written.
+    #
+    # If \a period is not specified, then no periodic updates will occur. Instead, the write()
+    # command must be executed to write an output file.
+    #
+    # \note The binary file format may change from one hoomd release to the next. Efforts will be made so that
+    # newer versions of hoomd can read previous version's binary format, but support is not guarunteed. The intended
+    # use case for dump.bin() is for saving data to restart and/or continue jobs that fail or reach a wall clock time
+    # limit. If you need to store data in a system and version independant manner, use dump.xml().
+    #
+    # \a period can be a function: see \ref variable_period_docs for details
+    def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
+        util.print_status_line();
+    
+        # initialize base class
+        analyze._analyzer.__init__(self);
+        
+        # create the c++ mirror class
+        self.cpp_analyzer = hoomd.HOOMDBinaryDumpWriter(globals.system_definition, filename);
+        self.cpp_analyzer.enableCompression(compress)
+        
+        # handle the alternation setting
+        # first, check that they are both set
+        if (file1 != None and file2 == None) or (file2 != None and file1 == None):
+            print >> sys.stderr, "\n***Error! file1 and file2 must either both be set or both left as None.\n";
+            raise RuntimeError('Error initializing dump.bin');
+        if file1 != None:
+            self.cpp_analyzer.setAlternatingWrites(file1, file2)
+            if period == None:
+                print "\n***Warning! Alternating file output set for dump.bin, but period is not set."
+                print "No output will be written.\n"
+        
+        if period != None:
+            self.setupAnalyzer(period);
+            self.enabled = False;
+            self.prev_period = 1;
+
+    ## Write a file at the current time step
+    #
+    # \param filename File name to write to
+    #
+    # The periodic file writes can be temporarily overridden and a file with any file name
+    # written at the current time step.
+    #
+    # Executing write() requires that the %dump was saved in a variable when it was specified.
+    # \code
+    # xml = dump.xml()
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # xml.write(filename="start.xml")
+    # \endcode
+    def write(self, filename):
+        util.print_status_line();
+        
+        # check that proper initialization has occured
+        if self.cpp_analyzer == None:
+            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
+            raise RuntimeError('Error writing xml');
+        
+        self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
+
 ## Writes a simulation snapshot in the MOL2 format
 #
 # Every \a period time steps, a new file will be created. The state of the 

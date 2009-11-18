@@ -89,6 +89,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_improper_types));
+    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
 /*! Calls the initializer's members to determine the number of particles, box size and then
@@ -116,6 +117,9 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
     
     m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, init.getNumImproperTypes()));
     init.initImproperData(m_improper_data);
+
+    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
+    init.initIntegratorData(m_integrator_data);
     }
 
 void export_SystemDefinition()
@@ -130,6 +134,7 @@ void export_SystemDefinition()
     .def("getDihedralData", &SystemDefinition::getDihedralData)
     .def("getImproperData", &SystemDefinition::getImproperData)
     .def("getWallData", &SystemDefinition::getWallData)
+    .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     ;
     }
 

@@ -29,6 +29,7 @@ if (NOT ENABLE_STATIC)
     if(APPLE)
         set_target_properties(hoomd_python_module PROPERTIES SUFFIX ".so")
     endif(APPLE)
+    fix_cudart_rpath(hoomd_python_module)
     
     # also: only install the library if it is dynamic  and not in windows
     if (NOT WIN32)
@@ -63,6 +64,7 @@ if (ENABLE_STATIC)
         PROPERTIES PREFIX ""
         OUTPUT_NAME "hoomd"
         )
+    fix_cudart_rpath(hoomd)
 
     # change the library name to something more sensible
     if (WIN32)

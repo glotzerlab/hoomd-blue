@@ -99,7 +99,9 @@ void IntegratorTwoStep::update(unsigned int timestep)
     if (m_first_step)
         {
         m_first_step = false;
-        computeAccelerations(timestep, "Integrate");
+        // but they only need to be calculated if the restart is not valid
+        if (!isValidRestart())
+            computeAccelerations(timestep, "Integrate");
         }
     
     if (m_prof)
@@ -181,6 +183,22 @@ void IntegratorTwoStep::removeAllIntegrationMethods()
     {
     m_methods.clear();
     m_gave_warning = false;
+    }
+
+/*! \returns true If all added integration methods have valid restart information
+*/
+bool IntegratorTwoStep::isValidRestart()
+    {
+    bool res = true;
+    
+    // loop through all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // and them all together
+        res = res && (*method)->isValidRestart();
+        }
+    return res;
     }
 
 void export_IntegratorTwoStep()
