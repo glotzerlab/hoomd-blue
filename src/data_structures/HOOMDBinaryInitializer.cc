@@ -175,6 +175,22 @@ void HOOMDBinaryInitializer::initIntegratorData(boost::shared_ptr<IntegratorData
         }
     }
 
+//! Helper function to read a string from the file
+static string read_string(istream &f)
+    {
+    unsigned int len;
+    f.read((char*)&len, sizeof(unsigned int));
+    if (len != 0)
+        {
+        char cstr[len+1];
+        f.read(cstr, len*sizeof(char));
+        cstr[len] = '\0';
+        return string(cstr);
+        }
+    else
+        return string();
+    }
+
 /*! \param fname File name of the hoomd_binary file to read in
     \post Internal data arrays and members are filled out from which futre calls
     like initArrays will use to intialize the ParticleData
@@ -195,15 +211,28 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         throw runtime_error("Error reading binary file");
         }
     
+    // read magic
+    unsigned int magic = 0x444d4f48;
+    unsigned int file_magic;
+    f.read((char*)&file_magic, sizeof(int));
+    if (magic != file_magic)
+        {
+        cout << endl << "***Error! " << fname << " does not appear to be a hoomd_bin file" << endl << endl;
+        throw runtime_error("Error reading binary file");
+        }
+    
     int version = 1;
     int file_version;
     f.read((char*)&file_version, sizeof(int));
     
     // right now, the version tag doesn't do anything: just warn if they don't match
     if (version != file_version)
+        {
         cout << endl
-             << "***Warning! hoomd binary file does not match the current version,"
-             << " I don't know how to read this. Continuing anyways." << endl << endl;
+             << "***Error! hoomd binary file does not match the current version,"
+             << endl << endl;
+        throw runtime_error("Error reading binary file");
+        }
     
     //parse timestep
     int timestep;
@@ -232,23 +261,23 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_charge_array.resize(np);
     
     //parse particle arrays
-    f.read((char*)&(m_tag_array[0]), np*sizeof(unsigned int));	
-    f.read((char*)&(m_rtag_array[0]), np*sizeof(unsigned int));	
-    f.read((char*)&(m_x_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_y_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_z_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_ix_array[0]), np*sizeof(int));	
-    f.read((char*)&(m_iy_array[0]), np*sizeof(int));	
-    f.read((char*)&(m_iz_array[0]), np*sizeof(int));	
-    f.read((char*)&(m_vx_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_vy_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_vz_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_ax_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_ay_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_az_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_mass_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_diameter_array[0]), np*sizeof(Scalar));	
-    f.read((char*)&(m_charge_array[0]), np*sizeof(Scalar));	
+    f.read((char*)&(m_tag_array[0]), np*sizeof(unsigned int));
+    f.read((char*)&(m_rtag_array[0]), np*sizeof(unsigned int));
+    f.read((char*)&(m_x_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_y_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_z_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_ix_array[0]), np*sizeof(int));
+    f.read((char*)&(m_iy_array[0]), np*sizeof(int));
+    f.read((char*)&(m_iz_array[0]), np*sizeof(int));
+    f.read((char*)&(m_vx_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_vy_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_vz_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_ax_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_ay_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_az_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_mass_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_diameter_array[0]), np*sizeof(Scalar));
+    f.read((char*)&(m_charge_array[0]), np*sizeof(Scalar));
 
     //parse types
     unsigned int ntypes = 0;
@@ -256,15 +285,9 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_type_mapping.resize(ntypes);
     for (unsigned int i = 0; i < ntypes; i++)
         {
-        unsigned int len;
-        f.read((char*)&len, sizeof(unsigned int));
-        char type_cstr[len+1];
-        f.read(type_cstr, len*sizeof(char));
-        type_cstr[len] = '\0';
-        std::string type = type_cstr;
-        m_type_mapping[i] = type;
+        m_type_mapping[i] = read_string(f);
         }
-    f.read((char*)&(m_type_array[0]), np*sizeof(unsigned int));	
+    f.read((char*)&(m_type_array[0]), np*sizeof(unsigned int));
 
     //parse integrator states
     {
@@ -274,16 +297,8 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     v.resize(ni);
     for (unsigned int j = 0; j < ni; j++)
         {
-        unsigned int len;
-        f.read((char*)&len, sizeof(unsigned int));
-        if (len != 0)
-            {
-            char type_cstr[len+1];
-            f.read(type_cstr, len*sizeof(char));
-            type_cstr[len] = '\0';
-            std::string type = type_cstr;
-            v[j].type = type;
-            }
+        v[j].type = read_string(f);
+
         v[j].variable.clear();
         unsigned int nv = 0;
         f.read((char*)&nv, sizeof(unsigned int));	

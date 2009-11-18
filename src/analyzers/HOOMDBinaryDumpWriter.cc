@@ -70,6 +70,15 @@ using namespace boost::python;
 using namespace std;
 using namespace boost;
 
+//! Helper function to write a string out to a file in binary mode
+static void write_string(ostream &f, const string& str)
+    {
+    unsigned int len = str.size();
+    f.write((char*)&len, sizeof(unsigned int)); 
+    if (len != 0)
+        f.write(str.c_str(), len*sizeof(char));
+    }
+
 /*! \param sysdef SystemDefinition containing the ParticleData to dump
     \param base_fname The base name of the file xml file to output the information
 
@@ -94,6 +103,9 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         throw runtime_error("Error writing hoomd binary dump file");
         }
     
+    // write a magic number identifying the file format
+    unsigned int magic = 0x444d4f48;
+    f.write((char*)&magic, sizeof(unsigned int));
     // write the version of the binary format used
     int version = 1;
     f.write((char*)&version, sizeof(int));
@@ -107,45 +119,42 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     Lz=Scalar(box.zhi-box.zlo);
         
     //write out the timestep and box
-    f.write((char*)&timestep, sizeof(int));	
-    f.write((char*)&Lx, sizeof(Scalar));	
-    f.write((char*)&Ly, sizeof(Scalar));	
-    f.write((char*)&Lz, sizeof(Scalar));	
+    f.write((char*)&timestep, sizeof(int));
+    f.write((char*)&Lx, sizeof(Scalar));
+    f.write((char*)&Ly, sizeof(Scalar));
+    f.write((char*)&Lz, sizeof(Scalar));
     
     //write out particle data
     unsigned int np = m_pdata->getN();
-    f.write((char*)&np, sizeof(unsigned int));	
-    f.write((char*)arrays.tag, np*sizeof(unsigned int));	
-    f.write((char*)arrays.rtag, np*sizeof(unsigned int));	
-    f.write((char*)arrays.x, np*sizeof(Scalar));	
-    f.write((char*)arrays.y, np*sizeof(Scalar));	
-    f.write((char*)arrays.z, np*sizeof(Scalar));	
-    f.write((char*)arrays.ix, np*sizeof(int));	
-    f.write((char*)arrays.iy, np*sizeof(int));	
-    f.write((char*)arrays.iz, np*sizeof(int));	
-    f.write((char*)arrays.vx, np*sizeof(Scalar));	
-    f.write((char*)arrays.vy, np*sizeof(Scalar));	
-    f.write((char*)arrays.vz, np*sizeof(Scalar));	
-    f.write((char*)arrays.ax, np*sizeof(Scalar));	
-    f.write((char*)arrays.ay, np*sizeof(Scalar));	
-    f.write((char*)arrays.az, np*sizeof(Scalar));	
-    f.write((char*)arrays.mass, np*sizeof(Scalar));	
-    f.write((char*)arrays.diameter, np*sizeof(Scalar));	
-    f.write((char*)arrays.charge, np*sizeof(Scalar));	
+    f.write((char*)&np, sizeof(unsigned int));
+    f.write((char*)arrays.tag, np*sizeof(unsigned int));
+    f.write((char*)arrays.rtag, np*sizeof(unsigned int));
+    f.write((char*)arrays.x, np*sizeof(Scalar));
+    f.write((char*)arrays.y, np*sizeof(Scalar));
+    f.write((char*)arrays.z, np*sizeof(Scalar));
+    f.write((char*)arrays.ix, np*sizeof(int));
+    f.write((char*)arrays.iy, np*sizeof(int));
+    f.write((char*)arrays.iz, np*sizeof(int));
+    f.write((char*)arrays.vx, np*sizeof(Scalar));
+    f.write((char*)arrays.vy, np*sizeof(Scalar));
+    f.write((char*)arrays.vz, np*sizeof(Scalar));
+    f.write((char*)arrays.ax, np*sizeof(Scalar));
+    f.write((char*)arrays.ay, np*sizeof(Scalar));
+    f.write((char*)arrays.az, np*sizeof(Scalar));
+    f.write((char*)arrays.mass, np*sizeof(Scalar));
+    f.write((char*)arrays.diameter, np*sizeof(Scalar));
+    f.write((char*)arrays.charge, np*sizeof(Scalar));
 
     //write out types and type mapping
     unsigned int ntypes = m_pdata->getNTypes();
-    f.write((char*)&ntypes, sizeof(unsigned int));	
+    f.write((char*)&ntypes, sizeof(unsigned int));
     for (unsigned int i = 0; i < ntypes; i++)
         {
         std::string name = m_pdata->getNameByType(i);
-        unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int)); 
-        f.write(name.c_str(), len*sizeof(char));   
+        write_string(f, name);
         }
     f.write((char*)arrays.type, np*sizeof(unsigned int));	
 
-    
     if (!f.good())
         {
         cerr << endl << "***Error! Unexpected error writing HOOMD dump file" << endl << endl;
@@ -160,12 +169,8 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     for (unsigned int j = 0; j < ni; j++)
         {
         IntegratorVariables v = integrator_data->getIntegratorVariables(j);
-        unsigned int len = v.type.size();
-        f.write((char*)&len, sizeof(unsigned int));	
-        if (len != 0) 
-            {
-            f.write(v.type.c_str(), len*sizeof(char));
-            }
+        write_string(f, v.type);
+
         unsigned int nv = v.variable.size();
         f.write((char*)&nv, sizeof(unsigned int));	
         for (unsigned int k=0; k<nv; k++)
