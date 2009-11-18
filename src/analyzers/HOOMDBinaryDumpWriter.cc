@@ -208,6 +208,15 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         
     // Output the angles to the binary file
     {
+    //write out type mapping
+    ntypes = m_sysdef->getAngleData()->getNAngleTypes();
+    f.write((char*)&ntypes, sizeof(unsigned int));
+    for (unsigned int i = 0; i < ntypes; i++)
+        {
+        std::string name = m_sysdef->getAngleData()->getNameByType(i);
+        write_string(f, name);
+        }
+    
     unsigned int na = m_sysdef->getAngleData()->getNumAngles();
     f.write((char*)&na, sizeof(unsigned int));
 
@@ -218,21 +227,24 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         {
         Angle angle = angle_data->getAngle(i);
         
-        std::string name = angle_data->getNameByType(angle.type);
-        unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));
-        f.write(name.c_str(), name.size()*sizeof(char));
-        unsigned int a = angle.a;
-        unsigned int b = angle.b;
-        unsigned int c = angle.c;
-        f.write((char*)&a, sizeof(unsigned int));
-        f.write((char*)&b, sizeof(unsigned int));
-        f.write((char*)&c, sizeof(unsigned int));            
+        f.write((char*)&angle.type, sizeof(unsigned int));
+        f.write((char*)&angle.a, sizeof(unsigned int));
+        f.write((char*)&angle.b, sizeof(unsigned int));
+        f.write((char*)&angle.c, sizeof(unsigned int));
         }            
     }
         
     // Write out dihedrals to the binary file
     {
+    //write out type mapping
+    ntypes = m_sysdef->getDihedralData()->getNDihedralTypes();
+    f.write((char*)&ntypes, sizeof(unsigned int));
+    for (unsigned int i = 0; i < ntypes; i++)
+        {
+        std::string name = m_sysdef->getDihedralData()->getNameByType(i);
+        write_string(f, name);
+        }
+        
     unsigned int nd = m_sysdef->getDihedralData()->getNumDihedrals();
     f.write((char*)&nd, sizeof(unsigned int));
 
@@ -242,24 +254,25 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     for (unsigned int i = 0; i < dihedral_data->getNumDihedrals(); i++)
         {
         Dihedral dihedral = dihedral_data->getDihedral(i);
-        
-        std::string name = dihedral_data->getNameByType(dihedral.type);
-        unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));
-        f.write(name.c_str(), name.size()*sizeof(char));
-        unsigned int a = dihedral.a;
-        unsigned int b = dihedral.b;
-        unsigned int c = dihedral.c;
-        unsigned int d = dihedral.d;
-        f.write((char*)&a, sizeof(unsigned int));
-        f.write((char*)&b, sizeof(unsigned int));
-        f.write((char*)&c, sizeof(unsigned int));
-        f.write((char*)&d, sizeof(unsigned int));
+
+        f.write((char*)&dihedral.type, sizeof(unsigned int));
+        f.write((char*)&dihedral.a, sizeof(unsigned int));
+        f.write((char*)&dihedral.b, sizeof(unsigned int));
+        f.write((char*)&dihedral.c, sizeof(unsigned int));
+        f.write((char*)&dihedral.d, sizeof(unsigned int));
         }            
     }
         
     // Write out impropers to the binary file
     {
+    ntypes = m_sysdef->getImproperData()->getNDihedralTypes();
+    f.write((char*)&ntypes, sizeof(unsigned int));
+    for (unsigned int i = 0; i < ntypes; i++)
+        {
+        std::string name = m_sysdef->getImproperData()->getNameByType(i);
+        write_string(f, name);
+        }
+
     unsigned int ni = m_sysdef->getImproperData()->getNumDihedrals();
     f.write((char*)&ni, sizeof(unsigned int));
             
@@ -269,19 +282,12 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     for (unsigned int i = 0; i < improper_data->getNumDihedrals(); i++)
         {
         Dihedral dihedral = improper_data->getDihedral(i);
-
-        std::string name = improper_data->getNameByType(dihedral.type);
-        unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));
-        f.write(name.c_str(), name.size()*sizeof(char));
-        unsigned int a = dihedral.a;
-        unsigned int b = dihedral.b;
-        unsigned int c = dihedral.c;
-        unsigned int d = dihedral.d;
-        f.write((char*)&a, sizeof(unsigned int));
-        f.write((char*)&b, sizeof(unsigned int));
-        f.write((char*)&c, sizeof(unsigned int));
-        f.write((char*)&d, sizeof(unsigned int));
+        
+        f.write((char*)&dihedral.type, sizeof(unsigned int));
+        f.write((char*)&dihedral.a, sizeof(unsigned int));
+        f.write((char*)&dihedral.b, sizeof(unsigned int));
+        f.write((char*)&dihedral.c, sizeof(unsigned int));
+        f.write((char*)&dihedral.d, sizeof(unsigned int));
         }            
     }
         

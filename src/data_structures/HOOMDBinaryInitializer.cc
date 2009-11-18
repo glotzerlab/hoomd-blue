@@ -333,69 +333,69 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
 
     //parse angles
     {
+    ntypes = 0;
+    f.read((char*)&ntypes, sizeof(unsigned int));
+    m_angle_type_mapping.resize(ntypes);
+    for (unsigned int i = 0; i < ntypes; i++)
+        m_angle_type_mapping[i] = read_string(f);
+
     unsigned int na = 0;
     f.read((char*)&na, sizeof(unsigned int));
     for (unsigned int j = 0; j < na; j++)
         {
-        unsigned int len;
-        f.read((char*)&len, sizeof(unsigned int));
-        char angletype_cstr[len+1];
-        f.read(angletype_cstr, len*sizeof(char));
-        angletype_cstr[len] = '\0';
-        string type_name = angletype_cstr;
-        
-        unsigned int a, b, c;
+        unsigned int typ, a, b, c;
+        f.read((char*)&typ, sizeof(unsigned int));
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
         f.read((char*)&c, sizeof(unsigned int));
         
-        m_angles.push_back(Angle(getAngleTypeId(type_name), a, b, c));
+        m_angles.push_back(Angle(typ, a, b, c));
         }
     }
 
     //parse dihedrals
     {
+    ntypes = 0;
+    f.read((char*)&ntypes, sizeof(unsigned int));
+    m_dihedral_type_mapping.resize(ntypes);
+    for (unsigned int i = 0; i < ntypes; i++)
+        m_dihedral_type_mapping[i] = read_string(f);
+    
     unsigned int nd = 0;
     f.read((char*)&nd, sizeof(unsigned int));
     for (unsigned int j = 0; j < nd; j++)
         {
-        unsigned int len;
-        f.read((char*)&len, sizeof(unsigned int));
-        char dihedraltype_cstr[len+1];
-        f.read(dihedraltype_cstr, len*sizeof(char));
-        dihedraltype_cstr[len] = '\0';
-        string type_name = dihedraltype_cstr;
-        
-        unsigned int a, b, c, d;
+        unsigned int typ, a, b, c, d;
+        f.read((char*)&typ, sizeof(unsigned int));
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
         f.read((char*)&c, sizeof(unsigned int));
         f.read((char*)&d, sizeof(unsigned int));
         
-        m_dihedrals.push_back(Dihedral(getDihedralTypeId(type_name), a, b, c, d));
+        m_dihedrals.push_back(Dihedral(typ, a, b, c, d));
         }
     }
 
     //parse impropers
     {
+    ntypes = 0;
+    f.read((char*)&ntypes, sizeof(unsigned int));
+    m_improper_type_mapping.resize(ntypes);
+    for (unsigned int i = 0; i < ntypes; i++)
+        m_improper_type_mapping[i] = read_string(f);
+
     unsigned int nd = 0;
     f.read((char*)&nd, sizeof(unsigned int));
     for (unsigned int j = 0; j < nd; j++)
         {
-        unsigned int len;
-        f.read((char*)&len, sizeof(unsigned int));
-        char impropertype_cstr[len+1];
-        f.read(impropertype_cstr, len*sizeof(char));
-        impropertype_cstr[len] = '\0';
-        string type_name = impropertype_cstr;
-        
-        unsigned int a, b, c, d;
+        unsigned int typ, a, b, c, d;
+        f.read((char*)&typ, sizeof(unsigned int));
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
         f.read((char*)&c, sizeof(unsigned int));
         f.read((char*)&d, sizeof(unsigned int));
         
-        m_impropers.push_back(Dihedral(getImproperTypeId(type_name), a, b, c, d));
+        m_impropers.push_back(Dihedral(typ, a, b, c, d));
         }
     }
     
