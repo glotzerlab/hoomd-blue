@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: HOOMDBinaryDumpWriter.cc 2213 2009-10-20 11:42:07Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/analyzers/HOOMDBinaryDumpWriter.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 /*! \file HOOMDBinaryDumpWriter.cc

@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: xml_reader_writer_test.cc 2148 2009-10-07 20:05:29Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/unit_tests/xml_reader_writer_test.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #ifdef WIN32
