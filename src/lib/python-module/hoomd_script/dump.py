@@ -247,7 +247,7 @@ class bin(analyze._analyzer):
     # \c particles.0000000000.bin (.gz if \a compress = True)
     #
     # If \a compress is True (the default), output will be gzip compressed for a significant savings. init.read_bin()
-    # will autodetect whether or not the data needs to be decompressed by the ".gz" file extension.
+    # will autodetect whether or not the %data needs to be decompressed by the ".gz" file extension.
     #
     # If \a file1 and \a file2 are specified, then the output is written every \a period time steps alternating
     # between those two files. This use-case is useful when only the most recent state of the system is needed
@@ -256,9 +256,9 @@ class bin(analyze._analyzer):
     # is enabled.
     #
     # Binary files include the \b entire state of the system, including the time step, particle positions,
-    # velocities, et cetera, and the internal state variables of any relevant integration methods. All data is saved
-    # exactly as it appears in memory so that loading the data with init.read_bin is as close as possible as one
-    # can get to exactly restarting the simulation as if it has never stopped. 100% exact restarts that continue
+    # velocities, et cetera, and the internal state variables of any relevant integration methods. All %data is saved
+    # exactly as it appears in memory so that loading the %data with init.read_bin is as close as possible as one
+    # can get to exactly restarting the simulation as if it has never stopped. Restarts that continue 100%
     # \b exactly, bit for bit, as they would have if they had never stopped are possible under certain circumstances.
     #
     # For the integration state information to be read and properly associated with the correct integrator, there must
