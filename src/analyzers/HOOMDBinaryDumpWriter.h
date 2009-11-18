@@ -89,8 +89,14 @@ class HOOMDBinaryDumpWriter : public Analyzer
         void analyze(unsigned int timestep);        
         //! Writes a file at the current time step
         void writeFile(std::string fname, unsigned int timestep);
+        //! Set the alternating mode
+        void setAlternatingWrites(const std::string& fname1, const std::string& fname2);
     private:
         std::string m_base_fname;   //!< String used to store the file name of the XML file
+        std::string m_fname1;       //!< File name for the first file to write to in alternating mode
+        std::string m_fname2;       //!< File name for the second file to write to in alternating mode
+        bool m_alternating;         //!< True if we are to write to m_fname1 and m_fname in an alternating fasion
+        unsigned int m_cur_file;    //!< Current index of the file we are writing to (1 or 2)
         };
 
 //! Exports the HOOMDBinaryDumpWriter class to python

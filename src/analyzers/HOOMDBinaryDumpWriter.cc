@@ -85,7 +85,7 @@ static void write_string(ostream &f, const string& str)
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDBinaryDumpWriter::HOOMDBinaryDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
-        : Analyzer(sysdef), m_base_fname(base_fname)
+        : Analyzer(sysdef), m_base_fname(base_fname), m_alternating(false), m_cur_file(1)
     {
     }
 
@@ -328,12 +328,42 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 */
 void HOOMDBinaryDumpWriter::analyze(unsigned int timestep)
     {
-    ostringstream full_fname;
-    string filetype = ".bin";
-    
-    // Generate a filename with the timestep padded to ten zeros
-    full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
-    writeFile(full_fname.str(), timestep);
+    if (!m_alternating)
+        {
+        ostringstream full_fname;
+        string filetype = ".bin";
+        
+        // Generate a filename with the timestep padded to ten zeros
+        full_fname << m_base_fname << "." << setfill('0') << setw(10) << timestep << filetype;
+        writeFile(full_fname.str(), timestep);
+        }
+    else
+        {
+        // write out to m_fname1 and m_fname2, alternating between the two
+        string fname;
+        if (m_cur_file == 1)
+            {
+            fname = m_fname1;
+            m_cur_file = 2;
+            }
+        else
+            {
+            fname = m_fname2;
+            m_cur_file = 1;
+            }
+        cout << "Writing to alternating file: " << fname << endl;
+        writeFile(fname, timestep);
+        }
+    }
+
+/*! \param fname1 File name of the first file to write
+    \param fname2 File nmae of the second file to write
+*/
+void HOOMDBinaryDumpWriter::setAlternatingWrites(const std::string& fname1, const std::string& fname2)
+    {
+    m_alternating = true;
+    m_fname1 = fname1;
+    m_fname2 = fname2;
     }
 
 void export_HOOMDBinaryDumpWriter()
@@ -341,6 +371,7 @@ void export_HOOMDBinaryDumpWriter()
     class_<HOOMDBinaryDumpWriter, boost::shared_ptr<HOOMDBinaryDumpWriter>, bases<Analyzer>, boost::noncopyable>
     ("HOOMDBinaryDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string >())
     .def("writeFile", &HOOMDBinaryDumpWriter::writeFile)
+    .def("setAlternatingWrites", &HOOMDBinaryDumpWriter::setAlternatingWrites)
     ;
     }
 

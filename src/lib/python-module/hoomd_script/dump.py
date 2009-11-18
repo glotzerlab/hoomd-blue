@@ -229,6 +229,8 @@ class bin(analyze._analyzer):
     #
     # \param filename (optional) Base of the file name
     # \param period (optional) Number of time steps between file dumps
+    # \param file1 (optional) First alternating file name to write
+    # \param file2 (optional) Second alternating file name to write
     # 
     # \b Examples:
     # \code
@@ -242,10 +244,21 @@ class bin(analyze._analyzer):
     # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file 
     # \c particles.0000000000.bin
     #
+    # If \a file1 and \a file2 are specified, then the output is written every \a period time steps alternating
+    # between those two files. This use-case is useful when only the most recent state of the system is needed
+    # to continue a job. The alternation between two files is so that if the job ends or crashes while writing one of
+    # of the files, the other is still available for use.
+    #
     # Binary files include the \b entire state of the system, including the time step, particle positions,
     # velocities, et cetera, and the internal state variables of any relevant integration methods. All data is saved
     # exactly as it appears in memory so that loading the data with init.read_bin is as close as possible as one
-    # can get to exactly restarting the simulation as if it has never stopped.
+    # can get to exactly restarting the simulation as if it has never stopped. 100% exact restarts that continue
+    # \b exactly, bit for bit, as they would have if they had never stopped are possible under certain circumstances.
+    #
+    # For the integration state information to be read and properly associated with the correct integrator, there must
+    # the same number of integrator modes and methods <b>and in the same order</b> in the continuation script as are in
+    # the initial job script. One way to ensure this is to copy the initial script and comment out all of the run()
+    # commands up until the point that the restart file was written.
     #
     # If \a period is not specified, then no periodic updates will occur. Instead, the write()
     # command must be executed to write an output file.
@@ -256,7 +269,7 @@ class bin(analyze._analyzer):
     # limit. If you need to store data in a system and version independant manner, use dump.xml().
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None):
+    def __init__(self, filename="dump", period=None, file1=None, file2=None):
         util.print_status_line();
     
         # initialize base class
@@ -264,6 +277,17 @@ class bin(analyze._analyzer):
         
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.HOOMDBinaryDumpWriter(globals.system_definition, filename);
+        
+        # handle the alternation setting
+        # first, check that they are both set
+        if (file1 != None and file2 == None) or (file2 != None and file1 == None):
+            print >> sys.stderr, "\n***Error! file1 and file2 must either both be set or both left as None.\n";
+            raise RuntimeError('Error initializing dump.bin');
+        if file1 != None:
+            self.cpp_analyzer.setAlternatingWrites(file1, file2)
+            if period == None:
+                print "\n***Warning! Alternating file output set for dump.bin, but period is not set."
+                print "No output will be written.\n"
         
         if period != None:
             self.setupAnalyzer(period);
