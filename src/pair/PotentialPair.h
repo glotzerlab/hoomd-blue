@@ -100,7 +100,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     <b>Implementation details</b>
     
-    rcutsq, ronsq, and the params are stored per particle type pair. It wastas a little bit of space, but benchmarks
+    rcutsq, ronsq, and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
     show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
     and indexing with Index2DUpperTriangular. All of these values are stored in GPUArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
@@ -108,7 +108,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     element of the parameters.
     
     For profiling and logging, PotentialPair needs to know the name of the potential. For now, that will be queried from
-    the evaluator. Perhapsin the future we could allow users to change that so multiple pair potentials could be logged
+    the evaluator. Perhaps in the future we could allow users to change that so multiple pair potentials could be logged
     independantly.
     
     \sa export_PotentialPair()

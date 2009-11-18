@@ -74,7 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     pair potentials in hoomd are all handled via the template class PotentialPair. PotentialPair takes a potential
     evaluator as a template argument. In this way, all the complicated data mangament and other details of computing
     the pair force and potential on every single particle is only written once in the template class and the difference
-    V(r) potentials that can be calculated are simply handled within the evaluator class. Template instantiation is
+    V(r) potentials that can be calculated are simply handled with various evaluator classes. Template instantiation is
     equivalent to inlining code, so there is no performance loss.
     
     In hoomd, a "standard" pair potential is defined as V(rsq, rcutsq, params, di, dj, qi, qj), where rsq is the squared
@@ -90,7 +90,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Similarly, if needsCharge() returns true, a setCharge(Scalar qi, Scalar qj) method will be called to set the two
     charges.
     
-    All other parameters are common among all pair potentials and passed into the constructor. Parameters are handled
+    All other arguments are common among all pair potentials and passed into the constructor. Coefficients are handled
     in a special way: the pair evaluator class (and PotentialPair) manage only a single parameter variable for each
     type pair. Pair potentials that need more than 1 parameter can specify that their param_type be a compound
     structure and reference that. For coalesced read performance on G200 GPUs, it is highly recommended that param_type
@@ -104,7 +104,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     evalForceAndEnergy() makes the necessary computations and sets the out parameters with the computed values.
     Specifically after the method complets, \a force_divr must be set to the value 
-    \f$ - \nabla V(r) \f$ and \a pair_eng must be set to the value \f$ V(r) \f$ if \a energy_shift is false or
+    \f$ -\frac{1}{r}\frac{\partial V}{\partial r}\f$ and \a pair_eng must be set to the value \f$ V(r) \f$ if \a energy_shift is false or
     \f$ V(r) - V(r_{\mathrm{cut}}) \f$ if \a energy_shift is true.
     
     A pair potential evaluator class is also used on the GPU. So all of its members must be declared with the 
