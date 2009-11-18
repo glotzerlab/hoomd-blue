@@ -153,7 +153,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         std::string name = m_pdata->getNameByType(i);
         write_string(f, name);
         }
-    f.write((char*)arrays.type, np*sizeof(unsigned int));	
+    f.write((char*)arrays.type, np*sizeof(unsigned int));
 
     if (!f.good())
         {
@@ -165,18 +165,18 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     {
     shared_ptr<IntegratorData> integrator_data = m_sysdef->getIntegratorData();
     unsigned int ni = integrator_data->getNumIntegrators();
-    f.write((char*)&ni, sizeof(unsigned int));	
+    f.write((char*)&ni, sizeof(unsigned int));
     for (unsigned int j = 0; j < ni; j++)
         {
         IntegratorVariables v = integrator_data->getIntegratorVariables(j);
         write_string(f, v.type);
 
         unsigned int nv = v.variable.size();
-        f.write((char*)&nv, sizeof(unsigned int));	
+        f.write((char*)&nv, sizeof(unsigned int));
         for (unsigned int k=0; k<nv; k++)
             {
             Scalar var = v.variable[k];
-            f.write((char*)&var, sizeof(Scalar));	
+            f.write((char*)&var, sizeof(Scalar));
             }
         }
     }
@@ -184,7 +184,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // Output the bonds to the binary file
     {
     unsigned int nb = m_sysdef->getBondData()->getNumBonds();
-    f.write((char*)&nb, sizeof(unsigned int));	
+    f.write((char*)&nb, sizeof(unsigned int));
     shared_ptr<BondData> bond_data = m_sysdef->getBondData();
     
     // loop over all bonds and write them out
@@ -193,19 +193,19 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         Bond bond = bond_data->getBond(i);
         std::string name = bond_data->getNameByType(bond.type);
         unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));	
-        f.write(name.c_str(), name.size()*sizeof(char));	
+        f.write((char*)&len, sizeof(unsigned int));
+        f.write(name.c_str(), name.size()*sizeof(char));
         unsigned int a = bond.a;
         unsigned int b = bond.b;
-        f.write((char*)&a, sizeof(unsigned int));	
-        f.write((char*)&b, sizeof(unsigned int));	            
+        f.write((char*)&a, sizeof(unsigned int));
+        f.write((char*)&b, sizeof(unsigned int));
         }            
     }
         
     // Output the angles to the binary file
     {
     unsigned int na = m_sysdef->getAngleData()->getNumAngles();
-    f.write((char*)&na, sizeof(unsigned int));	
+    f.write((char*)&na, sizeof(unsigned int));
 
     shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
     
@@ -216,21 +216,21 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         
         std::string name = angle_data->getNameByType(angle.type);
         unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));	
-        f.write(name.c_str(), name.size()*sizeof(char));	
+        f.write((char*)&len, sizeof(unsigned int));
+        f.write(name.c_str(), name.size()*sizeof(char));
         unsigned int a = angle.a;
         unsigned int b = angle.b;
         unsigned int c = angle.c;
-        f.write((char*)&a, sizeof(unsigned int));	
-        f.write((char*)&b, sizeof(unsigned int));	            
-        f.write((char*)&c, sizeof(unsigned int));	            
+        f.write((char*)&a, sizeof(unsigned int));
+        f.write((char*)&b, sizeof(unsigned int));
+        f.write((char*)&c, sizeof(unsigned int));            
         }            
     }
         
     // Write out dihedrals to the binary file
     {
     unsigned int nd = m_sysdef->getDihedralData()->getNumDihedrals();
-    f.write((char*)&nd, sizeof(unsigned int));	
+    f.write((char*)&nd, sizeof(unsigned int));
 
     shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
     
@@ -241,23 +241,23 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         
         std::string name = dihedral_data->getNameByType(dihedral.type);
         unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));	
-        f.write(name.c_str(), name.size()*sizeof(char));	
+        f.write((char*)&len, sizeof(unsigned int));
+        f.write(name.c_str(), name.size()*sizeof(char));
         unsigned int a = dihedral.a;
         unsigned int b = dihedral.b;
         unsigned int c = dihedral.c;
         unsigned int d = dihedral.d;
-        f.write((char*)&a, sizeof(unsigned int));	
-        f.write((char*)&b, sizeof(unsigned int));	            
-        f.write((char*)&c, sizeof(unsigned int));	            
-        f.write((char*)&d, sizeof(unsigned int));	            
+        f.write((char*)&a, sizeof(unsigned int));
+        f.write((char*)&b, sizeof(unsigned int));
+        f.write((char*)&c, sizeof(unsigned int));
+        f.write((char*)&d, sizeof(unsigned int));
         }            
     }
         
     // Write out impropers to the binary file
     {
     unsigned int ni = m_sysdef->getImproperData()->getNumDihedrals();
-    f.write((char*)&ni, sizeof(unsigned int));	
+    f.write((char*)&ni, sizeof(unsigned int));
             
     shared_ptr<DihedralData> improper_data = m_sysdef->getImproperData();
     
@@ -268,16 +268,16 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
 
         std::string name = improper_data->getNameByType(dihedral.type);
         unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));	
-        f.write(name.c_str(), name.size()*sizeof(char));	
+        f.write((char*)&len, sizeof(unsigned int));
+        f.write(name.c_str(), name.size()*sizeof(char));
         unsigned int a = dihedral.a;
         unsigned int b = dihedral.b;
         unsigned int c = dihedral.c;
         unsigned int d = dihedral.d;
-        f.write((char*)&a, sizeof(unsigned int));	
-        f.write((char*)&b, sizeof(unsigned int));	            
-        f.write((char*)&c, sizeof(unsigned int));	            
-        f.write((char*)&d, sizeof(unsigned int));            
+        f.write((char*)&a, sizeof(unsigned int));
+        f.write((char*)&b, sizeof(unsigned int));
+        f.write((char*)&c, sizeof(unsigned int));
+        f.write((char*)&d, sizeof(unsigned int));
         }            
     }
         
@@ -286,19 +286,19 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     shared_ptr<WallData> wall_data = m_sysdef->getWallData();
 
     unsigned int nw = wall_data->getNumWalls();
-    f.write((char*)&nw, sizeof(unsigned int));	
+    f.write((char*)&nw, sizeof(unsigned int));
     
     // loop over all walls and write them out
     for (unsigned int i = 0; i < nw; i++)
         {
         Wall wall = wall_data->getWall(i);
         
-        f.write((char*)&(wall.origin_x), sizeof(Scalar));	
-        f.write((char*)&(wall.origin_y), sizeof(Scalar));	
-        f.write((char*)&(wall.origin_z), sizeof(Scalar));	
-        f.write((char*)&(wall.normal_x), sizeof(Scalar));	
-        f.write((char*)&(wall.normal_y), sizeof(Scalar));	
-        f.write((char*)&(wall.normal_z), sizeof(Scalar));	
+        f.write((char*)&(wall.origin_x), sizeof(Scalar));
+        f.write((char*)&(wall.origin_y), sizeof(Scalar));
+        f.write((char*)&(wall.origin_z), sizeof(Scalar));
+        f.write((char*)&(wall.normal_x), sizeof(Scalar));
+        f.write((char*)&(wall.normal_y), sizeof(Scalar));
+        f.write((char*)&(wall.normal_z), sizeof(Scalar));
         }
     }
         

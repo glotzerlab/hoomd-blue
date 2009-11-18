@@ -236,14 +236,14 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     
     //parse timestep
     int timestep;
-    f.read((char*)&timestep, sizeof(int));	
+    f.read((char*)&timestep, sizeof(int));
     m_timestep = timestep;
     
     //parse box
     Scalar Lx,Ly,Lz;
-    f.read((char*)&Lx, sizeof(Scalar));	
-    f.read((char*)&Ly, sizeof(Scalar));	
-    f.read((char*)&Lz, sizeof(Scalar));	
+    f.read((char*)&Lx, sizeof(Scalar));
+    f.read((char*)&Ly, sizeof(Scalar));
+    f.read((char*)&Lz, sizeof(Scalar));
     m_box = BoxDim(Lx,Ly,Lz);
     m_box_read = true;
     
@@ -301,7 +301,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
 
         v[j].variable.clear();
         unsigned int nv = 0;
-        f.read((char*)&nv, sizeof(unsigned int));	
+        f.read((char*)&nv, sizeof(unsigned int));
         for (unsigned int k=0; k<nv; k++)
             {
             Scalar var;
@@ -315,7 +315,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     //parse bonds
     {
     unsigned int nb = 0;
-    f.read((char*)&nb, sizeof(unsigned int));	
+    f.read((char*)&nb, sizeof(unsigned int));
     for (unsigned int j = 0; j < nb; j++)
         {
         unsigned int len;
@@ -336,7 +336,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     //parse angles
     {
     unsigned int na = 0;
-    f.read((char*)&na, sizeof(unsigned int));	
+    f.read((char*)&na, sizeof(unsigned int));
     for (unsigned int j = 0; j < na; j++)
         {
         unsigned int len;
@@ -358,7 +358,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     //parse dihedrals
     {
     unsigned int nd = 0;
-    f.read((char*)&nd, sizeof(unsigned int));	
+    f.read((char*)&nd, sizeof(unsigned int));
     for (unsigned int j = 0; j < nd; j++)
         {
         unsigned int len;
@@ -381,7 +381,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     //parse impropers
     {
     unsigned int nd = 0;
-    f.read((char*)&nd, sizeof(unsigned int));	
+    f.read((char*)&nd, sizeof(unsigned int));
     for (unsigned int j = 0; j < nd; j++)
         {
         unsigned int len;
@@ -406,16 +406,16 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     //parse walls
     {
     unsigned int nw = 0;
-    f.read((char*)&nw, sizeof(unsigned int));	
+    f.read((char*)&nw, sizeof(unsigned int));
     for (unsigned int j = 0; j < nw; j++)
         {
         Scalar ox, oy, oz, nx, ny, nz;
-        f.read((char*)&(ox), sizeof(Scalar));	
-        f.read((char*)&(oy), sizeof(Scalar));	
-        f.read((char*)&(oz), sizeof(Scalar));	
-        f.read((char*)&(nx), sizeof(Scalar));	
-        f.read((char*)&(ny), sizeof(Scalar));	
-        f.read((char*)&(nz), sizeof(Scalar));	
+        f.read((char*)&(ox), sizeof(Scalar));
+        f.read((char*)&(oy), sizeof(Scalar));
+        f.read((char*)&(oz), sizeof(Scalar));
+        f.read((char*)&(nx), sizeof(Scalar));
+        f.read((char*)&(ny), sizeof(Scalar));
+        f.read((char*)&(nz), sizeof(Scalar));
         m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
         }
     }
