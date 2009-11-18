@@ -284,9 +284,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&ntypes, sizeof(unsigned int));
     m_type_mapping.resize(ntypes);
     for (unsigned int i = 0; i < ntypes; i++)
-        {
         m_type_mapping[i] = read_string(f);
-        }
     f.read((char*)&(m_type_array[0]), np*sizeof(unsigned int));
 
     //parse integrator states
@@ -314,22 +312,22 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     
     //parse bonds
     {
+    ntypes = 0;
+    f.read((char*)&ntypes, sizeof(unsigned int));
+    m_bond_type_mapping.resize(ntypes);
+    for (unsigned int i = 0; i < ntypes; i++)
+        m_bond_type_mapping[i] = read_string(f);
+    
     unsigned int nb = 0;
     f.read((char*)&nb, sizeof(unsigned int));
     for (unsigned int j = 0; j < nb; j++)
         {
-        unsigned int len;
-        f.read((char*)&len, sizeof(unsigned int));
-        char bondtype_cstr[len+1];
-        f.read(bondtype_cstr, len*sizeof(char));
-        bondtype_cstr[len] = '\0';
-        string type_name = bondtype_cstr;
-        
-        unsigned int a, b;
+        unsigned int typ, a, b;
+        f.read((char*)&typ, sizeof(unsigned int));
         f.read((char*)&a, sizeof(unsigned int));
         f.read((char*)&b, sizeof(unsigned int));
         
-        m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
+        m_bonds.push_back(Bond(typ, a, b));
         }
     }
 

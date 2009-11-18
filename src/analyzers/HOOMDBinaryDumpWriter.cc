@@ -183,6 +183,15 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     // Output the bonds to the binary file
     {
+    //write out type mapping
+    ntypes = m_sysdef->getBondData()->getNBondTypes();
+    f.write((char*)&ntypes, sizeof(unsigned int));
+    for (unsigned int i = 0; i < ntypes; i++)
+        {
+        std::string name = m_sysdef->getBondData()->getNameByType(i);
+        write_string(f, name);
+        }
+
     unsigned int nb = m_sysdef->getBondData()->getNumBonds();
     f.write((char*)&nb, sizeof(unsigned int));
     shared_ptr<BondData> bond_data = m_sysdef->getBondData();
@@ -191,15 +200,10 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     for (unsigned int i = 0; i < bond_data->getNumBonds(); i++)
         {
         Bond bond = bond_data->getBond(i);
-        std::string name = bond_data->getNameByType(bond.type);
-        unsigned int len = name.size();
-        f.write((char*)&len, sizeof(unsigned int));
-        f.write(name.c_str(), name.size()*sizeof(char));
-        unsigned int a = bond.a;
-        unsigned int b = bond.b;
-        f.write((char*)&a, sizeof(unsigned int));
-        f.write((char*)&b, sizeof(unsigned int));
-        }            
+        f.write((char*)&bond.type, sizeof(unsigned int));
+        f.write((char*)&bond.a, sizeof(unsigned int));
+        f.write((char*)&bond.b, sizeof(unsigned int));
+        }
     }
         
     // Output the angles to the binary file
