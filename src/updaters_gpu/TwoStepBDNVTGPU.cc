@@ -111,7 +111,8 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
                                 box,
                                 m_deltaT,
                                 m_limit,
-                                m_limit_val));
+                                m_limit_val,
+                                m_zero_force));
     
     m_pdata->release();
     
