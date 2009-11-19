@@ -3,8 +3,12 @@
 # Maintainer: joaander
 
 #################################
-## Optional use of zlib to compress binary output files
+## Optional use of zlib to compress binary output files (defaults to off on windows)
+if (WIN32)
+option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" OFF)
+else (WIN32)
 option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" ON)
+endif (WIN32)
 if (ENABLE_ZLIB)
     add_definitions(-DENABLE_ZLIB)
 endif(ENABLE_ZLIB)
