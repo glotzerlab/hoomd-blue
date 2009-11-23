@@ -57,10 +57,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "NVEUpdater.h"
+#include "TwoStepNVERigid.h"
 #ifdef ENABLE_CUDA
-#include "NVEUpdaterGPU.h"
+#include "TwoStepNVERigidGPU.h"
 #endif
+
+#include "IntegratorTwoStep.h"
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
@@ -91,8 +93,9 @@ const Scalar tol = Scalar(1e-2);
 const Scalar tol = 1e-3;
 #endif
 
-//! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<NVEUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT)> nveup_creator;
+//! Typedef'd TwoStepNVERigid class factory
+typedef boost::function<shared_ptr<TwoStepNVERigid> (shared_ptr<SystemDefinition> sysdef,
+                                                    shared_ptr<ParticleGroup> group)> nveup_creator;
 
 void nve_updater_integrate_tests(nveup_creator nve_creator, const ExecutionConfiguration &exec_conf)
     {
@@ -105,6 +108,8 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, const ExecutionConfi
     // don't come into play
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(10, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     ParticleDataArrays arrays = pdata->acquireReadWrite();
     
@@ -134,7 +139,10 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, const ExecutionConfi
     pdata->release();
     
     Scalar deltaT = Scalar(0.001);
-    shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
+    shared_ptr<TwoStepNVERigid> two_step_nve = nve_creator(sysdef, group_all);
+    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    nve_up->addIntegrationMethod(two_step_nve);
+    
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
     shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
     
@@ -198,12 +206,15 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
     // check that the nve updater can actually integrate particle positions and velocities correctly
     // start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
     // don't come into play
-    unsigned int nbodies = 12000; // 12000, 24000, 36000, 48000, 60000
+    unsigned int nbodies = 1000; // 12000, 24000, 36000, 48000, 60000
     unsigned int nparticlesperbody = 5;
     unsigned int N = nbodies * nparticlesperbody;
     Scalar box_length = 80.0; // 80, 90, 100, 120, 150
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+
     BoxDim box = pdata->getBox();
     
     // setup a simple initial state
@@ -228,11 +239,11 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
         {
         for (unsigned int j = 0; j < nparticlesperbody; j++)
             {
-            /*
+            
             arrays.x[iparticle] = x0 + 1.0 * j;
-                        arrays.y[iparticle] = y0 + 0.0;
-                        arrays.z[iparticle] = z0 + 0.0;
-            */
+            arrays.y[iparticle] = y0 + 0.0;
+            arrays.z[iparticle] = z0 + 0.0;
+            
             /*
             if (j == 0)
             {
@@ -270,7 +281,7 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
             }
             */
             
-            
+            /*
             if (j == 0)
                 {
                 arrays.x[iparticle] = x0 + 0.577;
@@ -304,7 +315,7 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
                 arrays.y[iparticle] = y0 + 0.0;
                 arrays.z[iparticle] = z0 + 0.0;
                 }
-                
+            */    
                 
             arrays.vx[iparticle] = random->d();
             arrays.vy[iparticle] = random->d();
@@ -338,10 +349,22 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
         
     assert(iparticle == N);
     
+    FILE *fp = fopen("initial.xyz", "w");
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[i], arrays.y[i], arrays.z[i]);
+    fclose(fp);
+    
     pdata->release();
     
     Scalar deltaT = Scalar(0.001);
-    shared_ptr<NVEUpdater> nve_up = nve_creator(sysdef, deltaT);
+    shared_ptr<TwoStepNVERigid> two_step_nve = nve_creator(sysdef, group_all);
+    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    nve_up->addIntegrationMethod(two_step_nve);
+    
     shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
     shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
     
@@ -412,10 +435,10 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
     // Output coordinates
     arrays = pdata->acquireReadWrite();
     
-    FILE *fp = fopen("test_energy.xyz", "w");
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+    fp = fopen("test_energy.xyz", "w");
+    Lx = box.xhi - box.xlo;
+    Ly = box.yhi - box.ylo;
+    Lz = box.zhi - box.zlo;
     fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[i], arrays.y[i], arrays.z[i]);
@@ -425,54 +448,37 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
     
     }
 
-//! NVEUpdater factory for the unit tests
-shared_ptr<NVEUpdater> base_class_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+//! TwoStepNVERigid factory for the unit tests
+shared_ptr<TwoStepNVERigid> base_class_nve_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group)
     {
-    return shared_ptr<NVEUpdater>(new NVEUpdater(sysdef, deltaT));
+    return shared_ptr<TwoStepNVERigid>(new TwoStepNVERigid(sysdef, group));
     }
 
 #ifdef ENABLE_CUDA
-//! NVEUpdaterGPU factory for the unit tests
-shared_ptr<NVEUpdater> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+//! TwoStepNVERigidGPU factory for the unit tests
+shared_ptr<TwoStepNVERigid> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group)
     {
-    return shared_ptr<NVEUpdater>(new NVEUpdaterGPU(sysdef, deltaT));
+    return shared_ptr<TwoStepNVERigid>(new TwoStepNVERigidGPU(sysdef, group));
     }
 #endif
-/*
+
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( NVEUpdater_integrate_tests )
-    {
-    printf("\nTesting integration on CPU...\n");
-    nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-    nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
-    }
-*/
 /*
-BOOST_AUTO_TEST_CASE( NVEUpdater_energy_tests )
+BOOST_AUTO_TEST_CASE( NVERigidUpdater_energy_tests )
 {
     printf("\nTesting energy conservation on CPU...\n");
     nveup_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-    nve_updater_energy_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+    nve_updater_energy_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
 }
 */
 #ifdef ENABLE_CUDA
-/*
-//! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_integrate_tests )
-{
-    printf("\nTesting integration on GPU...\n");
-    nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-    nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU, ExecutionConfiguration::getDefaultGPU()));
-}
-*/
 
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( NVEUpdaterGPU_energy_tests )
+BOOST_AUTO_TEST_CASE( NVERigidUpdaterGPU_energy_tests )
     {
     printf("\nTesting energy conservation on GPU...\n");
     nveup_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-    
-    nve_updater_energy_tests(nve_creator_gpu, ExecutionConfiguration());
+    nve_updater_energy_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 #endif
