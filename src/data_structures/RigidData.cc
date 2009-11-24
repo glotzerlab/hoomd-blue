@@ -212,8 +212,6 @@ void RigidData::initializeData()
         for (unsigned int body = 0; body < m_n_bodies; body++)
             if (m_nmax < body_size_handle.data[body])
                 m_nmax = body_size_handle.data[body];
-                
-        m_nmax = (m_nmax + (16 - m_nmax & 15));
         
         // determine body_mass, inertia tensor, com and vel
         GPUArray<Scalar> inertia(6, m_n_bodies, m_pdata->getExecConf()); // the inertia tensor is symmetric, therefore we only need to store 6 elements
@@ -375,7 +373,6 @@ void RigidData::initializeData()
         delete [] evectors;
         delete [] matrix;
         
-        
         // allocate nmax by m_n_bodies arrays, swap to member variables then use array handles to access
         GPUArray<unsigned int> particle_tags(m_nmax, m_n_bodies,  m_pdata->getExecConf());
         m_particle_tags.swap(particle_tags);
@@ -386,7 +383,10 @@ void RigidData::initializeData()
         m_particle_indices.swap(particle_indices);
         ArrayHandle<unsigned int> particle_indices_handle(m_particle_indices, access_location::host, access_mode::readwrite);
         unsigned int particle_indices_pitch = m_particle_indices.getPitch();
-        for (unsigned int j = 0; j < m_nmax * m_n_bodies; j++) particle_indices_handle.data[j] = NO_INDEX; // initialize with a sentinel value
+        
+        for (unsigned int j = 0; j < m_n_bodies; j++) 
+            for (unsigned int local = 0; local < particle_indices_pitch; local++)
+                particle_indices_handle.data[j * particle_indices_pitch + local] = NO_INDEX; // initialize with a sentinel value
         
         GPUArray<Scalar4> particle_pos(m_nmax, m_n_bodies, m_pdata->getExecConf());
         m_particle_pos.swap(particle_pos);
@@ -397,7 +397,11 @@ void RigidData::initializeData()
         ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite);
         for (unsigned int body = 0; body < m_n_bodies; body++)
             local_indices_handle.data[body] = 0;
-            
+        
+        // Now set the m_nmax according to the actual pitches to avoid dublicating rounding up (e.g. if m_nmax is rounded up to 16 here, 
+        // then in the GPUArray constructor the pitch is rounded up once more to be 32.
+        m_nmax = particle_tags_pitch;
+        
         // determine the particle indices and particle tags
         for (unsigned int j = 0; j < arrays.nparticles; j++)
             {
