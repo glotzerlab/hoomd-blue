@@ -222,16 +222,15 @@ __device__ void advanceQuaternion(float4& angmom, float4& moment_inertia, float4
 
 #pragma mark RIGID_STEP_ONE_KERNEL
 //! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
-/*! \param rigid_data rigid data to step forward 1/2 step
+/*! 
     \param deltaT timestep
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
     \param box Box dimensions for periodic boundary condition handling
 */
 
 
-extern "C" __global__ void gpu_nve_rigid_step_one_kernel(gpu_pdata_arrays pdata, 
+extern "C" __global__ void gpu_nve_rigid_step_one_kernel(float4* pdata_pos,
+                                                        float4* pdata_vel,
+                                                        int4* pdata_image,
                                                         float4* rdata_com, 
                                                         float4* rdata_vel, 
                                                         float4* rdata_angmom, 
@@ -260,7 +259,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_kernel(gpu_pdata_arrays pdata,
     float4 ri = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 pos2 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 vel2 = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 particle_accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     
     // ri, body_mass and moment_inertia is used throughout the kernel
     if (idx_body < n_bodies)
@@ -316,6 +314,8 @@ extern "C" __global__ void gpu_nve_rigid_step_one_kernel(gpu_pdata_arrays pdata,
         angmom2.y = angmom.y + (1.0f/2.0f) * deltaT * torque.y;
         angmom2.z = angmom.z + (1.0f/2.0f) * deltaT * torque.z;
         
+        
+        
         advanceQuaternion(angmom2, moment_inertia, angvel, ex_space, ey_space, ez_space, orientation, deltaT);
         
         // write out the results (MEM_TRANSFER: ? bytes)
@@ -332,15 +332,15 @@ extern "C" __global__ void gpu_nve_rigid_step_one_kernel(gpu_pdata_arrays pdata,
             rdata_body_imagex[idx_body] = body_imagex;
             rdata_body_imagey[idx_body] = body_imagey;
             rdata_body_imagez[idx_body] = body_imagez;
+            
             }
             
             
-        unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
+        unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);        
         // Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
         // the particle index of these empty slots is set to be INVALID_INDEX.
         if (idx_particle_index != INVALID_INDEX)
             {
-            // time to fix the periodic boundary conditions (FLOPS: 15)
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
             float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             
@@ -356,6 +356,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_kernel(gpu_pdata_arrays pdata,
             ppos.z = pos2.z + ri.z;
             ppos.w = pos.w;
             
+            // time to fix the periodic boundary conditions (FLOPS: 15)
             float x_shift = rintf(ppos.x * box.Lxinv);
             ppos.x -= box.Lx * x_shift;
             image.x += (int)x_shift;
@@ -375,10 +376,11 @@ extern "C" __global__ void gpu_nve_rigid_step_one_kernel(gpu_pdata_arrays pdata,
             pvel.z = vel2.z + angvel.x * ri.y - angvel.y * ri.x;
             pvel.w = 0.0;
             
+            
             // write out the results (MEM_TRANSFER: ? bytes)
-            pdata.pos[idx_particle_index] = ppos;
-            pdata.vel[idx_particle_index] = pvel;
-            pdata.image[idx_particle_index] = image;
+            pdata_pos[idx_particle_index] = ppos;
+            pdata_vel[idx_particle_index] = pvel;
+            pdata_image[idx_particle_index] = image;
             }
         }
     }
@@ -408,6 +410,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     
     // bind the textures for rigid bodies:
     // body mass, com, vel, angmom, angvel, orientation, ex_space, ey_space, ez_space, body images, particle pos, particle indices, force and torque
+    
     cudaError_t error = cudaBindTexture(0, rigid_data_body_mass_tex, rigid_data.body_mass, sizeof(float) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -491,22 +494,24 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         
     // run the kernel for bodies
     
-    gpu_nve_rigid_step_one_kernel<<< grid, threads, nmax * sizeof(float4)  >>>( pdata, 
-                                                                                rigid_data.com, 
-                                                                                rigid_data.vel, 
-                                                                                rigid_data.angmom, 
-                                                                                rigid_data.angvel,
-                                                                                rigid_data.orientation, 
-                                                                                rigid_data.ex_space, 
-                                                                                rigid_data.ey_space, 
-                                                                                rigid_data.ez_space, 
-                                                                                rigid_data.body_imagex, 
-                                                                                rigid_data.body_imagey, 
-                                                                                rigid_data.body_imagez, 
-                                                                                n_bodies, 
-                                                                                local_beg,
-                                                                                box, 
-                                                                                deltaT);
+    gpu_nve_rigid_step_one_kernel<<< grid, threads >>>(pdata.pos,
+                                                                               pdata.vel,
+                                                                               pdata.image,
+                                                                               rigid_data.com, 
+                                                                               rigid_data.vel, 
+                                                                               rigid_data.angmom, 
+                                                                               rigid_data.angvel,
+                                                                               rigid_data.orientation, 
+                                                                               rigid_data.ex_space, 
+                                                                               rigid_data.ey_space, 
+                                                                               rigid_data.ez_space, 
+                                                                               rigid_data.body_imagex, 
+                                                                               rigid_data.body_imagey, 
+                                                                               rigid_data.body_imagez, 
+                                                                               n_bodies, 
+                                                                               local_beg,
+                                                                               box, 
+                                                                               deltaT);
             
             
     if (!g_gpu_error_checking)
@@ -538,7 +543,7 @@ texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
 extern __shared__ float4 sum[];
 
-extern "C" __global__ void gpu_nve_rigid_step_two_kernel(gpu_pdata_arrays pdata, 
+extern "C" __global__ void gpu_nve_rigid_step_two_kernel(float4* pdata_vel, 
                                                          float4* rdata_vel, 
                                                          float4* rdata_angmom, 
                                                          float4* rdata_angvel,
@@ -577,15 +582,12 @@ extern "C" __global__ void gpu_nve_rigid_step_two_kernel(gpu_pdata_arrays pdata,
 		if (!zero_force)
 		     fi = tex1Dfetch(net_force_tex, idx_particle_index);
 		
-        // project the position in the body frame to the space frame: ri = rotation_matrix * particle_pos
-        if (!zero_force)
-		     fi = tex1Dfetch(net_force_tex, idx_particle_index);
-        
         body_force[threadIdx.x].x = fi.x;
         body_force[threadIdx.x].y = fi.y;
         body_force[threadIdx.x].z = fi.z;
         body_force[threadIdx.x].w = fi.w;
         
+        // project the position in the body frame to the space frame: ri = rotation_matrix * particle_pos
         com = tex1Dfetch(rigid_data_com_tex, idx_body);
         ri.x = pos.x - com.x;
         ri.y = pos.y - com.y;
@@ -691,7 +693,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_kernel(gpu_pdata_arrays pdata,
             pvel.w = 0.0;
             
             // write out the results
-            pdata.vel[idx_particle_index] = pvel;
+            pdata_vel[idx_particle_index] = pvel;
             }
         }
     }
@@ -784,7 +786,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     
     // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
     // tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
-    gpu_nve_rigid_step_two_kernel<<< grid, threads, 2 * nmax * sizeof(float4) >>>(pdata, 
+    gpu_nve_rigid_step_two_kernel<<< grid, threads, 2 * nmax * sizeof(float4) >>>(pdata.vel, 
 	                                                                              rigid_data.vel, 
                                                                                   rigid_data.angmom, 
                                                                                   rigid_data.angvel,
