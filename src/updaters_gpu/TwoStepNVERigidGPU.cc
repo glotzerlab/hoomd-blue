@@ -81,15 +81,15 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     {
-    // profile this step
-    if (m_prof)
-        m_prof->push(exec_conf, "NVE step 1");
-    
     if (m_first_step)
         {
         setup();
         m_first_step = false;
         }
+        
+    // profile this step
+    if (m_prof)
+        m_prof->push(exec_conf, "NVE rigid step 1");
     
     // access all the needed data
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
@@ -168,7 +168,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE step 2");
+        m_prof->push(exec_conf, "NVE rigid step 2");
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
@@ -211,7 +211,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
-    
+  
 	// perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_nve_rigid_step_two, 
@@ -223,7 +223,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
                                 box, 
 								m_deltaT,
                                 m_zero_force)); 
-                                
+                               
    
     m_pdata->release();
     
