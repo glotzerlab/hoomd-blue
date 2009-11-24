@@ -72,6 +72,7 @@ set(TEST_LIST
     binary_reader_writer_test
     ElectrostaticShortRange_force_test
     nve_rigid_updater_test
+    nvt_rigid_updater_test
     )
 
 if (ENABLE_FFT)
