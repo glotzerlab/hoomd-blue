@@ -54,9 +54,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "TwoStepBDNVT.h"
 #include "TwoStepBDNVTRigid.h"
 #ifdef ENABLE_CUDA
 #include "TwoStepBDNVTRigidGPU.h"
+#include "TwoStepBDNVTGPU.h"
 #endif
 
 #include "IntegratorTwoStep.h"
@@ -81,6 +83,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "saruprng.h"
 #include <math.h>
 #include <time.h>
+#include <strstream>
+#include <fstream>
+#include <vector>
 
 using namespace std;
 using namespace boost;
@@ -98,13 +103,40 @@ const Scalar tol = Scalar(1e-2);
 const Scalar tol = 1e-3;
 #endif
 
-//! Typedef'd NVEUpdator class factory
+struct AtomInfo
+{
+	int type, localidx, body;
+	double mass;
+	double x, y, z;
+};
+
+struct BondInfo
+{
+	char type[50];
+	int localidxi, localidxj;
+	double kappa, R0, sigma, epsilon;
+};
+
+struct BuildingBlock
+{
+	std::vector<AtomInfo> atoms;
+	std::vector<BondInfo> bonds;
+	double spacing_x, spacing_y, spacing_z;
+};
+
+//! Typedef'd TwoStepBDNVTRigid class factory
 typedef boost::function<shared_ptr<TwoStepBDNVTRigid> (shared_ptr<SystemDefinition> sysdef, 
                             shared_ptr<ParticleGroup> group, Scalar T, unsigned int seed)> bdnvtup_creator;
 
 void writeRestart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep);
 
 void readRestart(shared_ptr<SystemDefinition> sysdef, char* file_name);
+
+void load_buildingblock_template(char* template_file, BuildingBlock& buildingBlock);
+
+void dump_xyz(shared_ptr<SystemDefinition> sysdef, unsigned int timestep);
+
+void parse(char* line, char*& command, unsigned int& narg, char**& arg);
 
 void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfiguration& exec_conf)
     {
@@ -113,7 +145,8 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 #endif
     
     unsigned int nbodies = 800;
-    unsigned int nparticlesperbuildingblock = 5; //7;
+    unsigned int nparticlesperbuildingblock = 5;
+    unsigned int nbondsperbuildingblock;
     unsigned int body_size = 5;
     unsigned int natomtypes = 2;
     unsigned int nbondtypes = 1;
@@ -122,6 +155,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     Scalar box_length = 24.0814;
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), natomtypes, nbondtypes, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
@@ -137,6 +171,12 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     Scalar yspacing = 1.0f;
     Scalar zspacing = 2.0f;
     
+    BuildingBlock buildingBlock;
+    load_buildingblock_template("rod.txt", buildingBlock);
+    nparticlesperbuildingblock = buildingBlock.atoms.size();
+    nbondsperbuildingblock = buildingBlock.bonds.size();
+
+
     unsigned int seed = 258719;
     boost::shared_ptr<Saru> random = boost::shared_ptr<Saru>(new Saru(seed));
     Scalar temperature = 1.4;
@@ -150,28 +190,30 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
         {
         for (unsigned int j = 0; j < nparticlesperbuildingblock; j++)
             {
-            arrays.x[iparticle] = x0 + 1.0 * j;
-            arrays.y[iparticle] = y0 + 0.0;
-            arrays.z[iparticle] = z0 + 0.0;
-            
+            arrays.x[iparticle] = x0 + buildingBlock.atoms[j].x;
+            arrays.y[iparticle] = y0 + buildingBlock.atoms[j].y;
+            arrays.z[iparticle] = z0 + buildingBlock.atoms[j].z;
+
             arrays.vx[iparticle] = random->d();
             arrays.vy[iparticle] = random->d();
             arrays.vz[iparticle] = random->d();
             
             KE += Scalar(0.5) * (arrays.vx[iparticle]*arrays.vx[iparticle] + arrays.vy[iparticle]*arrays.vy[iparticle] + arrays.vz[iparticle]*arrays.vz[iparticle]);
             
-            if (j < body_size)
-                {
+            arrays.type[iparticle] = buildingBlock.atoms[j].type;
+					
+            if (buildingBlock.atoms[j].body > 0)
                 arrays.body[iparticle] = ibody;
-                arrays.type[iparticle] = 1;
-                }
-            else
-                {
-                arrays.type[iparticle] = 0;
-                
-                sysdef->getBondData()->addBond(Bond(0, iparticle, iparticle-1));
-                }
-                
+                        
+            unsigned int head = i * nparticlesperbuildingblock;
+            for (unsigned int j = 0; j < nbondsperbuildingblock; j++)
+				{
+                unsigned int particlei = head + buildingBlock.bonds[j].localidxi;
+                unsigned int particlej = head + buildingBlock.bonds[j].localidxj;
+					
+                sysdef->getBondData()->addBond(Bond(0, particlei, particlej));
+				}
+                                
             iparticle++;
             }
             
@@ -200,6 +242,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     
     Scalar deltaT = Scalar(0.005);
     shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = bdup_creator(sysdef, group_all, temperature, 453034);
+        
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
@@ -597,6 +640,129 @@ void readRestart(shared_ptr<SystemDefinition> sysdef, char* file_name)
     fclose(fp);
     
     }
+
+void load_buildingblock_template(char* template_file, BuildingBlock& buildingBlock)
+    {
+	FILE* fp = fopen(template_file, "r");
+	
+	unsigned int number;
+	char* entry = new char [256];
+	
+	// obtain the total number of beads in the building block
+	fscanf(fp, "%s\t%lf\t%lf\t%lf\n", entry, &buildingBlock.spacing_x, &buildingBlock.spacing_y, &buildingBlock.spacing_z);
+	
+	while (!feof(fp))
+	{
+		fscanf(fp, "%s\t%d\n", entry, &number);
+				
+		if (strcmp(entry, "[Rigid]") == 0 || strcmp(entry, "[Flexible]") == 0)
+		{
+			
+			for (unsigned int i = 0; i < number; i++)
+			{
+				AtomInfo atomi;
+
+				fscanf(fp, "%d\t%lf\t%lf\t%lf\t%d\t%d\t%lf\n", &atomi.localidx, &atomi.x, &atomi.y, &atomi.z,
+					&atomi.body, &atomi.type, &atomi.mass);
+				buildingBlock.atoms.push_back(atomi);
+			}
+		}
+		else if (strcmp(entry, "[Connections]") == 0) 
+		{
+			
+			for (unsigned int i = 0; i < number; i++)
+			{
+				BondInfo bondi;
+				
+				fscanf(fp, "%d\t%d\t%s\n", &bondi.localidxi, &bondi.localidxj, bondi.type);
+				buildingBlock.bonds.push_back(bondi);
+			}
+		}
+	}
+
+	
+	fclose(fp);
+
+    }
+
+void dump_xyz(shared_ptr<SystemDefinition> sysdef, unsigned int timestep)
+    {
+	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+	ParticleDataArrays arrays = pdata->acquireReadWrite();
+	BoxDim box = pdata->getBox();
+
+	char file_name[100];
+	FILE* fp;
+	Scalar Lx, Ly, Lz;
+
+	sprintf(file_name, "x_t%d.xyz", timestep);
+	fp = fopen(file_name, "w");
+	box = pdata->getBox();								
+	Lx = box.xhi - box.xlo;
+	Ly = box.yhi - box.ylo;
+	Lz = box.zhi - box.zlo;
+	fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
+	for (unsigned int j = 0; j < arrays.nparticles; j++)
+	{
+		if (arrays.type[j] == 1)
+			fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[j], arrays.y[j], arrays.z[j]);
+		else
+			fprintf(fp, "C\t%f\t%f\t%f\n", arrays.x[j], arrays.y[j], arrays.z[j]);
+	}
+	
+	pdata->release();
+	fclose(fp);
+    }
+
+void parse(char* line, char*& command, unsigned int& narg, char**& arg)
+    {
+	if (strlen(line) == 0) return;
+
+	unsigned int i, maxarg = 32;
+	arg = new char* [maxarg];
+	for (i=0; i<maxarg; i++)
+		arg[i] = new char [64];
+
+	char* copy = new char [512];
+	strcpy(copy, line);
+
+	// strip any # comment by resetting string terminator
+	
+	int level = 0;
+	char *ptr = copy;
+	while (*ptr) 
+	{
+		if (*ptr == '#' && level == 0) 
+		{
+			*ptr = '\0';
+			break;
+		}
+	
+		ptr++;
+	}
+	
+	// command = 1st arg
+	
+	command = strtok(line, " \t\n\r\f");
+	if (command == NULL) return;
+	
+	// point arg[] at each subsequent arg
+	// treat text between double quotes as one arg
+	// insert string terminators in copy to delimit args
+	
+	narg = 0;
+	while (1) 
+	{
+		arg[narg] = strtok(NULL, " \t\n\r\f");
+		if (arg[narg]) 
+			narg++;
+		else 
+			break;
+	}
+
+	delete [] copy;
+    }
+
 
 #ifdef ENABLE_CUDA
 //! TwoStepBDNVTRigidGPU factory for the unit tests
