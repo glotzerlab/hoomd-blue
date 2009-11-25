@@ -73,6 +73,7 @@ set(TEST_LIST
     ElectrostaticShortRange_force_test
     nve_rigid_updater_test
     nvt_rigid_updater_test
+    bd_rigid_updater_test
     )
 
 if (ENABLE_FFT)
