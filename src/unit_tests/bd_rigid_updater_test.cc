@@ -54,10 +54,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "BD_NVTUpdater.h"
+#include "TwoStepBDNVTRigid.h"
 #ifdef ENABLE_CUDA
-#include "BD_NVTUpdaterGPU.h"
+#include "TwoStepBDNVTRigidGPU.h"
 #endif
+
+#include "IntegratorTwoStep.h"
 
 #include "BoxResizeUpdater.h"
 
@@ -97,11 +99,12 @@ const Scalar tol = 1e-3;
 #endif
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<BD_NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)> bdnvtup_creator;
+typedef boost::function<shared_ptr<TwoStepBDNVTRigid> (shared_ptr<SystemDefinition> sysdef, 
+                            shared_ptr<ParticleGroup> group, Scalar T, unsigned int seed)> bdnvtup_creator;
 
-void write_restart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep);
+void writeRestart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep);
 
-void read_restart(shared_ptr<SystemDefinition> sysdef, char* file_name);
+void readRestart(shared_ptr<SystemDefinition> sysdef, char* file_name);
 
 void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfiguration& exec_conf)
     {
@@ -110,7 +113,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
 #endif
     
     unsigned int nbodies = 800;
-    unsigned int nparticlesperbuildingblock = 7;
+    unsigned int nparticlesperbuildingblock = 5; //7;
     unsigned int body_size = 5;
     unsigned int natomtypes = 2;
     unsigned int nbondtypes = 1;
@@ -119,6 +122,9 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     Scalar box_length = 24.0814;
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), natomtypes, nbondtypes, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    
     BoxDim box = pdata->getBox();
     
     // setup a simple initial state
@@ -193,7 +199,10 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     pdata->release();
     
     Scalar deltaT = Scalar(0.005);
-    shared_ptr<BD_NVTUpdater> bdnvt_up = bdup_creator(sysdef, deltaT, temperature, 257847);
+    shared_ptr<TwoStepBDNVTRigid> two_step_bdnvt = bdup_creator(sysdef, group_all, temperature, 453034);
+    shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    bdnvt_up->addIntegrationMethod(two_step_bdnvt);
+
     shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
     shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
     
@@ -214,7 +223,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     shared_ptr<FENEBondForceComputeGPU> fenebond(new FENEBondForceComputeGPU(sysdef));
     fenebond->setParams(0, Scalar(30.0), Scalar(1.5), Scalar(1.0), Scalar(1.122));
     
-    bdnvt_up->addForceCompute(fenebond);
+//    bdnvt_up->addForceCompute(fenebond);
     
     unsigned int nrigid_dof, nnonrigid_dof;
     Scalar current_temp;
@@ -237,7 +246,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
         start_step = 40000000;
         char restart_file[100];
         sprintf(restart_file, "restart_%d.txt", start_step);
-        sysdef->readRestart(restart_file);
+        readRestart(sysdef, restart_file);
         
         nrigid_dof = rdata->getNumDOF();
         nnonrigid_dof = 3 * (N - body_size * nbodies);
@@ -286,7 +295,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
         
     shared_ptr<BoxResizeUpdater> box_resize(new BoxResizeUpdater(sysdef, target_L, target_L, target_L));
     
-    
+/*
     // Mix with WCA interactions
     cout << "Equilibrating...\n";
     cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
@@ -353,9 +362,9 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     elapsed = (double)(end - start) / (double)CLOCKS_PER_SEC;
     printf("Elapased time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
     
-    start_step = equil_steps;
+    start_step = equil_steps+1;
     // End of mixing
-    
+ */   
     // Production: turn on LJ interactions between rods
     fc->setParams(1,1,lj1,lj2, Scalar(2.5));
     
@@ -365,7 +374,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     
     start = clock();
     
-    for (unsigned int i = start_step+1; i <= start_step + steps; i++)
+    for (unsigned int i = start_step; i <= start_step + steps; i++)
         {
         
         bdnvt_up->update(i);
@@ -409,7 +418,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
             
             
             if (i % dump == 0)
-                sysdef->writeRestart(i);
+                writeRestart(sysdef, i);
             }
         }
         
@@ -419,7 +428,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     
     }
 
-void write_restart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep)
+void writeRestart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep)
     {
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<BondData> bond_data = sysdef->getBondData();
@@ -500,7 +509,7 @@ void write_restart(shared_ptr<SystemDefinition> sysdef, unsigned int timestep)
     
     }
 
-void read_restart(shared_ptr<SystemDefinition> sysdef, char* file_name)
+void readRestart(shared_ptr<SystemDefinition> sysdef, char* file_name)
     {
     printf("Reading restart file..\n");
     unsigned int nparticles, natomtypes, nbondtypes;
@@ -581,28 +590,7 @@ void read_restart(shared_ptr<SystemDefinition> sysdef, char* file_name)
                 fscanf(fp, "%f\t%f\t%f\n", &particle_pos_handle.data[localidx].x, &particle_pos_handle.data[localidx].y, &particle_pos_handle.data[localidx].z);
                 }
                 
-                
-            /*  if (body == 0)
-                    {
-                        printf("body = %d\n%f\t%f\t%f\n", body, moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y, moment_inertia_handle.data[body].z);
-                        printf("com = %f\t%f\t%f\n", com_handle.data[body].x, com_handle.data[body].y, com_handle.data[body].z);
-            
-                        printf("quat = %f\t%f\t%f\t%f\n", orientation_handle.data[body].x, orientation_handle.data[body].y, orientation_handle.data[body].z, orientation_handle.data[body].w);
-                        printf("ex = %f\t%f\t%f\n", ex_space_handle.data[body].x, ex_space_handle.data[body].y, ex_space_handle.data[body].z);
-                        printf("ey = %f\t%f\t%f\n", ey_space_handle.data[body].x, ey_space_handle.data[body].y, ey_space_handle.data[body].z);
-                        printf("ez = %f\t%f\t%f\n", ez_space_handle.data[body].x, ez_space_handle.data[body].y, ez_space_handle.data[body].z);
-            
-                        unsigned int len = body_size_handle.data[body];
-                        for (unsigned int j = 0; j < len; j++)
-                        {
-                            unsigned int localidx = body * particle_pos_pitch + j;
-                            printf("%f\t%f\t%f\n", particle_pos_handle.data[localidx].x, particle_pos_handle.data[localidx].y, particle_pos_handle.data[localidx].z);
-                        }
-                    }
-             */
             }
-            
-            
             
         }
         
@@ -611,18 +599,18 @@ void read_restart(shared_ptr<SystemDefinition> sysdef, char* file_name)
     }
 
 #ifdef ENABLE_CUDA
-//! BD_NVTUpdaterGPU factory for the unit tests
-shared_ptr<BD_NVTUpdater> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Temp, unsigned int seed)
+//! TwoStepBDNVTRigidGPU factory for the unit tests
+shared_ptr<TwoStepBDNVTRigid> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar T, unsigned int seed)
     {
-    shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    return shared_ptr<BD_NVTUpdater>(new BD_NVTUpdaterGPU(sysdef, deltaT, T_variant, seed, false));
+    shared_ptr<VariantConst> T_variant(new VariantConst(T));
+    return shared_ptr<TwoStepBDNVTRigid>(new TwoStepBDNVTRigidGPU(sysdef, group, T_variant, seed, false));
     }
 #endif
 
 #ifdef ENABLE_CUDA
 
 //! extended LJ-liquid test for the GPU class
-BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
+BOOST_AUTO_TEST_CASE( BDRigidGPU_rod_tests )
     {
     bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
     bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration());
