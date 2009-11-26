@@ -74,6 +74,7 @@ set(TEST_LIST
     nve_rigid_updater_test
     nvt_rigid_updater_test
     bd_rigid_updater_test
+    bd_tetherednps_updater_test
     )
 
 if (ENABLE_FFT)
