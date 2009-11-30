@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _NEIGHBORLIST_CUH_
 #define _NEIGHBORLIST_CUH_
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 #include "ParticleData.cuh"

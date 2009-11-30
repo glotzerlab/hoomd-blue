@@ -105,8 +105,8 @@ class TablePotential : public ForceCompute
         //! Set the table for a given type pair
         virtual void setTable(unsigned int typ1,
                               unsigned int typ2,
-                              const std::vector<Scalar> &V,
-                              const std::vector<Scalar> &F,
+                              const std::vector<float> &V,
+                              const std::vector<float> &F,
                               Scalar rmin,
                               Scalar rmax);
                               
@@ -120,7 +120,7 @@ class TablePotential : public ForceCompute
         boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         unsigned int m_table_width;                 //!< Width of the tables in memory
         unsigned int m_ntypes;                      //!< Store the number of particle types
-        GPUArray<Scalar2> m_tables;                 //!< Stored V and F tables
+        GPUArray<float2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
         
         //! Actually compute the forces

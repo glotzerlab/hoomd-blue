@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _ANGLEDATA_CUH_
 #define _ANGLEDATA_CUH_
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 /*! \file AngleData.cuh

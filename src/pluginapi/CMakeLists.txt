@@ -67,7 +67,7 @@ endforeach(_LIBRARY ${HOOMD_COMMON_LIBS})
 
 # add cudart (if CUDA is enabled)
 if (ENABLE_CUDA)
-set(PLUGINAPI_LIBS "${PLUGINAPI_LIBS} ${CUDA_CUDART_LIBRARY} ")
+set(PLUGINAPI_LIBS "${PLUGINAPI_LIBS} ${CUDA_LIBRARIES} ")
 endif (ENABLE_CUDA)
 
 ## build a list of include directories needed

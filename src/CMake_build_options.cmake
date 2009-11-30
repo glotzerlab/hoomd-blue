@@ -3,8 +3,12 @@
 # Maintainer: joaander
 
 #################################
-## Optional use of zlib to compress binary output files
+## Optional use of zlib to compress binary output files (defaults to off on windows)
+if (WIN32)
+option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" OFF)
+else (WIN32)
 option(ENABLE_ZLIB "When set to ON, a gzip compression option for binary output files is available" ON)
+endif (WIN32)
 if (ENABLE_ZLIB)
     add_definitions(-DENABLE_ZLIB)
 endif(ENABLE_ZLIB)
@@ -75,16 +79,13 @@ find_package(Doxygen)
 if (DOXYGEN_FOUND)
     # get the doxygen version
     exec_program(${DOXYGEN_EXECUTABLE} ${HOOMD_SOURCE_DIR} ARGS --version OUTPUT_VARIABLE DOXYGEN_VERSION)
-    STRING(REGEX REPLACE "^([0-9]+)\\.[0-9]+\\.[0-9]+.*" "\\1" DOXYGEN_VERSION_MAJOR "${DOXYGEN_VERSION}")
-    STRING(REGEX REPLACE "^[0-9]+\\.([0-9])+\\.[0-9]+.*" "\\1" DOXYGEN_VERSION_MINOR "${DOXYGEN_VERSION}")
-    STRING(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" DOXYGEN_VERSION_PATCH "${DOXYGEN_VERSION}")
 
-    if (DOXYGEN_VERSION_MAJOR GREATER 0 AND (DOXYGEN_VERSION_MINOR GREATER 4 AND DOXYGEN_VERSION_PATCH GREATER 5) OR (DOXYGEN_VERSION_MINOR GREATER 5))
+    if (${DOXYGEN_VERSION} VERSION_GREATER 1.5.5)
         OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" ON)
-    else (DOXYGEN_VERSION_MAJOR GREATER 0 AND (DOXYGEN_VERSION_MINOR GREATER 4 AND DOXYGEN_VERSION_PATCH GREATER 5) OR (DOXYGEN_VERSION_MINOR GREATER 5))
+    else (${DOXYGEN_VERSION} VERSION_GREATER 1.5.5)
         message(STATUS "Doxygen version less than 1.5.5, defaulting ENABLE_DOXYGEN=OFF")
         OPTION(ENABLE_DOXYGEN "Enables building of documentation with doxygen" OFF)
-    endif (DOXYGEN_VERSION_MAJOR GREATER 0 AND (DOXYGEN_VERSION_MINOR GREATER 4 AND DOXYGEN_VERSION_PATCH GREATER 5) OR (DOXYGEN_VERSION_MINOR GREATER 5))
+    endif (${DOXYGEN_VERSION} VERSION_GREATER 1.5.5)
 endif (DOXYGEN_FOUND)
 
 ################################

@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _PARTICLEDATA_CUH_
 #define _PARTICLEDATA_CUH_
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 /*! \file ParticleData.cuh

@@ -52,8 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include <stdio.h>
-
 /*! \file TwoStepNVEGPU.cu
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by TwoStepNVEGPU.
 */
@@ -76,6 +74,7 @@ texture<int4, 1, cudaReadModeElementType> pdata_image_tex;
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
+    \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
     
     This kernel must be executed with a 1D grid of any block size such that the number of threads is greater than or
     equal to the number of members in the group. The kernel's implementation simply reads one particle in each thread
@@ -93,7 +92,8 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
                              gpu_boxsize box,
                              float deltaT,
                              bool limit,
-                             float limit_val)
+                             float limit_val,
+                             bool zero_force)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -116,7 +116,9 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
         
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
         float4 vel = tex1Dfetch(pdata_vel_tex, idx);
-        float4 accel = tex1Dfetch(pdata_accel_tex, idx);
+        float4 accel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        if (!zero_force)
+            accel = tex1Dfetch(pdata_accel_tex, idx);
         
         // update the position (FLOPS: 15)
         float dx = vel.x * deltaT + (1.0f/2.0f) * accel.x * deltaT * deltaT;
@@ -182,6 +184,7 @@ void gpu_nve_step_one_kernel(gpu_pdata_arrays pdata,
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
+    \param zero_force Set to true to always assign an acceleration of 0 to all particles in the group
     
     See gpu_nve_step_one_kernel() for full documentation, this function is just a driver.
 */
@@ -191,7 +194,8 @@ cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize &box,
                              float deltaT,
                              bool limit,
-                             float limit_val)
+                             float limit_val,
+                             bool zero_force)
     {
     // setup the grid to run the kernel
     int block_size = 256;
@@ -216,7 +220,7 @@ cudaError_t gpu_nve_step_one(const gpu_pdata_arrays &pdata,
         return error;
         
     // run the kernel
-    gpu_nve_step_one_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, box, deltaT, limit, limit_val);
+    gpu_nve_step_one_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, box, deltaT, limit, limit_val, zero_force);
     
     if (!g_gpu_error_checking)
         {
