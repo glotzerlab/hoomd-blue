@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __TWOSTEPNPTGPU_CUH__
 #define __TWOSTEPNPTGPU_CUH__
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 #include "ParticleData.cuh"

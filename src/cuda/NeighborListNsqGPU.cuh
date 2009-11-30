@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _NEIGHBORLISTNSQGPU_CUH_
 #define _NEIGHBORLISTNSQGPU_CUH_
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 #include "NeighborList.cuh"

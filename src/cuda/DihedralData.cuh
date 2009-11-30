@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _DIHEDRALDATA_CUH_
 #define _DIHEDRALDATA_CUH_
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 /*! \file DihedralData.cuh

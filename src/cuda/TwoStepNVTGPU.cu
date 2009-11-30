@@ -52,8 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include <stdio.h>
-
 //! The texture for reading the pdata pos array
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 //! The texture for reading the pdata vel array

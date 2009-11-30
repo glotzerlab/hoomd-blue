@@ -47,8 +47,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleData.cuh"
 #include "gpu_settings.h"
 
-#include <stdio.h>
-
 #ifdef WIN32
 #include <cassert>
 #else
