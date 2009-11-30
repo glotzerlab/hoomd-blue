@@ -51,7 +51,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "GPUArray.h"
+
+#ifdef ENABLE_CUDA
 #include "RigidData.cuh"
+#endif
 
 const unsigned int NO_INDEX = 0xffffffff;
 

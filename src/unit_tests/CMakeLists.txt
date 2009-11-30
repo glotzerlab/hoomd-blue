@@ -72,10 +72,6 @@ set(TEST_LIST
     system_test
     binary_reader_writer_test
     ElectrostaticShortRange_force_test
-    nve_rigid_updater_test
-    #nvt_rigid_updater_test
-    bd_rigid_updater_test
-    bd_tetherednps_updater_test
     )
 
 if (ENABLE_FFT)
@@ -86,7 +82,11 @@ endif (ENABLE_FFT)
 
 if(ENABLE_CUDA)
     set(TEST_LIST ${TEST_LIST} 
-    gpu_worker_test)
+    gpu_worker_test
+    nve_rigid_updater_test
+    #nvt_rigid_updater_test
+    bd_rigid_updater_test
+    bd_tetherednps_updater_test)
 endif(ENABLE_CUDA)
 
     # put the longest tests last
