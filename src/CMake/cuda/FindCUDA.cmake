@@ -507,20 +507,35 @@ endmacro()
 
 # CUDA_LIBRARIES
 find_library_local_first(CUDA_CUDART_LIBRARY cudart "\"cudart\" library")
+find_library_local_first(CUDA_CUDART_EMU_LIBRARY cudartemu "\"cudartemu\" library")
+
+message(STATUS "CUDA VERSION ${CUDA_VERSION}")
+
+if (CUDA_VERSION VERSION_GREATER 2.9.9)
+if (CUDA_BUILD_EMULATION)
+set(CUDA_LIBRARIES ${CUDA_CUDART_EMU_LIBRARY})
+else (CUDA_BUILD_EMULATION)
 set(CUDA_LIBRARIES ${CUDA_CUDART_LIBRARY})
+endif(CUDA_BUILD_EMULATION)
+else (CUDA_VERSION VERSION_GREATER 2.9.9)
+set(CUDA_LIBRARIES ${CUDA_CUDART_LIBRARY})
+endif (CUDA_VERSION VERSION_GREATER 2.9.9)
 
 # 1.1 toolkit on linux doesn't appear to have a separate library on
 # some platforms.
 find_library_local_first(CUDA_CUDA_LIBRARY cuda "\"cuda\" library (older versions only).")
 
 # Add cuda library to the link line only if it is found.
+if (CUDA_VERSION VERSION_LESS 2.0)
 if (CUDA_CUDA_LIBRARY)
   set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUDA_LIBRARY})
 endif(CUDA_CUDA_LIBRARY)
+endif (CUDA_VERSION VERSION_LESS 2.0)
 
 mark_as_advanced(
   CUDA_CUDA_LIBRARY
   CUDA_CUDART_LIBRARY
+  CUDA_CUDART_EMU_LIBRARY
   )
 
 #######################
