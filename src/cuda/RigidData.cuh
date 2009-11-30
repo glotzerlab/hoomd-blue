@@ -42,7 +42,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _RIGIDDATA_CUH_
 #define _RIGIDDATA_CUH_
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 /*! \file RigidData.cuh

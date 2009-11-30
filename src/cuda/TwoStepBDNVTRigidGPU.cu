@@ -55,8 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include <stdio.h>
-
 /*! \file TwoStepBDNVTGPU.cu
     \brief Defines GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
 */

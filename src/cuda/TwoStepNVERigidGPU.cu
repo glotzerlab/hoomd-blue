@@ -49,8 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include <stdio.h>
-
 /*! \file TwoStepNVERigidGPU.cu
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
 */

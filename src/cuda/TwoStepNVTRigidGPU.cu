@@ -49,8 +49,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include <stdio.h>
-
 /*! \file NVTRigidUpdaterGPU.cu
     \brief Defines GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.
 */
