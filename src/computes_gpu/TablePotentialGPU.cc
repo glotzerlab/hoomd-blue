@@ -118,7 +118,7 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // access the table data
-    ArrayHandle<Scalar2> d_tables(m_tables, access_location::device, access_mode::read);
+    ArrayHandle<float2> d_tables(m_tables, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
     
     // run the kernel on all GPUs in parallel

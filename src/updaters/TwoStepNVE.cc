@@ -62,7 +62,7 @@ using namespace boost::python;
 */
 TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group)
-    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0)
+    : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
@@ -116,6 +116,9 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
+        if (m_zero_force)
+            arrays.ax[j] = arrays.ay[j] = arrays.az[j] = 0.0;
+        
         Scalar dx = arrays.vx[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ax[j]*m_deltaT*m_deltaT;
         Scalar dy = arrays.vy[j]*m_deltaT + Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT*m_deltaT;
         Scalar dz = arrays.vz[j]*m_deltaT + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT*m_deltaT;

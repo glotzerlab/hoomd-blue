@@ -219,6 +219,13 @@
    fun:(below main)
 }
 
+{
+   <insert a suppression name here>
+   Memcheck:Addr4
+   fun:_ZN5boost9unit_test14framework_implD1Ev
+   fun:exit
+   fun:(below main)
+}
 
 # python is not capable of freeing memory allocated by the boost python module init, ignore it all here
 {

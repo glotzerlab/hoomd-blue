@@ -186,10 +186,12 @@ static string read_string(istream &f)
     f.read((char*)&len, sizeof(unsigned int));
     if (len != 0)
         {
-        char cstr[len+1];
+        char *cstr = new char[len+1];
         f.read(cstr, len*sizeof(char));
         cstr[len] = '\0';
-        return string(cstr);
+        string str(cstr);
+        delete[] cstr;
+        return str;
         }
     else
         return string();
@@ -211,9 +213,12 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
          enable_decompression = true;
     
     #ifndef ENABLE_ZLIB
-    cerr << endl << "***Error! HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
-    cerr << "enabled in this build of hoomd" << endl << endl;
-    throw runtime_error("Error reading binary file");
+    if (enable_decompression)
+        {
+        cerr << endl << "***Error! HOOMDBinaryInitialzier is trying to read a compressed .gz file, but ZLIB was not" << endl;
+        cerr << "enabled in this build of hoomd" << endl << endl;
+        throw runtime_error("Error reading binary file");
+        }
     #endif
     
     // Open the file

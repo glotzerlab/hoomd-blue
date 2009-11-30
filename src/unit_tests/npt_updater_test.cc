@@ -195,11 +195,11 @@ shared_ptr<TwoStepNPT> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef,
 
 
 //! boost test case for base class integration tests
-/*BOOST_AUTO_TEST_CASE( TwoStepNPT_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNPT_tests )
     {
     twostepnpt_creator npt_creator = bind(base_class_npt_creator, _1, _2,_3,_4,_5,_6);
     npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
-    }*/
+    }
 
 
 #ifdef ENABLE_CUDA

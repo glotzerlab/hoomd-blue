@@ -46,8 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListBinnedGPU.cuh"
 #include "gpu_settings.h"
 
-#include <stdio.h>
-
 #ifdef WIN32
 #include <cassert>
 #else

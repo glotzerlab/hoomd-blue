@@ -52,8 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-#include <stdio.h>
-
 /*! \file TwoStepNPTGPU.cu
     \brief Defines GPU kernel code for NPT integration on the GPU. Used by TwoStepNPTGPU.
 */

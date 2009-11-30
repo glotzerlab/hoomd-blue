@@ -46,7 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _FORCECOMPUTE_H_
 #define _FORCECOMPUTE_H_
 
-#include <stdio.h>
 #include <cuda_runtime.h>
 
 /*! \file ForceCompute.cuh

@@ -256,6 +256,9 @@ void Profiler::output(std::ostream &o)
     m_root.output(o, m_name, 0, m_root.m_elapsed_time, (int)m_name.size());
     }
 
+/*! \param o Stream to output to
+    \param prof Profiler to print
+*/
 std::ostream& operator<<(ostream &o, Profiler& prof)
     {
     prof.output(o);
