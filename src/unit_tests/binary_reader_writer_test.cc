@@ -49,7 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE XMLReaderWriterTest
+#define BOOST_TEST_MODULE BinaryReaderWriterTest
 #include "boost_utf_configure.h"
 
 #include <boost/test/floating_point_comparison.hpp>
