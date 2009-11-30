@@ -405,7 +405,7 @@ class nvt(_integration_method):
 # integrate.npt performs constant pressure, constant temperature simulations using the standard
 # Nos&eacute;-Hoover thermosta/Anderson barostat.
 #
-# integrate.nvt is an integration method. It must be used in concert with an integration mode. It can be used while
+# integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
 class npt(_integration_method):
