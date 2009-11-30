@@ -21,7 +21,7 @@ endif(ENABLE_STATIC)
 set(Boost_ADDITIONAL_VERSIONS "1.45.1;1.45.0;1.45;1.44.1;1.44.0;1.44;1.43.1;1.43.0;1.43;1.42.1;1.42.0;1.42;1.41.0;1.41;1.41;1.40.0;1.40;1.39.0;1.39;1.38.0;1.38")
 
 # first, see if we can get any supported version of Boost
-find_package(Boost 1.32.0 COMPONENTS thread filesystem python signals program_options unit_test_framework REQUIRED)
+find_package(Boost 1.32.0 COMPONENTS thread filesystem python signals program_options unit_test_framework iostreams REQUIRED)
 
 # if we get boost 1.35 or greator, we need to get the system library too
 
