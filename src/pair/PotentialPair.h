@@ -98,6 +98,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        be shifted. In this manner, a valid r_on value can be given for the LJ interactions and r_on > r_cut can be set
        for WCA (which will then be shifted).
     
+    XPLOR switching gets significantly more complicated for all pair potentials when shifted potentials are used. Thus,
+    the combination of XPLOR switching + shifted potentials will not be supported to avoid slowing down the calculation
+    for everyone.
+    
     <b>Implementation details</b>
     
     rcutsq, ronsq, and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
@@ -365,7 +369,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             Scalar dy = yi - arrays.y[j];
             Scalar dz = zi - arrays.z[j];
             
-            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
+            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = arrays.type[j];
             assert(typej < m_pdata->getNTypes());
             
@@ -404,6 +408,9 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             if (m_shift_mode == xplor)
                 ronsq = h_ronsq.data[typpair_idx];
             
+            // design specifies that energies are shifted if
+            // 1) shift mode is set to shift
+            // or 2) shift mode is explor and ron > rcut
             bool energy_shift = false;
             if (m_shift_mode == shift)
                 energy_shift = true;
@@ -453,8 +460,6 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                     }
                     
                 // compute the virial (FLOPS: 2)
-                // note the missing - sign in the virial computation. I'm not sure why it isn't there, but this is
-                // verified correct....
                 Scalar pair_virial = Scalar(1.0/6.0) * rsq * force_divr;
                 
                 // add the force, potential energy and virial to the particle i
@@ -471,7 +476,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                     m_fx[j] -= dx*force_divr;
                     m_fy[j] -= dy*force_divr;
                     m_fz[j] -= dz*force_divr;
-                    m_pe[j] += pair_eng*0.5;
+                    m_pe[j] += pair_eng * Scalar(0.5);
                     m_virial[j] += pair_virial;
                     }
                 }

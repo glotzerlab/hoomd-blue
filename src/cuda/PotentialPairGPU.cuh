@@ -230,6 +230,9 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
             if (shift_mode == 2)
                 ronsq = s_ronsq[typpair];
             
+            // design specifies that energies are shifted if
+            // 1) shift mode is set to shift
+            // or 2) shift mode is explor and ron > rcut
             bool energy_shift = false;
             if (shift_mode == 1)
                 energy_shift = true;
