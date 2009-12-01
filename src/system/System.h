@@ -163,6 +163,12 @@ class System
         //! Configures profiling of runs
         void enableProfiler(bool enable);
         
+        //! Toggle whether or not to print the status line and TPS for each run         
+        void enableQuietRun(bool enable)
+            {
+            m_quiet_run = enable;
+            }
+        
         //! Register logger
         void registerLogger(boost::shared_ptr<Logger> logger);
         
@@ -387,6 +393,7 @@ class System
         uint64_t m_last_status_time;    //!< Time (measured by m_clk) of the last time generateStatusLine() was called
         unsigned int m_last_status_tstep;   //!< Time step last time generateStatusLine() was called
         
+        bool m_quiet_run;       //!< True to suppress the status line and TPS from being printed to stdout for each run
         bool m_profile;         //!< True if runs should be profiled
         unsigned int m_stats_period; //!< Number of seconds between statistics output lines
         
