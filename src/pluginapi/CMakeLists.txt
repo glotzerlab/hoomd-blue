@@ -16,7 +16,7 @@ file(GLOB HEADER_FILES "${HOOMD_SOURCE_DIR}/analyzers/*.h" "${HOOMD_SOURCE_DIR}/
                        "${HOOMD_SOURCE_DIR}/data_structures/*.h" "${HOOMD_SOURCE_DIR}/extern/*.h" 
                        "${HOOMD_SOURCE_DIR}/system/*.h" "${HOOMD_SOURCE_DIR}/updaters*/*.h"
                        "${HOOMD_SOURCE_DIR}/utils/*.h" "${HOOMD_BINARY_DIR}/utils/HOOMDVersion.h"
-                       "${HOOMD_SOURCE_DIR}/pair/*.h")
+                       "${HOOMD_SOURCE_DIR}/potentials/*.h")
 foreach(_FILENAME ${HEADER_FILES})
     get_filename_component(_FILENAMENOPATH ${_FILENAME} NAME)
     string(REGEX MATCH "GPU" _MATCH "${_FILENAME}")
