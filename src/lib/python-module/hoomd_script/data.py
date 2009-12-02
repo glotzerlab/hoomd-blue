@@ -45,7 +45,7 @@
 import hoomd
 
 ## \package hoomd_script.data
-# \brief Data access translation classes
+# \brief Access particles, bonds, and other state information inside scripts
 #
 # Code in the data package provide high-level access to all of the particle, bond and other %data that define the
 # current state of the system. By writing python code that modifies this %data, any conceivable initialization of the

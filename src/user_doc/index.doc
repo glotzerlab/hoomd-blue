@@ -55,6 +55,8 @@ Table of contents:
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
  - \link hoomd_script.init.reset() init.reset\endlink - <i>\copybrief hoomd_script::init::reset() </i>
 
+ - \link hoomd_script.data data access\endlink - <i>\copybrief hoomd_script::data </i>
+
 \section sec_index_integration Integration methods
 \link hoomd_script.integrate integrate\endlink: 
  - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>\copybrief hoomd_script::integrate::mode_standard </i>
