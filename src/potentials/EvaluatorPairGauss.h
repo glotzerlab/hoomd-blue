@@ -167,10 +167,10 @@ class EvaluatorPairGauss
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar epsilon; //!< lj1 parameter extracted from the params passed to the constructor
-        Scalar sigma;   //!< lj2 parameter extracted from the params passed to the constructor
+        Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
+        Scalar sigma;   //!< sigma parameter extracted from the params passed to the constructor
     };
 
 
-#endif // __PAIR_EVALUATOR_LJ_H__
+#endif // __PAIR_EVALUATOR_GAUSS_H__
 
