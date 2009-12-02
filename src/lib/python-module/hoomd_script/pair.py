@@ -676,7 +676,7 @@ class pair(force._force):
 # \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
 #                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 #
-# For an exact definition of the force and potential calculation and how cuttoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -689,7 +689,7 @@ class pair(force._force):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.lj is a standard pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.lj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
 # description of the various options.
 #
 # \b Example:
@@ -765,7 +765,7 @@ class lj(pair):
 #
 # \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
 #
-# For an exact definition of the force and potential calculation and how cuttoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -776,7 +776,7 @@ class lj(pair):
 # - \f$ r_{\mathrm{on}} \f$ - \c r_on
 #   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
 #
-# pair.gauss is a standard pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# pair.gauss is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
 # description of the various options.
 #
 # \b Example:
