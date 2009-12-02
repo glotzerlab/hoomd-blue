@@ -87,8 +87,9 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     m_V = m_Lx*m_Ly*m_Lz;   // volume
     
     // initialize temperature and pressure computations
-    m_group_dof = Scalar(3*m_group->getNumMembers() - 3);
-    m_dof = Scalar(3*m_pdata->getN() - 3);
+    unsigned int dim = m_sysdef->getNDimensions();
+    m_group_dof = Scalar(dim*m_group->getNumMembers() - dim);
+    m_dof = Scalar(dim*m_pdata->getN() - dim);
     
     // compute the current pressure and temperature on construction
     m_curr_group_T = computeGroupTemperature(0);

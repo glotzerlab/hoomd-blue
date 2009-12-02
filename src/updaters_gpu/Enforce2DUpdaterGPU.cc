@@ -39,12 +39,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: Enforce2DUpdaterGPU.cc 2148 2009-10-07 20:05:29Z joaander $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/updaters_gpu/Enforce2DUpdaterGPU.cc $
 // Maintainer: joaander
 
-/*! \file TempCompute.cc
-    \brief Contains code for the TempCompute class
+/*! \file Enforce2DUpdaterGPU.cc
+    \brief Defines the Enforce2DUpdaterGPU class
 */
 
 #ifdef WIN32
@@ -52,77 +52,59 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include "TempCompute.h"
+#include "Enforce2DUpdaterGPU.h"
+#include "Enforce2DUpdaterGPU.cuh"
+
+#include <boost/bind.hpp>
+using namespace boost;
 
 #include <boost/python.hpp>
 using namespace boost::python;
 
-#include <iostream>
 using namespace std;
 
-
-/*! \param sysdef System to compute temperature of
-
-   Note: we have periodic boundary conditions, so we have
-   translational invariance, i.e. the number of degrees of
-   freedom is dim*N-dim (minus constraints when implemented).
+/*! \param sysdef System to update
 */
-TempCompute::TempCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_temp(0.0)
+Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
     {
-    assert(m_pdata);
-    unsigned int dim = m_sysdef->getNDimensions();
-    m_dof = m_pdata->getN() * dim - dim;
-    }
-
-/*! Calls computeTemp if the temperature needs updating
-    \param timestep Current time step of the simulation
-*/
-void TempCompute::compute(unsigned int timestep)
-    {
-    if (!shouldCompute(timestep))
-        return;
-        
-    computeTemp();
-    }
-
-
-/*! Computes the temperature by computing the kinetic energy and multiplying by the appropriate factor.
-    \note This is computed in reduced units
-*/
-void TempCompute::computeTemp()
-    {
-    if (m_prof) m_prof->push("Temp");
-    
-    assert(m_pdata);
-    assert(m_dof != 0);
-    
-    // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
-    // total up kinetic energy
-    Scalar K = 0.0;
-    // K = Sum(m * v**2)
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+    // at least one GPU is needed
+    if (exec_conf.gpu.size() == 0)
         {
-        K += arrays.mass[i] * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
+        cerr << endl << "***Error! Creating a Enforce2DUpdaterGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing Enforce2DUpdaterGPU");
         }
-        
-    // K = 1/2 * k_b * T * dof
-    // => T = K * 2 / dof / k_b
-    // but the variable K is already K*2
-    m_temp = K / Scalar(m_dof);
-    
-    m_pdata->release();
-    
-    if (m_prof) m_prof->pop();
     }
 
-void export_TempCompute()
+/*! \param timestep Current time step of the simulation
+
+    Calls gpu_enforce2d to do the actual work.
+*/
+void Enforce2DUpdaterGPU::update(unsigned int timestep)
     {
-    class_<TempCompute, boost::shared_ptr<TempCompute>, bases<Compute>, boost::noncopyable >
-    ("TempCompute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("setDOF", &TempCompute::setDOF)
-    .def("getTemp", &TempCompute::getTemp)
+    assert(m_pdata);
+            
+    if (m_prof)
+        m_prof->push(exec_conf, "Enforce2D");
+        
+    // access the particle data arrays
+    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    
+    // call the enforce 2d kernel on all GPUs in parallel
+    exec_conf.tagAll(__FILE__, __LINE__);
+    
+    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+        exec_conf.gpu[cur_gpu]->call(bind(gpu_enforce2d, d_pdata[cur_gpu]));
+    
+    exec_conf.syncAll();
+                        
+    m_pdata->release();
+    }
+
+void export_Enforce2DUpdaterGPU()
+    {
+    class_<Enforce2DUpdaterGPU, boost::shared_ptr<Enforce2DUpdaterGPU>, bases<Enforce2DUpdater>, boost::noncopyable>
+    ("Enforce2DUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
 

@@ -87,6 +87,9 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
     public:
         //! Loads in the file and parses the data
         HOOMDBinaryInitializer(const std::string &fname);
+
+        //! Returns the number of dimensions
+        virtual unsigned int getNumDimensions() const;
         
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
@@ -172,6 +175,7 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
         unsigned int m_timestep;                    //!< The time stamp
+        unsigned int m_num_dimensions;              //!< Number of dimensions
         std::vector<IntegratorVariables> m_integrator_variables; //!< Integrator variables read in from file
         
         std::vector<std::string> m_type_mapping;          //!< The created mapping between particle types and ids

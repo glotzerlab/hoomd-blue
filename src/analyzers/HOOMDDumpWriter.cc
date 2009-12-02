@@ -76,10 +76,10 @@ using namespace boost;
     \note .timestep.xml will be apended to the end of \a base_fname when analyze() is called.
 */
 HOOMDDumpWriter::HOOMDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, std::string base_fname)
-        : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), m_output_image(false),
-        m_output_velocity(false), m_output_mass(false), m_output_diameter(false), m_output_type(false),
-        m_output_bond(false), m_output_angle(false), m_output_wall(false), m_output_dihedral(false),
-        m_output_improper(false), m_output_accel(false)
+        : Analyzer(sysdef), m_base_fname(base_fname), m_output_position(true), 
+        m_output_image(false), m_output_velocity(false), m_output_mass(false), m_output_diameter(false), 
+        m_output_type(false), m_output_bond(false), m_output_angle(false), m_output_wall(false), 
+        m_output_dihedral(false), m_output_improper(false), m_output_accel(false)
     {
     }
 
@@ -185,10 +185,10 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" <<endl;
     f << "<hoomd_xml version=\"1.1\">" << endl;
-    f << "<configuration time_step=\"" << timestep << "\">" << endl;
-    
+    f << "<configuration time_step=\"" << timestep << "\">" << endl;    
+    f << "<dimension " << m_sysdef->getNDimensions() << "/>" << endl;
     f << "<box units=\"sigma\" " << " lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << endl;
-    
+
     // If the position flag is true output the position of all particles to the file
     if (m_output_position)
         {

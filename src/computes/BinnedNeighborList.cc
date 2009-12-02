@@ -130,6 +130,9 @@ void BinnedNeighborList::updateBins()
     m_My = (unsigned int)((box.yhi - box.ylo) / (m_r_cut + m_r_buff));
     m_Mz = (unsigned int)((box.zhi - box.zlo) / (m_r_cut + m_r_buff));
     
+    if (m_sysdef->getNDimensions() == 2) 
+        m_Mz = 3;
+    
     // check for an invalid box size: too small a box results in duplicate neighbors
     if (m_Mx < 3 || m_My < 3 || m_Mz < 3)
         {

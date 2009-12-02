@@ -71,6 +71,7 @@ set(TEST_LIST
     xml_reader_writer_test 
     system_test
     binary_reader_writer_test
+    enforce2d_updater_test
     ElectrostaticShortRange_force_test
     )
     

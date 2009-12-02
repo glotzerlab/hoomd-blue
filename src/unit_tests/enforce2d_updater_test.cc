@@ -1,0 +1,254 @@
+/*
+Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
+(HOOMD-blue) Open Source Software License Copyright 2008, 2009 Ames Laboratory
+Iowa State University and The Regents of the University of Michigan All rights
+reserved.
+
+HOOMD-blue may contain modifications ("Contributions") provided, and to which
+copyright is held, by various Contributors who have granted The Regents of the
+University of Michigan the right to modify and/or distribute such Contributions.
+
+Redistribution and use of HOOMD-blue, in source and binary forms, with or
+without modification, are permitted, provided that the following conditions are
+met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions, and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions, and the following disclaimer in the documentation and/or
+other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of HOOMD-blue's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR
+ANY WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+// $Id: zero_momentum_updater_test.cc 2417 2009-12-01 21:54:03Z askeys $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/two-d/src/unit_tests/zero_momentum_updater_test.cc $
+// Maintainer: joaander
+
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
+#include <iostream>
+
+//! label the boost test module
+#define BOOST_TEST_MODULE Enforce2DUpdaterTests
+#include "boost_utf_configure.h"
+
+#include <boost/test/floating_point_comparison.hpp>
+#include <boost/shared_ptr.hpp>
+
+#include "Enforce2DUpdater.h"
+#include "LJForceCompute.h"
+#include "HOOMDInitializer.h"
+#include "BinnedNeighborList.h"
+#include "TwoStepNVE.h"
+
+#ifdef ENABLE_CUDA
+#include "TwoStepNVEGPU.h"
+#include "LJForceComputeGPU.h"
+#include "BinnedNeighborListGPU.h"
+#include "Enforce2DUpdaterGPU.h"
+#endif
+
+#include "IntegratorTwoStep.h"
+
+#include "HOOMDDumpWriter.h"
+#include "TempCompute.h"
+#include "saruprng.h"
+
+#include <math.h>
+
+using namespace std;
+using namespace boost;
+
+//! Helper macro for checking if two numbers are close
+#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
+//! Helper macro for checking if a number is small
+#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
+
+//! Tolerance setting for comparisons
+#ifdef SINGLE_PRECISION
+const Scalar tol = Scalar(1e-3);
+#else
+const Scalar tol = 1e-6;
+#endif
+
+/*! \file enforce2d_updater_test.cc
+    \brief Unit tests for the Enforce2DUpdater class
+    \ingroup unit_tests
+*/
+
+//! boost test case to verify proper operation of Enforce2DUpdater
+BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
+    {
+#ifdef CUDA
+    g_gpu_error_checking = true;
+#endif
+
+    BoxDim box(10.0, 10.0, 1.0);
+#ifdef ENABLE_CUDA    
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, ExecutionConfiguration(ExecutionConfiguration::GPU)));
+#else    
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, ExecutionConfiguration(ExecutionConfiguration::CPU)));
+#endif
+    sysdef->setNDimensions(2);
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+        
+    Saru saru(11, 21, 33);
+
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+
+    // setup a simple initial state
+    Scalar tiny = 1e-3;
+    for (unsigned int i=0; i<10; i++)
+        for (unsigned int j=0; j<10; j++) 
+            {
+            unsigned int k = i*10 + j;
+            arrays.x[k] = i-5.0 + tiny;
+            arrays.y[k] = j-5.0 + tiny;
+            arrays.z[k] = 0.0;
+            arrays.vx[k] = saru.f(-5.0, 5.0);
+            arrays.vy[k] = saru.f(-5.0, 5.0);
+            arrays.vz[k] = 0.0;
+            }
+        
+    pdata->release();
+    
+#ifdef ENABLE_CUDA
+    shared_ptr<TwoStepNVEGPU> two_step_nve(new TwoStepNVEGPU(sysdef, group_all));
+#else
+    shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef, group_all));
+#endif
+        
+    Scalar deltaT = Scalar(0.005);
+    shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    nve_up->addIntegrationMethod(two_step_nve);
+    
+#ifdef ENABLE_CUDA
+	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
+	nlist->setStorageMode(NeighborList::full);
+#else
+	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), 
+Scalar(0.3)));
+	nlist->setStorageMode(NeighborList::half);
+#endif
+
+#ifdef ENABLE_CUDA
+	shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
+#else
+	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
+#endif
+
+	// setup some values for alpha and sigma
+	Scalar epsilon = Scalar(1.0);
+	Scalar sigma = Scalar(1.0);
+	Scalar alpha = Scalar(1.0);
+	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+	
+	// specify the force parameters
+	fc->setParams(0,0,lj1,lj2);
+	fc->setShiftMode(LJForceCompute::shift);
+
+    nve_up->addForceCompute(fc);
+
+    // verify that the atoms leave the xy plane if no contstraints are present
+    // and random forces are added (due to roundoff error in a long simulation)s
+    unsigned int np = pdata->getN();
+    for (int t = 0; t < 1000; t++)
+        {
+        if (t%100 == 0) {
+            arrays = pdata->acquireReadWrite();
+            for (unsigned int i=0; i<np; i++)
+                {
+                arrays.az[i] += saru.f(-0.001, 0.002);
+                arrays.vz[i] += saru.f(-0.002, 0.001);
+                }
+            pdata->release();        
+        }
+        nve_up->update(t);
+        }
+
+    Scalar total_deviation = Scalar(0.0);
+    arrays = pdata->acquireReadWrite();
+    for (unsigned int i=0; i<np; i++)
+        total_deviation += fabs(arrays.z[i]);
+
+    //make sure the deviation is large (should be >> tol)
+    BOOST_CHECK(total_deviation > tol);
+        
+    // re-initialize the initial state
+    for (unsigned int i=0; i<10; i++)
+        for (unsigned int j=0; j<10; j++) 
+            {
+            unsigned int k = i*10 + j;
+            arrays.x[k] = i-5.0 + tiny;
+            arrays.y[k] = j-5.0 + tiny;
+            arrays.z[k] = 0.0;
+            arrays.vx[k] = saru.f(-5.0, 5.0);
+            arrays.vy[k] = saru.f(-5.0, 5.0);
+            arrays.vz[k] = 0.0;
+            }
+            
+    pdata->release();
+
+#ifdef ENABLE_CUDA
+    shared_ptr<Enforce2DUpdaterGPU> enforce2d(new Enforce2DUpdaterGPU(sysdef));
+#else
+    shared_ptr<Enforce2DUpdater> enforce2d(new Enforce2DUpdater(sysdef));
+#endif
+     
+    // verify that the atoms never leave the xy plane if contstraint is present:
+    for (int t = 0; t < 1000; t++)
+        {
+        if (t%100 == 0) {
+            arrays = pdata->acquireReadWrite();
+            for (unsigned int i=0; i<np; i++)
+                {
+                arrays.az[i] += saru.f(-0.01, 0.02);
+                arrays.vz[i] += saru.f(-0.1, 0.2);
+                }
+            pdata->release();        
+        }
+        enforce2d->update(t);
+        nve_up->update(t);
+        }
+
+    total_deviation = Scalar(0.0);
+    arrays = pdata->acquireReadWrite();
+    for (unsigned int i=0; i<np; i++)
+        {
+        total_deviation += fabs(arrays.z[i]);
+        }
+    pdata->release();
+
+    MY_BOOST_CHECK_CLOSE(total_deviation, 0.0, tol);
+
+    }
+    
+#ifdef WIN32
+#pragma warning( pop )
+#endif
+

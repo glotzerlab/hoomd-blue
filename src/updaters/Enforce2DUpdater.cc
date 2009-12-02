@@ -38,13 +38,12 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-// $Id$
-// $URL$
+// $Id: Enforce2DUpdater.cc 2417 2009-12-01 21:54:03Z askeys $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/two-d/src/updaters/Enforce2DUpdater.cc $
 // Maintainer: joaander
 
-/*! \file TempCompute.cc
-    \brief Contains code for the TempCompute class
+/*! \file Enforce2DUpdater.cc
+    \brief Defines the Enforce2DUpdater class
 */
 
 #ifdef WIN32
@@ -52,77 +51,59 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include "TempCompute.h"
-
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#include "Enforce2DUpdater.h"
+
 #include <iostream>
+#include <math.h>
+#include <stdexcept>
+
 using namespace std;
 
-
-/*! \param sysdef System to compute temperature of
-
-   Note: we have periodic boundary conditions, so we have
-   translational invariance, i.e. the number of degrees of
-   freedom is dim*N-dim (minus constraints when implemented).
+/*! \param sysdef System to zero the momentum of
 */
-TempCompute::TempCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_temp(0.0)
+Enforce2DUpdater::Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+        : Updater(sysdef)
     {
     assert(m_pdata);
-    unsigned int dim = m_sysdef->getNDimensions();
-    m_dof = m_pdata->getN() * dim - dim;
+    if (m_sysdef->getNDimensions() != 2)
+        {
+        cerr << endl << "***Error! Enforce2DUpdater used for 3 dimensional system" << endl << endl;
+        throw runtime_error("Error initializing Enforce2DUpdater");
+        }
     }
 
-/*! Calls computeTemp if the temperature needs updating
+
+/*! Perform the needed calculations to zero the system's momentum
     \param timestep Current time step of the simulation
 */
-void TempCompute::compute(unsigned int timestep)
+void Enforce2DUpdater::update(unsigned int timestep)
     {
-    if (!shouldCompute(timestep))
-        return;
-        
-    computeTemp();
-    }
-
-
-/*! Computes the temperature by computing the kinetic energy and multiplying by the appropriate factor.
-    \note This is computed in reduced units
-*/
-void TempCompute::computeTemp()
-    {
-    if (m_prof) m_prof->push("Temp");
+    if (m_prof) m_prof->push("Enforce2D");
     
     assert(m_pdata);
-    assert(m_dof != 0);
+    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
     
-    // access the particle data
-    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    
-    // total up kinetic energy
-    Scalar K = 0.0;
-    // K = Sum(m * v**2)
+    // zero the z-positions and z-velocities:
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
-        K += arrays.mass[i] * (arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i]*arrays.vz[i]);
+        arrays.vz[i] = Scalar(0.0);
+        arrays.az[i] = Scalar(0.0);
         }
-        
-    // K = 1/2 * k_b * T * dof
-    // => T = K * 2 / dof / k_b
-    // but the variable K is already K*2
-    m_temp = K / Scalar(m_dof);
-    
+
+    // for rigid bodies, zero x / y components of omega/angmom/torque:
+
     m_pdata->release();
     
     if (m_prof) m_prof->pop();
     }
 
-void export_TempCompute()
+void export_Enforce2DUpdater()
     {
-    class_<TempCompute, boost::shared_ptr<TempCompute>, bases<Compute>, boost::noncopyable >
-    ("TempCompute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("setDOF", &TempCompute::setDOF)
-    .def("getTemp", &TempCompute::getTemp)
+    class_<Enforce2DUpdater, boost::shared_ptr<Enforce2DUpdater>, bases<Updater>, boost::noncopyable>
+    ("Enforce2DUpdater", init< boost::shared_ptr<SystemDefinition> >())
     ;
     }
 

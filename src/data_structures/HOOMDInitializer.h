@@ -86,6 +86,9 @@ class HOOMDInitializer : public ParticleDataInitializer
     public:
         //! Loads in the file and parses the data
         HOOMDInitializer(const std::string &fname);
+
+        //! Returns the number of particles to be initialized
+        virtual unsigned int getNumDimensions() const;
         
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
@@ -138,6 +141,8 @@ class HOOMDInitializer : public ParticleDataInitializer
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);
+        //! Helper function to parse the dimension node
+        void parseDimensionNode(const XMLNode& node);
         //! Helper function to parse the box node
         void parseBoxNode(const XMLNode& node);
         //! Helper function to parse the position node
@@ -220,7 +225,8 @@ class HOOMDInitializer : public ParticleDataInitializer
             int y;  //!< y-component
             int z;  //!< z-component
             };
-            
+        
+        unsigned int m_num_dimensions;              //!< number of spatial dimensions
         std::vector< vec > m_pos_array;             //!< positions of all particles loaded
         std::vector< vec_int > m_image_array;       //!< images of all particles loaded
         std::vector< vec > m_vel_array;             //!< velocities of all particles loaded

@@ -82,6 +82,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    unsigned int n_improper_types,
                                    const ExecutionConfiguration& exec_conf)
     {
+    m_n_dimensions = 3;
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf));
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
@@ -101,6 +102,8 @@ SystemDefinition::SystemDefinition(unsigned int N,
 */
 SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const ExecutionConfiguration& exec_conf)
     {
+    m_n_dimensions = init.getNumDimensions();
+    
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(init, exec_conf));
     
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, init.getNumBondTypes()));
@@ -122,12 +125,31 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
     init.initIntegratorData(m_integrator_data);
     }
 
+/*! Sets the dimensionality of the system.  When quantities involving the dof of 
+    the system are computed, such as T, P, etc., the dimensionality is needed.
+    Therefore, the dimensionality must be set before any temperature/pressure 
+    computes, thermostats/barostats, etc. are added to the system.
+    \param n_dimensions Number of dimensions
+*/
+void SystemDefinition::setNDimensions(unsigned int n_dimensions)
+    {
+    if (!(n_dimensions == 2 || n_dimensions == 3))
+        {
+        cerr << endl << "***Error! hoomd supports only 2D or 3D simulations" << endl << endl;
+        throw runtime_error("Error setting dimensions");        
+        }
+    m_n_dimensions = n_dimensions;
+    }
+
+
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
     .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, const ExecutionConfiguration&>())
     .def(init<unsigned int, const BoxDim&, unsigned int>())
     .def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
+    .def("setNDimensions", &SystemDefinition::setNDimensions)
+    .def("getNDimensions", &SystemDefinition::getNDimensions)
     .def("getParticleData", &SystemDefinition::getParticleData)
     .def("getBondData", &SystemDefinition::getBondData)
     .def("getAngleData", &SystemDefinition::getAngleData)

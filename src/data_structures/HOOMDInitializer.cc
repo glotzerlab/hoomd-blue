@@ -88,8 +88,10 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     // initialize member variables
     m_timestep = 0;
     m_box_read = false;
+    m_num_dimensions = 3;
     
     // initialize the parser map
+    m_parser_map["dimension"] = bind(&HOOMDInitializer::parseDimensionNode, this, _1);
     m_parser_map["box"] = bind(&HOOMDInitializer::parseBoxNode, this, _1);
     m_parser_map["position"] = bind(&HOOMDInitializer::parsePositionNode, this, _1);
     m_parser_map["image"] = bind(&HOOMDInitializer::parseImageNode, this, _1);
@@ -111,7 +113,14 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 /* XXX: shouldn't the following methods be put into
  * the header so that they get inlined? */
 
-/*! \returns Numer of particles parsed from the XML file
+/*! \returns Number of dimensions parsed from the XML file
+*/
+unsigned int HOOMDInitializer::getNumDimensions() const
+    {
+    return (unsigned int)m_num_dimensions;
+    }
+
+/*! \returns Number of particles parsed from the XML file
 */
 unsigned int HOOMDInitializer::getNumParticles() const
     {
@@ -119,7 +128,7 @@ unsigned int HOOMDInitializer::getNumParticles() const
     return (unsigned int)m_pos_array.size();
     }
 
-/*! \returns Numer of particle types parsed from the XML file
+/*! \returns Number of particle types parsed from the XML file
 */
 unsigned int HOOMDInitializer::getNumParticleTypes() const
     {
@@ -400,6 +409,30 @@ void HOOMDInitializer::readFile(const string &fname)
     if (m_walls.size() > 0)
         cout << m_walls.size() << " walls" << endl;
     }
+
+/*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the information in the attributes of the \b dimensions node
+*/
+void HOOMDInitializer::parseDimensionNode(const XMLNode &node)
+    {
+    // first, verify that this is the box node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("dimension"));
+    
+    istringstream parser;
+    if (node.getText())
+        {
+        parser.str(node.getText());
+        parser >> m_num_dimensions;
+        }
+    else
+        {
+        if (!num_attr_zero(node))
+            cout << "***Warning! Found dimension node with no text. Possible typo." << endl;
+        }    
+     }
+
 
 /*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the information in the attributes of the \b box node
