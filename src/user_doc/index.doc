@@ -92,6 +92,7 @@ Table of contents:
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
  - \link hoomd_script.pair.table pair.table\endlink - <i>\copybrief hoomd_script::pair::table </i>
+ - \link hoomd_script.pair.table pair.yukawa\endlink - <i>\copybrief hoomd_script::pair::yukawa </i>
  - \link hoomd_script.pair.nlist nlist\endlink - <i>\copybrief hoomd_script::pair::nlist </i>
 
 \section sec_index_bond Bond forces
