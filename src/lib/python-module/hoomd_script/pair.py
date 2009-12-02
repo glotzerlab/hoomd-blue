@@ -676,6 +676,8 @@ class pair(force._force):
 # \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
 #                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
 #
+# For an exact definition of the force and potential calculation and how cuttoff radii are handled, see pair.
+#
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
 # - \f$ \varepsilon \f$ - \c epsilon
@@ -756,7 +758,86 @@ class lj(pair):
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
         return hoomd.make_scalar2(lj1, lj2);
         
-    
+## Gaussian %pair %force
+#
+# The command pair.gauss specifies that a Gaussian %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
+#
+# For an exact definition of the force and potential calculation and how cuttoff radii are handled, see pair.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon
+# - \f$ \sigma \f$ - \c sigma
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.gauss is a standard pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# description of the various options.
+#
+# \b Example:
+# \code
+# gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
+# \endcode
+#
+# The global cutoff radius is specified in the initial pair.gauss command and is used to choose the neighbor list
+# cutoff. All per type pair r_cut values automatically default to this value if not specified (as in the first
+# line of the example above). Per type pair r_cut values can be set to any value less than or equal to the global
+# cutoff.
+#
+class gauss(pair):
+    ## Specify the Gaussian %pair %force
+    #
+    # \param r_cut Global cutoff radius (see documentation above)
+    #
+    # \b Example:
+    # \code
+    # gauss = pair.lj(r_cut=3.0)
+    # gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+    # gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.PotentialPairGauss(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_class = hoomd.PotentialPairGauss;
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_class = hoomd.PotentialPairGaussGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating gauss pair force");
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma'];
+        
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+
+        return hoomd.make_scalar2(epsilon, sigma);
 
 ## CMM coarse-grain model %pair %force
 #
@@ -874,124 +955,6 @@ class cgcmm(force._force):
                     self.cpp_force.setParams(i, j, lja, 0.0, ljb, 0.0);
                 else:
                     raise RuntimeError("Unknown exponent type.  Must be one of MN, ljM_N, LJM-N with M+N in 12+4, 9+6, or 12+6");
-## Gaussian %pair %force
-#
-# The command pair.gauss specifies that a Gaussian type %pair %force should be added to every
-# non-bonded particle %pair in the simulation.
-#
-# The %force \f$ \vec{F}\f$ is
-# \f{eqnarray*}
-#   \vec{F}  = & -\nabla V(r) & r < r_{\mathrm{cut}} \\
-#            = & 0            & r \ge r_{\mathrm{cut}} \\
-# \f}
-# where \f$ V(r) \f$ is chosen by a mode switch (see set_params())
-# \f{eqnarray*}
-# V(r)  = & V_{\mathrm{gauss}}(r) & \mathrm{mode\ is\ no\_shift} \\
-#       = & V_{\mathrm{gauss}}(r) - V_{\mathrm{gauss}}(r_{\mathrm{cut}}) & \mathrm{mode\ is\ shift} \\
-# \f}
-# ,
-# \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
-# ,
-# and \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair.
-#
-# The following coefficients must be set per unique %pair of particle types. See %pair or 
-# the \ref page_quick_start for information on how to set coefficients.
-# - \f$ \varepsilon \f$ - \c epsilon
-# - \f$ \sigma \f$ - \c sigma
-#
-# The following parameters are set globally via set_params()
-# - mode - mode (default = "no_shift")
-#
-# \b Example:
-# \code
-# gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.5)
-# \endcode
-#
-# The cutoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.gauss is specified (see __init__())
-class gauss(force._force):
-    ## Specify the Gaussian %pair %force
-    #
-    # \param r_cut Cutoff radius (see documentation above)
-    #
-    # \b Example:
-    # \code
-    # gauss = pair.gauss(r_cut=3.0)
-    # gauss.pair_coeff.set('A', 'A', epsilon=1.0, sigma=0.5)
-    # \endcode
-    #
-    # \note %Pair coefficients for all type pairs in the simulation must be
-    # set before it can be started with run()
-    def __init__(self, r_cut):
-        util.print_status_line();
-        
-        # initialize the base class
-        force._force.__init__(self);
-        
-        # update the neighbor list
-        neighbor_list = _update_global_nlist(r_cut);
-        
-        # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.GaussianForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.GaussianForceGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut);
-            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating gauss pair force");
-            
-            
-        globals.system.addCompute(self.cpp_force, self.force_name);
-        
-        # setup the coefficent matrix
-        self.pair_coeff = coeff();
-        
-    def update_coeffs(self):
-        # check that the pair coefficents are valid
-        if not self.pair_coeff.verify(["epsilon", "sigma"]):
-            print >> sys.stderr, "\n***Error: Not all pair coefficients are set in pair.gauss\n";
-            raise RuntimeError("Error updating pair coefficients");
-        
-        # set all the params
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        type_list = [];
-        for i in xrange(0,ntypes):
-            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
-        
-        for i in xrange(0,ntypes):
-            for j in xrange(i,ntypes):
-                epsilon = self.pair_coeff.get(type_list[i], type_list[j], "epsilon");
-                sigma = self.pair_coeff.get(type_list[i], type_list[j], "sigma");
-                
-                self.cpp_force.setParams(i, j, epsilon, sigma);
-                
-    ## Set parameters controlling the way forces are computed
-    #
-    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
-    #
-    # valid values for \a mode are: "none" (the default), and "shift"
-    #  - \b none - No shifting is performed and potentials are abruptly cut off
-    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
-    # (see above for formulas and more information)
-    #
-    # \b Examples:
-    # \code
-    # gauss.set_params(mode="shift")
-    # gauss.set_params(mode="no_shift")
-    # \endcode
-    #
-    def set_params(self, mode=None):
-        util.print_status_line();
-        
-        if mode != None:
-            if mode == "no_shift":
-                self.cpp_force.setShiftMode(hoomd.GaussianForceCompute.energyShiftMode.no_shift)
-            elif mode == "shift":
-                self.cpp_force.setShiftMode(hoomd.GaussianForceCompute.energyShiftMode.shift)
-            else:
-                print >> sys.stderr, "\n***Error: invalid mode", mode, "\n";
-                raise RuntimeError("Error setting gauss parameters");
 
         
 ## Yukawa %pair %force

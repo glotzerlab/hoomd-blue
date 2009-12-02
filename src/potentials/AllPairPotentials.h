@@ -48,6 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PotentialPair.h"
 #include "EvaluatorPairLJ.h"
+#include "EvaluatorPairGauss.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
@@ -64,10 +65,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Pair potential force compute for lj forces
 typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
+//! Pair potential force compute for gaussian forces
+typedef PotentialPair<EvaluatorPairGauss> PotentialPairGauss;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
+//! Pair potential force compute for gaussian forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairGauss, gpu_compute_gauss_forces > PotentialPairGaussGPU;
 #endif
 
 #endif // __PAIR_POTENTIALS_H__

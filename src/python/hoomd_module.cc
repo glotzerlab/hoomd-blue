@@ -78,7 +78,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "YukawaForceCompute.h"
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
-#include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
 #include "TempCompute.h"
@@ -119,7 +118,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "YukawaForceComputeGPU.h"
 #include "CGCMMForceComputeGPU.h"
 #include "TablePotentialGPU.h"
-#include "GaussianForceGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
@@ -377,9 +375,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_FENEBondForceCompute();
     //export_YukawaForceCompute();
     export_CGCMMForceCompute();
-    export_GaussianForceCompute();
     export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
-    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
+    export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
     export_LJWallForceCompute();
     export_TempCompute();
     export_NeighborList();
@@ -389,8 +386,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_NeighborListNsqGPU();
 //  export_YukawaForceComputeGPU();
     export_CGCMMForceComputeGPU();
+    export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
+    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_TablePotentialGPU();
-    export_GaussianForceGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
