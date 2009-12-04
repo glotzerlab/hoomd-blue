@@ -716,8 +716,11 @@ class pair(force._force):
 # The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
 # non-bonded particle %pair in the simulation.
 #
-# \f[ V_{\mathrm{LJ}}(r) = 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
-#                                               \alpha \left( \frac{\sigma}{r} \right)^{6} \right] \f]
+# \f{eqnarray*}
+# V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - 
+#                   \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
 #
 # For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
 #
@@ -807,7 +810,11 @@ class lj(pair):
 # The command pair.gauss specifies that a Gaussian %pair %force should be added to every
 # non-bonded particle %pair in the simulation.
 #
-# \f[ V_{\mathrm{gauss}}(r) = \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right] \f]
+# \f{eqnarray*}
+#  V_{\mathrm{gauss}}(r)  = & \varepsilon \exp \left[ -\frac{1}{2}\left( \frac{r}{\sigma} \right)^2 \right]
+#                                         & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
 #
 # For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
 #
@@ -889,7 +896,10 @@ class gauss(pair):
 # The command pair.yukawa specifies that a Yukawa %pair %force should be added to every
 # non-bonded particle %pair in the simulation.
 #
-#   \f[ V_{\mathrm{yukawa}}(r) = \varepsilon \frac{ \exp \left( -\kappa r \right) }{r} \f]
+# \f{eqnarray*}
+#  V_{\mathrm{yukawa}}(r)  = & \varepsilon \frac{ \exp \left( -\kappa r \right) }{r} & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
 #
 # For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
 #
