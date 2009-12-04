@@ -745,15 +745,15 @@ class pair(force._force):
 # lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
 # \endcode
 #
-# The global cutoff radius is specified in the initial pair.lj command and is used to choose the neighbor list
-# cutoff. All per type pair r_cut values automatically default to this value if not specified (as in the first
-# line of the example above). Per type pair r_cut values can be set to any value less than or equal to the global
-# cutoff.
+# The cutoff radius \a r_cut passed into the initial pair.lj command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
 #
 class lj(pair):
     ## Specify the Lennard-Jones %pair %force
     #
-    # \param r_cut Global cutoff radius (see documentation above)
+    # \param r_cut Default cutoff radius
     #
     # \b Example:
     # \code
@@ -836,15 +836,15 @@ class lj(pair):
 # gauss.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0, r_on=2.0);
 # \endcode
 #
-# The global cutoff radius is specified in the initial pair.gauss command and is used to choose the neighbor list
-# cutoff. All per type pair r_cut values automatically default to this value if not specified (as in the first
-# line of the example above). Per type pair r_cut values can be set to any value less than or equal to the global
-# cutoff.
+# The cutoff radius \a r_cut passed into the initial pair.gauss command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
 #
 class gauss(pair):
     ## Specify the Gaussian %pair %force
     #
-    # \param r_cut Global cutoff radius (see documentation above)
+    # \param r_cut Default cutoff radius
     #
     # \b Example:
     # \code
@@ -924,15 +924,16 @@ class gauss(pair):
 # slj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0));
 # \endcode
 #
-# The global cutoff radius is specified in the initial pair.slj command and is used to choose the neighbor list
-# cutoff. All per type pair r_cut values automatically default to this value if not specified (as in the first
-# line of the example above). Per type pair r_cut values can be set to any value less than or equal to the global
-# cutoff.
+# The cutoff radius \a r_cut passed into the initial pair.slj command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials. pair.slj adds an extra term to the maximum r_cut, determined by the 
+# maximum diameter set by the user in \a d_max.
 #
 class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
     #
-    # \param r_cut Global cutoff radius (see documentation above)
+    # \param r_cut Default cutoff radius
     # \param d_max Maximum diameter particles in the simulation will have
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
@@ -1050,15 +1051,15 @@ class slj(pair):
 # yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
 # \endcode
 #
-# The global cutoff radius is specified in the initial pair.gauss command and is used to choose the neighbor list
-# cutoff. All per type pair r_cut values automatically default to this value if not specified (as in the first
-# line of the example above). Per type pair r_cut values can be set to any value less than or equal to the global
-# cutoff.
+# The cutoff radius \a r_cut passed into the initial pair.yukawa command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
 #
 class yukawa(pair):
     ## Specify the Gaussian %pair %force
     #
-    # \param r_cut Global cutoff radius (see documentation above)
+    # \param r_cut Default cutoff radius
     #
     # \b Example:
     # \code
@@ -1145,7 +1146,7 @@ class yukawa(pair):
 # \endcode
 #
 # The cuttoff radius \f$ r_{\mathrm{cut}} \f$ is set once when pair.cg is specified (see __init__())
-
+#
 class cgcmm(force._force):
     ## Specify the CG-CMM Lennard-Jones %pair %force
     #
