@@ -371,4 +371,116 @@ class particle_data_proxy:
         # otherwise, consider this an internal attribute to be set in the normal way
         self.__dict__[name] = value;
         
+## Access force data
+#
+# particle_data provides access to the per-particle data of all particles in the system.
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# force_data, documented by example.
+#
+class force_data:
+    ## \internal
+    # \brief force_data iterator
+    class force_data_iterator:
+        def __init__(self, data):
+            self.data = data;
+            self.index = 0;
+        def __iter__(self):
+            return self;
+        def next(self):
+            if self.index == len(self.data):
+                raise StopIteration;
+            
+            result = self.data[self.index];
+            self.index += 1;
+            return result;
+    
+    ## \internal
+    # \brief create a force_data
+    #
+    # \param pdata ParticleData to connect
+    def __init__(self, force):
+        self.force = force;
+    
+    ## \var force
+    # \internal
+    # \brief ForceCompute to which this instance is connected
+
+    ## \internal
+    # \brief Get a force_proxy reference to the particle with tag \a tag
+    # \param tag Particle tag to access
+    def __getitem__(self, tag):
+        if tag >= len(self) or tag < 0:
+            raise IndexError;
+        return force_data_proxy(self.force, tag);
+    
+    ## \internal
+    # \brief Set a particle's properties
+    # \param tag Particle tag to set
+    # \param p Value containing properties to set
+    def __setitem__(self, tag, p):
+        raise RuntimeError('__setitem__ not implemented');
+    
+    ## \internal
+    # \brief Get the number of particles
+    def __len__(self):
+        return globals.system_definition.getParticleData().getN();
+    
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "Force Data for %d particles" % (len(self));
+        return result
+    
+    ## \internal
+    # \brief Return an interator
+    def __iter__(self):
+        return force_data.force_data_iterator(self);
+
+## Access the force on a single particle via a proxy
+#
+# force_data_proxy provides access to the current force, virial, and energy of a single particle due to a single 
+# force compuations.
+#
+# This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
+# force_data_proxy, documented by example.
+#
+# The following attributes are read only:
+# - \c force          : A 3-tuple of floats (x, y, z) listing the current force on the particle
+# - \c virial         : A float containing the contribution of this particle to the total virial
+# - \c pe             : A float containing the contribution of this particle to the total potential energy
+#
+class force_data_proxy:
+    ## \internal
+    # \brief create a force_data_proxy
+    #
+    # \param force ForceCompute to which this proxy belongs
+    # \param tag Tag of this particle in \a force
+    def __init__(self, force, tag):
+        self.pdata = force;
+        self.tag = tag;
+    
+    ## \internal
+    # \brief Get an informal string representing the object
+    def __str__(self):
+        result = "";
+        result += "tag         : " + str(self.tag) + "\n"
+        result += "force       : " + str(self.force) + "\n";
+        result += "virial      : " + str(self.virial) + "\n";
+        result += "energy      : " + str(self.energy) + "\n";
+        return result;
+    
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "force":
+            f = self.force.getForce(self.tag);
+            return (f.x, f.y, f.z);
+        if name == "virial":
+            return self.force.getVirial(self.tag);
+        if name == "energy":
+            accel = self.pdata.getEnergy(self.tag);
+            return (accel.x, accel.y, accel.z);
+        
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
 

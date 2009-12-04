@@ -562,6 +562,16 @@ class ParticleData : boost::noncopyable
             return result;
             }
 
+        //! Get the current index of a particle with a given tag
+        unsigned int getRTag(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            release();
+            return idx;
+            }
+
         //! Set the current position of a particle
         void setPosition(unsigned int tag, const Scalar3& pos)
             {

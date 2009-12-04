@@ -162,6 +162,31 @@ class ForceCompute : public Compute
         
         //! Total the potential energy
         Scalar calcEnergySum();
+
+        //! Easy access to the force on a single particle
+        Scalar3 getForce(unsigned int tag)
+            {
+            if (m_data_location == gpu)
+                deviceToHostCopy();
+            unsigned int i = m_pdata->getRTag(tag);
+            return make_scalar3(m_fx[i], m_fy[i], m_fz[i]);
+            }
+        //! Easy access to the virial on a single particle
+        Scalar getVirial(unsigned int tag)
+            {
+            if (m_data_location == gpu)
+                deviceToHostCopy();
+            unsigned int i = m_pdata->getRTag(tag);
+            return m_virial[i];
+            }
+        //! Easy access to the energy on a single particle
+        Scalar getEnergy(unsigned int tag)
+            {
+            if (m_data_location == gpu)
+                deviceToHostCopy();
+            unsigned int i = m_pdata->getRTag(tag);
+            return m_pe[i];
+            }
         
     protected:
         bool m_particles_sorted;    //!< Flag set to true when particles are resorted in memory
