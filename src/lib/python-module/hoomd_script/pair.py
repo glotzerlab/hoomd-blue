@@ -342,6 +342,28 @@ class nlist:
         self.r_cut = r_cut;
         self.r_buff = default_r_buff;
         
+        # save a list of subscribers that may have a say in determining the maximum r_cut
+        self.subscriber_callbacks = [];
+    
+    ## \internal
+    # \brief Adds a subscriber to the neighbor list
+    # \param callable is a 0 argument callable object that returns the minimum r_cut needed by the subscriber
+    # All \a callables will be called at the beginning of each run() to determine the maximum r_cut needed for that run.
+    #
+    def subscribe(self, callable):
+        self.subscriber_callbacks.append(callable);
+        
+    ## \internal
+    # \brief Updates r_cut based on the subscriber's requests
+    #
+    def update_rcut(self):
+        r_cut_max = 0.0;
+        for c in self.subscriber_callbacks:
+            r_cut_max = max(r_cut_max, c());
+        
+        self.r_cut = r_cut_max;
+        self.cpp_nlist.setRCut(self.r_cut, self.r_buff);
+        
     ## Change neighbor list parameters
     # 
     # \param r_buff (if set) changes the buffer radius around the cutoff
@@ -668,6 +690,27 @@ class pair(force._force):
                 self.cpp_force.setRcut(i, j, coeff_dict['r_cut']);
                 self.cpp_force.setRon(i, j, coeff_dict['r_on']);
 
+    ## \internal
+    # \brief Get the maximum r_cut value set for any type pair
+    # \pre update_coeffs must be called before get_max_rcut to verify that the coeffs are set
+    def get_max_rcut(self):
+        # go through the list of only the active particle types in the sim
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        # find the maximum r_cut
+        max_rcut = 0.0;
+        
+        for i in xrange(0,ntypes):
+            for j in xrange(i,ntypes):
+                # get the r_cut value
+                r_cut = self.pair_coeff.get(type_list[i], type_list[j], 'r_cut');
+                max_rcut = max(max_rcut, r_cut);
+        
+        return max_rcut;
+
 ## Lennard-Jones %pair %force
 #
 # The command pair.lj specifies that a Lennard-Jones type %pair %force should be added to every
@@ -729,6 +772,7 @@ class lj(pair):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -814,6 +858,7 @@ class gauss(pair):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -895,6 +940,7 @@ class yukawa(pair):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -982,6 +1028,7 @@ class cgcmm(force._force):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: r_cut)
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1105,6 +1152,7 @@ class table(force._force):
 
         # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
         neighbor_list = _update_global_nlist(0);
+        neighbor_list.subscribe(lambda: self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1145,7 +1193,25 @@ class table(force._force):
         
         # pass the tables on to the underlying cpp compute
         self.cpp_force.setTable(typei, typej, Vtable, Ftable, rmin, rmax);
-            
+    
+    def get_max_rcut(self):
+        # loop only over current particle types
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        # find the maximum rmax to update the neighbor list with
+        maxrmax = 0.0;
+        
+        # loop through all of the unique type pairs and find the maximum rmax
+        for i in xrange(0,ntypes):
+            for j in xrange(i,ntypes):
+                rmax = self.pair_coeff.get(type_list[i], type_list[j], "rmax");
+                maxrmax = max(maxrmax, rmax);
+
+        return maxrmax;
+                            
     def update_coeffs(self):
         # check that the pair coefficents are valid
         if not self.pair_coeff.verify(["func", "rmin", "rmax", "coeff"]):
@@ -1158,9 +1224,6 @@ class table(force._force):
         for i in xrange(0,ntypes):
             type_list.append(globals.system_definition.getParticleData().getNameByType(i));
         
-        # find the maximum rmax to update the neighbor list with
-        maxrmax = 0;
-        
         # loop through all of the unique type pairs and evaluate the table
         for i in xrange(0,ntypes):
             for j in xrange(i,ntypes):
@@ -1171,10 +1234,5 @@ class table(force._force):
 
                 self.update_pair_table(i, j, func, rmin, rmax, coeff);
                 
-                # find maximum rmax
-                if rmax > maxrmax:
-                    maxrmax = rmax;
-        
-        # update the neighbor list with the found maximum rmax
-        _update_global_nlist(maxrmax);
+
 
