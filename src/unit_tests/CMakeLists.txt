@@ -85,8 +85,9 @@ if(ENABLE_CUDA)
     gpu_worker_test
     nve_rigid_updater_test
     #nvt_rigid_updater_test
-    bd_rigid_updater_test
-    bd_tetherednps_updater_test)
+    #bd_rigid_updater_test
+    #bd_tetherednps_updater_test
+    )
 endif(ENABLE_CUDA)
 
     # put the longest tests last
