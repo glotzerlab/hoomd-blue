@@ -73,7 +73,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // call different optimized sqrt functions on the host / device
-//! EXP is expf when included in nvcc and exp when included into the host compiler
+//! RSQRT is rsqrtf when included in nvcc and 1.0 / sqrt(x) when included into the host compiler
 #ifdef NVCC
 #define RSQRT(x) rsqrtf( (x) )
 #else
@@ -114,7 +114,7 @@ class EvaluatorPairYukawa
             {
             }
         
-        //! LJ doesn't use diameter
+        //! Yukawa doesn't use diameter
         DEVICE static bool needsDiameter() { return false; }
         //! Accept the optional diameter values
         /*! \param di Diameter of particle i
@@ -122,7 +122,7 @@ class EvaluatorPairYukawa
         */
         DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
-        //! LJ doesn't use charge
+        //! Yukawa doesn't use charge
         DEVICE static bool needsCharge() { return false; }
         //! Accept the optional diameter values
         /*! \param qi Charge of particle i
