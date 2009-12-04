@@ -371,10 +371,10 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceCompute();
     export_TablePotential();
     export_FENEBondForceCompute();
-    //export_YukawaForceCompute();
     export_CGCMMForceCompute();
     export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
     export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
+    export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
     export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
     export_LJWallForceCompute();
     export_TempCompute();
@@ -383,10 +383,10 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_CUDA
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();
-//  export_YukawaForceComputeGPU();
     export_CGCMMForceComputeGPU();
     export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
+    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
     export_TablePotentialGPU();
     export_HarmonicBondForceComputeGPU();

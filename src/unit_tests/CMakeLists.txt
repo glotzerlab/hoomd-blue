@@ -61,7 +61,7 @@ set(TEST_LIST
     neighborlist_test
     lj_force_test
     table_potential
-#    shiftedlj_force_test
+    shiftedlj_force_test
     gaussian_force_test
     yukawa_force_test
     cgcmm_force_test

@@ -891,6 +891,135 @@ class gauss(pair):
 
         return hoomd.make_scalar2(epsilon, sigma);
 
+## Shifted Lennard-Jones %pair %force
+#
+# The command pair.slj specifies that a shifted Lennard-Jones type %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+#    \f{eqnarray*}
+#    V_{\mathrm{SLJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - 
+#                           \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r < (r_{\mathrm{cut}} + \Delta) \\
+#                         = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
+#    \f}
+#    where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
+#
+# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \c epsilon
+# - \f$ \sigma \f$ - \c sigma
+#   - <i>optional</i>: defaults to 1.0
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.slj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# description of the various options.
+#\note Due to the way that pair.slj modifies the cutoff crieteria, a shift_mode of xplor is not supported.
+#
+# \b Example:
+# \code
+# slj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# slj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0);
+# slj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0));
+# \endcode
+#
+# The global cutoff radius is specified in the initial pair.slj command and is used to choose the neighbor list
+# cutoff. All per type pair r_cut values automatically default to this value if not specified (as in the first
+# line of the example above). Per type pair r_cut values can be set to any value less than or equal to the global
+# cutoff.
+#
+class slj(pair):
+    ## Specify the Shifted Lennard-Jones %pair %force
+    #
+    # \param r_cut Global cutoff radius (see documentation above)
+    # \param d_max Maximum diameter particles in the simulation will have
+    #
+    # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
+    # run() commands. If particle diameters change during this time, it is \b imperitive that \a d_max is the largest
+    # diameter that any particle will attain at any time during the following run() command. If \a d_max is smaller
+    # than it should be, some particles will effectively have a smaller value of \a r_cut then was set and the
+    # simulation will be incorrect. \a d_max can be changed between runs by calling set_params().
+    #
+    # \b Example:
+    # \code
+    # slj = pair.slj(r_cut=3.0, d_max = 2.0)
+    # slj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+    # slj.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, r_cut=3.0);
+    # slj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0));
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, d_max):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut);
+        
+        # update the neighbor list
+        self.d_max = d_max;
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.get_max_rcut() + self.d_max - 1.0)
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.PotentialPairSLJ(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_class = hoomd.PotentialPairSLJ;
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_class = hoomd.PotentialPairSLJGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.slj'));
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating slj pair force");
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['epsilon', 'sigma'];
+        
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = 4.0 * epsilon * math.pow(sigma, 6.0);
+        return hoomd.make_scalar2(lj1, lj2);
+
+    ## Set parameters controlling the way forces are computed
+    #
+    # \param mode (if set) Set the mode with which potentials are handled at the cutoff
+    # \param d_max (if set) Set the new maximum particle diameter in the system
+    #
+    # valid values for \a mode are: "none" (the default), "shift", and "xplor"
+    #  - \b none - No shifting is performed and potentials are abruptly cut off
+    #  - \b shift - A constant shift is applied to the entire potential so that it is 0 at the cutoff
+    #
+    # (see pair above for formulas and more information)
+    #
+    # \b Examples:
+    # \code
+    # slj.set_params(mode="shift")
+    # slj.set_params(mode="no_shift")
+    # slj.set_params(d_max = 3.0)
+    # \endcode
+    # 
+    def set_params(self, mode=None, d_max=None):
+        util.print_status_line();
+        
+        if mode == "xplor":
+            print >> sys.stderr, "\n***Error! XPLOR is smoothing is not supported with slj\n";
+            raise RuntimeError("Error changing parameters in pair force");
+        
+        pair.set_params(self, mode=mode);
+        
+        if d_max != None:
+            self.d_max = d_max;
+
 ## Yukawa %pair %force
 #
 # The command pair.yukawa specifies that a Yukawa %pair %force should be added to every

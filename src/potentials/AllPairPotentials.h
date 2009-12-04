@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairLJ.h"
 #include "EvaluatorPairGauss.h"
 #include "EvaluatorPairYukawa.h"
+#include "EvaluatorPairSLJ.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
@@ -68,6 +69,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
 //! Pair potential force compute for gaussian forces
 typedef PotentialPair<EvaluatorPairGauss> PotentialPairGauss;
+//! Pair potential force compute for slj forces
+typedef PotentialPair<EvaluatorPairSLJ> PotentialPairSLJ;
 //! Pair potential force compute for yukawa forces
 typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
 
@@ -76,6 +79,8 @@ typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
 typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
 //! Pair potential force compute for gaussian forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairGauss, gpu_compute_gauss_forces > PotentialPairGaussGPU;
+//! Pair potential force compute for slj forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairSLJ, gpu_compute_slj_forces > PotentialPairSLJGPU;
 //! Pair potential force compute for yukawa forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces > PotentialPairYukawaGPU;
 #endif
