@@ -65,8 +65,11 @@ using namespace std;
     \param r_cut Cuttoff radius beyond which the force is 0
     \post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 */
-LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut)
-    : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0)), m_slj(false)
+LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
+                               boost::shared_ptr<NeighborList> nlist,
+                               Scalar r_cut)
+    : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut), m_shift_mode(no_shift), m_xplor_fraction(Scalar(2.0/3.0)),
+      m_slj(false)
     {
     assert(m_pdata);
     assert(m_nlist);
@@ -84,17 +87,14 @@ LJForceCompute::LJForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost
     // allocate data for lj1 and lj2
     m_lj1 = new Scalar[m_ntypes*m_ntypes];
     m_lj2 = new Scalar[m_ntypes*m_ntypes];
-    m_cut = new Scalar[m_ntypes*m_ntypes];
     
     // sanity check
-    assert(m_lj1 != NULL && m_lj2 != NULL && m_cut != NULL);
+    assert(m_lj1 != NULL && m_lj2 != NULL);
     
     // initialize the parameters to 0;
     memset((void*)m_lj1, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
     memset((void*)m_lj2, 0, sizeof(Scalar)*m_ntypes*m_ntypes);
-    memset((void*)m_cut, m_r_cut, sizeof(Scalar)*m_ntypes*m_ntypes);
     }
-
 
 
 LJForceCompute::~LJForceCompute()
@@ -102,12 +102,9 @@ LJForceCompute::~LJForceCompute()
     // deallocate our memory
     delete[] m_lj1;
     delete[] m_lj2;
-    delete[] m_cut;
     m_lj1 = NULL;
     m_lj2 = NULL;
-    m_cut = NULL;
     }
-
 
 
 /*! \post The parameters \a lj1 and \a lj2 are set for the pairs \a typ1, \a typ2 and \a typ2, \a typ1.
@@ -125,11 +122,12 @@ LJForceCompute::~LJForceCompute()
     \param lj1 First parameter used to calcluate forces
     \param lj2 Second parameter used to calculate forces
 */
-void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2, Scalar r_cut)
+void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1, Scalar lj2)
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        cerr << endl << "***Error! Trying to set LJ params for a non existant type! " << typ1 << "," << typ2 << endl << endl;
+        cerr << endl << "***Error! Trying to set LJ params for a non existant type! "
+             << typ1 << "," << typ2 << endl << endl;
         throw runtime_error("Error setting parameters in LJForceCompute");
         }
         
@@ -140,18 +138,6 @@ void LJForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar lj1,
     // set lj2 in both symmetric positions in the matrix
     m_lj2[typ1*m_ntypes + typ2] = lj2;
     m_lj2[typ2*m_ntypes + typ1] = lj2;
-    
-    // set r_cut in both symmetric positions in the matrix
-    if (r_cut > Scalar(0.0))
-        {
-        m_cut[typ1*m_ntypes + typ2] = r_cut;
-        m_cut[typ2*m_ntypes + typ1] = r_cut;
-        }
-    else // m_r_cut by default for all types
-        {
-        m_cut[typ1*m_ntypes + typ2] = m_r_cut;
-        m_cut[typ2*m_ntypes + typ1] = m_r_cut;
-        }
     }
 
 /*! LJForceCompute provides
@@ -236,9 +222,6 @@ void LJForceCompute::computeForces(unsigned int timestep)
     // for each particle
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
-        // access the particle's body
-        unsigned int bodyi = arrays.body[i];
-        
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar xi = arrays.x[i];
         Scalar yi = arrays.y[i];
@@ -273,10 +256,6 @@ void LJForceCompute::computeForces(unsigned int timestep)
             // sanity check
             assert(k < m_pdata->getN());
             
-            unsigned int bodyk = arrays.body[k];
-            if (bodyk != NO_BODY && bodyk == bodyi)
-                continue;
-            
             // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar dx = xi - arrays.x[k];
             Scalar dy = yi - arrays.y[k];
@@ -290,7 +269,7 @@ void LJForceCompute::computeForces(unsigned int timestep)
             // sanity check
             assert(typej < m_pdata->getNTypes());
             
-            // apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
+            // apply periodic boundary conditions (FLOPS: 9)
             if (dx >= box.xhi)
                 dx -= Lx;
             else if (dx < box.xlo)
@@ -319,13 +298,6 @@ void LJForceCompute::computeForces(unsigned int timestep)
                 rsq = radj*radj;        // This is now the diameter adjusted potential distance for slj
                 }
                 
-            // r_cut per type, re-compute involved quantities
-            r_cut_sq = m_cut[typei*m_ntypes + typej] * m_cut[typei*m_ntypes + typej];
-            r_on_sq = m_xplor_fraction*m_xplor_fraction * r_cut_sq;
-            rcut2inv = Scalar(1.0) / r_cut_sq;
-            rcut6inv = rcut2inv * rcut2inv * rcut2inv;
-            xplor_denom_inv = Scalar(1.0) / ((r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq) * (r_cut_sq - r_on_sq));
-            
             // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
             if (rsq < r_cut_sq)
                 {
