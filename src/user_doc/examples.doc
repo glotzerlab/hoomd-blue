@@ -31,7 +31,7 @@ init.create_random(N=1000, phi_p=0.01, name='A')
 
 # specify Lennard-Jones interactions between particle pairs
 lj = pair.lj(r_cut=3.0)
-lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
 # integrate at constant temperature
 all = group.all()
@@ -86,7 +86,7 @@ init.create_random(N=1000, phi_p=0.01, name='A')
 
 # specify Lennard-Jones interactions between particle pairs
 lj = pair.lj(r_cut=3.0)
-lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 
 # integrate at constant temperature
 all = group.all()
@@ -286,7 +286,7 @@ for size in size_array:
     
     # specify Lennard-Jones interactions between particle pairs
     lj = pair.lj(r_cut=3.0)
-    lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+    lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
     
     # integrate at constant temperature
     all = group.all()
@@ -356,9 +356,9 @@ update.zero_momentum(period=1e6)
 
 # simple lennard jones potential
 lj = pair.lj(r_cut=3.0)
-lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
-lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
-lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0)
+lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0)
 
 # integrate forward in the nve ensemble
 all = group.all()
