@@ -92,7 +92,7 @@ typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinit
 //! Test the ability of the lj wall force compute to actually calculate forces
 void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

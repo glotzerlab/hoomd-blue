@@ -89,7 +89,7 @@ const Scalar tol = 1e-3;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

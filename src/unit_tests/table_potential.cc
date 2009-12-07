@@ -91,7 +91,7 @@ typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition>
 //! performs some really basic checks on the TablePotential class
 void table_potential_basic_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -212,7 +212,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
 //! checks to see if TablePotential correctly handles multiple types
 void table_potential_type_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
 
 /*BOOST_AUTO_TEST_CASE(potential_writer)
     {
-    #ifdef CUDA
+    #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
     #endif
 

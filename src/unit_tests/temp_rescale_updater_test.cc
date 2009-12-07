@@ -85,7 +85,7 @@ const Scalar tol = 1e-6;
 //! boost test case to verify proper operation of TempCompute
 BOOST_AUTO_TEST_CASE( TempCompute_basic )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE( TempCompute_basic )
 //! boost test case to verify proper operation of TempRescaleUpdater
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

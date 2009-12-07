@@ -87,7 +87,7 @@ typedef boost::function<shared_ptr<CGCMMAngleForceCompute>  (shared_ptr<SystemDe
 //! Perform some simple functionality tests of any AngleForceCompute
 void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -310,7 +310,7 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, ExecutionConfi
 //! Compares the output of two CGCMMAngleForceComputes
 void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_angleforce_creator af_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

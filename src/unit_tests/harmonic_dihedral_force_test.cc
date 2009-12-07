@@ -87,7 +87,7 @@ typedef boost::function<shared_ptr<HarmonicDihedralForceCompute>  (shared_ptr<Sy
 //! Perform some simple functionality tests of any BondForceCompute
 void dihedral_force_basic_tests(dihedralforce_creator tf_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -366,7 +366,7 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
                                      dihedralforce_creator tf_creator2,
                                      ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

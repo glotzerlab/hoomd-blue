@@ -1131,7 +1131,7 @@ shared_ptr<TwoStepNVT> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef,
 //! Integrate 1 particle through time and compare to a mathematical solution
 void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -1184,7 +1184,7 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfig
 //! Compares the output from one NVEUpdater to another
 void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

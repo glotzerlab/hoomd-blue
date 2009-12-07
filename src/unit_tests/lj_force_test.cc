@@ -96,7 +96,7 @@ typedef boost::function<shared_ptr<PotentialPairLJ> (shared_ptr<SystemDefinition
 //! Test the ability of the lj force compute to actually calucate forces
 void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -203,7 +203,7 @@ void lj_force_particle_test(ljforce_creator lj_creator, ExecutionConfiguration e
 //! Tests the ability of a LJForceCompute to handle periodic boundary conditions
 void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -300,7 +300,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator, ExecutionConfiguration e
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
 void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -350,7 +350,7 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
 //! Test the ability of the lj force compute to compute forces with different shift modes
 void lj_force_shift_test(ljforce_creator lj_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -551,7 +551,7 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_shift )
 
 /*BOOST_AUTO_TEST_CASE(potential_writer)
     {
-    #ifdef CUDA
+    #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
     #endif
 

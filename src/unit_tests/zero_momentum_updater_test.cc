@@ -84,7 +84,7 @@ const Scalar tol = 1e-6;
 //! boost test case to verify proper operation of ZeroMomentumUpdater
 BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

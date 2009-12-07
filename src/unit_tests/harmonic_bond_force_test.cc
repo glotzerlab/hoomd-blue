@@ -94,7 +94,7 @@ typedef boost::function<shared_ptr<HarmonicBondForceCompute>  (shared_ptr<System
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -292,7 +292,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 //! Compares the output of two HarmonicBondForceComputes
 void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -338,7 +338,7 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
 //! Check ConstForceCompute to see that it operates properly
 void const_force_test(ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

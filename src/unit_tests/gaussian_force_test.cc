@@ -96,7 +96,7 @@ typedef boost::function<shared_ptr<PotentialPairGauss> (shared_ptr<SystemDefinit
 //! Test the ability of the gauss force compute to actually calucate forces
 void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -171,7 +171,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfig
 //! Tests the ability of a PotentialPairGauss to handle periodic boundary conditions
 void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -266,7 +266,7 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
                                  gaussforce_creator gauss_creator2,
                                  ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -313,7 +313,7 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
 //! Test the ability of the gauss force compute to compute forces with different shift modes
 void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

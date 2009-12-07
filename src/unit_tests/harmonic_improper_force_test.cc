@@ -87,7 +87,7 @@ typedef boost::function<shared_ptr<HarmonicImproperForceCompute>  (shared_ptr<Sy
 //! Perform some simple functionality tests of any BondForceCompute
 void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -398,7 +398,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
                                      improperforce_creator tf_creator2,
                                      ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

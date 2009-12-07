@@ -84,7 +84,7 @@ typedef boost::function<shared_ptr<NeighborList> (shared_ptr<SystemDefinition> s
 //! Performs basic functionality tests on a neighbor list
 void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -203,7 +203,7 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 //! Tests the ability of the neighbor list to exclude particle pairs
 void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -270,7 +270,7 @@ void neighborlist_comparison_test(nlist_creator_typ nlist_creator1,
                                   nlist_creator_typ nlist_creator2,
                                   ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

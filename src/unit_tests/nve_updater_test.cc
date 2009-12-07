@@ -100,7 +100,7 @@ typedef boost::function<shared_ptr<TwoStepNVE> (shared_ptr<SystemDefinition> sys
 //! Integrate 1 particle through time and compare to an analytical solution
 void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -176,7 +176,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfig
 //! Check that the particle movement limit works
 void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -245,7 +245,7 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfigurat
 //! Make a few particles jump across the boundary and verify that the updater works
 void nve_updater_boundary_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -309,7 +309,7 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
                               twostepnve_creator nve_creator2,
                               ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

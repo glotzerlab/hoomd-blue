@@ -87,7 +87,7 @@ typedef boost::function<shared_ptr<HarmonicAngleForceCompute>  (shared_ptr<Syste
 //! Perform some simple functionality tests of any BondForceCompute
 void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -337,7 +337,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 //! Compares the output of two HarmonicAngleForceComputes
 void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_creator af_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

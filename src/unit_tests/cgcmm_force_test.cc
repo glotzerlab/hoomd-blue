@@ -95,7 +95,7 @@ typedef boost::function<shared_ptr<CGCMMForceCompute> (shared_ptr<SystemDefiniti
 //! Test the ability of the cgcmm LJ12-4 force compute to actually calucate forces
 void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -210,7 +210,7 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, ExecutionCon
 //! Test the ability of the cgcmm LJ9-6 force compute to actually calucate forces
 void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -321,7 +321,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConf
 //! Tests the ability of a CGCMMForceCompute to handle periodic boundary conditions
 void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -414,7 +414,7 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, ExecutionConfig
 //! Unit test a comparison between 2 CGCMMForceComputes on a "real" system
 void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_creator cgcmm_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
