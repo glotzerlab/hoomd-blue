@@ -346,6 +346,10 @@ for p in system.particles:
     vy = random.gauss(0, T / mass)
     vz = random.gauss(0, T / mass)
     p.velocity = (vx, vy, vz)
+    
+# NOTE!! The above initialization will result in center of mass motion of the system, either remove it with another
+# loop, or enable the zero_momentum updater as shown below.
+update.zero_momentum(period=1e6)
 
 # simple lennard jones potential
 lj = pair.lj(r_cut=3.0)
