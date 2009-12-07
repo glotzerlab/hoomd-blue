@@ -40,7 +40,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifdef WIN32
-#define _USE_MATH_DEFINES
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
 #endif
@@ -59,8 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 #include "IndexTransform.h"
-
-#include <math.h>
 
 using namespace std;
 using namespace boost;

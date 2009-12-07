@@ -48,10 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-// windows is gay, and needs this to define pi
-#define _USE_MATH_DEFINES
-#include <math.h>
-
 #include <boost/python.hpp>
 using namespace boost::python;
 

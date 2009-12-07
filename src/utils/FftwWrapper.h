@@ -52,10 +52,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fftw3.h"
 #include "IndexTransform.h"
 
-#ifdef WIN32
-#define _USE_MATH_DEFINES
-#endif
-
 //! Implements fftw for HOOMD
 /*! fftw stands for fastest fourier transform in the west, see http://www.fftw.org/ for
     proper documentation and details.

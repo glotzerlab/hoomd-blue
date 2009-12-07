@@ -53,9 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <stdexcept>
 
-#define _USE_MATH_DEFINES
-#include <math.h>
-
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 using namespace boost::python;

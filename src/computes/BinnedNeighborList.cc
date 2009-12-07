@@ -46,10 +46,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4244 )
-
-// windoze calls isnan by a different name....
-#include <float.h>
-#define isnan _isnan
 #endif
 
 #include <math.h>

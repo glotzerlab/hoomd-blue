@@ -50,6 +50,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Common setup include for all hoomd math operations
 */
 
+// bring in math.h
+#ifndef NVCC
+#define _USE_MATH_DEFINES
+#include <math.h>
+#endif
+
+
 // for vector types
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -133,6 +140,30 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
 
 //! Export relevant hoomd math functions to python
 void export_hoomd_math_functions();
+
+#ifndef NVCC
+
+// fixups for windows math compilation
+#ifdef WIN32
+// windoze calls isnan by a different name....
+#include <float.h>
+#define isnan _isnan
+
+// windows feels that rintf should not exist.....
+//! replacement for rint in windows
+double rint(double x)
+    {
+    return floor(x+.5);
+    }
+
+//! replacement for rint in windows
+double rintf(float x)
+    {
+    return floorf(x+.5f);
+    }
+#endif
+
+#endif
 
 #endif // __HOOMD_MATH_H__
 
