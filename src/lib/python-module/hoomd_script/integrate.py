@@ -536,7 +536,7 @@ class nve(_integration_method):
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNVE(globals.system_definition, group.cpp_group);
+            self.cpp_method = hoomd.TwoStepNVE(globals.system_definition, group.cpp_group, False);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             self.cpp_method = hoomd.TwoStepNVEGPU(globals.system_definition, group.cpp_group);
         else:

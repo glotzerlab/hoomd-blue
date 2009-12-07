@@ -59,24 +59,29 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param skip_restart Skip initialization of the restart information
 */
 TwoStepNVE::TwoStepNVE(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group)
+                       boost::shared_ptr<ParticleGroup> group,
+                       bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group), m_limit(false), m_limit_val(1.0), m_zero_force(false)
     {
-    // set a named, but otherwise blank set of integrator variables
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "nve", 0))
+    if (!skip_restart)
         {
-        v.type = "nve";
-        v.variable.resize(0);
-        setValidRestart(false);
-        }
-    else
-        setValidRestart(true);
+        // set a named, but otherwise blank set of integrator variables
+        IntegratorVariables v = getIntegratorVariables();
+        
+        if (!restartInfoTestValid(v, "nve", 0))
+            {
+            v.type = "nve";
+            v.variable.resize(0);
+            setValidRestart(false);
+            }
+        else
+            setValidRestart(true);
 
-    setIntegratorVariables(v);
+        setIntegratorVariables(v);
+        }
     }
 
 /*! \param limit Distance to limit particle movement each time step
@@ -258,7 +263,7 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
 void export_TwoStepNVE()
     {
     class_<TwoStepNVE, boost::shared_ptr<TwoStepNVE>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+        ("TwoStepNVE", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, bool >())
         .def("setLimit", &TwoStepNVE::setLimit)
         .def("removeLimit", &TwoStepNVE::removeLimit)
         .def("setZeroForce", &TwoStepNVE::setZeroForce)
