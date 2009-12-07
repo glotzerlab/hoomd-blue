@@ -6,6 +6,7 @@
 ## Setup include directories and file lists for sub directories
 include_directories(${HOOMD_SOURCE_DIR}/utils ${HOOMD_SOURCE_DIR}/data_structures ${HOOMD_SOURCE_DIR}/computes
                     ${HOOMD_SOURCE_DIR}/updaters ${HOOMD_SOURCE_DIR}/cuda ${HOOMD_SOURCE_DIR}/analyzers
+                    ${HOOMD_SOURCE_DIR}/potentials
                     ${HOOMD_SOURCE_DIR}/computes_gpu
                     ${HOOMD_SOURCE_DIR}/updaters_gpu
                     ${HOOMD_SOURCE_DIR}/system
@@ -24,10 +25,11 @@ file(GLOB ANALYZER_SRCS ${HOOMD_SOURCE_DIR}/analyzers/*.cc ${HOOMD_SOURCE_DIR}/a
 file(GLOB EXTERN_SRCS ${HOOMD_SOURCE_DIR}/extern/*.cc ${HOOMD_SOURCE_DIR}/extern/*.h)
 file(GLOB SYSTEM_SRCS ${HOOMD_SOURCE_DIR}/system/*.cc ${HOOMD_SOURCE_DIR}/system/*.h)
 file(GLOB PYTHON_SRCS ${HOOMD_SOURCE_DIR}/python/hoomd_module.cc)
+file(GLOB PAIR_SRCS ${HOOMD_SOURCE_DIR}/potentials/*.cc ${HOOMD_SOURCE_DIR}/potentials/*.h)
 file(GLOB CUDA_SRCS ${HOOMD_SOURCE_DIR}/cuda/*.cu ${HOOMD_SOURCE_DIR}/cuda/*.h ${HOOMD_SOURCE_DIR}/cuda/*.cuh)
 
 # make some convenience variables
-set(HOOMD_CPU_SRCS ${UTILS_SRCS} ${DATA_STRUCT_SRCS} ${COMPUTES_SRCS} ${UPDATER_SRCS} ${ANALYZER_SRCS} ${EXTERN_SRCS} ${SYSTEM_SRCS})
+set(HOOMD_CPU_SRCS ${UTILS_SRCS} ${DATA_STRUCT_SRCS} ${COMPUTES_SRCS} ${UPDATER_SRCS} ${ANALYZER_SRCS} ${EXTERN_SRCS} ${SYSTEM_SRCS} ${PAIR_SRCS})
 
 set(HOOMD_GPU_SRCS ${COMPUTES_GPU_SRCS} ${UPDATER_GPU_SRCS} ${CUDA_SRCS})
 

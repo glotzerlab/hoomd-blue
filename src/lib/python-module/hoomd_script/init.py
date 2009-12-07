@@ -366,10 +366,10 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, 
 #                 bond="linear", count=600)
 # \endcode
-# Here is an example for a second polymer, specifying just 100 polymers made of 4 B beads
+# Here is an example for a second polymer, specifying just 100 polymers made of 5 B beads
 # bonded in a branched pattern
 # \code
-# polymer2 = dict(bond_len=1.2, type=['B']*4, 
+# polymer2 = dict(bond_len=1.2, type=['B']*5, 
 #                 bond=[(0, 1), (1,2), (1,3), (3,4)] , count=100)
 # \endcode
 # The \a polymers argument can be given a list of any number of polymer types specified

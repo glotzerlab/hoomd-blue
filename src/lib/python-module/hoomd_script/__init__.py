@@ -166,6 +166,9 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     for logger in globals.loggers:
         logger.update_quantities();
     globals.system.enableProfiler(profile);
+    
+    if globals.neighbor_list:
+        globals.neighbor_list.update_rcut();
 
     if limit_hours == None:
         limit_hours = 0.0

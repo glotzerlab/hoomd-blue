@@ -58,7 +58,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "Enforce2DUpdater.h"
-#include "LJForceCompute.h"
+#include "AllPairPotentials.h"
 #include "HOOMDInitializer.h"
 #include "BinnedNeighborList.h"
 #include "TwoStepNVE.h"

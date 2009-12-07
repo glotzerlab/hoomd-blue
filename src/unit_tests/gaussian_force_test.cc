@@ -52,7 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE GaussianForceTests
+#define BOOST_TEST_MODULE PotentialPairGaussTests
 #include "boost_utf_configure.h"
 
 #include <boost/test/floating_point_comparison.hpp>
@@ -60,10 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "GaussianForceCompute.h"
-#ifdef ENABLE_CUDA
-#include "GaussianForceGPU.h"
-#endif
+#include "AllPairPotentials.h"
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
@@ -74,7 +71,7 @@ using namespace std;
 using namespace boost;
 
 /*! \file gaussian_force_test.cc
-    \brief Implements unit tests for GaussianForceCompute and descendants
+    \brief Implements unit tests for PotentialPairGauss and descendants
     \ingroup unit_tests
 */
 
@@ -92,10 +89,9 @@ const Scalar tol = 1e-3;
 //! Global tolerance for check_small comparisons
 const Scalar tol_small = Scalar(1e-4);
 
-//! Typedef'd GaussianForceCompute factory
-typedef boost::function<shared_ptr<GaussianForceCompute> (shared_ptr<SystemDefinition> sysdef,
-                                                          shared_ptr<NeighborList> nlist,
-                                                          Scalar r_cut)> gaussforce_creator;
+//! Typedef'd PotentialPairGauss factory
+typedef boost::function<shared_ptr<PotentialPairGauss> (shared_ptr<SystemDefinition> sysdef,
+                                                        shared_ptr<NeighborList> nlist)> gaussforce_creator;
 
 //! Test the ability of the gauss force compute to actually calucate forces
 void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
@@ -121,12 +117,13 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfig
     arrays.x[2] = Scalar(2.0); arrays.y[2] = arrays.z[2] = 0.0;
     pdata_3->release();
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<GaussianForceCompute> fc_3 = gauss_creator(sysdef_3, nlist_3, Scalar(1.3));
+    shared_ptr<PotentialPairGauss> fc_3 = gauss_creator(sysdef_3, nlist_3);
+    fc_3->setRcut(0, 0, Scalar(1.3));
     
     // first test: choose a basic sigma
     Scalar epsilon = Scalar(1.15);
     Scalar sigma = Scalar(0.5);
-    fc_3->setParams(0,0,epsilon,sigma);
+    fc_3->setParams(0,0,make_scalar2(epsilon,sigma));
     
     // compute the forces
     fc_3->compute(0);
@@ -171,7 +168,7 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, ExecutionConfig
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -0.622542302888418, tol);
     }
 
-//! Tests the ability of a GaussianForceCompute to handle periodic boundary conditions
+//! Tests the ability of a PotentialPairGauss to handle periodic boundary conditions
 void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfiguration exec_conf)
     {
 #ifdef CUDA
@@ -204,19 +201,25 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, ExecutionConfig
     pdata_6->release();
     
     shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<GaussianForceCompute> fc_6 = gauss_creator(sysdef_6, nlist_6, Scalar(1.3));
+    shared_ptr<PotentialPairGauss> fc_6 = gauss_creator(sysdef_6, nlist_6);
+    fc_6->setRcut(0, 0, Scalar(1.3));
+    fc_6->setRcut(0, 1, Scalar(1.3));
+    fc_6->setRcut(0, 2, Scalar(1.3));
+    fc_6->setRcut(1, 1, Scalar(1.3));
+    fc_6->setRcut(1, 2, Scalar(1.3));
+    fc_6->setRcut(2, 2, Scalar(1.3));
     
     // choose a small sigma so that all interactions are attractive
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(0.5);
     
     // make life easy: just change epsilon for the different pairs
-    fc_6->setParams(0,0,epsilon,sigma);
-    fc_6->setParams(0,1,Scalar(2.0)*epsilon,sigma);
-    fc_6->setParams(0,2,Scalar(3.0)*epsilon,sigma);
-    fc_6->setParams(1,1,Scalar(4.0)*epsilon,sigma);
-    fc_6->setParams(1,2,Scalar(5.0)*epsilon,sigma);
-    fc_6->setParams(2,2,Scalar(6.0)*epsilon,sigma);
+    fc_6->setParams(0,0,make_scalar2(epsilon,sigma));
+    fc_6->setParams(0,1,make_scalar2(Scalar(2.0)*epsilon,sigma));
+    fc_6->setParams(0,2,make_scalar2(Scalar(3.0)*epsilon,sigma));
+    fc_6->setParams(1,1,make_scalar2(Scalar(4.0)*epsilon,sigma));
+    fc_6->setParams(1,2,make_scalar2(Scalar(5.0)*epsilon,sigma));
+    fc_6->setParams(2,2,make_scalar2(Scalar(6.0)*epsilon,sigma));
     
     fc_6->compute(0);
     
@@ -276,16 +279,18 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
     
-    shared_ptr<GaussianForceCompute> fc1 = gauss_creator1(sysdef, nlist, Scalar(3.0));
-    shared_ptr<GaussianForceCompute> fc2 = gauss_creator2(sysdef, nlist, Scalar(3.0));
+    shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
+    shared_ptr<PotentialPairGauss> fc2 = gauss_creator2(sysdef, nlist);
+    fc1->setRcut(0, 0, Scalar(3.0));
+    fc2->setRcut(0, 0, Scalar(3.0));
     
     // setup some values for epsilon and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.2);
     
     // specify the force parameters
-    fc1->setParams(0,0,epsilon,sigma);
-    fc2->setParams(0,0,epsilon,sigma);
+    fc1->setParams(0,0,make_scalar2(epsilon,sigma));
+    fc2->setParams(0,0,make_scalar2(epsilon,sigma));
     
     // compute the forces
     fc1->compute(0);
@@ -321,18 +326,20 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfigura
     arrays.x[1] = Scalar(2.8); arrays.y[1] = arrays.z[1] = 0.0;
     pdata_2->release();
     shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
-    shared_ptr<GaussianForceCompute> fc_no_shift = gauss_creator(sysdef_2, nlist_2, Scalar(3.0));
-    fc_no_shift->setShiftMode(GaussianForceCompute::no_shift);
-    shared_ptr<GaussianForceCompute> fc_shift = gauss_creator(sysdef_2, nlist_2, Scalar(3.0));
-    fc_shift->setShiftMode(GaussianForceCompute::shift);
-    
+    shared_ptr<PotentialPairGauss> fc_no_shift = gauss_creator(sysdef_2, nlist_2);
+    fc_no_shift->setShiftMode(PotentialPairGauss::no_shift);
+    fc_no_shift->setRcut(0, 0, Scalar(3.0));
+    shared_ptr<PotentialPairGauss> fc_shift = gauss_creator(sysdef_2, nlist_2);
+    fc_shift->setShiftMode(PotentialPairGauss::shift);
+    fc_shift->setRcut(0, 0, Scalar(3.0));
+
     nlist_2->setStorageMode(NeighborList::full);
     
     // setup a standard epsilon and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
-    fc_no_shift->setParams(0,0,epsilon,sigma);
-    fc_shift->setParams(0,0,epsilon,sigma);
+    fc_no_shift->setParams(0,0,make_scalar2(epsilon,sigma));
+    fc_shift->setParams(0,0,make_scalar2(epsilon,sigma));
     
     fc_no_shift->compute(0);
     fc_shift->compute(0);
@@ -376,21 +383,19 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfigura
     }
 
 //! LJForceCompute creator for unit tests
-shared_ptr<GaussianForceCompute> base_class_gauss_creator(shared_ptr<SystemDefinition> sysdef,
-                                                          shared_ptr<NeighborList> nlist,
-                                                          Scalar r_cut)
+shared_ptr<PotentialPairGauss> base_class_gauss_creator(shared_ptr<SystemDefinition> sysdef,
+                                                        shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<GaussianForceCompute>(new GaussianForceCompute(sysdef, nlist, r_cut));
+    return shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
-//! GaussianForceComputeGPU creator for unit tests
-shared_ptr<GaussianForceCompute> gpu_gauss_creator(shared_ptr<SystemDefinition> sysdef,
-                                                   shared_ptr<NeighborList> nlist,
-                                                   Scalar r_cut)
+//! PotentialPairGaussGPU creator for unit tests
+shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(shared_ptr<SystemDefinition> sysdef,
+                                                    shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<GaussianForceGPU> gauss(new GaussianForceGPU(sysdef, nlist, r_cut));
+    shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist));
     // the default block size kills valgrind :) reduce it
     gauss->setBlockSize(64);
     return gauss;
@@ -400,21 +405,21 @@ shared_ptr<GaussianForceCompute> gpu_gauss_creator(shared_ptr<SystemDefinition> 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_particle )
     {
-    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
+    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
     gauss_force_particle_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_periodic )
     {
-    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
+    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
     gauss_force_periodic_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( GaussForce_shift )
     {
-    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
+    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
     gauss_force_shift_test(gauss_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
@@ -422,29 +427,29 @@ BOOST_AUTO_TEST_CASE( GaussForce_shift )
 //! boost test case for particle test on GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_particle )
     {
-    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
+    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
     gauss_force_particle_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_periodic )
     {
-    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
+    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
     gauss_force_periodic_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for shift test on GPU
 BOOST_AUTO_TEST_CASE( GaussForceGPU_shift )
     {
-    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
+    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
     gauss_force_shift_test(gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for comparing GPU output to base class output
 BOOST_AUTO_TEST_CASE( GaussForceGPU_compare )
     {
-    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2, _3);
-    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2, _3);
+    gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
+    gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
     gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 

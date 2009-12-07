@@ -55,81 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __PARTICLE_DATA_H__
 #define __PARTICLE_DATA_H__
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals.hpp>
-#include <boost/function.hpp>
-#include <boost/utility.hpp>
-
+#include "HOOMDMath.h"
 #include "GPUArray.h"
-
-// The requirements state that we need to handle both single and double precision through
-// a define
-#ifdef SINGLE_PRECISION
-//! Floating point type (single precision)
-typedef float Scalar;
-//! Floating point type with x,y elements (single precision)
-typedef float2 Scalar2;
-//! Floating point type with x,y elements (single precision)
-typedef float3 Scalar3;
-//! Floating point type with x,y,z,w elements (single precision)
-typedef float4 Scalar4;
-#else
-//! Floating point type (double precision)
-typedef double Scalar;
-//! Floating point type with x,y elements (double precision)
-typedef double2 Scalar2;
-//! Floating point type with x,y,z elements
-struct Scalar3
-    {
-    double x;   //!< x component
-    double y;   //!< y component
-    double z;   //!< z component
-    };
-//! Floating point type with x,y,z,w elements (double precision)
-struct Scalar4
-    {
-    double x;   //!< x component
-    double y;   //!< y component
-    double z;   //!< z component
-    double w;   //!< w component
-    };
-#endif
-
-//! make a scalar2 value
-inline Scalar2 make_scalar2(Scalar x, Scalar y)
-    {
-    Scalar2 retval;
-    retval.x = x;
-    retval.y = y;
-    return retval;
-    }
-
-//! make a scalar3 value
-inline Scalar3 make_scalar3(Scalar x, Scalar y, Scalar z)
-    {
-    Scalar3 retval;
-    retval.x = x;
-    retval.y = y;
-    retval.z = z;
-    return retval;
-    }
-
-//! make a scalar4 value
-inline Scalar4 make_scalar2(Scalar x, Scalar y, Scalar z, Scalar w)
-    {
-    Scalar4 retval;
-    retval.x = x;
-    retval.y = y;
-    retval.z = z;
-    retval.w = w;
-    return retval;
-    }
-
-#include <stdlib.h>
-#include <vector>
-#include <string>
-
-using namespace std;
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -137,6 +64,17 @@ using namespace std;
 #endif
 
 #include "ExecutionConfiguration.h"
+
+#include <boost/shared_ptr.hpp>
+#include <boost/signals.hpp>
+#include <boost/function.hpp>
+#include <boost/utility.hpp>
+
+#include <stdlib.h>
+#include <vector>
+#include <string>
+
+using namespace std;
 
 // windows doesn't understand __restrict__, it is __restrict instead
 #ifdef WIN32
@@ -629,6 +567,16 @@ class ParticleData : boost::noncopyable
             unsigned int result = m_arrays.type[idx];
             release();
             return result;
+            }
+
+        //! Get the current index of a particle with a given tag
+        unsigned int getRTag(unsigned int tag)
+            {
+            assert(tag < getN());
+            acquireReadOnly();
+            unsigned int idx = m_arrays.rtag[tag];
+            release();
+            return idx;
             }
 
         //! Set the current position of a particle
