@@ -509,8 +509,6 @@ endmacro()
 find_library_local_first(CUDA_CUDART_LIBRARY cudart "\"cudart\" library")
 find_library_local_first(CUDA_CUDART_EMU_LIBRARY cudartemu "\"cudartemu\" library")
 
-message(STATUS "CUDA VERSION ${CUDA_VERSION}")
-
 if (CUDA_VERSION VERSION_GREATER 2.9.9)
 if (CUDA_BUILD_EMULATION)
 set(CUDA_LIBRARIES ${CUDA_CUDART_EMU_LIBRARY})
