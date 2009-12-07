@@ -69,7 +69,7 @@ class MolFilePlugin : public FileFormatProxy
         virtual ~MolFilePlugin();
 
     protected:
-        /*! Copy constructor */
+        //! Copy constructor
         MolFilePlugin(const MolFilePlugin& proxy);
 
     private:

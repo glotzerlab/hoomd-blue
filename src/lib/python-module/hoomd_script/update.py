@@ -46,6 +46,7 @@ import hoomd;
 import globals;
 import util;
 import variant;
+import sys;
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
@@ -93,6 +94,9 @@ class _updater:
     # to the integer period and the variable period is enabled
     #
     def setupUpdater(self, period):
+        if type(period) == type(1.0):
+            period = int(period);
+        
         if type(period) == type(1):
             globals.system.addUpdater(self.cpp_updater, self.updater_name, period);
         elif type(period) == type(lambda n: n*2):
@@ -200,6 +204,9 @@ class _updater:
     # \endcode
     def set_period(self, period):
         util.print_status_line();
+        
+        if type(period) == type(1.0):
+            period = int(period);
         
         if type(period) == type(1):
             if self.enabled:

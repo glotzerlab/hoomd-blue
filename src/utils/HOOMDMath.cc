@@ -43,52 +43,62 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "GaussianForceCompute.h"
-#include "NeighborList.h"
-#include "GaussianForceGPU.cuh"
+/*! \file HOOMDMath.cc
+    \brief Defines code needed for common math operations
+ */
 
-#include <boost/shared_ptr.hpp>
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
 
-/*! \file GaussianForceGPU.h
-    \brief Declares the class GaussianForceGPU
-*/
+#include "HOOMDMath.h"
 
-#ifndef __GAUSSIANFORCEGPU_H__
-#define __GAUSSIANFORCEGPU_H__
+#include <boost/python.hpp>
+using namespace boost::python;
 
-//! Computes Gaussian forces on each particle using the GPU
-/*! Calculates the same forces as GaussianForceCompute, but on the GPU.
-
-    The GPU kernel for calculating the forces is in GaussianForceGPU.cu.
-    \ingroup computes
-*/
-class GaussianForceGPU : public GaussianForceCompute
+void export_hoomd_math_functions()
     {
-    public:
-        //! Constructs the compute
-        GaussianForceGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
-        
-        //! Destructor
-        virtual ~GaussianForceGPU();
-        
-        //! Set the parameters for a single type pair
-        virtual void setParams(unsigned int typ1, unsigned int typ2, Scalar epsilon, Scalar sigma);
-        
-        //! Sets the block size to run at
-        void setBlockSize(int block_size);
-        
-    protected:
-        vector<float2 *> d_coeffs;      //!< Pointer to the coefficients on the GPU
-        float2 * h_coeffs;              //!< Pointer to the coefficients on the host
-        int m_block_size;               //!< The block size to run on the GPU
-        bool m_ulf_workaround;          //!< Stores decision made by the constructor whether to enable the ULF workaround
-        
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+    class_<Scalar2>("Scalar2", init<>())
+        .def_readwrite("x", &Scalar2::x)
+        .def_readwrite("y", &Scalar2::y)
+        ;
+    class_<Scalar3>("Scalar3", init<>())
+        .def_readwrite("x", &Scalar3::x)
+        .def_readwrite("y", &Scalar3::y)
+        .def_readwrite("z", &Scalar3::z)
+        ;
+    class_<Scalar4>("Scalar4", init<>())
+        .def_readwrite("x", &Scalar4::x)
+        .def_readwrite("y", &Scalar4::y)
+        .def_readwrite("z", &Scalar4::z)
+        .def_readwrite("w", &Scalar4::w)
+        ;
+    class_<uint2>("uint2", init<>())
+        .def_readwrite("x", &uint2::x)
+        .def_readwrite("y", &uint2::y)
+        ;
+    class_<uint3>("uint3", init<>())
+        .def_readwrite("x", &uint3::x)
+        .def_readwrite("y", &uint3::y)
+        .def_readwrite("z", &uint3::z)
+        ;
+    class_<uint4>("uint4", init<>())
+        .def_readwrite("x", &uint4::x)
+        .def_readwrite("y", &uint4::y)
+        .def_readwrite("z", &uint4::z)
+        .def_readwrite("z", &uint4::w)
+        ;
+    
+    def("make_scalar2", &make_scalar2);
+    def("make_scalar3", &make_scalar3);
+    def("make_scalar4", &make_scalar4);
+    def("make_uint2", &make_uint2);
+    def("make_uint3", &make_uint3);
+    def("make_uint4", &make_uint4);
+    }
 
-//! Exports the GaussianForceGPU class to python
-void export_GaussianForceGPU();
-
+#ifdef WIN32
+#pragma warning( pop )
 #endif
 

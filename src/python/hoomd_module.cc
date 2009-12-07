@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
 
+#include "HOOMDMath.h"
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
@@ -74,12 +75,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HarmonicImproperForceCompute.h"
 #include "CGCMMAngleForceCompute.h"
 #include "FENEBondForceCompute.h"
-#include "LJForceCompute.h"
-//#include "YukawaForceCompute.h"
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
-#include "GaussianForceCompute.h"
 #include "LJWallForceCompute.h"
+#include "AllPairPotentials.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
@@ -115,11 +114,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPTGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
-#include "LJForceComputeGPU.h"
-//#include "YukawaForceComputeGPU.h"
 #include "CGCMMForceComputeGPU.h"
 #include "TablePotentialGPU.h"
-#include "GaussianForceGPU.h"
 #include "HarmonicBondForceComputeGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
@@ -342,6 +338,7 @@ BOOST_PYTHON_MODULE(hoomd)
     InstallSIGINTHandler();
     
     // utils
+    export_hoomd_math_functions();
     export_ClockSource();
     export_Profiler();
     
@@ -374,10 +371,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceCompute();
     export_TablePotential();
     export_FENEBondForceCompute();
-    export_LJForceCompute();
-    //export_YukawaForceCompute();
     export_CGCMMForceCompute();
-    export_GaussianForceCompute();
+    export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
+    export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
+    export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
+    export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
     export_LJWallForceCompute();
     export_TempCompute();
     export_NeighborList();
@@ -385,11 +383,12 @@ BOOST_PYTHON_MODULE(hoomd)
 #ifdef ENABLE_CUDA
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();
-    export_LJForceComputeGPU();
-//  export_YukawaForceComputeGPU();
     export_CGCMMForceComputeGPU();
+    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
+    export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
+    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
+    export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
     export_TablePotentialGPU();
-    export_GaussianForceGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
