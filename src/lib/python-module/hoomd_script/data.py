@@ -127,11 +127,35 @@ import globals
 # for p in groupA:
 #     p.velocity = (0,0,0)
 # \endcode
+#
 # <hr>
-# <b>Proxy references</b>
+# <h3>Forces</h3>
+# Forces can be accessed in a similar way. 
+# \code
+# >>> lj = pair.lj(r_cut=3.0)
+# >>> lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# >>> print lj.forces[0]
+# tag         : 0
+# force       : (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
+# virial      : -0.0931386947632
+# energy      : -0.0469368174672
+# >>> f0 = lj.forces[0]
+# >>> print f0.force
+# (-0.077489577233791351, -0.029512746259570122, -0.13215918838977814)
+# >>> print f0.virial
+# -0.0931386947632
+# >>> print f0.energy
+# -0.0469368174672
+# \endcode
+#
+# In this manner, forces due to the lj %pair %force, bonds, and any other %force commands in hoomd can be accessed
+# independantly from one another. See force_data_proxy for a definition of each parameter accessed.
+#
+# <hr>
+# <h3>Proxy references</h3>
 # 
 # For advanced code using the particle data access from python, it is important to understand that the hoomd_script
-# particles are accessed as proxies. This means that after
+# particles, forces, bonds, et cetera, are accessed as proxies. This means that after
 # \code
 # p = system.particles[i]
 # \endcode
@@ -437,16 +461,16 @@ class force_data:
     def __iter__(self):
         return force_data.force_data_iterator(self);
 
-## Access the force on a single particle via a proxy
+## Access the %force on a single particle via a proxy
 #
-# force_data_proxy provides access to the current force, virial, and energy of a single particle due to a single 
-# force compuations.
+# force_data_proxy provides access to the current %force, virial, and energy of a single particle due to a single 
+# %force compuations.
 #
 # This documentation is intentionally left sparse, see hoomd_script.data for a full explanation of how to use
 # force_data_proxy, documented by example.
 #
 # The following attributes are read only:
-# - \c force          : A 3-tuple of floats (x, y, z) listing the current force on the particle
+# - \c %force         : A 3-tuple of floats (x, y, z) listing the current %force on the particle
 # - \c virial         : A float containing the contribution of this particle to the total virial
 # - \c pe             : A float containing the contribution of this particle to the total potential energy
 #
