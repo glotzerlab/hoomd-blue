@@ -508,6 +508,9 @@ void export_ForceCompute()
     class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
     ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
     .def("acquire", &ForceCompute::acquire, return_value_policy<copy_const_reference>())
+    .def("getForce", &ForceCompute::getForce)
+    .def("getVirial", &ForceCompute::getVirial)
+    .def("getEnergy", &ForceCompute::getEnergy)
     ;
     }
 

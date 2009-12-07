@@ -67,9 +67,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "IntegratorTwoStep.h"
 
+#include "AllPairPotentials.h"
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
-#include "LJForceCompute.h"
 
 #include <math.h>
 
@@ -333,8 +333,11 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
     shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
     
-    shared_ptr<LJForceCompute> fc1(new LJForceCompute(sysdef1, nlist1, Scalar(3.0)));
-    shared_ptr<LJForceCompute> fc2(new LJForceCompute(sysdef2, nlist2, Scalar(3.0)));
+    shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
+    fc1->setRcut(0, 0, Scalar(3.0));
+    shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
+    fc2->setRcut(0, 0, Scalar(3.0));
+
     
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -344,8 +347,8 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     
     // specify the force parameters
-    fc1->setParams(0,0,lj1,lj2);
-    fc2->setParams(0,0,lj1,lj2);
+    fc1->setParams(0,0,make_scalar2(lj1,lj2));
+    fc2->setParams(0,0,make_scalar2(lj1,lj2));
     
     shared_ptr<TwoStepNVE> two_step_nve1 = nve_creator1(sysdef1, group_all1);
     shared_ptr<IntegratorTwoStep> nve1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));

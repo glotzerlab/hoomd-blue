@@ -41,30 +41,49 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
+// Maintainer: joaander / Anyone is free to add their own pair potentials here
 
-#include "ForceCompute.cuh"
-#include "NeighborList.cuh"
-#include "ParticleData.cuh"
+#ifndef __PAIR_POTENTIALS__H__
+#define __PAIR_POTENTIALS__H__
 
-/*! \file GaussianForceGPU.cuh
-    \brief Declares GPU kernel code for calculating the Lennard-Jones pair forces. Used by LJForceComputeGPU.
+#include "PotentialPair.h"
+#include "EvaluatorPairLJ.h"
+#include "EvaluatorPairGauss.h"
+#include "EvaluatorPairYukawa.h"
+#include "EvaluatorPairSLJ.h"
+
+#ifdef ENABLE_CUDA
+#include "PotentialPairGPU.h"
+#include "AllDriverPotentialPairGPU.cuh"
+#endif
+
+/*! \file AllPairPotentials.h
+    \brief Handy list of typedefs for all of the templated pair potentials in hoomd
 */
 
-#ifndef __GAUSSIANFORCEGPU_CUH__
-#define __GAUSSIANFORCEGPU_CUH__
-
-//! options struct for passing additional options to gpu_compute_lj_forces
-struct gauss_options
-    {
-    float r_cutsq;          //!< cutoff distance squared
-    int block_size;         //!< block size to execute on
-    bool ulf_workaround;    //!< Set to true to enable the ULF workaround
-    unsigned int shift_mode;//!< Shift mode for pair energy
-    };
-
-//! Kernel driver that computes gauss forces on the GPU for GaussianForceGPU
-cudaError_t gpu_compute_gauss_forces(const gpu_force_data_arrays& force_data, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, const gpu_nlist_array &nlist, float2 *d_coeffs, int coeff_width, const gauss_options& opt);
-
+#ifdef NVCC
+#error This header cannot be compiled by nvcc
 #endif
+
+//! Pair potential force compute for lj forces
+typedef PotentialPair<EvaluatorPairLJ> PotentialPairLJ;
+//! Pair potential force compute for gaussian forces
+typedef PotentialPair<EvaluatorPairGauss> PotentialPairGauss;
+//! Pair potential force compute for slj forces
+typedef PotentialPair<EvaluatorPairSLJ> PotentialPairSLJ;
+//! Pair potential force compute for yukawa forces
+typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
+
+#ifdef ENABLE_CUDA
+//! Pair potential force compute for lj forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairLJ, gpu_compute_ljtemp_forces > PotentialPairLJGPU;
+//! Pair potential force compute for gaussian forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairGauss, gpu_compute_gauss_forces > PotentialPairGaussGPU;
+//! Pair potential force compute for slj forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairSLJ, gpu_compute_slj_forces > PotentialPairSLJGPU;
+//! Pair potential force compute for yukawa forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces > PotentialPairYukawaGPU;
+#endif
+
+#endif // __PAIR_POTENTIALS_H__
 

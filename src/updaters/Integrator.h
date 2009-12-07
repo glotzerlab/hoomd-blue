@@ -114,6 +114,9 @@ class Integrator : public Updater
         //! Change the timestep
         virtual void setDeltaT(Scalar deltaT);
         
+        //! Return the timestep
+        Scalar getDeltaT();
+        
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         

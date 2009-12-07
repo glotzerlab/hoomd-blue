@@ -560,7 +560,7 @@ class pair_lj_tests (unittest.TestCase):
     # basic test of creation
     def test(self):
         lj = pair.lj(r_cut=3.0);
-        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0);
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
         lj.update_coeffs();
 
     # test missing coefficients
@@ -577,12 +577,80 @@ class pair_lj_tests (unittest.TestCase):
     # test set params
     def test_set_params(self):
         lj = pair.lj(r_cut=3.0);
-        lj.set_params(fraction=0.5);
         lj.set_params(mode="no_shift");
         lj.set_params(mode="shift");
         lj.set_params(mode="xplor");
         self.assertRaises(RuntimeError, lj.set_params, mode="blah");
     
+    # test default coefficients
+    def test_default_coeff(self):
+        lj = pair.lj(r_cut=3.0);
+        # (alpha, r_cut, and r_on are default)
+        lj.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0)
+        lj.update_coeffs()
+    
+    # test max rcut
+    def test_max_rcut(self):
+        lj = pair.lj(r_cut=2.5);
+        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
+        self.assertAlmostEqual(2.5, lj.get_max_rcut());
+        lj.pair_coeff.set('A', 'A', r_cut = 2.0)
+        self.assertAlmostEqual(2.0, lj.get_max_rcut());
+    
+    # test nlist subscribe
+    def teat_nlist_subscribe(self):
+        lj = pair.lj(r_cut=2.5);
+        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        
+        lj.pair_coeff.set('A', 'A', r_cut = 2.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
+    
+    def tearDown(self):
+        globals._clear();
+
+# pair - multiple type max_rcut test
+class pair_max_rcut_tests (unittest.TestCase):
+    def setUp(self):
+        print
+        init.create_empty(N=1000, box=(20,20,20), n_particle_types=2);
+
+    def test_max_rcut(self):
+        lj = pair.lj(r_cut=2.5);
+        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
+        lj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0)
+        lj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0)
+        self.assertAlmostEqual(2.5, lj.get_max_rcut());
+        lj.pair_coeff.set('A', 'A', r_cut = 2.0)
+        self.assertAlmostEqual(2.5, lj.get_max_rcut());
+        lj.pair_coeff.set('A', 'B', r_cut = 3.0)
+        self.assertAlmostEqual(3.0, lj.get_max_rcut());
+        lj.pair_coeff.set('B', 'B', r_cut = 3.5)
+        self.assertAlmostEqual(3.5, lj.get_max_rcut());
+
+    def test_nlist_subscribe(self):
+        lj = pair.lj(r_cut=2.5);
+        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=3.0)
+        lj.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0, r_cut=2.5)
+        lj.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=3.1)
+        
+        globals.neighbor_list.update_rcut()
+        self.assertAlmostEqual(3.1, globals.neighbor_list.r_cut);
+        
+        gauss = pair.gauss(r_cut=1.0)
+        gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0, r_cut=1.0)
+        gauss.pair_coeff.set('A', 'B', simga=1.0, epsilon=1.0, r_cut=2.0)
+        gauss.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=5.1)
+
+        globals.neighbor_list.update_rcut()
+        self.assertAlmostEqual(5.1, globals.neighbor_list.r_cut);
+
+        gauss.pair_coeff.set('B', 'B', simga=1.0, epsilon=1.0, r_cut=1.0)
+        run(1)
+        self.assertAlmostEqual(3.1, globals.neighbor_list.r_cut);
+
     def tearDown(self):
         globals._clear();
 
@@ -608,7 +676,19 @@ class pair_table_tests (unittest.TestCase):
     def test_missing_AA(self):
         table = pair.table(width=1000);
         self.assertRaises(RuntimeError, table.update_coeffs);
-    
+
+    # test nlist subscribe
+    def teat_nlist_subscribe(self):
+        table = pair.table(width=1000);
+        table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
+        table.update_coeffs();
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(1.0, globals.neighbor_list.r_cut);
+        
+        table.pair_coeff.set('A', 'A', rmax = 2.5)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+
     def tearDown(self):
         globals._clear();
 
@@ -640,8 +720,76 @@ class pair_gauss_tests (unittest.TestCase):
         gauss = pair.gauss(r_cut=3.0);
         gauss.set_params(mode="no_shift");
         gauss.set_params(mode="shift");
+        gauss.set_params(mode="xplor");
         self.assertRaises(RuntimeError, gauss.set_params, mode="blah");
+
+    # test nlist subscribe
+    def teat_nlist_subscribe(self):
+        gauss = pair.gauss(r_cut=2.5);
+        gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        
+        gauss.pair_coeff.set('A', 'A', r_cut = 2.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
     
+    def tearDown(self):
+        globals._clear();
+
+# pair.slj
+class pair_slj_tests (unittest.TestCase):
+    def setUp(self):
+        print
+        init.create_random(N=1000, phi_p=0.05);
+        
+    # basic test of creation
+    def test(self):
+        lj = pair.slj(r_cut=3.0, d_max=2.0);
+        lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, r_cut=2.5);
+        lj.update_coeffs();
+
+    # test missing coefficients
+    def test_set_missing_epsilon(self):
+        lj = pair.slj(r_cut=3.0, d_max=2.0);
+        lj.pair_coeff.set('A', 'A', sigma=1.0);
+        self.assertRaises(RuntimeError, lj.update_coeffs);
+        
+    # test missing coefficients
+    def test_missing_AA(self):
+        lj = pair.slj(r_cut=3.0, d_max=2.0);
+        self.assertRaises(RuntimeError, lj.update_coeffs);
+    
+    # test set params
+    def test_set_params(self):
+        lj = pair.slj(r_cut=3.0, d_max=2.0);
+        lj.set_params(mode="no_shift");
+        lj.set_params(mode="shift");
+        self.assertRaises(RuntimeError, lj.set_params, mode="xplor");
+        self.assertRaises(RuntimeError, lj.set_params, mode="blah");
+    
+    # test default coefficients
+    def test_default_coeff(self):
+        lj = pair.slj(r_cut=3.0, d_max=2.0);
+        # (r_cut, and r_on are default)
+        lj.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0)
+        lj.update_coeffs()
+    
+    # test nlist subscribe
+    def teat_nlist_subscribe(self):
+        lj = pair.lj(r_cut=2.5, d_max=2.0);
+        lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(3.5, globals.neighbor_list.r_cut);
+        
+        lj.pair_coeff.set('A', 'A', r_cut = 2.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(3.0, globals.neighbor_list.r_cut);
+        
+        lj.set_params(d_max=3.0);
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(4.0, globals.neighbor_list.r_cut);
+        
     def tearDown(self):
         globals._clear();
 
@@ -667,10 +815,61 @@ class pair_cgcmm_tests (unittest.TestCase):
     def test_missing_AA(self):
         cgcmm = pair.cgcmm(r_cut=3.0);
         self.assertRaises(RuntimeError, cgcmm.update_coeffs);
+
+   # test nlist subscribe
+    def teat_nlist_subscribe(self):
+        gauss = pair.gauss(r_cut=2.5);
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+
+    def tearDown(self):
+        globals._clear();
+
+# pair.yukawa
+class pair_yukawa_tests (unittest.TestCase):
+    def setUp(self):
+        print
+        init.create_random(N=1000, phi_p=0.05);
+        
+    # basic test of creation
+    def test(self):
+        yuk = pair.yukawa(r_cut=3.0);
+        yuk.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0);
+        yuk.update_coeffs();
+
+    # test missing coefficients
+    def test_set_missing_epsilon(self):
+        yuk = pair.gauss(r_cut=3.0);
+        yuk.pair_coeff.set('A', 'A', kappa=1.0);
+        self.assertRaises(RuntimeError, yuk.update_coeffs);
+        
+    # test missing coefficients
+    def test_missing_AA(self):
+        yuk = pair.yukawa(r_cut=3.0);
+        self.assertRaises(RuntimeError, yuk.update_coeffs);
+    
+    # test set params
+    def test_set_params(self):
+        yuk = pair.gauss(r_cut=3.0);
+        yuk.set_params(mode="no_shift");
+        yuk.set_params(mode="shift");
+        yuk.set_params(mode="xplor");
+        self.assertRaises(RuntimeError, yuk.set_params, mode="blah");
+
+    # test nlist subscribe
+    def teat_nlist_subscribe(self):
+        yuk = pair.yukawa(r_cut=2.5);
+        gauss.pair_coeff.set('A', 'A', simga=1.0, kappa=1.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
+        
+        yuk.pair_coeff.set('A', 'A', r_cut = 2.0)
+        globals.neighbor_list.update_rcut();
+        self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
     
     def tearDown(self):
         globals._clear();
-        
+
 # tests force.constant
 class force_constant_tests (unittest.TestCase):
     def setUp(self):

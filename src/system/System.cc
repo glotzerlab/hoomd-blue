@@ -71,7 +71,8 @@ using namespace std;
 */
 System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
         : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep),
-        m_last_status_time(0), m_last_status_tstep(initial_tstep), m_profile(false), m_stats_period(10)
+        m_last_status_time(0), m_last_status_tstep(initial_tstep), m_quiet_run(false),
+        m_profile(false), m_stats_period(10)
     {
     // sanity check
     assert(m_sysdef);
@@ -450,7 +451,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         }
         
     // generate a final status line
-    generateStatusLine();
+    if (!m_quiet_run)
+        generateStatusLine();
     m_last_status_tstep = m_cur_tstep;
     
     // execute python callback, if present and needed
@@ -461,14 +463,17 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         
     // calculate averate TPS
     Scalar TPS = Scalar(m_cur_tstep - m_start_tstep) / Scalar(m_clk.getTime() - initial_time) * Scalar(1e9);
-    cout << "Average TPS: " << TPS << endl;
+    if (!m_quiet_run)
+        cout << "Average TPS: " << TPS << endl;
     m_last_TPS = TPS;
     
     // write out the profile data
     if (m_profiler)
         cout << *m_profiler;
         
-    printStats();
+    if (!m_quiet_run)
+        printStats();
+        
     }
 
 /*! \param enable Set to true to enable profiling during calls to run()

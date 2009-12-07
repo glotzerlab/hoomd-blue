@@ -103,6 +103,13 @@ void Integrator::setDeltaT(Scalar deltaT)
     m_deltaT = deltaT;
     }
 
+/*! \return the timestep deltaT
+*/
+Scalar Integrator::getDeltaT()
+    {
+    return m_deltaT;
+    }
+
 /*! The base class Integrator provides all of the common logged quantities. This is the most convenient and
     sensible place to put it because most of the common quantities are computed by the various integrators.
     That, and there must be an integrator in any sensible simulation.

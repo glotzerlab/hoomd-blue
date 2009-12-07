@@ -62,6 +62,7 @@ set(TEST_LIST
     lj_force_test
     shiftedlj_force_test
     gaussian_force_test
+    yukawa_force_test
     cgcmm_force_test
     table_potential
     nve_updater_test

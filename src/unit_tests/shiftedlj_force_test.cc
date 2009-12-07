@@ -51,7 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 //! Name the unit test module
-#define BOOST_TEST_MODULE ShiftedLJForceTests
+#define BOOST_TEST_MODULE PotentialPairSLJTests
 #include "boost_utf_configure.h"
 
 #include <boost/test/floating_point_comparison.hpp>
@@ -59,11 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "LJForceCompute.h"
-
-#ifdef ENABLE_CUDA
-#include "LJForceComputeGPU.h"
-#endif
+#include "AllPairPotentials.h"
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
@@ -74,7 +70,7 @@ using namespace std;
 using namespace boost;
 
 /*! \file shiftedlj_force_test.cc
-    \brief Implements unit tests for ShiftedLJForceCompute and descendants
+    \brief Implements unit tests for PotentialPairSLJ and descendants
     \ingroup unit_tests
 */
 
@@ -90,15 +86,14 @@ const Scalar tol = Scalar(2);
 const Scalar tol = 1e-6;
 #endif
 
-//! Typedef'd ShiftedLJForceCompute factory
-typedef boost::function<shared_ptr<LJForceCompute> (shared_ptr<SystemDefinition> sysdef,
-                                                    shared_ptr<NeighborList> nlist,
-                                                    Scalar r_cut)> shiftedljforce_creator;
+//! Typedef'd PotentialPairSLJ factory
+typedef boost::function<shared_ptr<PotentialPairSLJ> (shared_ptr<SystemDefinition> sysdef,
+                                                      shared_ptr<NeighborList> nlist)> shiftedljforce_creator;
 
 //! Test the ability of the shiftedlj force compute to actually calucate forces
 void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -128,9 +123,8 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
     Scalar r_cut_wc = r_cut + 2 * r_alpha;
     pdata_3->release();
     shared_ptr<NeighborList> nlist_3(new NeighborList(sysdef_3, r_cut_wc, Scalar(3.0)));
-    shared_ptr<LJForceCompute> fc_3 = shiftedlj_creator(sysdef_3, nlist_3, r_cut);
-    fc_3->setSLJ(true);
-    
+    shared_ptr<PotentialPairSLJ> fc_3 = shiftedlj_creator(sysdef_3, nlist_3);
+    fc_3->setRcut(0, 0, r_cut);
     
     // first test: setup a sigma of 1.0 so that all forces will be 0
     Scalar epsilon = Scalar(1.15);
@@ -138,7 +132,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
     Scalar alpha = Scalar(1.0);
     Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_3->setParams(0,0,shiftedlj1,shiftedlj2);
+    fc_3->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
     
     // compute the forces
     fc_3->compute(0);
@@ -167,7 +161,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
     alpha = Scalar(0.45);
     shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc_3->setParams(0,0,shiftedlj1,shiftedlj2);
+    fc_3->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
     fc_3->compute(1);
     
     force_arrays = fc_3->acquire();
@@ -215,7 +209,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
 //! Tests the ability of a ShiftedLJForceCompute to handle periodic boundary conditions.  Also intentionally place a particle outside the cutoff of normally size particle but in the cutoff of a large particle
 void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -255,9 +249,13 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, Exe
     pdata_6->release();
     
     shared_ptr<NeighborList> nlist_6(new NeighborList(sysdef_6, r_cut_wc, Scalar(3.0)));
-    shared_ptr<LJForceCompute> fc_6 = shiftedlj_creator(sysdef_6, nlist_6, r_cut);
-    fc_6->setSLJ(true);
-    
+    shared_ptr<PotentialPairSLJ> fc_6 = shiftedlj_creator(sysdef_6, nlist_6);
+    fc_6->setRcut(0, 0, r_cut);
+    fc_6->setRcut(0, 1, r_cut);
+    fc_6->setRcut(0, 2, r_cut);
+    fc_6->setRcut(1, 1, r_cut);
+    fc_6->setRcut(1, 2, r_cut);
+    fc_6->setRcut(2, 2, r_cut);
     
     // choose a small sigma so that all interactions are attractive
     Scalar epsilon = Scalar(1.0);
@@ -267,12 +265,12 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, Exe
     Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
     
     // make life easy: just change epsilon for the different pairs
-    fc_6->setParams(0,0,shiftedlj1,shiftedlj2);
-    fc_6->setParams(0,1,Scalar(2.0)*shiftedlj1,Scalar(2.0)*shiftedlj2);
-    fc_6->setParams(0,2,Scalar(3.0)*shiftedlj1,Scalar(3.0)*shiftedlj2);
-    fc_6->setParams(1,1,Scalar(4.0)*shiftedlj1,Scalar(4.0)*shiftedlj2);
-    fc_6->setParams(1,2,Scalar(5.0)*shiftedlj1,Scalar(5.0)*shiftedlj2);
-    fc_6->setParams(2,2,Scalar(6.0)*shiftedlj1,Scalar(6.0)*shiftedlj2);
+    fc_6->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
+    fc_6->setParams(0,1,make_scalar2(Scalar(2.0)*shiftedlj1,Scalar(2.0)*shiftedlj2));
+    fc_6->setParams(0,2,make_scalar2(Scalar(3.0)*shiftedlj1,Scalar(3.0)*shiftedlj2));
+    fc_6->setParams(1,1,make_scalar2(Scalar(4.0)*shiftedlj1,Scalar(4.0)*shiftedlj2));
+    fc_6->setParams(1,2,make_scalar2(Scalar(5.0)*shiftedlj1,Scalar(5.0)*shiftedlj2));
+    fc_6->setParams(2,2,make_scalar2(Scalar(6.0)*shiftedlj1,Scalar(6.0)*shiftedlj2));
     
     fc_6->compute(0);
     
@@ -319,7 +317,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
                                      shiftedljforce_creator shiftedlj_creator2,
                                      ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -332,21 +330,21 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
     
-    shared_ptr<LJForceCompute> fc1 = shiftedlj_creator1(sysdef, nlist, Scalar(3.0));
-    shared_ptr<LJForceCompute> fc2 = shiftedlj_creator2(sysdef, nlist, Scalar(3.0));
-    
+    shared_ptr<PotentialPairSLJ> fc1 = shiftedlj_creator1(sysdef, nlist);
+    shared_ptr<PotentialPairSLJ> fc2 = shiftedlj_creator2(sysdef, nlist);
+    fc1->setRcut(0, 0, Scalar(3.0));
+    fc2->setRcut(0, 0, Scalar(3.0));
+        
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.2);
     Scalar alpha = Scalar(0.45);
     Scalar shiftedlj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar shiftedlj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc1->setSLJ(true);
-    fc2->setSLJ(true);
     
     // specify the force parameters
-    fc1->setParams(0,0,shiftedlj1,shiftedlj2);
-    fc2->setParams(0,0,shiftedlj1,shiftedlj2);
+    fc1->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
+    fc2->setParams(0,0,make_scalar2(shiftedlj1,shiftedlj2));
     
     // compute the forces
     fc1->compute(0);
@@ -366,23 +364,20 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
         }
     }
 
-//! ShiftedLJForceCompute creator for unit tests
-shared_ptr<LJForceCompute> base_class_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef,
-                                                        shared_ptr<NeighborList> nlist,
-                                                        Scalar r_cut)
+//! PotentialPairSLJ creator for unit tests
+shared_ptr<PotentialPairSLJ> base_class_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef,
+                                                          shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<LJForceCompute>(new LJForceCompute(sysdef, nlist, r_cut));
+    return shared_ptr<PotentialPairSLJ>(new PotentialPairSLJ(sysdef, nlist));
     }
 
-
 #ifdef ENABLE_CUDA
-//! LJForceComputeGPU creator for unit tests
-shared_ptr<LJForceCompute> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef,
-                                                 shared_ptr<NeighborList> nlist,
-                                                 Scalar r_cut)
+//! PotentialPairSLJGPU creator for unit tests
+shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef,
+                                                   shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<LJForceComputeGPU> lj(new LJForceComputeGPU(sysdef, nlist, r_cut));
+    shared_ptr<PotentialPairSLJGPU> lj(new PotentialPairSLJGPU(sysdef, nlist));
     // the default block size kills valgrind :) reduce it
     lj->setBlockSize(64);
     return lj;
@@ -390,42 +385,44 @@ shared_ptr<LJForceCompute> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> sy
 #endif
 
 //! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( ShiftedLJForce_particle )
+BOOST_AUTO_TEST_CASE( SLJForce_particle )
     {
-    shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
+    shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
     shiftedlj_force_particle_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 //! boost test case for periodic test on CPU
-BOOST_AUTO_TEST_CASE( ShiftedLJForce_periodic )
+BOOST_AUTO_TEST_CASE( SLJForce_periodic )
     {
-    shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
+    shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
     shiftedlj_force_periodic_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 
 # ifdef ENABLE_CUDA
 //! boost test case for particle test on CPU - threaded
-BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_particle )
+BOOST_AUTO_TEST_CASE( SLJForceGPU_particle )
     {
-    shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);
+    shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
     shiftedlj_force_particle_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 
 //! boost test case for periodic test on the GPU
-BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_periodic )
+BOOST_AUTO_TEST_CASE( SLJForceGPU_periodic )
     {
-    shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);
+    shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
     shiftedlj_force_periodic_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for comparing GPU output to base class output
-BOOST_AUTO_TEST_CASE( ShiftedLJForceGPU_compare )
+BOOST_AUTO_TEST_CASE( SLJForceGPU_compare )
     {
-    shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2, _3);
-    shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2, _3);
-    shiftedlj_force_comparison_test(shiftedlj_creator_base, shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
+    shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
+    shiftedlj_force_comparison_test(shiftedlj_creator_base,
+                                    shiftedlj_creator_gpu,
+                                    ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 #endif

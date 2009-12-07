@@ -67,7 +67,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
-#include "LJForceCompute.h"
+#include "AllPairPotentials.h"
 
 #include <math.h>
 
@@ -537,14 +537,15 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfigurat
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<LJForceCompute> fc3(new LJForceCompute(sysdef, nlist, Scalar(1.3)));
+    shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist));
+    fc3->setRcut(0, 0, Scalar(1.3));
     
     Scalar epsilon = Scalar(1.15);
     Scalar sigma = Scalar(1.0);
     Scalar alpha = Scalar(1.0);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc3->setParams(0,0,lj1,lj2);
+    fc3->setParams(0,0,make_scalar2(lj1,lj2));
     bdnvt_up->addForceCompute(fc3);
     
     int i;

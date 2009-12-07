@@ -416,7 +416,10 @@ const ParticleDataArraysConst & ParticleData::acquireReadOnly()
             return m_arrays_const;
             break;
         }
-        
+    
+    // should never get here, but the compiler cannot seem to tell that
+    assert(false);
+    return m_arrays_const;
 #else
     // this is just a simple CPU implementation, no graphics card involved.
     // So, just return the data arrays
@@ -467,6 +470,10 @@ const ParticleDataArrays & ParticleData::acquireReadWrite()
             return m_arrays;
             break;
         }
+
+    // should never get here, but the compiler cannot seem to tell that
+    assert(false);
+    return m_arrays;
 #else
     // this is just a simple CPU implementation, no graphics card involved.
     // So, just return the data arrays
@@ -1335,17 +1342,6 @@ void export_ParticleData()
     .def("setBody", &ParticleData::setBody)
     .def("setType", &ParticleData::setType)
     ;
-    
-    class_<Scalar3>("Scalar3", init<>())
-        .def_readwrite("x", &Scalar3::x)
-        .def_readwrite("y", &Scalar3::y)
-        .def_readwrite("z", &Scalar3::z)
-        ;
-    class_<uint3>("uint3", init<>())
-        .def_readwrite("x", &uint3::x)
-        .def_readwrite("y", &uint3::y)
-        .def_readwrite("z", &uint3::z)
-        ;
     }
 
 #ifdef WIN32
