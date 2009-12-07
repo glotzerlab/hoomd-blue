@@ -5,11 +5,16 @@ sysdef = init.create_empty(N=2, box = (20, 20, 20))
 rmin = 0.5
 rmax = 5.0
 dr = 0.001
+p0 = sysdef.particles[0]
+p0.diameter = 2.0
+sysdef.particles[1].diameter = 2.0
 
 # pair potential settings for the plot
-lj = pair.lj(r_cut=2.5)
-lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
-#lj.set_params(mode='shift')
+f = pair.lj(r_cut=2.5)
+f.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+
+# save forces for accessing below for plots
+forces = f.forces;
 
 ###########################################
 ## Do a run with the 2 paritlces, moving particle 1 a bit each time
@@ -29,12 +34,9 @@ nsteps = int((rmax - rmin) / dr);
 integrate.mode_standard(dt=1.0)
 integrate.nve(group=group.all(), zero_force=True)
 
-# log the potential energy
-logger = analyze.log(quantities=['potential_energy'], period=1, filename='full.log')
-
 f = open('potential', 'w')
 
 for i in xrange(0, nsteps):
     run(1)
-    f.write("%f\t%f\n" % (p1.position[0], logger.query('potential_energy')))
+    f.write("%f\t%f\t%f\n" % (p1.position[0], forces[1].force[0], 2.0 * forces[0].energy))
 

@@ -46,6 +46,7 @@ import globals;
 import sys;
 import hoomd;
 import util;
+import data;
 
 ## \package hoomd_script.force
 # \brief Other types of forces
@@ -81,6 +82,9 @@ class _force:
         self.force_name = "force%d" % (id);
         self.enabled = True;
         globals.forces.append(self);
+        
+        # create force data iterator
+        self.forces = data.force_data(self);
 
     ## \var enabled
     # \internal

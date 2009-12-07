@@ -43,6 +43,7 @@
 # Maintainer: joaander
 
 import hoomd
+import globals
 
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
@@ -456,7 +457,7 @@ class force_data_proxy:
     # \param force ForceCompute to which this proxy belongs
     # \param tag Tag of this particle in \a force
     def __init__(self, force, tag):
-        self.pdata = force;
+        self.fdata = force;
         self.tag = tag;
     
     ## \internal
@@ -473,13 +474,13 @@ class force_data_proxy:
     # \brief Translate attribute accesses into the low level API function calls
     def __getattr__(self, name):
         if name == "force":
-            f = self.force.getForce(self.tag);
+            f = self.fdata.cpp_force.getForce(self.tag);
             return (f.x, f.y, f.z);
         if name == "virial":
-            return self.force.getVirial(self.tag);
+            return self.fdata.cpp_force.getVirial(self.tag);
         if name == "energy":
-            accel = self.pdata.getEnergy(self.tag);
-            return (accel.x, accel.y, accel.z);
+            energy = self.fdata.cpp_force.getEnergy(self.tag);
+            return energy;
         
         # if we get here, we haven't found any names that match, post an error
         raise AttributeError;
