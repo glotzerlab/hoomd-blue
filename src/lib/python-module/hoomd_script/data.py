@@ -65,7 +65,24 @@ import globals
 # \code
 # system = init.read_xml(filename="input.xml")
 # \endcode
-# 
+#
+# <hr>
+# <h3>Getting/setting the number of dimensions</h3>
+# You can get the number of dimensions of the system like so:
+# \code
+# >>> print s.dimensions
+# 2
+# \endcode
+# and can change it like so:
+# \code
+# >>> s.dimensions = 3
+# >>> print s.dimensions
+# 3
+# \endcode
+#
+# \b Note: To properly initialize a 2D system, you must set dimensions=2 <b>PRIOR TO</b> any other hoomd call (such
+# as pair, integrate, et cetera. Otherwise, the setting may not take effect.
+# <hr>
 # <h3>Particle properties</h3>
 # For a list of all particle properties that can be read and/or set, see the particle_data_proxy. The examples
 # here only demonstrate changing a few of them.
@@ -206,6 +223,24 @@ class system_data:
     ## \var sysdef
     # \internal
     # \brief SystemDefinition to which this instance is connected
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __setattr__(self, name, value):
+        if name == "dimensions":
+            self.sysdef.setNDimensions(value);
+ 
+        # otherwise, consider this an internal attribute to be set in the normal way
+        self.__dict__[name] = value;
+
+    ## \internal
+    # \brief Translate attribute accesses into the low level API function calls
+    def __getattr__(self, name):
+        if name == "dimensions":
+            return self.sysdef.getNDimensions();
+        
+        # if we get here, we haven't found any names that match, post an error
+        raise AttributeError;
 
 ## Access particle data
 #

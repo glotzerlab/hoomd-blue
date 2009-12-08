@@ -1262,7 +1262,8 @@ class update_zero_momentum_tests (unittest.TestCase):
 class update_enforce2d_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        s = init.create_random(N=100, phi_p=0.05);
+        s.dimensions = 2
 
     # tests basic creation of the updater
     def test(self):
