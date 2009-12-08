@@ -418,7 +418,7 @@ integrate.nve(group=group.all(), zero_force=True)
 f = open('potential', 'w')
 
 for i in xrange(0, nsteps):
-    run(1)
+    run(1, quiet=True)
     f.write("%f\t%f\t%f\n" % (p1.position[0], forces[1].force[0], 2.0 * forces[0].energy))
 \endcode
 
