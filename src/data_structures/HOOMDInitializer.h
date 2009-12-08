@@ -141,8 +141,6 @@ class HOOMDInitializer : public ParticleDataInitializer
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);
-        //! Helper function to parse the dimension node
-        void parseDimensionNode(const XMLNode& node);
         //! Helper function to parse the box node
         void parseBoxNode(const XMLNode& node);
         //! Helper function to parse the position node

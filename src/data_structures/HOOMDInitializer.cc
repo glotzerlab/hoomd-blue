@@ -91,7 +91,6 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     m_num_dimensions = 3;
     
     // initialize the parser map
-    m_parser_map["dimension"] = bind(&HOOMDInitializer::parseDimensionNode, this, _1);
     m_parser_map["box"] = bind(&HOOMDInitializer::parseBoxNode, this, _1);
     m_parser_map["position"] = bind(&HOOMDInitializer::parsePositionNode, this, _1);
     m_parser_map["image"] = bind(&HOOMDInitializer::parseImageNode, this, _1);
@@ -315,6 +314,14 @@ void HOOMDInitializer::readFile(const string &fname)
         {
         m_timestep = atoi(configuration_node.getAttribute("time_step"));
         }
+    
+    // extract the number of dimensions, or default to 3
+    if (configuration_node.isAttributeSet("dimensions"))
+        {
+        m_num_dimensions = atoi(configuration_node.getAttribute("dimensions"));
+        }
+    else
+        m_num_dimensions = 3;
         
     // loop through all child nodes of the configuration
     for (int cur_node=0; cur_node < configuration_node.nChildNode(); cur_node++)
@@ -409,30 +416,6 @@ void HOOMDInitializer::readFile(const string &fname)
     if (m_walls.size() > 0)
         cout << m_walls.size() << " walls" << endl;
     }
-
-/*! \param node XMLNode passed from the top level parser in readFile
-    This function extracts all of the information in the attributes of the \b dimensions node
-*/
-void HOOMDInitializer::parseDimensionNode(const XMLNode &node)
-    {
-    // first, verify that this is the box node
-    string name = node.getName();
-    transform(name.begin(), name.end(), name.begin(), ::tolower);
-    assert(name == string("dimension"));
-    
-    istringstream parser;
-    if (node.getText())
-        {
-        parser.str(node.getText());
-        parser >> m_num_dimensions;
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found dimension node with no text. Possible typo." << endl;
-        }    
-     }
-
 
 /*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the information in the attributes of the \b box node
