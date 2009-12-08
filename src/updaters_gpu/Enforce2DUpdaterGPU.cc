@@ -99,6 +99,9 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
     exec_conf.syncAll();
                         
     m_pdata->release();
+    
+    if (m_prof)
+        m_prof->pop(exec_conf, "Enforce2D");
     }
 
 void export_Enforce2DUpdaterGPU()
