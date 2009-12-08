@@ -55,6 +55,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "boost_utf_configure.h"
 
 #include <boost/test/floating_point_comparison.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "Enforce2DUpdater.h"
@@ -65,7 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "TwoStepNVEGPU.h"
-#include "LJForceComputeGPU.h"
 #include "BinnedNeighborListGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #endif
@@ -147,30 +148,30 @@ BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
     nve_up->addIntegrationMethod(two_step_nve);
     
 #ifdef ENABLE_CUDA
-	shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
-	nlist->setStorageMode(NeighborList::full);
+    shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
+    nlist->setStorageMode(NeighborList::full);
 #else
-	shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), 
-Scalar(0.3)));
-	nlist->setStorageMode(NeighborList::half);
+    shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
+    nlist->setStorageMode(NeighborList::half);
 #endif
 
 #ifdef ENABLE_CUDA
-	shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
+    shared_ptr<PotentialPairLJGPU> fc(new PotentialPairLJGPU(sysdef, nlist));
 #else
-	shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
 #endif
 
-	// setup some values for alpha and sigma
-	Scalar epsilon = Scalar(1.0);
-	Scalar sigma = Scalar(1.0);
-	Scalar alpha = Scalar(1.0);
-	Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-	Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+    // setup some values for alpha and sigma
+    Scalar epsilon = Scalar(1.0);
+    Scalar sigma = Scalar(1.0);
+    Scalar alpha = Scalar(1.0);
+    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 	
-	// specify the force parameters
-	fc->setParams(0,0,lj1,lj2);
-	fc->setShiftMode(LJForceCompute::shift);
+    // specify the force parameters
+    fc->setParams(0,0,make_scalar2(lj1,lj2));
+    fc->setRcut(0,0,Scalar(2.5));
+    fc->setShiftMode(PotentialPairLJ::shift);
 
     nve_up->addForceCompute(fc);
 
