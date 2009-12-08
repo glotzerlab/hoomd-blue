@@ -86,19 +86,19 @@ using namespace boost;
     \ingroup unit_tests
 */
 
+//! Typedef'd Enforce2DUpdater factory
+typedef boost::function<shared_ptr<Enforce2DUpdater> (shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
+
 //! boost test case to verify proper operation of Enforce2DUpdater
-BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
+void enforce2d_basic_test(enforce2d_creator creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
 
     BoxDim box(10.0, 10.0, 1.0);
-#ifdef ENABLE_CUDA    
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, ExecutionConfiguration(ExecutionConfiguration::GPU)));
-#else    
-    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, ExecutionConfiguration(ExecutionConfiguration::CPU)));
-#endif
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
+
     sysdef->setNDimensions(2);
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
@@ -124,29 +124,16 @@ BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
         
     pdata->release();
     
-#ifdef ENABLE_CUDA
-    shared_ptr<TwoStepNVEGPU> two_step_nve(new TwoStepNVEGPU(sysdef, group_all));
-#else
     shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef, group_all));
-#endif
         
     Scalar deltaT = Scalar(0.005);
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
     
-#ifdef ENABLE_CUDA
-    shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
-    nlist->setStorageMode(NeighborList::full);
-#else
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
     nlist->setStorageMode(NeighborList::half);
-#endif
 
-#ifdef ENABLE_CUDA
-    shared_ptr<PotentialPairLJGPU> fc(new PotentialPairLJGPU(sysdef, nlist));
-#else
     shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
-#endif
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -202,11 +189,7 @@ BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
             
     pdata->release();
 
-#ifdef ENABLE_CUDA
-    shared_ptr<Enforce2DUpdaterGPU> enforce2d(new Enforce2DUpdaterGPU(sysdef));
-#else
-    shared_ptr<Enforce2DUpdater> enforce2d(new Enforce2DUpdater(sysdef));
-#endif
+    shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
      
     // verify that the atoms never leave the xy plane if contstraint is present:
     for (int t = 0; t < 1000; t++)
@@ -235,6 +218,36 @@ BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
     MY_BOOST_CHECK_CLOSE(total_deviation, 0.0, tol);
 
     }
+
+//! Enforce2DUpdater creator for unit tests
+shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(shared_ptr<SystemDefinition> sysdef)
+    {
+    return shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
+    }
+
+#ifdef ENABLE_CUDA
+//! Enforce2DUpdaterGPU creator for unit tests
+shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(shared_ptr<SystemDefinition> sysdef)
+    {
+    return shared_ptr<Enforce2DUpdater>(new Enforce2DUpdaterGPU(sysdef));
+    }
+#endif
+
+//! boost test case for basic enforce2d tests
+BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
+    {
+    enforce2d_creator creator = bind(base_class_enforce2d_creator, _1);
+   enforce2d_basic_test(creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    }
+    
+#ifdef ENABLE_CUDA
+//! boost test case for basic enforce2d tests
+BOOST_AUTO_TEST_CASE( Enforce2DUpdaterGPU_basic )
+    {
+    enforce2d_creator creator = bind(gpu_enforce2d_creator, _1);
+    enforce2d_basic_test(creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    }
+#endif
     
 #ifdef WIN32
 #pragma warning( pop )
