@@ -69,7 +69,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool gamma_diam)
-    : TwoStepNVE(sysdef, group), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
+    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
     {
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();

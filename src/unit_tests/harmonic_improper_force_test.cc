@@ -48,11 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE ImproperForceTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -69,17 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Global tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-1);
-#else
-const Scalar tol = 1e-2;
-#endif
+//! Name the boost unit test module
+#define BOOST_TEST_MODULE ImproperForceTests
+#include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<shared_ptr<HarmonicImproperForceCompute>  (shared_ptr<SystemDefinition> sysdef)> improperforce_creator;
@@ -87,7 +74,7 @@ typedef boost::function<shared_ptr<HarmonicImproperForceCompute>  (shared_ptr<Sy
 //! Perform some simple functionality tests of any BondForceCompute
 void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -150,7 +137,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
     
     // this time there should be a force
     force_arrays = fc_4->acquire();
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.5*0.024609, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.5*0.0246093274, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], -0.5*0.178418, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.5*0.221484, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.5*0.158927, tol);
@@ -170,7 +157,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
     
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -0.5*0.040832, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], 0.5*0.000579173, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0.5*0.029827, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0.5*0.029827416, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.5*0.158927, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
     
@@ -196,7 +183,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
     
     force_arrays = fc_4->acquire();
     
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.5*0.024609, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.5*0.0246093274, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], -0.5*0.178418, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.5*0.221484, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.5*0.158927, tol);
@@ -346,14 +333,14 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
     force_arrays = fc_5->acquire();
     
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], 0.5*0.304428, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0.5*0.01411824,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.5*0.504956,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[0], 0.5*0.0141169504,loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[0], -0.5*0.504949928,tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.5*1.285859, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
     
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.5*0.006890, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0.5*0.013229,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.5*0.274493,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.5*0.00688943266, loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 0.5*0.013229,loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[1], -0.5*0.274493,loose_tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.5*1.285859, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[1], tol);
     
@@ -368,21 +355,21 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
      Energy: 5 = 0.397447
     
     */
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -0.5*0.175244, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -0.5*0.158713,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0.5*0.622154,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[2], -0.5*0.175244, loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[2], -0.5*0.158713,loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[2], 0.5*0.622154,loose_tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[2], 0.5*0.888413, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
     
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -0.5*0.035541, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.5*0.035200,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0.5*0.134787,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.5*1.285859, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], -0.5*0.035541, loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.5*0.035200,loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], 0.5*0.134787,loose_tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.5*1.285859, loose_tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);
     
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[4], -0.5*0.086752, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[4], 0.5*0.166564,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 0.5*0.022509,tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 0.5*0.022509,loose_tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[4], 0.5*0.397447, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[4], tol);
     
@@ -398,7 +385,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
                                      improperforce_creator tf_creator2,
                                      ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -430,17 +417,27 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     ForceDataArrays arrays1 = fc1->acquire();
     ForceDataArrays arrays2 = fc2->acquire();
     
-    Scalar rough_tol = Scalar(3.0);
-    
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], rough_tol);
-        BOOST_CHECK_SMALL(arrays1.virial[i], rough_tol);
-        BOOST_CHECK_SMALL(arrays2.virial[i], rough_tol);
+        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
+        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
+        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
+        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
+
+        // also check that each individual calculation is somewhat close
+        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
         }
+    deltaf2 /= double(sysdef->getParticleData()->getN());
+    deltape2 /= double(sysdef->getParticleData()->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
     }
 
 //! HarmonicImproperForceCompute creator for improper_force_basic_tests()

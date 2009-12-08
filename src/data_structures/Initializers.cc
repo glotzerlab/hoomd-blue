@@ -49,10 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
-// windows is stupid and needs this to define pi
-#define _USE_MATH_DEFINES
-#include <math.h>
-
 #include <iostream>
 #include <cassert>
 #include <stdexcept>

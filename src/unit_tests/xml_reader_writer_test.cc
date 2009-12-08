@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE XMLReaderWriterTest
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
-
 #include <math.h>
 #include "HOOMDDumpWriter.h"
 #include "HOOMDInitializer.h"
@@ -71,15 +65,9 @@ using namespace boost;
 #include <fstream>
 using namespace std;
 
-//! Need a simple define for checking two close values whether they are double or single
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-
-//! Tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-3);
-#else
-const Scalar tol = 1e-3;
-#endif
+//! Name the unit test module
+#define BOOST_TEST_MODULE XMLReaderWriterTest
+#include "boost_utf_configure.h"
 
 /*! \file xml_reader_writer_test.cc
     \brief Unit tests for HOOMDDumpWriter and HOOMDumpReader
@@ -89,7 +77,7 @@ const Scalar tol = 1e-3;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -719,7 +707,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -942,7 +930,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 //! Test basic functionality of HOOMDInitializer
 BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

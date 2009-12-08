@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE BD_NVTUpdaterTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -79,17 +74,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for checking if two floating point numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for checking if two floating point numbers are small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-2);
-#else
-const Scalar tol = 1e-3;
-#endif
+//! name the boost unit test module
+#define BOOST_TEST_MODULE BD_NVTUpdaterTests
+#include "boost_utf_configure.h"
 
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<shared_ptr<TwoStepBDNVT> (shared_ptr<SystemDefinition> sysdef,

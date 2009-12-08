@@ -30,7 +30,7 @@ class init_create_random_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, init.create_random, N=100, phi_p=0.05);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # unit tests for init.read_xml
 class init_read_xml_tests (unittest.TestCase):
@@ -75,7 +75,7 @@ A B C
     
     def tearDown(self):
         os.remove("test.xml");
-        globals._clear();
+        init.reset();
 
 # unit tests for init.create_random_polymers
 class init_create_random_polymer_tests (unittest.TestCase):
@@ -171,7 +171,7 @@ class init_create_random_polymer_tests (unittest.TestCase):
                           separation=bad_separation3);
         
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # unit tests for init.reset
 class init_reset_tests (unittest.TestCase):
@@ -223,7 +223,7 @@ class init_reset_tests (unittest.TestCase):
 #        ana.enable();
     
 #    def tearDown(self):
-#        globals._clear();
+#        init.reset();
 
 # unit tests for analyze.log
 class analyze_log_tests (unittest.TestCase):
@@ -252,7 +252,7 @@ class analyze_log_tests (unittest.TestCase):
         run(100);        
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         os.remove("test.log");
         
 # unit tests for analyze.msd
@@ -282,7 +282,7 @@ class analyze_msd_tests (unittest.TestCase):
         run(100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         os.remove("test.log");
         
 # unit tests for dump.xml
@@ -313,7 +313,7 @@ class dmp_xml_tests (unittest.TestCase):
         xml.set_params(all=True);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # unit tests for dump.mol2
 class dmp_mol2_tests (unittest.TestCase):
@@ -334,7 +334,7 @@ class dmp_mol2_tests (unittest.TestCase):
         os.remove("dump_mol2.0000000000.mol2")
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # unit tests for dump.pdb
 class dmp_pdb_tests (unittest.TestCase):
@@ -355,7 +355,7 @@ class dmp_pdb_tests (unittest.TestCase):
         os.remove("dump_pdb.0000000000.pdb")
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 
 # unit tests for dump.dcd
@@ -388,7 +388,7 @@ class dmp_dcd_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, dcd.set_period, 10)    
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # unit tests for integrate.nvt
 class integrate_nvt_tests (unittest.TestCase):
@@ -412,7 +412,7 @@ class integrate_nvt_tests (unittest.TestCase):
         nvt.set_params(tau=0.6);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # unit tests for integrate.bdnvt
 class integrate_bdnvt_tests (unittest.TestCase):
@@ -451,7 +451,7 @@ class integrate_bdnvt_tests (unittest.TestCase):
         bd.set_gamma('B', 1.0);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
         
 # unit tests for integrate.npt
@@ -481,7 +481,7 @@ class integrate_npt_tests (unittest.TestCase):
         run(100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # unit tests for integrate.nve
 class integrate_nve_tests (unittest.TestCase):
@@ -516,13 +516,13 @@ class integrate_nve_tests (unittest.TestCase):
         
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # pair.nlist testing
 class pair_nlist_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        init.create_random(N=100, phi_p=0.05);
         #indirectly create the neighbor list by creating a pair.lj
         pair.lj(r_cut=3.0);
         
@@ -549,13 +549,13 @@ class pair_nlist_tests (unittest.TestCase):
                           exclusions = ['bond', 'angle', 'invalid']);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
     
 # pair.lj
 class pair_lj_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        init.create_random(N=100, phi_p=0.05);
         
     # basic test of creation
     def test(self):
@@ -609,13 +609,13 @@ class pair_lj_tests (unittest.TestCase):
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # pair - multiple type max_rcut test
 class pair_max_rcut_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_empty(N=1000, box=(20,20,20), n_particle_types=2);
+        init.create_empty(N=100, box=(20,20,20), n_particle_types=2);
 
     def test_max_rcut(self):
         lj = pair.lj(r_cut=2.5);
@@ -652,13 +652,13 @@ class pair_max_rcut_tests (unittest.TestCase):
         self.assertAlmostEqual(3.1, globals.neighbor_list.r_cut);
 
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # pair.table
 class pair_table_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        init.create_random(N=100, phi_p=0.05);
         
     # basic test of creation
     def test(self):
@@ -690,13 +690,13 @@ class pair_table_tests (unittest.TestCase):
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
 
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # pair.gauss
 class pair_gauss_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        init.create_random(N=100, phi_p=0.05);
         
     # basic test of creation
     def test(self):
@@ -735,13 +735,13 @@ class pair_gauss_tests (unittest.TestCase):
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # pair.slj
 class pair_slj_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        init.create_random(N=100, phi_p=0.05);
         
     # basic test of creation
     def test(self):
@@ -791,13 +791,13 @@ class pair_slj_tests (unittest.TestCase):
         self.assertAlmostEqual(4.0, globals.neighbor_list.r_cut);
         
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # pair.cgcmm
 class pair_cgcmm_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        init.create_random(N=100, phi_p=0.05);
         
     # basic test of creation
     def test(self):
@@ -823,13 +823,13 @@ class pair_cgcmm_tests (unittest.TestCase):
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
 
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # pair.yukawa
 class pair_yukawa_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        init.create_random(N=100, phi_p=0.05);
         
     # basic test of creation
     def test(self):
@@ -868,7 +868,7 @@ class pair_yukawa_tests (unittest.TestCase):
         self.assertAlmostEqual(2.0, globals.neighbor_list.r_cut);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # tests force.constant
 class force_constant_tests (unittest.TestCase):
@@ -886,7 +886,7 @@ class force_constant_tests (unittest.TestCase):
         const.set_force(fx=1.45, fy=0.25, fz=-0.1);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # tests wall.lj
 class wall_lj_tests (unittest.TestCase):
@@ -916,7 +916,7 @@ class wall_lj_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # tests bond.harmonic
 class bond_harmonic_tests (unittest.TestCase):
@@ -951,7 +951,7 @@ class bond_harmonic_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # tests angle.harmonic
 class angle_harmonic_tests (unittest.TestCase):
@@ -990,7 +990,7 @@ class angle_harmonic_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # tests angle.cgcmm
 class angle_cgcmm_tests (unittest.TestCase):
@@ -1029,7 +1029,7 @@ class angle_cgcmm_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
         
 # tests dihedral.harmonic
@@ -1069,7 +1069,7 @@ class dihedral_harmonic_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # tests improper.harmonic
 class improper_harmonic_tests (unittest.TestCase):
@@ -1108,7 +1108,7 @@ class improper_harmonic_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # tests bond.fene
 class bond_fene_tests (unittest.TestCase):
@@ -1143,7 +1143,7 @@ class bond_fene_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, run, 100);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # tests for update.box_resize
 class update_box_resize_tests (unittest.TestCase):
@@ -1176,7 +1176,7 @@ class update_box_resize_tests (unittest.TestCase):
         upd.set_params(scale_particles = False);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 
 # tests for update.rescale_temp
@@ -1223,7 +1223,7 @@ class update_rescale_temp_tests (unittest.TestCase):
         upd.set_params(T=1.2);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # tests for update.sorter
 class update_sorter_tests (unittest.TestCase):
@@ -1237,7 +1237,7 @@ class update_sorter_tests (unittest.TestCase):
         __main__.sorter.set_params(bin_width=2.0);
     
     def tearDown(self):
-        globals._clear();
+        init.reset();
         
 # tests for update.zero_momentum
 class update_zero_momentum_tests (unittest.TestCase):
@@ -1278,7 +1278,7 @@ class update_zero_momentum_tests (unittest.TestCase):
         upd.enable();
         
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 # tests for variant types
 class variant_tests (unittest.TestCase):
@@ -1312,7 +1312,7 @@ class variant_tests (unittest.TestCase):
         self.assertEqual(15.0, v.cpp_variant.getValue(50));
 
     def tearDown(self):
-        globals._clear();
+        init.reset();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

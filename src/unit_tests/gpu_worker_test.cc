@@ -53,12 +53,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <iostream>
+#include <cuda_runtime.h>
+#include "gpu_settings.h"
 
 //! Name the boost unit test module
 #define BOOST_TEST_MODULE GPUWorkerTests
 #include "boost_utf_configure.h"
 
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -80,7 +81,7 @@ BOOST_AUTO_TEST_CASE( GPUWorker_basic )
     float h_float;
     
     // allocate and copy a float to the device
-    gpu.call(bind(cudaMalloc, (void **)((void *)&d_float), sizeof(float)));
+    gpu.call(bind(cudaMallocHack, (void **)((void *)&d_float), sizeof(float)));
     
     h_float = 4.293f;
     gpu.call(bind(cudaMemcpy, d_float, &h_float, sizeof(float), cudaMemcpyHostToDevice));
@@ -104,7 +105,7 @@ BOOST_AUTO_TEST_CASE( GPUWorker_throw )
     float h_float;
     
     // allocate and copy a float to the device
-    gpu.call(bind(cudaMalloc, (void **)((void *)&d_float), sizeof(float)));
+    gpu.call(bind(cudaMallocHack, (void **)((void *)&d_float), sizeof(float)));
     
     h_float = 4.293f;
     // purposefully switch pointers: this should introduce a CUDA error

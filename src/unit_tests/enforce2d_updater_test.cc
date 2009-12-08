@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! label the boost test module
-#define BOOST_TEST_MODULE Enforce2DUpdaterTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -82,17 +77,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Helper macro for checking if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for checking if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance setting for comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-3);
-#else
-const Scalar tol = 1e-6;
-#endif
+//! label the boost test module
+#define BOOST_TEST_MODULE Enforce2DUpdaterTests
+#include "boost_utf_configure.h"
 
 /*! \file enforce2d_updater_test.cc
     \brief Unit tests for the Enforce2DUpdater class

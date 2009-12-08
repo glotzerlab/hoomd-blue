@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! label the boost test module
-#define BOOST_TEST_MODULE TempRescaleUpdaterTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "TempCompute.h"
@@ -65,17 +60,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Helper macro for checking if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for checking if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance setting for comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-3);
-#else
-const Scalar tol = 1e-6;
-#endif
+//! label the boost test module
+#define BOOST_TEST_MODULE TempRescaleUpdaterTests
+#include "boost_utf_configure.h"
 
 /*! \file temp_rescale_updater_test.cc
     \brief Unit tests for the TempCompute and TempRescaleUpdater classes.
@@ -85,7 +72,7 @@ const Scalar tol = 1e-6;
 //! boost test case to verify proper operation of TempCompute
 BOOST_AUTO_TEST_CASE( TempCompute_basic )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -113,7 +100,7 @@ BOOST_AUTO_TEST_CASE( TempCompute_basic )
 //! boost test case to verify proper operation of TempRescaleUpdater
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

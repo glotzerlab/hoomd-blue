@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE NVTUpdaterTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -79,17 +74,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for checking if two floating point numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for checking if two floating point numbers are small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-2);
-#else
-const Scalar tol = 1e-3;
-#endif
+//! name the boost unit test module
+#define BOOST_TEST_MODULE NVTUpdaterTests
+#include "boost_utf_configure.h"
 
 //! Reference trace from a mathematica solution to a simple nose-hoover system
 double p_reference[]  = { 0. , 0.0037406566640887534 , 0.007462808071668591 ,
@@ -1131,7 +1118,7 @@ shared_ptr<TwoStepNVT> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef,
 //! Integrate 1 particle through time and compare to a mathematical solution
 void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -1184,7 +1171,7 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfig
 //! Compares the output from one NVEUpdater to another
 void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

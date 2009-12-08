@@ -48,11 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE AngleForceTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -69,17 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Global tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-1);
-#else
-const Scalar tol = 1e-2;
-#endif
+//! Name the boost unit test module
+#define BOOST_TEST_MODULE AngleForceTests
+#include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<shared_ptr<HarmonicAngleForceCompute>  (shared_ptr<SystemDefinition> sysdef)> angleforce_creator;
@@ -87,7 +74,7 @@ typedef boost::function<shared_ptr<HarmonicAngleForceCompute>  (shared_ptr<Syste
 //! Perform some simple functionality tests of any BondForceCompute
 void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -234,7 +221,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[0], 0.256618, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[0], tol);
     
-    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.0510595, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], -0.0510595, loose_tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[1], 1.5760721,tol);
     MY_BOOST_CHECK_SMALL(force_arrays.fz[1], tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[1], 0.256618, tol);
@@ -254,7 +241,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
     
     MY_BOOST_CHECK_SMALL(force_arrays.fx[4], tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fy[4], -2.79330492,tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 0.034110874, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fz[4], 0.034110874, loose_tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[4], 0.400928, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[4], tol);
     
@@ -337,7 +324,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
 //! Compares the output of two HarmonicAngleForceComputes
 void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_creator af_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

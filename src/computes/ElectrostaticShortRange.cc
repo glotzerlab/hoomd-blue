@@ -58,9 +58,6 @@ using namespace boost::python;
 #include <stdexcept>
 #include <boost/math/special_functions/erf.hpp>
 
-// #define _USE_MATH_DEFINES
-// #include <math.h>
-
 //! This number is just 2/sqrt(Pi)
 #define EWALD_F  1.128379167
 

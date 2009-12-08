@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE BondForceTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -74,19 +69,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Global tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-1);
-#else
-const Scalar tol = 1e-2;
-#endif
-//! Global tolerance for check_small comparisons
-const Scalar tol_small = Scalar(1e-4);
+//! Name the boost unit test module
+#define BOOST_TEST_MODULE BondForceTests
+#include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<shared_ptr<HarmonicBondForceCompute>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
@@ -94,7 +79,7 @@ typedef boost::function<shared_ptr<HarmonicBondForceCompute>  (shared_ptr<System
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -292,7 +277,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 //! Compares the output of two HarmonicBondForceComputes
 void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -323,22 +308,38 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     ForceDataArrays arrays1 = fc1->acquire();
     ForceDataArrays arrays2 = fc2->acquire();
     
-    Scalar rough_tol = Scalar(3.0);
-    
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+    double deltav2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], rough_tol);
+        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
+        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
+        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
+        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
+        deltav2 += double(arrays1.virial[i] - arrays2.virial[i]) * double(arrays1.virial[i] - arrays2.virial[i]);
+
+        // also check that each individual calculation is somewhat close
+        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], loose_tol);
         }
+    deltaf2 /= double(pdata->getN());
+    deltape2 /= double(pdata->getN());
+    deltav2 /= double(pdata->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
 
 //! Check ConstForceCompute to see that it operates properly
 void const_force_test(ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

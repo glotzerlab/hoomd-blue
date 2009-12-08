@@ -66,6 +66,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // boost 1.32.0 (RHEL4)
 // it may work on other versions or it may need tweaking
 
+#include "HOOMDMath.h"
+
 #include <boost/version.hpp>
 #if (BOOST_VERSION >= 103400)
 #include <boost/test/unit_test.hpp>
@@ -85,3 +87,31 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
+#include <boost/test/floating_point_comparison.hpp>
+
+// ******** helper macros
+//! Helper macro for checking if two numbers are close
+#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
+//! Helper macro for checking if a number is small
+#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
+//! Need a simple define for requireing two values which are unsigned
+#define BOOST_REQUIRE_EQUAL_UINT(a,b) BOOST_REQUIRE_EQUAL(a,(unsigned int)(b))
+//! Need a simple define for checking two values which are unsigned
+#define BOOST_CHECK_EQUAL_UINT(a,b) BOOST_CHECK_EQUAL(a,(unsigned int)(b))
+
+//! Tolerance setting for comparisons
+#ifdef SINGLE_PRECISION
+const Scalar tol_small = Scalar(1e-3);
+#else
+const Scalar tol_small = 1e-6;
+#endif
+
+//! Tolerance setting for comparisons
+#ifdef SINGLE_PRECISION
+const Scalar tol = Scalar(1e-2);
+#else
+const Scalar tol = 1e-5;
+#endif
+
+//! Loose tolerance to be used with randomly generated and unpredictable comparisons
+Scalar loose_tol = Scalar(10);
