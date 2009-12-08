@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairSLJTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -74,17 +69,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various ShiftedLJForceComputes to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(2);
-#else
-const Scalar tol = 1e-6;
-#endif
+//! Name the unit test module
+#define BOOST_TEST_MODULE PotentialPairSLJTests
+#include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairSLJ factory
 typedef boost::function<shared_ptr<PotentialPairSLJ> (shared_ptr<SystemDefinition> sysdef,
@@ -324,7 +311,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on
-    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
+    RandomInitializer rand_init(N, Scalar(0.05), Scalar(1.3), "A");
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     
@@ -354,14 +341,32 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
     ForceDataArrays arrays1 = fc1->acquire();
     ForceDataArrays arrays2 = fc2->acquire();
     
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+    double deltav2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], tol);
+        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
+        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
+        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
+        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
+        deltav2 += double(arrays1.virial[i] - arrays2.virial[i]) * double(arrays1.virial[i] - arrays2.virial[i]);
+
+        // also check that each individual calculation is somewhat close
+        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], loose_tol);
         }
+    deltaf2 /= double(pdata->getN());
+    deltape2 /= double(pdata->getN());
+    deltav2 /= double(pdata->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
 
 //! PotentialPairSLJ creator for unit tests

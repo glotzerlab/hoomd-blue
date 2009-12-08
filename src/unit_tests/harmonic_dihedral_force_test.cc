@@ -48,11 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE DihedralForceTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -69,17 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Global tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-1);
-#else
-const Scalar tol = 1e-2;
-#endif
+//! Name the boost unit test module
+#define BOOST_TEST_MODULE DihedralForceTests
+#include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<shared_ptr<HarmonicDihedralForceCompute>  (shared_ptr<SystemDefinition> sysdef)> dihedralforce_creator;
@@ -162,7 +149,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, ExecutionConfi
     MY_BOOST_CHECK_SMALL(force_arrays.virial[2], tol);
     
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[3], 0.5*0.195986, tol);
-    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.5*0.002780, tol);
+    MY_BOOST_CHECK_CLOSE(force_arrays.fy[3], -0.5*0.002780, loose_tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fz[3], -0.5*0.143167, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.pe[3], 0.5*14.945559, tol);
     MY_BOOST_CHECK_SMALL(force_arrays.virial[3], tol);

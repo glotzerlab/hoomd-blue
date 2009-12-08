@@ -48,11 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE CGCMMAngleForceTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -69,17 +64,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Global tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-1);
-#else
-const Scalar tol = 1e-2;
-#endif
+//! Name the boost unit test module
+#define BOOST_TEST_MODULE CGCMMAngleForceTests
+#include "boost_utf_configure.h"
 
 //! Typedef to make using the boost::function factory easier
 typedef boost::function<shared_ptr<CGCMMAngleForceCompute>  (shared_ptr<SystemDefinition> sysdef)> cgcmm_angleforce_creator;
@@ -340,17 +327,27 @@ void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_an
     ForceDataArrays arrays1 = fc1->acquire();
     ForceDataArrays arrays2 = fc2->acquire();
     
-    Scalar rough_tol = Scalar(3.0);
-    
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], rough_tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], rough_tol);
-        BOOST_CHECK_SMALL(arrays1.virial[i], rough_tol);
-        BOOST_CHECK_SMALL(arrays2.virial[i], rough_tol);
+        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
+        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
+        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
+        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
+
+        // also check that each individual calculation is somewhat close
+        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
         }
+    deltaf2 /= double(sysdef->getParticleData()->getN());
+    deltape2 /= double(sysdef->getParticleData()->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
     }
 
 

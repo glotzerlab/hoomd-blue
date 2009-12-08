@@ -51,11 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairGaussTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -75,19 +70,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various LJForceComputes to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(4);
-#else
-const Scalar tol = 1e-3;
-#endif
-//! Global tolerance for check_small comparisons
-const Scalar tol_small = Scalar(1e-4);
+//! Name the unit test module
+#define BOOST_TEST_MODULE PotentialPairGaussTests
+#include "boost_utf_configure.h"
 
 //! Typedef'd PotentialPairGauss factory
 typedef boost::function<shared_ptr<PotentialPairGauss> (shared_ptr<SystemDefinition> sysdef,
@@ -300,14 +285,32 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     ForceDataArrays arrays1 = fc1->acquire();
     ForceDataArrays arrays2 = fc2->acquire();
     
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+    double deltav2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], tol);
+        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
+        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
+        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
+        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
+        deltav2 += double(arrays1.virial[i] - arrays2.virial[i]) * double(arrays1.virial[i] - arrays2.virial[i]);
+
+        // also check that each individual calculation is somewhat close
+        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], loose_tol);
         }
+    deltaf2 /= double(pdata->getN());
+    deltape2 /= double(pdata->getN());
+    deltav2 /= double(pdata->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
 
 //! Test the ability of the gauss force compute to compute forces with different shift modes

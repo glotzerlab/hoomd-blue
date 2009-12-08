@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! label the boost test module
-#define BOOST_TEST_MODULE ZeroMomentumUpdaterTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "ZeroMomentumUpdater.h"
@@ -64,17 +59,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Helper macro for checking if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for checking if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance setting for comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-3);
-#else
-const Scalar tol = 1e-6;
-#endif
+//! label the boost test module
+#define BOOST_TEST_MODULE ZeroMomentumUpdaterTests
+#include "boost_utf_configure.h"
 
 /*! \file zero_momentum_updater_test.cc
     \brief Unit tests for the ZeroMomentumUpdater class
@@ -127,9 +114,9 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     Scalar avg_py = sum_py / Scalar(arrays.nparticles);
     Scalar avg_pz = sum_pz / Scalar(arrays.nparticles);
     
-    MY_BOOST_CHECK_SMALL(avg_px, tol);
-    MY_BOOST_CHECK_SMALL(avg_py, tol);
-    MY_BOOST_CHECK_SMALL(avg_pz, tol);
+    MY_BOOST_CHECK_SMALL(avg_px, tol_small);
+    MY_BOOST_CHECK_SMALL(avg_py, tol_small);
+    MY_BOOST_CHECK_SMALL(avg_pz, tol_small);
     }
 
 #ifdef WIN32

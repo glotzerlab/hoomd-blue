@@ -49,11 +49,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE LJWallForceTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -71,19 +66,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various LJForceComputes to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1);
-#else
-const Scalar tol = 1e-3;
-#endif
-//! Global tolerance for check_small comparisons
-const Scalar tol_small = 1e-4;
+//! Name the unit test module
+#define BOOST_TEST_MODULE LJWallForceTests
+#include "boost_utf_configure.h"
 
 //! Typedef'd LJWallForceCompute factory
 typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinition> sysdef,

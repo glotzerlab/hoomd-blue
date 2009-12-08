@@ -51,11 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairLJTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -75,19 +70,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various LJForceComputes to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(4);
-#else
-const Scalar tol = 1e-6;
-#endif
-//! Global tolerance for check_small comparisons
-const Scalar tol_small = 1e-4;
+//! Name the unit test module
+#define BOOST_TEST_MODULE PotentialPairLJTests
+#include "boost_utf_configure.h"
 
 //! Typedef'd LJForceCompute factory
 typedef boost::function<shared_ptr<PotentialPairLJ> (shared_ptr<SystemDefinition> sysdef,
@@ -337,14 +322,32 @@ void lj_force_comparison_test(ljforce_creator lj_creator1, ljforce_creator lj_cr
     ForceDataArrays arrays1 = fc1->acquire();
     ForceDataArrays arrays2 = fc2->acquire();
     
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+    double deltav2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], tol);
+        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
+        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
+        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
+        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
+        deltav2 += double(arrays1.virial[i] - arrays2.virial[i]) * double(arrays1.virial[i] - arrays2.virial[i]);
+
+        // also check that each individual calculation is somewhat close
+        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], loose_tol);
         }
+    deltaf2 /= double(pdata->getN());
+    deltape2 /= double(pdata->getN());
+    deltav2 /= double(pdata->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
 
 //! Test the ability of the lj force compute to compute forces with different shift modes
@@ -548,54 +551,6 @@ BOOST_AUTO_TEST_CASE( LJForceGPU_shift )
     }*/
 
 #endif
-
-/*BOOST_AUTO_TEST_CASE(potential_writer)
-    {
-    #ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-    #endif
-
-    // this 2-particle test is just to get a plot of the potential and force vs r cut
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0,0, 0, 0, ExecutionConfiguration()));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(3.0), Scalar(0.8)));
-    shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef_2, nlist_2, Scalar(3.0)));
-    // nlist_2->setStorageMode(NeighborList::full);
-    // fc->setShiftMode(LJForceCompute::xplor);
-
-    // setup a standard epsilon and sigma
-    Scalar epsilon = Scalar(1.0);
-    Scalar sigma = Scalar(1.0);
-    Scalar alpha = Scalar(1.0);
-    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
-    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-    fc->setParams(0,0,lj1,lj2);
-
-    ofstream f("lj_dat.m");
-    f << "lj = [";
-    unsigned int count = 0;
-    for (float r = 0.95; r <= 5.0; r+= 0.001)
-        {
-        // set the distance
-        ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-        arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-        arrays.x[1] = Scalar(r); arrays.y[1] = arrays.z[1] = 0.0;
-        pdata_2->release();
-
-        // compute the forces
-        fc->compute(count);
-        count++;
-
-        ForceDataArrays force_arrays = fc->acquire();
-        f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;
-        }
-    f << "];" << endl;
-    f.close();
-    }*/
 
 #ifdef WIN32
 #pragma warning( pop )

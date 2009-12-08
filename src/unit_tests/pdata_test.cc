@@ -55,11 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE ParticleDataTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 
 #include "ParticleData.h"
@@ -68,8 +63,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Need a simple define for checking two close values whether they are double or single
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
+//! Name the boost unit test module
+#define BOOST_TEST_MODULE ParticleDataTests
+#include "boost_utf_configure.h"
 
 //! Perform some basic tests on the boxdim structure
 BOOST_AUTO_TEST_CASE( BoxDim_test )
