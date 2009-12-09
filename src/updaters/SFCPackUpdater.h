@@ -104,13 +104,16 @@ class SFCPackUpdater : public Updater
     private:
         Scalar m_bin_width;         //!< The side length of the bins used to sort particles
         unsigned int m_lastMmax;    //!< The last value of MMax
+        unsigned int m_last_dim;    //!< Check the last dimension we ran at
         
         std::vector< std::vector<unsigned int> > m_bins;    //!< Binned particles
         std::vector< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
         std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
         
         //! Helper function that actually performs the sort
-        void getSortedOrder();
+        void getSortedOrder2D();
+        //! Helper function that actually performs the sort
+        void getSortedOrder3D();
         
         //! Apply the sorted order to the particle data
         void applySortOrder();
