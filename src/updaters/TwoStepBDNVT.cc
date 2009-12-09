@@ -156,10 +156,13 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
             gamma = h_gamma.data[arrays.type[j]];
         
         // compute the bd force
-        Scalar coeff = sqrt(Scalar(2.0) * D*gamma*currentTemp/m_deltaT);
+        Scalar coeff = sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
         Scalar bd_fx = rx*coeff - gamma*arrays.vx[j];
         Scalar bd_fy = ry*coeff - gamma*arrays.vy[j];
         Scalar bd_fz = rz*coeff - gamma*arrays.vz[j];
+        
+        if (D > 2.0)
+            bd_fz = Scalar(0.0);
         
         // then, calculate acceleration from the net force
         Scalar minv = Scalar(1.0) / arrays.mass[j];

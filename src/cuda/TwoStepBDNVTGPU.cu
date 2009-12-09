@@ -155,7 +155,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
             gamma = s_gammas[typ];
             }
         
-        float coeff = sqrtf(2.0f * D * gamma * T / deltaT);
+        float coeff = sqrtf(6.0f * gamma * T / deltaT);
         float3 bd_force = make_float3(0.0f, 0.0f, 0.0f);
         
         //Initialize the Random Number Generator and generate the 3 random numbers
@@ -167,7 +167,8 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
-        bd_force.z = randomz*coeff - gamma*vel.z;
+        if (D > 2.0f)
+            bd_force.z = randomz*coeff - gamma*vel.z;
         
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         float4 accel = tex1Dfetch(net_force_tex, idx);
