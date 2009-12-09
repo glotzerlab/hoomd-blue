@@ -168,7 +168,7 @@ void RigidData::initializeData()
     GPUArray<int> body_imagex(m_n_bodies, m_pdata->getExecConf());
     GPUArray<int> body_imagey(m_n_bodies, m_pdata->getExecConf());
     GPUArray<int> body_imagez(m_n_bodies, m_pdata->getExecConf());
-    
+
     GPUArray<Scalar4> com(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> vel(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> angmom(m_n_bodies, m_pdata->getExecConf());
@@ -216,6 +216,7 @@ void RigidData::initializeData()
         // determine body_mass, inertia tensor, com and vel
         GPUArray<Scalar> inertia(6, m_n_bodies, m_pdata->getExecConf()); // the inertia tensor is symmetric, therefore we only need to store 6 elements
         ArrayHandle<Scalar> inertia_handle(inertia, access_location::host, access_mode::readwrite);
+        unsigned int inertia_pitch = inertia.getPitch();
         
         ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
@@ -235,12 +236,12 @@ void RigidData::initializeData()
             com_handle.data[body].y = 0.0;
             com_handle.data[body].z = 0.0;
             
-            inertia_handle.data[6 * body] = 0.0;
-            inertia_handle.data[6 * body + 1] = 0.0;
-            inertia_handle.data[6 * body + 2] = 0.0;
-            inertia_handle.data[6 * body + 3] = 0.0;
-            inertia_handle.data[6 * body + 4] = 0.0;
-            inertia_handle.data[6 * body + 5] = 0.0;
+            inertia_handle.data[inertia_pitch * body] = 0.0;
+            inertia_handle.data[inertia_pitch * body + 1] = 0.0;
+            inertia_handle.data[inertia_pitch * body + 2] = 0.0;
+            inertia_handle.data[inertia_pitch * body + 3] = 0.0;
+            inertia_handle.data[inertia_pitch * body + 4] = 0.0;
+            inertia_handle.data[inertia_pitch * body + 5] = 0.0;
             }
             
         for (unsigned int j = 0; j < arrays.nparticles; j++)
@@ -281,14 +282,17 @@ void RigidData::initializeData()
             Scalar dy = arrays.y[j] - com_handle.data[body].y;
             Scalar dz = arrays.z[j] - com_handle.data[body].z;
             
-            inertia_handle.data[6 * body] += mass_one * (dy * dy + dz * dz);
-            inertia_handle.data[6 * body + 1] += mass_one * (dz * dz + dx * dx);
-            inertia_handle.data[6 * body + 2] += mass_one * (dx * dx + dy * dy);
-            inertia_handle.data[6 * body + 3] -= mass_one * dx * dy;
-            inertia_handle.data[6 * body + 4] -= mass_one * dy * dz;
-            inertia_handle.data[6 * body + 5] -= mass_one * dx * dz;
+            inertia_handle.data[inertia_pitch * body] += mass_one * (dy * dy + dz * dz);
+            inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);
+            inertia_handle.data[inertia_pitch * body + 2] += mass_one * (dx * dx + dy * dy);
+            inertia_handle.data[inertia_pitch * body + 3] -= mass_one * dx * dy;
+            inertia_handle.data[inertia_pitch * body + 4] -= mass_one * dy * dz;
+            inertia_handle.data[inertia_pitch * body + 5] -= mass_one * dx * dz;
             }
-            
+        
+        // find the inverse moment of inertia tensor
+   //     findInverseMomentInertiaTensor(inertia_handle.data, 
+        
         // allocate temporary arrays: revision needed!
         Scalar **matrix, *evalues, **evectors;
         matrix = new Scalar*[3];
@@ -303,12 +307,12 @@ void RigidData::initializeData()
         unsigned int dof_one;
         for (unsigned int body = 0; body < m_n_bodies; body++)
             {
-            matrix[0][0] = inertia_handle.data[6 * body];
-            matrix[1][1] = inertia_handle.data[6 * body + 1];
-            matrix[2][2] = inertia_handle.data[6 * body + 2];
-            matrix[0][1] = matrix[1][0] = inertia_handle.data[6 * body + 3];
-            matrix[1][2] = matrix[2][1] = inertia_handle.data[6 * body + 4];
-            matrix[2][0] = matrix[0][2] = inertia_handle.data[6 * body + 5];
+            matrix[0][0] = inertia_handle.data[inertia_pitch * body];
+            matrix[1][1] = inertia_handle.data[inertia_pitch * body + 1];
+            matrix[2][2] = inertia_handle.data[inertia_pitch * body + 2];
+            matrix[0][1] = matrix[1][0] = inertia_handle.data[inertia_pitch * body + 3];
+            matrix[1][2] = matrix[2][1] = inertia_handle.data[inertia_pitch * body + 4];
+            matrix[2][0] = matrix[0][2] = inertia_handle.data[inertia_pitch * body + 5];
             
             int error = diagonalize(matrix, evalues, evectors);
             if (error) cout << "Insufficient Jacobi iterations for diagonalization!\n";
@@ -392,7 +396,7 @@ void RigidData::initializeData()
         m_particle_pos.swap(particle_pos);
         ArrayHandle<Scalar4> particle_pos_handle(m_particle_pos, access_location::host, access_mode::readwrite);
         unsigned int particle_pos_pitch = m_particle_pos.getPitch();
-        
+         
         GPUArray<unsigned int> local_indices(m_n_bodies, m_pdata->getExecConf());
         ArrayHandle<unsigned int> local_indices_handle(local_indices, access_location::host, access_mode::readwrite);
         for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -421,13 +425,15 @@ void RigidData::initializeData()
             Scalar dx = arrays.x[j] - com_handle.data[body].x;
             Scalar dy = arrays.y[j] - com_handle.data[body].y;
             Scalar dz = arrays.z[j] - com_handle.data[body].z;
-            particle_pos_handle.data[body * particle_pos_pitch + current_localidx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
+            
+            unsigned int idx = body * particle_pos_pitch + current_localidx;
+            particle_pos_handle.data[idx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
                     dz * ex_space_handle.data[body].z;
-            particle_pos_handle.data[body * particle_pos_pitch + current_localidx].y = dx * ey_space_handle.data[body].x + dy * ey_space_handle.data[body].y +
+            particle_pos_handle.data[idx].y = dx * ey_space_handle.data[body].x + dy * ey_space_handle.data[body].y +
                     dz * ey_space_handle.data[body].z;
-            particle_pos_handle.data[body * particle_pos_pitch + current_localidx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
+            particle_pos_handle.data[idx].z = dx * ez_space_handle.data[body].x + dy * ez_space_handle.data[body].y +
                     dz * ez_space_handle.data[body].z;
-                    
+            
             // increment the current index by one
             local_indices_handle.data[body]++;
             }
@@ -594,5 +600,3 @@ void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4
     quat.w *= norm;
     
     }
-
-
