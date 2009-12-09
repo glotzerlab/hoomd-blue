@@ -311,9 +311,22 @@ Scalar TwoStepNPT::computePressure(unsigned int timestep)
         
     ke_total *= 0.5;
     Scalar T = Scalar(2.0 * ke_total / m_dof);
-    // volume
+
+    // volume/area & other 2D stuff needed
     BoxDim box = m_pdata->getBox();
-    Scalar volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+    Scalar volume;
+    unsigned int D = m_sysdef->getNDimensions();
+    if (D == 2)
+        {
+        // "volume" is area in 2D
+        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
+        // W needs to be corrected since the 1/3 factor is built in
+        W *= Scalar(3.0/2.0);
+        }
+    else
+        {
+        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+        }
     
     // done!
     m_pdata->release();
