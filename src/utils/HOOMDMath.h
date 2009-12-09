@@ -151,13 +151,13 @@ void export_hoomd_math_functions();
 
 // windows feels that rintf should not exist.....
 //! replacement for rint in windows
-double rint(double x)
+inline double rint(double x)
     {
     return floor(x+.5);
     }
 
 //! replacement for rint in windows
-double rintf(float x)
+inline double rintf(float x)
     {
     return floorf(x+.5f);
     }

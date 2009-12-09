@@ -234,18 +234,18 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test2)
     v.setPoint(500, 10.0);
     v.setPoint(1000, 20.0);
     
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 20.0, tol);
     v.setOffset(1000);
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 20.0, tol);
     }
 
 //! perform some simple checks on the variant types
@@ -256,32 +256,32 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
     v.setPoint(1000, 20.0);
     v.setPoint(2000, 50.0);
     
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 35.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 50.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 35.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 50.0, tol);
     v.setOffset(1000);
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
     
     // mix up the order to make sure it works no matter what
-    MY_BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
     }
 
 #ifdef WIN32
