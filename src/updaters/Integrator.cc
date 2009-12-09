@@ -242,7 +242,8 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 */
 Scalar Integrator::computeTemperature(unsigned int timestep)
     {
-    Scalar g = Scalar(3*m_pdata->getN()-3);
+    unsigned int D = m_sysdef->getNDimensions();
+    Scalar g = Scalar(D*m_pdata->getN()-D);
     return 2.0 * computeKineticEnergy(timestep) / g;
     }
 
