@@ -70,6 +70,7 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                float4 *d_net_force,
                                const bdnvt_step_two_args& bdnvt_args,
                                float deltaT,
+                               float D,
                                bool limit,
                                float limit_val);
 
