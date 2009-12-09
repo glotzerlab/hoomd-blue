@@ -414,8 +414,8 @@ class nvt(_integration_method):
 # the following modes are active:
 # - integrate.mode_standard
 #
-# integrate.npt uses the proper number of degrees of freedom to compute the temperature of the system in both
-# 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.nvt command
+# integrate.npt uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
+# both 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.npt command
 # is specified.
 #
 class npt(_integration_method):
@@ -616,7 +616,7 @@ class nve(_integration_method):
 # - integrate.mode_standard
 #
 # integrate.bdnvt uses the proper number of degrees of freedom to compute the temperature of the system in both
-# 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.nvt command
+# 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.bdnvt command
 # is specified.
 #
 class bdnvt(_integration_method):
