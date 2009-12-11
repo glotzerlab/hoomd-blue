@@ -47,25 +47,26 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE NVERigidUpdaterTests
+#define BOOST_TEST_MODULE TwoStepNVTRigidTests
 #include "boost_utf_configure.h"
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "NVTUpdater.h"
+#include "TwoStepNVTRigid.h"
 #ifdef ENABLE_CUDA
-#include "NVTUpdaterGPU.h"
+#include "TwoStepNVTRigidGPU.h"
 #endif
 
+#include "IntegratorTwoStep.h"
+
+#include "AllPairPotentials.h"
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
-#include "LJForceCompute.h"
 
 #ifdef ENABLE_CUDA
 #include "BinnedNeighborListGPU.h"
-#include "LJForceComputeGPU.h"
 #endif
 
 #include "saruprng.h"
@@ -75,8 +76,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-/*! \file nve_rigid_updater_test.cc
-    \brief Implements unit tests for NVERigidUpdater
+/*! \file nvt_rigid_updater_test.cc
+    \brief Implements unit tests for TwoStepNVTRigid
     \ingroup unit_tests
 */
 
@@ -88,24 +89,9 @@ const Scalar tol = Scalar(1e-2);
 const Scalar tol = 1e-3;
 #endif
 
-//! Typedef'd NVEUpdator class factory
-typedef boost::function<shared_ptr<NVTUpdater> (shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)> nvtup_creator;
-
-//! NVTUpdater creator
-shared_ptr<NVTUpdater> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)
-    {
-    shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<NVTUpdater>(new NVTUpdater(sysdef, deltaT, Q, T_variant));
-    }
-
-#ifdef ENABLE_CUDA
-//! NVTUpdaterGPU factory for the unit tests
-shared_ptr<NVTUpdater> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef, Scalar deltaT, Scalar Q, Scalar T)
-    {
-    shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<NVTUpdater>(new NVTUpdaterGPU(sysdef, deltaT, Q, T_variant));
-    }
-#endif
+//! Typedef'd TwoStepNVTRigid class factory
+typedef boost::function<shared_ptr<TwoStepNVTRigid> (shared_ptr<SystemDefinition> sysdef, 
+                                                shared_ptr<ParticleGroup> group, Scalar T)> nvtup_creator;
 
 void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfiguration& exec_conf)
     {
@@ -120,8 +106,11 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     unsigned int nparticlesperbody = 5;
     unsigned int N = nbodies * nparticlesperbody;
     Scalar box_length = 60.0;
+    
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(box_length), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     BoxDim box = pdata->getBox();
     
     Scalar temperature = 2.5;
@@ -191,12 +180,14 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     Scalar Q = Scalar(2.0);
     Scalar tau = sqrt(Q / (Scalar(3.0) * temperature));
     
-    shared_ptr<NVTUpdater> nvt_up = nvt_creator(sysdef, deltaT, tau, temperature);
-    shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
-    shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
-//  shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
-//  shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(2.5)));
+    shared_ptr<TwoStepNVTRigid> two_step_nvt = nvt_creator(sysdef, group_all, temperature);
+    shared_ptr<IntegratorTwoStep> nvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    nvt_up->addIntegrationMethod(two_step_nvt);
 
+    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    fc->setRcut(0, 0, Scalar(1.122));
+    
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
@@ -205,10 +196,11 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
     
     // specify the force parameters
-    fc->setParams(0,0,lj1,lj2);
+    fc->setParams(0,0,make_scalar2(lj1,lj2));
     
     nvt_up->addForceCompute(fc);
     
+    // initialize the rigid bodies
     sysdef->init();
     
     Scalar PE;
@@ -231,11 +223,11 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     pdata->release();
     
     cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
+    cout << "Temperature set point: " << temperature << "\n";
     cout << "Step\tTemp\tPotEng\tKinEng\tTotalE\n";
     
     clock_t start = clock();
     
-//  steps = 0;
     for (unsigned int i = 0; i <= steps; i++)
         {
         
@@ -276,8 +268,24 @@ void nvt_updater_energy_tests(nvtup_creator nvt_creator, const ExecutionConfigur
     
     }
 
+//! TwoStepNVTRigid creator
+shared_ptr<TwoStepNVTRigid> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar T)
+    {
+    shared_ptr<VariantConst> T_variant(new VariantConst(T));
+    return shared_ptr<TwoStepNVTRigid>(new TwoStepNVTRigid(sysdef, group, T_variant));
+    }
+
+#ifdef ENABLE_CUDA
+//! TwoStepNVTRigidGPU factory for the unit tests
+shared_ptr<TwoStepNVTRigid> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar T)
+    {
+    shared_ptr<VariantConst> T_variant(new VariantConst(T));
+    return shared_ptr<TwoStepNVTRigid>(new TwoStepNVTRigidGPU(sysdef, group, T_variant));
+    }
+#endif
+
 /*
-BOOST_AUTO_TEST_CASE( NVTUpdater_energy_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVTRigid_energy_tests )
 {
     printf("\nTesting energy conservation on CPU...\n");
     nvtup_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
@@ -287,10 +295,10 @@ BOOST_AUTO_TEST_CASE( NVTUpdater_energy_tests )
 #ifdef ENABLE_CUDA
 
 //! boost test case for base class integration tests
-BOOST_AUTO_TEST_CASE( NVTUpdaterGPU_energy_tests )
+BOOST_AUTO_TEST_CASE( TwoStepNVTRigidGPU_energy_tests )
     {
     printf("\nTesting energy conservation on GPU...\n");
-    nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
+    nvtup_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3);
     nvt_updater_energy_tests(nvt_creator_gpu, ExecutionConfiguration());
     }
 

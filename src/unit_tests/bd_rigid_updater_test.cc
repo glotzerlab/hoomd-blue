@@ -65,13 +65,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "BoxResizeUpdater.h"
 
+#include "AllPairPotentials.h"
 #include "BinnedNeighborList.h"
 #include "Initializers.h"
-#include "LJForceCompute.h"
 
 #ifdef ENABLE_CUDA
 #include "BinnedNeighborListGPU.h"
-#include "LJForceComputeGPU.h"
 #endif
 
 #include "FENEBondForceCompute.h"
@@ -246,28 +245,31 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
-    shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
+    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    fc->setRcut(0, 0, Scalar(1.122));
+    fc->setRcut(0, 1, Scalar(1.122));
+    fc->setRcut(1, 1, Scalar(1.122));
     
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
-    Scalar alpha_lj = Scalar(1.0);  // alpha = 1.0: LJ
+    Scalar alpha = Scalar(1.0);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma, Scalar(12.0));
-    Scalar lj2 = alpha_lj * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
+    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
     
     // specify the force parameters
-    fc->setParams(0,0,lj1,lj2, Scalar(1.122));
-    fc->setParams(0,1,lj1,lj2, Scalar(1.122));
-    fc->setParams(1,1,lj1,lj2, Scalar(1.122));
+    fc->setParams(0,0,make_scalar2(lj1,lj2));
+    fc->setParams(0,1,make_scalar2(lj1,lj2));
+    fc->setParams(1,1,make_scalar2(lj1,lj2));
     
     bdnvt_up->addForceCompute(fc);
-    
+/*    
     shared_ptr<FENEBondForceComputeGPU> fenebond(new FENEBondForceComputeGPU(sysdef));
     fenebond->setParams(0, Scalar(30.0), Scalar(1.5), Scalar(1.0), Scalar(1.122));
     
-//    bdnvt_up->addForceCompute(fenebond);
-    
+    bdnvt_up->addForceCompute(fenebond);
+*/    
     unsigned int nrigid_dof, nnonrigid_dof;
     Scalar current_temp;
     
@@ -409,10 +411,11 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     // End of mixing
  */   
     // Production: turn on LJ interactions between rods
-    fc->setParams(1,1,lj1,lj2, Scalar(2.5));
+    fc->setRcut(1, 1, Scalar(2.5));
     
     cout << "Production...\n";
     cout << "Number of particles = " << N << "; Number of rigid bodies = " << rdata->getNumBodies() << "\n";
+    cout << "Temperature set point: " << temperature << "\n";
     cout << "Step\tTemp\tPotEng\tKinEng\tTotalE\tElapsed time\n";
     
     start = clock();

@@ -50,7 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 //! name the boost unit test module
-#define BOOST_TEST_MODULE NVERigidUpdaterTests
+#define BOOST_TEST_MODULE TwoStepNVERigidTests
 #include "boost_utf_configure.h"
 
 #include <boost/bind.hpp>
@@ -64,13 +64,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "IntegratorTwoStep.h"
 
-#include "BinnedNeighborList.h"
+#include "AllPairPotentials.h"
 #include "Initializers.h"
-#include "LJForceCompute.h"
+#include "BinnedNeighborList.h"
+
 
 #ifdef ENABLE_CUDA
 #include "BinnedNeighborListGPU.h"
-#include "LJForceComputeGPU.h"
 #endif
 
 #include "saruprng.h"
@@ -81,7 +81,7 @@ using namespace std;
 using namespace boost;
 
 /*! \file nve_rigid_updater_test.cc
-    \brief Implements unit tests for NVERigidUpdater
+    \brief Implements unit tests for TwoStepNVERigid
     \ingroup unit_tests
 */
 
@@ -144,8 +144,9 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, const ExecutionConfi
     nve_up->addIntegrationMethod(two_step_nve);
     
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
-    shared_ptr<LJForceCompute> fc(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
-    
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    fc->setRcut(0, 0, Scalar(3.0));
+        
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
     Scalar sigma = Scalar(1.0);
@@ -154,13 +155,14 @@ void nve_updater_integrate_tests(nveup_creator nve_creator, const ExecutionConfi
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
     
     // specify the force parameters
-    fc->setParams(0,0,lj1,lj2);
-    
+    fc->setParams(0,0,make_scalar2(lj1,lj2));
+        
     nve_up->addForceCompute(fc);
     
     unsigned int steps = 1000;
     unsigned int sampling = 100;
-    
+
+    // initialize the rigid bodies
     sysdef->init();
     
     shared_ptr<RigidData> rdata = sysdef->getRigidData();
@@ -206,7 +208,7 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
     // check that the nve updater can actually integrate particle positions and velocities correctly
     // start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
     // don't come into play
-    unsigned int nbodies = 1000; // 12000, 24000, 36000, 48000, 60000
+    unsigned int nbodies = 100; // 12000, 24000, 36000, 48000, 60000
     unsigned int nparticlesperbody = 5;
     unsigned int N = nbodies * nparticlesperbody;
     Scalar box_length = 80.0; // 80, 90, 100, 120, 150
@@ -239,90 +241,17 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
         {
         for (unsigned int j = 0; j < nparticlesperbody; j++)
             {
-            
             arrays.x[iparticle] = x0 + 1.0 * j;
             arrays.y[iparticle] = y0 + 0.0;
             arrays.z[iparticle] = z0 + 0.0;
             
-            /*
-            if (j == 0)
-            {
-                arrays.x[iparticle] = x0 + 0.0;
-                arrays.y[iparticle] = y0 + 0.0;
-                arrays.z[iparticle] = z0 + 0.0;
-            }
-            else if (j == 1)
-            {
-                arrays.x[iparticle] = x0 + 1.0;
-                                arrays.y[iparticle] = y0 + 0.0;
-                                arrays.z[iparticle] = z0 + 0.0;
-            
-            }
-            else if (j == 2)
-            {
-                arrays.x[iparticle] = x0 + 2.0;
-                                arrays.y[iparticle] = y0 + 0.0;
-                                arrays.z[iparticle] = z0 + 0.0;
-            
-            }
-            else if (j == 3)
-            {
-                arrays.x[iparticle] = x0 + 2.76;
-                                arrays.y[iparticle] = y0 + 0.642;
-                                arrays.z[iparticle] = z0 + 0.0;
-            
-            }
-            else if (j == 4)
-            {
-                arrays.x[iparticle] = x0 + 3.52;
-                                arrays.y[iparticle] = y0 + 1.284;
-                                arrays.z[iparticle] = z0 + 0.0;
-            
-            }
-            */
-            
-            /*
-            if (j == 0)
-                {
-                arrays.x[iparticle] = x0 + 0.577;
-                arrays.y[iparticle] = y0 + 0.577;
-                arrays.z[iparticle] = z0 + 0.577;
-                }
-            else if (j == 1)
-                {
-                arrays.x[iparticle] = x0 + 1.154;
-                arrays.y[iparticle] = y0 + 1.154;
-                arrays.z[iparticle] = z0 + 1.154;
-                
-                }
-            else if (j == 2)
-                {
-                arrays.x[iparticle] = x0 + 0.0;
-                arrays.y[iparticle] = y0 + 0.0;
-                arrays.z[iparticle] = z0 + 1.154;
-                
-                }
-            else if (j == 3)
-                {
-                arrays.x[iparticle] = x0 + 0.0;
-                arrays.y[iparticle] = y0 + 1.154;
-                arrays.z[iparticle] = z0 + 0.0;
-                
-                }
-            else if (j == 4)
-                {
-                arrays.x[iparticle] = x0 + 1.154;
-                arrays.y[iparticle] = y0 + 0.0;
-                arrays.z[iparticle] = z0 + 0.0;
-                }
-            */    
-                
             arrays.vx[iparticle] = random->d();
             arrays.vy[iparticle] = random->d();
             arrays.vz[iparticle] = random->d();
             
             KE += Scalar(0.5) * (arrays.vx[iparticle]*arrays.vx[iparticle] + arrays.vy[iparticle]*arrays.vy[iparticle] + arrays.vz[iparticle]*arrays.vz[iparticle]);
             
+            arrays.type[iparticle] = 0;
             arrays.body[iparticle] = ibody;
             
             iparticle++;
@@ -365,8 +294,9 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
     
-    shared_ptr<BinnedNeighborListGPU> nlist(new BinnedNeighborListGPU(sysdef, Scalar(2.5), Scalar(0.3)));
-    shared_ptr<LJForceComputeGPU> fc(new LJForceComputeGPU(sysdef, nlist, Scalar(2.5)));
+    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    fc->setRcut(0, 0, Scalar(1.122));
     
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -376,16 +306,17 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma, Scalar(6.0));
     
     // specify the force parameters
-    fc->setParams(0,0,lj1,lj2);
-    
+    fc->setParams(0,0,make_scalar2(lj1,lj2));
+
     nve_up->addForceCompute(fc);
     
+    // initialize the rigid bodies
     sysdef->init();
     
     Scalar PE;
-    unsigned int steps = 10000;
-    unsigned int sampling = 10000;
-    
+    unsigned int steps = 1000;
+    unsigned int sampling = 100;
+
     shared_ptr<RigidData> rdata = sysdef->getRigidData();
     unsigned int nrigid_dof = rdata->getNumDOF();
     
@@ -430,7 +361,7 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
         
     clock_t end = clock();
     double elapsed = (double)(end - start) / (double)CLOCKS_PER_SEC;
-    printf("Elapased time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
+    printf("Elapsed time: %f sec or %f TPS\n", elapsed, (double)steps / elapsed);
     
     // Output coordinates
     arrays = pdata->acquireReadWrite();
@@ -442,8 +373,9 @@ void nve_updater_energy_tests(nveup_creator nve_creator, const ExecutionConfigur
     fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[i], arrays.y[i], arrays.z[i]);
-        
+                
     fclose(fp);
+    
     pdata->release();
     
     }
