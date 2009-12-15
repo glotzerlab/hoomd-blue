@@ -69,7 +69,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool gamma_diam)
-    : TwoStepNVE(sysdef, group), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
+    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
     {
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
@@ -131,6 +131,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
+    const Scalar D = Scalar(m_sysdef->getNDimensions());
     
     // initialize the RNG
     Saru saru(m_seed, timestep);
@@ -155,10 +156,13 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
             gamma = h_gamma.data[arrays.type[j]];
         
         // compute the bd force
-        Scalar coeff = sqrt(Scalar(6.0)*gamma*currentTemp/m_deltaT);
+        Scalar coeff = sqrt(Scalar(6.0) *gamma*currentTemp/m_deltaT);
         Scalar bd_fx = rx*coeff - gamma*arrays.vx[j];
         Scalar bd_fy = ry*coeff - gamma*arrays.vy[j];
         Scalar bd_fz = rz*coeff - gamma*arrays.vz[j];
+        
+        if (D < 3.0)
+            bd_fz = Scalar(0.0);
         
         // then, calculate acceleration from the net force
         Scalar minv = Scalar(1.0) / arrays.mass[j];

@@ -55,11 +55,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE ParticleGroupTests
-#include "boost_utf_configure.h"
-#include <boost/test/floating_point_comparison.hpp>
-
 #include "ParticleData.h"
 #include "Initializers.h"
 #include "ParticleGroup.h"
@@ -67,23 +62,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! Tolerance in percent to use for comparing various values to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-1);
-#else
-const Scalar tol = 1e-6;
-#endif
-//! Global tolerance for check_small comparisons
-const Scalar tol_small = 1e-4;
-
-//! Need a simple define for requireing two values which are unsigned
-#define MY_BOOST_REQUIRE_EQUAL(a,b) BOOST_REQUIRE_EQUAL(a,(unsigned int)(b))
-//! Need a simple define for checking two values which are unsigned
-#define MY_BOOST_CHECK_EQUAL(a,b) BOOST_CHECK_EQUAL(a,(unsigned int)(b))
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
+//! Name the boost unit test module
+#define BOOST_TEST_MODULE ParticleGroupTests
+#include "boost_utf_configure.h"
 
 //! initializes the particle data used by the tests
 shared_ptr<SystemDefinition> create_sysdef()
@@ -161,35 +142,35 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     ParticleGroup tags_all(sysdef, selector_all);
     // verify it
-    MY_BOOST_CHECK_EQUAL(tags_all.getNumMembers(), pdata->getN());
+    BOOST_CHECK_EQUAL_UINT(tags_all.getNumMembers(), pdata->getN());
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        MY_BOOST_CHECK_EQUAL(tags_all.getMemberTag(i), i);
-        MY_BOOST_CHECK_EQUAL(tags_all.getMemberIndex(i), i);
-        MY_BOOST_CHECK_EQUAL(tags_all.isMember(i), true);
+        BOOST_CHECK_EQUAL_UINT(tags_all.getMemberTag(i), i);
+        BOOST_CHECK_EQUAL_UINT(tags_all.getMemberIndex(i), i);
+        BOOST_CHECK_EQUAL_UINT(tags_all.isMember(i), true);
         }
         
     // copy construct it
     ParticleGroup copy1(tags_all);
     // verify it
-    MY_BOOST_CHECK_EQUAL(copy1.getNumMembers(), pdata->getN());
+    BOOST_CHECK_EQUAL_UINT(copy1.getNumMembers(), pdata->getN());
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        MY_BOOST_CHECK_EQUAL(copy1.getMemberTag(i), i);
-        MY_BOOST_CHECK_EQUAL(copy1.getMemberIndex(i), i);
-        MY_BOOST_CHECK_EQUAL(copy1.isMember(i), true);
+        BOOST_CHECK_EQUAL_UINT(copy1.getMemberTag(i), i);
+        BOOST_CHECK_EQUAL_UINT(copy1.getMemberIndex(i), i);
+        BOOST_CHECK_EQUAL_UINT(copy1.isMember(i), true);
         }
         
     // copy it
     ParticleGroup copy2;
     copy2 = copy1;
     // verify it
-    MY_BOOST_CHECK_EQUAL(copy2.getNumMembers(), pdata->getN());
+    BOOST_CHECK_EQUAL_UINT(copy2.getNumMembers(), pdata->getN());
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        MY_BOOST_CHECK_EQUAL(copy2.getMemberTag(i), i);
-        MY_BOOST_CHECK_EQUAL(copy2.getMemberIndex(i), i);
-        MY_BOOST_CHECK_EQUAL(copy2.isMember(i), true);
+        BOOST_CHECK_EQUAL_UINT(copy2.getMemberTag(i), i);
+        BOOST_CHECK_EQUAL_UINT(copy2.getMemberIndex(i), i);
+        BOOST_CHECK_EQUAL_UINT(copy2.isMember(i), true);
         }
     }
 
@@ -202,17 +183,17 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
     ParticleGroup tags04(sysdef, selector04);
     // verify the initial set
-    MY_BOOST_CHECK_EQUAL(tags04.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
     for (unsigned int i = 0; i < 5; i++)
         {
-        MY_BOOST_CHECK_EQUAL(tags04.getMemberTag(i), i);
-        MY_BOOST_CHECK_EQUAL(tags04.getMemberIndex(i), i);
+        BOOST_CHECK_EQUAL_UINT(tags04.getMemberTag(i), i);
+        BOOST_CHECK_EQUAL_UINT(tags04.getMemberIndex(i), i);
         }
     
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
         bool value = (i <= 4);
-        MY_BOOST_CHECK_EQUAL(tags04.isMember(i), value);
+        BOOST_CHECK_EQUAL_UINT(tags04.isMember(i), value);
         }
         
     // resort the particles
@@ -246,18 +227,18 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     
     // verify that the group has updated
     const ParticleDataArraysConst& arrays_const = pdata->acquireReadOnly();
-    MY_BOOST_CHECK_EQUAL(tags04.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
     for (unsigned int i = 0; i < 5; i++)
         {
-        MY_BOOST_CHECK_EQUAL(tags04.getMemberTag(i), i);
+        BOOST_CHECK_EQUAL_UINT(tags04.getMemberTag(i), i);
         // indices are in sorted order (tags 0-4 are particles 9-5)
-        MY_BOOST_CHECK_EQUAL(tags04.getMemberIndex(i), i + 5);
+        BOOST_CHECK_EQUAL_UINT(tags04.getMemberIndex(i), i + 5);
         }
     
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
         bool value = (arrays_const.tag[i] <= 4);
-        MY_BOOST_CHECK_EQUAL(tags04.isMember(i), value);
+        BOOST_CHECK_EQUAL_UINT(tags04.isMember(i), value);
         }
     }
 
@@ -270,39 +251,39 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     // create a group of type 0 and check it
     shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
     ParticleGroup type0(sysdef, selector0);
-    MY_BOOST_REQUIRE_EQUAL(type0.getNumMembers(), 4);
-    MY_BOOST_CHECK_EQUAL(type0.getMemberTag(0), 0);
-    MY_BOOST_CHECK_EQUAL(type0.getMemberTag(1), 2);
-    MY_BOOST_CHECK_EQUAL(type0.getMemberTag(2), 5);
-    MY_BOOST_CHECK_EQUAL(type0.getMemberTag(3), 8);
+    BOOST_REQUIRE_EQUAL_UINT(type0.getNumMembers(), 4);
+    BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(0), 0);
+    BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(1), 2);
+    BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(2), 5);
+    BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(3), 8);
     
     // create a group of type 1 and check it
     shared_ptr<ParticleSelector> selector1(new ParticleSelectorType(sysdef, 1, 1));
     ParticleGroup type1(sysdef, selector1);
-    MY_BOOST_REQUIRE_EQUAL(type1.getNumMembers(), 2);
-    MY_BOOST_CHECK_EQUAL(type1.getMemberTag(0), 3);
-    MY_BOOST_CHECK_EQUAL(type1.getMemberTag(1), 6);
+    BOOST_REQUIRE_EQUAL_UINT(type1.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(type1.getMemberTag(0), 3);
+    BOOST_CHECK_EQUAL_UINT(type1.getMemberTag(1), 6);
     
     // create a group of type 2 and check it
     shared_ptr<ParticleSelector> selector2(new ParticleSelectorType(sysdef, 2, 2));
     ParticleGroup type2(sysdef, selector2);
-    MY_BOOST_REQUIRE_EQUAL(type2.getNumMembers(), 2);
-    MY_BOOST_CHECK_EQUAL(type2.getMemberTag(0), 1);
-    MY_BOOST_CHECK_EQUAL(type2.getMemberTag(1), 7);
+    BOOST_REQUIRE_EQUAL_UINT(type2.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(type2.getMemberTag(0), 1);
+    BOOST_CHECK_EQUAL_UINT(type2.getMemberTag(1), 7);
     
     // create a group of type 3 and check it
     shared_ptr<ParticleSelector> selector3(new ParticleSelectorType(sysdef, 3, 3));
     ParticleGroup type3(sysdef, selector3);
-    MY_BOOST_REQUIRE_EQUAL(type3.getNumMembers(), 2);
-    MY_BOOST_CHECK_EQUAL(type3.getMemberTag(0), 4);
-    MY_BOOST_CHECK_EQUAL(type3.getMemberTag(1), 9);
+    BOOST_REQUIRE_EQUAL_UINT(type3.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(type3.getMemberTag(0), 4);
+    BOOST_CHECK_EQUAL_UINT(type3.getMemberTag(1), 9);
     
     // create a group of all types and check it
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorType(sysdef, 0, 3));
     ParticleGroup alltypes(sysdef, selector_all);
-    MY_BOOST_REQUIRE_EQUAL(alltypes.getNumMembers(), 10);
+    BOOST_REQUIRE_EQUAL_UINT(alltypes.getNumMembers(), 10);
     for (unsigned int i = 0; i < 10; i++)
-        MY_BOOST_CHECK_EQUAL(alltypes.getMemberTag(i), i);
+        BOOST_CHECK_EQUAL_UINT(alltypes.getMemberTag(i), i);
     }
 
 //! Checks that ParticleGroup can initialize by particle tag
@@ -314,22 +295,22 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     // create a group of tags 0-4 and check it
     shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
     ParticleGroup tags05(sysdef, selector04);
-    MY_BOOST_REQUIRE_EQUAL(tags05.getNumMembers(), 5);
-    MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(0), 0);
-    MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(1), 1);
-    MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(2), 2);
-    MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(3), 3);
-    MY_BOOST_CHECK_EQUAL(tags05.getMemberTag(4), 4);
+    BOOST_REQUIRE_EQUAL_UINT(tags05.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(0), 0);
+    BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(1), 1);
+    BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(2), 2);
+    BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(3), 3);
+    BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(4), 4);
     
     // create a group of tags 5-9 and check it
     shared_ptr<ParticleSelector> selector59(new ParticleSelectorTag(sysdef, 5, 9));
     ParticleGroup tags59(sysdef, selector59);
-    MY_BOOST_REQUIRE_EQUAL(tags59.getNumMembers(), 5);
-    MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(0), 5);
-    MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(1), 6);
-    MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(2), 7);
-    MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(3), 8);
-    MY_BOOST_CHECK_EQUAL(tags59.getMemberTag(4), 9);
+    BOOST_REQUIRE_EQUAL_UINT(tags59.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(0), 5);
+    BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(1), 6);
+    BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(2), 7);
+    BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(3), 8);
+    BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(4), 9);
     }
 
 //! Checks that ParticleGroup can initialize by cuboid
@@ -343,27 +324,27 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
                                                                       make_scalar3(-0.5, -0.5, -0.5),
                                                                       make_scalar3( 0.5,  0.5,  0.5)));
     ParticleGroup tags0(sysdef, selector0);
-    MY_BOOST_REQUIRE_EQUAL(tags0.getNumMembers(), 1);
-    MY_BOOST_CHECK_EQUAL(tags0.getMemberTag(0), 0);
+    BOOST_REQUIRE_EQUAL_UINT(tags0.getNumMembers(), 1);
+    BOOST_CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
     
     // create a group containing particles 0 and 1
     shared_ptr<ParticleSelector> selector1(new ParticleSelectorCuboid(sysdef,
                                                                       make_scalar3(-0.5, -0.5, -0.5),
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags1(sysdef, selector1);
-    MY_BOOST_REQUIRE_EQUAL(tags1.getNumMembers(), 2);
-    MY_BOOST_CHECK_EQUAL(tags1.getMemberTag(0), 0);
-    MY_BOOST_CHECK_EQUAL(tags1.getMemberTag(1), 1);
+    BOOST_REQUIRE_EQUAL_UINT(tags1.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(tags1.getMemberTag(0), 0);
+    BOOST_CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
     
     // create a group containing particles 0, 1 and 2
     shared_ptr<ParticleSelector> selector2(new ParticleSelectorCuboid(sysdef,
                                                                       make_scalar3(-1.5, -2.5, -3.5),
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags2(sysdef, selector2);
-    MY_BOOST_REQUIRE_EQUAL(tags2.getNumMembers(), 3);
-    MY_BOOST_CHECK_EQUAL(tags2.getMemberTag(0), 0);
-    MY_BOOST_CHECK_EQUAL(tags2.getMemberTag(1), 1);
-    MY_BOOST_CHECK_EQUAL(tags2.getMemberTag(2), 2);
+    BOOST_REQUIRE_EQUAL_UINT(tags2.getNumMembers(), 3);
+    BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(0), 0);
+    BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(1), 1);
+    BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(2), 2);
     }
 
 //! Checks that the ParticleGroup boolean operation work correctly
@@ -382,20 +363,20 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     
     // make a union of the two groups and check it
     boost::shared_ptr<ParticleGroup> union_group = ParticleGroup::groupUnion(type0, tags04);
-    MY_BOOST_REQUIRE_EQUAL(union_group->getNumMembers(), 7);
-    MY_BOOST_CHECK_EQUAL(union_group->getMemberTag(0), 0);
-    MY_BOOST_CHECK_EQUAL(union_group->getMemberTag(1), 1);
-    MY_BOOST_CHECK_EQUAL(union_group->getMemberTag(2), 2);
-    MY_BOOST_CHECK_EQUAL(union_group->getMemberTag(3), 3);
-    MY_BOOST_CHECK_EQUAL(union_group->getMemberTag(4), 4);
-    MY_BOOST_CHECK_EQUAL(union_group->getMemberTag(5), 5);
-    MY_BOOST_CHECK_EQUAL(union_group->getMemberTag(6), 8);
+    BOOST_REQUIRE_EQUAL_UINT(union_group->getNumMembers(), 7);
+    BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(0), 0);
+    BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(1), 1);
+    BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(2), 2);
+    BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(3), 3);
+    BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(4), 4);
+    BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(5), 5);
+    BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(6), 8);
     
     // make a intersection group and test it
     boost::shared_ptr<ParticleGroup> intersection_group = ParticleGroup::groupIntersection(type0, tags04);
-    MY_BOOST_REQUIRE_EQUAL(intersection_group->getNumMembers(), 2);
-    MY_BOOST_CHECK_EQUAL(intersection_group->getMemberTag(0), 0);
-    MY_BOOST_CHECK_EQUAL(intersection_group->getMemberTag(1), 2);
+    BOOST_REQUIRE_EQUAL_UINT(intersection_group->getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(intersection_group->getMemberTag(0), 0);
+    BOOST_CHECK_EQUAL_UINT(intersection_group->getMemberTag(1), 2);
     }
 
 //! Checks that the ParticleGroup::getTotalMass works correctly

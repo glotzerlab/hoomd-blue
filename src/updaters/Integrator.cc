@@ -242,7 +242,8 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
 */
 Scalar Integrator::computeTemperature(unsigned int timestep)
     {
-    Scalar g = Scalar(3*m_pdata->getN()-3);
+    unsigned int D = m_sysdef->getNDimensions();
+    Scalar g = Scalar(D*m_pdata->getN()-D);
     return 2.0 * computeKineticEnergy(timestep) / g;
     }
 
@@ -268,9 +269,21 @@ Scalar Integrator::computePressure(unsigned int timestep)
             W += force_arrays.virial[j];
         }
         
-    // volume
+    // volume/area & other 2D stuff needed
     BoxDim box = m_pdata->getBox();
-    Scalar volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+    Scalar volume;
+    unsigned int D = m_sysdef->getNDimensions();
+    if (D == 2)
+        {
+        // "volume" is area in 2D
+        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
+        // W needs to be corrected since the 1/3 factor is built in
+        W *= Scalar(3.0/2.0);
+        }
+    else
+        {
+        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
+        }
     
     // pressure: P = (N * K_B * T + W)/V
     return (N * computeTemperature(timestep) + W) / volume;

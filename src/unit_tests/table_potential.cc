@@ -48,11 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE TablePotentialTests
-#include "boost_utf_configure.h"
-#include <boost/test/floating_point_comparison.hpp>
-
 #include <fstream>
 
 #include "TablePotential.h"
@@ -64,24 +59,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
+//! Name the unit test module
+#define BOOST_TEST_MODULE TablePotentialTests
+#include "boost_utf_configure.h"
+
 /*! \file table_potential.cc
     \brief Implements unit tests for TablePotential and descendants
     \ingroup unit_tests
 */
-
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various LJForceComputes to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(4);
-#else
-const Scalar tol = 1e-6;
-#endif
-//! Global tolerance for check_small comparisons
-const Scalar tol_small = 1e-4;
 
 //! Typedef'd TablePotential factory
 typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition> sysdef,
@@ -91,7 +76,7 @@ typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition>
 //! performs some really basic checks on the TablePotential class
 void table_potential_basic_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -212,7 +197,7 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
 //! checks to see if TablePotential correctly handles multiple types
 void table_potential_type_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -332,79 +317,6 @@ BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
     table_potential_type_test(table_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 #endif
-
-
-/*BOOST_AUTO_TEST_CASE(potential_writer)
-    {
-    #ifdef CUDA
-    g_gpu_error_checking = true;
-    #endif
-
-    // this 2-particle test is just to get a plot of the potential and force vs r cut
-    shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, ExecutionConfiguration()));
-    shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
-
-    ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-    arrays.x[1] = Scalar(0.9); arrays.y[1] = arrays.z[1] = 0.0;
-    pdata_2->release();
-    shared_ptr<NeighborList> nlist_2(new NeighborList(sysdef_2, Scalar(7.0), Scalar(0.8)));
-    nlist_2->setStorageMode(NeighborList::full);
-    shared_ptr<TablePotential> fc(new TablePotentialGPU(sysdef_2, nlist_2, 1000));
-
-    // provide a basic potential and "force"
-    vector<Scalar> V, F;
-    // 5 point test
-//    V.push_back(10.0);  F.push_back(-10.0/1.0);
-//    V.push_back(15.0);  F.push_back(-15.0/2.0);
-//    V.push_back(5.0);   F.push_back(-5.0/3.0);
-//    V.push_back(8.0);   F.push_back(-8.0/4.0);
-//    V.push_back(18.0);  F.push_back(-18.0/5.0);
-
-    // 1000 point lj test
-//    Scalar delta_r = (5.0 - 0.5) / (999);
-//    for (unsigned int i = 0; i < 1000; i++)
-//        {
-//        Scalar r = 0.5 + delta_r * Scalar(i);
-//        V.push_back(4.0 * (pow(1.0 / r, 12) - pow(1.0 / r, 6)));
-//        F.push_back(4.0 * (12.0 * pow(1.0 / r, 14) - 6 * pow(1.0 / r, 8)));
-//        }
-
-    // 1000 point gaussian test
-    Scalar delta_r = (5.0) / (999);
-    for (unsigned int i = 0; i < 1000; i++)
-        {
-        Scalar r = delta_r * Scalar(i);
-        V.push_back(1.5 * expf(-r / 0.5));
-        if (r == 0.0)
-            F.push_back(0);
-        else
-            F.push_back(1.5 / 0.5 * expf(-r / 0.5) / r);
-        }
-
-    fc->setTable(0, 0, V, F, 0.0, 5.0);
-
-    ofstream f("table_dat.m");
-    f << "table = [";
-    unsigned int count = 0;
-    for (float r = 0.0; r <= 5.0; r+= 0.001)
-        {
-        // set the distance
-        ParticleDataArrays arrays = pdata_2->acquireReadWrite();
-        arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
-        arrays.x[1] = Scalar(r); arrays.y[1] = arrays.z[1] = 0.0;
-        pdata_2->release();
-
-        // compute the forces
-        fc->compute(count);
-        count++;
-
-        ForceDataArrays force_arrays = fc->acquire();
-        f << r << " " << force_arrays.fx[0] << " " << fc->calcEnergySum() << " ; " << endl;
-        }
-    f << "];" << endl;
-    f.close();
-    }*/
 
 #ifdef WIN32
 #pragma warning( pop )

@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE NVEUpdaterTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -81,17 +76,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for checking if two floating point numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for checking if two floating point numbers are small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-2);
-#else
-const Scalar tol = 1e-3;
-#endif
+//! name the boost unit test module
+#define BOOST_TEST_MODULE NVEUpdaterTests
+#include "boost_utf_configure.h"
 
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<shared_ptr<TwoStepNVE> (shared_ptr<SystemDefinition> sysdef,
@@ -100,7 +87,7 @@ typedef boost::function<shared_ptr<TwoStepNVE> (shared_ptr<SystemDefinition> sys
 //! Integrate 1 particle through time and compare to an analytical solution
 void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -149,23 +136,23 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfig
         arrays = pdata->acquireReadWrite();
         
         Scalar t = Scalar(i) * deltaT;
-        MY_BOOST_CHECK_CLOSE(arrays.x[0], 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vx[0], 3.0 + 1.5 * t, tol);
+        MY_BOOST_CHECK_CLOSE(arrays.x[0], 0.0 + 3.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(arrays.vx[0], 3.0 + 1.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.y[0], 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vy[0], 2.0 + 2.5 * t, tol);
+        MY_BOOST_CHECK_CLOSE(arrays.y[0], 1.0 + 2.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(arrays.vy[0], 2.0 + 2.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.z[0], 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vz[0], 1.0 + 0 * t, tol);
+        MY_BOOST_CHECK_CLOSE(arrays.z[0], 2.0 + 1.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(arrays.vz[0], 1.0 + 0 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.x[1], 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vx[1], 13.0 + 1.5 * t, tol);
+        MY_BOOST_CHECK_CLOSE(arrays.x[1], 10.0 + 13.0 * t + 1.0/2.0 * 1.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(arrays.vx[1], 13.0 + 1.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.y[1], 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vy[1], 12.0 + 2.5 * t, tol);
+        MY_BOOST_CHECK_CLOSE(arrays.y[1], 11.0 + 12.0 * t + 1.0/2.0 * 2.5 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(arrays.vy[1], 12.0 + 2.5 * t, loose_tol);
         
-        MY_BOOST_CHECK_CLOSE(arrays.z[1], 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, tol);
-        MY_BOOST_CHECK_CLOSE(arrays.vz[1], 11.0 + 0 * t, tol);
+        MY_BOOST_CHECK_CLOSE(arrays.z[1], 12.0 + 11.0 * t + 1.0/2.0 * 0 * t*t, loose_tol);
+        MY_BOOST_CHECK_CLOSE(arrays.vz[1], 11.0 + 0 * t, loose_tol);
         
         pdata->release();
         
@@ -176,7 +163,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfig
 //! Check that the particle movement limit works
 void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -245,7 +232,7 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfigurat
 //! Make a few particles jump across the boundary and verify that the updater works
 void nve_updater_boundary_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -309,7 +296,7 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
                               twostepnve_creator nve_creator2,
                               ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

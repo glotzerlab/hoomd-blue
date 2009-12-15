@@ -191,10 +191,9 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     
     f << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" <<endl;
     f << "<hoomd_xml version=\"1.1\">" << endl;
-    f << "<configuration time_step=\"" << timestep << "\">" << endl;
-    
+    f << "<configuration time_step=\"" << timestep << "\" dimensions=\"" << m_sysdef->getNDimensions() << "\">" << endl;
     f << "<box units=\"sigma\" " << " lx=\""<< Lx << "\" ly=\""<< Ly << "\" lz=\""<< Lz << "\"/>" << endl;
-    
+
     // If the position flag is true output the position of all particles to the file
     if (m_output_position)
         {

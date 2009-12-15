@@ -393,7 +393,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         uint64_t cur_time = m_clk.getTime();
         if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
             {
-            generateStatusLine();
+            if (!m_quiet_run)
+                generateStatusLine();
             m_last_status_time = cur_time;
             m_last_status_tstep = m_cur_tstep;
             }
@@ -612,6 +613,7 @@ void export_System()
     .def("registerLogger", &System::registerLogger)
     .def("setStatsPeriod", &System::setStatsPeriod)
     .def("enableProfiler", &System::enableProfiler)
+    .def("enableQuietRun", &System::enableQuietRun)
     .def("run", &System::run)
     
     .def("getLastTPS", &System::getLastTPS)

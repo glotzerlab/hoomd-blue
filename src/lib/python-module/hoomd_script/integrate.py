@@ -332,6 +332,11 @@ class mode_standard(_integrator):
 # integrate.nvt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+#
+# integrate.nvt uses the proper number of degrees of freedom to compute the temperature of the system in both
+# 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.nvt command
+# is specified.
+#
 class nvt(_integration_method):
     ## Specifies the NVT integration method
     # \param group Group of particles on which to apply this method.
@@ -408,6 +413,11 @@ class nvt(_integration_method):
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+#
+# integrate.npt uses the proper number of degrees of freedom to compute the temperature and pressure of the system in
+# both 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.npt command
+# is specified.
+#
 class npt(_integration_method):
     ## Specifies the NPT integrator
     # \param group Group of particles on which to apply this method.
@@ -536,7 +546,7 @@ class nve(_integration_method):
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNVE(globals.system_definition, group.cpp_group);
+            self.cpp_method = hoomd.TwoStepNVE(globals.system_definition, group.cpp_group, False);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             self.cpp_method = hoomd.TwoStepNVEGPU(globals.system_definition, group.cpp_group);
         else:
@@ -604,6 +614,11 @@ class nve(_integration_method):
 # integrate.bdnvt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
+#
+# integrate.bdnvt uses the proper number of degrees of freedom to compute the temperature of the system in both
+# 2 and 3 dimensional systems, as long as the number of dimensions is set before the integrate.bdnvt command
+# is specified.
+#
 class bdnvt(_integration_method):
     ## Specifies the BD NVT integrator
     # \param group Group of particles on which to apply this method.

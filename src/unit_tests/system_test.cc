@@ -148,7 +148,7 @@ class DummyCompute : public Compute
 //! Tests the add, get, and set routines in System
 BOOST_AUTO_TEST_CASE( getter_setter_tests )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -398,7 +398,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 /*BOOST_AUTO_TEST_CASE( run_tests )
     {
     Py_Initialize();
-    #ifdef CUDA
+    #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
     #endif
 

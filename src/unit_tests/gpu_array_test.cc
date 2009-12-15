@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE GPUArrayTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -73,10 +68,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
+//! Name the unit test module
+#define BOOST_TEST_MODULE GPUArrayTests
+#include "boost_utf_configure.h"
 
 //! boost test case for testing the basic operation of GPUArray
 BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )

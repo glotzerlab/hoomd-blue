@@ -50,11 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE CGCMMForceTests
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -77,17 +72,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various CGCMMForceComputes to each other
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(4);
-#else
-const Scalar tol = 1e-4;
-#endif
+//! Name the unit test module
+#define BOOST_TEST_MODULE CGCMMForceTests
+#include "boost_utf_configure.h"
 
 //! Typedef'd CGCMMForceCompute factory
 typedef boost::function<shared_ptr<CGCMMForceCompute> (shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;
@@ -95,7 +82,7 @@ typedef boost::function<shared_ptr<CGCMMForceCompute> (shared_ptr<SystemDefiniti
 //! Test the ability of the cgcmm LJ12-4 force compute to actually calucate forces
 void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -210,7 +197,7 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, ExecutionCon
 //! Test the ability of the cgcmm LJ9-6 force compute to actually calucate forces
 void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -321,7 +308,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConf
 //! Tests the ability of a CGCMMForceCompute to handle periodic boundary conditions
 void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -414,7 +401,7 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, ExecutionConfig
 //! Unit test a comparison between 2 CGCMMForceComputes on a "real" system
 void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_creator cgcmm_creator2, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -449,14 +436,32 @@ void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_c
     ForceDataArrays arrays1 = fc1->acquire();
     ForceDataArrays arrays2 = fc2->acquire();
     
+    // compare average deviation between the two computes
+    double deltaf2 = 0.0;
+    double deltape2 = 0.0;
+    double deltav2 = 0.0;
+        
     for (unsigned int i = 0; i < N; i++)
         {
-        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], tol);
-        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], tol);
+        deltaf2 += double(arrays1.fx[i] - arrays2.fx[i]) * double(arrays1.fx[i] - arrays2.fx[i]);
+        deltaf2 += double(arrays1.fy[i] - arrays2.fy[i]) * double(arrays1.fy[i] - arrays2.fy[i]);
+        deltaf2 += double(arrays1.fz[i] - arrays2.fz[i]) * double(arrays1.fz[i] - arrays2.fz[i]);
+        deltape2 += double(arrays1.pe[i] - arrays2.pe[i]) * double(arrays1.pe[i] - arrays2.pe[i]);
+        deltav2 += double(arrays1.virial[i] - arrays2.virial[i]) * double(arrays1.virial[i] - arrays2.virial[i]);
+
+        // also check that each individual calculation is somewhat close
+        BOOST_CHECK_CLOSE(arrays1.fx[i], arrays2.fx[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fy[i], arrays2.fy[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.fz[i], arrays2.fz[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.pe[i], arrays2.pe[i], loose_tol);
+        BOOST_CHECK_CLOSE(arrays1.virial[i], arrays2.virial[i], loose_tol);
         }
+    deltaf2 /= double(sysdef->getParticleData()->getN());
+    deltape2 /= double(sysdef->getParticleData()->getN());
+    deltav2 /= double(sysdef->getParticleData()->getN());
+    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
+    BOOST_CHECK_SMALL(deltape2, double(tol_small));
+    BOOST_CHECK_SMALL(deltav2, double(tol_small));
     }
 
 //! CGCMMForceCompute creator for unit tests

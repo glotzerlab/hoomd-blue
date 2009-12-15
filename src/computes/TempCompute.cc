@@ -65,12 +65,13 @@ using namespace std;
 
    Note: we have periodic boundary conditions, so we have
    translational invariance, i.e. the number of degrees of
-   freedom is 3N-3 (minus constraints when implemented).
+   freedom is dim*N-dim (minus constraints when implemented).
 */
 TempCompute::TempCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_temp(0.0)
     {
     assert(m_pdata);
-    m_dof = m_pdata->getN() * 3 - 3;
+    unsigned int dim = m_sysdef->getNDimensions();
+    m_dof = m_pdata->getN() * dim - dim;
     }
 
 /*! Calls computeTemp if the temperature needs updating

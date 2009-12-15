@@ -50,24 +50,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE UtilityClassesTests
-#include "boost_utf_configure.h"
-
 #include <math.h>
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "Variant.h"
 
-#include <boost/test/floating_point_comparison.hpp>
-
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,double(b),double(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,double(c))
-
-//! Tolerance
-double tol = 1e-3;
+//! Name the unit test module
+#define BOOST_TEST_MODULE UtilityClassesTests
+#include "boost_utf_configure.h"
 
 /*! \file utils_test.cc
     \brief Unit tests for ClockSource, Profiler, and Variant
@@ -244,18 +234,18 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test2)
     v.setPoint(500, 10.0);
     v.setPoint(1000, 20.0);
     
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 20.0, tol);
     v.setOffset(1000);
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 20.0, tol);
     }
 
 //! perform some simple checks on the variant types
@@ -266,32 +256,32 @@ BOOST_AUTO_TEST_CASE(VariantLinear_test3)
     v.setPoint(1000, 20.0);
     v.setPoint(2000, 50.0);
     
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 35.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 50.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 35.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 50.0, tol);
     v.setOffset(1000);
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
     
     // mix up the order to make sure it works no matter what
-    MY_BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3000), 50.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1500), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(0), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2000), 20.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(2500), 35.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1000), 10.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(1750), 15.0, tol);
+    BOOST_CHECK_CLOSE(v.getValue(3500), 50.0, tol);
     }
 
 #ifdef WIN32

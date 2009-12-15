@@ -46,16 +46,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE ElectrostaticShortRangeTests
-#include "boost_utf_configure.h"
-
-
 // conditionally compile in only if boost is 1.35 or later
 #include <boost/version.hpp>
 #if (BOOST_VERSION >= 103500)
 
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -78,13 +72,9 @@ using namespace boost;
     \ingroup unit_tests
 */
 
-//! Helper macro for testing if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-//! Helper macro for testing if a number is small
-#define MY_BOOST_CHECK_SMALL(a,c) BOOST_CHECK_SMALL(a,Scalar(c))
-
-//! Tolerance in percent to use for comparing various ElectrostaticShortRange to each other
-const Scalar tol = Scalar(1);
+//! Name the unit test module
+#define BOOST_TEST_MODULE ElectrostaticShortRangeTests
+#include "boost_utf_configure.h"
 //! minimum force worth computing
 const Scalar MIN_force=Scalar(1.0e-9);
 

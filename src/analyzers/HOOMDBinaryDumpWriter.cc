@@ -136,7 +136,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int magic = 0x444d4f48;
     f.write((char*)&magic, sizeof(unsigned int));
     // write the version of the binary format used
-    int version = 1;
+    int version = 2;
     f.write((char*)&version, sizeof(int));
 
     // acquire the particle data
@@ -146,9 +146,11 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     Lx=Scalar(box.xhi-box.xlo);
     Ly=Scalar(box.yhi-box.ylo);
     Lz=Scalar(box.zhi-box.zlo);
-        
-    //write out the timestep and box
-    f.write((char*)&timestep, sizeof(int));
+    unsigned int dimensions = m_sysdef->getNDimensions();
+    
+    //write out the timestep, dimensions, and box
+    f.write((char*)&timestep, sizeof(unsigned int));
+    f.write((char*)&dimensions, sizeof(unsigned int));
     f.write((char*)&Lx, sizeof(Scalar));
     f.write((char*)&Ly, sizeof(Scalar));
     f.write((char*)&Lz, sizeof(Scalar));

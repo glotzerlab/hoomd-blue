@@ -42,7 +42,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
-#define _USE_MATH_DEFINES
 #endif
 
 #include <iostream>
@@ -58,7 +57,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.h"
 
-#include <math.h>
 
 using namespace std;
 using namespace boost;

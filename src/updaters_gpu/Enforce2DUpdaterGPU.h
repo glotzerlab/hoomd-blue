@@ -39,40 +39,41 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: Enforce2DUpdaterGPU.h 2148 2009-10-07 20:05:29Z joaander $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/updaters_gpu/Enforce2DUpdaterGPU.h $
 // Maintainer: joaander
 
-/*! \file TwoStepBDNVTGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
+/*! \file Enforce2DUpdaterGPU.h
+    \brief Declares the Enforce2DUpdaterGPU class
 */
 
-#include "ParticleData.cuh"
+#include "Enforce2DUpdater.h"
 
-#ifndef __TWO_STEP_BDNVT_GPU_CUH__
-#define __TWO_STEP_BDNVT_GPU_CUH__
+#include <boost/shared_ptr.hpp>
 
-//! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
-struct bdnvt_step_two_args
+#ifndef __ENFORCE2DUPDATER_GPU_H__
+#define __ENFORCE2DUPDATER_GPU_H__
+
+//! NVE via velocity verlet on the GPU
+/*! Enforce2DUpdaterGPU implements exactly the same caclulations as NVEUpdater, but on the GPU.
+
+    The GPU kernel that accomplishes this can be found in gpu_nve_kernel.cu
+
+    \ingroup updaters
+*/
+class Enforce2DUpdaterGPU : public Enforce2DUpdater
     {
-    float *d_gamma;         //!< Device array listing per-type gammas
-    unsigned int n_types;   //!< Number of types in \a d_gamma
-    bool gamma_diam;        //!< Set to true to use diameters as gammas
-    float T;                //!< Current temperature
-    unsigned int timestep;  //!< Current timestep
-    unsigned int seed;      //!< User chosen random number seed
+    public:
+        //! Constructor
+        Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        
+        //! Take one timestep forward
+        virtual void update(unsigned int timestep);
+        
     };
 
-//! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
-cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               float4 *d_net_force,
-                               const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               float D,
-                               bool limit,
-                               float limit_val);
+//! Exports the Enforce2DUpdaterGPU class to python
+void export_Enforce2DUpdaterGPU();
 
-#endif //__TWO_STEP_BDNVT_GPU_CUH__
+#endif
 

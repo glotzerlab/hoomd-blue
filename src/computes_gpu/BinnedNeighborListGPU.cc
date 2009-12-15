@@ -50,10 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
-
-// windoze calls isnan by a different name....
-#include <float.h>
-#define isnan _isnan
 #endif
 
 #include "BinnedNeighborListGPU.h"
@@ -413,6 +409,10 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     m_Mx = int((box.xhi - box.xlo) / (m_r_cut + m_r_buff));
     m_My = int((box.yhi - box.ylo) / (m_r_cut + m_r_buff));
     m_Mz = int((box.zhi - box.zlo) / (m_r_cut + m_r_buff));
+
+    if (m_sysdef->getNDimensions() == 2) 
+        m_Mz = 3;
+
     if (m_Mx < 3 || m_My < 3 || m_Mz < 3)
         {
         cerr << endl << "***Error! BinnedNeighborListGPU doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl << endl;

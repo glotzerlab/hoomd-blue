@@ -166,24 +166,30 @@ class ForceCompute : public Compute
         //! Easy access to the force on a single particle
         Scalar3 getForce(unsigned int tag)
             {
+#ifdef ENABLE_CUDA
             if (m_data_location == gpu)
                 deviceToHostCopy();
+#endif
             unsigned int i = m_pdata->getRTag(tag);
             return make_scalar3(m_fx[i], m_fy[i], m_fz[i]);
             }
         //! Easy access to the virial on a single particle
         Scalar getVirial(unsigned int tag)
             {
+#ifdef ENABLE_CUDA
             if (m_data_location == gpu)
                 deviceToHostCopy();
+#endif
             unsigned int i = m_pdata->getRTag(tag);
             return m_virial[i];
             }
         //! Easy access to the energy on a single particle
         Scalar getEnergy(unsigned int tag)
             {
+#ifdef ENABLE_CUDA
             if (m_data_location == gpu)
                 deviceToHostCopy();
+#endif
             unsigned int i = m_pdata->getRTag(tag);
             return m_pe[i];
             }
@@ -214,7 +220,6 @@ class ForceCompute : public Compute
         
         ForceDataArrays m_arrays;       //!< Structure-of-arrays for quick returning via acquire
         
-#ifdef ENABLE_CUDA
         //! Simple type for identifying where the most up to date particle data is
         enum DataLocation
             {
@@ -224,13 +229,15 @@ class ForceCompute : public Compute
             };
             
         DataLocation m_data_location;               //!< Where the neighborlist data currently lives
+
+#ifdef ENABLE_CUDA
         vector<ForceDataArraysGPU> m_gpu_forces;    //!< Storage location for forces on the device
+#endif
         
         //! Helper function to move data from the host to the device
         void hostToDeviceCopy();
         //! Helper function to move data from the device to the host
         void deviceToHostCopy();
-#endif
         
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by

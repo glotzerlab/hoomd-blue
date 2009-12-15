@@ -51,11 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <algorithm>
 
-//! Define the name of the boost test module
-#define BOOST_TEST_MODULE NeighborListTest
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
@@ -73,8 +68,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 using namespace boost;
 
-//! helper macro for checking if two numbers are close
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
+//! Define the name of the boost test module
+#define BOOST_TEST_MODULE NeighborListTest
+#include "boost_utf_configure.h"
 
 //! Shortcut for defining a factory
 typedef boost::function<shared_ptr<NeighborList> (shared_ptr<SystemDefinition> sysdef,
@@ -84,7 +80,7 @@ typedef boost::function<shared_ptr<NeighborList> (shared_ptr<SystemDefinition> s
 //! Performs basic functionality tests on a neighbor list
 void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -203,7 +199,7 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, ExecutionConfigur
 //! Tests the ability of the neighbor list to exclude particle pairs
 void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -270,7 +266,7 @@ void neighborlist_comparison_test(nlist_creator_typ nlist_creator1,
                                   nlist_creator_typ nlist_creator2,
                                   ExecutionConfiguration exec_conf)
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     

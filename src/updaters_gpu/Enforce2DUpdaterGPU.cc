@@ -39,12 +39,12 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: Enforce2DUpdaterGPU.cc 2148 2009-10-07 20:05:29Z joaander $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/updaters_gpu/Enforce2DUpdaterGPU.cc $
 // Maintainer: joaander
 
-/*! \file gpu_worker_test.cc
-    \brief Unit tests for the GPUWorker class
+/*! \file Enforce2DUpdaterGPU.cc
+    \brief Defines the Enforce2DUpdaterGPU class
 */
 
 #ifdef WIN32
@@ -52,79 +52,64 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-#include <iostream>
-#include <cuda_runtime.h>
-#include "gpu_settings.h"
-
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE GPUWorkerTests
-#include "boost_utf_configure.h"
+#include "Enforce2DUpdaterGPU.h"
+#include "Enforce2DUpdaterGPU.cuh"
 
 #include <boost/bind.hpp>
-#include <boost/function.hpp>
-
-#include "GPUWorker.h"
-#include "ExecutionConfiguration.h"
-
 using namespace boost;
+
+#include <boost/python.hpp>
+using namespace boost::python;
+
 using namespace std;
 
-#ifdef ENABLE_CUDA
-
-//! boost test case for GPUWorker basic operation
-BOOST_AUTO_TEST_CASE( GPUWorker_basic )
+/*! \param sysdef System to update
+*/
+Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
     {
-    GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
-    
-    // try allocating and memcpying some data
-    float *d_float;
-    float h_float;
-    
-    // allocate and copy a float to the device
-    gpu.call(bind(cudaMallocHack, (void **)((void *)&d_float), sizeof(float)));
-    
-    h_float = 4.293f;
-    gpu.call(bind(cudaMemcpy, d_float, &h_float, sizeof(float), cudaMemcpyHostToDevice));
-    
-    // clear the float and copy it back to see if everything worked
-    h_float = 0.0f;
-    gpu.call(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyDeviceToHost));
-    
-    BOOST_CHECK_EQUAL(h_float, 4.293f);
-    
-    gpu.call(bind(cudaFree, d_float));
+    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+    // at least one GPU is needed
+    if (exec_conf.gpu.size() == 0)
+        {
+        cerr << endl << "***Error! Creating a Enforce2DUpdaterGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing Enforce2DUpdaterGPU");
+        }
     }
 
-//! boost test case for GPUWorker error detection
-BOOST_AUTO_TEST_CASE( GPUWorker_throw )
+/*! \param timestep Current time step of the simulation
+
+    Calls gpu_enforce2d to do the actual work.
+*/
+void Enforce2DUpdaterGPU::update(unsigned int timestep)
     {
-    GPUWorker gpu(ExecutionConfiguration::getDefaultGPU());
+    assert(m_pdata);
+            
+    if (m_prof)
+        m_prof->push(exec_conf, "Enforce2D");
+        
+    // access the particle data arrays
+    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     
-    // try allocating and memcpying some data
-    float *d_float;
-    float h_float;
+    // call the enforce 2d kernel on all GPUs in parallel
+    exec_conf.tagAll(__FILE__, __LINE__);
     
-    // allocate and copy a float to the device
-    gpu.call(bind(cudaMallocHack, (void **)((void *)&d_float), sizeof(float)));
+    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+        exec_conf.gpu[cur_gpu]->call(bind(gpu_enforce2d, d_pdata[cur_gpu]));
     
-    h_float = 4.293f;
-    // purposefully switch pointers: this should introduce a CUDA error
-    // check that an exception is thrown
-    BOOST_CHECK_THROW(gpu.call(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyHostToDevice)), runtime_error);
+    exec_conf.syncAll();
+                        
+    m_pdata->release();
     
-    // the error should be cleared now
-    BOOST_CHECK_NO_THROW(gpu.sync());
-    
-    // test this through sync (which only works when not in device emu mode)
-#ifndef _DEVICEEMU
-    gpu.callAsync(bind(cudaMemcpy, &h_float, d_float, sizeof(float), cudaMemcpyHostToDevice));
-    BOOST_CHECK_THROW(gpu.sync(), runtime_error);
-#endif
-    
-    gpu.call(bind(cudaFree, d_float));
+    if (m_prof)
+        m_prof->pop(exec_conf);
     }
 
-#endif
+void export_Enforce2DUpdaterGPU()
+    {
+    class_<Enforce2DUpdaterGPU, boost::shared_ptr<Enforce2DUpdaterGPU>, bases<Enforce2DUpdater>, boost::noncopyable>
+    ("Enforce2DUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
+    ;
+    }
 
 #ifdef WIN32
 #pragma warning( pop )

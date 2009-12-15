@@ -50,12 +50,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // conditionally compile only if a fast fourier transform is defined
 #ifdef ENABLE_FFT
 
-#ifdef WIN32
-#define _USE_MATH_DEFINES
-#endif
-
-#include <math.h>
-
 #include <boost/math/special_functions/sinc.hpp>
 
 #include <iostream>

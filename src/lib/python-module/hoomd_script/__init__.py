@@ -97,10 +97,11 @@ def get_hoomd_script_version():
 ## \brief Runs the simulation for a given number of time steps
 #
 # \param tsteps Number of time steps to advance the simulation by
-# \param profile Set to true to enable detailed profiling
+# \param profile Set to True to enable detailed profiling
 # \param limit_hours  (if set) Limit the run to a given number of hours.
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
 # \param callback_period Sets the period, in time steps, between calls made to \a callback
+# \param quiet Set to True to eliminate the status information printed to the screen by the run
 #
 # \b Examples:
 # \code
@@ -150,8 +151,9 @@ def get_hoomd_script_version():
 # once at the end of the run. Otherwise the callback is executed whenever the current
 # time step number is a multiple of \a callback_period.
 #
-def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None):
-    util.print_status_line();
+def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None, quiet=False):
+    if not quiet:
+        util.print_status_line();
     # check if initialization has occured
     if (globals.system == None):
         print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
@@ -166,6 +168,7 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     for logger in globals.loggers:
         logger.update_quantities();
     globals.system.enableProfiler(profile);
+    globals.system.enableQuietRun(quiet);
     
     if globals.neighbor_list:
         globals.neighbor_list.update_rcut();
@@ -173,7 +176,9 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     if limit_hours == None:
         limit_hours = 0.0
     
-    print "** starting run **"
+    if not quiet:
+        print "** starting run **"
     globals.system.run(int(tsteps), callback_period, callback, limit_hours);
-    print "** run complete **"
+    if not quiet:
+        print "** run complete **"
 

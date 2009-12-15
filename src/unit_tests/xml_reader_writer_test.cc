@@ -48,12 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE XMLReaderWriterTest
-#include "boost_utf_configure.h"
-
-#include <boost/test/floating_point_comparison.hpp>
-
 #include <math.h>
 #include "HOOMDDumpWriter.h"
 #include "HOOMDInitializer.h"
@@ -71,15 +65,9 @@ using namespace boost;
 #include <fstream>
 using namespace std;
 
-//! Need a simple define for checking two close values whether they are double or single
-#define MY_BOOST_CHECK_CLOSE(a,b,c) BOOST_CHECK_CLOSE(a,Scalar(b),Scalar(c))
-
-//! Tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-3);
-#else
-const Scalar tol = 1e-3;
-#endif
+//! Name the unit test module
+#define BOOST_TEST_MODULE XMLReaderWriterTest
+#include "boost_utf_configure.h"
 
 /*! \file xml_reader_writer_test.cc
     \brief Unit tests for HOOMDDumpWriter and HOOMDumpReader
@@ -89,7 +77,7 @@ const Scalar tol = 1e-3;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -236,7 +224,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\">");
+        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -773,7 +761,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
 BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -844,7 +832,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\">");
+        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -996,7 +984,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
 //! Test basic functionality of HOOMDInitializer
 BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     {
-#ifdef CUDA
+#ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
 #endif
     
@@ -1004,7 +992,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     ofstream f("test_input.xml");
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 <hoomd_xml version=\"1.1\">\n\
-<configuration time_step=\"150000000\">\n\
+<configuration time_step=\"150000000\" dimensions=\"2\">\n\
 <box units =\"sigma\"  lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
 <position units =\"sigma\" >\n\
 1.4 2.567890 3.45\n\
@@ -1104,6 +1092,7 @@ im_b 5 4 3 2\n\
     
     // verify all parameters
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)150000000);
+    BOOST_CHECK_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
     BOOST_CHECK_EQUAL(pdata->getN(), (unsigned int)6);
     BOOST_CHECK_EQUAL(pdata->getNTypes(), (unsigned int)6);
     MY_BOOST_CHECK_CLOSE(pdata->getBox().xhi - pdata->getBox().xlo, 20.05, tol);

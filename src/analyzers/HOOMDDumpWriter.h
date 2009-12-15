@@ -87,7 +87,7 @@ class HOOMDDumpWriter : public Analyzer
         
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
-        //! Enables/disables the writing of particle positions
+        //! Enables/disables the writing of the particle positions
         void setOutputPosition(bool enable);
         //! Enables/disables the writing of particle images
         void setOutputImage(bool enable);

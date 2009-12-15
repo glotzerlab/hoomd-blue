@@ -278,6 +278,13 @@ class ParticleDataInitializer
         
         //! Intialize the type mapping
         virtual std::vector<std::string> getTypeMapping() const = 0;
+
+        //! Returns the number of dimensions
+        /*! The base class returns 3 */
+        virtual unsigned int getNumDimensions() const
+            {
+            return 3;
+            }
         
         //! Returns the number of bond types to be created
         /*! Bonds are optional: the base class returns 1 */

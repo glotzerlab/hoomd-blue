@@ -86,13 +86,6 @@ using namespace boost;
 */
 
 
-//! Tolerance for floating point comparisons
-#ifdef SINGLE_PRECISION
-const Scalar tol = Scalar(1e-2);
-#else
-const Scalar tol = 1e-3;
-#endif
-
 //! Typedef'd TwoStepNVERigid class factory
 typedef boost::function<shared_ptr<TwoStepNVERigid> (shared_ptr<SystemDefinition> sysdef,
                                                     shared_ptr<ParticleGroup> group)> nveup_creator;
