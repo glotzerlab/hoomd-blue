@@ -373,6 +373,39 @@ class zero_momentum(_updater):
         # create the c++ mirror class
         self.cpp_updater = hoomd.ZeroMomentumUpdater(globals.system_definition);
         self.setupUpdater(period);
+
+## Enforces 2D simulation
+#
+# Every time step, particle velocities and accelerations are modified so that their z components are 0: forcing
+# 2D simulations when other calculations cause particles to drift out of the plane.
+#
+# Using enforce2d is only allowed when the system is specified as having only 2 dimensions. This specification can
+# be made in the xml file read by init.read_xml() or set dynamically via the particle data access routines. Setting
+# the number of dimensions to 2 also changes the degrees of freedom calculation for temperature calculations and forces
+# the neighbor list to only find 2D neighbors. Doing so requires that a small, but non-zero, value be set for the z
+# dimension of the simulation box.
+#
+class enforce2d(_updater):
+    ## Initialize the 2D enforcement
+    #
+    # \b Examples:
+    # \code
+    # update.enforce2d()
+    # \endcode
+    #
+    def __init__(self):
+        util.print_status_line();
+        period = 1;
+    
+        # initialize base class
+        _updater.__init__(self);
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_updater = hoomd.Enforce2DUpdater(globals.system_definition);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_updater = hoomd.Enforce2DUpdaterGPU(globals.system_definition);
+        self.setupUpdater(period);
         
 ## Rescales the system box size
 #

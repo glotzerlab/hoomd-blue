@@ -1255,28 +1255,21 @@ class update_zero_momentum_tests (unittest.TestCase):
         update.zero_momentum(period = lambda n: n*100);
         run(100);
     
-    # test enable/disable
-    def test_enable_disable(self):
-        upd = update.rescale_temp(T=1.0)
-        upd.disable();
-        self.assert_(not upd.enabled);
-        upd.disable();
-        self.assert_(not upd.enabled);
-        upd.enable();
-        self.assert_(upd.enabled);
-        upd.enable();
-        self.assert_(upd.enabled);
-        
-    # test set_period
-    def test_set_period(self):
-        upd = update.rescale_temp(T=1.0)
-        upd.set_period(10);
-        upd.disable();
-        self.assertEqual(10, upd.prev_period);
-        upd.set_period(50);
-        self.assertEqual(50, upd.prev_period);
-        upd.enable();
-        
+    def tearDown(self):
+        init.reset();
+
+# tests for update.zero_momentum
+class update_enforce2d_tests (unittest.TestCase):
+    def setUp(self):
+        print
+        s = init.create_random(N=100, phi_p=0.05);
+        s.dimensions = 2
+
+    # tests basic creation of the updater
+    def test(self):
+        update.enforce2d()
+        run(100);
+    
     def tearDown(self):
         init.reset();
 

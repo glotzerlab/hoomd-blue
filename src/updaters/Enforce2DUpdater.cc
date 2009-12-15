@@ -38,41 +38,76 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-// $Id$
-// $URL$
+// $Id: Enforce2DUpdater.cc 2417 2009-12-01 21:54:03Z askeys $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/two-d/src/updaters/Enforce2DUpdater.cc $
 // Maintainer: joaander
 
-/*! \file TwoStepBDNVTGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
+/*! \file Enforce2DUpdater.cc
+    \brief Defines the Enforce2DUpdater class
 */
 
-#include "ParticleData.cuh"
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
 
-#ifndef __TWO_STEP_BDNVT_GPU_CUH__
-#define __TWO_STEP_BDNVT_GPU_CUH__
+#include <boost/python.hpp>
+using namespace boost::python;
 
-//! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
-struct bdnvt_step_two_args
+#include "Enforce2DUpdater.h"
+
+#include <iostream>
+#include <math.h>
+#include <stdexcept>
+
+using namespace std;
+
+/*! \param sysdef System to zero the momentum of
+*/
+Enforce2DUpdater::Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+        : Updater(sysdef)
     {
-    float *d_gamma;         //!< Device array listing per-type gammas
-    unsigned int n_types;   //!< Number of types in \a d_gamma
-    bool gamma_diam;        //!< Set to true to use diameters as gammas
-    float T;                //!< Current temperature
-    unsigned int timestep;  //!< Current timestep
-    unsigned int seed;      //!< User chosen random number seed
-    };
+    assert(m_pdata);
+    if (m_sysdef->getNDimensions() != 2)
+        {
+        cerr << endl << "***Error! Enforce2DUpdater used for 3 dimensional system" << endl << endl;
+        throw runtime_error("Error initializing Enforce2DUpdater");
+        }
+    }
 
-//! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
-cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               float4 *d_net_force,
-                               const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               float D,
-                               bool limit,
-                               float limit_val);
 
-#endif //__TWO_STEP_BDNVT_GPU_CUH__
+/*! Perform the needed calculations to zero the system's momentum
+    \param timestep Current time step of the simulation
+*/
+void Enforce2DUpdater::update(unsigned int timestep)
+    {
+    if (m_prof) m_prof->push("Enforce2D");
+    
+    assert(m_pdata);
+    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+    
+    // zero the z-positions and z-velocities:
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        {
+        arrays.vz[i] = Scalar(0.0);
+        arrays.az[i] = Scalar(0.0);
+        }
+
+    // for rigid bodies, zero x / y components of omega/angmom/torque:
+
+    m_pdata->release();
+    
+    if (m_prof) m_prof->pop();
+    }
+
+void export_Enforce2DUpdater()
+    {
+    class_<Enforce2DUpdater, boost::shared_ptr<Enforce2DUpdater>, bases<Updater>, boost::noncopyable>
+    ("Enforce2DUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    ;
+    }
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif
 

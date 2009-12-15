@@ -115,6 +115,14 @@ class SystemDefinition
         SystemDefinition(const ParticleDataInitializer& init,
                          const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
         
+        //! Set the dimensionality of the system
+        void setNDimensions(unsigned int);
+        
+        //! Get the dimensionality of the system
+        unsigned int getNDimensions() const
+            {
+            return m_n_dimensions;
+            }
         //! Get the particle data
         boost::shared_ptr<ParticleData> getParticleData() const
             {
@@ -154,6 +162,7 @@ class SystemDefinition
 
             
     private:
+        unsigned int m_n_dimensions;                        //!< Dimensionality of the system
         boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
         boost::shared_ptr<BondData> m_bond_data;            //!< Bond data for the system
         boost::shared_ptr<WallData> m_wall_data;            //!< Wall data for the system

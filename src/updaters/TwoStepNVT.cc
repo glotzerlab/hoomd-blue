@@ -72,7 +72,8 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
         cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
     
     m_curr_T = Scalar(0.0);
-    m_dof = Scalar(3*m_group->getNumMembers() - 3);
+    unsigned int dim = m_sysdef->getNDimensions();
+    m_dof = Scalar(dim*m_group->getNumMembers() - dim);
     
     // set initial state
     IntegratorVariables v = getIntegratorVariables();

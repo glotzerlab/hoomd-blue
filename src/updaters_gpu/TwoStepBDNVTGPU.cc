@@ -132,6 +132,9 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NVE step 2");
     
+    // get the dimensionality of the system
+    const Scalar D = Scalar(m_sysdef->getNDimensions());
+    
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
@@ -154,6 +157,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
                                 d_net_force.data,
                                 args,
                                 m_deltaT,
+                                D,
                                 m_limit,
                                 m_limit_val));
     

@@ -39,40 +39,22 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: NVEUpdaterGPU.cuh 2148 2009-10-07 20:05:29Z joaander $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/cuda/NVEUpdaterGPU.cuh $
 // Maintainer: joaander
 
-/*! \file TwoStepBDNVTGPU.cuh
-    \brief Declares GPU kernel code for BDNVT integration on the GPU. Used by TwoStepBDNVTGPU.
+/*! \file Enforce2DUpdaterGPU.cuh
+    \brief Declares GPU kernel code for constraining particles to the xy plane on the 
+            GPU. Used by Enforce2DUpdaterGPU.
 */
+
+#ifndef __ENFORCE2DUPDATER_CUH__
+#define __ENFORCE2DUPDATER_CUH__
 
 #include "ParticleData.cuh"
 
-#ifndef __TWO_STEP_BDNVT_GPU_CUH__
-#define __TWO_STEP_BDNVT_GPU_CUH__
+//! Kernel driver for the enforce 2D update called by Enforce2DUpdaterGPU
+cudaError_t gpu_enforce2d(const gpu_pdata_arrays &pdata);
 
-//! Temporary holder struct to limit the number of arguments passed to gpu_bdnvt_step_two()
-struct bdnvt_step_two_args
-    {
-    float *d_gamma;         //!< Device array listing per-type gammas
-    unsigned int n_types;   //!< Number of types in \a d_gamma
-    bool gamma_diam;        //!< Set to true to use diameters as gammas
-    float T;                //!< Current temperature
-    unsigned int timestep;  //!< Current timestep
-    unsigned int seed;      //!< User chosen random number seed
-    };
-
-//! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
-cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
-                               unsigned int *d_group_members,
-                               unsigned int group_size,
-                               float4 *d_net_force,
-                               const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               float D,
-                               bool limit,
-                               float limit_val);
-
-#endif //__TWO_STEP_BDNVT_GPU_CUH__
+#endif
 

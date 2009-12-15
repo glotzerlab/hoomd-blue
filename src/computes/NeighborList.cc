@@ -1469,9 +1469,9 @@ void NeighborList::buildNlist()
                 dz += Lz;
                 
             // sanity check
-            assert(dx >= box.xlo && dx < box.xhi);
-            assert(dy >= box.ylo && dx < box.yhi);
-            assert(dz >= box.zlo && dx < box.zhi);
+            assert(dx >= box.xlo && dx <= box.xhi);
+            assert(dy >= box.ylo && dy <= box.yhi);
+            assert(dz >= box.zlo && dz <= box.zhi);
             
             // now compare rsq to rmaxsq and add to the list if it meets the criteria
             Scalar rsq = dx*dx + dy*dy + dz*dz;

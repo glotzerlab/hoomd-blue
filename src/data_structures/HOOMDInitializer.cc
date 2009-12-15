@@ -88,6 +88,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     // initialize member variables
     m_timestep = 0;
     m_box_read = false;
+    m_num_dimensions = 3;
     
     // initialize the parser map
     m_parser_map["box"] = bind(&HOOMDInitializer::parseBoxNode, this, _1);
@@ -111,7 +112,14 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
 /* XXX: shouldn't the following methods be put into
  * the header so that they get inlined? */
 
-/*! \returns Numer of particles parsed from the XML file
+/*! \returns Number of dimensions parsed from the XML file
+*/
+unsigned int HOOMDInitializer::getNumDimensions() const
+    {
+    return (unsigned int)m_num_dimensions;
+    }
+
+/*! \returns Number of particles parsed from the XML file
 */
 unsigned int HOOMDInitializer::getNumParticles() const
     {
@@ -119,7 +127,7 @@ unsigned int HOOMDInitializer::getNumParticles() const
     return (unsigned int)m_pos_array.size();
     }
 
-/*! \returns Numer of particle types parsed from the XML file
+/*! \returns Number of particle types parsed from the XML file
 */
 unsigned int HOOMDInitializer::getNumParticleTypes() const
     {
@@ -306,6 +314,14 @@ void HOOMDInitializer::readFile(const string &fname)
         {
         m_timestep = atoi(configuration_node.getAttribute("time_step"));
         }
+    
+    // extract the number of dimensions, or default to 3
+    if (configuration_node.isAttributeSet("dimensions"))
+        {
+        m_num_dimensions = atoi(configuration_node.getAttribute("dimensions"));
+        }
+    else
+        m_num_dimensions = 3;
         
     // loop through all child nodes of the configuration
     for (int cur_node=0; cur_node < configuration_node.nChildNode(); cur_node++)

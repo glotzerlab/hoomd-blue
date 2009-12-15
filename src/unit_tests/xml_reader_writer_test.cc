@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\">");
+        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -778,7 +778,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\">");
+        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -938,7 +938,7 @@ BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
     ofstream f("test_input.xml");
     f << "<?xml version =\"1.0\" encoding =\"UTF-8\" ?>\n\
 <hoomd_xml version=\"1.1\">\n\
-<configuration time_step=\"150000000\">\n\
+<configuration time_step=\"150000000\" dimensions=\"2\">\n\
 <box units =\"sigma\"  lx=\"20.05\" ly= \"32.12345\" lz=\"45.098\" />\n\
 <position units =\"sigma\" >\n\
 1.4 2.567890 3.45\n\
@@ -1030,6 +1030,7 @@ im_b 5 4 3 2\n\
     
     // verify all parameters
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)150000000);
+    BOOST_CHECK_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
     BOOST_CHECK_EQUAL(pdata->getN(), (unsigned int)6);
     BOOST_CHECK_EQUAL(pdata->getNTypes(), (unsigned int)6);
     MY_BOOST_CHECK_CLOSE(pdata->getBox().xhi - pdata->getBox().xlo, 20.05, tol);

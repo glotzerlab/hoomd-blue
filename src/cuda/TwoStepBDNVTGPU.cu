@@ -86,6 +86,7 @@ extern __shared__ float s_gammas[];
     \param seed User chosen random number seed
     \param T Temperature set point
     \param deltaT Amount of real time to step forward in one time step
+    \param D Dimensionality of the system
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
@@ -109,6 +110,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
                               unsigned int seed,
                               float T,
                               float deltaT,
+                              float D,
                               bool limit,
                               float limit_val)
     {
@@ -165,7 +167,8 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         
         bd_force.x = randomx*coeff - gamma*vel.x;
         bd_force.y = randomy*coeff - gamma*vel.y;
-        bd_force.z = randomz*coeff - gamma*vel.z;
+        if (D > 2.0f)
+            bd_force.z = randomz*coeff - gamma*vel.z;
         
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         float4 accel = tex1Dfetch(net_force_tex, idx);
@@ -206,6 +209,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
     \param d_net_force Net force on each particle
     \param bdnvt_args Collected arguments for gpu_bdnvt_step_two_kernel()
     \param deltaT Amount of real time to step forward in one time step
+    \param D Dimensionality of the system
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
@@ -218,6 +222,7 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                float4 *d_net_force,
                                const bdnvt_step_two_args& bdnvt_args,
                                float deltaT,
+                               float D,
                                bool limit,
                                float limit_val)
     {
@@ -265,6 +270,7 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                                    bdnvt_args.seed,
                                                    bdnvt_args.T,
                                                    deltaT,
+                                                   D,
                                                    limit,
                                                    limit_val);
     

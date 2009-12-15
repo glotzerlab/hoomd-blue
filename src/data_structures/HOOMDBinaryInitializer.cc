@@ -80,6 +80,7 @@ HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
     {
     // initialize member variables
     m_timestep = 0;
+    m_num_dimensions = 3;
     // read in the file
     readFile(fname);
     }
@@ -87,7 +88,14 @@ HOOMDBinaryInitializer::HOOMDBinaryInitializer(const std::string &fname)
 /* XXX: shouldn't the following methods be put into
  * the header so that they get inlined? */
 
-/*! \returns Numer of particles parsed from the XML file
+/*! \returns Number of dimensions parsed from the binary file
+*/
+unsigned int HOOMDBinaryInitializer::getNumDimensions() const
+    {
+    return m_num_dimensions;
+    }
+
+/*! \returns Number of particles parsed from the binary file
 */
 unsigned int HOOMDBinaryInitializer::getNumParticles() const
     {
@@ -95,7 +103,7 @@ unsigned int HOOMDBinaryInitializer::getNumParticles() const
     return (unsigned int)m_x_array.size();
     }
 
-/*! \returns Numer of particle types parsed from the XML file
+/*! \returns Numer of particle types parsed from the binary file
 */
 unsigned int HOOMDBinaryInitializer::getNumParticleTypes() const
     {
@@ -103,14 +111,14 @@ unsigned int HOOMDBinaryInitializer::getNumParticleTypes() const
     return (unsigned int)m_type_mapping.size();
     }
 
-/*! \returns Box dimensions parsed from the XML file
+/*! \returns Box dimensions parsed from the binary file
 */
 BoxDim HOOMDBinaryInitializer::getBox() const
     {
     return m_box;
     }
 
-/*! \returns Time step parsed from the XML file
+/*! \returns Time step parsed from the binary file
 */
 unsigned int HOOMDBinaryInitializer::getTimeStep() const
     {
@@ -253,7 +261,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         throw runtime_error("Error reading binary file");
         }
     
-    int version = 1;
+    int version = 2;
     int file_version;
     f.read((char*)&file_version, sizeof(int));
     
@@ -268,8 +276,13 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     
     //parse timestep
     int timestep;
-    f.read((char*)&timestep, sizeof(int));
+    f.read((char*)&timestep, sizeof(unsigned int));
     m_timestep = timestep;
+
+    //parse dimensions
+    unsigned int dimensions;
+    f.read((char*)&dimensions, sizeof(unsigned int));
+    m_num_dimensions = dimensions;
     
     //parse box
     Scalar Lx,Ly,Lz;

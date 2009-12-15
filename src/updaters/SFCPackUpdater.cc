@@ -92,7 +92,14 @@ void SFCPackUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->push("SFCPack");
     
     // figure out the sort order we need to apply
-    getSortedOrder();
+    if (m_sysdef->getNDimensions() == 2)
+        getSortedOrder2D();
+    else
+        getSortedOrder3D();
+    
+    // store the last system dimension computed so we can be mindful if that ever changes
+    m_last_dim = m_sysdef->getNDimensions();
+    
     // apply that sort order to the particles
     applySortOrder();
     
@@ -473,7 +480,114 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector<un
         }
     }
 
-void SFCPackUpdater::getSortedOrder()
+void SFCPackUpdater::getSortedOrder2D()
+    {
+    // start by checking the saneness of some member variables
+    assert(m_pdata);
+    assert(m_sort_order.size() == m_pdata->getN());
+    
+    // calculate the bin dimensions
+    const BoxDim& box = m_pdata->getBox();
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    unsigned int Mx = (unsigned int)((box.xhi - box.xlo) / (m_bin_width));
+    unsigned int My = (unsigned int)((box.yhi - box.ylo) / (m_bin_width));
+    if (Mx == 0)
+        Mx = 1;
+    if (My == 0)
+        My = 1;
+        
+    // now, we need to play a game here: the quadtree traversal only works with squares
+    // and only works if Mx is a power of 2. So, choose the largest of the 2 dimesions and
+    // make them all the same
+    unsigned int Mmax = Mx;
+    if (My > Mmax)
+        Mmax = My;
+        
+    // round up to the nearest power of 2
+    Mmax = (unsigned int)pow(2.0, ceil(log(double(Mmax)) / log(2.0)));
+    
+    // make even bin dimensions
+    Scalar binx = (box.xhi - box.xlo) / Scalar(Mmax);
+    Scalar biny = (box.yhi - box.ylo) / Scalar(Mmax);
+    
+    // precompute scale factors to eliminate division in inner loop
+    Scalar scalex = Scalar(1.0) / binx;
+    Scalar scaley = Scalar(1.0) / biny;
+    
+    // reallocate memory arrays if Mmax changed
+    // also regenerate the traversal order
+    if (m_lastMmax != Mmax || m_last_dim != 2)
+        {
+        if (Mmax > 1000)
+            {
+            cout << endl;
+            cout << "***Warning! sorter is about to allocate a very large amount of memory and may crash." << endl;
+            cout << "            Reduce the amount of memory allocated to prevent this by increasing the " << endl;
+            cout << "            bin width (i.e. sorter.set_params(bin_width=3.0) ) or by disabling it " << endl;
+            cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
+            }
+            
+        m_bins.resize(Mmax*Mmax);
+        
+        // generate the traversal order
+        m_traversal_order.resize(Mmax*Mmax);
+        m_traversal_order.clear();
+        
+        // trivial traversal order for now: could be improved slightly with a 2D hilbert curve
+        for (unsigned int i = 0; i < Mmax*Mmax; i++)
+            m_traversal_order.push_back(i);
+        
+        m_lastMmax = Mmax;
+        }
+        
+    // sanity checks
+    assert(m_bins.size() == Mmax*Mmax);
+    assert(m_traversal_order.size() == Mmax*Mmax);
+    
+    // need to clear the bins
+    for (unsigned int bin = 0; bin < Mmax*Mmax; bin++)
+        m_bins[bin].clear();
+        
+    // put the particles in the bins
+    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    // for each particle
+    for (unsigned int n = 0; n < arrays.nparticles; n++)
+        {
+        // find the bin each particle belongs in
+        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex);
+        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley);
+        
+        // need to handle the case where the particle is exactly at the box hi
+        if (ib == Mmax)
+            ib = 0;
+        if (jb == Mmax)
+            jb = 0;
+            
+        // sanity check
+        assert(ib < (unsigned int)(Mmax) && jb < (unsigned int)(Mmax));
+        
+        // record its bin
+        unsigned int bin = ib*Mmax + jb;
+        
+        m_bins[bin].push_back(n);
+        }
+    m_pdata->release();
+    
+    // now, loop through the bins and produce the sort order
+    int cur = 0;
+    
+    for (unsigned int i = 0; i < Mmax*Mmax; i++)
+        {
+        unsigned int bin = m_traversal_order[i];
+        
+        for (unsigned int j = 0; j < m_bins[bin].size(); j++)
+            {
+            m_sort_order[cur++] = m_bins[bin][j];
+            }
+        }
+    }
+
+void SFCPackUpdater::getSortedOrder3D()
     {
     // start by checking the saneness of some member variables
     assert(m_pdata);
@@ -516,7 +630,7 @@ void SFCPackUpdater::getSortedOrder()
     
     // reallocate memory arrays if Mmax changed
     // also regenerate the traversal order
-    if (m_lastMmax != Mmax)
+    if (m_lastMmax != Mmax || m_last_dim != 3)
         {
         if (Mmax > 100)
             {

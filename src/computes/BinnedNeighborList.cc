@@ -126,6 +126,9 @@ void BinnedNeighborList::updateBins()
     m_My = (unsigned int)((box.yhi - box.ylo) / (m_r_cut + m_r_buff));
     m_Mz = (unsigned int)((box.zhi - box.zlo) / (m_r_cut + m_r_buff));
     
+    if (m_sysdef->getNDimensions() == 2) 
+        m_Mz = 3;
+    
     // check for an invalid box size: too small a box results in duplicate neighbors
     if (m_Mx < 3 || m_My < 3 || m_Mz < 3)
         {
@@ -351,8 +354,8 @@ void BinnedNeighborList::updateListFromBins()
                             
                         // sanity check
                         assert(dx >= box.xlo && dx <= box.xhi);
-                        assert(dy >= box.ylo && dx <= box.yhi);
-                        assert(dz >= box.zlo && dx <= box.zhi);
+                        assert(dy >= box.ylo && dy <= box.yhi);
+                        assert(dz >= box.zlo && dz <= box.zhi);
                         
                         // now compare rsq to rmaxsq and add to the list if it meets the criteria
                         Scalar rsq = dx*dx + dy*dy + dz*dz;
