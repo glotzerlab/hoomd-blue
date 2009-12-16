@@ -384,11 +384,18 @@ void BondData::copyBondTable()
 
 void export_BondData()
     {
+    class_<Bond>("Bond", init<unsigned int, unsigned int, unsigned int>())
+        .def_readonly("type", &Bond::type)
+        .def_readonly("a", &Bond::a)
+        .def_readonly("b", &Bond::b)
+        ;
+    
     class_<BondData, boost::shared_ptr<BondData>, boost::noncopyable>("BondData", init<shared_ptr<ParticleData>, unsigned int>())
     .def("getNumBonds", &BondData::getNumBonds)
     .def("getNBondTypes", &BondData::getNBondTypes)
     .def("getTypeByName", &BondData::getTypeByName)
     .def("getNameByType", &BondData::getNameByType)
+    .def("addBond", &BondData::addBond)
     ;
     
     }

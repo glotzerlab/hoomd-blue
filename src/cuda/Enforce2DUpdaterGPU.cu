@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: Enforce2DUpdaterGPU.cu 2148 2009-10-07 20:05:29Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/cuda/Enforce2DUpdaterGPU.cu $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #include "Enforce2DUpdaterGPU.cuh"
@@ -119,3 +119,4 @@ cudaError_t gpu_enforce2d(const gpu_pdata_arrays &pdata)
         return cudaGetLastError();
         }
     }
+

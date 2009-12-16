@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: Enforce2DUpdaterGPU.cc 2148 2009-10-07 20:05:29Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/src/updaters_gpu/Enforce2DUpdaterGPU.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 /*! \file Enforce2DUpdaterGPU.cc

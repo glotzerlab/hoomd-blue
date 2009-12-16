@@ -124,8 +124,8 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
         
     m_K[type] = K;
     m_r_0[type] = r_0;
-    m_lj1[type] = 4*epsilon*pow(sigma,12);
-    m_lj2[type] = 4*epsilon*pow(sigma,6);
+    m_lj1[type] = Scalar(4.0)*epsilon*pow(sigma,12.0);
+    m_lj2[type] = Scalar(4.0)*epsilon*pow(sigma,6.0);
     m_epsilon[type] = epsilon;
         
     // check for some silly errors a user could make

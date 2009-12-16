@@ -99,19 +99,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Need a simple define for checking two values which are unsigned
 #define BOOST_CHECK_EQUAL_UINT(a,b) BOOST_CHECK_EQUAL(a,(unsigned int)(b))
 
-//! Tolerance setting for comparisons
-#ifdef SINGLE_PRECISION
+//! Tolerance setting for near-zero comparisons
 const Scalar tol_small = Scalar(1e-3);
-#else
-const Scalar tol_small = 1e-6;
-#endif
 
 //! Tolerance setting for comparisons
-#ifdef SINGLE_PRECISION
 const Scalar tol = Scalar(1e-2);
-#else
-const Scalar tol = 1e-5;
-#endif
 
 //! Loose tolerance to be used with randomly generated and unpredictable comparisons
 Scalar loose_tol = Scalar(10);
+

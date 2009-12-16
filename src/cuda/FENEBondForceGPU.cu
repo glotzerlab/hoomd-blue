@@ -137,10 +137,10 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
         float K = params.x;
         float r_0 = params.y;
         // lj1 is defined as 4*epsilon*sigma^12
-        float lj1 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z * 
+        float lj1 = 4.0f * params.w * params.z * params.z * params.z * params.z * params.z * params.z * 
                         params.z * params.z * params.z * params.z * params.z * params.z;
         // lj2 is defined as 4*epsilon*sigma^6
-        float lj2 = 4 * params.w * params.z * params.z * params.z * params.z * params.z * params.z;
+        float lj2 = 4.0f * params.w * params.z * params.z * params.z * params.z * params.z * params.z;
         float epsilon = params.w;
         
         
@@ -149,7 +149,7 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
         //float r = sqrtf(rsq);
         // if particles have diameters that are not 1.0 need to correct this value by alpha
         float r = sqrtf(rsq);
-        float radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0);
+        float radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0f);
         rsq = radj*radj;  // This is now a diameter adjusted potential distance for diameter shifted potentials
         
         

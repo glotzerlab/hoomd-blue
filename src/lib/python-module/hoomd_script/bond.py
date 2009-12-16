@@ -154,11 +154,12 @@ class harmonic(force._force):
 #
 # The command bond.fene specifies a %fene potential energy between every bonded %pair of particles
 # in the simulation. 
-# \f[ V(r) = - k r_0^2 \ln \left( 1 - \left( \frac{r}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)\f]
-# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair and
+# \f[ V(r) = - \frac{1}{2} k r_0^2 \ln \left( 1 - \left( \frac{r - \Delta}{r_0} \right)^2 \right) + V_{\mathrm{WCA}}(r)\f]
+# where \f$ \vec{r} \f$ is the vector pointing from one particle to the other in the %pair,
+# \f$ \Delta = (d_i + d_j)/2 - 1 \f$, \f$ d_i \f$ is the diameter of particle \f$ i \f$, and
 # \f{eqnarray*}
-#   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right] & r < 2^{\frac{1}{6}}\sigma \\
-#            = & 0          & r \ge 2^{\frac{1}{6}}\sigma    \\
+#   V_{\mathrm{WCA}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r - \Delta} \right)^{12} - \left( \frac{\sigma}{r - \Delta} \right)^{6} \right] & r-\Delta < 2^{\frac{1}{6}}\sigma \\
+#            = & 0          & r-\Delta \ge 2^{\frac{1}{6}}\sigma    \\
 #   \f}
 #
 # Coefficients \f$ k \f$, \f$ r_0 \f$, \f$ \varepsilon \f$ and \f$ \sigma \f$  must be set for 
