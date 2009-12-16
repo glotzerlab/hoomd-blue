@@ -115,3 +115,4 @@ const Scalar tol = 1e-5;
 
 //! Loose tolerance to be used with randomly generated and unpredictable comparisons
 Scalar loose_tol = Scalar(10);
+

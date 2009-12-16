@@ -38,8 +38,8 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-// $Id: Enforce2DUpdater.cc 2417 2009-12-01 21:54:03Z askeys $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/two-d/src/updaters/Enforce2DUpdater.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 /*! \file Enforce2DUpdater.cc

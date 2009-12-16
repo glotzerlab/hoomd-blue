@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: zero_momentum_updater_test.cc 2417 2009-12-01 21:54:03Z askeys $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/two-d/src/unit_tests/zero_momentum_updater_test.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #ifdef WIN32
@@ -141,7 +141,7 @@ void enforce2d_basic_test(enforce2d_creator creator, ExecutionConfiguration exec
     Scalar alpha = Scalar(1.0);
     Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
-	
+    
     // specify the force parameters
     fc->setParams(0,0,make_scalar2(lj1,lj2));
     fc->setRcut(0,0,Scalar(2.5));
