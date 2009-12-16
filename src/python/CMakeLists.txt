@@ -113,14 +113,6 @@ if (ENABLE_STATIC)
     
 endif (ENABLE_STATIC)
 
-if (ENABLE_CXX)
-install(TARGETS hoomd_python_module 		
-		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-      		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)	
-endif (ENABLE_CXX)
-
-
 #################################
 ## Create source file groups
 source_group(utils FILES ${UTILS_SRCS})
