@@ -386,9 +386,8 @@ sysdef = init.create_empty(N=2, box = (20, 20, 20))
 rmin = 0.5
 rmax = 5.0
 dr = 0.001
-p0 = sysdef.particles[0]
-p0.diameter = 2.0
-sysdef.particles[1].diameter = 2.0
+# you can set parameters of the two particles here, as shown in the commented line below
+# sysdef.particles[1].diameter = 2.0
 
 # pair potential settings for the plot
 f = pair.lj(r_cut=2.5)
