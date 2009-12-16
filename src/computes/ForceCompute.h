@@ -228,16 +228,16 @@ class ForceCompute : public Compute
             gpu     //!< Particle data was last modified on the GPU
             };
             
+#ifdef ENABLE_CUDA
         DataLocation m_data_location;               //!< Where the neighborlist data currently lives
 
-#ifdef ENABLE_CUDA
         vector<ForceDataArraysGPU> m_gpu_forces;    //!< Storage location for forces on the device
-#endif
         
         //! Helper function to move data from the host to the device
         void hostToDeviceCopy();
         //! Helper function to move data from the device to the host
         void deviceToHostCopy();
+#endif
         
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
