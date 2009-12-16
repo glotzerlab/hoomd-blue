@@ -58,11 +58,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "HOOMDInitializer.h"
 #include "BinnedNeighborList.h"
-#include "TwoStepNVE.h"
+#include "TwoStepNVT.h"
 
 #ifdef ENABLE_CUDA
-#include "TwoStepNVEGPU.h"
-#include "BinnedNeighborListGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #endif
 
@@ -96,7 +94,7 @@ void enforce2d_basic_test(enforce2d_creator creator, ExecutionConfiguration exec
     g_gpu_error_checking = true;
 #endif
 
-    BoxDim box(10.0, 10.0, 1.0);
+    BoxDim box(20.0, 20.0, 1.0);
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
 
     sysdef->setNDimensions(2);
@@ -114,21 +112,22 @@ void enforce2d_basic_test(enforce2d_creator creator, ExecutionConfiguration exec
         for (unsigned int j=0; j<10; j++) 
             {
             unsigned int k = i*10 + j;
-            arrays.x[k] = i-5.0 + tiny;
-            arrays.y[k] = j-5.0 + tiny;
+            arrays.x[k] = 2*i-10.0 + tiny;
+            arrays.y[k] = 2*j-10.0 + tiny;
             arrays.z[k] = 0.0;
-            arrays.vx[k] = saru.f(-5.0, 5.0);
-            arrays.vy[k] = saru.f(-5.0, 5.0);
+            arrays.vx[k] = saru.f(-1.0, 1.0);
+            arrays.vy[k] = saru.f(-1.0, 1.0);
             arrays.vz[k] = 0.0;
             }
         
     pdata->release();
     
-    shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef, group_all));
+    boost::shared_ptr<Variant> T(new VariantConst(1.0));
+    shared_ptr<TwoStepNVT> two_step_nvt(new TwoStepNVT(sysdef, group_all, 0.5, T));
         
     Scalar deltaT = Scalar(0.005);
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
-    nve_up->addIntegrationMethod(two_step_nve);
+    nve_up->addIntegrationMethod(two_step_nvt);
     
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
     nlist->setStorageMode(NeighborList::half);
@@ -179,15 +178,16 @@ void enforce2d_basic_test(enforce2d_creator creator, ExecutionConfiguration exec
         for (unsigned int j=0; j<10; j++) 
             {
             unsigned int k = i*10 + j;
-            arrays.x[k] = i-5.0 + tiny;
-            arrays.y[k] = j-5.0 + tiny;
+            arrays.x[k] = 2*i-10.0 + tiny;
+            arrays.y[k] = 2*j-10.0 + tiny;
             arrays.z[k] = 0.0;
-            arrays.vx[k] = saru.f(-5.0, 5.0);
-            arrays.vy[k] = saru.f(-5.0, 5.0);
+            arrays.vx[k] = saru.f(-1.0, 1.0);
+            arrays.vy[k] = saru.f(-1.0, 1.0);
             arrays.vz[k] = 0.0;
             }
             
     pdata->release();
+    pdata->notifyParticleSort();
 
     shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
      
