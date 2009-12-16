@@ -214,7 +214,7 @@ class RigidData
         unsigned int m_nmax;                        //!< Maximum number of particles in a rigid body
         unsigned int m_ndof;
         GPUArray<Scalar> m_body_mass;               //!< n_bodies length 1D array of body mass
-        GPUArray<Scalar4> m_moment_inertia;         //!< n_bodies length 1D array of moment of interias in the body frame
+        GPUArray<Scalar4> m_moment_inertia;         //!< n_bodies length 1D array of moments of inertia in the body frame
         GPUArray<unsigned int> m_body_size;         //!< n_bodies length 1D array listing the size of each rigid body
         GPUArray<unsigned int> m_particle_tags;     //!< n_max by n_bodies 2D array listing particle tags belonging to bodies
         GPUArray<Scalar4> m_particle_pos;           //!< n_max by n_bodies 2D array listing particle positions relative to the COM for this body in which body-fixed frame
@@ -248,6 +248,8 @@ class RigidData
         //! Functions used to diagonalize the inertia tensor for moment inertia and principle axes
         int diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors);
         void rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau);
+        
+        //! Compute quaternion from the axes
         void quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
         
     };

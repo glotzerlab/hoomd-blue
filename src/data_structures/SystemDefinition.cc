@@ -182,6 +182,7 @@ void export_SystemDefinition()
     .def("getWallData", &SystemDefinition::getWallData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
+    .def("init", &SystemDefinition::init)
     ;
     }
 

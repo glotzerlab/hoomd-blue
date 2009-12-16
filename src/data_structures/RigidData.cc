@@ -97,6 +97,8 @@ void RigidData::recalcIndices()
     assert(!m_particle_indices.isNull());
 //  assert(m_n_bodies <= m_particle_tags.getPitch());
 //  assert(m_n_bodies <= m_particle_indices.getPitch());
+//  printf("m_n_bodies = %d; particle tags pitch = %d\n", m_n_bodies, m_particle_tags.getPitch());
+     
     assert(m_n_bodies == m_body_size.getNumElements());
     
     // get the particle data
