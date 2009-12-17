@@ -234,8 +234,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 group_size,
                                 d_net_force.data,
                                 args,
-                                m_deltaT,
-                                m_zero_force)); 
+                                m_deltaT)); 
     
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
@@ -246,8 +245,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 group_size,
                                 d_net_force.data,
                                 box, 
-                                m_deltaT,
-                                m_zero_force)); 
+                                m_deltaT)); 
                                
    
     m_pdata->release();

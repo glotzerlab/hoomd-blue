@@ -90,36 +90,14 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     // Get the particle data associated with the rigid data (i.e. the system particle data?)
     m_pdata = sysdef->getParticleData();
     
-    m_zero_force = false;
-    
     m_first_step = true;
-    }
-
-/*! \param limit Distance to limit particle movement each time step
-
-    Once the limit is set, future calls to update() will never move a particle
-    a distance larger than the limit in a single time step
-*/
-void TwoStepNVERigid::setLimit(Scalar limit)
-    {    
-    m_limit = true;
-    m_limit_val = limit;
-    }
-
-/*! Disables the limit, allowing particles to move normally
-*/
-void TwoStepNVERigid::removeLimit()
-    {
-    m_limit = false;
     }
 
 void TwoStepNVERigid::setup()
     {
      //! Get the number of rigid bodies for frequent use
     m_n_bodies = m_rigid_data->getNumBodies();
-    printf("Rigid body setup.. %d bodies, %d\n", m_n_bodies, m_zero_force);
-    
-    
+
     // get box
     const BoxDim& box = m_pdata->getBox();
     // sanity check
@@ -785,7 +763,6 @@ void export_TwoStepNVERigid()
 {
     class_<TwoStepNVERigid, boost::shared_ptr<TwoStepNVERigid>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
     ("TwoStepNVERigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
-    .def("setZeroForce", &TwoStepNVERigid::setZeroForce)
     ;
 }
 

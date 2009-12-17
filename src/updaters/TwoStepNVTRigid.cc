@@ -669,7 +669,6 @@ void export_TwoStepNVTRigid()
 {
     class_<TwoStepNVTRigid, boost::shared_ptr<TwoStepNVTRigid>, bases<TwoStepNVERigid>, boost::noncopyable>
     ("TwoStepNVTRigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<Variant> >())
-    .def("setZeroForce", &TwoStepNVERigid::setZeroForce)
     ;
 }
 

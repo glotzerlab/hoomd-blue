@@ -71,21 +71,6 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
                         boost::shared_ptr<ParticleGroup> group,
                         bool skip_restart=false);
         
-        //! Sets the movement limit
-        void setLimit(Scalar limit);
-        
-        //! Removes the limit
-        void removeLimit();
-        
-        //! Sets the zero force option
-        /*! \param zero_force Set to true to specify that the integration with a zero net force on each of the particles
-         in the group
-         */
-        void setZeroForce(bool zero_force) 
-        {
-            m_zero_force = zero_force;
-        }
-
         //! Setup the initial net forces, torques and angular momenta
        virtual void setup();
         
@@ -125,9 +110,6 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         boost::shared_ptr<ParticleData> m_pdata;    //!< Pointer to particle data
         
         bool m_first_step;  //!< True if first step
-        bool m_limit;       //!< True if we should limit the distance a particle moves in one step
-        Scalar m_limit_val; //!< The maximum distance a particle is to move in one step
-        bool m_zero_force;  //!< True if the integration step should ignore computed forces
     };
 
 //! Exports the TwoStepNVERigid class to python

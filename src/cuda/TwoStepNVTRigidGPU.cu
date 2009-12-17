@@ -652,8 +652,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_kernel(gpu_pdata_arrays pdata,
                                                           float* nvt_rdata_partial_Ksum_t,
                                                           float* nvt_rdata_partial_Ksum_r,
                                                           gpu_boxsize box, 
-                                                          float deltaT,
-                                                          bool zero_force)
+                                                          float deltaT)
     {
     int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_body = blockIdx.x + local_beg;
@@ -687,8 +686,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_kernel(gpu_pdata_arrays pdata,
         float particle_mass = tex1Dfetch(pdata_mass_tex, idx_particle_index);
         float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
         
-        if (!zero_force)
-            particle_accel = tex1Dfetch(net_force_tex, idx_particle_index);
+        particle_accel = tex1Dfetch(net_force_tex, idx_particle_index);
 
         // project the position in the body frame to the space frame: ri = rotation_matrix * particle_pos
         float4 fi, torquei;
@@ -850,8 +848,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                     float4 *d_net_force,
                                     const gpu_boxsize &box, 
                                     const gpu_nvt_rigid_data& nvt_rdata,
-                                    float deltaT,
-                                    bool zero_force)
+                                    float deltaT)
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int local_beg = rigid_data.local_beg;
@@ -945,8 +942,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                                     nvt_rdata.partial_Ksum_t,
                                                                                     nvt_rdata.partial_Ksum_r, 
                                                                                     box, 
-                                                                                    deltaT,
-                                                                                    zero_force);
+                                                                                    deltaT);
             
             
     if (!g_gpu_error_checking)

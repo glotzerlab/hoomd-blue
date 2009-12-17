@@ -59,8 +59,7 @@ cudaError_t gpu_bdnvt_force(const gpu_pdata_arrays &pdata,
                                unsigned int group_size,
                                float4 *d_net_force,
                                const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               bool zero_force);
+                               float deltaT);
 
 
 #endif //__TWO_STEP_BDNVT_RIGID_GPU_CUH__

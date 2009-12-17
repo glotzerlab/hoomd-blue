@@ -68,8 +68,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                              unsigned int group_size,
                              float4 *d_net_force,
                              const gpu_boxsize &box, 
-                             float deltaT,
-                             bool zero_force);
+                             float deltaT);
 
 #endif //__TWO_STEP_NVE_RIGID_GPU_CUH__
 

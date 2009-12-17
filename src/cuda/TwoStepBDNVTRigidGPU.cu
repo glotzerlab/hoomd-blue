@@ -109,8 +109,7 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
                               unsigned int timestep,
                               unsigned int seed,
                               float T,
-                              float deltaT,
-                              bool zero_force)
+                              float deltaT)
     {
     if (!gamma_diam)
         {
@@ -194,8 +193,7 @@ cudaError_t gpu_bdnvt_force(const gpu_pdata_arrays &pdata,
                                unsigned int group_size,
                                float4 *d_net_force,
                                const bdnvt_step_two_args& bdnvt_args,
-                               float deltaT,
-                               bool zero_force)
+                               float deltaT)
     {
     
     // setup the grid to run the kernel
@@ -240,8 +238,7 @@ cudaError_t gpu_bdnvt_force(const gpu_pdata_arrays &pdata,
                                                    bdnvt_args.timestep,
                                                    bdnvt_args.seed,
                                                    bdnvt_args.T,
-                                                   deltaT,
-                                                   zero_force);
+                                                   deltaT);
     
     if (!g_gpu_error_checking)
         {

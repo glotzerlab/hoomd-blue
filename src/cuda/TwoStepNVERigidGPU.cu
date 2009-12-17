@@ -550,8 +550,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_kernel(float4* pdata_vel,
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
                                                          gpu_boxsize box, 
-                                                         float deltaT, 
-                                                         bool zero_force)
+                                                         float deltaT)
     {
     int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_body = blockIdx.x + local_beg;
@@ -577,8 +576,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_kernel(float4* pdata_vel,
         float particle_mass = tex1Dfetch(pdata_mass_tex, idx_particle_index);
         float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
         
-        if (!zero_force)
-             fi = tex1Dfetch(net_force_tex, idx_particle_index);
+        fi = tex1Dfetch(net_force_tex, idx_particle_index);
         
         body_force[threadIdx.x].x = fi.x;
         body_force[threadIdx.x].y = fi.y;
@@ -711,8 +709,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                    unsigned int group_size, 
                                    float4 *d_net_force,
                                    const gpu_boxsize &box,
-                                   float deltaT,
-                                   bool zero_force)
+                                   float deltaT)
     {
     unsigned int n_bodies = rigid_data.n_bodies;
     unsigned int local_beg = rigid_data.local_beg;
@@ -793,8 +790,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                                   n_bodies, 
                                                                                   local_beg, 
                                                                                   box, 
-                                                                                  deltaT, 
-                                                                                  zero_force);
+                                                                                  deltaT);
             
            
     if (!g_gpu_error_checking)

@@ -300,8 +300,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 d_net_force.data,
                                 box,
                                 d_nvt_rdata, 
-                                m_deltaT,
-                                m_zero_force)); 
+                                m_deltaT)); 
                                 
    
     m_pdata->release();

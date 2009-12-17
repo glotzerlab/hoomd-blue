@@ -221,8 +221,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
                                 group_size,
                                 d_net_force.data,
                                 box, 
-                                m_deltaT,
-                                m_zero_force)); 
+                                m_deltaT)); 
                                
    
     m_pdata->release();
