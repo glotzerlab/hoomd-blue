@@ -153,6 +153,41 @@ bool ParticleSelectorType::isSelected(unsigned int tag) const
     }
 
 //////////////////////////////////////////////////////////////////////////////
+// ParticleSelectorRigid
+
+/*! \param sysdef System the particles are to be selected from
+    \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a body
+*/
+ParticleSelectorRigid::ParticleSelectorRigid(boost::shared_ptr<SystemDefinition> sysdef,
+                                             bool rigid)
+    : ParticleSelector(sysdef), m_rigid(rigid)
+    {
+    }
+
+/*! \param tag Tag of the particle to check
+    \returns true if the type of particle \a tag meets the rigid critera selected
+*/
+bool ParticleSelectorRigid::isSelected(unsigned int tag) const
+    {
+    assert(tag < m_pdata->getN());
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    
+    // identify the index of the current particle tag
+    unsigned int idx = arrays.rtag[tag];
+    unsigned int body = arrays.body[idx];
+    
+    // see if it matches the criteria
+    bool result = false;
+    if (m_rigid && body != NO_BODY)
+        result = true;
+    if (!m_rigid && body == NO_BODY)
+        result = true;
+    
+    m_pdata->release();
+    return result;
+    }
+
+//////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorCuboid
 
 ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max)
@@ -433,7 +468,11 @@ void export_ParticleGroup()
     class_<ParticleSelectorType, boost::shared_ptr<ParticleSelectorType>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorType", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
-    
+
+    class_<ParticleSelectorRigid, boost::shared_ptr<ParticleSelectorRigid>, bases<ParticleSelector>, boost::noncopyable>
+        ("ParticleSelectorRigid", init< boost::shared_ptr<SystemDefinition>, bool >())
+        ;    
+
     class_<ParticleSelectorCuboid, boost::shared_ptr<ParticleSelectorCuboid>, bases<ParticleSelector>, boost::noncopyable>
         ("ParticleSelectorCuboid", init< boost::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
         ;
