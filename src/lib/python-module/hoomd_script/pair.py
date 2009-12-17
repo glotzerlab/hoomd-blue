@@ -342,7 +342,7 @@ class nlist:
             raise RuntimeError("Error creating neighbor list");
             
         self.cpp_nlist.setEvery(1);
-        #self.cpp_nlist.addExclusionsFromBonds();
+        self.cpp_nlist.addExclusionsFromBonds();
         
         globals.system.addCompute(self.cpp_nlist, "auto_nlist");
         
