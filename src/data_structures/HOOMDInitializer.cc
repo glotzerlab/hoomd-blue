@@ -287,10 +287,24 @@ void HOOMDInitializer::readFile(const string &fname)
         xml_version = string("1.0");
         }
         
-    // right now, the version tag doesn't do anything: just warn if it is not 1.0 or 1.1
-    if ((xml_version != string("1.0")) && (xml_version != string("1.1")))
+    // right now, the version tag doesn't do anything: just warn if it is not a valid version
+    vector<string> valid_versions;
+    valid_versions.push_back("1.0");
+    valid_versions.push_back("1.1");
+    valid_versions.push_back("1.2");
+    bool valid = false;
+    vector<string>::iterator i;
+    for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
+        {
+        if (xml_version == *i)
+            {
+            valid = true;
+            break;
+            }
+        }
+    if (!valid)
         cout << endl
-             << "***Warning! hoomd_xml file with version other than 1.0 or 1.1 specified,"
+             << "***Warning! hoomd_xml file with version not in the range 1.0-1.2  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
              
     // the file was parsed successfully by the XML reader. Extract the information now
