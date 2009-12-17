@@ -259,11 +259,13 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         // on paper, the formula turns out to be: F = -K/(1-(r/r_0)^2) * \vec{r} + (12*lj1/r^12 - 6*lj2/r^6) *\vec{r}
         // FLOPS: 5
         Scalar rsq = dx*dx+dy*dy+dz*dz;
+        Scalar rmdoverr = 1.0f;
         
         //If appropriate, correct the rsq for particles that are not unit in size.
         if (diameter_a != 1.0 || diameter_b != 1.0)
             {
             Scalar rtemp = sqrt(rsq) - diameter_a/2 - diameter_b/2 + 1.0;
+            rmdoverr = rtemp/sqrt(rsq);
             rsq = rtemp*rtemp;
             }
             
@@ -290,7 +292,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
         // calculate force and energy
         // MEM TRANSFER 2 Scalars: FLOPS: 13
         Scalar forcemag_divr = -m_K[bond.type] / (Scalar(1.0) - rsq /
-                                (m_r_0[bond.type]*m_r_0[bond.type])) + WCAforcemag_divr;  //FLOPS 4
+                                (m_r_0[bond.type]*m_r_0[bond.type]))*rmdoverr + WCAforcemag_divr*rmdoverr;  //FLOPS 4
         Scalar bond_eng = -Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] * m_r_0[bond.type]) * 
                            log(Scalar(1.0) - rsq/(m_r_0[bond.type] * m_r_0[bond.type]));
         
