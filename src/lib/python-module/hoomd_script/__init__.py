@@ -155,14 +155,14 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     if not quiet:
         util.print_status_line();
     
-    # initialize data (rigid bodies, and others if needed)
-    globals.system_definition.init();
-     
     # check if initialization has occured
     if (globals.system == None):
         print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
         raise RuntimeError('Error running');
     
+    # initialize data (rigid bodies, and others if needed)
+    globals.system_definition.init();
+
     if (globals.integrator == None):
         print "***Warning! Starting a run without an integrator set";
     else:
