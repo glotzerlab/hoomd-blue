@@ -342,7 +342,7 @@ class nlist:
             raise RuntimeError("Error creating neighbor list");
             
         self.cpp_nlist.setEvery(1);
-        self.cpp_nlist.addExclusionsFromBonds();
+        #self.cpp_nlist.addExclusionsFromBonds();
         
         globals.system.addCompute(self.cpp_nlist, "auto_nlist");
         
@@ -1383,4 +1383,89 @@ class table(force._force):
                 self.update_pair_table(i, j, func, rmin, rmax, coeff);
                 
 
+## Morse %pair %force
+#
+# The command pair.morse specifies that a Morse %pair %force should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# \f{eqnarray*}
+#  V_{\mathrm{morse}}(r)  = & D_0 \left[ \exp \left(-2\alpha\left(r-r_0\right)\right) -2\exp \left(-\alpha\left(r-r_0\right)\right) \right] & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ D_0 \f$ - \c D0, depth of the potential at its minimum
+# - \f$ \alpha \f$ - \c alpha, controls the width of the potential well
+# - \f$ r_0 \f$ - \c r0, position of the minimum
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.morse is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
+# description of the various options.
+#
+# \b Example:
+# \code
+# morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
+# morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
+# \endcode
+#
+# The cutoff radius \a r_cut passed into the initial pair.morse command sets the default \a r_cut for all %pair
+# interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used for
+# the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+class morse(pair):
+    ## Specify the Morse %pair %force
+    #
+    # \param r_cut Default cutoff radius
+    #
+    # \b Example:
+    # \code
+    # morse = pair.morse(r_cut=3.0)
+    # morse.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0)
+    # morse.pair_coeff.set('A', 'B', D0=1.0, alpha=3.0, r0=1.0, r_cut=3.0, r_on=2.0);
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.PotentialPairMorse(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_class = hoomd.PotentialPairMorse;
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_class = hoomd.PotentialPairMorseGPU;
+            self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.morse'));
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating morse pair force");
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['D0', 'alpha', 'r0'];
+        
+    def process_coeff(self, coeff):
+        D0 = coeff['D0'];
+        alpha = coeff['alpha'];
+        r0 = coeff['r0']
 
+        return hoomd.make_scalar4(D0, alpha, r0, 0.0);

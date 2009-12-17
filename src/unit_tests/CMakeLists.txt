@@ -74,6 +74,7 @@ set(TEST_LIST
     binary_reader_writer_test
     enforce2d_updater_test
     #ElectrostaticShortRange_force_test
+    morse_force_test
     )
     
 if (ENABLE_FFT)
