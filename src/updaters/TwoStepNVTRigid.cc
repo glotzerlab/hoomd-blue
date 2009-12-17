@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVTRigid.cc 2159 2009-11-19 ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters/TwoStepNVTRigid.cc $
+// $Id$
+// $URL$
 
 /*! \file TwoStepNVTRigid.cc
     \brief Defines the TwoStepNVTRigid class
@@ -61,7 +61,7 @@ using namespace boost::python;
     \param deltaT Time step to use
 */
 TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
-								 boost::shared_ptr<ParticleGroup> group, 
+                                 boost::shared_ptr<ParticleGroup> group, 
                                  boost::shared_ptr<Variant> temperature) : TwoStepNVERigid(sysdef, group)
     {
     m_temperature = temperature;
@@ -668,9 +668,9 @@ inline Scalar TwoStepNVTRigid::maclaurin_series(Scalar x)
 void export_TwoStepNVTRigid()
 {
     class_<TwoStepNVTRigid, boost::shared_ptr<TwoStepNVTRigid>, bases<TwoStepNVERigid>, boost::noncopyable>
-	("TwoStepNVTRigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<Variant> >())
-	.def("setZeroForce", &TwoStepNVERigid::setZeroForce)
-	;
+    ("TwoStepNVTRigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<Variant> >())
+    .def("setZeroForce", &TwoStepNVERigid::setZeroForce)
+    ;
 }
 
 #ifdef WIN32

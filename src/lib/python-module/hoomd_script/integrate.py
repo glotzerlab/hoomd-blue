@@ -979,3 +979,5 @@ class bdnvt_rigid(_integration_method):
         for i in xrange(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+
+

@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVERigid.cc 2159 2009-11-19 ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters/TwoStepNVERigid.cc $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #ifdef WIN32
@@ -62,23 +62,23 @@ using namespace boost::python;
  \param group The group of particles this integration method is to work on
  */
 TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
-								 boost::shared_ptr<ParticleGroup> group)
+                                 boost::shared_ptr<ParticleGroup> group)
     : IntegrationMethodTwoStep(sysdef, group)
     {
-		// set a named, but otherwise blank set of integrator variables
-	IntegratorVariables v = getIntegratorVariables();
-		
+        // set a named, but otherwise blank set of integrator variables
+    IntegratorVariables v = getIntegratorVariables();
+        
     if (!restartInfoTestValid(v, "nve", 0))
         {
-		v.type = "nve";
-		v.variable.resize(0);
-		setValidRestart(false);
+        v.type = "nve";
+        v.variable.resize(0);
+        setValidRestart(false);
         }
     else
-		setValidRestart(true);
-	
-	setIntegratorVariables(v);
-		
+        setValidRestart(true);
+    
+    setIntegratorVariables(v);
+        
     //! Get the system rigid data
     m_rigid_data = sysdef->getRigidData();
     
@@ -779,9 +779,9 @@ void TwoStepNVERigid::normalize(Scalar4 &q)
 void export_TwoStepNVERigid()
 {
     class_<TwoStepNVERigid, boost::shared_ptr<TwoStepNVERigid>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-	("TwoStepNVERigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
-	.def("setZeroForce", &TwoStepNVERigid::setZeroForce)
-	;
+    ("TwoStepNVERigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+    .def("setZeroForce", &TwoStepNVERigid::setZeroForce)
+    ;
 }
 
 #ifdef WIN32

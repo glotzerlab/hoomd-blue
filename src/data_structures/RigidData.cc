@@ -602,3 +602,5 @@ void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4
     quat.w *= norm;
     
     }
+
+

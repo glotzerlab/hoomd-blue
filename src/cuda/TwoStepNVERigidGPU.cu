@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: NVERigidUpdaterGPU.cu 2159 2009-10-19 ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/cuda/TwoStepNVERigidGPU.cu $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #include "TwoStepNVERigidGPU.cuh"
@@ -546,12 +546,12 @@ extern "C" __global__ void gpu_nve_rigid_step_two_kernel(float4* pdata_vel,
                                                          float4* rdata_angmom, 
                                                          float4* rdata_angvel,
                                                          float4* rdata_force, 
-														 float4* rdata_torque, 
-														 unsigned int n_bodies, 
-														 unsigned int local_beg,
+                                                         float4* rdata_torque, 
+                                                         unsigned int n_bodies, 
+                                                         unsigned int local_beg,
                                                          gpu_boxsize box, 
-														 float deltaT, 
-														 bool zero_force)
+                                                         float deltaT, 
+                                                         bool zero_force)
     {
     int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_body = blockIdx.x + local_beg;
@@ -577,9 +577,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_kernel(float4* pdata_vel,
         float particle_mass = tex1Dfetch(pdata_mass_tex, idx_particle_index);
         float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
         
-		if (!zero_force)
-		     fi = tex1Dfetch(net_force_tex, idx_particle_index);
-		
+        if (!zero_force)
+             fi = tex1Dfetch(net_force_tex, idx_particle_index);
+        
         body_force[threadIdx.x].x = fi.x;
         body_force[threadIdx.x].y = fi.y;
         body_force[threadIdx.x].z = fi.z;
@@ -707,10 +707,10 @@ extern "C" __global__ void gpu_nve_rigid_step_two_kernel(float4* pdata_vel,
 */
 cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata, 
                                    const gpu_rigid_data_arrays& rigid_data,
-								   unsigned int *d_group_members,
+                                   unsigned int *d_group_members,
                                    unsigned int group_size, 
                                    float4 *d_net_force,
-								   const gpu_boxsize &box,
+                                   const gpu_boxsize &box,
                                    float deltaT,
                                    bool zero_force)
     {
@@ -780,18 +780,18 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     
     error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
-        return error;	
+        return error;    
     
     // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
     // tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
     gpu_nve_rigid_step_two_kernel<<< grid, threads, 2 * nmax * sizeof(float4) >>>(pdata.vel, 
-	                                                                              rigid_data.vel, 
+                                                                                  rigid_data.vel, 
                                                                                   rigid_data.angmom, 
                                                                                   rigid_data.angvel,
                                                                                   rigid_data.force, 
-			                                                                      rigid_data.torque, 
-			                                                                      n_bodies, 
-			                                                                      local_beg, 
+                                                                                  rigid_data.torque, 
+                                                                                  n_bodies, 
+                                                                                  local_beg, 
                                                                                   box, 
                                                                                   deltaT, 
                                                                                   zero_force);

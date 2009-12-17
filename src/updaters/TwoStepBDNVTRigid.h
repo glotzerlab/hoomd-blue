@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepBDNVTRigid.h 2159 2009-11-19 14:32:38Z ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters/TwoStepBDNVTRigid.h $
+// $Id$
+// $URL$
 
 /*! \file TwoStepBDNVTRigid.h
     \brief Declares an updater that implements BD NVT dynamics for rigid bodies
@@ -85,7 +85,7 @@ class TwoStepBDNVTRigid : public TwoStepNVERigid
         void setGamma(unsigned int typ, Scalar gamma);
 
         //! Performs the second step 
-		virtual void integrateStepTwo(unsigned int timestep);        
+        virtual void integrateStepTwo(unsigned int timestep);        
 
     protected:
         boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath

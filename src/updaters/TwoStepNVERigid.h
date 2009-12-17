@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVERigid.h 2159 2009-11-19 14:32:38Z ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters/TwoStepNVERigid.h $
+// $Id$
+// $URL$
 
 /*! \file TwoStepNVERigid.h
     \brief Declares an updater that implements NVE dynamics for rigid bodies
@@ -75,25 +75,25 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Removes the limit
         void removeLimit();
         
-		//! Sets the zero force option
+        //! Sets the zero force option
         /*! \param zero_force Set to true to specify that the integration with a zero net force on each of the particles
-		 in the group
-		 */
+         in the group
+         */
         void setZeroForce(bool zero_force) 
-		{
+        {
             m_zero_force = zero_force;
-		}
+        }
 
         //! Setup the initial net forces, torques and angular momenta
        virtual void setup();
         
-		//! Performs the first step of the integration
+        //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         
         //! Performs the second step of the 
-		virtual void integrateStepTwo(unsigned int timestep);        
+        virtual void integrateStepTwo(unsigned int timestep);        
        
-		//! Summing the net forces and torques
+        //! Summing the net forces and torques
         void computeForceAndTorque();
         
     protected:
@@ -121,7 +121,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         unsigned int m_n_bodies;                    //!< Number of rigid bodies
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to rigid data
         boost::shared_ptr<ParticleData> m_pdata;    //!< Pointer to particle data
-	    
+        
         bool m_first_step;  //!< True if first step
         bool m_limit;       //!< True if we should limit the distance a particle moves in one step
         Scalar m_limit_val; //!< The maximum distance a particle is to move in one step

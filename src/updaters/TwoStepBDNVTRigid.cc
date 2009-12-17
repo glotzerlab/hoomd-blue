@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepBDNVTRigid.cc 2365 2009-11-19 ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters/TwoStepBDNVTRigid.cc $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #ifdef WIN32

@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVEGPU.cc 2331 2009-11-19 15:30:00Z ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters_gpu/TwoStepNVERigidGPU.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #ifdef WIN32
@@ -100,9 +100,9 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     // get the rigid data from SystemDefinition
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
-	ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
-	ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
-	ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
@@ -142,16 +142,16 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.torque = torque_handle.data;
     
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);	
+    exec_conf.tagAll(__FILE__, __LINE__);    
     exec_conf.gpu[0]->call(bind(gpu_nve_rigid_step_one, 
                                 d_pdata[0],
                                 d_rdata, 
-								d_index_array.data,
-								group_size,
-								box,
-								m_deltaT));
+                                d_index_array.data,
+                                group_size,
+                                box,
+                                m_deltaT));
 
-	
+    
     m_pdata->release();
     
     // done profiling
@@ -200,7 +200,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.local_num = d_rdata.n_bodies;
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
-	d_rdata.com = com_handle.data;
+    d_rdata.com = com_handle.data;
     d_rdata.vel = vel_handle.data;
     d_rdata.angvel = angvel_handle.data;
     d_rdata.angmom = angmom_handle.data;
@@ -212,16 +212,16 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
   
-	// perform the update on the GPU
+    // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_nve_rigid_step_two, 
-								d_pdata[0], 
+                                d_pdata[0], 
                                 d_rdata, 
-								d_index_array.data,
-								group_size,
+                                d_index_array.data,
+                                group_size,
                                 d_net_force.data,
                                 box, 
-								m_deltaT,
+                                m_deltaT,
                                 m_zero_force)); 
                                
    

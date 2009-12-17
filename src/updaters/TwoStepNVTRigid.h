@@ -36,8 +36,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVTRigid.h 2159 2009-11-19 ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters/TwoStepNVTRigid.h $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 /*! \file TwoStepNVTRigid.h

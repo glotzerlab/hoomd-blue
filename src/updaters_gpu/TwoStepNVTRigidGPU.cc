@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVTRigidGPU.cc 2331 2009-11-19 15:30:00Z ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters_gpu/TwoStepNVTRigidGPU.cc $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #ifdef WIN32
@@ -114,7 +114,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     // get the rigid data from SystemDefinition
     boost::shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
 
-	ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> body_mass_handle(rigid_data->getBodyMass(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> moment_inertia_handle(rigid_data->getMomentInertia(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> com_handle(rigid_data->getCOM(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
@@ -170,17 +170,17 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);	
+    exec_conf.tagAll(__FILE__, __LINE__);    
     exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_step_one, 
                                 d_pdata[0],
                                 d_rdata, 
-								d_index_array.data,
-								group_size,
-								box,
+                                d_index_array.data,
+                                group_size,
+                                box,
                                 d_nvt_rdata,
-								m_deltaT));
+                                m_deltaT));
 
-	
+    
     m_pdata->release();
     
     // done profiling
@@ -293,14 +293,14 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_step_two, 
-								d_pdata[0], 
+                                d_pdata[0], 
                                 d_rdata, 
-								d_index_array.data,
-								group_size,
+                                d_index_array.data,
+                                group_size,
                                 d_net_force.data,
                                 box,
                                 d_nvt_rdata, 
-								m_deltaT,
+                                m_deltaT,
                                 m_zero_force)); 
                                 
    

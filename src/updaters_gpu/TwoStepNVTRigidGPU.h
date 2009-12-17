@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: TwoStepNVTRigidGPU.h 2331 2009-11-19 ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/src/updaters_gpu/TwoStepNVTRigidGPU.h $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #include "TwoStepNVTRigid.h"

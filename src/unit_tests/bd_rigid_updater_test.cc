@@ -104,23 +104,23 @@ const Scalar tol = 1e-3;
 
 struct AtomInfo
 {
-	int type, localidx, body;
-	double mass;
-	double x, y, z;
+    int type, localidx, body;
+    double mass;
+    double x, y, z;
 };
 
 struct BondInfo
 {
-	char type[50];
-	int localidxi, localidxj;
-	double kappa, R0, sigma, epsilon;
+    char type[50];
+    int localidxi, localidxj;
+    double kappa, R0, sigma, epsilon;
 };
 
 struct BuildingBlock
 {
-	std::vector<AtomInfo> atoms;
-	std::vector<BondInfo> bonds;
-	double spacing_x, spacing_y, spacing_z;
+    std::vector<AtomInfo> atoms;
+    std::vector<BondInfo> bonds;
+    double spacing_x, spacing_y, spacing_z;
 };
 
 //! Typedef'd TwoStepBDNVTRigid class factory
@@ -200,18 +200,18 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
             KE += Scalar(0.5) * (arrays.vx[iparticle]*arrays.vx[iparticle] + arrays.vy[iparticle]*arrays.vy[iparticle] + arrays.vz[iparticle]*arrays.vz[iparticle]);
             
             arrays.type[iparticle] = buildingBlock.atoms[j].type;
-					
+                    
             if (buildingBlock.atoms[j].body > 0)
                 arrays.body[iparticle] = ibody;
                         
             unsigned int head = i * nparticlesperbuildingblock;
             for (unsigned int j = 0; j < nbondsperbuildingblock; j++)
-				{
+                {
                 unsigned int particlei = head + buildingBlock.bonds[j].localidxi;
                 unsigned int particlej = head + buildingBlock.bonds[j].localidxj;
-					
+                    
                 sysdef->getBondData()->addBond(Bond(0, particlei, particlej));
-				}
+                }
                                 
             iparticle++;
             }
@@ -646,124 +646,124 @@ void readRestart(shared_ptr<SystemDefinition> sysdef, char* file_name)
 
 void load_buildingblock_template(char* template_file, BuildingBlock& buildingBlock)
     {
-	FILE* fp = fopen(template_file, "r");
-	
-	unsigned int number;
-	char* entry = new char [256];
-	
-	// obtain the total number of beads in the building block
-	fscanf(fp, "%s\t%lf\t%lf\t%lf\n", entry, &buildingBlock.spacing_x, &buildingBlock.spacing_y, &buildingBlock.spacing_z);
-	
-	while (!feof(fp))
-	{
-		fscanf(fp, "%s\t%d\n", entry, &number);
-				
-		if (strcmp(entry, "[Rigid]") == 0 || strcmp(entry, "[Flexible]") == 0)
-		{
-			
-			for (unsigned int i = 0; i < number; i++)
-			{
-				AtomInfo atomi;
+    FILE* fp = fopen(template_file, "r");
+    
+    unsigned int number;
+    char* entry = new char [256];
+    
+    // obtain the total number of beads in the building block
+    fscanf(fp, "%s\t%lf\t%lf\t%lf\n", entry, &buildingBlock.spacing_x, &buildingBlock.spacing_y, &buildingBlock.spacing_z);
+    
+    while (!feof(fp))
+    {
+        fscanf(fp, "%s\t%d\n", entry, &number);
+                
+        if (strcmp(entry, "[Rigid]") == 0 || strcmp(entry, "[Flexible]") == 0)
+        {
+            
+            for (unsigned int i = 0; i < number; i++)
+            {
+                AtomInfo atomi;
 
-				fscanf(fp, "%d\t%lf\t%lf\t%lf\t%d\t%d\t%lf\n", &atomi.localidx, &atomi.x, &atomi.y, &atomi.z,
-					&atomi.body, &atomi.type, &atomi.mass);
-				buildingBlock.atoms.push_back(atomi);
-			}
-		}
-		else if (strcmp(entry, "[Connections]") == 0) 
-		{
-			
-			for (unsigned int i = 0; i < number; i++)
-			{
-				BondInfo bondi;
-				
-				fscanf(fp, "%d\t%d\t%s\n", &bondi.localidxi, &bondi.localidxj, bondi.type);
-				buildingBlock.bonds.push_back(bondi);
-			}
-		}
-	}
+                fscanf(fp, "%d\t%lf\t%lf\t%lf\t%d\t%d\t%lf\n", &atomi.localidx, &atomi.x, &atomi.y, &atomi.z,
+                    &atomi.body, &atomi.type, &atomi.mass);
+                buildingBlock.atoms.push_back(atomi);
+            }
+        }
+        else if (strcmp(entry, "[Connections]") == 0) 
+        {
+            
+            for (unsigned int i = 0; i < number; i++)
+            {
+                BondInfo bondi;
+                
+                fscanf(fp, "%d\t%d\t%s\n", &bondi.localidxi, &bondi.localidxj, bondi.type);
+                buildingBlock.bonds.push_back(bondi);
+            }
+        }
+    }
 
-	
-	fclose(fp);
+    
+    fclose(fp);
 
     }
 
 void dump_xyz(shared_ptr<SystemDefinition> sysdef, unsigned int timestep)
     {
-	shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-	ParticleDataArrays arrays = pdata->acquireReadWrite();
-	BoxDim box = pdata->getBox();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    BoxDim box = pdata->getBox();
 
-	char file_name[100];
-	FILE* fp;
-	Scalar Lx, Ly, Lz;
+    char file_name[100];
+    FILE* fp;
+    Scalar Lx, Ly, Lz;
 
-	sprintf(file_name, "x_t%d.xyz", timestep);
-	fp = fopen(file_name, "w");
-	box = pdata->getBox();								
-	Lx = box.xhi - box.xlo;
-	Ly = box.yhi - box.ylo;
-	Lz = box.zhi - box.zlo;
-	fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
-	for (unsigned int j = 0; j < arrays.nparticles; j++)
-	{
-		if (arrays.type[j] == 1)
-			fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[j], arrays.y[j], arrays.z[j]);
-		else
-			fprintf(fp, "C\t%f\t%f\t%f\n", arrays.x[j], arrays.y[j], arrays.z[j]);
-	}
-	
-	pdata->release();
-	fclose(fp);
+    sprintf(file_name, "x_t%d.xyz", timestep);
+    fp = fopen(file_name, "w");
+    box = pdata->getBox();                                
+    Lx = box.xhi - box.xlo;
+    Ly = box.yhi - box.ylo;
+    Lz = box.zhi - box.zlo;
+    fprintf(fp, "%d\n%f\t%f\t%f\n", arrays.nparticles, Lx, Ly, Lz);
+    for (unsigned int j = 0; j < arrays.nparticles; j++)
+    {
+        if (arrays.type[j] == 1)
+            fprintf(fp, "N\t%f\t%f\t%f\n", arrays.x[j], arrays.y[j], arrays.z[j]);
+        else
+            fprintf(fp, "C\t%f\t%f\t%f\n", arrays.x[j], arrays.y[j], arrays.z[j]);
+    }
+    
+    pdata->release();
+    fclose(fp);
     }
 
 void parse(char* line, char*& command, unsigned int& narg, char**& arg)
     {
-	if (strlen(line) == 0) return;
+    if (strlen(line) == 0) return;
 
-	unsigned int i, maxarg = 32;
-	arg = new char* [maxarg];
-	for (i=0; i<maxarg; i++)
-		arg[i] = new char [64];
+    unsigned int i, maxarg = 32;
+    arg = new char* [maxarg];
+    for (i=0; i<maxarg; i++)
+        arg[i] = new char [64];
 
-	char* copy = new char [512];
-	strcpy(copy, line);
+    char* copy = new char [512];
+    strcpy(copy, line);
 
-	// strip any # comment by resetting string terminator
-	
-	int level = 0;
-	char *ptr = copy;
-	while (*ptr) 
-	{
-		if (*ptr == '#' && level == 0) 
-		{
-			*ptr = '\0';
-			break;
-		}
-	
-		ptr++;
-	}
-	
-	// command = 1st arg
-	
-	command = strtok(line, " \t\n\r\f");
-	if (command == NULL) return;
-	
-	// point arg[] at each subsequent arg
-	// treat text between double quotes as one arg
-	// insert string terminators in copy to delimit args
-	
-	narg = 0;
-	while (1) 
-	{
-		arg[narg] = strtok(NULL, " \t\n\r\f");
-		if (arg[narg]) 
-			narg++;
-		else 
-			break;
-	}
+    // strip any # comment by resetting string terminator
+    
+    int level = 0;
+    char *ptr = copy;
+    while (*ptr) 
+    {
+        if (*ptr == '#' && level == 0) 
+        {
+            *ptr = '\0';
+            break;
+        }
+    
+        ptr++;
+    }
+    
+    // command = 1st arg
+    
+    command = strtok(line, " \t\n\r\f");
+    if (command == NULL) return;
+    
+    // point arg[] at each subsequent arg
+    // treat text between double quotes as one arg
+    // insert string terminators in copy to delimit args
+    
+    narg = 0;
+    while (1) 
+    {
+        arg[narg] = strtok(NULL, " \t\n\r\f");
+        if (arg[narg]) 
+            narg++;
+        else 
+            break;
+    }
 
-	delete [] copy;
+    delete [] copy;
     }
 
 
