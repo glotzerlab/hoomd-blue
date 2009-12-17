@@ -67,7 +67,9 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
     {
     public:
         //! Constructor
-        TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
+        TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
+                        boost::shared_ptr<ParticleGroup> group,
+                        bool skip_restart=false);
         
         //! Sets the movement limit
         void setLimit(Scalar limit);

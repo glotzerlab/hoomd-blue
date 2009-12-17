@@ -69,14 +69,14 @@ TwoStepBDNVTRigid::TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool gamma_diam)
-    : TwoStepNVERigid(sysdef, group), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
+    : TwoStepNVERigid(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
     {
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
 
-    if (!restartInfoTestValid(v, "bdnvt", 0))
+    if (!restartInfoTestValid(v, "bdnvt_rigid", 0))
         {
-        v.type = "bdnvt";
+        v.type = "bdnvt_rigid";
         v.variable.resize(0);
         setValidRestart(false);
         }

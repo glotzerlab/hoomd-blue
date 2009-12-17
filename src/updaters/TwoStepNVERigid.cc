@@ -60,29 +60,34 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
  \param group The group of particles this integration method is to work on
+ \param skip_restart Skip initialization of the restart information
  */
 TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<ParticleGroup> group)
+                                 boost::shared_ptr<ParticleGroup> group,
+                                 bool skip_restart)
     : IntegrationMethodTwoStep(sysdef, group)
     {
-        // set a named, but otherwise blank set of integrator variables
-    IntegratorVariables v = getIntegratorVariables();
-        
-    if (!restartInfoTestValid(v, "nve", 0))
+    if (!skip_restart)
         {
-        v.type = "nve";
-        v.variable.resize(0);
-        setValidRestart(false);
-        }
-    else
-        setValidRestart(true);
-    
-    setIntegratorVariables(v);
+        // set a named, but otherwise blank set of integrator variables
+        IntegratorVariables v = getIntegratorVariables();
         
-    //! Get the system rigid data
+        if (!restartInfoTestValid(v, "nve_rigid", 0))
+            {
+            v.type = "nve_rigid";
+            v.variable.resize(0);
+            setValidRestart(false);
+            }
+        else
+            setValidRestart(true);
+        
+        setIntegratorVariables(v);
+        }
+        
+    // Get the system rigid data
     m_rigid_data = sysdef->getRigidData();
     
-    //! Get the particle data associated with the rigid data (i.e. the system particle data?)
+    // Get the particle data associated with the rigid data (i.e. the system particle data?)
     m_pdata = sysdef->getParticleData();
     
     m_zero_force = false;
