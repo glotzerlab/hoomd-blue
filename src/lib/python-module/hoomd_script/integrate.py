@@ -272,9 +272,12 @@ class _integration_method:
 # techniques.
 #
 # The following commands can be used to specify the integration methods used by integrate.mode_standard.
-# - integrate.nve
-# - integrate.nvt
 # - integrate.bdnvt
+# - integrate.bdnvt_rigid
+# - integrate.nve
+# - integrate.nve_rigid
+# - integrate.nvt
+# - integrate.nvt_rigid
 # - integrate.npt
 #
 # There can only be one integration mode active at a time. If there are more than one integrate.mode_* commands in
@@ -727,16 +730,15 @@ class bdnvt(_integration_method):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
 
-## NVE Integration for rigid bodies via Velocity-Verlet
+## NVE Integration for rigid bodies
 #
-# integrate.nve_rigid performs constant volume, constant energy simulations using the standard
-# Velocity-Verlet method for rigid bodies. 
+# integrate.nve_rigid performs constant volume, constant energy simulations using Velocity Verlet method extended
+# to operate on rigid bodies. It \b only operates on particles that belong to rigid bodies. Use integrate.nve on
+# particles that do not belong to rigid bodies.
 #
-# Another use-case for integrate.nve is to fix the velocity of a certain group of particles. This can be achieved by
-# setting the velocity of those particles in the initial condition and setting the \a zero_force option to True
-# for that group. A True value for \a zero_force causes integrate.nve to ignore any net force on each particle and
-# integrate them forward in time with a constant velocity.
-#
+# \b Limitataions:<br>
+# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
+# integrate.nve_rigid will still behave as if group.rigid() was specified.
 #
 # integrate.nve_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -744,15 +746,13 @@ class bdnvt(_integration_method):
 class nve_rigid(_integration_method):
     ## Specifies the NVE integration method for rigid bodies 
     # \param group Group of particles on which to apply this method.
-    # \param zero_force When set to true, particles in the \a group are integrated forward in time with constant
-    #                   velocity and any net force on them is ignored.
     #
     # \b Examples:
     # \code
-    # typeA = group.type('A')
-    # integrate.nve_rigid(group=typeA, zero_force=True)
+    # rigid = group.rigid()
+    # integrate.nve_rigid(group=rigid)
     # \endcode
-    def __init__(self, group, zero_force=False):
+    def __init__(self, group):
         util.print_status_line();
         
         # initialize base class
@@ -766,55 +766,33 @@ class nve_rigid(_integration_method):
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NVE integration method for rigid bodies");
-        
-        
-        self.cpp_method.setZeroForce(zero_force);
-        
-    ## Changes parameters of an existing integrator
-    # \param zero_force (if set) New value for the zero force option
-    #
-    # To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.nve(group=all)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(zero_force=False)
-    # \endcode
-    def set_params(self, zero_force=None):
-        util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error setting nve rigid params');
-        
-        # change the parameters        
-        if zero_force != None:
-            self.cpp_method.setZeroForce(zero_force);
 
 ## NVT Integration for rigid bodies
 #
-# integrate.nvt_rigid performs constant volume, constant temperature simulations 
+# integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
+# The ____ method is used from reference _____.
+# It \b only operates on particles that belong to rigid bodies. Use integrate.nvt on particles that do not belong to
+# rigid bodies.
+#
+# \b Limitataions:<br>
+# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
+# integrate.nvt_rigid will still behave as if group.rigid() was specified.
 #
 # integrate.nvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
 # - integrate.mode_standard
 class nvt_rigid(_integration_method):
-    ## Specifies the NVT integration method
+    ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
-    # \param T Temperature set point for the Nos&eacute;-Hoover thermostat.
+    # \param T Temperature set point for the thermostat.
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
     # \b Examples:
     # \code
-    # all = group.all()
-    # integrate.nvt_rigid(group=all, T=1.0, tau=0.5)
-    # integrator = integrate.nvt_rigid(group=all, tau=1.0, T=0.65)
-    # typeA = group.type('A')
-    # integrator = integrate.nvt_rigid(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+    # rigid = group.rigid()
+    # integrate.nvt_rigid(group=all, T=1.0)
+    # integrator = integrate.nvt_rigid(group=all, tau=1.0)
     # \endcode
     def __init__(self, group, T):
         util.print_status_line();
@@ -840,7 +818,7 @@ class nvt_rigid(_integration_method):
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
     # \code
-    # integrator = integrate.nvt_rigid(group=all, tau=1.0, T=0.65)
+    # integrator = integrate.nvt_rigid(group=rigid, T=0.65)
     # \endcode
     #
     # \b Examples:
@@ -870,8 +848,13 @@ class nvt_rigid(_integration_method):
 # where \f$ \vec{v} \f$ is the particle's velocity and \f$ \vec{F}_{\mathrm{rand}} \f$
 # is a random force with magnitude chosen via the fluctuation-dissipation theorem
 # to be consistent with the specified drag (\a gamma) and temperature (\a T).
-# 
 #
+# integrate.bdnvt_rigid \b only operates on particles that belong to rigid bodies. Use integrate.bdnvt on particles
+# that do not belong to rigid bodies.
+#
+# \b Limitataions:<br>
+# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
+# integrate.bdnvt_rigid will still behave as if group.rigid() was specified.
 #
 # integrate.bdnvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -884,17 +867,15 @@ class bdnvt_rigid(_integration_method):
     # different trajectories.
     # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
     #                   default), gammas are assigned per particle type via set_gamma().
-   #
+    #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
     # \b Examples:
     # \code
-    # all = group.all();
-    # integrate.bdnvt_rigid(group=all, T=1.0, seed=5)
+    # rigid = group.rigid();
+    # integrate.bdnvt_rigid(group=rigid, T=1.0, seed=5)
     # integrator = integrate.bdnvt_rigid(group=all, T=1.0, seed=100)
-    # integrate.bdnvt_rigid(group=all, T=1.0, gamma_diam=1)
-    # typeA = group.type('A');
-    # integrate.bdnvt_rigid(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
+    # integrate.bdnvt_rigid(group=all, T=1.0, gamma_diam=True)
     # \endcode
     def __init__(self, group, T, seed=0, gamma_diam=False):
         util.print_status_line();
@@ -921,7 +902,7 @@ class bdnvt_rigid(_integration_method):
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
     # \code
-    # integrator = integrate.bdnvt_rigid(group=all, T=1.0)
+    # integrator = integrate.bdnvt_rigid(group=rigid, T=1.0)
     # \endcode
     #
     # \b Examples:
