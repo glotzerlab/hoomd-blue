@@ -47,12 +47,12 @@ hello
 " $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
 output obtained above on the next line: "hello"
 
-The process for installing software/libraries differes from linux distribution to distribution. 
+The process for installing software/libraries differs from linux distribution to distribution. 
 In Gentoo (http://www.gentoo.org/) 
 \code
  $ emerge python
 \endcode
-would install python. Look at your linux distrubition's documentation to find how to install
+would install python. Look at your linux distribution's documentation to find how to install
 packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" or use sudo to
 become root before installing.
 
@@ -70,7 +70,7 @@ bash: python: command not found
 or have a version older than 2.3, you will need to upgrade/install python. 
 Note that you will also 
 need the python development libraries which some distributions might separate into into
-python-devel or some such. The existance of the python development package can be tested
+python-devel or some such. The existence of the python development package can be tested
 by checking the output of 
 \code 
  $ ls /usr/include/python2.X/Python.h
@@ -101,38 +101,50 @@ then boost is not installed. You can upgrade/install boost with your distributio
 manager. You may need to install the boost-static package to get the static libraries needed by
 HOOMD-blue.
 
-If your distribution doesn't have a new enough version of boost, you can build it by hand. Go
-to http://www.boost.org , download the latest source code and unpack it. cd to the source directory and run
-\code
- $ mkdir /home/user/software
- $ ./configure --with-python-version=2.5 --prefix=/home/user/software/
-\endcode
-Note that to configure more recent versions of boost, you will need to use ./bootstrap.sh instead of ./configure.
+If your distribution doesn't have a new enough version of boost, you can build it by hand. Building boost is a time consuming process, but not complicated if you follow these instructions.
 
-By default, only shared libraries are built. HOOMD-blue expects static libraries by default,
-so open up Makefile in your favorite text editor and  make the following change 
-(for building boost 1.35 or newer):
+Start by downloading \b boost_1_41_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
+configure boost for building with the following commands.
 \code
-BJAM_CONFIG=variant=release threading=multi link=shared,static
-\endcode
-
-Then you can build and install boost with the following commands.
-\code
- $ make
- $ make install
+ $ tar -xjf boost_1_41_0.tar.bz2 
+ $ cd boost_1_41_0
+ $ ./bootstrap.sh --prefix=/home/myuser/software
+-n Building Boost.Jam with toolset darwin... 
+tools/jam/src/bin.macosxx86/bjam
+-n Detecting Python version... 
+2.5
+-n Detecting Python root... 
+/System/Library/Frameworks/Python.framework/Versions/2.5
+...
 \endcode
 
-Note that to build more recent versions of boost, you will need to run the following command instead of the above make sequence.
+Now, run the command
 \code
- $ ./bjam variant=release threading=multi link=shared,static install --prefix=/home/user/software/
+ $ ./bjam variant=release threading=multi link=shared,static
+\endcode
+and wait a \e long time for everything to compile. At the end, you should see a message saying
+\code
+...updated 765 targets...
 \endcode
 
+Now, you are ready to install the library.
+\code
+ $ ./bjam variant=release threading=multi link=shared,static install
+\endcode
+After a considerably shorter wait, you should see
+\code
+...updated 7684 targets...
+\endcode
+again. Boost is now installed.
 
-Be prepared to wait a while: boost takes a long time to compile.
+You can delete the boost_1_41_0 directory now if you wish. It might be worth 
+saving for a little while until you have compiled HOOMD-blue and know everything 
+is working so that you won't need to go through all the setup steps again. 
+
 
 Before running ccmake or cmake-gui, set the following environment variables to the location where you installed boost:
 \code
- $ export BOOST_ROOT=/home/joaander/software
+ $ export BOOST_ROOT=/home/myuser/software
  $ ccmake ../src  # or run cmake-gui
  ... continue with build instructions ...
 \endcode
@@ -262,81 +274,53 @@ hello
 " $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
 output obtained above on the next line: "hello"
 
-<b>1. Install XCode</b><br>
+<b>1. Install Xcode</b><br>
+First see if you have XCode installed already. In the finder, navigate to 
+your hard drive->Developer->Applications and see if Xcode is there. If it is not, don't be surprised.
 Mac OS X doesn't come with a c++ compiler. You need to download and install 
-XCode from here: http://developer.apple.com/tools/xcode/ Install version 2.5 
-if you have Mac OS X 10.4, or 3.0 if you have Mac OS X 10.5.
+Xcode from here: http://developer.apple.com/tools/xcode/ To find the download link register as an
+ADC member, go to the downloads page and select the "Developer Tools" category. Make sure you download
+the version appropriate to your OS (as of this writing, that is 3.1.4 for OS X 10.5 and 3.2.1 for 
+OS X 10.6)
 
-<b>2. Install python</b><br>
-If you are running Mac OS X 10.4, you need to download and install the latest 
-version of python (2.5.1) from http://www.python.org/download/ . 
-Users on 10.5 (Leopard) should skip this step.
+<b>2. Download and compile boost</b><br>
+Building boost is a time consuming process, but not complicated if you follow these instructions.
 
-<b>3. Download and compile boost</b><br>
-Building boost is a fairly complicated and time consuming process.
-
-Start by downloading \b boost_1_36_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
+Start by downloading \b boost_1_41_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
 configure boost for building with the following commands.
 \code
- $ tar -xjf boost_1_36_0.tar.bz2 
- $ cd boost_1_36_0
- $ ./configure
-lding Boost.Jam with toolset darwin... 
+ $ tar -xjf boost_1_41_0.tar.bz2 
+ $ cd boost_1_41_0
+ $ ./bootstrap.sh
+-n Building Boost.Jam with toolset darwin... 
 tools/jam/src/bin.macosxx86/bjam
 -n Detecting Python version... 
 2.5
 -n Detecting Python root... 
 /System/Library/Frameworks/Python.framework/Versions/2.5
--n Unicode/ICU support for Boost.Regex?... 
-not found.
-Generating Boost.Build configuration in user-config.jam...
-Generating Makefile...
-\endcode
-Note that to configure more recent versions of boost you will need to use ./bootstrap.sh instead of ./configure.
-
-Users who downloaded and installed python from www.python.org may need to run the configure command
-with the following arugment in order for python to properly be detected.
-\code
- $ ./configure --with-python=/Library/Frameworks/Python.framework/Versions/Current/bin/python
-\endcode
-
-Now, the default settings from configure generate unoptimized boost libraries. 
-We can't have that since HOOMD-blue is all about speed, so open the Makefile
-\code
- $ open Makefile
-\endcode
-
-You need to make the following change (for building boost 1.35 or newer):
-\code
-BJAM_CONFIG=variant=release threading=multi link=shared,static
+...
 \endcode
 
 Now, run the command
 \code
- $ make
+ $ ./bjam variant=release threading=multi link=shared,static
 \endcode
 and wait a \e long time for everything to compile. At the end, you should see a message saying
 \code
-...updated 747 targets...
+...updated 765 targets...
 \endcode
 
 Now, you are ready to install the library (requires administrator privileges).
 \code
- $ sudo make install
+ $ sudo ./bjam variant=release threading=multi link=shared,static install
 \endcode
 After typing in your password and a considerably shorter wait, you should see
 \code
-...updated 7079 targets...
+...updated 7684 targets...
 \endcode
 again. Boost is now installed.
 
-Note that to build more recent versions of boost, you will need to run the following command instead of the above make
-sequence.
-\code
- $ sudo ./bjam variant=release threading=multi link=shared,static install --prefix=/usr/local
-\endcode
-
-You can delete the boost_1_36_0 directory now if you wish. It might be worth 
+You can delete the boost_1_41_0 directory now if you wish. It might be worth 
 saving for a little while until you have compiled HOOMD-blue and know everything 
 is working so that you won't need to go through all the setup steps again. 
 A common error may be to forget the "sudo" in the last command which will 
@@ -371,7 +355,8 @@ work on active development of HOOMD-blue, or if you just want to download and co
 version.
 
 Subversion is included in Mac OS X 10.5 and newer. If you are building HOOMD-blue on an older version, 
-subversion on Mac OS X is most easily installed from the dmg from here: http://downloads.open.collab.net/binaries.html
+subversion on Mac OS X is most easily installed from the dmg from here: http://downloads.open.collab.net/binaries.html . Even if you have subversion preinstalled, you may still want to upgrade to subversion 1.6,
+especially for new ease of use features for working with branches.
 
 <b>7. Doxygen</b><br>
 If you want to build this documentation from source, you will need to install Doxygen. There 
