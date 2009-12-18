@@ -171,7 +171,7 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
         float pair_eng = r6inv * (lj1 * r6inv - lj2) + epsilon;
         
         // FLOPS: 7
-        float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0))*rmdoverr + wcaforcemag_divr*rmdoverr;
+        float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0))*rmdoverr + wcaforcemag_divr*rmdoverr*pastwcalimit;
         float bond_eng = -0.5f * K * r_0*r_0*logf(1.0f - rsq/(r_0*r_0));
         
         // add up the virial (FLOPS: 3)
