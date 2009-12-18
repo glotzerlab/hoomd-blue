@@ -67,19 +67,6 @@ using namespace boost::python;
 
 using namespace boost;
 
-/** helper function. tests if 'num' attribute is present and zero.
- * \param node the XML node to check.
- */
-static bool num_attr_zero(const XMLNode &node)
-    {
-    if (node.isAttributeSet("num"))
-        {
-        if (atoi(node.getAttribute("num")) == 0)
-            return true;
-        }
-    return false;
-    }
-
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
@@ -366,6 +353,11 @@ void HOOMDInitializer::readFile(const string &fname)
         cerr << endl << "***Error! No particles defined in <position> node" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
+    if (m_type_array.size() == 0)
+        {
+        cerr << endl << "***Error! No particles defined in <type> node" << endl << endl;
+        throw runtime_error("Error extracting data from hoomd_xml file");
+        }
         
     // check for potential user errors
     if (m_vel_array.size() != 0 && m_vel_array.size() != m_pos_array.size())
@@ -392,7 +384,7 @@ void HOOMDInitializer::readFile(const string &fname)
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
-    if (m_type_array.size() != 0 && m_type_array.size() != m_pos_array.size())
+    if (m_type_array.size() != m_pos_array.size())
         {
         cerr << endl << "***Error! " << m_type_array.size() << " type values != " << m_pos_array.size()
              << " positions" << endl << endl;
@@ -494,21 +486,18 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
     //if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <position> node" << endl;
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            Scalar x,y,z;
-            parser >> x >> y >> z;
+        Scalar x,y,z;
+        parser >> x >> y >> z;
+        if (parser.good())
             m_pos_array.push_back(vec(x,y,z));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found position node with no text. Possible typo." << endl;
         }
     }
 
@@ -523,21 +512,18 @@ void HOOMDInitializer::parseImageNode(const XMLNode& node)
     assert(name == string("image"));
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            int x,y,z;
-            parser >> x >> y >> z;
+        int x,y,z;
+        parser >> x >> y >> z;
+        if (parser.good())
             m_image_array.push_back(vec_int(x,y,z));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found image node with no text. Possible typo." << endl;
         }
     }
 
@@ -556,21 +542,18 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
     // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            Scalar x,y,z;
-            parser >> x >> y >> z;
+        Scalar x,y,z;
+        parser >> x >> y >> z;
+        if (parser.good())
             m_vel_array.push_back(vec(x,y,z));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found velocity node with no text. Possible typo." << endl;
         }
     }
 
@@ -589,21 +572,18 @@ void HOOMDInitializer::parseMassNode(const XMLNode &node)
     // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            Scalar mass;
-            parser >> mass;
+        Scalar mass;
+        parser >> mass;
+        if (parser.good())
             m_mass_array.push_back(mass);
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found mass node with no text. Possible typo." << endl;
         }
     }
 
@@ -622,21 +602,18 @@ void HOOMDInitializer::parseDiameterNode(const XMLNode &node)
     // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            Scalar diameter;
-            parser >> diameter;
+        Scalar diameter;
+        parser >> diameter;
+        if (parser.good())
             m_diameter_array.push_back(diameter);
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found diameter node with no text. Possible typo." << endl;
         }
     }
 
@@ -652,23 +629,19 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
     assert(name == string("type"));
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            // dynamically determine the particle types
-            string type;
-            parser >> type;
-            
+        // dynamically determine the particle types
+        string type;
+        parser >> type;
+        if (parser.good())
             m_type_array.push_back(getTypeId(type));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found type node with no text. Possible typo." << endl;
         }
     }
 
@@ -684,22 +657,19 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
     assert(name == string("bond"));
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            string type_name;
-            unsigned int a, b;
-            parser >> type_name >> a >> b;
+        string type_name;
+        unsigned int a, b;
+        parser >> type_name >> a >> b;
+        if (parser.good())
             m_bonds.push_back(Bond(getBondTypeId(type_name), a, b));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found bond node with no text. Possible typo." << endl;
         }
     }
 
@@ -711,22 +681,19 @@ void HOOMDInitializer::parseAngleNode(const XMLNode &node)
     assert(name == string("angle"));
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            string type_name;
-            unsigned int a, b, c;
-            parser >> type_name >> a >> b >> c;
+        string type_name;
+        unsigned int a, b, c;
+        parser >> type_name >> a >> b >> c;
+        if (parser.good())
             m_angles.push_back(Angle(getAngleTypeId(type_name), a, b, c));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found angle node with no text. Possible typo." << endl;
         }
     }
 
@@ -742,22 +709,19 @@ void HOOMDInitializer::parseDihedralNode(const XMLNode &node)
     assert(name == string("dihedral"));
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            string type_name;
-            unsigned int a, b, c, d;
-            parser >> type_name >> a >> b >> c >> d;
+        string type_name;
+        unsigned int a, b, c, d;
+        parser >> type_name >> a >> b >> c >> d;
+        if (parser.good())
             m_dihedrals.push_back(Dihedral(getDihedralTypeId(type_name), a, b, c, d));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found dihedral node with no text. Possible typo." << endl;
         }
     }
 
@@ -773,22 +737,19 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
     assert(name == string("improper"));
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            string type_name;
-            unsigned int a, b, c, d;
-            parser >> type_name >> a >> b >> c >> d;
+        string type_name;
+        unsigned int a, b, c, d;
+        parser >> type_name >> a >> b >> c >> d;
+        if (parser.good())
             m_impropers.push_back(Dihedral(getImproperTypeId(type_name), a, b, c, d));
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found improper node with no text. Possible typo." << endl;
         }
     }
 
@@ -804,22 +765,18 @@ void HOOMDInitializer::parseChargeNode(const XMLNode &node)
     assert(name == string("charge"));
     
     // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+    
     istringstream parser;
-    if (node.getText())
+    parser.str(all_text);
+    while (parser.good())
         {
-        parser.str(node.getText());
-        while (parser.good())
-            {
-            Scalar charge;
-            parser >> charge;
-            
+        Scalar charge;
+        parser >> charge;
+        if (parser.good())
             m_charge_array.push_back(charge);
-            }
-        }
-    else
-        {
-        if (!num_attr_zero(node))
-            cout << "***Warning! Found charge node with no text. Possible typo." << endl;
         }
     }
 
