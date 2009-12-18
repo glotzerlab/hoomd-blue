@@ -342,7 +342,7 @@ class nlist:
             raise RuntimeError("Error creating neighbor list");
             
         self.cpp_nlist.setEvery(1);
-        self.cpp_nlist.addExclusionsFromBonds();
+        self.is_exclusion_overridden = False;
         
         globals.system.addCompute(self.cpp_nlist, "auto_nlist");
         
@@ -371,7 +371,15 @@ class nlist:
         
         self.r_cut = r_cut_max;
         self.cpp_nlist.setRCut(self.r_cut, self.r_buff);
-        
+    
+    ## \internal
+    # \brief Sets the default bond exclusions, but only if the defaults have not been overridden
+    def update_exclusions_defaults(self):
+        if not self.is_exclusion_overridden:
+            util._disable_status_lines = True;
+            self.reset_exclusions(exclusions=['bond']);
+            util._disable_status_lines = False;
+    
     ## Change neighbor list parameters
     # 
     # \param r_buff (if set) changes the buffer radius around the cutoff
@@ -459,6 +467,7 @@ class nlist:
     # 
     def reset_exclusions(self, exclusions = None):
         util.print_status_line();
+        self.is_exclusion_overridden = True;
         
         if self.cpp_nlist == None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";

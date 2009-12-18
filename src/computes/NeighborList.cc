@@ -899,10 +899,10 @@ void NeighborList::countExclusions()
         excluded_count[num_excluded] += 1;
         }
 #endif
-    cout << "-- Exclusion statistics:" << endl;
+    cout << "-- Neighborlist exclusion statistics:" << endl;
     cout << "Max. number of exclusions: " << max_num_excluded << endl;
     for (unsigned int i=0; i <= max_num_excluded; ++i)
-        cout << "Atoms with " << i << " exclusions: " << excluded_count[i] << endl;
+        cout << "Particles with " << i << " exclusions: " << excluded_count[i] << endl;
     }
 
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be

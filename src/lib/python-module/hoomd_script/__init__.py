@@ -172,6 +172,7 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     
     if globals.neighbor_list:
         globals.neighbor_list.update_rcut();
+        globals.neighbor_list.update_exclusions_defaults();
 
     if limit_hours == None:
         limit_hours = 0.0
