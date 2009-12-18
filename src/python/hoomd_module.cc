@@ -384,6 +384,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
     export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
     export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
+    export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_LJWallForceCompute();
     export_TempCompute();
     export_NeighborList();
@@ -396,6 +397,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
+    export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_TablePotentialGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();

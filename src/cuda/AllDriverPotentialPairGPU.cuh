@@ -95,6 +95,16 @@ cudaError_t gpu_compute_yukawa_forces(const gpu_force_data_arrays& force_data,
                                       float *d_ronsq,
                                       int ntypes,
                                       const pair_args& args);
+//! Compute morse pair forces on the GPU with PairEvaluatorMorse
+cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
+                                      const gpu_pdata_arrays &pdata,
+                                      const gpu_boxsize &box,
+                                      const gpu_nlist_array &nlist,
+                                      float4 *d_params,
+                                      float *d_rcutsq,
+                                      float *d_ronsq,
+                                      int ntypes,
+                                      const pair_args& args);
 
 #endif
 

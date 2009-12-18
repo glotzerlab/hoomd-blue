@@ -166,7 +166,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
         raise RuntimeError('Error initializing');
 
     # create the empty system
-    boxdim = hoomd.BoxDim(box[0], box[1], box[2]);
+    boxdim = hoomd.BoxDim(float(box[0]), float(box[1]), float(box[2]));
     globals.system_definition = hoomd.SystemDefinition(N,
                                                        boxdim,
                                                        n_particle_types,

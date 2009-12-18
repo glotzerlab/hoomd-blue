@@ -72,15 +72,15 @@ _default_block_size_db = {};
 _default_block_size_db['1.0'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 64, 
                                 'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 320, 'bond.fene': 224, 'angle.harmonic': 192, 
                                 'pair.gauss': 64, 'pair.table': 256, 'pair.yukawa': 64,
-                                'pair.slj': 64}
+                                'pair.slj': 64, 'pair.morse': 64}
 _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 128, 'angle.cgcmm': 64,
                                 'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 64, 'bond.fene': 64, 
                                 'angle.harmonic': 192, 'pair.gauss': 64, 'pair.table': 256, 'pair.yukawa': 64,
-                                'pair.slj': 64};
+                                'pair.slj': 64, 'pair.morse': 64};
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.cgcmm': 352, 'dihedral.harmonic': 128, 
                                 'angle.cgcmm': 320, 'pair.lj': 352, 'nlist': 160, 'bond.harmonic': 352, 
                                 'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 416, 'pair.table': 256,
-                                'pair.yukawa': 64, 'pair.slj': 64}
+                                'pair.yukawa': 64, 'pair.slj': 64, 'pair.morse':64}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -340,6 +340,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.lj', 'pair.lj', '(r_cut=3.0)', 500),
                 ('pair.cgcmm', 'pair.cgcmm', '(r_cut=3.0)', 500),
                 ('pair.gauss', 'pair.gauss', '(r_cut=3.0)', 500),
+                ('pair.morse', 'pair.morse', '(r_cut=3.0)', 500),
                 ('bond.harmonic', 'bond.harmonic', '()', 10000),
                 ('angle.harmonic', 'angle.harmonic', '()', 3000),
                 ('angle.cgcmm', 'angle.cgcmm', '()', 2000),

@@ -51,6 +51,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairGauss.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairSLJ.h"
+#include "EvaluatorPairMorse.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
@@ -73,6 +74,8 @@ typedef PotentialPair<EvaluatorPairGauss> PotentialPairGauss;
 typedef PotentialPair<EvaluatorPairSLJ> PotentialPairSLJ;
 //! Pair potential force compute for yukawa forces
 typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
+//! Pair potential force compute for morse forces
+typedef PotentialPair<EvaluatorPairMorse> PotentialPairMorse;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
@@ -83,6 +86,8 @@ typedef PotentialPairGPU< EvaluatorPairGauss, gpu_compute_gauss_forces > Potenti
 typedef PotentialPairGPU< EvaluatorPairSLJ, gpu_compute_slj_forces > PotentialPairSLJGPU;
 //! Pair potential force compute for yukawa forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces > PotentialPairYukawaGPU;
+//! Pair potential force compute for morse forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces > PotentialPairMorseGPU;
 #endif
 
 #endif // __PAIR_POTENTIALS_H__

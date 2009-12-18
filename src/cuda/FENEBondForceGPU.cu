@@ -150,26 +150,28 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
         // if particles have diameters that are not 1.0 need to correct this value by alpha
         float r = sqrtf(rsq);
         float radj =  r - (diam/2.0f + neigh_diam/2.0f - 1.0f);
+        float rmdoverr = radj/r;
         rsq = radj*radj;  // This is now a diameter adjusted potential distance for diameter shifted potentials
         
         
         // calculate 1/r^2 (FLOPS: 2)
         float r2inv;
+        float pastwcalimit;
+        r2inv = 1.0f / rsq;
         if (rsq >= 1.2599210498f)  // comparing to the WCA limit
-            r2inv = 0.0f;
+            pastwcalimit = 0.0f;
         else
-            r2inv = 1.0f / rsq;
+            pastwcalimit = 1.0f;
             
         // calculate 1/r^6 (FLOPS: 2)
         float r6inv = r2inv*r2inv*r2inv;
         // calculate the force magnitude / r (FLOPS: 6)
         float wcaforcemag_divr = r2inv * r6inv * (12.0f * lj1  * r6inv - 6.0f * lj2);
         // calculate the pair energy (FLOPS: 3)
-        // For WCA interaction, this energy is low by epsilon.  This is corrected in the logger.
         float pair_eng = r6inv * (lj1 * r6inv - lj2) + epsilon;
         
         // FLOPS: 7
-        float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0)) + wcaforcemag_divr;
+        float forcemag_divr = -K / (1.0f - rsq/(r_0*r_0))*rmdoverr + wcaforcemag_divr*rmdoverr;
         float bond_eng = -0.5f * K * r_0*r_0*logf(1.0f - rsq/(r_0*r_0));
         
         // add up the virial (FLOPS: 3)
@@ -179,7 +181,7 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
         force.x += dx * forcemag_divr;
         force.y += dy * forcemag_divr;
         force.z += dz * forcemag_divr;
-        force.w += bond_eng + pair_eng;
+        force.w += bond_eng + pastwcalimit*pair_eng;
         
         // Checking to see if bond length restriction is violated.
         if (rsq >= r_0*r_0) *d_checkr = 1;
