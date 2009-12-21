@@ -68,8 +68,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 \section sec_install_hoomd_windows Installing HOOMD-blue in Windows
 
  -# Download the HOOMD-blue installer from http://codeblue.umich.edu/hoomd-blue/
- -# Install Python 2.5.x using the installer at http://www.python.org/download/
- -# Install the latest drivers for your GPU from http://www.nvidia.com
+ -# Install Python 2.6.x using the installer at http://www.python.org/download/
+ -# Install the latest drivers for your GPU from http://www.nvidia.com (if applicable)
  -# Uninstall any previous version of HOOMD/HOOMD-blue before continuing
  -# Double click on the HOOMD-blue installer and follow the on screen steps
  

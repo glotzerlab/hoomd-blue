@@ -55,14 +55,18 @@ Table of contents:
 HOOMD-blue requires a number of prerequisite software packages and libraries
 
 - Required to compile:
-  - Python >= 2.3 and < 2.6  (http://www.python.org/)
+  - Python >= 2.3 (http://www.python.org/)
   - boost >= 1.32.0 (http://www.boost.org/)
   - CMake >= 2.6.0 (http://www.cmake.org/)
   - C++ Compiler (must be compatible with CUDA)
   - CUDA Toolkit (http://developer.nvidia.com/object/cuda.html)
-- Developer only tools
+- Useful developer tools
   - Subversion >= 1.5.4 (http://subversion.tigris.org/)
   - Doxygen  >= 1.5.6 (http://www.stack.nl/~dimitri/doxygen/manual.html)
+
+<i>Note to Mac OS X users</i>: <b>Fink</b> installations of the above tools and libraries are <b>NOT SUPPORTED</b>.
+Everything that Fink installs is placed in a non-standard location, unsupported by CMake. If you have installed <i>
+any</i> of the above tools/libraries with fink, uninstall them before continuing.
 
 Instructions for installing these on various architectures:
  - \ref page_software_req_install_windows
