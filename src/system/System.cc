@@ -383,6 +383,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     m_last_status_time = initial_time;
     setupProfiling();
     
+    resetStats();
+    
     if (!m_integrator)
         cout << "***Warning! You are running without an integrator." << endl;
         
@@ -544,24 +546,43 @@ void System::setupProfiling()
 void System::printStats()
     {
     cout << "---------" << endl;
-    // set the profiler on everything
-    //m_integrator->printStats();
-    //m_sysdef->getParticleData()->printStats();
+    // print the stats for everything
+    m_integrator->printStats();
     
     // analyzers
-    //vector<analyzer_item>::iterator analyzer;
-    //for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-    //  analyzer->m_analyzer->printStats();
+    vector<analyzer_item>::iterator analyzer;
+    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+      analyzer->m_analyzer->printStats();
     
     // updaters
-    // vector<updater_item>::iterator updater;
-    // for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
-    //  updater->m_updater->printStats();
+    vector<updater_item>::iterator updater;
+    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
+        updater->m_updater->printStats();
     
     // computes
     map< string, boost::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->printStats();
+    }
+
+void System::resetStats()
+    {
+    m_integrator->resetStats();
+    
+    // analyzers
+    vector<analyzer_item>::iterator analyzer;
+    for (analyzer = m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
+      analyzer->m_analyzer->resetStats();
+    
+    // updaters
+    vector<updater_item>::iterator updater;
+    for (updater = m_updaters.begin(); updater != m_updaters.end(); ++updater)
+        updater->m_updater->resetStats();
+    
+    // computes
+    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
+        compute->second->resetStats();
     }
 
 void System::generateStatusLine()

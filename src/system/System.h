@@ -404,6 +404,9 @@ class System
         //! Prints detailed statistics for all attached computes, updaters, and integrators
         void printStats();
         
+        //! Resets stats for all contained classes
+        void resetStats();
+        
         //! Prints out a formatted status line
         void generateStatusLine();
         

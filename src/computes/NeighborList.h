@@ -150,6 +150,9 @@ class NeighborList : public Compute
         //! Print statistics on the neighborlist
         virtual void printStats();
         
+        //! Clear the count of updates the neighborlist has performed
+        virtual void resetStats();
+        
         //! Computes the NeighborList if it needs updating
         void compute(unsigned int timestep);
         
