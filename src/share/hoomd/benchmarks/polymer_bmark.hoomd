@@ -25,7 +25,7 @@ lj = pair.lj(r_cut=3.0)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
 lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
-nlist.reset_exclusions(exclusions = None)
+
 # NVT integration
 all = group.all()
 integrate.mode_standard(dt=0.005)
