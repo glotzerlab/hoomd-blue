@@ -128,6 +128,9 @@ void SFAnalyzer::addGroup(boost::shared_ptr<ParticleGroup> group,
      // initialize the number of q and m magnitudes to mylength       
     m_SFgroups[current].m_q.resize(mylength);
     m_SFgroups[current].m_m.resize(mylength);
+    m_SFgroups[current].m_mi.resize(mylength);
+    m_SFgroups[current].m_mj.resize(mylength);
+    m_SFgroups[current].m_mk.resize(mylength);    
     m_SFgroups[current].m_Sq.resize(mylength);
     
     BoxDim box = m_pdata->getBox();
@@ -148,6 +151,9 @@ void SFAnalyzer::addGroup(boost::shared_ptr<ParticleGroup> group,
                     q_index = ivec + (vec_div+1)*jvec + (vec_div+1)*(vec_div+1)*kvec;
                     m_SFgroups[current].m_q[q_index-1] = 2*M_PI*sqrt((Scalar) ivec*ivec/(Lx*Lx) + (Scalar) jvec*jvec/(Ly*Ly) + (Scalar) kvec*kvec/(Lz*Lz));
                     m_SFgroups[current].m_m[q_index-1] = sqrt(ivec*ivec + jvec*jvec + kvec*kvec);
+                    m_SFgroups[current].m_mi[q_index-1] = ivec;
+                    m_SFgroups[current].m_mj[q_index-1] = jvec;
+                    m_SFgroups[current].m_mk[q_index-1] = kvec;                    
                     }
                 }
             }
@@ -193,6 +199,8 @@ Scalar SFAnalyzer::calcSF(SFgroup & sfgroup)
                 if (ivec !=0 | jvec != 0 | kvec !=0) 
                     {    
                     q_index = ivec + (vec_div + 1)*jvec + (vec_div + 1)*(vec_div + 1)*kvec;
+                    Ssin = Scalar(0.0);
+                    Scos = Scalar(0.0);
                     for (unsigned int group_idx = 0; group_idx < sfgroup.m_group->getNumMembers(); group_idx++)
                         {
                         // get the tag for the current group member from the group
@@ -200,6 +208,7 @@ Scalar SFAnalyzer::calcSF(SFgroup & sfgroup)
         
                         // identify the index of the current particle tag
                         unsigned int idx = arrays.rtag[tag];
+                        
         
                         // save its initial position
                         Ssin += sin((ivec*arrays.x[idx]*invLx + jvec*arrays.y[idx]*invLy + kvec*arrays.z[idx]*invLz)*2*M_PI);
@@ -266,7 +275,9 @@ void SFAnalyzer::writeFile(unsigned int timestep)
         {
         
         // Set to q as default, otherwise set to m
-        m_file << setprecision(10) << m_SFgroups[m_maxi].m_q[row] << m_delimiter;
+        m_file << setprecision(10) << m_SFgroups[m_maxi].m_m[row] << m_delimiter;
+        m_file << m_SFgroups[m_maxi].m_mi[row] << m_delimiter << m_SFgroups[m_maxi].m_mj[row] << m_delimiter <<  m_SFgroups[m_maxi].m_mk[row] << m_delimiter;
+       
 
         // write all but the last of the quantities separated by the delimiter
         for (unsigned int i = 0; i < m_SFgroups.size()-1; i++)

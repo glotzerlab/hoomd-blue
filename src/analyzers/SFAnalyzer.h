@@ -113,8 +113,11 @@ class SFAnalyzer : public Analyzer
             boost::shared_ptr<ParticleGroup const> m_group; //!< A shared pointer to the group definition
 
             //To Add Later - Let user specify if they want the full vector, not just magnitude.
-            std::vector<Scalar> m_q;    //!< magnitude of m vector
-            std::vector<Scalar> m_m;    //!< magnitude of q vector
+            std::vector<Scalar> m_q;    //!< magnitude of q vector
+            std::vector<Scalar> m_m;    //!< magnitude of m vector
+            std::vector<Scalar> m_mi;    //!< magnitude of q vector
+            std::vector<Scalar> m_mj;    //!< magnitude of q vector
+            std::vector<Scalar> m_mk;    //!< magnitude of q vector            
             std::vector<Scalar> m_Sq;   //!< Structure Factor vector   
 
            // std::ofstream m_file;   //!< The file we write out to
