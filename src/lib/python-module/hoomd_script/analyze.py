@@ -542,6 +542,7 @@ class msd(_analyzer):
 # factor of each group (referenced to the particle positions at the time step the command is issued at) and prints
 # the calculated values out to a file for that time step.
 # 
+# Note that this calculation can be intensive and calculating the structure factor frequently will slow down the simulation
 #
 # The file format is the same convenient delimited format used by analyze.log 
 class sf(_analyzer):
@@ -551,6 +552,7 @@ class sf(_analyzer):
     # \param groups List of groups to calculate the MSDs of
     # \param period Quantities are logged every \a period time steps
     # \param divisor integer that determines highest resolution wavelength that will considered 
+    # \param showcomponents (optional) If true, then all the wave vector components shown.  Otherwise, just the magnitude
     #
     # \b Examples:
     # \code
@@ -567,7 +569,7 @@ class sf(_analyzer):
     # 
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, groups, period, divisor):
+    def __init__(self, filename, groups, period, divisor,showcomponents=False):
         util.print_status_line();
         
         # initialize base class
@@ -582,9 +584,14 @@ class sf(_analyzer):
             print >> sys.stderr, "\nAt least one group must be specified to analyze.sf\n";
             raise RuntimeError('Error creating analyzer');
 
+        # Determine whether components will be shown
+        if showcomponents:
+            self.cpp_analyzer.showComponents();
+
         # set the group columns
         for cur_group in groups:
             self.cpp_analyzer.addGroup(cur_group.cpp_group, cur_group.name, divisor);
+        
         
     ## Change the parameters of the sf analysis
     #

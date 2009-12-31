@@ -60,7 +60,7 @@ using namespace std;
 */
 SFAnalyzer::SFAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
             const std::string fname)
-    : Analyzer(sysdef), m_delimiter("\t"), m_filename(fname), m_maxi(0), m_maxnum_rows(0), m_SFgroups_changed(false)
+    : Analyzer(sysdef), m_delimiter("\t"), m_filename(fname), m_maxi(0), m_maxnum_rows(0), m_showcomponents(false), m_SFgroups_changed(false)
     {
     }
 
@@ -127,10 +127,12 @@ void SFAnalyzer::addGroup(boost::shared_ptr<ParticleGroup> group,
 
      // initialize the number of q and m magnitudes to mylength       
     m_SFgroups[current].m_q.resize(mylength);
-    m_SFgroups[current].m_m.resize(mylength);
-    m_SFgroups[current].m_mi.resize(mylength);
-    m_SFgroups[current].m_mj.resize(mylength);
-    m_SFgroups[current].m_mk.resize(mylength);    
+    if (m_showcomponents) 
+        {
+        m_SFgroups[current].m_qi.resize(mylength);
+        m_SFgroups[current].m_qj.resize(mylength);
+        m_SFgroups[current].m_qk.resize(mylength);  
+        }  
     m_SFgroups[current].m_Sq.resize(mylength);
     
     BoxDim box = m_pdata->getBox();
@@ -150,10 +152,12 @@ void SFAnalyzer::addGroup(boost::shared_ptr<ParticleGroup> group,
                     {    
                     q_index = ivec + (vec_div+1)*jvec + (vec_div+1)*(vec_div+1)*kvec;
                     m_SFgroups[current].m_q[q_index-1] = 2*M_PI*sqrt((Scalar) ivec*ivec/(Lx*Lx) + (Scalar) jvec*jvec/(Ly*Ly) + (Scalar) kvec*kvec/(Lz*Lz));
-                    m_SFgroups[current].m_m[q_index-1] = sqrt(ivec*ivec + jvec*jvec + kvec*kvec);
-                    m_SFgroups[current].m_mi[q_index-1] = ivec;
-                    m_SFgroups[current].m_mj[q_index-1] = jvec;
-                    m_SFgroups[current].m_mk[q_index-1] = kvec;                    
+                    if (m_showcomponents)
+                        {
+                        m_SFgroups[current].m_qi[q_index-1] = ivec;
+                        m_SFgroups[current].m_qj[q_index-1] = jvec;
+                        m_SFgroups[current].m_qk[q_index-1] = kvec;  
+                        }                  
                     }
                 }
             }
@@ -257,6 +261,9 @@ void SFAnalyzer::writeFile(unsigned int timestep)
     // Format the x-axis as instructed.  (q is default)
     m_file << "q" << m_delimiter; 
 
+    if (m_showcomponents)
+        m_file << "qi" << m_delimiter << "qj" << m_delimiter << "qk" << m_delimiter;
+        
     // write all but the last of the quantities separated by the delimiter
     for (unsigned int i = 0; i < m_SFgroups.size()-1; i++)
         m_file << m_SFgroups[i].m_gname << m_delimiter;
@@ -270,13 +277,13 @@ void SFAnalyzer::writeFile(unsigned int timestep)
         calcSF(m_SFgroups[i]);
         }
                               
-    //Print Each Line  (note, currently q versus S(q)... later will provide m option.
+    //Print Each Line 
     for (unsigned int row = 0; row < m_maxnum_rows; row++) 
         {
         
         // Set to q as default, otherwise set to m
-        m_file << setprecision(10) << m_SFgroups[m_maxi].m_m[row] << m_delimiter;
-        m_file << m_SFgroups[m_maxi].m_mi[row] << m_delimiter << m_SFgroups[m_maxi].m_mj[row] << m_delimiter <<  m_SFgroups[m_maxi].m_mk[row] << m_delimiter;
+        m_file << setprecision(10) << m_SFgroups[m_maxi].m_q[row] << m_delimiter;
+        if (m_showcomponents) m_file << m_SFgroups[m_maxi].m_qi[row] << m_delimiter << m_SFgroups[m_maxi].m_qj[row] << m_delimiter <<  m_SFgroups[m_maxi].m_qk[row] << m_delimiter;
        
 
         // write all but the last of the quantities separated by the delimiter
@@ -304,6 +311,7 @@ void export_SFAnalyzer()
     ("SFAnalyzer", init< boost::shared_ptr<SystemDefinition>, const std::string& >())
     .def("setDelimiter", &SFAnalyzer::setDelimiter)
     .def("addGroup", &SFAnalyzer::addGroup)
+    .def("showComponents", &SFAnalyzer::showComponents)    
     ;
     }
 

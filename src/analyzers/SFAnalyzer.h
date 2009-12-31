@@ -89,6 +89,9 @@ class SFAnalyzer : public Analyzer
         //! Adds a column to the analysis
         void addGroup(boost::shared_ptr<ParticleGroup> group, const std::string& gname, int vec_div);
         
+        //! Turns on show components
+        void showComponents() {m_showcomponents=true;} 
+        
     private:
         //! The delimiter to put between columns in the file
         std::string m_delimiter;
@@ -98,6 +101,7 @@ class SFAnalyzer : public Analyzer
         
         unsigned int m_maxi;
         unsigned int m_maxnum_rows;
+        bool m_showcomponents;
         
         bool m_SFgroups_changed; //!< Set to true if the list of SFgroups have changed
         
@@ -114,10 +118,9 @@ class SFAnalyzer : public Analyzer
 
             //To Add Later - Let user specify if they want the full vector, not just magnitude.
             std::vector<Scalar> m_q;    //!< magnitude of q vector
-            std::vector<Scalar> m_m;    //!< magnitude of m vector
-            std::vector<Scalar> m_mi;    //!< magnitude of q vector
-            std::vector<Scalar> m_mj;    //!< magnitude of q vector
-            std::vector<Scalar> m_mk;    //!< magnitude of q vector            
+            std::vector<Scalar> m_qi;    //!< xcomponent of q vector
+            std::vector<Scalar> m_qj;    //!< ycomponent of q vector
+            std::vector<Scalar> m_qk;    //!< zcomponent of q vector            
             std::vector<Scalar> m_Sq;   //!< Structure Factor vector   
 
            // std::ofstream m_file;   //!< The file we write out to
