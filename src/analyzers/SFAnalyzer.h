@@ -57,8 +57,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SF_ANALYZER_H__
 #define __SF_ANALYZER_H__
 
-//! Prints a log of the structure factor calculated over particles in the simulation
-/*! On construction, SFAnalyzer opens the given file name (overwriting it if it exists) for writing.  The first column
+//! Prints a the structure factor calculated over particles in the simulation
+/*! At each specified time step, SFAnalyzer opens the given file name (overwriting it if it exists) for writing.  The first column
     conrresponds to the magnitude of the q vector.  The second column corresponds to the magnitude of the m vector.
     Each time analyze() is called, the structure factor is 
     calculated and written out to the file.

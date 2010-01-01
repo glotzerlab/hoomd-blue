@@ -80,8 +80,6 @@ void SFAnalyzer::analyze(unsigned int timestep)
         }
         
     // For each SFgroup, write out a single file containing the structure factor at that timestep. 
-    // To do - Add ability to average structure factor.  But need to determine how SF are aveaged (by including all particles)
-    // or by averaging the values at each index.
     // write out the header only once if the columns change
         
     // write out the new file
@@ -101,7 +99,6 @@ void SFAnalyzer::setDelimiter(const std::string& delimiter)
 /*! \param group Particle group to calculate the SF of
     \param gname column name
     \param vec_div The maximum division of the box for calculating the structure factor.
-    \param header_prefix String to print before the file header
 
     On construction, the q and m values are recorded, for the given vector divisions. The file is opened
     (and overwritten if necessary). Nothing is initially written to the file, that will occur on the first call to
