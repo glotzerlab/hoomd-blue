@@ -87,7 +87,7 @@ class SFAnalyzer : public Analyzer
         void setDelimiter(const std::string& delimiter);
         
         //! Adds a column to the analysis
-        void addGroup(boost::shared_ptr<ParticleGroup> group, const std::string& gname, int vec_div);
+        void addGroup(boost::shared_ptr<ParticleGroup> group, const std::string& gname, unsigned int vec_div);
         
         //! Turns on show components
         void showComponents() {m_showcomponents=true;} 

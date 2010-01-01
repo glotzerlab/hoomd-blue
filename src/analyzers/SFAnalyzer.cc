@@ -109,7 +109,7 @@ void SFAnalyzer::setDelimiter(const std::string& delimiter)
 */
 void SFAnalyzer::addGroup(boost::shared_ptr<ParticleGroup> group,
                           const std::string& gname,
-                          int vec_div)
+                          unsigned int vec_div)
     {
     m_SFgroups.push_back(SFgroup(group, gname, vec_div));
 

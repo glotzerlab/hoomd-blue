@@ -653,8 +653,7 @@ class bod(_analyzer):
         _analyzer.__init__(self);
         
         # create the c++ mirror class
-        cutoffsq = cutoff*cutoff;
-        self.cpp_analyzer = hoomd.BODAnalyzer(globals.system_definition, filename, groupA.cpp_group, groupB.cpp_group, cutoffsq);
+        self.cpp_analyzer = hoomd.BODAnalyzer(globals.system_definition, filename, groupA.cpp_group, groupB.cpp_group, cutoff*cutoff);
         self.setupAnalyzer(period);
     
         # Determine whether components will be shown
