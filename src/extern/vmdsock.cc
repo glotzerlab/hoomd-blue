@@ -130,7 +130,7 @@ void *vmdsock_accept(void * v) {
 #endif
 
   len = sizeof(s->addr);
-  rc = accept(s->sd, (struct sockaddr *) &s->addr, &len);
+  rc = accept(s->sd, (struct sockaddr *) &s->addr, (socklen_t *)&len);
   if (rc >= 0) {
     new_s = (vmdsocket *) malloc(sizeof(vmdsocket));
     if (new_s != NULL) {
