@@ -14,7 +14,12 @@ Welcome to the \b user documentation for HOOMD-blue!
 -# \subpage page_license
 -# \subpage page_credits
 
-The latest version of this documentation can be built from the source code by following the instructions in \ref page_compile_guide.
+<hr>
+
+Up to date documentation can be found at the following links:
+ - <a href="http://codeblue.umich.edu/hoomd-blue/doc/">Documentation</a> for the latest <b>packaged release</b>.
+ - <a href="http://codeblue.umich.edu/hoomd-blue/doc-trunk/">Documentation</a> for the current <b>development version</b> in trunk/.
+ - Documentation consistent with any given version can be built from the source code by following the instructions in \ref page_compile_guide.
 */
 
 /*! \page page_command_list Index of Script Commands

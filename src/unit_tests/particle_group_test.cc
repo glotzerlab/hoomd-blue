@@ -147,6 +147,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
     ParticleGroup tags_all(sysdef, selector_all);
     // verify it
     BOOST_CHECK_EQUAL_UINT(tags_all.getNumMembers(), pdata->getN());
+    BOOST_CHECK_EQUAL_UINT(tags_all.getIndexArray().getNumElements(), pdata->getN());
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
         BOOST_CHECK_EQUAL_UINT(tags_all.getMemberTag(i), i);
@@ -158,6 +159,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
     ParticleGroup copy1(tags_all);
     // verify it
     BOOST_CHECK_EQUAL_UINT(copy1.getNumMembers(), pdata->getN());
+    BOOST_CHECK_EQUAL_UINT(copy1.getIndexArray().getNumElements(), pdata->getN());
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
         BOOST_CHECK_EQUAL_UINT(copy1.getMemberTag(i), i);
@@ -170,6 +172,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
     copy2 = copy1;
     // verify it
     BOOST_CHECK_EQUAL_UINT(copy2.getNumMembers(), pdata->getN());
+    BOOST_CHECK_EQUAL_UINT(copy2.getIndexArray().getNumElements(), pdata->getN());
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
         BOOST_CHECK_EQUAL_UINT(copy2.getMemberTag(i), i);
@@ -188,6 +191,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     ParticleGroup tags04(sysdef, selector04);
     // verify the initial set
     BOOST_CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags04.getIndexArray().getNumElements(), 5);
     for (unsigned int i = 0; i < 5; i++)
         {
         BOOST_CHECK_EQUAL_UINT(tags04.getMemberTag(i), i);
@@ -232,6 +236,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     // verify that the group has updated
     const ParticleDataArraysConst& arrays_const = pdata->acquireReadOnly();
     BOOST_CHECK_EQUAL_UINT(tags04.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags04.getIndexArray().getNumElements(), 5);
     for (unsigned int i = 0; i < 5; i++)
         {
         BOOST_CHECK_EQUAL_UINT(tags04.getMemberTag(i), i);
@@ -256,6 +261,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     shared_ptr<ParticleSelector> selector0(new ParticleSelectorType(sysdef, 0, 0));
     ParticleGroup type0(sysdef, selector0);
     BOOST_REQUIRE_EQUAL_UINT(type0.getNumMembers(), 4);
+    BOOST_CHECK_EQUAL_UINT(type0.getIndexArray().getNumElements(), 4);
     BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(0), 0);
     BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(1), 2);
     BOOST_CHECK_EQUAL_UINT(type0.getMemberTag(2), 5);
@@ -265,6 +271,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     shared_ptr<ParticleSelector> selector1(new ParticleSelectorType(sysdef, 1, 1));
     ParticleGroup type1(sysdef, selector1);
     BOOST_REQUIRE_EQUAL_UINT(type1.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(type1.getIndexArray().getNumElements(), 2);
     BOOST_CHECK_EQUAL_UINT(type1.getMemberTag(0), 3);
     BOOST_CHECK_EQUAL_UINT(type1.getMemberTag(1), 6);
     
@@ -272,6 +279,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     shared_ptr<ParticleSelector> selector2(new ParticleSelectorType(sysdef, 2, 2));
     ParticleGroup type2(sysdef, selector2);
     BOOST_REQUIRE_EQUAL_UINT(type2.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(type2.getIndexArray().getNumElements(), 2);
     BOOST_CHECK_EQUAL_UINT(type2.getMemberTag(0), 1);
     BOOST_CHECK_EQUAL_UINT(type2.getMemberTag(1), 7);
     
@@ -279,6 +287,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     shared_ptr<ParticleSelector> selector3(new ParticleSelectorType(sysdef, 3, 3));
     ParticleGroup type3(sysdef, selector3);
     BOOST_REQUIRE_EQUAL_UINT(type3.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(type3.getIndexArray().getNumElements(), 2);
     BOOST_CHECK_EQUAL_UINT(type3.getMemberTag(0), 4);
     BOOST_CHECK_EQUAL_UINT(type3.getMemberTag(1), 9);
     
@@ -286,8 +295,22 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_type_test )
     shared_ptr<ParticleSelector> selector_all(new ParticleSelectorType(sysdef, 0, 3));
     ParticleGroup alltypes(sysdef, selector_all);
     BOOST_REQUIRE_EQUAL_UINT(alltypes.getNumMembers(), 10);
+    BOOST_CHECK_EQUAL_UINT(alltypes.getIndexArray().getNumElements(), 10);
     for (unsigned int i = 0; i < 10; i++)
         BOOST_CHECK_EQUAL_UINT(alltypes.getMemberTag(i), i);
+    }
+
+//! Checks that ParticleGroup can initialize to the empty set
+BOOST_AUTO_TEST_CASE( ParticleGroup_empty_test )
+    {
+    shared_ptr<SystemDefinition> sysdef = create_sysdef();
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    // create a group of type 100 and check it
+    shared_ptr<ParticleSelector> selector100(new ParticleSelectorType(sysdef, 100, 100));
+    ParticleGroup empty(sysdef, selector100);
+    BOOST_REQUIRE_EQUAL_UINT(empty.getNumMembers(), 0);
+    BOOST_CHECK_EQUAL_UINT(empty.getIndexArray().getNumElements(), 0);
     }
 
 //! Checks that ParticleGroup can initialize by particle body
@@ -327,6 +350,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     shared_ptr<ParticleSelector> selector04(new ParticleSelectorTag(sysdef, 0, 4));
     ParticleGroup tags05(sysdef, selector04);
     BOOST_REQUIRE_EQUAL_UINT(tags05.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags05.getIndexArray().getNumElements(), 5);
     BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(0), 0);
     BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(1), 1);
     BOOST_CHECK_EQUAL_UINT(tags05.getMemberTag(2), 2);
@@ -337,6 +361,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_tag_test )
     shared_ptr<ParticleSelector> selector59(new ParticleSelectorTag(sysdef, 5, 9));
     ParticleGroup tags59(sysdef, selector59);
     BOOST_REQUIRE_EQUAL_UINT(tags59.getNumMembers(), 5);
+    BOOST_CHECK_EQUAL_UINT(tags59.getIndexArray().getNumElements(), 5);
     BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(0), 5);
     BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(1), 6);
     BOOST_CHECK_EQUAL_UINT(tags59.getMemberTag(2), 7);
@@ -356,6 +381,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
                                                                       make_scalar3( 0.5,  0.5,  0.5)));
     ParticleGroup tags0(sysdef, selector0);
     BOOST_REQUIRE_EQUAL_UINT(tags0.getNumMembers(), 1);
+    BOOST_CHECK_EQUAL_UINT(tags0.getIndexArray().getNumElements(), 1);
     BOOST_CHECK_EQUAL_UINT(tags0.getMemberTag(0), 0);
     
     // create a group containing particles 0 and 1
@@ -364,6 +390,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags1(sysdef, selector1);
     BOOST_REQUIRE_EQUAL_UINT(tags1.getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(tags1.getIndexArray().getNumElements(), 2);
     BOOST_CHECK_EQUAL_UINT(tags1.getMemberTag(0), 0);
     BOOST_CHECK_EQUAL_UINT(tags1.getMemberTag(1), 1);
     
@@ -373,6 +400,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_cuboid_test )
                                                                       make_scalar3( 1.5,  2.5,  3.5)));
     ParticleGroup tags2(sysdef, selector2);
     BOOST_REQUIRE_EQUAL_UINT(tags2.getNumMembers(), 3);
+    BOOST_CHECK_EQUAL_UINT(tags2.getIndexArray().getNumElements(), 3);
     BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(0), 0);
     BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(1), 1);
     BOOST_CHECK_EQUAL_UINT(tags2.getMemberTag(2), 2);
@@ -395,6 +423,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     // make a union of the two groups and check it
     boost::shared_ptr<ParticleGroup> union_group = ParticleGroup::groupUnion(type0, tags04);
     BOOST_REQUIRE_EQUAL_UINT(union_group->getNumMembers(), 7);
+    BOOST_CHECK_EQUAL_UINT(union_group->getIndexArray().getNumElements(), 7);
     BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(0), 0);
     BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(1), 1);
     BOOST_CHECK_EQUAL_UINT(union_group->getMemberTag(2), 2);
@@ -406,6 +435,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_boolean_tests)
     // make a intersection group and test it
     boost::shared_ptr<ParticleGroup> intersection_group = ParticleGroup::groupIntersection(type0, tags04);
     BOOST_REQUIRE_EQUAL_UINT(intersection_group->getNumMembers(), 2);
+    BOOST_CHECK_EQUAL_UINT(intersection_group->getIndexArray().getNumElements(), 2);
     BOOST_CHECK_EQUAL_UINT(intersection_group->getMemberTag(0), 0);
     BOOST_CHECK_EQUAL_UINT(intersection_group->getMemberTag(1), 2);
     }

@@ -87,13 +87,21 @@ endif (NOT MSVC90_REDIST_DIR)
 endif(MSVC80)
 
 # install cudart.dll if CUDA is enabled
-if (ENABLE_CUDA)
+if (CUDA_FOUND)
+# this finds the dll in bin64 even in 32 bit builds, fix that
+if(CMAKE_CL_64)
+set (_cudart_search_path ${CUDA_TOOLKIT_ROOT_DIR}/bin64)
+else(CMAKE_CL_64)
+set (_cudart_search_path ${CUDA_TOOLKIT_ROOT_DIR}/bin)
+endif(CMAKE_CL_64)
+
 find_file(CUDA_CUDART_DLL cudart.dll
-        HINTS ${CUDA_INSTALL_PREFIX})
+        HINTS ${_cudart_search_path})
+
 mark_as_advanced(CUDA_CUDART_DLL)
 
 install(PROGRAMS ${CUDA_CUDART_DLL} DESTINATION bin)
-endif (ENABLE_CUDA)
+endif (CUDA_FOUND)
 
 endif(WIN32)
 

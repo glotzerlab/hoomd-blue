@@ -1,4 +1,4 @@
-find_package(DOXYGEN)
+find_package(Doxygen)
 if (DOXYGEN_FOUND)
 
 set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_CUDA=1\" \\

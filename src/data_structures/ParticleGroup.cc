@@ -236,8 +236,7 @@ bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
 ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
-      m_is_member(m_pdata->getN()),
-      m_member_idx(m_pdata->getN(), m_pdata->getExecConf())
+      m_is_member(m_pdata->getN())
     {
     // assign all of the particles that belong to the group
     // for each particle in the data
@@ -247,6 +246,9 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
         if (selector->isSelected(tag))
             m_member_tags.push_back(tag);
         }
+    
+    GPUArray<unsigned int> member_idx(m_member_tags.size(), m_pdata->getExecConf());
+    m_member_idx.swap(member_idx);
     
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();
@@ -264,11 +266,13 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
       m_is_member(m_pdata->getN()),
-      m_member_idx(m_pdata->getN(), m_pdata->getExecConf()),
       m_member_tags(member_tags)
     {
     // let's make absolutely sure that the tag order given from outside is sorted
     sort(m_member_tags.begin(), m_member_tags.end());
+    
+    GPUArray<unsigned int> member_idx(m_member_tags.size(), m_pdata->getExecConf());
+    m_member_idx.swap(member_idx);
     
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
     rebuildIndexList();

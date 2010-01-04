@@ -115,6 +115,15 @@ class Compute : boost::noncopyable
             {
             }
             
+        //! Reset stat counters
+        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running 
+            counters printed by printStats. System will reset the stats before any run() so that stats printed
+            at the end of the run only apply to that run() alone.
+        */
+        virtual void resetStats()
+            {
+            }
+            
         //! Sets the profiler for the compute to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
         

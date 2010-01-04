@@ -103,6 +103,24 @@ class Analyzer : boost::noncopyable
         //! Sets the profiler for the analyzer to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
         
+        //! Print some basic stats to stdout
+        /*! Derived classes can optionally implement this function. A System will
+            call all of the Analyzers' printStats functions at the end of a run
+            so the user can see useful information 
+        */
+        virtual void printStats()
+            {
+            }
+        
+        //! Reset stat counters
+        /*! If derived classes implement printStats, they should also implement resetStats() to clear any running 
+            counters printed by printStats. System will reset the stats before any run() so that stats printed
+            at the end of the run only apply to that run() alone.
+        */
+        virtual void resetStats()
+            {
+            }
+        
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with

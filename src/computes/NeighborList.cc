@@ -1370,6 +1370,11 @@ void NeighborList::printStats()
     f << "];" << endl;*/
     }
 
+void NeighborList::resetStats()
+    {
+    m_updates = m_forced_updates = m_dangerous_updates = 0;
+    }
+
 /*! Loops through the particles and finds all of the particles \c j who's distance is less than
     \c r_cut \c + \c r_buff from particle \c i, includes either i < j or all neighbors depending
     on the mode set by setStorageMode()
