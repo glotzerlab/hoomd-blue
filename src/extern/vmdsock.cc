@@ -1,6 +1,6 @@
 /***************************************************************************
  *cr
- *cr            (C) Copyright 1995-2003 The Board of Trustees of the
+ *cr            (C) Copyright 1995-2009 The Board of Trustees of the
  *cr                        University of Illinois
  *cr                         All Rights Reserved
  *cr
@@ -11,19 +11,19 @@
  *
  *      $RCSfile: vmdsock.c,v $
  *      $Author: johns $        $Locker:  $             $State: Exp $
- *      $Revision: 1.1 $      $Date: 2003/09/12 18:30:46 $
+ *      $Revision: 1.22 $      $Date: 2009/12/07 17:36:41 $
  *
  ***************************************************************************
  * DESCRIPTION:
  *   Socket interface, abstracts machine dependent APIs/routines. 
+ *
+ * LICENSE:
+ *   UIUC Open Source License
+ *   http://www.ks.uiuc.edu/Research/vmd/plugins/pluginlicense.html
+ *
  ***************************************************************************/
 
 #define VMDSOCKINTERNAL 1
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4996 )
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@
 
 #if defined(_MSC_VER) 
 #include <winsock2.h>
-typedef int socklen_t;
 #else
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -72,7 +71,7 @@ void * vmdsock_create(void) {
   if (s != NULL)
     memset(s, 0, sizeof(vmdsocket)); 
 
-  if ((s->sd = (int)socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+  if ((s->sd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
     printf("Failed to open socket.");
     free(s);
     return NULL;
@@ -120,7 +119,9 @@ int vmdsock_listen(void * v) {
 void *vmdsock_accept(void * v) {
   int rc;
   vmdsocket *new_s = NULL, *s = (vmdsocket *) v;
-#if defined(SOCKLEN_T)
+#if defined(ARCH_AIX5) || defined(ARCH_AIX5_64) || defined(ARCH_AIX6_64)
+  unsigned int len;
+#elif defined(SOCKLEN_T)
   SOCKLEN_T len;
 #elif defined(ARCH_LINUXALPHA)
   socklen_t len;
@@ -129,7 +130,7 @@ void *vmdsock_accept(void * v) {
 #endif
 
   len = sizeof(s->addr);
-  rc = (int)accept(s->sd, (struct sockaddr *) &s->addr, (socklen_t *)&len);
+  rc = accept(s->sd, (struct sockaddr *) &s->addr, &len);
   if (rc >= 0) {
     new_s = (vmdsocket *) malloc(sizeof(vmdsocket));
     if (new_s != NULL) {
@@ -216,7 +217,3 @@ int vmdsock_selwrite(void *v, int sec) {
   } while (rc < 0 && errno == EINTR);
   return rc;
 }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif

@@ -1,6 +1,6 @@
 /***************************************************************************
  *cr
- *cr            (C) Copyright 1995-2003 The Board of Trustees of the
+ *cr            (C) Copyright 1995-2009 The Board of Trustees of the
  *cr                        University of Illinois
  *cr                         All Rights Reserved
  *cr
@@ -11,11 +11,16 @@
  *
  *      $RCSfile: vmdsock.h,v $
  *      $Author: johns $        $Locker:  $             $State: Exp $
- *      $Revision: 1.1 $      $Date: 2003/09/12 18:30:46 $
+ *      $Revision: 1.14 $      $Date: 2009/12/07 17:36:41 $
  *
  ***************************************************************************
  * DESCRIPTION:
  *   socket interface layer, abstracts platform-dependent routines/APIs
+ *
+ * LICENSE:
+ *   UIUC Open Source License
+ *   http://www.ks.uiuc.edu/Research/vmd/plugins/pluginlicense.html
+ *
  ***************************************************************************/
 
 #if defined(VMDSOCKINTERNAL)
