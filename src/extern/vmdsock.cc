@@ -31,6 +31,7 @@
 
 #if defined(_MSC_VER) 
 #include <winsock2.h>
+typedef int socklen_t;
 #else
 #include <arpa/inet.h>
 #include <fcntl.h>
