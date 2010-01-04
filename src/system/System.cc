@@ -547,7 +547,8 @@ void System::printStats()
     {
     cout << "---------" << endl;
     // print the stats for everything
-    m_integrator->printStats();
+    if (m_integrator)
+        m_integrator->printStats();
     
     // analyzers
     vector<analyzer_item>::iterator analyzer;
@@ -567,7 +568,8 @@ void System::printStats()
 
 void System::resetStats()
     {
-    m_integrator->resetStats();
+    if (m_integrator)
+        m_integrator->resetStats();
     
     // analyzers
     vector<analyzer_item>::iterator analyzer;
