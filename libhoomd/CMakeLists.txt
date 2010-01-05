@@ -47,7 +47,7 @@ if (NOT ENABLE_STATIC)
 
     # .dylib is not regognized as a python module by python on Mac OS X
     if(APPLE)
-        set_target_properties(hoomd_python_module PROPERTIES SUFFIX ".so")
+        set_target_properties(libhoomd PROPERTIES SUFFIX ".so")
     endif(APPLE)
     fix_cudart_rpath(libhoomd)
 endif (NOT ENABLE_STATIC)

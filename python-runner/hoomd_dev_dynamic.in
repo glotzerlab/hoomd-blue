@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# hoomd_dev_runner will launch python with path variables set so that hoomd can be run from within 
+# a cmake build directory
+#
+#  - To use with makefiles:
+#    - execute /path/to/hoomd_dev_runner to launch hoomd with the build configuration in the
+#      corresponding directory
+#
+# - To use with Xcode projects:
+#   - Build hoomd with your preferred configuration (i.e. Debug)
+#   - execute the following command on the shell
+#     CONFIGURATION=Debug /path/to/hoomd_dev_runner to launch hoomd with the specified build configuration
+#
+
+CONFIGURATION()
+	{
+	echo $CONFIGURATION
+	}
+
 if [ "$#" -eq 0 ]; then
         # This shell is an interactive launch with no arguments
         echo "Launching intractive python shell now.... run \"from hoomd_script import *\" to load the HOOMD python module"
