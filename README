@@ -1,0 +1,4 @@
+HOOMD-blue top-level directory structure:
+ - /data - Storage location for art, scripts, et cetera. that are needed for development but do not need to be installed or
+           used in the build process.
+
