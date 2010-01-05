@@ -31,14 +31,14 @@ PROJECT_NAME           = HOOMD-blue
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER         = ${DOXYGEN_HOOMD_VERSION}
+PROJECT_NUMBER         = <center>${DOXYGEN_HOOMD_VERSION}</center>
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 
 # If a relative path is entered, it will be relative to the location 
 # where doxygen was started. If left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = "${HOOMD_BINARY_DIR}/doc/"
+OUTPUT_DIRECTORY       = "${CMAKE_CURRENT_BINARY_DIR}"
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 
 # 4096 sub-directories (in 2 levels) under the output directory of each output 
@@ -99,7 +99,7 @@ ALWAYS_DETAILED_SEC    = NO
 # members were ordinary class members. Constructors, destructors and assignment 
 # operators of the base classes will not be shown.
 
-INLINE_INHERITED_MEMB  = NO
+INLINE_INHERITED_MEMB  = YES
 
 # If the FULL_PATH_NAMES tag is set to YES then Doxygen will prepend the full 
 # path before files name in the file list and in the header files. If set 
@@ -159,7 +159,7 @@ MULTILINE_CPP_IS_BRIEF = NO
 # member inherits the documentation from any documented member that it 
 # re-implements.
 
-INHERIT_DOCS           = NO
+INHERIT_DOCS           = YES
 
 # If the SEPARATE_MEMBER_PAGES tag is set to YES, then doxygen will produce 
 # a new page for each member. If set to NO, the documentation of a member will 
@@ -170,7 +170,7 @@ SEPARATE_MEMBER_PAGES  = NO
 # The TAB_SIZE tag can be used to set the number of spaces in a tab. 
 # Doxygen uses this value to replace tabs by spaces in code fragments.
 
-TAB_SIZE               = 8
+TAB_SIZE               = 4
 
 # This tag can be used to specify a number of aliases that acts 
 # as commands in the documentation. An alias has the form "name=value". 
@@ -193,7 +193,7 @@ OPTIMIZE_OUTPUT_FOR_C  = NO
 # Java. For instance, namespaces will be presented as packages, qualified 
 # scopes will look different, etc.
 
-OPTIMIZE_OUTPUT_JAVA   = NO
+OPTIMIZE_OUTPUT_JAVA   = YES
 
 # Set the OPTIMIZE_FOR_FORTRAN tag to YES if your project consists of Fortran 
 # sources only. Doxygen will then generate output that is more tailored for 
@@ -291,7 +291,7 @@ EXTRACT_ALL            = NO
 # If the EXTRACT_PRIVATE tag is set to YES all private members of a class 
 # will be included in the documentation.
 
-EXTRACT_PRIVATE        = YES
+EXTRACT_PRIVATE        = NO
 
 # If the EXTRACT_STATIC tag is set to YES all static members of a file 
 # will be included in the documentation.
@@ -325,14 +325,14 @@ EXTRACT_ANON_NSPACES   = NO
 # various overviews, but no documentation section is generated. 
 # This option has no effect if EXTRACT_ALL is enabled.
 
-HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_MEMBERS     = YES
 
 # If the HIDE_UNDOC_CLASSES tag is set to YES, Doxygen will hide all 
 # undocumented classes that are normally visible in the class hierarchy. 
 # If set to NO (the default) these classes will be included in the various 
 # overviews. This option has no effect if EXTRACT_ALL is enabled.
 
-HIDE_UNDOC_CLASSES     = NO
+HIDE_UNDOC_CLASSES     = YES
 
 # If the HIDE_FRIEND_COMPOUNDS tag is set to YES, Doxygen will hide all 
 # friend (class|struct|union) declarations. 
@@ -353,7 +353,7 @@ HIDE_IN_BODY_DOCS      = NO
 # to NO (the default) then the documentation will be excluded. 
 # Set it to YES to include the internal documentation.
 
-INTERNAL_DOCS          = YES
+INTERNAL_DOCS          = NO
 
 # If the CASE_SENSE_NAMES tag is set to NO then Doxygen will only generate 
 # file names in lower-case letters. If set to YES upper-case letters are also 
@@ -373,7 +373,7 @@ HIDE_SCOPE_NAMES       = YES
 # will put a list of the files that are included by a file in the documentation 
 # of that file.
 
-SHOW_INCLUDE_FILES     = NO
+SHOW_INCLUDE_FILES     = YES
 
 # If the INLINE_INFO tag is set to YES (the default) then a tag [inline] 
 # is inserted in the documentation for inline members.
@@ -414,25 +414,25 @@ SORT_BY_SCOPE_NAME     = NO
 # disable (NO) the todo list. This list is created by putting \todo 
 # commands in the documentation.
 
-GENERATE_TODOLIST      = YES
+GENERATE_TODOLIST      = NO
 
 # The GENERATE_TESTLIST tag can be used to enable (YES) or 
 # disable (NO) the test list. This list is created by putting \test 
 # commands in the documentation.
 
-GENERATE_TESTLIST      = YES
+GENERATE_TESTLIST      = NO
 
 # The GENERATE_BUGLIST tag can be used to enable (YES) or 
 # disable (NO) the bug list. This list is created by putting \bug 
 # commands in the documentation.
 
-GENERATE_BUGLIST       = YES
+GENERATE_BUGLIST       = NO
 
 # The GENERATE_DEPRECATEDLIST tag can be used to enable (YES) or 
 # disable (NO) the deprecated list. This list is created by putting 
 # \deprecated commands in the documentation.
 
-GENERATE_DEPRECATEDLIST= YES
+GENERATE_DEPRECATEDLIST= NO
 
 # The ENABLED_SECTIONS tag can be used to enable conditional 
 # documentation sections, marked by \if sectionname ... \endif.
@@ -453,7 +453,7 @@ MAX_INITIALIZER_LINES  = 30
 # at the bottom of the documentation of classes and structs. If set to YES the 
 # list will mention the files that were used to generate the documentation.
 
-SHOW_USED_FILES        = YES
+SHOW_USED_FILES        = NO
 
 # If the sources in your project are distributed over multiple directories 
 # then setting the SHOW_DIRECTORIES tag to YES will show the directory hierarchy 
@@ -490,7 +490,7 @@ FILE_VERSION_FILTER    =
 # file name after the option, if omitted DoxygenLayout.xml will be used as the name 
 # of the layout file.
 
-LAYOUT_FILE            = ${HOOMD_SOURCE_DIR}/doc/DoxygenLayout.xml
+LAYOUT_FILE            = ${CMAKE_CURRENT_SOURCE_DIR}/user/DoxygenLayout.xml
 
 #---------------------------------------------------------------------------
 # configuration options related to warning and progress messages
@@ -552,14 +552,18 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = "${HOOMD_SOURCE_DIR}" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/prereq_install.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/compile_guide.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/credits.doc" \
-                         "${HOOMD_SOURCE_DIR}/user_doc/license.doc" \
-                         "${HOOMD_SOURCE_DIR}/doc/DeveloperInfo.doc" \
-                         "${HOOMD_SOURCE_DIR}/doc/Groups.doc" \
-                         "${HOOMD_SOURCE_DIR}/doc/MainPage.doc"
+INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/quick_start.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/examples.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/index.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/xml_file_format.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/prereq_install.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
+                         "${HOOMD_SOURCE_DIR}/python-module/hoomd_script"
 
 # This tag can be used to specify the character encoding of the source files 
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is 
@@ -576,11 +580,8 @@ INPUT_ENCODING         = UTF-8
 # *.c *.cc *.cxx *.cpp *.c++ *.java *.ii *.ixx *.ipp *.i++ *.inl *.h *.hh *.hxx 
 # *.hpp *.h++ *.idl *.odl *.cs *.php *.php3 *.inc *.m *.mm *.py *.f90
 
-FILE_PATTERNS          = *.cc \
-                         *.h \
-                         *.cu \
-                         *.cuh \
-                         *.h.in
+FILE_PATTERNS          = *.doc \
+                         *.py
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories 
 # should be searched for input files as well. Possible values are YES and NO. 
@@ -606,11 +607,7 @@ EXCLUDE_SYMLINKS       = NO
 # against the file with absolute path, so to exclude all test directories 
 # for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = */extern/* \
-                         */share/* \
-                         */microbenchmarks/* \
-                         */cuda/saruprngCUDA.h \
-                         ${DOXYGEN_ADDITIONAL_EXCLUSIONS}
+EXCLUDE_PATTERNS       = 
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names 
 # (namespaces, classes, functions, etc.) that should be excluded from the 
@@ -644,7 +641,7 @@ EXAMPLE_RECURSIVE      = NO
 # directories that contain image that are included in the documentation (see 
 # the \image command).
 
-IMAGE_PATH             = "${HOOMD_SOURCE_DIR}/doc/images"
+IMAGE_PATH             = "${CMAKE_CURRENT_SOURCE_DIR}/images"
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should 
 # invoke to filter for each input file. Doxygen will invoke the filter program 
@@ -710,7 +707,7 @@ REFERENCES_RELATION    = NO
 # functions in REFERENCES_RELATION and REFERENCED_BY_RELATION lists will
 # link to the source code.  Otherwise they will link to the documentstion.
 
-REFERENCES_LINK_SOURCE = YES
+REFERENCES_LINK_SOURCE = NO
 
 # If the USE_HTAGS tag is set to YES then the references to source code 
 # will point to the HTML generated by the htags(1) tool instead of doxygen 
@@ -762,7 +759,7 @@ GENERATE_HTML          = YES
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be 
 # put in front of it. If left blank `html' will be used as the default path.
 
-HTML_OUTPUT            = html
+HTML_OUTPUT            = ${DOXYGEN_USER_DOC_HTML_DIR}
 
 # The HTML_FILE_EXTENSION tag can be used to specify the file extension for 
 # each generated HTML page (for example: .htm,.php,.asp). If it is left blank 
@@ -774,13 +771,13 @@ HTML_FILE_EXTENSION    = .html
 # each generated HTML page. If it is left blank doxygen will generate a 
 # standard header.
 
-HTML_HEADER            = 
+HTML_HEADER            = ${DOXYGEN_HTML_HEADER}
 
 # The HTML_FOOTER tag can be used to specify a personal HTML footer for 
 # each generated HTML page. If it is left blank doxygen will generate a 
 # standard footer.
 
-HTML_FOOTER            = 
+HTML_FOOTER            = ${DOXYGEN_HTML_FOOTER}
 
 # The HTML_STYLESHEET tag can be used to specify a user-defined cascading 
 # style sheet that is used by each HTML page. It can be used to 
@@ -789,7 +786,7 @@ HTML_FOOTER            =
 # the style sheet file to the HTML output directory, so don't put your own 
 # stylesheet in the HTML output directory as well, or it will be erased!
 
-HTML_STYLESHEET        = 
+HTML_STYLESHEET        = ${DOXYGEN_HTML_STYLESHEET}
 
 # If the HTML_ALIGN_MEMBERS tag is set to YES, the members of classes, 
 # files or namespaces will be aligned in HTML using tables. If set to 
@@ -911,7 +908,7 @@ QHG_LOCATION           =
 # top of each HTML page. The value NO (the default) enables the index and 
 # the value YES disables it.
 
-DISABLE_INDEX          = NO
+DISABLE_INDEX          = ${DOXYGEN_DISABLE_INDEX}
 
 # This tag can be used to set the number of enum values (range [1..20]) 
 # that doxygen will group on one line in the generated HTML documentation.
@@ -956,13 +953,13 @@ FORMULA_FONTSIZE       = 14
 # If the GENERATE_LATEX tag is set to YES (the default) Doxygen will 
 # generate Latex output.
 
-GENERATE_LATEX         = NO
+GENERATE_LATEX         = YES
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put. 
 # If a relative path is entered the value of OUTPUT_DIRECTORY will be 
 # put in front of it. If left blank `latex' will be used as the default path.
 
-LATEX_OUTPUT           = latex
+LATEX_OUTPUT           = latex-userdoc
 
 # The LATEX_CMD_NAME tag can be used to specify the LaTeX command name to be 
 # invoked. If left blank `latex' will be used as the default command name.
@@ -979,13 +976,13 @@ MAKEINDEX_CMD_NAME     = makeindex
 # LaTeX documents. This may be useful for small projects and may help to 
 # save some trees in general.
 
-COMPACT_LATEX          = NO
+COMPACT_LATEX          = YES
 
 # The PAPER_TYPE tag can be used to set the paper type that is used 
 # by the printer. Possible values are: a4, a4wide, letter, legal and 
 # executive. If left blank a4wide will be used.
 
-PAPER_TYPE             = a4wide
+PAPER_TYPE             = letter
 
 # The EXTRA_PACKAGES tag can be to specify one or more names of LaTeX 
 # packages that should be included in the LaTeX output.
@@ -1004,13 +1001,13 @@ LATEX_HEADER           =
 # contain links (just like the HTML output) instead of page references 
 # This makes the output suitable for online browsing using a pdf viewer.
 
-PDF_HYPERLINKS         = NO
+PDF_HYPERLINKS         = YES
 
 # If the USE_PDFLATEX tag is set to YES, pdflatex will be used instead of 
 # plain latex in the generated Makefile. Set this option to YES to get a 
 # higher quality PDF documentation.
 
-USE_PDFLATEX           = NO
+USE_PDFLATEX           = YES
 
 # If the LATEX_BATCHMODE tag is set to YES, doxygen will add the \\batchmode. 
 # command to the generated LaTeX files. This will instruct LaTeX to keep 
@@ -1023,7 +1020,7 @@ LATEX_BATCHMODE        = NO
 # include the index chapters (such as File Index, Compound Index, etc.) 
 # in the output.
 
-LATEX_HIDE_INDICES     = NO
+LATEX_HIDE_INDICES     = YES
 
 #---------------------------------------------------------------------------
 # configuration options related to the RTF output
@@ -1045,7 +1042,7 @@ RTF_OUTPUT             = rtf
 # RTF documents. This may be useful for small projects and may help to 
 # save some trees in general.
 
-COMPACT_RTF            = NO
+COMPACT_RTF            = YES
 
 # If the RTF_HYPERLINKS tag is set to YES, the RTF that is generated 
 # will contain hyperlink fields. The RTF file will 
@@ -1054,7 +1051,7 @@ COMPACT_RTF            = NO
 # programs which support those fields. 
 # Note: wordpad (write) and others do not support links.
 
-RTF_HYPERLINKS         = NO
+RTF_HYPERLINKS         = YES
 
 # Load stylesheet definitions from file. Syntax is similar to doxygen's 
 # config file, i.e. a series of assignments. You only have to provide 
@@ -1183,7 +1180,7 @@ PERLMOD_MAKEVAR_PREFIX =
 # evaluate all C-preprocessor directives found in the sources and include 
 # files.
 
-ENABLE_PREPROCESSING   = YES
+ENABLE_PREPROCESSING   = NO
 
 # If the MACRO_EXPANSION tag is set to YES Doxygen will expand all macro 
 # names in the source code. If set to NO (the default) only conditional 
@@ -1201,7 +1198,7 @@ EXPAND_ONLY_PREDEF     = NO
 # If the SEARCH_INCLUDES tag is set to YES (the default) the includes files 
 # in the INCLUDE_PATH (see below) will be search if a #include is found.
 
-SEARCH_INCLUDES        = YES
+SEARCH_INCLUDES        = NO
 
 # The INCLUDE_PATH tag can be used to specify one or more directories that 
 # contain include files that are not input files but should be processed by 
@@ -1224,7 +1221,7 @@ INCLUDE_FILE_PATTERNS  =
 # undefined via #undef or recursively expanded use the := operator 
 # instead of the = operator.
 
-PREDEFINED             = ${DOXYGEN_PREDEFINED}
+PREDEFINED             = 
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then 
 # this tag can be used to specify a list of macro names that should be expanded. 
@@ -1295,7 +1292,7 @@ PERL_PATH              = /usr/bin/perl
 # fallback. It is recommended to install and use dot, since it yields more 
 # powerful graphs.
 
-CLASS_DIAGRAMS         = YES
+CLASS_DIAGRAMS         = NO
 
 # You can define message sequence charts within doxygen comments using the \msc 
 # command. Doxygen will then run the mscgen tool (see 
@@ -1347,7 +1344,7 @@ DOT_FONTPATH           =
 # indirect inheritance relations. Setting this tag to YES will force the 
 # the CLASS_DIAGRAMS tag to NO.
 
-CLASS_GRAPH            = YES
+CLASS_GRAPH            = NO
 
 # If the COLLABORATION_GRAPH and HAVE_DOT tags are set to YES then doxygen 
 # will generate a graph for each documented class showing the direct and 
@@ -1359,7 +1356,7 @@ COLLABORATION_GRAPH    = NO
 # If the GROUP_GRAPHS and HAVE_DOT tags are set to YES then doxygen 
 # will generate a graph for groups, showing the direct groups dependencies
 
-GROUP_GRAPHS           = NO
+GROUP_GRAPHS           = YES
 
 # If the UML_LOOK tag is set to YES doxygen will generate inheritance and 
 # collaboration diagrams in a style similar to the OMG's Unified Modeling 
@@ -1377,14 +1374,14 @@ TEMPLATE_RELATIONS     = NO
 # file showing the direct and indirect include dependencies of the file with 
 # other documented files.
 
-INCLUDE_GRAPH          = NO
+INCLUDE_GRAPH          = YES
 
 # If the ENABLE_PREPROCESSING, SEARCH_INCLUDES, INCLUDED_BY_GRAPH, and 
 # HAVE_DOT tags are set to YES then doxygen will generate a graph for each 
 # documented header file showing the documented files that directly or 
 # indirectly include this file.
 
-INCLUDED_BY_GRAPH      = NO
+INCLUDED_BY_GRAPH      = YES
 
 # If the CALL_GRAPH and HAVE_DOT options are set to YES then 
 # doxygen will generate a call dependency graph for every global function 

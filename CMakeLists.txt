@@ -58,7 +58,7 @@ endif (BUILD_TESTING)
 ###############################
 ## include documentation directories
 if (ENABLE_DOXYGEN)
-#    add_subdirectory (doc)
+    add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
 
 add_subdirectory (installer)
