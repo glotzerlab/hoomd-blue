@@ -4,6 +4,7 @@ HOOMD-blue top-level directory structure:
               used in the build process.
  /doc       - Documentation source (compiled into easily readable documentation by doxygen during the build process)
  /installer - Scripts and settings for the installer
+ /libhoomd  - C++ source code for the main hoomd library
  /python-module   - High level API code for using hoomd within python scripts
  /python-runner   - Runner script to execute python in the proper environment to load modules in python-module
  /microbenchmarks - A sandbox for playing with new computation techniques on the GPU
