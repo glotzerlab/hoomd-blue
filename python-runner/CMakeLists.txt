@@ -4,6 +4,14 @@
 
 if (NOT ENABLE_STATIC)
     set(_hoomd_runner_in ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_dynamic.in)
+    
+    # install the hoomd runner script for development use
+    get_target_property(LIBHOOMD_LOCATION libhoomd LOCATION)
+    get_filename_component(LIBHOOMD_DIR ${LIBHOOMD_LOCATION} PATH)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_dev_dynamic.in
+                ${CMAKE_CURRENT_BINARY_DIR}/hoomd_dev_runner
+                @ONLY
+                )
 endif (NOT ENABLE_STATIC)
 
 # need to build a special python executable w/ static libraries

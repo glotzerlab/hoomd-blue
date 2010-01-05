@@ -79,8 +79,10 @@ string find_hoomd_script()
     search_paths.push_back(hoomd_data_dir / "bin/python-module");
     search_paths.push_back(hoomd_data_dir / "lib/python-module");
     search_paths.push_back(hoomd_data_dir / "lib/hoomd/python-module");
+    search_paths.push_back(hoomd_data_dir / ".." / "python-module");
     search_paths.push_back(hoomd_data_dir / ".." / "lib/python-module");
     search_paths.push_back(hoomd_data_dir / ".." / "lib/hoomd/python-module");
+    search_paths.push_back(hoomd_data_dir / ".." / ".." / "python-module");
     search_paths.push_back(hoomd_data_dir / ".." / ".." / "lib/python-module");
     search_paths.push_back(hoomd_data_dir / ".." / ".." / "lib/hoomd/python-module");
     

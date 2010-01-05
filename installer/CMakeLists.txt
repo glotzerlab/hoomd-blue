@@ -15,7 +15,7 @@ set(CPACK_PACKAGE_NAME "hoomd")
 set(CPACK_RESOURCE_FILE_LICENSE "${HOOMD_SOURCE_DIR}/LICENSE")
 
 if (WIN32 AND NOT UNIX)
-    set(CPACK_NSIS_INSTALLER_ICON "${HOOMD_SOURCE_DIR}/pics_icons/InstallIcon.ico")
+    set(CPACK_NSIS_INSTALLER_ICON "${HOOMD_SOURCE_DIR}/data/art/InstallIcon.ico")
     set(CPACK_NSIS_URL_INFO_ABOUT "http://codeblue.umich.edu/hoomd-blue")
     set(CPACK_NSIS_CONTACT "http://codeblue.umich.edu/hoomd-blue")
     set(CPACK_NSIS_DISPLAY_NAME "HOOMD-blue")
@@ -48,7 +48,7 @@ else (WIN32 AND NOT UNIX)
     string(SUBSTRING ${PYTHON_VER_NOSPACE} 0 9 PYTHON_VER)
 
     set(CPACK_SYSTEM_NAME "${CPACK_SYSTEM_NAME}-${PYTHON_VER}")
-endif (WIN32 AND NOT UNIX)	
+endif (WIN32 AND NOT UNIX)
 
 if (WIN32)
     set (CPACK_GENERATOR "NSIS")

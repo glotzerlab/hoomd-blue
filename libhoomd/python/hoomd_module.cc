@@ -179,14 +179,15 @@ string find_hoomd_data_dir()
             }
         }
         
-    // as a final fallback: try the source directory
+    // try the source directory next, to ensure that any current source is used over
+    // an older installed version
     if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / "hoomd_data_dir"))
         return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
         
 #ifdef WIN32
     // access the registry key
     string name = string("hoomd ") + string(HOOMD_VERSION);
-    string reg_path = "SOFTWARE\\Ames Laboratory Iowa State University\\" + name;
+    string reg_path = "SOFTWARE\\University of Michigan\\" + name;
     
     char *value = new char[1024];
     LONG value_size = 1024;
