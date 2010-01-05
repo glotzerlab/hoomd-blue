@@ -115,7 +115,7 @@ include (HOOMDCommonLibsSetup)
 # setup macros
 include (HOOMDMacros)
 
-set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS} ${CUDA_LIBRARIES})
+set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})
 include_directories(${HOOMD_INCLUDE_DIR})
 
 endif (HOOMD_FOUND)

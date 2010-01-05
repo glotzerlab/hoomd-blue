@@ -25,7 +25,7 @@ endif (ENABLE_ZLIB)
 ################################
 ## Define common libraries used by every target in HOOMD
 if (WIN32)
-    set(HOOMD_COMMON_LIBS hoomd_python_module ${PYTHON_LIBRARIES} ${WINSOCK_LIB})
+    set(HOOMD_COMMON_LIBS ${PYTHON_LIBRARIES} ${WINSOCK_LIB} ${CUDA_LIBRARIES})
 else (WIN32)
     set(BOOST_LIBS ${Boost_THREAD_LIBRARY}
             ${Boost_FILESYSTEM_LIBRARY}
@@ -55,6 +55,7 @@ else (WIN32)
             ${CMAKE_THREAD_LIBS_INIT}
             ${PYTHON_LIBRARIES}
             ${ZLIB_LIBRARIES}
+            ${CUDA_LIBRARIES}
             ${ADDITIONAL_LIBS}
             )
 endif (WIN32)

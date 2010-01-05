@@ -6,7 +6,7 @@
 # UNIX like OSes need a few settings for the unit test library
 if (NOT WIN32)
     # first, they need the boost unit test framework added as a library
-    set(ADDITIONAL_LIBS hoomd_python_module
+    set(ADDITIONAL_LIBS libhoomd
             ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
             )
 
@@ -103,7 +103,7 @@ foreach (CUR_TEST ${TEST_LIST})
     add_executable(${CUR_TEST} ${CUR_TEST}.cc)
     endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     
-    target_link_libraries(${CUR_TEST} hoomd_python_module ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${CUR_TEST} libhoomd ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
 
     # add it to the unit test list

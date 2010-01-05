@@ -7,7 +7,6 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-
 project (HOOMD)
 # setup the install directories and setup HOOMD_VERSION
 include (CMake_install_options.cmake)
@@ -42,26 +41,24 @@ endif(ENABLE_STATIC)
 
 ################################
 ## Process subdirectories
-add_subdirectory (lib)
+add_subdirectory (libhoomd)
 add_subdirectory (microbenchmarks EXCLUDE_FROM_ALL)
 add_subdirectory (share)
-add_subdirectory (scripts)
-add_subdirectory (python)
-add_subdirectory (pluginapi)
+add_subdirectory (python-module)
+add_subdirectory (python-runner)
 
 ################################
 # set up unit tests
 include(CTest)
 mark_as_advanced(DART_TESTING_TIMEOUT)
 if (BUILD_TESTING)
-    add_subdirectory (unit_tests)
+    add_subdirectory (test)
 endif (BUILD_TESTING)
 
 ###############################
 ## include documentation directories
 if (ENABLE_DOXYGEN)
-    add_subdirectory (doc)
-    add_subdirectory (user_doc)
+#    add_subdirectory (doc)
 endif (ENABLE_DOXYGEN)
 
 add_subdirectory (installer)

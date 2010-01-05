@@ -7,7 +7,7 @@ file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 file(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 # add them to the source group
-source_group(python FILES ${SRCS} ${HDRS})
+source_group(system FILES ${SRCS} ${HDRS})
 
 # add them to the main libhoomd list
 set(_libhoomd_sources ${_libhoomd_sources} ${SRCS} ${HDRS} PARENT_SCOPE)
