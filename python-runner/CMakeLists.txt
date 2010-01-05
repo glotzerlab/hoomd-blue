@@ -9,7 +9,7 @@ if (NOT ENABLE_STATIC)
     get_target_property(LIBHOOMD_LOCATION libhoomd LOCATION)
     get_filename_component(LIBHOOMD_DIR ${LIBHOOMD_LOCATION} PATH)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_dev_dynamic.in
-                ${CMAKE_CURRENT_BINARY_DIR}/hoomd_dev_runner
+                ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run
                 @ONLY
                 )
 endif (NOT ENABLE_STATIC)
@@ -29,11 +29,11 @@ endif (ENABLE_STATIC)
 
 # install the hoomd runner script
 configure_file(${_hoomd_runner_in}
-                ${CMAKE_CURRENT_BINARY_DIR}/hoomd_runner
+                ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
                 @ONLY
                 )
 
-install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd_dynamic
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
     DESTINATION ${BIN_INSTALL_DIR}
     RENAME hoomd
     )

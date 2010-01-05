@@ -1,22 +1,22 @@
 #!/bin/bash
 
-# hoomd_dev_runner will launch python with path variables set so that hoomd can be run from within 
+# hoomd_run will launch python with path variables set so that hoomd can be run from within 
 # a cmake build directory
 #
 #  - To use with makefiles:
-#    - execute /path/to/hoomd_dev_runner to launch hoomd with the build configuration in the
+#    - execute /path/to/hoomd_run to launch hoomd with the build configuration in the
 #      corresponding directory
 #
 # - To use with Xcode projects:
-#   - Build hoomd with your preferred configuration (i.e. Debug)
+#   - Build hoomd with your preferred configuration (Debug shown here)
 #   - execute the following command on the shell
-#     CONFIGURATION=Debug /path/to/hoomd_dev_runner to launch hoomd with the specified build configuration
+#     CONFIGURATION=Debug /path/to/hoomd_run to launch hoomd with the specified build configuration
 #
 
 CONFIGURATION()
-	{
-	echo $CONFIGURATION
-	}
+    {
+    echo $CONFIGURATION
+    }
 
 if [ "$#" -eq 0 ]; then
         # This shell is an interactive launch with no arguments
