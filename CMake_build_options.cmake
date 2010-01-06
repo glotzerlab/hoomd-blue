@@ -16,7 +16,12 @@ endif(ENABLE_ZLIB)
 #################################
 ## Optional static build
 ## ENABLE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
+if (WIN32)
 OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" ON)
+else (WIN32)
+OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" OFF)
+endif (WIN32)
+
 mark_as_advanced(ENABLE_STATIC)
 if (ENABLE_STATIC)
     add_definitions(-DENABLE_STATIC)

@@ -375,10 +375,10 @@ You really shouldn't change these from their defaults unless you really know wha
  	- When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
  		other libraries are linked dynamically if possible.
  	- Note: \b ENABLE_STATIC=OFF is not supported on windows. 
- 	- Note 2: \b ENABLE_STATIC defaults ON and can only be set off from the command line 
+ 	- Note 2: \b ENABLE_STATIC defaults OFF and can only be set ON from the command line 
  		and when configuring a clean build directory.
 		Example:
- 		\code ccmake -D ENABLE_STATIC=OFF ../src
+ 		\code ccmake -D ENABLE_STATIC=ON ../hoomd
  		\endcode
 
 \section sec_build_plugin Building a plugin for HOOMD-blue
