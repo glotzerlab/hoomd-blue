@@ -328,6 +328,7 @@ to the system $PATH or make a soft link /usr/bin/hoomd pointing to /opt/hoomd/bi
 
 \section sec_build_options Build options
 Here is a list of all the build options that can be changed by CMake.
+ - \b BUILD_TESTING - Enables the compilation of unit tests
  - \b CMAKE_BUILD_TYPE - sets the build type (Makefile generation only, XCode and 
  		Visual Studio can change the build type from within their GUIs)
 	- \b Debug - Compiles debug information into the library and executables. 
@@ -342,8 +343,8 @@ Here is a list of all the build options that can be changed by CMake.
  	- Requires doxygen to be installed
 	- Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
 		and possible missing output from the generated documentation.
- - \b BUILD_TESTING - Enables the compilation of unit tests
  - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
+ - \b ENABLE_ZLIB - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
  - \b SINGLE_PRECISION - Controls precision
  	- When set to \b ON, all calculations are performed in single precision.
  	- When set to \b OFF, all calculations are performed in double precision. 
