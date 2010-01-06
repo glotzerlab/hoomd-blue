@@ -175,10 +175,8 @@ To generate the makefiles now, click \b configure several times until all the re
 then click \b generate.
 
 You can also scroll down the list of options. Setting the checkbox options will
-control whether certain features are compiled in. You must click configure after 
-any change. Note that in some cases, changing an option to ON will cause other
-options to appear. Some options controlled by changing text strings.
-See \ref sec_build_options for more information on what these options do.
+control whether certain features are compiled in, while other options are text strings.
+You must click configure after any change. See \ref sec_build_options for more information on what these options do.
 
 It is possible that some of your libraries may be in non-standard paths. If this is
 the case, CMake will report an error after you click configure. The offending library 
@@ -258,16 +256,14 @@ If you would rather use XCode as an IDE, select XCode and press enter.
 
 You will then see a screen that looks like this:
 \image html cmake_mac_firstpress.png
-(this image was captured using the Unix Makefiles generator. Your screen may be slightly
-different if you chose Xcode)
+(this image was captured using the Xcode generator. Your screen may be slightly
+different if you chose Unix makefiles)
 
 To generate the makefiles (or XCode project) now, click \b configure several times until all the red settings turn white, then click \b generate.
 
 You can also scroll down the list of options. Setting the checkbox options will
-control whether certain features are compiled in. You must click configure after 
-any change. Note that in some cases, changing an option to ON will cause other
-options to appear. Some options controlled by changing text strings.
-See \ref sec_build_options for more information on what these options do.
+control whether certain features are compiled in, while other options are text strings.
+You must click configure after any change. See \ref sec_build_options for more information on what these options do.
 
 It is possible that some of your libraries may be in non-standard paths. If this is
 the case, CMake will report an error after you click configure. The offending library 
