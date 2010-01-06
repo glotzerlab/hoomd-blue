@@ -14,10 +14,6 @@ if (ENABLE_ZLIB)
 endif(ENABLE_ZLIB)
 
 #################################
-## Minimal install option
-option(ENABLE_MINIMAL_INSTALL "When set to ON, only a minimal set of files needed to to run HOOMD are installed" OFF)
-
-#################################
 ## Optional static build
 ## ENABLE_STATIC is an option to control whether HOOMD is built as a statically linked exe or as a python module.
 OPTION(ENABLE_STATIC "Link as many libraries as possible statically, cannot be changed after the first run of CMake" ON)

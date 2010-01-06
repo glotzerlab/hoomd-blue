@@ -342,7 +342,6 @@ Here is a list of all the build options that can be changed by CMake.
  	- Requires doxygen to be installed
 	- Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
 		and possible missing output from the generated documentation.
- - \b ENABLE_MINIMAL_INSTALL - when set to ON, only the minum number of files installed need to run hoomd simulations and benchmarks
  - \b BUILD_TESTING - Enables the compilation of unit tests
  - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
  - \b SINGLE_PRECISION - Controls precision
