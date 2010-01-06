@@ -3,42 +3,19 @@
 # Maintainer: joaander
 
 #################################
-## write a C++ include file and a hoomd_config.h file
-option(ENABLE_PLUGINAPI "Create headers and library variables to link c++ codes to the hoomd library" OFF)
+## setup hoomd_config.h with current configuration options
 
-if (ENABLE_PLUGINAPI)
 # set up a hoomd_config.h file to include the appropriate precompiler directives
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/hoomd_config.h)
-## set up a "hoomd.h" header file that includes the "hoomd_config.h" file as well as the other headers 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "#ifndef _HOOMD_H\n#define _HOOMD_H\n\n")
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "#include \"hoomd_config.h\"\n") 
-file(GLOB HEADER_FILES "${HOOMD_SOURCE_DIR}/analyzers/*.h" "${HOOMD_SOURCE_DIR}/computes*/*.h" 
-                       "${HOOMD_SOURCE_DIR}/data_structures/*.h" "${HOOMD_SOURCE_DIR}/extern/*.h" 
-                       "${HOOMD_SOURCE_DIR}/system/*.h" "${HOOMD_SOURCE_DIR}/updaters*/*.h"
-                       "${HOOMD_SOURCE_DIR}/utils/*.h" "${HOOMD_BINARY_DIR}/utils/HOOMDVersion.h"
-                       "${HOOMD_SOURCE_DIR}/potentials/*.h")
-foreach(_FILENAME ${HEADER_FILES})
-    get_filename_component(_FILENAMENOPATH ${_FILENAME} NAME)
-    string(REGEX MATCH "GPU" _MATCH "${_FILENAME}")
-    set (_DONT_SKIP_THIS 1)
-    if (NOT ENABLE_CUDA)
-        set (_DONT_SKIP_THIS 0)
-        string(COMPARE EQUAL "${_MATCH}" "" _DONT_SKIP_THIS)
-    endif (NOT ENABLE_CUDA)
-    if (_DONT_SKIP_THIS)
-        file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "#include \"${_FILENAMENOPATH}\"\n")
-    endif (_DONT_SKIP_THIS)
-endforeach(_FILENAME ${HEADER_FILES})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/hoomd_config.h)
+# install it
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd_config.h DESTINATION ${INC_INSTALL_DIR})
+# also install hoomd.h
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hoomd.h DESTINATION ${INC_INSTALL_DIR})
 
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/hoomd.h "\n#endif\n\n")
+#################################
+## setup hoomd-config.sh script for quick & dirty compiler option setup
 
-# copy the headers into the include/hoomd folder
-file(GLOB files "${HOOMD_SOURCE_DIR}/*/*h" "${HOOMD_BINARY_DIR}/utils/HOOMDVersion.h")
-install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
-file(GLOB files "${CMAKE_CURRENT_BINARY_DIR}/*.h")
-install(FILES ${files} DESTINATION ${INC_INSTALL_DIR})
-
-## build a list of libraries used for linking.
+# build a list of libraries used for linking.
 set (PLUGINAPI_LIBS "")
 # the name of the hoomd library for linking changes between static and dynamic builds
 get_target_property(_HOOMD_LIB_LOC hoomd_python_module LOCATION)

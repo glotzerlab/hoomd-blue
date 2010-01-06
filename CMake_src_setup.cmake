@@ -27,5 +27,3 @@ if (NOT WIN32)
 else(NOT WIN32)
     exec_program("cmd" ARGS "/c date /T" OUTPUT_VARIABLE COMPILE_DATE)
 endif (NOT WIN32)
-
-configure_file (${HOOMD_SOURCE_DIR}/libhoomd/utils/HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/include/HOOMDVersion.h)

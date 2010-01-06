@@ -3,6 +3,8 @@
 # Maintainer: joaander
 
 macro(add_libhoomd_source_dir dir)
+add_subdirectory(${dir})
+
 # find all source files in this directory
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cc)
 file(GLOB CU_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cu)

@@ -3,7 +3,9 @@
 # Maintainer: joaander
 
 # install the hoomd_script python module
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+install(DIRECTORY hoomd_plugins hoomd_script
     DESTINATION ${LIB_INSTALL_DIR}/python-module
     PATTERN ".svn" EXCLUDE
+    PATTERN "*.pyc" EXCLUDE
+    PATTERN "*.pyo" EXCLUDE
     )
