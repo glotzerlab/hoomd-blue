@@ -24,7 +24,7 @@ else (CMAKE_MINOR_VERSION GREATER 7 AND ENABLE_STATIC)
 
 add_test(hoomd_script_tests_cpu ${HOOMD_RUN_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py "--mode=cpu")
 if (ENABLE_CUDA)
-add_test(NAME hoomd_script_tests_gpu ${HOOMD_RUN_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py "--mode=gpu")
+add_test(hoomd_script_tests_gpu ${HOOMD_RUN_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd_script_tests.py "--mode=gpu")
 endif (ENABLE_CUDA)
 
 endif (CMAKE_MINOR_VERSION GREATER 7 AND ENABLE_STATIC)
