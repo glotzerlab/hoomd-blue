@@ -36,7 +36,7 @@ endif ("$URL$" MATCHES "codeblue.umich.edu/hoomd-blue/svn/tags")
 
 # users may not have subversion installed, search for it and set an unknown version if that is
 # the case
-find_program(SVNVERSION_EXE "svnversion" DOC "svnversion executable")
+find_program(SVNVERSION_EXE NAMES "git-svnversion.sh" "svnversion" DOC "svnversion executable")
 mark_as_advanced(SVNVERSION_EXE)
 if (SVNVERSION_EXE)
     exec_program(${SVNVERSION_EXE} ${HOOMD_SOURCE_DIR} ARGS ${HOOMD_SOURCE_DIR} OUTPUT_VARIABLE SVNVERSION)
