@@ -46,7 +46,17 @@ endif (SINGLE_PRECISION)
 
 #####################3
 ## CUDA related options
+if (NOT SINGLE_PRECISION)
+    set(ENABLE_CUDA OFF CACHE BOOL "Enable the compilation of the CUDA GPU code" FORCE)
+endif (NOT SINGLE_PRECISION)
+
+find_package(CUDA QUIET)
+if (CUDA_FOUND)
+option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" on)
+else (CUDA_FOUND)
 option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
+endif (CUDA_FOUND)
+
 if (ENABLE_CUDA)
     add_definitions (-DENABLE_CUDA)
 
