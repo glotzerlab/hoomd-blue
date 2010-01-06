@@ -57,16 +57,19 @@ HOOMD-blue requires a number of prerequisite software packages and libraries
 - Required to compile:
   - Python >= 2.3 (http://www.python.org/)
   - boost >= 1.32.0 (http://www.boost.org/)
-  - CMake >= 2.6.0 (http://www.cmake.org/)
+  - CMake (http://www.cmake.org/)
+    - Version 2.6.2 or newer on Linux and Mac
+    - Version 2.8.0 or newer on Windows
   - C++ Compiler (must be compatible with CUDA)
   - CUDA Toolkit (http://developer.nvidia.com/object/cuda.html)
+    - Version 2.0 or newer on Linux and Windows
+    - Version 3.0beta or newer on Mac
 - Useful developer tools
   - Subversion >= 1.5.4 (http://subversion.tigris.org/)
   - Doxygen  >= 1.5.6 (http://www.stack.nl/~dimitri/doxygen/manual.html)
 
-<i>Note to Mac OS X users</i>: <b>Fink</b> installations of the above tools and libraries are <b>NOT SUPPORTED</b>.
-Everything that Fink installs is placed in a non-standard location, unsupported by CMake. If you have installed <i>
-any</i> of the above tools/libraries with fink, uninstall them before continuing.
+<i>On Mac OS X</i>: <b>Fink</b> installations of the above tools and libraries are <b>NOT SUPPORTED</b> because
+everything that Fink installs is placed in a non-standard location, and incompatible with CMake.
 
 Instructions for installing these on various architectures:
  - \ref page_software_req_install_windows
@@ -78,27 +81,27 @@ Instructions for installing these on various architectures:
 Click for detailed instructions: \subpage page_software_req_install_windows
 
 <b>2. Get source code</b>
- - Option 1) download and unpack source code from: http://codeblue.umich.edu/hoomd-blue/
+ - Option 1) download and unpack source code from the web site: http://codeblue.umich.edu/hoomd-blue/
  - Option 2) Get the latest development source with subversion.
-This command: (assuming you've installed the command line svn tools)
+  - On the command line, run:
 \code
+ $ mkdir hoomd-trunk
+ $ cd hoomd-trunk
  $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
 \endcode
-will create a directory \e hoomd in your current working directory which will contain
-the current development version of the source code. You can perform the same operation
-by right clicking a folder and choosing "SVN Checkout..." when using TortoiseSVN.
+  - The same opterationss can be performed in the explorer GUI. Right click in a desired location and create a new folder
+\b hoomd-trunk. Traverse into that foler, right click and select "SVN Checkout...", then follow the on screen promps
+to check out the svn URL <b>http://codeblue.umich.edu/hoomd-blue/svn/trunk</b> into the working directory <b>hoomd</b>.
 	
-Developers with commit access planning to make changes to the code must use option 2. 
-
 <b>3. Run CMake</b>
 
-You should now have a directory \b hoomd on your hard drive with a subdirectory
-\b src containing the source code. CMake must be run to generate the visual studio
+You should now have a directory \b hoomd-trunk on your hard drive with a subdirectory
+\b hoomd containing the source code. CMake must be run to generate the visual studio
 project that will compile hoomd. 
  -# Start cmake-gui
- -# Set \b C:\\Users\\user\\hoomd\\src (modifying to match the location of your hoomd src directory) in
+ -# Set \b C:\\Users\\user\\hoomd-trunk\\hoomd (modifying to match the location of your hoomd directory) in
 	the box labeled "Where is the Source code".
- -# Set \b C:\\Users\\user\\hoomd\\msvc (again, modified to mach the location of your hoomd directory) 
+ -# Set \b C:\\Users\\user\\hoomd\\build (again, modified to mach the location of your hoomd directory) 
 	in the box labeled "Where to build the binaries"
  -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
  -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
@@ -138,21 +141,21 @@ There is more information at http://msdn2.microsoft.com/en-us/library/y0xettzf.a
 Click for detailed instructions: \subpage page_software_req_install_linux
 
 <b>2. Get source code</b>
- - Option 1) download and unpack source code from: http://codeblue.umich.edu/hoomd-blue/
+ - Option 1) download and unpack source code from the web site: http://codeblue.umich.edu/hoomd-blue/
  - Option 2) Get the latest development source with subversion.
-This command:
+  - On the command line, run:
 \code
+ $ mkdir hoomd-trunk
+ $ cd hoomd-trunk
  $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
 \endcode
-will create a directory \e hoomd in your current working directory which will contain
-the current development version of the source code.
 
 <b>3. Run CMake</b><br>
 CMake needs to be run to generate the make files to compile hoomd.
 \code
- $ cd hoomd
- $ mkdir bin
- $ cd bin
+ $ cd hoomd-trunk
+ $ mkdir build
+ $ cd build
  $ cmake-gui ../src
 \endcode
 Note: If you are logged into the system remotely, you can launch the text mode tool \c ccmake instead of \c cmake-gui.
@@ -167,8 +170,6 @@ Choose your preferred build environment and click OK. This guide assumes that "U
 
 Now you should see a screen like this:
 \image html cmake_linux_firstpress.png
-
-If you are building with GPU support enabled, check the ENABLE_CUDA box. 
 
 To generate the makefiles now, click \b configure several times until all the red settings turn white,
 then click \b generate.
@@ -259,8 +260,6 @@ You will then see a screen that looks like this:
 \image html cmake_mac_firstpress.png
 (this image was captured using the Unix Makefiles generator. Your screen may be slightly
 different if you chose Xcode)
-
-If you are building with GPU support enabled, check the ENABLE_CUDA box. 
 
 To generate the makefiles (or XCode project) now, click \b configure several times until all the red settings turn white, then click \b generate.
 
