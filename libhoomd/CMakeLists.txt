@@ -2,6 +2,7 @@
 ## $URL$
 # Maintainer: joaander
 
+#################
 macro(add_libhoomd_source_dir dir)
 add_subdirectory(${dir})
 
@@ -17,6 +18,7 @@ source_group(${dir} FILES ${CU_SRCS} ${SRCS} ${HDRS})
 list(APPEND _libhoomd_sources ${SRCS} ${HDRS})
 list(APPEND _libhoomd_cu_sources ${CU_SRCS})
 endmacro(add_libhoomd_source_dir)
+#################
 
 set(_libhoomd_sources "")
 set(_libhoomd_cu_sources "")
@@ -68,4 +70,6 @@ install(TARGETS libhoomd
         LIBRARY DESTINATION ${LIB_INSTALL_DIR}/python-module
         ARCHIVE DESTINATION ${LIB_BASE_INSTALL_DIR}
         )
+
+add_subdirectory(api)
 

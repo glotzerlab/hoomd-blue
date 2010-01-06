@@ -398,7 +398,6 @@ However, there are many cases when building a simple quick test executable is de
 feature that does not yet have a python interface). So a simple method to build such executables is provided.
 
 To setup for use:
- -# set \b ENABLE_PLUGINAPI to on in the main hoomd build options.
  -# Compile hoomd normally
  -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
  -# Add \c hoomd_install_location/bin to your \c PATH as usual
@@ -408,7 +407,7 @@ Here is a short example program that does nothing except calculate lj pair force
 
 \code
 // include hoomd.h to get all of the built in hoomd classes
-#include "hoomd.h"
+#include "hoomd/hoomd.h"
 using namespace boost;
 
 int main()
@@ -424,7 +423,8 @@ int main()
 
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    shared_ptr<LJForceCompute> fc1(new LJForceCompute(sysdef, nlist, Scalar(3.0)));
+    shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef, nlist));
+    fc1->setRcut(0, 0, Scalar(3.0));
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -434,7 +434,7 @@ int main()
     Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
 
     // specify the force parameters
-    fc1->setParams(0,0,lj1,lj2);
+    fc1->setParams(0,0,make_scalar2(lj1,lj2));
 
     // compute the forces
     fc1->compute(0);

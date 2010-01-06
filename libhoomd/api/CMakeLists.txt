@@ -6,10 +6,12 @@
 ## setup hoomd_config.h with current configuration options
 
 # set up a hoomd_config.h file to include the appropriate precompiler directives
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/hoomd_config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_config.h.in ${HOOMD_BINARY_DIR}/include/hoomd_config.h)
 # install it
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/hoomd_config.h DESTINATION ${INC_INSTALL_DIR})
-# also install hoomd.h
+install(FILES ${HOOMD_BINARY_DIR}/include/hoomd_config.h DESTINATION ${INC_INSTALL_DIR})
+
+# also configure and install hoomd.h
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd.h ${HOOMD_BINARY_DIR}/include/hoomd.h COPYONLY)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hoomd.h DESTINATION ${INC_INSTALL_DIR})
 
 #################################
@@ -18,7 +20,7 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/hoomd.h DESTINATION ${INC_INSTALL_DIR}
 # build a list of libraries used for linking.
 set (PLUGINAPI_LIBS "")
 # the name of the hoomd library for linking changes between static and dynamic builds
-get_target_property(_HOOMD_LIB_LOC hoomd_python_module LOCATION)
+get_target_property(_HOOMD_LIB_LOC libhoomd LOCATION)
 get_filename_component(_HOOMD_LIB_NAME ${_HOOMD_LIB_LOC} NAME)
 if (ENABLE_STATIC)
 set (_HOOMD_LIB_RELPATH "lib")
@@ -50,7 +52,7 @@ endif (ENABLE_CUDA)
 
 ## build a list of include directories needed
 set (PLUGINAPI_CFLAGS "")
-set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -I\${HOOMD_ROOT}/include/hoomd ")
+set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -I\${HOOMD_ROOT}/include ")
 set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -isystem ${Boost_INCLUDE_DIR} ")
 set(PLUGINAPI_CFLAGS "${PLUGINAPI_CFLAGS} -I${PYTHON_INCLUDE_PATH} ")
 
@@ -62,4 +64,3 @@ endif (ENABLE_CUDA)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd-config.sh.in ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.sh @ONLY)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd-config.sh DESTINATION ${BIN_INSTALL_DIR})
 
-endif (ENABLE_PLUGINAPI)
