@@ -343,8 +343,6 @@ Here is a list of all the build options that can be changed by CMake.
 	- Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
 		and possible missing output from the generated documentation.
  - \b ENABLE_MINIMAL_INSTALL - when set to ON, only the minum number of files installed need to run hoomd simulations and benchmarks
- - \b ENABLE_PLUGINAPI - Enables the installation of header files and libraries needed to build plugins for HOOMD 
- 	  (see \ref sec_build_plugin) 
  - \b BUILD_TESTING - Enables the compilation of unit tests
  - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
  - \b SINGLE_PRECISION - Controls precision
@@ -455,7 +453,6 @@ In order to use such a plugin, one must first:
  -# Compile hoomd normally
  -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
  -# Add \c hoomd_install_location/bin to your \c PATH as usual
- -# Add \c `hoomd-config.sh --ldpath to your DYLD / LD library paths (if you compiled with ENABLE_STATIC=off)
 
 Create a directory to contain the python module for the plugin:
 \code
@@ -484,7 +481,7 @@ plugin_name.whatever(...)
 <b>Method 3: Write a full-fledged plugin with C++ code included</b><br>
 
 For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin 
-that incorporates such code, set ENABLE_PLUGIN_API on and 'make install' hoomd as in <b>Method 1</b>. Then copy the
+that incorporates such code, 'make install' hoomd as normal. Then copy the
 directory hoomd_install_location/share/hoomd/plugin_template_cpp to a new working space and modify it to implement your
 plugin. See the README file in that directory for full documentation.
 

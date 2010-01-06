@@ -9,8 +9,7 @@ To compile this example plugin, follow steps similar to those in compiling HOOMD
 installation to link to will be fully automatic IF you have hoomd_install_dir/bin in your PATH when running ccmake.
 
 Note that plugins can only be built against a hoomd build that has been installed via a package or compiled and then
-installed via 'make install'. Note also that ENABLE_PLUGINAPI must be set ON. Finally, note that plugins can only be
-built against hoomd when it is built as a shared library.
+installed via 'make install'. Plugins can only be built against hoomd when it is built as a shared library.
 
 $ mkdir plugin_build
 $ cd plugin_build
