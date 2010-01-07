@@ -29,10 +29,5 @@ SET (COMPILER_NAME "gcc434")
 ## Usually, you don't need to modify the below, but they are site specific options
 # other stuff that you might want to modify
 SET (CTEST_SVN_COMMAND "svn")
-SET (CTEST_COMMAND "ctest -D ${TEST_GROUP} ${IGNORE_TESTS}")
-if (MEMORYCHECK_COMMAND)
-    set (CTEST_COMMAND "${CTEST_COMMAND}" 
-            "ctest -D ${TEST_GROUP}MemCheck -D ${TEST_GROUP}Submit ${IGNORE_TESTS}")
-endif (MEMORYCHECK_COMMAND)
 SET (CTEST_CMAKE_COMMAND "cmake")
 SET (CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
