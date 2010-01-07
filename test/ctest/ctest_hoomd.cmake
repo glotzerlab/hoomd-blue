@@ -4,36 +4,20 @@
 
 # instructions on use:
 # 1) checkout a copy of hoomd's source to be tested
-# 3) modify the variables in this script to match the desired test parameters
-# 4) set TEST_GROUP to "Experimental" and run ctest -V -S ctest_hoomd.cmake to check that the test runs
-#     the results of the test should show up at: http://cdash.fourpisolutions.com/index.php?project=HOOMD
-#     (you may want to ignore the bdnvt and npt tests for this as they are quite long)
-# 5) change TEST_GROUP back to "Nightly" and set "ctest -S ctest_hoomd.cmake" to run every day
+# 2) copy all ctest_hoomd_* cmake scripts to a convenient location (i.e., next to the hoomd source checkout)
+# 3a) On linux/mac: cp ctest_hoomd_setup_linux.cmake ctest_hoomd_setup.cmake
+# 3b) On windows: cp ctest_hoomd_setup_windows.cmake ctest_hoomd_setup.cmake
+# 4) modify variables in ctest_site_options to match your site
+# 5) set TEST_GROUP to "Experimental" and run ctest -V -S ctest_hoomd.cmake to check that the test runs OK.
+#     Test results of the test should show up at: http://cdash.fourpisolutions.com/index.php?project=HOOMD.
+#     (you may want to ignore the bdnvt and npt tests for this as they are quite long).
+# 6) change TEST_GROUP back to "Nightly" and set "ctest -S ctest_hoomd.cmake" to run every day
 
-# **MODIFY THESE 
-# (location where hoomd src and bin directory are)
-SET (CTEST_CHECKOUT_DIR "$ENV{HOME}/hoomd-dart-tests/hoomd")
-SET (CTEST_SOURCE_DIRECTORY "${CTEST_CHECKOUT_DIR}")
-SET (CTEST_BINARY_DIRECTORY "${CTEST_CHECKOUT_DIR}/../build_ctest")
-
-# (Experimental is for testing the test script itself, Nightly is for production tests)
-SET (TEST_GROUP "Experimental")
-# SET (TEST_GROUP "Nightly")
-
-# (name of computer performing the tests)
-SET (SITE_NAME "sitename")
-
-# (name of hoomd branch you are testing)
-SET (HOOMD_BRANCH "trunk")
-
-# (name of the system)
-set (SYSTEM_NAME "Gentoo")
-
-# (a string identifying the compiler: this cannot be autodetected here)
-SET (COMPILER_NAME "gcc434")
+# ctest_hoomd.cmake tests the default configuration. Also included are a set of of other scripts with
+# various combinations of build options. Use any or all of them as you wish.
 
 # (set to ON to enable CUDA build)
-SET (ENABLE_CUDA "OFF")
+SET (ENABLE_CUDA "ON")
 
 # (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
 SET (SINGLE_PRECISION "ON")
@@ -60,60 +44,7 @@ SET (CUDA_ARCH "11")
 # (set to ON to enable coverage tests: these extensive tests don't really need to be done on every single build)
 SET (ENABLE_COVERAGE OFF)
 
-# other stuff that you might want to modify
-SET (CTEST_SVN_COMMAND "svn")
-SET (CTEST_COMMAND "ctest -D ${TEST_GROUP} ${IGNORE_TESTS}")
-if (MEMORYCHECK_COMMAND)
-	set (CTEST_COMMAND "${CTEST_COMMAND}" 
-			"ctest -D ${TEST_GROUP}MemCheck -D ${TEST_GROUP}Submit ${IGNORE_TESTS}")
-endif (MEMORYCHECK_COMMAND)
-SET (CTEST_CMAKE_COMMAND "cmake")
-SET (CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+# Bring in the settings common to all ctest scripts
+include(site_options.cmake)
+include(test_setup.cmake)
 
-#### Don't modify anything below unless you really know what you are doing
-
-# lets create a build name to idenfity all these options in a string. It will look like
-# Linux-gcc412-trunk-single-cuda (for a single precision build with cuda)
-# Linux-gcc412-hoomd-0.8-double (for a double precision build without cuda and in the hoomd-0.8 branch)
-SET (BUILDNAME "${SYSTEM_NAME}-${COMPILER_NAME}-${HOOMD_BRANCH}")
-
-if (ENABLE_STATIC MATCHES "ON")
-	SET (BUILDNAME "${BUILDNAME}-static")
-else(ENABLE_STATIC MATCHES "ON")
-	SET (BUILDNAME "${BUILDNAME}-shared")
-endif(ENABLE_STATIC MATCHES "ON")
-
-if (SINGLE_PRECISION MATCHES "ON")
-	SET (BUILDNAME "${BUILDNAME}-single")
-else (SINGLE_PRECISION MATCHES "ON")
-	SET (BUILDNAME "${BUILDNAME}-double")
-endif (SINGLE_PRECISION MATCHES "ON")
-
-if (ENABLE_CUDA MATCHES "ON")
-	SET (BUILDNAME "${BUILDNAME}-cuda")
-	if (CUDA_BUILD_EMULATION MATCHES "ON")
-		SET (BUILDNAME "${BUILDNAME}-emu")
-	endif (CUDA_BUILD_EMULATION MATCHES "ON")
-endif (ENABLE_CUDA MATCHES "ON")
-
-if (ENABLE_COVERAGE)
-	SET (COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage")
-endif (ENABLE_COVERAGE)
-
-SET (CTEST_INITIAL_CACHE "
-CMAKE_GENERATOR:INTERNAL=Unix Makefiles
-MAKECOMMAND:STRING=/usr/bin/make -i -j 6
-BUILDNAME:STRING=${BUILDNAME}
-SITE:STRING=${SITE_NAME}
-CMAKE_BUILD_TYPE:STRING=Debug
-ENABLE_CUDA:BOOL=${ENABLE_CUDA}
-SINGLE_PRECISION:BOOL=${SINGLE_PRECISION}
-ENABLE_STATIC:BOOL=${ENABLE_STATIC}
-ENABLE_TEST_ALL:BOOL="ON"
-CMAKE_C_FLAGS:STRING=${COVERAGE_FLAGS}
-CMAKE_CXX_FLAGS:STRING=${COVERAGE_FLAGS}
-MEMORYCHECK_COMMAND:FILEPATH=${MEMORYCHECK_COMMAND}
-MEMORYCHECK_SUPPRESSIONS_FILE:FILEPATH=${CTEST_CHECKOUT_DIR}/src/unit_tests/combined_valgrind.supp
-CUDA_BUILD_EMULATION:STRING=${CUDA_BUILD_EMULATION}
-CUDA_ARCH:STRING=${CUDA_ARCH}
-")
