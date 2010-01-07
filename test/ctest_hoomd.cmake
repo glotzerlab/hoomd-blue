@@ -1,56 +1,64 @@
-# ctest -S script for testing HOOMD and submitting to the dashboard at my.cdash.org
+# ctest -S script for testing HOOMD and submitting to the dashboard at cdash.fourpisolutions.com
 # this script must be copied and modified for each test build. Locations in the script
 # that need to be modified to configure the build are near the top
 
 # instructions on use:
 # 1) checkout a copy of hoomd's source to be tested
-# 2) make a bin/ directory somewhere
 # 3) modify the variables in this script to match the desired test parameters
 # 4) set TEST_GROUP to "Experimental" and run ctest -V -S ctest_hoomd.cmake to check that the test runs
 #     the results of the test should show up at: http://cdash.fourpisolutions.com/index.php?project=HOOMD
 #     (you may want to ignore the bdnvt and npt tests for this as they are quite long)
-# 5) chate TEST_GROUP back to "Nightly" and set "ctest -S ctest_hoomd.cmake"  to run every day
+# 5) change TEST_GROUP back to "Nightly" and set "ctest -S ctest_hoomd.cmake" to run every day
 
 # **MODIFY THESE 
 # (location where hoomd src and bin directory are)
-SET (CTEST_CHECKOUT_DIR "$ENV{HOME}/hoomd")
-SET (CTEST_SOURCE_DIRECTORY "${CTEST_CHECKOUT_DIR}/src")
-SET (CTEST_BINARY_DIRECTORY "${CTEST_CHECKOUT_DIR}/bin_ctest")
-# (Experimental is for testing the test, Nightly is for production tests)
-SET (TEST_GROUP "Experimental")  
+SET (CTEST_CHECKOUT_DIR "$ENV{HOME}/hoomd-dart-tests/hoomd")
+SET (CTEST_SOURCE_DIRECTORY "${CTEST_CHECKOUT_DIR}")
+SET (CTEST_BINARY_DIRECTORY "${CTEST_CHECKOUT_DIR}/../build_ctest")
+
+# (Experimental is for testing the test script itself, Nightly is for production tests)
+SET (TEST_GROUP "Experimental")
 # SET (TEST_GROUP "Nightly")
+
 # (name of computer performing the tests)
 SET (SITE_NAME "sitename")
-# SET (SITE_NAME "rain.local")
-# SET (SITE_NAME "photon.hopto.org")
+
 # (name of hoomd branch you are testing)
-#SET (HOOMD_BRANCH "trunk")
-SET (HOOMD_BRANCH "hoomd-0.8")
+SET (HOOMD_BRANCH "trunk")
+
 # (name of the system)
-set (SYSTEM_NAME "Linux")
+set (SYSTEM_NAME "Gentoo")
+
 # (a string identifying the compiler: this cannot be autodetected here)
-SET (COMPILER_NAME "gcc412")
+SET (COMPILER_NAME "gcc434")
+
 # (set to ON to enable CUDA build)
 SET (ENABLE_CUDA "OFF")
+
 # (set to OFF to enable double precision build) (ENABLE_CUDA must be off if this is set off)
 SET (SINGLE_PRECISION "ON")
+
 # (set to OFF to enable shared library builds)
-SET (ENABLE_STATIC "ON")
+SET (ENABLE_STATIC "OFF")
+
 # (set tests to ignore, see the example for the format) 
 # (bdnvt and npt take minutes to run, and an enternity with valgrind enabled, so they are ignored by default)
 # SET (IGNORE_TESTS "")
 SET (IGNORE_TESTS "-E \"bdnvt|npt\"")
+
 # (location of valgrind: Leave blank unless you REALLY want the long valgrind tests to run
 SET (MEMORYCHECK_COMMAND "")
 #SET (MEMORYCHECK_COMMAND "/usr/bin/valgrind")
+
 # (change to emulation if you want to compile and test a GPU emulation build)
 SET (CUDA_BUILD_EMULATION "OFF")
 #SET (CUDA_BUILD_EMULATION "ON")
+
 # (architecture to compile CUDA for 10=compute 1.0 11=compute 1.1, ...)
-SET (CUDA_ARCH "10")
+SET (CUDA_ARCH "11")
+
 # (set to ON to enable coverage tests: these extensive tests don't really need to be done on every single build)
 SET (ENABLE_COVERAGE OFF)
-
 
 # other stuff that you might want to modify
 SET (CTEST_SVN_COMMAND "svn")
@@ -92,7 +100,6 @@ if (ENABLE_COVERAGE)
 	SET (COVERAGE_FLAGS "-fprofile-arcs -ftest-coverage")
 endif (ENABLE_COVERAGE)
 
-
 SET (CTEST_INITIAL_CACHE "
 CMAKE_GENERATOR:INTERNAL=Unix Makefiles
 MAKECOMMAND:STRING=/usr/bin/make -i -j 6
@@ -102,6 +109,7 @@ CMAKE_BUILD_TYPE:STRING=Debug
 ENABLE_CUDA:BOOL=${ENABLE_CUDA}
 SINGLE_PRECISION:BOOL=${SINGLE_PRECISION}
 ENABLE_STATIC:BOOL=${ENABLE_STATIC}
+ENABLE_TEST_ALL:BOOL="ON"
 CMAKE_C_FLAGS:STRING=${COVERAGE_FLAGS}
 CMAKE_CXX_FLAGS:STRING=${COVERAGE_FLAGS}
 MEMORYCHECK_COMMAND:FILEPATH=${MEMORYCHECK_COMMAND}

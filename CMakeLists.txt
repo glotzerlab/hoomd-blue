@@ -59,7 +59,16 @@ add_subdirectory (python-runner)
 include(CTest)
 mark_as_advanced(DART_TESTING_TIMEOUT)
 if (BUILD_TESTING)
-    add_subdirectory (test)
+    # add test_all to the ALL target if requested (mainly for automatic test
+    # suites)
+    if (ENABLE_TEST_ALL)
+        set(_default_test_all ALL)
+    endif (ENABLE_TEST_ALL)
+    # setup convenience targets that prevent tests from always being built    
+    add_custom_target(test_all ${_default_test_all})
+    add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
+    add_dependencies(check test_all)
+    add_subdirectory (test EXCLUDE_FROM_ALL)
 endif (BUILD_TESTING)
 
 ###############################

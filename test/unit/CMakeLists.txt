@@ -102,6 +102,8 @@ foreach (CUR_TEST ${TEST_LIST})
     else(ENABLEC_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
     add_executable(${CUR_TEST} ${CUR_TEST}.cc)
     endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+
+    add_dependencies(test_all ${CUR_TEST})
     
     target_link_libraries(${CUR_TEST} libhoomd ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
