@@ -89,7 +89,7 @@ Click for detailed instructions: \subpage page_software_req_install_windows
  $ cd hoomd-trunk
  $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
 \endcode
-  - The same opterationss can be performed in the explorer GUI. Right click in a desired location and create a new folder
+  - The same operations can be performed in the explorer GUI. Right click in a desired location and create a new folder
 \b hoomd-trunk. Traverse into that foler, right click and select "SVN Checkout...", then follow the on screen promps
 to check out the svn URL <b>http://codeblue.umich.edu/hoomd-blue/svn/trunk</b> into the working directory <b>hoomd</b>.
 	
@@ -99,10 +99,8 @@ You should now have a directory \b hoomd-trunk on your hard drive with a subdire
 \b hoomd containing the source code. CMake must be run to generate the visual studio
 project that will compile hoomd. 
  -# Start cmake-gui
- -# Set \b C:\\Users\\user\\hoomd-trunk\\hoomd (modifying to match the location of your hoomd directory) in
-	the box labeled "Where is the Source code".
- -# Set \b C:\\Users\\user\\hoomd\\build (again, modified to mach the location of your hoomd directory) 
-	in the box labeled "Where to build the binaries"
+ -# Set the input box labeled <i>Where is the Source code</i> to the location of the \b hoomd directory.
+ -# Set the input box labeled <i>Where to build the binaries</i> to the location of the \b build directory.
  -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
  -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
  -# Select the IDE you installed (most likely Visual Studio 8 2005) and click OK.
@@ -118,7 +116,7 @@ project that will compile hoomd.
  -# Close CMake
 
 <b>4. Compile HOOMD-blue</b><br>
-Open up the \b HOOMD.sln project in visual studio. Press F7 (or use the GUI build button)
+Open \b build/HOOMD.sln project in visual studio. Press F7 (or use the GUI build button)
 to build all executables. You can also make a single target the active project
 (right click and choose set as startup project) and press F7 to build
 only it. 
@@ -156,7 +154,7 @@ CMake needs to be run to generate the make files to compile hoomd.
  $ cd hoomd-trunk
  $ mkdir build
  $ cd build
- $ cmake-gui ../src
+ $ cmake-gui ../hoomd
 \endcode
 Note: If you are logged into the system remotely, you can launch the text mode tool \c ccmake instead of \c cmake-gui.
 Press "h" for help on using the text mode tool or see http://www.cmake.org/HTML/RunningCMake.html
@@ -190,14 +188,14 @@ CMake generated make files for make. Just run
 \code
  $ make -j4
 \endcode
-in the \b bin directory to compile everything. This documentation will even be generated if
+in the \b build directory to compile everything. This documentation will even be generated if
 ENABLE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's best to set 
 the value to twice the number of CPU cores in your system.
 
 <b>5(option a). Install to your home directory</b> (so only you can run it)<br>
 Re-enter the CMake options screen:
 \code
- $ cmake-gui ../src
+ $ cmake-gui ../hoomd
 \endcode
 Set the CMAKE_INSTALL_PREFIX option to a directory of your choice: i.e. /home/joeuser/software/hoomd.
 Configure, configure and generate again as you did before. When you are back at the command line, 
@@ -214,7 +212,7 @@ to your $PATH and run hoomd.
 Note: You must be root do do this (or run the "make install" command with sudo). 
 Re-enter the CMake options screen:
 \code
- $ cmake-gui ../src
+ $ cmake-gui ../hoomd
 \endcode
 Set the CMAKE_INSTALL_PREFIX option to /opt/hoomd
 Configure, configure and generate again as you did before. When you are back at the command line, 
@@ -244,8 +242,8 @@ the current development version of the source code.
 
 <b>3. Run CMake</b><br>
 First, click on the CMake icon to run CMake. Enter the location where you extracted the HOOMD-blue source code
-in the "Where is the source code box". Specify where you want the binaries built in the "Where to build the
-binaries box" (usually in a directory called bin next to the source code). You should now have a screen that looks like this:
+in the <i>Where is the source code box</i>. Specify where you want the binaries built in the <i>Where to build the
+binaries box</i>. You should now have a screen that looks like this:
 
 \image html cmake_mac_initial.png
 
@@ -290,7 +288,7 @@ proper directory and rerunning CMake.
 <b>5(option a). Install to your home directory</b> (so only you can run it)<br>
 Re-enter the CMake options screen:
 \code
- $ cmake-gui ../src
+ $ cmake-gui ../hoomd
 \endcode
 Set the CMAKE_INSTALL_PREFIX option to a directory of your choice: i.e. /home/joeuser/software/hoomd.
 Configure, configure and generate again as you did before. When you are back at the command line, 
@@ -307,7 +305,7 @@ to your $PATH and run hoomd.
 Note: You must be root do do this (or run the "make install" command with sudo). 
 Re-enter the CMake options screen:
 \code
- $ cmake-gui ../src
+ $ cmake-gui ../hoomd
 \endcode
 Set the CMAKE_INSTALL_PREFIX option to /opt/hoomd
 Configure, configure and generate again as you did before. When you are back at the command line, 
