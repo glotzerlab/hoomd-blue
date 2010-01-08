@@ -1,11 +1,33 @@
+/***************************************************************************
+ *cr
+ *cr            (C) Copyright 1995-2009 The Board of Trustees of the
+ *cr                        University of Illinois
+ *cr                         All Rights Reserved
+ *cr
+ ***************************************************************************/
 
-
+/***************************************************************************
+ * RCS INFORMATION:
+ *
+ *      $RCSfile: imd.C,v $
+ *      $Author: johns $        $Locker:  $             $State: Exp $
+ *      $Revision: 1.16 $       $Date: 2009/12/07 17:41:17 $ *
+ ***************************************************************************
+ * DESCRIPTION:
+ *  Lowest level interactive MD communication routines.
+ *
+ * LICENSE:
+ *   UIUC Open Source License
+ *   http://www.ks.uiuc.edu/Research/vmd/plugins/pluginlicense.html
+ *
+ ***************************************************************************/
 #include "imd.h"
 #include "vmdsock.h"
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
 
+/// IMD communication protocol message header structure
 typedef struct {
   int32 type;
   int32 length;
@@ -14,20 +36,16 @@ typedef struct {
 #define HEADERSIZE 8
 #define IMDVERSION 2
 
-static void swap4(char *data, int ndata) {
-  int i;
-  char *dataptr;
-  char b0, b1;
-
-  dataptr = data;
-  for (i=0; i<ndata; i+=4) {
-    b0 = dataptr[0];
-    b1 = dataptr[1];
-    dataptr[0] = dataptr[3];
-    dataptr[1] = dataptr[2];
-    dataptr[2] = b1;
-    dataptr[3] = b0;
-    dataptr += 4;
+/* Only works with aligned 4-byte quantities, will cause a bus error */
+/* on some platforms if used on unaligned data.                      */
+void swap4_aligned(void *v, long ndata) {
+  int *data = (int *) v;
+  long i;
+  int *N;
+  for (i=0; i<ndata; i++) {
+    N = data + i;
+    *N=(((*N>>24)&0xff) | ((*N&0xff)<<24) |
+        ((*N>>8)&0xff00) | ((*N&0xff00)<<8));
   }
 }
 
@@ -40,6 +58,7 @@ static int32 imd_htonl(int32 h) {
   return n;
 }
 
+/// structure used to perform byte swapping operations 
 typedef struct {
   unsigned int highest : 8;
   unsigned int high    : 8;
@@ -47,18 +66,11 @@ typedef struct {
   unsigned int lowest  : 8;
 } netint;
 
-union netint_int32 
-	{
-	int32 i;
-	netint n;
-	};
-
 static int32 imd_ntohl(int32 n) {
-  netint_int32 tmp;
-  tmp.i = n;
   int32 h = 0;
   netint net;
-  net = tmp.n;
+
+  memcpy((void *)&net,(void *)&n, sizeof(n));
   h |= net.highest << 24 | net.high << 16 | net.low << 8 | net.lowest;
   return h;
 }
@@ -219,7 +231,8 @@ int imd_recv_handshake(void *s) {
     if (!imd_go(s)) return 0;
     return -1;
   }
-  swap4((char *)&buf, 4);
+
+  swap4_aligned(&buf, 1);
   if (buf == IMDVERSION) {
     if (!imd_go(s)) return 1;
   }

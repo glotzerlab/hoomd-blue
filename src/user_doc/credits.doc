@@ -14,6 +14,7 @@ Alex Travesset, Iowa State University and Ames Laboratory - <b>Joshua's PhD advi
 
 Rastko Sknepnek, Iowa State University and Ames Laboratory
  - integrate.npt implementation
+ - pair.morse implementation
 
 Carolyn Phillips, University of Michigan
  - integrate.bdnvt implementation
@@ -21,6 +22,11 @@ Carolyn Phillips, University of Michigan
  - Shifted LJ forces
  - Initial testing and debugging of HOOMD on Mac OS X systems
  
+Aaron Keys, University of Michigan
+  - update.enforce2d and other updates enabling to 2D simulations
+  - hoomd c++ compilation helper script
+  - binary restart files
+  
 Axel Kohlmeyer, David LeBard, Ben Levine, all from the ICMS group at Temple University
   - pair.cgcmm implementation
   - angle.harmonic implementation
@@ -77,12 +83,47 @@ THE POSSIBILITY OF SUCH DAMAGE.
 \endverbatim
 
 <hr>
-<b>Sockets code</b> from VMD is used for the IMDInterface to VMD (http://www.ks.uiuc.edu/Research/vmd/) - Used under the VMD License <br>
-This software includes code developed by the Theoretical and Computational
-Biophysics Group in the Beckman Institute for Advanced Science and
-Technology at the University of Illinois at Urbana-Champaign.
+<b>Sockets code</b> from VMD is used for the IMDInterface to VMD (http://www.ks.uiuc.edu/Research/vmd/) - Used under the UIUC Open Source License<br>
+<b>Molfile plugin code</b> from VMD is used for generic file format reading and writing) - Used under the UIUC Open Source License<br>
+\verbatim
+University of Illinois Open Source License
+Copyright 2006 Theoretical and Computational Biophysics Group, 
+All rights reserved.
+
+Developed by:		Theoretical and Computational Biophysics Group
+			University of Illinois at Urbana-Champaign
+			http://www.ks.uiuc.edu/
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the Software), to deal with 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to 
+do so, subject to the following conditions:
+
+Redistributions of source code must retain the above copyright notice, 
+this list of conditions and the following disclaimers.
+
+Redistributions in binary form must reproduce the above copyright notice, 
+this list of conditions and the following disclaimers in the documentation 
+and/or other materials provided with the distribution.
+
+Neither the names of Theoretical and Computational Biophysics Group, 
+University of Illinois at Urbana-Champaign, nor the names of its contributors 
+may be used to endorse or promote products derived from this Software without 
+specific prior written permission.
+
+THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
+THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+OTHER DEALINGS WITH THE SOFTWARE.
+\endverbatim
 <hr>
 <b>XML parsing</b> is performed with XML.c from http://www.applied-mathematics.net/tools/xmlParser.html - Used under the BSD License<br>
+<br>
 Copyright (c) 2002, Frank Vanden Berghen<br>
 All rights reserved.<br>
 Redistribution and use in source and binary forms, with or without
@@ -109,19 +150,26 @@ INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <hr>
 <b>FindCUDA.cmake</b> (http://www.sci.utah.edu/~abe/FindCuda.html) has been modified slightly and is used as part of the build system - Used under the MIT License<br>
-  Copyright (c) 2007<br>
-  Scientific Computing and Imaging Institute, University of Utah
+\verbatim
+The MIT License
 
-  License for the specific language governing rights and limitations under
-  Permission is hereby granted, free of charge, to any person obtaining a
-  copy of this software and associated documentation files (the "Software"),
-  to deal in the Software without restriction, including without limitation
-  the rights to use, copy, modify, merge, publish, distribute, sublicense,
-  and/or sell copies of the Software, and to permit persons to whom the
-  Software is furnished to do so, subject to the following conditions:
+Copyright (c) 2008-2009
+NVIDIA Corp.
 
-  The above copyright notice and this permission notice shall be included
-  in all copies or substantial portions of the Software.
+Copyright (c) 2007-2009
+Scientific Computing and Imaging Institute, University of Utah
+
+License for the specific language governing rights and limitations under
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+\endverbatim
 <hr>
 <b>Saru</b> is used for random number generation - Used under the following license<br>
 Copyright (c) 2008 Steve Worley < m a t h g e e k@(my last name).com >
@@ -138,12 +186,49 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 <hr>
+Some <b>CUDA API headers</b> are included in the HOOMD-blue source code for code compatibility in CPU only biulds - Used under the following license<br>
+\verbatim
+Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
+
+NOTICE TO USER:   
+
+This source code is subject to NVIDIA ownership rights under U.S. and 
+international Copyright laws.  Users and possessors of this source code 
+are hereby granted a nonexclusive, royalty-free license to use this code 
+in individual and commercial software.
+
+NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE 
+CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR 
+IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH 
+REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF 
+MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
+IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL, 
+OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS 
+OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE 
+OR PERFORMANCE OF THIS SOURCE CODE.  
+
+U.S. Government End Users.   This source code is a "commercial item" as 
+that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of 
+"commercial computer  software"  and "commercial computer software 
+documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995) 
+and is provided to the U.S. Government only as a commercial end item.  
+Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through 
+227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the 
+source code with only those rights set forth herein. 
+
+Any use of this source code in individual and commercial software must 
+include, in the user documentation and internal comments to the code,
+the above Disclaimer and U.S. Government End Users Notice.
+\endverbatim
+<hr>
 <h1>Libraries</h1>
 <hr>
-(distributed in a linked binary form if you downloaded a \b HOOMD-blue static build)<br>
-\b boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)<br>
-\b zlib - Used under the zlib license (http://www.zlib.net/zlib_license.html)<br>
-        \b bzip2 - Used under the bzip2 license (http://www.bzip.org)<br>
+HOOMD-blue links to the following libraries, possibly statically or dynamically depending on configuration options chosen at build time <br>
+ - \b boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)<br>
+ - \b zlib - Used under the zlib license (http://www.zlib.net/zlib_license.html)<br>
+ - \b python - Used under the Python license (http://www.python.org/psf/license/)<br>
+
 <hr>
 */
 
