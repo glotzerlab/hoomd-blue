@@ -1,0 +1,497 @@
+
+/*
+Highly Optimized Object-Oriented Molecular Dynamics (HOOMD) Open
+Source Software License
+Copyright (c) 2008 Ames Laboratory Iowa State University
+All rights reserved.
+
+Redistribution and use of HOOMD, in source and binary forms, with or
+without modification, are permitted, provided that the following
+conditions are met:
+
+* Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names HOOMD's
+contributors may be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+Disclaimer
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
+CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+
+/*! 
+\page page_compile_guide Compiling HOOMD-blue
+
+Table of contents:
+ - \ref sec_software_req
+ - \ref sec_building_windows
+ - \ref sec_compiling_linux
+ - \ref sec_building_mac
+ - \ref sec_build_options
+ - \ref sec_build_plugin
+<hr>
+
+\section sec_software_req Software Prerequisites
+
+HOOMD-blue requires a number of prerequisite software packages and libraries
+
+- Required to compile:
+  - Python >= 2.3 (http://www.python.org/)
+  - boost >= 1.32.0 (http://www.boost.org/)
+  - CMake (http://www.cmake.org/)
+    - Version 2.6.2 or newer on Linux and Mac
+    - Version 2.8.0 or newer on Windows
+  - C++ Compiler (must be compatible with CUDA)
+  - CUDA Toolkit (http://developer.nvidia.com/object/cuda.html)
+    - Version 2.0 or newer on Linux and Windows
+    - Version 3.0beta or newer on Mac
+- Useful developer tools
+  - Subversion >= 1.5.4 (http://subversion.tigris.org/)
+  - Doxygen  >= 1.5.6 (http://www.stack.nl/~dimitri/doxygen/manual.html)
+
+<i>On Mac OS X</i>: <b>Fink</b> installations of the above tools and libraries are <b>NOT SUPPORTED</b> because
+everything that Fink installs is placed in a non-standard location, and incompatible with CMake.
+
+Instructions for installing these on various architectures:
+ - \ref page_software_req_install_windows
+ - \ref page_software_req_install_linux
+ - \ref page_software_req_install_mac
+
+\section sec_building_windows Building on Windows
+<b>1. Install prerequisite software</b><br>
+Click for detailed instructions: \subpage page_software_req_install_windows
+
+<b>2. Get source code</b>
+ - Option 1) download and unpack source code from the web site: http://codeblue.umich.edu/hoomd-blue/
+ - Option 2) Get the latest development source with subversion.
+  - On the command line, run:
+\code
+ $ mkdir hoomd-trunk
+ $ cd hoomd-trunk
+ $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
+\endcode
+  - The same operations can be performed in the explorer GUI. Right click in a desired location and create a new folder
+\b hoomd-trunk. Traverse into that foler, right click and select "SVN Checkout...", then follow the on screen promps
+to check out the svn URL <b>http://codeblue.umich.edu/hoomd-blue/svn/trunk</b> into the working directory <b>hoomd</b>.
+	
+<b>3. Run CMake</b>
+
+You should now have a directory \b hoomd-trunk on your hard drive with a subdirectory
+\b hoomd containing the source code. CMake must be run to generate the visual studio
+project that will compile hoomd. 
+ -# Start cmake-gui
+ -# Set the input box labeled <i>Where is the Source code</i> to the location of the \b hoomd directory.
+ -# Set the input box labeled <i>Where to build the binaries</i> to the location of the \b build directory.
+ -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
+ -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
+ -# Select the IDE you installed (most likely Visual Studio 8 2005) and click OK.
+ -# After a short wait while CMake should display a screen that looks like this: \image html cmake_windows_firstpress.png
+	If you received an error message instead, it is possible that you are missing one of the
+	prerequisite software packages or it is installed to a non-standard location. In the second case,
+	you can click on the text box with CMAKE-SOMETHING-NOTFOUND in it and specify the full path
+	to the corresponding file or directory.
+ -# You can configure any of the build options on this screen to your liking. 
+	See \ref sec_build_options for more information on what these options do.
+ -# Click configure several times until all the red options turn white. Then click generate 
+	the create project file.
+ -# Close CMake
+
+<b>4. Compile HOOMD-blue</b><br>
+Open \b build/HOOMD.sln project in visual studio. Press F7 (or use the GUI build button)
+to build all executables. You can also make a single target the active project
+(right click and choose set as startup project) and press F7 to build
+only it. 
+
+Build the \b check target to run a series of unit tests that verify proper operation of the build.
+
+Source can be modified in visual studio, but any files added to the project must 
+be done via CMake. In most cases, a file can be added simply by placing it in the 
+proper directory and then rerunning CMake.
+
+If you have a system with more than 1 CPU core, you can greatly improve the performance
+of the build by making use of all cores. In VS2005, navigate to the menu item <b>Tools</b>-\><b>Options</b>. 
+In the left tab, select <b>Projects And Solutions</b>-\><b>Build and Run</b>. Set the value for the
+<b>maximum number of parallel project builds</b> to be the total number of CPU cores in your system.
+There is more information at http://msdn2.microsoft.com/en-us/library/y0xettzf.aspx .
+
+<hr>
+
+\section sec_compiling_linux Building on linux
+
+<b>1. Install prerequisite software</b><br>
+Click for detailed instructions: \subpage page_software_req_install_linux
+
+<b>2. Get source code</b>
+ - Option 1) download and unpack source code from the web site: http://codeblue.umich.edu/hoomd-blue/
+ - Option 2) Get the latest development source with subversion.
+  - On the command line, run:
+\code
+ $ mkdir hoomd-trunk
+ $ cd hoomd-trunk
+ $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
+\endcode
+
+<b>3. Run CMake</b><br>
+CMake needs to be run to generate the make files to compile hoomd.
+\code
+ $ cd hoomd-trunk
+ $ mkdir build
+ $ cd build
+ $ cmake-gui ../hoomd
+\endcode
+Note: If you are logged into the system remotely, you can launch the text mode tool \c ccmake instead of \c cmake-gui.
+Press "h" for help on using the text mode tool or see http://www.cmake.org/HTML/RunningCMake.html
+
+You will then see a screen that looks like this:
+\image html cmake_linux_initial.png
+
+Click configure. You should now see a screen like this:
+\image html cmake_linux_setup.png
+Choose your preferred build environment and click OK. This guide assumes that "Unix Makefiles" was chosen.
+
+Now you should see a screen like this:
+\image html cmake_linux_firstpress.png
+
+To generate the makefiles now, click \b configure several times until all the red settings turn white,
+then click \b generate.
+
+You can also scroll down the list of options. Setting the checkbox options will
+control whether certain features are compiled in, while other options are text strings.
+You must click configure after any change. See \ref sec_build_options for more information on what these options do.
+
+It is possible that some of your libraries may be in non-standard paths. If this is
+the case, CMake will report an error after you click configure. The offending library 
+will be labeled something like CMAKE_LIB_NOTFOUND. If you know where the library is, 
+you can specify the \b full path here and click configure again.
+
+Make sure to click \b generate again after you make any changes. When you are done, close cmake-gui.
+
+<b>4. Compile HOOMD-blue</b><br>
+CMake generated make files for make. Just run
+\code
+ $ make -j4
+\endcode
+in the \b build directory to compile everything. This documentation will even be generated if
+ENABLE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's best to set 
+the value to twice the number of CPU cores in your system.
+
+Run
+\code
+ $ make check -j4
+\endcode
+to build the \b check target which runs a series of unit tests that verify proper operation of
+the build.
+
+<b>5(option a). Install to your home directory</b> (so only you can run it)<br>
+Re-enter the CMake options screen:
+\code
+ $ cmake-gui ../hoomd
+\endcode
+Set the CMAKE_INSTALL_PREFIX option to a directory of your choice: i.e. /home/joeuser/software/hoomd.
+Configure, configure and generate again as you did before. When you are back at the command line, 
+execute:
+\code
+ $ make install
+\endcode
+to install hoomd to the path you specified. 
+
+To run hoomd, either execute /home/joeuser/software/hoomd/bin/hoomd or add /home/joeuser/software/hoomd/bin
+to your $PATH and run hoomd.
+
+<b>5(option b). Install to a system directory</b> (so any user can run it)<br>
+Note: You must be root do do this (or run the "make install" command with sudo). 
+Re-enter the CMake options screen:
+\code
+ $ cmake-gui ../hoomd
+\endcode
+Set the CMAKE_INSTALL_PREFIX option to /opt/hoomd
+Configure, configure and generate again as you did before. When you are back at the command line, 
+execute:
+\code
+ $ make install
+\endcode
+to install hoomd to the path you specified. 
+
+To make the command \c hoomd available on the $PATH for users, you can either add /opt/hoomd/bin
+to the system $PATH or make a soft link /usr/bin/hoomd pointing to /opt/hoomd/bin/hoomd.
+<hr>
+
+\section sec_building_mac Building on Mac OSX
+<b>1. Install prerequisite software</b><br>
+Click for detailed instructions: \subpage page_software_req_install_mac
+
+<b>2. Get source code</b>
+ - Option 1) download and unpack source code from: http://codeblue.umich.edu/hoomd-blue/
+ - Option 2) Get the latest development source with subversion.
+This command:
+\code
+ $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
+\endcode
+will create a directory \e hoomd in your current working directory which will contain
+the current development version of the source code.
+
+<b>3. Run CMake</b><br>
+First, click on the CMake icon to run CMake. Enter the location where you extracted the HOOMD-blue source code
+in the <i>Where is the source code box</i>. Specify where you want the binaries built in the <i>Where to build the
+binaries box</i>. You should now have a screen that looks like this:
+
+\image html cmake_mac_initial.png
+
+Click \b configure and CMake will ask you about the build environment. You have two
+options here. If there is a particular code editor you prefer and you want to 
+compile by running \e make on the command line, select Unix Makefiles and press enter.
+If you would rather use XCode as an IDE, select XCode and press enter.
+
+You will then see a screen that looks like this:
+\image html cmake_mac_firstpress.png
+(this image was captured using the Xcode generator. Your screen may be slightly
+different if you chose Unix makefiles)
+
+To generate the makefiles (or XCode project) now, click \b configure several times until all the red settings turn white, then click \b generate.
+
+You can also scroll down the list of options. Setting the checkbox options will
+control whether certain features are compiled in, while other options are text strings.
+You must click configure after any change. See \ref sec_build_options for more information on what these options do.
+
+It is possible that some of your libraries may be in non-standard paths. If this is
+the case, CMake will report an error after you click configure. The offending library 
+will be labeled something like CMAKE_LIB_NOTFOUND. If you know where the library is, 
+you can specify the \b full path here and click configure again.
+
+Make sure to click \b generate again after you make any changes. When you are done, close cmake-gui.
+
+<b>4. Compile HOOMD-blue</b><br>
+If you generated make files, just run
+\code
+ $ make -j4
+\endcode
+in the \b bin directory to compile everything and generate this documentation. 
+The -j4 option lets make compile 4 files at once. It's best to set the value to twice the number of CPU 
+cores in your system.
+
+Run
+\code
+ $ make check -j4
+\endcode
+to build the \b check target which runs a series of unit tests that verify proper operation of
+the build.
+
+If you generated an XCode project, open it in XCode and click the build button
+to compile hoomd. Note that while source code can be edited via XCode, any 
+files added to the project must be done with CMake, not the XCode project
+management. In most cases, this can be done by simply adding the file to the 
+proper directory and rerunning CMake.
+
+<b>5(option a). Install to your home directory</b> (so only you can run it)<br>
+Re-enter the CMake options screen:
+\code
+ $ cmake-gui ../hoomd
+\endcode
+Set the CMAKE_INSTALL_PREFIX option to a directory of your choice: i.e. /home/joeuser/software/hoomd.
+Configure, configure and generate again as you did before. When you are back at the command line, 
+execute:
+\code
+ $ make install
+\endcode
+(or build the INSTALL target in XCode) to install hoomd to the path you specified. 
+
+To run hoomd, either execute /home/joeuser/software/hoomd/bin/hoomd or add /home/joeuser/software/hoomd/bin
+to your $PATH and run hoomd.
+
+<b>5(option b). Install to a system directory</b> (so any user can run it)<br>
+Note: You must be root do do this (or run the "make install" command with sudo). 
+Re-enter the CMake options screen:
+\code
+ $ cmake-gui ../hoomd
+\endcode
+Set the CMAKE_INSTALL_PREFIX option to /opt/hoomd
+Configure, configure and generate again as you did before. When you are back at the command line, 
+execute:
+\code
+ $ make install
+\endcode
+(or build the INSTALL target in XCode) to install hoomd to the path you specified. 
+
+To make the command \c hoomd available on the $PATH for users, you can either add /opt/hoomd/bin
+to the system $PATH or make a soft link /usr/bin/hoomd pointing to /opt/hoomd/bin/hoomd.
+<hr>
+
+\section sec_build_options Build options
+Here is a list of all the build options that can be changed by CMake.
+ - \b BUILD_TESTING - Enables the compilation of unit tests
+ - \b CMAKE_BUILD_TYPE - sets the build type (Makefile generation only, XCode and 
+ 		Visual Studio can change the build type from within their GUIs)
+	- \b Debug - Compiles debug information into the library and executables. 
+		Enables asserts to check for programming mistakes. HOOMD-blue will run 
+		\e very slow if compiled in Debug mode, but problems are easier to
+		identify.
+	- \b Release - All compiler optimizations are enabled and asserts are removed.
+		Recommended for production builds: required for any benchmarking.
+ - \b ENABLE_CUDA - Enable compiling of the GPU accelerated computations using CUDA
+ 	- Requires the CUDA Toolkit to be installed
+ - \b ENABLE_DOXYGEN - enables the generation of detailed user and developer documentation
+ 	- Requires doxygen to be installed
+	- Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
+		and possible missing output from the generated documentation.
+ - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.
+ - \b ENABLE_ZLIB - Links hoomd to libz (must be available) and enables direct writing of zlib compressed files from dump.bin
+ - \b SINGLE_PRECISION - Controls precision
+ 	- When set to \b ON, all calculations are performed in single precision.
+ 	- When set to \b OFF, all calculations are performed in double precision. 
+ 	- Must be set to \b ON to enable the \b ENABLE_CUDA option (HOOMD-blue has not yet been updated to perform double precision calculations)
+
+There are a few options for controlling the CUDA compilation.
+ - \b CUDA_ARCH	- Sets the GPU architecture to compile for. Parts of HOOMD-blue will run significantly faster 
+ 		when run on compute 1.1 or newer GPUs, but only if hoomd is compiled for that that target. The
+		CUDA programming guide has a nice list of which GPUs are which compute version in Appendix A.
+		- \b 10 - compile for compute 1.0 and newer devices. Executable will run on all CUDA GPUs, but no fast
+			code paths are activated.
+		- \b 11 - compile for compute 1.1 and newer devices. Some faster code paths are activated.
+		- \b 12 - compile for compute 1.2 and newer devices. 
+		- \b 13 - compile for compute 1.3 and newer devices. Allows double precision calculations.
+ - \b CUDA_BUILD_CUBIN - Enables a display of register usage for each kernel compiled.
+ - \b CUDA_BUILD_EMULATION - Set to ON to have CUDA emulate the GPU in software. This is extremely slow.
+ - \b NVCC_FLAGS - Allows additional flags to be passed to nvcc.
+
+The following are advanced variables, and thus will only show when CMake's advanced mode is turned on.
+You really shouldn't change these from their defaults unless you really know what you are doing.
+ - \b DISABLE_ULF_WORKAROUND - Disables the compiling of several workarounds that make
+ 		hoomd stable for long run times. Set this to ON if you are a developer wanting
+ 		to test and tune hoomd for the highest performance. If you are building hoomd
+ 		for production simulation runs, set this ON only at the risk of your own sanity.
+ - \b ENABLE_STATIC - Controls the compiling and linking of static libraries
+ 	- When set to \b ON, \b libhoomd is compiled as a static library and all 
+ 		other libraries (i.e. boost) are linked statically if possible.
+ 	- When set to \b OFF, \b libhoomd is compiled as a dynamic library and all
+ 		other libraries are linked dynamically if possible.
+ 	- Note: \b ENABLE_STATIC=OFF is not supported on windows. 
+ 	- Note 2: \b ENABLE_STATIC defaults OFF and can only be set ON from the command line 
+ 		and when configuring a clean build directory.
+		Example:
+ 		\code ccmake -D ENABLE_STATIC=ON ../hoomd
+ 		\endcode
+
+\section sec_build_plugin Building a plugin for HOOMD-blue
+
+There are several methods that can be used to build code that interfaces with hoomd. 
+
+<b>Method 1: Build an executable that uses hoomd as a library</b><br>
+
+First, understand that building an executable linked to hoomd for the purposes of running a simulation is not a 
+supported configuration. The developers will not respond to or fix bugs found while using such a setup. There are many
+levels of configuration and performance tuning that are handled at the python script level, and the C++ API is mainly
+designed to interface with python.
+
+However, there are many cases when building a simple quick test executable is desirable (i.e. to test or debug a new 
+feature that does not yet have a python interface). So a simple method to build such executables is provided.
+
+To setup for use:
+ -# Compile hoomd normally
+ -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
+ -# Add \c hoomd_install_location/bin to your \c PATH as usual
+ -# Add \c `hoomd-config.sh --ldpath to your DYLD / LD library paths (if you compiled with ENABLE_STATIC=off)
+
+Here is a short example program that does nothing except calculate lj pair forces once.
+
+\code
+// include hoomd.h to get all of the built in hoomd classes
+#include "hoomd/hoomd.h"
+using namespace boost;
+
+int main()
+    {
+    const unsigned int N = 5000;
+
+    ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
+
+    // create a random particle system to sum forces on
+    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+
+    shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(3.0), Scalar(0.8)));
+
+    shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef, nlist));
+    fc1->setRcut(0, 0, Scalar(3.0));
+
+    // setup some values for alpha and sigma
+    Scalar epsilon = Scalar(1.0);
+    Scalar sigma = Scalar(1.2);
+    Scalar alpha = Scalar(0.45);
+    Scalar lj1 = Scalar(4.0) * epsilon * pow(sigma,Scalar(12.0));
+    Scalar lj2 = alpha * Scalar(4.0) * epsilon * pow(sigma,Scalar(6.0));
+
+    // specify the force parameters
+    fc1->setParams(0,0,make_scalar2(lj1,lj2));
+
+    // compute the forces
+    fc1->compute(0);
+    }
+\endcode
+
+To compile this sample (or any code written similarly), just run
+\code
+$ g++ -o test test.cc `hoomd-config.sh --cflags --libs`
+\endcode
+(obviously, this works on linux and mac only)
+
+<b>Method 2: Write a full-fledged plugin in python only</b><br>
+
+Some plugins can be implemented fully in python, providing high-level code for configuring or running simulations. 
+
+In order to use such a plugin, one must first:
+ -# Compile hoomd normally
+ -# <i>'make install'</i> hoomd to a desired location (i.e. your home directory)
+ -# Add \c hoomd_install_location/bin to your \c PATH as usual
+
+Create a directory to contain the python module for the plugin:
+\code
+cd hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
+mkdir plugin_name
+cd plugin_name
+touch __init__.py
+\endcode
+
+\b Note: It is <i>highly</i> recommended that you develop your plugin in a directory outside hoomd_install_location
+and using a revision control software. You wouldn't want to loose the code you've written when hoomd is uninstalled!
+In this case, you can just copy the module to the hoomd-plugins directory to install it.
+\code
+cp -R plugin_name hoomd_install_location/lib/hoomd/python-module/hoomd_plugins
+\endcode
+
+Once the plugin is written and installed, it can be used in a hoomd script like so:
+\code
+from hoomd_script import *
+from hoomd_plugins import plugin_name
+
+init.whatever(...)
+plugin_name.whatever(...)
+\endcode
+
+<b>Method 3: Write a full-fledged plugin with C++ code included</b><br>
+
+For high performance, execution on the GPU, or other reasons, part of a plugin can be written in C++. To write a plugin 
+that incorporates such code, 'make install' hoomd as normal. Then copy the
+directory hoomd_install_location/share/hoomd/plugin_template_cpp to a new working space and modify it to implement your
+plugin. See the README file in that directory for full documentation.
+
+*/
