@@ -54,3 +54,4 @@ A B C
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
+

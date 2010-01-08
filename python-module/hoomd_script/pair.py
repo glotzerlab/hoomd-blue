@@ -1478,3 +1478,4 @@ class morse(pair):
         r0 = coeff['r0']
 
         return hoomd.make_scalar4(D0, alpha, r0, 0.0);
+

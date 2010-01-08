@@ -47,5 +47,7 @@ class angle_cgcmm_tests (unittest.TestCase):
         init.reset();
 
 
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
+

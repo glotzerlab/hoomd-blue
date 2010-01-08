@@ -141,17 +141,17 @@ class EvaluatorPairMorse
             // compute the force divided by r in force_divr
             if (rsq < rcutsq)
                 {
-		Scalar r = SQRT(rsq);
+                Scalar r = SQRT(rsq);
                 Scalar Exp_factor = EXP(-alpha*(r-r0));
                 
                 pair_eng = D0 * Exp_factor * (Exp_factor - Scalar(2.0));
-		force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) / r;
+                force_divr = Scalar(2.0) * D0 * alpha * Exp_factor * (Exp_factor - Scalar(1.0)) / r;
                 
                 if (energy_shift)
                     {
-		      Scalar rcut = SQRT(rcutsq);
-		      Scalar Exp_factor_cut = EXP(-alpha*(rcut-r0));
-		      pair_eng -= D0 * Exp_factor_cut * (Exp_factor_cut - Scalar(2.0));
+                    Scalar rcut = SQRT(rcutsq);
+                    Scalar Exp_factor_cut = EXP(-alpha*(rcut-r0));
+                    pair_eng -= D0 * Exp_factor_cut * (Exp_factor_cut - Scalar(2.0));
                     }
                 return true;
                 }
@@ -175,7 +175,7 @@ class EvaluatorPairMorse
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
         Scalar D0;      //!< Depth of the Morse potential at its minimum
         Scalar alpha;   //!< Controls width of the potential well
-	Scalar r0;      //!< Offset, i.e., position of the potential minimum
+        Scalar r0;      //!< Offset, i.e., position of the potential minimum
     };
 
 
