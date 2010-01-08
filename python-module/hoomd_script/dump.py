@@ -109,6 +109,7 @@ class xml(analyze._analyzer):
     # \param mass (if set) Set to True/False to enable/disable the output of particle masses in the xml file
     # \param diameter (if set) Set to True/False to enable/disable the output of particle diameters in the xml file
     # \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
+    # \param body (if set) Set to True/False to enable/disable the output of the particle bodies in the xml file
     # \param wall (if set) Set to True/False to enable/disable the output of walls in the xml file
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
     # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
@@ -139,6 +140,7 @@ class xml(analyze._analyzer):
                    mass=None,
                    diameter=None,
                    type=None,
+                   body=None,
                    wall=None,
                    bond=None,
                    angle=None,
@@ -154,7 +156,7 @@ class xml(analyze._analyzer):
             
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
-            acceleration = True;
+            acceleration = body = True;
 
         if position != None:
             self.cpp_analyzer.setOutputPosition(position);
@@ -173,7 +175,10 @@ class xml(analyze._analyzer):
             
         if type != None:
             self.cpp_analyzer.setOutputType(type);
-            
+        
+        if body != None:
+            self.cpp_analyzer.setOutputBody(body);
+        
         if wall != None:
             self.cpp_analyzer.setOutputWall(wall);
             

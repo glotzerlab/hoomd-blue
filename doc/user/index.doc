@@ -66,9 +66,12 @@ Table of contents:
 \link hoomd_script.integrate integrate\endlink: 
  - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>\copybrief hoomd_script::integrate::mode_standard </i>
    - \link hoomd_script.integrate.bdnvt integrate.bdnvt\endlink - <i>\copybrief hoomd_script::integrate::bdnvt </i> 
+   - \link hoomd_script.integrate.bdnvt_rigid integrate.bdnvt_rigid\endlink - <i>\copybrief hoomd_script::integrate::bdnvt_rigid </i> 
    - \link hoomd_script.integrate.npt integrate.npt\endlink - <i>\copybrief hoomd_script::integrate::npt </i> 
    - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
+   - \link hoomd_script.integrate.nve_rigid integrate.nve_rigid\endlink - <i>\copybrief hoomd_script::integrate::nve_rigid </i>
    - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
+   - \link hoomd_script.integrate.nvt_rigid integrate.nvt_rigid\endlink - <i>\copybrief hoomd_script::integrate::nvt_rigid </i>
  
 \section sec_index_update Update particle properties during the simulation
 \link hoomd_script.update update\endlink:
@@ -136,6 +139,8 @@ Table of contents:
  - Create groups
   - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
   - \link hoomd_script.group.cuboid() group.cuboid\endlink - <i>\copybrief hoomd_script::group::cuboid</i>
+  - \link hoomd_script.group.nonrigid() group.nonrigid\endlink - <i>\copybrief hoomd_script::group::nonrigid</i>
+  - \link hoomd_script.group.rigid() group.rigid\endlink - <i>\copybrief hoomd_script::group::rigid</i>
   - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
   - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
  - Combine groups

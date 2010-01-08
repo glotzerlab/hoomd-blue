@@ -1,5 +1,5 @@
 /*! \page page_xml_file_format XML File Format
-<center><b>Version 1.2</b></center>
+<center><b>Version 1.3</b></center>
 
 \section sec_xml_overview Overview
 
@@ -10,8 +10,8 @@ XML is that it is also easily machine readable and commonly used, so many parser
 
 The basic outline of a HOOMD-blue xml file looks like this
 \code
-<?xml version="1.0" encoding="UTF-8"?>
-<hoomd_xml version="1.2">
+<?xml version="1.1" encoding="UTF-8"?>
+<hoomd_xml version="1.3">
 <!-- this is a comment, you can put as many of these in the file 
 	wherever you wish to. -->
 <configuration time_step="0">
@@ -27,7 +27,7 @@ The first line of the file
 is just something that \b must be there to identify that this is an XML file.
 
 \code
-<hoomd_xml version="1.2">
+<hoomd_xml version="1.3">
 	<!-- contents of root node -->
 </hoomd_xml>
 \endcode
@@ -74,6 +74,7 @@ A number of data nodes can be included inside the configuration node <b>in any o
  - \b mass (\ref sec_xml_mass)
  - \b diameter (\ref sec_xml_diameter)
  - \b type (\ref sec_xml_type)
+ - \b body (\ref sec_xml_body)
  - \b bond (\ref sec_xml_bond)
  - \b angle (\ref sec_xml_angle)
  - \b dihedral (\ref sec_xml_dihedral)
@@ -272,6 +273,35 @@ When performing tasks such as setting the coefficients of a \link hoomd_script.p
 force, the type strings given are simply matched up to those specified in the xml file.
 
 If specifying both position and type in an input file, be certain to include the same number of
+particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
+
+<hr>
+
+\section sec_xml_body Rigid body assignments
+The \<body\> node specifies the rigid body (if any) in which each particles belongs.<br>
+\link hoomd_script.dump.xml dump.xml\endlink \em optionally writes this node.<br>
+\link hoomd_script.init.read_xml init.read_xml\endlink does not require this node<br>
+Version: 1.3 and newer
+
+\b Example:
+\code
+<body>
+-1
+0
+0
+</body>
+\endcode
+\b Attributes:
+ - \a num (\b optional) number of particles coming in the node content. This attribute is written by
+	\link hoomd_script.dump.xml dump.xml\endlink to potentially aid in making parsers easier to write.
+
+The format of the node data is similar to that of \<position\> (see \ref sec_xml_position),
+except that only one integer is specified for each particle. Set a value of -1 for those particles that are not part
+of any rigid body. For all of the particles contained within each rigid body, set the same integer value for each
+of them. The value assigned also serves as the index of the rigid body in an array, so all rigid bodies must be numberd
+from 0 up to the number of rigid bodies minus one.
+
+When specifying both position and body in an input file, be certain to include the same number of
 particles in each, or \link hoomd_script.init.read_xml init.read_xml\endlink will generate an error.
 
 <hr>

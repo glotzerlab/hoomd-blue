@@ -272,9 +272,12 @@ class _integration_method:
 # techniques.
 #
 # The following commands can be used to specify the integration methods used by integrate.mode_standard.
-# - integrate.nve
-# - integrate.nvt
 # - integrate.bdnvt
+# - integrate.bdnvt_rigid
+# - integrate.nve
+# - integrate.nve_rigid
+# - integrate.nvt
+# - integrate.nvt_rigid
 # - integrate.npt
 #
 # There can only be one integration mode active at a time. If there are more than one integrate.mode_* commands in
@@ -726,4 +729,236 @@ class bdnvt(_integration_method):
         for i in xrange(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+
+## NVE Integration for rigid bodies
+#
+# integrate.nve_rigid performs constant volume, constant energy simulations using Velocity Verlet method extended
+# to operate on rigid bodies. It \b only operates on particles that belong to rigid bodies. Use integrate.nve on
+# particles that do not belong to rigid bodies.
+#
+# \b Limitataions:<br>
+# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
+# integrate.nve_rigid will still behave as if group.rigid() was specified.
+#
+# integrate.nve_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+class nve_rigid(_integration_method):
+    ## Specifies the NVE integration method for rigid bodies 
+    # \param group Group of particles on which to apply this method.
+    #
+    # \b Examples:
+    # \code
+    # rigid = group.rigid()
+    # integrate.nve_rigid(group=rigid)
+    # \endcode
+    def __init__(self, group):
+        util.print_status_line();
+        
+        # initialize base class
+        _integration_method.__init__(self);
+        
+        # initialize the reflected c++ class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_method = hoomd.TwoStepNVERigid(globals.system_definition, group.cpp_group);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_method = hoomd.TwoStepNVERigidGPU(globals.system_definition, group.cpp_group);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating NVE integration method for rigid bodies");
+
+## NVT Integration for rigid bodies
+#
+# integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
+# The ____ method is used from reference _____.
+# It \b only operates on particles that belong to rigid bodies. Use integrate.nvt on particles that do not belong to
+# rigid bodies.
+#
+# \b Limitataions:<br>
+# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
+# integrate.nvt_rigid will still behave as if group.rigid() was specified.
+#
+# integrate.nvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+class nvt_rigid(_integration_method):
+    ## Specifies the NVT integration method for rigid bodies
+    # \param group Group of particles on which to apply this method.
+    # \param T Temperature set point for the thermostat.
+    #
+    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
+    #
+    # \b Examples:
+    # \code
+    # rigid = group.rigid()
+    # integrate.nvt_rigid(group=all, T=1.0)
+    # integrator = integrate.nvt_rigid(group=all, tau=1.0)
+    # \endcode
+    def __init__(self, group, T):
+        util.print_status_line();
+        
+        # initialize base class
+        _integration_method.__init__(self);
+        
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+        
+        # initialize the reflected c++ class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, T.cpp_variant);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating NVT rigid integrator");
+    
+    ## Changes parameters of an existing integrator
+    # \param T New temperature (if set)
+    #
+    # To change the parameters of an existing integrator, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # integrator = integrate.nvt_rigid(group=rigid, T=0.65)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(T=2.0)
+    # \endcode
+    def set_params(self, T=None):
+        util.print_status_line();
+        # check that proper initialization has occured
+        if self.cpp_method == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError('Error updating nvt params');
+        
+        # change the parameters
+        if T != None:
+            # setup the variant inputs
+            T = variant._setup_variant_input(T);
+            self.cpp_method.setT(T.cpp_variant);
+            
+## NVT integration via Brownian dynamics for rigid bodies
+#
+# integrate.bdnvt_rigid performs constant volume, fixed average temperature simulation based on a 
+# NVE simulation with added damping and stochastic heat bath forces.
+#
+# The total added %force \f$ \vec{F}\f$ is
+# \f[ \vec{F} = -\gamma \cdot \vec{v} + \vec{F}_{\mathrm{rand}} \f]
+# where \f$ \vec{v} \f$ is the particle's velocity and \f$ \vec{F}_{\mathrm{rand}} \f$
+# is a random force with magnitude chosen via the fluctuation-dissipation theorem
+# to be consistent with the specified drag (\a gamma) and temperature (\a T).
+#
+# integrate.bdnvt_rigid \b only operates on particles that belong to rigid bodies. Use integrate.bdnvt on particles
+# that do not belong to rigid bodies.
+#
+# \b Limitataions:<br>
+# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
+# integrate.bdnvt_rigid will still behave as if group.rigid() was specified.
+#
+# integrate.bdnvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+class bdnvt_rigid(_integration_method):
+    ## Specifies the BD NVT integrator for rigid bodies
+    # \param group Group of particles on which to apply this method.
+    # \param T Temperature of the simulation \a T
+    # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow 
+    # different trajectories.
+    # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
+    #                   default), gammas are assigned per particle type via set_gamma().
+    #
+    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
+    #
+    # \b Examples:
+    # \code
+    # rigid = group.rigid();
+    # integrate.bdnvt_rigid(group=rigid, T=1.0, seed=5)
+    # integrator = integrate.bdnvt_rigid(group=all, T=1.0, seed=100)
+    # integrate.bdnvt_rigid(group=all, T=1.0, gamma_diam=True)
+    # \endcode
+    def __init__(self, group, T, seed=0, gamma_diam=False):
+        util.print_status_line();
+        
+        # initialize base class
+        _integration_method.__init__(self);
+        
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+        
+        # initialize the reflected c++ class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_method = hoomd.TwoStepBDNVTRigid(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating BD NVT integrator for rigid bodies");
+        
+    
+    ## Changes parameters of an existing integrator
+    # \param T New temperature (if set)
+    #
+    # To change the parameters of an existing integrator, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # integrator = integrate.bdnvt_rigid(group=rigid, T=1.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(T=2.0)
+    # \endcode
+    def set_params(self, T=None):
+        util.print_status_line();
+        # check that proper initialization has occured
+        if self.cpp_method == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError('Error updating bdnvt params');
+        
+        # change the parameters
+        if T != None:
+            # setup the variant inputs
+            T = variant._setup_variant_input(T);
+            self.cpp_method.setT(T.cpp_variant);
+
+    ## Sets gamma parameter for a particle type
+    # \param a Particle type
+    # \param gamma \f$ \gamma \f$ for particle type (see below for examples)
+    #
+    # set_gamma() sets the coefficient \f$ \gamma \f$ for a single particle type, identified
+    # by name.
+    #
+    # The gamma parameter determines how strongly a particular particle is coupled to 
+    # the stochastic bath.  The higher the gamma, the more strongly coupled: see 
+    # integrate.bdnvt_rigid.
+    #
+    # If gamma is not set for any particle type, it will automatically default to  1.0.
+    # It is not an error to specify gammas for particle types that do not exist in the simulation.
+    # This can be useful in defining a single simulation script for many different types of particles 
+    # even when some simulations only include a subset.
+    #
+    # \b Examples:
+    # \code
+    # bd.set_gamma('A', gamma=2.0)
+    # \endcode
+    #
+    def set_gamma(self, a, gamma):
+        util.print_status_line();
+        
+        # check that proper initialization has occured
+        if self.cpp_method == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError('Error updating bdnvt_rigid gamma');
+        
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        type_list = [];
+        for i in xrange(0,ntypes):
+            type_list.append(globals.system_definition.getParticleData().getNameByType(i));
+        
+        # change the parameters
+        for i in xrange(0,ntypes):
+            if a == type_list[i]:
+                self.cpp_method.setGamma(i,gamma);
+
 

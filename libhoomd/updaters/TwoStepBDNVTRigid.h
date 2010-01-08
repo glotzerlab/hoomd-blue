@@ -41,52 +41,62 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // $Id$
 // $URL$
-// Maintainer: joaander
 
-/*! \file Integrator.cuh
-    \brief Declares methods and data structures used by the Integrator class on the GPU
+/*! \file TwoStepBDNVTRigid.h
+    \brief Declares an updater that implements BD NVT dynamics for rigid bodies
 */
 
-#ifndef __INTEGRATOR_CUH__
-#define __INTEGRATOR_CUH__
+#include "TwoStepNVERigid.h"
+#include "Variant.h"
+#include "saruprng.h"
 
-#include "ParticleData.cuh"
-#include "RigidData.cuh"
+#ifndef __TWO_STEP_BD_NVT_RIGID_H__
+#define __TWO_STEP_BD_NVT_RIGID_H__
 
-//! struct to pack up several force and virial arrays for addition
-/*! To keep the argument count down to gpu_integrator_sum_accel, up to 6 force/virial array pairs are packed up in this 
-    struct for addition to the net force/virial in a single kernel call. If there is not a multiple of 5 forces to sum, 
-    set some of the pointers to NULL and they will be ignored.
+
+/*! \file TwoStepBDNVTRigid.h
+ \brief Declares the TwoStepBDNVTRigid class
+ */
+
+//! Integrates part of the system forward in two steps in the NVE ensemble with Langevin thermostat
+/*! Implements velocity-verlet NVE integration through the IntegrationMethodTwoStep interface
+ 
+ \ingroup updaters
 */
-struct gpu_force_list
+class TwoStepBDNVTRigid : public TwoStepNVERigid
     {
-    //! Initializes to NULL
-    gpu_force_list() 
-        : f0(NULL), f1(NULL), f2(NULL), f3(NULL), f4(NULL), f5(NULL),
-          v0(NULL), v1(NULL), v2(NULL), v3(NULL), v4(NULL), v5(NULL)
-          {
-          }
-          
-    float4 *f0; //!< Pointer to force array 0
-    float4 *f1; //!< Pointer to force array 1
-    float4 *f2; //!< Pointer to force array 2
-    float4 *f3; //!< Pointer to force array 3
-    float4 *f4; //!< Pointer to force array 4
-    float4 *f5; //!< Pointer to force array 5
-    float *v0;  //!< Pointer to virial array 0
-    float *v1;  //!< Pointer to virial array 1
-    float *v2;  //!< Pointer to virial array 2
-    float *v3;  //!< Pointer to virial array 3
-    float *v4;  //!< Pointer to virial array 4
-    float *v5;  //!< Pointer to virial array 5
+    public:
+        //! Constructor
+        TwoStepBDNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
+                          boost::shared_ptr<ParticleGroup> group,
+                          boost::shared_ptr<Variant> T,
+                          unsigned int seed,
+                          bool gamma_diam);
+        virtual ~TwoStepBDNVTRigid() {};
+        
+        //! Set a new temperature
+        /*! \param T new temperature to set */
+        void setT(boost::shared_ptr<Variant> T)
+            {
+            m_T = T;
+            }
+        
+        //! Sets gamma for a given particle type
+        void setGamma(unsigned int typ, Scalar gamma);
+
+        //! Performs the second step 
+        virtual void integrateStepTwo(unsigned int timestep);        
+
+    protected:
+        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
+        unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
+        bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
+        
+        GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
     };
 
-//! Sums up the net force and virial on the GPU for Integrator
-cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
-                                         float *d_net_virial,
-                                         const gpu_force_list& force_list,
-                                         unsigned int nparticles,
-                                         bool clear);
+//! Exports the TwoStepBDNVTRigid class to python
+void export_TwoStepBDNVTRigid();
 
 #endif
 
