@@ -121,6 +121,8 @@ to build all executables. You can also make a single target the active project
 (right click and choose set as startup project) and press F7 to build
 only it. 
 
+Build the \b check target to run a series of unit tests that verify proper operation of the build.
+
 Source can be modified in visual studio, but any files added to the project must 
 be done via CMake. In most cases, a file can be added simply by placing it in the 
 proper directory and then rerunning CMake.
@@ -191,6 +193,13 @@ CMake generated make files for make. Just run
 in the \b build directory to compile everything. This documentation will even be generated if
 ENABLE_DOXYGEN is selected. The -j4 option lets make compile 4 files at once. It's best to set 
 the value to twice the number of CPU cores in your system.
+
+Run
+\code
+ $ make check -j4
+\endcode
+to build the \b check target which runs a series of unit tests that verify proper operation of
+the build.
 
 <b>5(option a). Install to your home directory</b> (so only you can run it)<br>
 Re-enter the CMake options screen:
@@ -278,6 +287,13 @@ If you generated make files, just run
 in the \b bin directory to compile everything and generate this documentation. 
 The -j4 option lets make compile 4 files at once. It's best to set the value to twice the number of CPU 
 cores in your system.
+
+Run
+\code
+ $ make check -j4
+\endcode
+to build the \b check target which runs a series of unit tests that verify proper operation of
+the build.
 
 If you generated an XCode project, open it in XCode and click the build button
 to compile hoomd. Note that while source code can be edited via XCode, any 

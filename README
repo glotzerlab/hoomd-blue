@@ -11,3 +11,5 @@ HOOMD-blue top-level directory structure:
  /share     - Contains scripts, templates, and other files that are installed in the OS share directory
  /test      - All manner of tests to verify that a hoomd build is running correctly
 
+For full documentation on hoomd, build it from source or point your web browser to
+http://codeblue.umich.edu/hoomd-blue/doc-trunk/
