@@ -39,7 +39,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "gpu_array_test.cuh"
+#include "test_gpu_array.cuh"
 
 // $Id$
 // $URL$

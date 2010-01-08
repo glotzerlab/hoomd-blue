@@ -57,7 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GPUArray.h"
 
 #ifdef ENABLE_CUDA
-#include "gpu_array_test.cuh"
+#include "test_gpu_array.cuh"
 #endif
 
 using namespace std;

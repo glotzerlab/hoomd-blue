@@ -45,53 +45,46 @@ enable_testing()
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
-    index1d
-    molfile_test
-    gpu_array_test
-    pdata_test
-    particle_group_test
-    utils_test
-    harmonic_bond_force_test
-    harmonic_angle_force_test
-    harmonic_dihedral_force_test
-    harmonic_improper_force_test
-    cgcmm_angle_force_test
-    fenebond_force_test
-    lj_wall_compute_test
-    neighborlist_test
-    lj_force_test
-    table_potential
-    shiftedlj_force_test
-    gaussian_force_test
-    yukawa_force_test
-    cgcmm_force_test
-    nve_updater_test
-    nvt_updater_test
-    zero_momentum_updater_test
-    temp_rescale_updater_test
-    xml_reader_writer_test 
-    system_test
-    binary_reader_writer_test
-    enforce2d_updater_test
-    #ElectrostaticShortRange_force_test
-    morse_force_test
+    test_index1d
+    test_molfile
+    test_gpu_array
+    test_pdata
+    test_particle_group
+    test_utils
+    test_harmonic_bond_force
+    test_harmonic_angle_force
+    test_harmonic_dihedral_force
+    test_harmonic_improper_force
+    test_cgcmm_angle_force
+    test_fenebond_force
+    test_lj_wall_force
+    test_neighborlist
+    test_lj_force
+    test_table_potential
+    test_slj_force
+    test_gaussian_force
+    test_yukawa_force
+    test_cgcmm_force
+    test_morse_force
+    test_nve_integrator
+    test_nvt_integrator
+    test_zero_momentum_updater
+    test_temp_rescale_updater
+    test_hoomd_xml
+    test_system
+    test_binary_reader_writer
+    test_enforce2d_updater
     )
-    
-if (ENABLE_FFT)
-    set(TEST_LIST ${TEST_LIST} 
-    ElectrostaticLongRange_PPPM_test
-    Fourier_transform_test)
-endif (ENABLE_FFT)
 
 if(ENABLE_CUDA)
-    set(TEST_LIST ${TEST_LIST} 
-    gpu_worker_test)
+    set(TEST_LIST ${TEST_LIST}
+    test_gpu_worker)
 endif(ENABLE_CUDA)
 
     # put the longest tests last
     set(TEST_LIST ${TEST_LIST}
-    bdnvt_updater_test
-    npt_updater_test)
+    test_bdnvt_integrator
+    test_npt_integrator)
 
 foreach (CUR_TEST ${TEST_LIST})
     # add and link the unit test executable
