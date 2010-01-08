@@ -6,7 +6,8 @@
 # 1) checkout a copy of hoomd's source to be tested
 # 2) copy all ctest_hoomd_* cmake scripts to a convenient location (i.e., next to the hoomd source checkout)
 # 3a) On linux/mac: cp ctest_hoomd_setup_linux.cmake ctest_hoomd_setup.cmake
-# 3b) On windows: cp ctest_hoomd_setup_windows.cmake ctest_hoomd_setup.cmake
+# 3b) On win32: cp ctest_hoomd_setup_win32.cmake ctest_hoomd_setup.cmake
+# 3c) On win64: cp ctest_hoomd_setup_win64.cmake ctest_hoomd_setup.cmake
 # 4) modify variables in ctest_site_options to match your site
 # 5) set TEST_GROUP to "Experimental" and run ctest -V -S ctest_hoomd.cmake to check that the test runs OK.
 #     Test results of the test should show up at: http://cdash.fourpisolutions.com/index.php?project=HOOMD.
