@@ -281,7 +281,7 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     shared_ptr<RigidData> rdata = sysdef->getRigidData();
     
     unsigned int start_step = 0;
-    unsigned int steps = 10000;
+    unsigned int steps = 5000;
     unsigned int sampling = 100;
     unsigned int averaging_delay = 1000;
     
@@ -334,7 +334,8 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
             
             }
         }
-    
+
+    AvgT /= Scalar((steps-averaging_delay)/sampling);    
     //Test to see if the temperature has equilibrated to where its been set.        
     MY_BOOST_CHECK_CLOSE(AvgT, 1.4, 2.5);    
     }
