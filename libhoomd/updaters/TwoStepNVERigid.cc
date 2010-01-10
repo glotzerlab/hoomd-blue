@@ -196,10 +196,6 @@ void TwoStepNVERigid::setup()
                 angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
                 }
             
-            if (body == 100)
-                {
-                    printf("body %d: %g %g %g\n", body, force_handle.data[body].x, force_handle.data[body].y, force_handle.data[body].z);
-                }
                 
             }
             
