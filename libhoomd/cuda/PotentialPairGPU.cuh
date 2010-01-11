@@ -250,7 +250,7 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
-                eval.setCharge(di, dj);
+                eval.setCharge(qi, qj);
             
             eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
             
