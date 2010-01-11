@@ -45,6 +45,7 @@ enable_testing()
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
+    test_bd_rigid_updater
     test_index1d
     test_molfile
     test_gpu_array
