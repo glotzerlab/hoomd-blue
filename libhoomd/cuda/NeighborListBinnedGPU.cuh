@@ -94,7 +94,8 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
                                      float r_maxsq,
                                      int curNmax,
                                      int block_size,
-                                     bool ulf_workaround);
+                                     bool ulf_workaround,
+                                     bool exclude_same_body);
 
 #endif
 

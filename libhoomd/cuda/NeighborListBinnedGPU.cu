@@ -149,11 +149,13 @@ cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins
 texture<float4, 2, cudaReadModeElementType> nlist_coord_idxlist_tex;
 //! Texture for reading the bins adjacent to a given bin
 texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
-
+//! Texture for reading pdata body
+texture<unsigned int, 1, cudaReadModeElementType> pdata_body_tex;
 
 //! Generates the neighbor list from the binned particles
 /*! \param nlist Neighbor list to write out to
-    \param pdata Particle data to generate the neighbor list for
+    \param d_pos Array of particle positions
+    \param d_body Array of particle bodies
     \param box Box dimensions for handling periodic boundary conditions
     \param bins The binned particles
     \param r_maxsq Precalculated value for r_max*r_max
@@ -161,6 +163,7 @@ texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
     \param scalex Scale factor to convert particle position to bin i-coordinate
     \param scaley Scale factor to convert particle position to bin j-coordinate
     \param scalez Scale factor to convert particle position to bin k-coordinate
+    \param exclude_same_body Set to true to exclude particles that belong to the same rigid body
 
     This kernel runs one thread per particle: Thread \a i handles particle \a i.
     The bin of particle \a i is first determined. Neighboring bins are read from
@@ -175,6 +178,7 @@ texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
 template <bool ulf_workaround> 
 __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
                                                 float4 *d_pos,
+                                                unsigned int *d_body,
                                                 unsigned int local_beg,
                                                 unsigned int local_num,
                                                 gpu_boxsize box,
@@ -183,7 +187,8 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
                                                 unsigned int actual_Nmax,
                                                 float scalex,
                                                 float scaley,
-                                                float scalez)
+                                                float scalez,
+                                                bool exclude_same_body)
     {
     // each thread is going to compute the neighbor list for a single particle
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -202,6 +207,10 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     uint4 exclude3 = nlist.exclusions3[my_pidx];
     uint4 exclude4 = nlist.exclusions4[my_pidx];
 #endif
+    // read in the particle's body if we are going to exclude based on that
+    unsigned int my_body = 0;
+    if (exclude_same_body)
+        my_body = d_body[my_pidx];
     
     // FLOPS: 9
     unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
@@ -252,6 +261,14 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
                 neigh_pos.z = cur_neigh_blob.z;
                 int cur_neigh = __float_as_int(cur_neigh_blob.w);
                 
+                // test for same rigid body exclusion
+                if (exclude_same_body && my_body != NO_BODY)
+                    {
+                    unsigned int bodyj = tex1Dfetch(pdata_body_tex, cur_neigh);
+                    if (my_body == bodyj)
+                        continue;
+                    }
+                    
                 // FLOPS: 15
                 float dx = my_pos.x - neigh_pos.x;
                 dx = dx - box.Lx * rintf(dx * box.Lxinv);
@@ -301,6 +318,7 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     \param curNmax Number of particles currently in the largest bin
     \param block_size Block size to run the kernel on the device
     \param ulf_workaround Set to true to enable an attempted workaround for ULFs on compute 1.1 devices
+    \param exclude_same_body Set to true to exclude particles that belong to the same rigid body
 
     See updateFromBins_new for more information
 */
@@ -311,7 +329,8 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
                                      float r_maxsq,
                                      int curNmax,
                                      int block_size,
-                                     bool ulf_workaround)
+                                     bool ulf_workaround,
+                                     bool exclude_same_body)
     {
     assert(block_size > 0);
     
@@ -338,6 +357,10 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     if (error != cudaSuccess)
         return error;
         
+    error = cudaBindTexture(0, pdata_body_tex, pdata.body, sizeof(unsigned int)*pdata.N);
+    if (error != cudaSuccess)
+        return error;
+        
     // zero the overflow check
     error = cudaMemset(nlist.overflow, 0, sizeof(int));
     if (error != cudaSuccess)
@@ -355,9 +378,9 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     
     // run the kernel
     if (ulf_workaround)
-        gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+        gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez, exclude_same_body);
     else
-        gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+        gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez, exclude_same_body);
         
     if (!g_gpu_error_checking)
         {

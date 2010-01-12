@@ -579,7 +579,7 @@ void BinnedNeighborListGPU::updateListFromBins()
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
         {
         exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], r_max_sq, m_curNmax, m_block_size, m_ulf_workaround));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], r_max_sq, m_curNmax, m_block_size, m_ulf_workaround, m_exclude_same_body));
         }
         
     exec_conf.syncAll();
