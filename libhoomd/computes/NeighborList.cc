@@ -1455,10 +1455,9 @@ void NeighborList::buildNlist()
                 continue;
 #endif
             // test for same rigid body exclusion
-            unsigned int bodyj = 0;
             if (m_exclude_same_body && bodyi != NO_BODY)
                 {
-                bodyj = arrays.body[j];
+                unsigned int bodyj = arrays.body[j];
                 if (bodyi == bodyj)
                     continue;
                 }
