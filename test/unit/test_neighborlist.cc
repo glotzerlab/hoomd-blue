@@ -261,6 +261,76 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConf
     BOOST_CHECK(list[5][4] == 4);
     }
 
+//! Tests the ability of the neighbor list to exclude particles belonging to the same rigid body
+void neighborlist_body_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
+    {
+#ifdef ENABLE_CUDA
+    g_gpu_error_checking = true;
+#endif
+    
+    shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
+    shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    
+    // lets make this test simple: put all 6 particles on top of each other and
+    // see if the exclusion code can ignore the proper particles
+    ParticleDataArrays arrays = pdata_6->acquireReadWrite();
+    arrays.x[0] = 0; arrays.y[0] = 0; arrays.z[0] = 0.0; arrays.body[0] = NO_BODY;
+    arrays.x[1] = 0; arrays.y[1] = 0; arrays.z[1] = 0.0; arrays.body[1] = 0;
+    arrays.x[2] = 0; arrays.y[2] = 0; arrays.z[2] = 0.0; arrays.body[2] = NO_BODY;
+    arrays.x[3] = 0; arrays.y[3] = 0; arrays.z[3] = 0.0; arrays.body[3] = 1;
+    arrays.x[4] = 0; arrays.y[4] = 0; arrays.z[4] = 0;   arrays.body[4] = 1;
+    arrays.x[5] = 0; arrays.y[5] = 0; arrays.z[5] =  0;  arrays.body[5] = 0;
+    pdata_6->release();
+    
+    shared_ptr<NeighborList> nlist_6 = nlist_creator(sysdef_6, 3.0, 0.25);
+    nlist_6->setStorageMode(NeighborList::full);
+    BOOST_CHECK(!nlist_6->isExcludeSameBody());
+    nlist_6->setExcludeSameBody(true);
+    BOOST_CHECK(nlist_6->isExcludeSameBody());
+    
+    nlist_6->compute(0);
+    std::vector< std::vector<unsigned int> > list = nlist_6->getList();
+    BOOST_REQUIRE(list.size() == 6);
+    BOOST_REQUIRE(list[0].size() == 5);
+    BOOST_CHECK(list[0][0] == 1);
+    BOOST_CHECK(list[0][1] == 2);
+    BOOST_CHECK(list[0][2] == 3);
+    BOOST_CHECK(list[0][3] == 4);
+    BOOST_CHECK(list[0][4] == 5);
+    
+    BOOST_REQUIRE(list[1].size() == 4);
+    BOOST_CHECK(list[1][0] == 0);
+    BOOST_CHECK(list[1][1] == 2);
+    BOOST_CHECK(list[1][2] == 3);
+    BOOST_CHECK(list[1][3] == 4);
+    
+    BOOST_REQUIRE(list[2].size() == 5);
+    BOOST_CHECK(list[2][0] == 0);
+    BOOST_CHECK(list[2][1] == 1);
+    BOOST_CHECK(list[2][2] == 3);
+    BOOST_CHECK(list[2][3] == 4);
+    BOOST_CHECK(list[2][4] == 5);
+    
+    BOOST_REQUIRE(list[3].size() == 4);
+    BOOST_CHECK(list[3][0] == 0);
+    BOOST_CHECK(list[3][1] == 1);
+    BOOST_CHECK(list[3][2] == 2);
+    BOOST_CHECK(list[3][3] == 5);
+    
+    BOOST_REQUIRE(list[4].size() == 4);
+    BOOST_CHECK(list[4][0] == 0);
+    BOOST_CHECK(list[4][1] == 1);
+    BOOST_CHECK(list[4][2] == 2);
+    BOOST_CHECK(list[4][3] == 5);
+    
+    BOOST_REQUIRE(list[5].size() == 4);
+    BOOST_CHECK(list[5][0] == 0);
+    BOOST_CHECK(list[5][1] == 2);
+    BOOST_CHECK(list[5][2] == 3);
+    BOOST_CHECK(list[5][3] == 4);
+    }
+
+
 //! Test two implementations of NeighborList and verify that the output is identical
 void neighborlist_comparison_test(nlist_creator_typ nlist_creator1,
                                   nlist_creator_typ nlist_creator2,
@@ -353,6 +423,7 @@ BOOST_AUTO_TEST_CASE( NeighborList_tests )
     nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
     neighborlist_basic_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     neighborlist_exclusion_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    neighborlist_body_exclusion_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 //! boost test case for BinnedNeighborList
@@ -363,6 +434,7 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborList_tests )
     
     neighborlist_basic_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     neighborlist_exclusion_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    neighborlist_body_exclusion_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     neighborlist_comparison_test(base_creator, binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
@@ -375,6 +447,7 @@ BOOST_AUTO_TEST_CASE( NeighborListNsqGPU_tests )
     
     neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    neighborlist_body_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
@@ -386,6 +459,7 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborListGPU_tests )
     
     neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    neighborlist_body_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
