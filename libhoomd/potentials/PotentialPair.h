@@ -427,7 +427,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             if (evaluator::needsDiameter())
                 eval.setDiameter(di, dj);
             if (evaluator::needsCharge())
-                eval.setCharge(di, dj);
+                eval.setCharge(qi, qj);
             
             bool evaluated = eval.evalForceAndEnergy(force_divr, pair_eng, energy_shift);
             
