@@ -45,7 +45,6 @@ enable_testing()
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
-    test_bd_rigid_updater
     test_index1d
     test_molfile
     test_gpu_array
@@ -85,7 +84,8 @@ endif(ENABLE_CUDA)
     # put the longest tests last
     set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator
-    test_npt_integrator)
+    test_npt_integrator
+    test_bd_rigid_updater)
 
 foreach (CUR_TEST ${TEST_LIST})
     # add and link the unit test executable
