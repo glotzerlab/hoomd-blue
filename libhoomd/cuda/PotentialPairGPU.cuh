@@ -44,6 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "gpu_settings.h"
+#include "HOOMDMath.h"
 #include "ForceCompute.cuh"
 #include "NeighborList.cuh"
 #include "ParticleData.cuh"
