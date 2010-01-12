@@ -445,6 +445,7 @@ class nlist:
     # - \b %bond - Exclude particles that are directly bonded together
     # - \b %angle - Exclude the two outside particles in all defined angles.
     # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
+    # - \b %body - Exclude particles that would be neighbors with others in the same rigid body
     #
     # The following types are determined soley by the bond topology. Every chain of particles in the simulation 
     # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
@@ -506,6 +507,12 @@ class nlist:
         if '1-4' in exclusions:
             self.cpp_nlist.addOneFourExclusionsFromTopology();
             exclusions.remove('1-4');
+        
+        if 'body' in exclusions:
+            self.cpp_nlist.setExcludeSameBody(True);
+            exclusions.remove('body');
+        else:
+            self.cpp_nlist.setExcludeSameBody(False);
 
         # if there are any items left in the exclusion list, we have an error.
         if len(exclusions) > 0:

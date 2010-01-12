@@ -903,6 +903,8 @@ void NeighborList::countExclusions()
     cout << "Max. number of exclusions: " << max_num_excluded << endl;
     for (unsigned int i=0; i <= max_num_excluded; ++i)
         cout << "Particles with " << i << " exclusions: " << excluded_count[i] << endl;
+    if (m_exclude_same_body)
+        cout << "Particles in the same rigid body will also be excluded" << endl;
     }
 
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be
