@@ -328,7 +328,7 @@ shared_ptr<NeighborList> base_class_nlist_creator(shared_ptr<SystemDefinition> s
 
 shared_ptr<NeighborList> binned_nlist_creator(shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
     {
-    return shared_ptr<NeighborList>(new NeighborList(sysdef, r_cut, r_buff));
+    return shared_ptr<NeighborList>(new BinnedNeighborList(sysdef, r_cut, r_buff));
     }
 
 #ifdef ENABLE_CUDA
