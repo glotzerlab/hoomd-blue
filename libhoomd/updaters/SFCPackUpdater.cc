@@ -212,7 +212,13 @@ void SFCPackUpdater::applySortOrder()
         uint_tmp[i] = arrays.type[m_sort_order[i]];
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         arrays.type[i] = uint_tmp[i];
-        
+    
+    // sort body
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        uint_tmp[i] = arrays.body[m_sort_order[i]];
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        arrays.body[i] = uint_tmp[i];
+    
     // sort tag
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         uint_tmp[i] = arrays.tag[m_sort_order[i]];
