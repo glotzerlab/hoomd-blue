@@ -177,8 +177,8 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
     fc2->setRcut(0, 0, Scalar(3.0));
     
     // setup some values for epsilon and sigma
-    Scalar epsilon = Scalar(1.0);
-    Scalar kappa = Scalar(2.0);
+    Scalar epsilon = Scalar(5.0);
+    Scalar kappa = Scalar(6.0);
     
     // specify the force parameters
     fc1->setParams(0,0,make_scalar2(epsilon,kappa));
