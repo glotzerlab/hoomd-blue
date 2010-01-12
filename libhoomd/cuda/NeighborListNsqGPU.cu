@@ -65,6 +65,7 @@ const int NLIST_BLOCK_SIZE = 128;
     \param pdata Particles to generate the neighbor list from
     \param box Box dimensions for handling periodic boundary conditions
     \param r_maxsq Precalculated value for r_max*r_max
+    \param exclude_same_body Set to true to exclude particles that belong to the same rigid body
 
     each thread is to compute the neighborlist for a single particle i
     each block will load a bunch of particles into shared mem and then each thread will compare it's particle
@@ -75,7 +76,11 @@ const int NLIST_BLOCK_SIZE = 128;
     blockDim.x elements.
 */
 extern "C" __global__ 
-void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata, gpu_boxsize box, float r_maxsq)
+void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist,
+                                  gpu_pdata_arrays pdata,
+                                  gpu_boxsize box,
+                                  float r_maxsq,
+                                  bool exclude_same_body)
     {
     // shared data to store all of the particles we compare against
     __shared__ float sdata[NLIST_BLOCK_SIZE*4];
@@ -90,6 +95,11 @@ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata,
     float px = pos.x;
     float py = pos.y;
     float pz = pos.z;
+    
+    // read in the particle's body if we are going to exclude based on that
+    unsigned int pbody = 0;
+    if (exclude_same_body)
+        pbody = pdata.body[pidx];
     
     // track the number of neighbors added so far
     int n_neigh = 0;
@@ -116,14 +126,19 @@ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata,
         // load data
         float4 neigh_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
         if (start + threadIdx.x < pdata.N)
+            {
             neigh_pos = pdata.pos[start + threadIdx.x];
+            // read in the particle's body if we are going to exclude based on that
+            if (exclude_same_body)
+                neigh_pos.w = __int_as_float(pdata.body[start + threadIdx.x]);
+            }
             
         // make sure everybody is caught up before we stomp on the memory
         __syncthreads();
         sdata[threadIdx.x] = neigh_pos.x;
         sdata[threadIdx.x + NLIST_BLOCK_SIZE] = neigh_pos.y;
         sdata[threadIdx.x + 2*NLIST_BLOCK_SIZE] = neigh_pos.z;
-        sdata[threadIdx.x + 3*NLIST_BLOCK_SIZE] = neigh_pos.w; //< unused, but try to get compiler to fully coalesce reads
+        sdata[threadIdx.x + 3*NLIST_BLOCK_SIZE] = neigh_pos.w;
         
         // ensure all data is loaded
         __syncthreads();
@@ -138,6 +153,14 @@ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata,
             
             for (int cur_offset = 0; cur_offset < end_offset; cur_offset++)
                 {
+                // test for same rigid body exclusion
+                if (exclude_same_body && pbody != NO_BODY)
+                    {
+                    unsigned int bodyj = __float_as_int(sdata[cur_offset + 3*NLIST_BLOCK_SIZE]);
+                    if (pbody == bodyj)
+                        continue;
+                    }
+                
                 // calculate dr
                 float dx = px - sdata[cur_offset];
                 dx = dx - box.Lx * rintf(dx * box.Lxinv);
@@ -202,10 +225,15 @@ void gpu_compute_nlist_nsq_kernel(gpu_nlist_array nlist, gpu_pdata_arrays pdata,
     \param pdata Particles to generate the neighbor list from
     \param box Box dimensions for handling periodic boundary conditions
     \param r_maxsq Precalculated value for r_max*r_max
+    \param exclude_same_body Set to true to exclude particles that belong to the same rigid body
 
     see generateNlistNSQ for more information
 */
-cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist, const gpu_pdata_arrays &pdata, const gpu_boxsize &box, float r_maxsq)
+cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist,
+                                  const gpu_pdata_arrays &pdata,
+                                  const gpu_boxsize &box,
+                                  float r_maxsq,
+                                  bool exclude_same_body)
     {
     // setup the grid to run the kernel
     int M = NLIST_BLOCK_SIZE;
@@ -218,7 +246,7 @@ cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist, const gpu_pdata_
         return error;
         
     // run the kernel
-    gpu_compute_nlist_nsq_kernel<<< grid, threads >>>(nlist, pdata, box, r_maxsq);
+    gpu_compute_nlist_nsq_kernel<<< grid, threads >>>(nlist, pdata, box, r_maxsq, exclude_same_body);
     if (!g_gpu_error_checking)
         {
         return cudaSuccess;

@@ -58,7 +58,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist,
                                   const gpu_pdata_arrays &pdata,
                                   const gpu_boxsize &box,
-                                  float r_maxsq);
+                                  float r_maxsq,
+                                  bool exclude_same_body);
 
 #endif
 

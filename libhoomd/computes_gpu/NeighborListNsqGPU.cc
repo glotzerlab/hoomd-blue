@@ -152,7 +152,7 @@ void NeighborListNsqGPU::buildNlistAttempt()
     
     // calculate the nlist
     exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_compute_nlist_nsq, m_gpu_nlist[0], pdata[0], box, r_max_sq));
+    exec_conf.gpu[0]->call(bind(gpu_compute_nlist_nsq, m_gpu_nlist[0], pdata[0], box, r_max_sq, m_exclude_same_body));
     
     // amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
     int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;
