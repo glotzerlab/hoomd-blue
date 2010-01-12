@@ -84,8 +84,8 @@ using namespace std;
     \post The storage mode defaults to half
 */
 NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
-    : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_updates(0), m_forced_updates(0), 
-      m_dangerous_updates(0), m_force_update(true)
+    : Compute(sysdef), m_r_cut(r_cut), m_r_buff(r_buff), m_storage_mode(half), m_exclude_same_body(false),
+      m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true)
     {
     // check for two sensless errors the user could make
     if (m_r_cut < 0.0)
@@ -1434,6 +1434,9 @@ void NeighborList::buildNlist()
         const ExcludeList &excludes3 = m_exclusions3[arrays.tag[i]];
         const ExcludeList &excludes4 = m_exclusions4[arrays.tag[i]];
 #endif
+        unsigned int bodyi = 0;
+        if (m_exclude_same_body)
+            bodyi = arrays.body[i];
         
         // for each other particle with i < j
         for (unsigned int j = i + 1; j < arrays.nparticles; j++)
@@ -1451,7 +1454,15 @@ void NeighborList::buildNlist()
                     excludes4.e3 == arrays.tag[j] || excludes4.e4 == arrays.tag[j])
                 continue;
 #endif
-                
+            // test for same rigid body exclusion
+            unsigned int bodyj = 0;
+            if (m_exclude_same_body && bodyi != NO_BODY)
+                {
+                bodyj = arrays.body[j];
+                if (bodyi == bodyj)
+                    continue;
+                }
+            
             // calculate dr
             Scalar dx = arrays.x[j] - xi;
             Scalar dy = arrays.y[j] - yi;
@@ -1561,6 +1572,8 @@ void export_NeighborList()
                      .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
                      .def("forceUpdate", &NeighborList::forceUpdate)
                      .def("estimateNNeigh", &NeighborList::estimateNNeigh)
+                     .def("setExcludeSameBody", &NeighborList::setExcludeSameBody)
+                     .def("isExcludeSameBody", &NeighborList::isExcludeSameBody)
                      ;
                      
     enum_<NeighborList::storageMode>("storageMode")

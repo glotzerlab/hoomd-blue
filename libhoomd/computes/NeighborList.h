@@ -101,6 +101,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Any dynamic bonds added after calling copyExclusionsFromBonds() will not be added to the
     neighborlist exclusions: this must be done by hand.
 
+    Particles can also be excluded as neighbors if they are in the same rigid body. This option
+    defaults off and can be set by calling setExcludeSameBody().
+
     The calculated neighbor list can be read using getList().
 
     \ingroup computes
@@ -209,6 +212,22 @@ class NeighborList : public Compute
         //! Add an exclusion for every 1,4 pair
         void addOneFourExclusionsFromTopology();
         
+        //! Set whether particles in the same rigid body are excluded
+        /*! \param exclude_same_body When set to true, no particles belonging to the same rigid body will be included
+            as neighbors in the list.
+        */
+        void setExcludeSameBody(bool exclude_same_body)
+            {
+            m_exclude_same_body = exclude_same_body;
+            forceUpdate();
+            }
+        
+        //! Get the the exclude_same_body setting
+        bool isExcludeSameBody()
+            {
+            return m_exclude_same_body;
+            }
+        
         //! Forces a full update of the list on the next call to compute()
         void forceUpdate()
             {
@@ -233,6 +252,8 @@ class NeighborList : public Compute
         std::vector< ExcludeList > m_exclusions3; //!< Stores particle exclusion lists BY TAG
         std::vector< ExcludeList > m_exclusions4; //!< Stores particle exclusion lists BY TAG
 #endif
+        bool m_exclude_same_body;       //!< true if particles in the same body should be excluded
+
 #ifdef ENABLE_CUDA
         //! Simple type for identifying where the most up to date particle data is
         enum DataLocation
