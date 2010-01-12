@@ -281,6 +281,9 @@ void BinnedNeighborList::updateListFromBins()
         const ExcludeList &excludes3 = m_exclusions3[arrays.tag[n]];
         const ExcludeList &excludes4 = m_exclusions4[arrays.tag[n]];
 #endif
+        unsigned int bodyn = 0;
+        if (m_exclude_same_body)
+            bodyn = arrays.body[n];
         
         // find the bin each particle belongs in
         int ib = int((xn-box.xlo)*scalex);
@@ -330,6 +333,14 @@ void BinnedNeighborList::updateListFromBins()
                         // skip self pair
                         if (n == m)
                             continue;
+                        
+                        // skip pairs in same body
+                        if (m_exclude_same_body && bodyn != NO_BODY)
+                            {
+                            unsigned int bodym = arrays.body[m];
+                            if (bodyn == bodym)
+                                continue;
+                            }
                             
                         // calculate dx
                         Scalar dx = bin_list_x[k] - xn;
