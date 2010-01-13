@@ -383,6 +383,10 @@ void TwoStepNVERigid::computeForceAndTorque()
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
+    // access net force data
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
@@ -419,12 +423,10 @@ void TwoStepNVERigid::computeForceAndTorque()
             // get the actual index of particle in the particle arrays
             unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
             
-            // get the particle mass
-            Scalar mass_one = arrays.mass[pidx];
-            
-            Scalar fx = mass_one * arrays.ax[pidx];
-            Scalar fy = mass_one * arrays.ay[pidx];
-            Scalar fz = mass_one * arrays.az[pidx];
+            // access the force on the particle
+            Scalar fx = h_net_force.data[pidx].x;
+            Scalar fy = h_net_force.data[pidx].y;
+            Scalar fz = h_net_force.data[pidx].z;
             
             force_handle.data[body].x += fx;
             force_handle.data[body].y += fy;
