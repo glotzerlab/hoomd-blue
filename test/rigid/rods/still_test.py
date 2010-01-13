@@ -10,7 +10,7 @@ nlist.reset_exclusions(exclusions=['body'])
 integrate.mode_standard(dt=0.005)
 integrate.nve_rigid(group=group.all())
 
-dump.dcd(filename='nve.dcd', period=50, overwrite=True)
-analyze.log(filename="nve.log", period=100, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
+dump.dcd(filename='still.dcd', period=50, overwrite=True)
+analyze.log(filename="still.log", period=100, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
-run(100000)
+run(5000)
