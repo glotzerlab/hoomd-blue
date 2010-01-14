@@ -140,6 +140,10 @@ void RigidData::initializeData()
     
     // get the particle data
     const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
+    BoxDim box = m_pdata->getBox();
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
     
     // determine the number of rigid bodies
     unsigned int maxbody = arrays.body[0];
@@ -253,10 +257,13 @@ void RigidData::initializeData()
             unsigned int body = arrays.body[j];
             Scalar mass_one = arrays.mass[j];
             body_mass_handle.data[body] += mass_one;
+            Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
+            Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
+            Scalar unwrappedz = arrays.z[j] + Lz * arrays.iz[j];
             
-            com_handle.data[body].x += mass_one * arrays.x[j];
-            com_handle.data[body].y += mass_one * arrays.y[j];
-            com_handle.data[body].z += mass_one * arrays.z[j];
+            com_handle.data[body].x += mass_one * unwrappedx;
+            com_handle.data[body].y += mass_one * unwrappedy;
+            com_handle.data[body].z += mass_one * unwrappedz;
             }
             
         // com, vel and body images
@@ -284,6 +291,13 @@ void RigidData::initializeData()
             Scalar dy = arrays.y[j] - com_handle.data[body].y;
             Scalar dz = arrays.z[j] - com_handle.data[body].z;
             
+            if (dx >= Lx/2.0) dx -= Lx;
+            if (dx < -Lx/2.0) dx += Lx;
+            if (dy >= Ly/2.0) dy -= Ly;
+            if (dy < -Ly/2.0) dy += Ly;
+            if (dz >= Lz/2.0) dz -= Lz;
+            if (dz < -Lz/2.0) dz += Lz;
+            
             inertia_handle.data[inertia_pitch * body] += mass_one * (dy * dy + dz * dz);
             inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);
             inertia_handle.data[inertia_pitch * body + 2] += mass_one * (dx * dx + dy * dy);
@@ -291,9 +305,6 @@ void RigidData::initializeData()
             inertia_handle.data[inertia_pitch * body + 4] -= mass_one * dy * dz;
             inertia_handle.data[inertia_pitch * body + 5] -= mass_one * dx * dz;
             }
-        
-        // find the inverse moment of inertia tensor
-   //     findInverseMomentInertiaTensor(inertia_handle.data, 
         
         // allocate temporary arrays: revision needed!
         Scalar **matrix, *evalues, **evectors;
@@ -427,6 +438,13 @@ void RigidData::initializeData()
             Scalar dx = arrays.x[j] - com_handle.data[body].x;
             Scalar dy = arrays.y[j] - com_handle.data[body].y;
             Scalar dz = arrays.z[j] - com_handle.data[body].z;
+            
+            if (dx >= Lx/2.0) dx -= Lx;
+            if (dx < -Lx/2.0) dx += Lx;
+            if (dy >= Ly/2.0) dy -= Ly;
+            if (dy < -Ly/2.0) dy += Ly;
+            if (dz >= Lz/2.0) dz -= Lz;
+            if (dz < -Lz/2.0) dz += Lz;
             
             unsigned int idx = body * particle_pos_pitch + current_localidx;
             particle_pos_handle.data[idx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
