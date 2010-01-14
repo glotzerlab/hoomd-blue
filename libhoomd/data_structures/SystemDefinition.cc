@@ -92,7 +92,10 @@ SystemDefinition::SystemDefinition(unsigned int N,
 #ifdef ENABLE_CUDA
     if (exec_conf.gpu.size() <= 1)
 #endif
+        {
         m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
+        m_rigid_data->initializeData();
+        }
         
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
@@ -124,7 +127,10 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 #ifdef ENABLE_CUDA
     if (exec_conf.gpu.size() <= 1)
 #endif
+        {
         m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
+        m_rigid_data->initializeData();
+        }
         
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
     init.initAngleData(m_angle_data);
@@ -137,17 +143,6 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 
     m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
     init.initIntegratorData(m_integrator_data);
-    }
-
-/*! Initialize required data before runs
-
-*/
-int SystemDefinition::init()
-    {
-    // initialize rigid bodies
-    if (m_rigid_data) m_rigid_data->initializeData();
-    
-    return 1;
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of 
@@ -182,7 +177,6 @@ void export_SystemDefinition()
     .def("getWallData", &SystemDefinition::getWallData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
     .def("getRigidData", &SystemDefinition::getRigidData)
-    .def("init", &SystemDefinition::init)
     ;
     }
 

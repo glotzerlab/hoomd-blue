@@ -116,9 +116,6 @@ class SystemDefinition
         SystemDefinition(const ParticleDataInitializer& init,
                          const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
         
-        //! Initialize data
-        int init();
-        
         //! Set the dimensionality of the system
         void setNDimensions(unsigned int);
         
