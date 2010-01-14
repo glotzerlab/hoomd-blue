@@ -9,11 +9,11 @@ nlist.reset_exclusions(exclusions=['body'])
 sorter.disable()
 nlist.set_params(r_buff=0.0)
 
-integrate.mode_standard(dt=0.001)
-bdnvt = integrate.bdnvt_rigid(group=group.all(), T=1.2)
+integrate.mode_standard(dt=0.005)
+bdnvt = integrate.bdnvt_rigid(group=group.all(), T=3.0)
 
-dump.dcd(filename='nve_basic.dcd', period=1, overwrite=True)
-analyze.log(filename="nve_basic.log", period=1, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
+dump.dcd(filename='nve_basic.dcd', period=100, overwrite=True)
+analyze.log(filename="nve_basic.log", period=50, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
 run(5000, profile=True)
 
