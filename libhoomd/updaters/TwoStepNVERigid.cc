@@ -97,6 +97,7 @@ void TwoStepNVERigid::setup()
     {
      //! Get the number of rigid bodies for frequent use
     m_n_bodies = m_rigid_data->getNumBodies();
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // get box
     const BoxDim& box = m_pdata->getBox();
@@ -125,6 +126,8 @@ void TwoStepNVERigid::setup()
         ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+        
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
         
         // Reset all forces and torques
         for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -166,10 +169,11 @@ void TwoStepNVERigid::setup()
                 vel_handle.data[body].y += mass_one * arrays.vy[pidx];
                 vel_handle.data[body].z += mass_one * arrays.vz[pidx];
                 
-                Scalar fx = mass_one * arrays.ax[pidx];
-                Scalar fy = mass_one * arrays.ay[pidx];
-                Scalar fz = mass_one * arrays.az[pidx];
-                
+                Scalar fx, fy, fz;
+                fx = h_net_force.data[pidx].x;
+                fy = h_net_force.data[pidx].y;
+                fz = h_net_force.data[pidx].z;
+                    
                 force_handle.data[body].x += fx;
                 force_handle.data[body].y += fy;
                 force_handle.data[body].z += fz;
@@ -201,7 +205,6 @@ void TwoStepNVERigid::setup()
             
         for (unsigned int body = 0; body < m_n_bodies; body++)
             {
-            
             vel_handle.data[body].x /= body_mass_handle.data[body];
             vel_handle.data[body].y /= body_mass_handle.data[body];
             vel_handle.data[body].z /= body_mass_handle.data[body];
