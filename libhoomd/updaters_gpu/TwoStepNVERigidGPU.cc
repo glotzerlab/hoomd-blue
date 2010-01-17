@@ -212,6 +212,16 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
   
+    exec_conf.tagAll(__FILE__, __LINE__);
+    exec_conf.gpu[0]->call(bind(gpu_rigid_force, 
+                                d_pdata[0], 
+                                d_rdata, 
+                                d_index_array.data,
+                                group_size,
+                                d_net_force.data,
+                                box, 
+                                m_deltaT)); 
+                                
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_nve_rigid_step_two, 

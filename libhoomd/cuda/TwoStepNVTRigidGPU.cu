@@ -1327,13 +1327,13 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
 
     // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
     // tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
-    // Interestingly, if the rigid force kernel is called from outside module (TwoStepNVERigid.cu), the force kernel messed up, probably with the shared memory (??)
+    // Interestingly, if the rigid force kernel is called from outside module (TwoStepNVERigid.cu), the force kernel messed up, probably with the shared memory
     // so I have to make the force kernel local here. Remember to update the reduction algorithm at both places.
     unsigned int window_size = nmax;
     unsigned int block_size = nmax; // each thread in a block takes care of a particle in a rigid body
     dim3 force_grid(n_bodies, 1, 1);
     dim3 force_threads(block_size, 1, 1); 
-    
+/*    
     gpu_nvt_rigid_force_kernel<<< force_grid, force_threads, 2 * window_size * sizeof(float4) >>>(rigid_data.force, 
                                                                                              rigid_data.torque, 
                                                                                              n_bodies, 
@@ -1341,7 +1341,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                                              nmax,
                                                                                              window_size,
                                                                                              box);
-                                                                                             
+*/                                                                                             
     error = cudaBindTexture(0, rigid_data_force_tex, rigid_data.force, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;

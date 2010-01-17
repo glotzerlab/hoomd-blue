@@ -725,6 +725,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         
     }
 
+    
 #pragma mark RIGID_STEP_TWO_KERNEL
 
 //! The texture for reading the net force array
@@ -1077,7 +1078,6 @@ extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel,
         }
     }
 
-
 /*! \param pdata Particle data to step forward in time
     \param force_data_ptrs List of pointers to forces on each particle
     \param num_forces Number of forces listed in \a force_data_ptrs
@@ -1086,7 +1086,8 @@ extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel,
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
 */
-cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata, 
+
+cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata, 
                                    const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
                                    unsigned int group_size, 
@@ -1165,7 +1166,105 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                                                              nmax,
                                                                                              window_size,
                                                                                              box);
+           
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+    }
+
+
+/*! \param pdata Particle data to step forward in time
+    \param force_data_ptrs List of pointers to forces on each particle
+    \param num_forces Number of forces listed in \a force_data_ptrs
+    \param deltaT Amount of real time to step forward in one time step
     
+*/
+cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata, 
+                                   const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size, 
+                                   float4 *d_net_force,
+                                   const gpu_boxsize &box,
+                                   float deltaT)
+    {
+    unsigned int n_bodies = rigid_data.n_bodies;
+    unsigned int local_beg = rigid_data.local_beg;
+    unsigned int nmax = rigid_data.nmax;
+    
+    // bind the textures for ALL rigid bodies
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_mass_tex, rigid_data.body_mass, sizeof(float) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_moment_inertia_tex, rigid_data.moment_inertia, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_vel_tex, rigid_data.vel, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_angvel_tex, rigid_data.angvel, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_angmom_tex, rigid_data.angmom, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_exspace_tex, rigid_data.ex_space, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_eyspace_tex, rigid_data.ey_space, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_ezspace_tex, rigid_data.ez_space, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_particle_pos_tex, rigid_data.particle_pos, sizeof(float4) * n_bodies * nmax);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_particle_indices_tex, rigid_data.particle_indices, sizeof(unsigned int) * n_bodies * nmax);
+    if (error != cudaSuccess)
+        return error;
+    
+    // bind the textures for particles
+    error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;        
+   
+    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;   
+        
+    // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
+    // tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
+    unsigned int window_size = nmax;
+    unsigned int block_size = nmax; // each thread in a block takes care of a particle in a rigid body
+    dim3 force_grid(n_bodies, 1, 1);
+    dim3 force_threads(block_size, 1, 1); 
+/*    gpu_rigid_force_kernel<<< force_grid, force_threads, 2 * window_size * sizeof(float4) >>>(rigid_data.force, 
+                                                                                             rigid_data.torque, 
+                                                                                             n_bodies, 
+                                                                                             local_beg,
+                                                                                             nmax,
+                                                                                             window_size,
+                                                                                             box);
+*/    
     error = cudaBindTexture(0, rigid_data_force_tex, rigid_data.force, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -1217,5 +1316,3 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
         return cudaGetLastError();
         }
     }
-
-

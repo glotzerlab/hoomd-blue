@@ -73,6 +73,15 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
 /*! Shared kernels for rigid bodies
 */
 
+//! Kernel driver for the force and torque computes
+cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
+                             const gpu_rigid_data_arrays& rigid_data, 
+                             unsigned int *d_group_members,
+                             unsigned int group_size,
+                             float4 *d_net_force,
+                             const gpu_boxsize &box, 
+                             float deltaT);
+                                                          
 //! Kernel for the first step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
 extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,

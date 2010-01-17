@@ -236,6 +236,16 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 args,
                                 m_deltaT)); 
     
+    exec_conf.tagAll(__FILE__, __LINE__);
+    exec_conf.gpu[0]->call(bind(gpu_rigid_force, 
+                                d_pdata[0], 
+                                d_rdata, 
+                                d_index_array.data,
+                                group_size,
+                                d_net_force.data,
+                                box, 
+                                m_deltaT)); 
+                                
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_nve_rigid_step_two, 

@@ -290,6 +290,16 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
+    exec_conf.tagAll(__FILE__, __LINE__);
+    exec_conf.gpu[0]->call(bind(gpu_rigid_force, 
+                                d_pdata[0], 
+                                d_rdata, 
+                                d_index_array.data,
+                                group_size,
+                                d_net_force.data,
+                                box, 
+                                m_deltaT)); 
+                                
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_step_two, 
