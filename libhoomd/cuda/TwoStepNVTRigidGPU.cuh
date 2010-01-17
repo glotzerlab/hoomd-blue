@@ -46,6 +46,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ParticleData.cuh"
 #include "RigidData.cuh"
+#include "TwoStepNVERigidGPU.cuh"
 
 #ifndef __TWO_STEP_NVT_RIGID_CUH__
 #define __TWO_STEP_NVT_RIGID_CUH__

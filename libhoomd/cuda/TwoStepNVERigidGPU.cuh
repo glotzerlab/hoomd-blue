@@ -70,5 +70,33 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize &box, 
                              float deltaT);
 
+/*! Shared kernels for rigid bodies
+*/
+
+//! Kernel for the first step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
+extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
+                                                        float4* pdata_vel,
+                                                        int4* pdata_image,
+                                                        unsigned int n_bodies, 
+                                                        unsigned int local_beg,
+                                                        gpu_boxsize box);
+                                                        
+//! Kernel for the body force and torque called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
+extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force, 
+                                                 float4* rdata_torque, 
+                                                 unsigned int n_bodies, 
+                                                 unsigned int local_beg,
+                                                 unsigned int nmax,
+                                                 unsigned int window_size,
+                                                 gpu_boxsize box);
+                                                 
+//! Kernel for the second step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
+extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel, 
+                                                         unsigned int n_bodies, 
+                                                         unsigned int local_beg,
+                                                         unsigned int nmax,
+                                                         gpu_boxsize box);
+                                                         
+
 #endif //__TWO_STEP_NVE_RIGID_GPU_CUH__
 
