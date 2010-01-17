@@ -70,9 +70,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize &box, 
                              float deltaT);
 
-/*! Shared kernels for rigid bodies
-*/
-
 //! Kernel driver for the force and torque computes
 cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                              const gpu_rigid_data_arrays& rigid_data, 
@@ -81,6 +78,9 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                              float4 *d_net_force,
                              const gpu_boxsize &box, 
                              float deltaT);
+                             
+/*! Shared kernels for rigid body integrators
+*/
                                                           
 //! Kernel for the first step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
 extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
@@ -89,15 +89,6 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
                                                         gpu_boxsize box);
-                                                        
-//! Kernel for the body force and torque called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
-extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force, 
-                                                 float4* rdata_torque, 
-                                                 unsigned int n_bodies, 
-                                                 unsigned int local_beg,
-                                                 unsigned int nmax,
-                                                 unsigned int window_size,
-                                                 gpu_boxsize box);
                                                  
 //! Kernel for the second step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
 extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel, 
