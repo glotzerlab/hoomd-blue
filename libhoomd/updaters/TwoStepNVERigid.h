@@ -71,7 +71,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
                         boost::shared_ptr<ParticleGroup> group,
                         bool skip_restart=false);
         
-        //! Setup the initial net forces, torques and angular momenta
+        //! Computes the initial net forces, torques and angular momenta
        virtual void setup();
         
         //! Performs the first step of the integration
@@ -80,7 +80,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Performs the second step of the 
         virtual void integrateStepTwo(unsigned int timestep);        
        
-        //! Summing the net forces and torques
+        //! Computes the body forces and torques
         void computeForceAndTorque();
         
     protected:

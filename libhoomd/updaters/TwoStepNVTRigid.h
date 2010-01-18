@@ -109,21 +109,20 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         unsigned int iter;                          //!< Number of iterations
         unsigned int order;                         //!< Number of thermostat per chain
         
-        //!< Thermostat fictious positions and velocities
-        GPUArray<Scalar>    q_t;
-        GPUArray<Scalar>    q_r;
-        GPUArray<Scalar>    eta_t;
-        GPUArray<Scalar>    eta_r;
-        GPUArray<Scalar>    eta_dot_t;
-        GPUArray<Scalar>    eta_dot_r;
-        GPUArray<Scalar>    f_eta_t;
-        GPUArray<Scalar>    f_eta_r;
+        GPUArray<Scalar>    q_t;                    //!< Thermostat translational mass
+        GPUArray<Scalar>    q_r;                    //!< Thermostat rotational mass
+        GPUArray<Scalar>    eta_t;                  //!< Thermostat translational position
+        GPUArray<Scalar>    eta_r;                  //!< Thermostat rotational position
+        GPUArray<Scalar>    eta_dot_t;              //!< Thermostat translational velocity
+        GPUArray<Scalar>    eta_dot_r;              //!< Thermostat rotational velocity
+        GPUArray<Scalar>    f_eta_t;                //!< Thermostat translational force
+        GPUArray<Scalar>    f_eta_r;                //!< Thermostat rotational force
         
-        GPUArray<Scalar>    w;
-        GPUArray<Scalar>    wdti1;
-        GPUArray<Scalar>    wdti2;
-        GPUArray<Scalar>    wdti4;
-        GPUArray<Scalar4>   conjqm;
+        GPUArray<Scalar>    w;                      //!< Thermostat chain coefficients
+        GPUArray<Scalar>    wdti1;                  //!< Thermostat chain coefficients
+        GPUArray<Scalar>    wdti2;                  //!< Thermostat chain coefficients
+        GPUArray<Scalar>    wdti4;                  //!< Thermostat chain coefficients
+        GPUArray<Scalar4>   conjqm;                 //!< Thermostat angular momentum
 
     };
 

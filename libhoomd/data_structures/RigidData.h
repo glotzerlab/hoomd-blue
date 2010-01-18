@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RigidData.cuh"
 #endif
 
+//! Flag for invalid particle index
 const unsigned int NO_INDEX = 0xffffffff;
 
 //! Stores all per rigid body values

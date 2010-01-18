@@ -55,10 +55,12 @@ using namespace boost::python;
 #include "TwoStepNVTRigid.h"
 #include <math.h>
 
+//! Tolerance for zero principle moments
 #define EPSILON 1.0e-7
 
-/*! \param pdata Particle data to update
-    \param deltaT Time step to use
+/*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
+ \param group The group of particles this integration method is to work on
+ \param temperature Controlled temperature
 */
 TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<ParticleGroup> group, 
@@ -196,7 +198,7 @@ void TwoStepNVTRigid::setup()
     }
 
 /*!
-    First integration step
+    \param timestep Current time step
 */
 void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     {
@@ -218,7 +220,7 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     
     Scalar tmp, akin_t, akin_r, scale_t, scale_r;
     Scalar4 mbody, tbody, fquat;
-    Scalar dtfm, dtq, dtv, dt_half;
+    Scalar dtfm, dt_half;
     
     dt_half = 0.5 * m_deltaT;
     
@@ -372,7 +374,7 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
     
     Scalar tmp, scale_t, scale_r;
     Scalar4 mbody, tbody, fquat;
-    Scalar dtq, dtv, dt_half;
+    Scalar dt_half;
     
     dt_half = 0.5 * m_deltaT;
     

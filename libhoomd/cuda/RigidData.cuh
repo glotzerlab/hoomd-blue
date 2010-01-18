@@ -48,18 +48,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code and data structure functions used by RigidData
 */
 
-//! Structure of arrays of the rigid data as it resides on the GPU
-/*! Stores pointers to the particles positions, velocities, acceleartions, and particle tags.
-    Particle type information is most likely needed along with the position, so the type
-    is encoded in the 4th float in the position float4 as an integer. Device code
-    can decode this type data with __float_as_int();
-
+//! Arrays of the rigid data as it resides on the GPU
+/*! 
     All the pointers in this structure are allocated on the device.
 
-    This structure is about to be rewritten. Consider it being documented as poorly documented
-    for now.
-
-    \ingroup gpu_data_structs
+   \ingroup gpu_data_structs
 */
 struct gpu_rigid_data_arrays
     {
@@ -89,26 +82,32 @@ struct gpu_rigid_data_arrays
     unsigned int *particle_tags;    //!< Particle tags
     };
 
+/*! Arrays for the thermostat data used by NVT integrator
+    
+    All the pointers in this structure are allocated on the device.
+
+    \ingroup gpu_data_structs
+*/
 struct gpu_nvt_rigid_data_arrays
     {
-    unsigned int n_bodies;
+    unsigned int n_bodies;  //!< Number of rigid bodies in the arrays
     
-    float  *q_t;
-    float  *q_r;
-    float  *eta_t;
-    float  *eta_r;
-    float  *eta_dot_t;
-    float  *eta_dot_r;
-    float  *f_eta_t;
-    float  *f_eta_r;
-    float  *w;
-    float  *wdti1;
-    float  *wdti2;
-    float  *wdti4;
-    float4 *conjqm;
+    float  *q_t;            //!< Thermostat translational mass
+    float  *q_r;            //!< Thermostat rotational mass
+    float  *eta_t;          //!< Thermostat translational position
+    float  *eta_r;          //!< Thermostat rotational position
+    float  *eta_dot_t;      //!< Thermostat translational velocity
+    float  *eta_dot_r;      //!< Thermostat rotational velocity
+    float  *f_eta_t;        //!< Thermostat translational force
+    float  *f_eta_r;        //!< Thermostat rotational force
+    float  *w;              //!< Thermostat chain coefficients 
+    float  *wdti1;          //!< Thermostat chain coefficients 
+    float  *wdti2;          //!< Thermostat chain coefficients 
+    float  *wdti4;          //!< Thermostat chain coefficients 
+    float4 *conjqm;         //!< Thermostat angular momentum 
     
-    float   *partial_ke;
-    float   *ke;
+    float   *partial_ke;    //!< Body kinetic energy
+    float   *ke;            //!< All body kinetic energy
     };
 
 #endif

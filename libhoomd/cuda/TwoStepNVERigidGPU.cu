@@ -53,7 +53,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NVE integration on the GPU. Used by NVEUpdaterGPU.
 */
 
-#define INVALID_INDEX 0xffffffff // identical to the sentinel value NO_INDEX in RigidData.h
+//! Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
+#define INVALID_INDEX 0xffffffff 
 
 //! The texture for reading the pdata pos array
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
@@ -104,6 +105,13 @@ texture<float4, 1, cudaReadModeElementType> rigid_data_torque_tex;
 #pragma mark HELPER
 //! Helper functions for rigid body quaternion update
 
+/*! Convert the body axes from the quaternion
+    \param quat Quaternion
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+
+*/
 __device__ void exyzFromQuaternion(float4& quat, float4& ex_space, float4& ey_space, float4& ez_space)
     {
     // ex_space
@@ -122,6 +130,14 @@ __device__ void exyzFromQuaternion(float4& quat, float4& ex_space, float4& ey_sp
     ez_space.z = quat.x * quat.x - quat.y * quat.y - quat.z * quat.z + quat.w * quat.w;
     }
 
+/*! Compute angular velocity from angular momentum 
+    \param angmom Angular momentum
+    \param moment_inertia Moment of inertia
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    \param angvel Returned angular velocity
+*/
 __device__ void computeAngularVelocity(float4& angmom, float4& moment_inertia, float4& ex_space, float4& ey_space, float4& ez_space, float4& angvel)
     {
     //! Angular velocity in the body frame
@@ -143,7 +159,7 @@ __device__ void computeAngularVelocity(float4& angmom, float4& moment_inertia, f
     angvel.z = angbody.x * ex_space.z + angbody.y * ey_space.z + angbody.z * ez_space.z;
     }
 
-/*! Quaternion multiply: c = a * b where a = (0, a)
+/* Quaternion multiply: c = a * b where a = (0, a)
  */
 
 __device__ void multiply(float4& a, float4& b, float4& c)
@@ -154,7 +170,7 @@ __device__ void multiply(float4& a, float4& b, float4& c)
     c.w =   b.x * a.z + a.x * b.z - a.y * b.y;
     }
 
-/*! Normalize a quaternion
+/* Normalize a quaternion
  */
 
 __device__ void normalize(float4 &q)
@@ -167,6 +183,15 @@ __device__ void normalize(float4 &q)
     }
 
 /*! Advance the quaternion using angular momentum and angular velocity
+    \param angmom Angular momentum
+    \param moment_inertia Moment of inertia
+    \param angvel Returned angular velocity
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    \param quat Returned quaternion
+    \param deltaT Time step
+    
  */
 __device__ void advanceQuaternion(float4& angmom, float4& moment_inertia, float4& angvel, float4& ex_space, float4& ey_space, float4& ez_space, float4& quat, float deltaT)
     {
@@ -219,12 +244,24 @@ __device__ void advanceQuaternion(float4& angmom, float4& moment_inertia, float4
     }
 
 #pragma mark RIGID_STEP_ONE_KERNEL
-//! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
-/*! 
-    \param deltaT timestep
+
+/*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
+    \param rdata_com Body center of mass
+    \param rdata_vel Body velocity
+    \param rdata_angmom Angular momentum
+    \param rdata_angvel Angular velocity
+    \param rdata_orientation Quaternion
+    \param rdata_ex_space x-axis unit vector
+    \param rdata_ey_space y-axis unit vector
+    \param rdata_ez_space z-axis unit vector
+    \param rdata_body_imagex Body image in x-direction
+    \param rdata_body_imagey Body image in y-direction
+    \param rdata_body_imagez Body image in z-direction
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param deltaT Timestep 
     \param box Box dimensions for periodic boundary condition handling
 */
-
 extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com, 
                                                         float4* rdata_vel, 
                                                         float4* rdata_angmom, 
@@ -324,6 +361,14 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
         }
     }
 
+/*!
+    \param pdata_pos Particle position
+    \param pdata_vel Particle velocity
+    \param pdata_image Particle image
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param box Box dimensions for periodic boundary condition handling
+*/
 extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
@@ -395,12 +440,13 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
         }
     }
 
+//! Takes the first 1/2 step forward in the NVE integration step
 /*! \param pdata Particle data to step forward 1/2 step
+    \param rigid_data Rigid body data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
 */
 cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata, 
                                    const gpu_rigid_data_arrays& rigid_data, 
@@ -567,23 +613,23 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     }
 
     
-#pragma mark RIGID_STEP_TWO_KERNEL
+#pragma mark RIGID_FORCE_KERNEL
 
 //! The texture for reading the net force array
 texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
-//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
-/*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
-    \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
-*/
-
+//! Shared memory for body force and torque reduction, required allocation when the kernel is called
 extern __shared__ float4 sum[];
 
+//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
+/*! \param rdata_force Particle data to step forward in time
+    \param rdata_torque List of pointers to forces on each particle
+    \param n_bodies Number of forces listed in \a force_data_ptrs
+    \param local_beg Amount of real time to step forward in one time step
+    \param nmax Maximum number of particles in a rigid body
+    \param window_size Window size for reduction
+    \param box Box dimensions for periodic boundary condition handling
+*/
 extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force, 
                                                  float4* rdata_torque, 
                                                  unsigned int n_bodies, 
@@ -677,6 +723,78 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
            
     }
 
+/*! \param pdata Particle data to step forward 1/2 step
+    \param rigid_data Rigid body data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param d_net_force Particle net forces
+    \param box Box dimensions for periodic boundary condition handling
+    \param deltaT Amount of real time to step forward in one time step
+*/
+cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata, 
+                                   const gpu_rigid_data_arrays& rigid_data,
+                                   unsigned int *d_group_members,
+                                   unsigned int group_size, 
+                                   float4 *d_net_force,
+                                   const gpu_boxsize &box,
+                                   float deltaT)
+    {
+    unsigned int n_bodies = rigid_data.n_bodies;
+    unsigned int local_beg = rigid_data.local_beg;
+    unsigned int nmax = rigid_data.nmax;
+    
+    // bind the textures for ALL rigid bodies
+    cudaError_t error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    // bind the textures for particles
+    error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;        
+   
+    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;   
+        
+    // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
+    // tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
+    unsigned int window_size = nmax;
+    unsigned int block_size = nmax; // each thread in a block takes care of a particle in a rigid body
+    dim3 force_grid(n_bodies, 1, 1);
+    dim3 force_threads(block_size, 1, 1); 
+    gpu_rigid_force_kernel<<< force_grid, force_threads, 2 * window_size * sizeof(float4) >>>(rigid_data.force, 
+                                                                                             rigid_data.torque, 
+                                                                                             n_bodies, 
+                                                                                             local_beg,
+                                                                                             nmax,
+                                                                                             window_size,
+                                                                                             box);
+           
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+    }
+
+
+#pragma mark RIGID_STEP_TWO_KERNEL
+
+/*! Takes the second half-step forward for rigid bodies in the velocity-verlet NVE integration
+    \param rdata_vel Body velocity
+    \param rdata_angmom Angular momentum
+    \param rdata_angvel Angular velocity
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param nmax Maximum number of particles in a rigid body
+    \param deltaT Timestep 
+    \param box Box dimensions for periodic boundary condition handling
+*/
 extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel, 
                                                          float4* rdata_angmom, 
                                                          float4* rdata_angvel,
@@ -730,6 +848,13 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
         }
     }
 
+/*!
+    \param pdata_vel Particle velocity
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param nmax Maximum number of particles in a rigid body
+    \param box Box dimensions for periodic boundary condition handling
+*/
 extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel, 
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
@@ -767,72 +892,15 @@ extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel,
         }
     }
 
-/*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
+
+//! Take 1/2 first 1/2 step forward in the NVE integration step
+/*! \param pdata Particle data to step forward 1/2 step
+    \param rigid_data Rigid body data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param d_net_force Particle net forces
+    \param box Box dimensions for periodic boundary condition handling
     \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
-*/
-
-cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata, 
-                                   const gpu_rigid_data_arrays& rigid_data,
-                                   unsigned int *d_group_members,
-                                   unsigned int group_size, 
-                                   float4 *d_net_force,
-                                   const gpu_boxsize &box,
-                                   float deltaT)
-    {
-    unsigned int n_bodies = rigid_data.n_bodies;
-    unsigned int local_beg = rigid_data.local_beg;
-    unsigned int nmax = rigid_data.nmax;
-    
-    // bind the textures for ALL rigid bodies
-    cudaError_t error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    // bind the textures for particles
-    error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;        
-   
-    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;   
-        
-    // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
-    // tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
-    unsigned int window_size = nmax;
-    unsigned int block_size = nmax; // each thread in a block takes care of a particle in a rigid body
-    dim3 force_grid(n_bodies, 1, 1);
-    dim3 force_threads(block_size, 1, 1); 
-    gpu_rigid_force_kernel<<< force_grid, force_threads, 2 * window_size * sizeof(float4) >>>(rigid_data.force, 
-                                                                                             rigid_data.torque, 
-                                                                                             n_bodies, 
-                                                                                             local_beg,
-                                                                                             nmax,
-                                                                                             window_size,
-                                                                                             box);
-           
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-    }
-
-
-/*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
-    \param deltaT Amount of real time to step forward in one time step
-    
 */
 cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata, 
                                    const gpu_rigid_data_arrays& rigid_data,

@@ -93,9 +93,13 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     m_first_step = true;
     }
 
+/* Setup computes the initial body forces and torques prior to the first update step
+    
+*/
+
 void TwoStepNVERigid::setup()
     {
-     //! Get the number of rigid bodies for frequent use
+     // Get the number of rigid bodies for frequent use
     m_n_bodies = m_rigid_data->getNumBodies();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
@@ -223,8 +227,9 @@ void TwoStepNVERigid::setup()
     set_v();
     }
 
-/*! Velocity verlet: adapted from LAMMPS (Large-scale Atomistic/Molecular Massively Parallel Simulator)
-
+/*! \param timestep Current time step
+    \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
+          method.
 */
 void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     {
@@ -328,6 +333,9 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     
     }
 
+/*! \param timestep Current time step
+    \post particle velocities are moved forward to timestep+1
+*/
 void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     {
     // compute net forces and torques on rigid bodies from particle forces
@@ -373,7 +381,9 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     
     }
 
+/* Compute the body forces and torques once all the particle forces are computed
 
+*/
 void TwoStepNVERigid::computeForceAndTorque()
     {
     // get box
@@ -457,10 +467,9 @@ void TwoStepNVERigid::computeForceAndTorque()
     
     }
 
-/*! Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
+/* Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
     based on the body center of mass and particle relative position in each body frame.
 
-    particle_index gives the index of the particle in the GPU array particle_pos which is of (nmax by nbodies)
 */
 
 void TwoStepNVERigid::set_xv()
@@ -567,7 +576,7 @@ void TwoStepNVERigid::set_xv()
     
     }
 
-/*! Set velocity of constituent particles in rigid bodies in the 2nd half of integration
+/* Set velocity of constituent particles in rigid bodies in the 2nd half of integration
  based on the body center of mass and particle relative position in each body frame.
 
  */
@@ -625,9 +634,9 @@ void TwoStepNVERigid::set_v()
     
     }
 
-/*! Update orientation (ex_space, ey_space, ez_space) from quaternion.
+/* Compute orientation (ex_space, ey_space, ez_space) from quaternion.
 
- */
+*/
 
 void TwoStepNVERigid::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space)
     {
@@ -647,8 +656,8 @@ void TwoStepNVERigid::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scala
     ez_space.z = quat.x * quat.x - quat.y * quat.y - quat.z * quat.z + quat.w * quat.w;
     }
 
-/*! Compute angular velocity from angular momentum.
-    Convert the angular momentum from world frame to body frame.
+// Compute angular velocity from angular momentum
+/*!  Convert the angular momentum from world frame to body frame.
     Compute angular velocity in the body frame (angbody).
     Convert the angular velocity from body frame back to world frame.
 
@@ -657,6 +666,14 @@ void TwoStepNVERigid::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scala
         x_space = rotation_matrix * x_body
     The reverse operation is to convert a vector in the space frame to a body frame:
         x_body = transpose(rotation matrix) * x_space
+    
+    \param angmom Angular momentum
+    \param moment_inertia Moment of inertia
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    \param angvel Returned angular velocity
+ 
  */
 
 void TwoStepNVERigid::computeAngularVelocity(Scalar4& angmom, Scalar4& moment_inertia, Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space,
@@ -684,8 +701,17 @@ void TwoStepNVERigid::computeAngularVelocity(Scalar4& angmom, Scalar4& moment_in
     angvel.z = angbody[0] * ex_space.z + angbody[1] * ey_space.z + angbody[2] * ez_space.z;
     }
 
-/*! Advance the quaternion using angular momentum and angular velocity
- */
+// Advance the quaternion using angular momentum and angular velocity
+/*  \param angmom Angular momentum
+    \param moment_inerta Moment of inertia
+    \param angvel Returned angular velocity
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    \param quat Returned quaternion
+    \param deltaT Time step
+    
+*/
 void TwoStepNVERigid::advanceQuaternion(Scalar4& angmom, Scalar4 &moment_inertia, Scalar4 &angvel,
                                         Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space, Scalar4 &quat)
     {
@@ -737,8 +763,11 @@ void TwoStepNVERigid::advanceQuaternion(Scalar4& angmom, Scalar4 &moment_inertia
     exyzFromQuaternion(quat, ex_space, ey_space, ez_space);
     }
 
-/*! Quaternion multiply: c = a * b where a = (0, a)
- */
+// Quaternion multiply: c = a * b where a = (0, a)
+/*  \param a Quaternion
+    \param b Quaternion
+    \param c Returned quaternion
+*/
 
 void TwoStepNVERigid::multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c)
     {
@@ -748,7 +777,8 @@ void TwoStepNVERigid::multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c)
     c.w =   b.x * a.z + a.x * b.z - a.y * b.y;
     }
 
-/*! Normalize a quaternion
+/*! 
+    \param q Quaternion to be normalized
  */
 
 void TwoStepNVERigid::normalize(Scalar4 &q)

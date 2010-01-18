@@ -53,10 +53,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost;
 using namespace std;
 
-#define TOLERANCE 1.0e-6
+//! Tolerance for zero principle moment of inertia
 #define EPSILON 1.0e-7
+//! Maximum number of iterations for Jacobi rotations
 #define MAXJACOBI 50
-
+//! Maximum value macro
 #define MAX(A,B) ((A) > (B)) ? (A) : (B)
 
 /*! \param particle_data ParticleData this use in initializing this RigidData
@@ -82,7 +83,7 @@ RigidData::~RigidData()
 
 
 /*! \pre m_body_size has been filled with values
-    \pre m_particle_tags hass been filled with values
+    \pre m_particle_tags has been filled with values
     \pre m_particle_indices has been allocated
     \post m_particle_indices is updated to match the current sorting of the particle data
 */
@@ -467,8 +468,11 @@ void RigidData::initializeData()
     recalcIndices();
     }
 
-/*! Compute eigenvalues and eigenvectors of 3x3 real symmetric matrix based on Jacobi rotations
-   adapted from Numerical Recipes jacobi() function (LAMMPS)
+/*! Compute eigenvalues and eigenvectors of 3x3 real symmetric matrix based on Jacobi rotations adapted from Numerical Recipes jacobi() function (LAMMPS)
+    \param matrix Matrix to be diagonalized
+    \param evalues Eigen-values obtained after diagonalized
+    \param evectors Eigen-vectors obtained after diagonalized in columns
+
 */
 
 int RigidData::diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors)
@@ -547,6 +551,13 @@ int RigidData::diagonalize(Scalar **matrix, Scalar *evalues, Scalar **evectors)
     }
 
 /*! Perform a single Jacobi rotation
+    \param matrix Matrix to be diagonalized
+    \param i 
+    \param j 
+    \param k
+    \param l
+    \param s
+    \param tau
 */
 
 void RigidData::rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Scalar tau)
@@ -556,6 +567,13 @@ void RigidData::rotate(Scalar **matrix, int i, int j, int k, int l, Scalar s, Sc
     matrix[i][j] = g - s * (h + g * tau);
     matrix[k][l] = h + s * (g - h * tau);
     }
+
+/*! Calculate the quaternion from three axes
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    \param quat returned quaternion
+*/
 
 void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat)
     {

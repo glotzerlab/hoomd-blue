@@ -183,9 +183,6 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
     \param d_net_force Net force on each particle
     \param bdnvt_args Collected arguments for gpu_bdnvt_step_two_kernel()
     \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
     
 */
 cudaError_t gpu_bdnvt_force(const gpu_pdata_arrays &pdata,

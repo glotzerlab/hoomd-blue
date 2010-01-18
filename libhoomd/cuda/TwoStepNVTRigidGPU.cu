@@ -49,11 +49,12 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #endif
 
-/*! \file NVTRigidUpdaterGPU.cu
-    \brief Defines GPU kernel code for NVT integration on the GPU. Used by NVTUpdaterGPU.
+/*! \file TwoStepNVTRigidGPU.cu
+    \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
 */
 
-#define INVALID_INDEX 0xffffffff // identical to the sentinel value NO_INDEX in RigidData.h
+//! Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
+#define INVALID_INDEX 0xffffffff
 
 //! The texture for reading the pdata pos array
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
@@ -108,6 +109,14 @@ texture<float4, 1, cudaReadModeElementType> nvt_rdata_conjqm_tex;
 #pragma mark HELPER
 //! Helper functions for rigid body quaternion update
 
+/*! Convert the body axes from the quaternion
+    \param quat Quaternion
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+
+*/
+
 __device__ void exyzFromQuaternion(float4& quat, float4& ex_space, float4& ey_space, float4& ez_space)
     {
     // ex_space
@@ -125,6 +134,15 @@ __device__ void exyzFromQuaternion(float4& quat, float4& ex_space, float4& ey_sp
     ez_space.y = 2.0 * (quat.z * quat.w - quat.x * quat.y);
     ez_space.z = quat.x * quat.x - quat.y * quat.y - quat.z * quat.z + quat.w * quat.w;
     }
+
+/*! Compute angular velocity from angular momentum 
+    \param angmom Angular momentum
+    \param moment_inertia Moment of inertia
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    \param angvel Returned angular velocity
+*/
 
 __device__ void computeAngularVelocity(float4& angmom, float4& moment_inertia, float4& ex_space, float4& ey_space, float4& ez_space, float4& angvel)
     {
@@ -147,7 +165,13 @@ __device__ void computeAngularVelocity(float4& angmom, float4& moment_inertia, f
     angvel.z = angbody.x * ex_space.z + angbody.y * ey_space.z + angbody.z * ez_space.z;
     }
 
-// Apply evolution operators to quat, quat momentum (see ref. Miller)
+/*! Apply evolution operators to quat, quat momentum (see ref. Miller)
+    \param k Direction
+    \param p Thermostat angular momentum conjqm
+    \param q Quaternion
+    \param inertia Moment of inertia
+    \param dt Time step
+*/
 
 __device__ void no_squish_rotate(unsigned int k, float4& p, float4& q, float4& inertia, float dt)
     {
@@ -205,6 +229,11 @@ __device__ void no_squish_rotate(unsigned int k, float4& p, float4& q, float4& i
     q.w = c_phi * q.w + s_phi * kq.w;
     }
 
+/*! Quaternion multiply: c = a * b 
+    \param a Quaternion
+    \param b A three component vector
+    \param c Returned quaternion
+*/
 __device__ void quat_multiply(float4& a, float4& b, float4& c)
     {
     c.x = -a.y * b.x - a.z * b.y - a.w * b.z;
@@ -213,7 +242,11 @@ __device__ void quat_multiply(float4& a, float4& b, float4& c)
     c.w = -a.z * b.x + a.y * b.y + a.x * b.z;
     }
 
-// Quaternion multiply: c = inv(a)*b where a is a quaternion, b is a four component vector and c is a three component vector.
+/*! Inverse quaternion multiply: c = inv(a) * b 
+    \param a Quaternion
+    \param b A four component vector
+    \param c A three component vector
+*/
 
 __device__ void inv_quat_multiply(float4& a, float4& b, float4& c)
     {
@@ -222,7 +255,13 @@ __device__ void inv_quat_multiply(float4& a, float4& b, float4& c)
     c.z = -a.w * b.x + a.z * b.y - a.y * b.z + a.x * b.w;
     }
 
-// Matrix dot: c = dot(A, b) where rows of A are ax, ay, az
+/*! Matrix dot: c = dot(A, b) 
+    \param ax The first row of A
+    \param ay The second row of A
+    \param az The third row of A
+    \param b A three component vector
+    \param c A three component vector    
+*/
 
 __device__ void matrix_dot(float4& ax, float4& ay, float4& az, float4& b, float4& c)
     {
@@ -231,8 +270,13 @@ __device__ void matrix_dot(float4& ax, float4& ay, float4& az, float4& b, float4
     c.z = az.x * b.x + az.y * b.y + az.z * b.z;
     }
 
-// Matrix transpose dot: c = dot(trans(A), b) where rows of A are ax, ay, az
-
+/*! Matrix transpose dot: c = dot(trans(A), b) 
+    \param ax The first row of A
+    \param ay The second row of A
+    \param az The third row of A
+    \param b A three component vector
+    \param c A three component vector
+*/
 __device__ void transpose_dot(float4& ax, float4& ay, float4& az, float4& b, float4& c)
     {
     c.x = ax.x * b.x + ay.x * b.y + az.x * b.z;
@@ -240,6 +284,10 @@ __device__ void transpose_dot(float4& ax, float4& ay, float4& az, float4& b, flo
     c.z = ax.z * b.x + ay.z * b.y + az.z * b.z;
     }
 
+/*! Taylor expansion
+    \param x Point to take the expansion
+
+*/
 __device__ float taylor_exp(float x)
     {
     float x2, x3, x4, x5;
@@ -251,9 +299,26 @@ __device__ float taylor_exp(float x)
     }
 
 #pragma mark RIGID_STEP_ONE_KERNEL
-//! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
-/*! \param rigid_data rigid data to step forward 1/2 step
-    \param deltaT timestep
+/*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
+    \param rdata_com Body center of mass
+    \param rdata_vel Body velocity
+    \param rdata_angmom Angular momentum
+    \param rdata_angvel Angular velocity
+    \param rdata_orientation Quaternion
+    \param rdata_ex_space x-axis unit vector
+    \param rdata_ey_space y-axis unit vector
+    \param rdata_ez_space z-axis unit vector
+    \param rdata_body_imagex Body image in x-direction
+    \param rdata_body_imagey Body image in y-direction
+    \param rdata_body_imagez Body image in z-direction
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param nvt_rdata_eta_dot_t0 Thermostat translational part 
+    \param nvt_rdata_eta_dot_r0 Thermostat rotational part
+    \param nvt_rdata_conjqm Thermostat angular momentum
+    \param nvt_rdata_partial_Ksum_t Body translational kinetic energy 
+    \param nvt_rdata_partial_Ksum_r Body rotation kinetic energy
+    \param deltaT Timestep 
     \param box Box dimensions for periodic boundary condition handling
 */
 
@@ -413,11 +478,13 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
 
 
 /*! \param pdata Particle data to step forward 1/2 step
+    \param rigid_data Rigid body data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
+    \param nvt_rdata Thermostat data
     \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
+    
 */
 cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,       
                                     const gpu_rigid_data_arrays& rigid_data,
@@ -597,14 +664,21 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
 //! The texture for reading the net force array
 texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
-//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
-/*! \param pdata Particle data to step forward in time
-    \param force_data_ptrs List of pointers to forces on each particle
-    \param num_forces Number of forces listed in \a force_data_ptrs
-    \param deltaT Amount of real time to step forward in one time step
-    \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
-        a distance further than \a limit_val in one step.
-    \param limit_val Length to limit particle distance movement to
+
+//! Takes the 2nd 1/2 step forward in the velocity-verlet NVT integration scheme
+/*!  
+    \param rdata_vel Body velocity
+    \param rdata_angmom Angular momentum
+    \param rdata_angvel Angular velocity
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param nvt_rdata_eta_dot_t0 Thermostat translational part 
+    \param nvt_rdata_eta_dot_r0 Thermostat rotational part
+    \param nvt_rdata_conjqm Thermostat angular momentum
+    \param nvt_rdata_partial_Ksum_t Body translational kinetic energy 
+    \param nvt_rdata_partial_Ksum_r Body rotation kinetic energy
+    \param deltaT Timestep 
+    \param box Box dimensions for periodic boundary condition handling
 */
 
 extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel, 
@@ -696,9 +770,15 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
         }
     }
 
-/*! \param pdata Particle data to step forward in time
-    \param d_net_force Net force
+/*! \param pdata Particle data to step forward 1/2 step
+    \param rigid_data Rigid body data to step forward 1/2 step
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param d_net_force Particle net forces
+    \param box Box dimensions for periodic boundary condition handling
+    \param nvt_rdata Thermostat data
     \param deltaT Amount of real time to step forward in one time step
+    
 */
 cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata, 
                                     const gpu_rigid_data_arrays& rigid_data, 
@@ -832,12 +912,14 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
     }
 
 #pragma mark RIGID_KINETIC_ENERGY_REDUCTION
-/*! \param nvt_rdata thermostat data for rigid bodies 
-    
-*/
 
+//! Shared memory for kinetic energy reduction
 extern __shared__ float nvt_rigid_sdata[];
 
+/*! Summing the kinetic energy of rigid bodies
+    \param nvt_rdata Thermostat data for rigid bodies 
+    
+*/
 extern "C" __global__ void gpu_nvt_rigid_reduce_ksum_kernel(gpu_nvt_rigid_data nvt_rdata)
     {
     int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -891,6 +973,10 @@ extern "C" __global__ void gpu_nvt_rigid_reduce_ksum_kernel(gpu_nvt_rigid_data n
         
     }
 
+/*! 
+    \param nvt_rdata Thermostat data for rigid bodies 
+    
+*/
 cudaError_t gpu_nvt_rigid_reduce_ksum(const gpu_nvt_rigid_data& nvt_rdata)
     {
     // setup the grid to run the kernel

@@ -64,6 +64,9 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param T Controlled temperature
+    \param seed An interger seed for random number generator 
+    \param gamma_diam Flag for using particle diameter-dependent gamma 
 */
 TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                         boost::shared_ptr<ParticleGroup> group,

@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: ndtrung
 
-/*! \file TwoNVTRigidGPU.cuh
+/*! \file TwoStepNVTRigidGPU.cuh
     \brief Declares GPU kernel code for NVT rigid body integration on the GPU. Used by TwoStepNVTRigidGPU.
 */
 
@@ -51,18 +51,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __TWO_STEP_NVT_RIGID_CUH__
 #define __TWO_STEP_NVT_RIGID_CUH__
 
+/*! Thermostat data structure
+*/
 struct gpu_nvt_rigid_data
     {
-    unsigned int n_bodies;
+    unsigned int n_bodies;  //!< Number of rigid bodies
     
-    float  eta_dot_t0;
-    float  eta_dot_r0;
-    float4 *conjqm;
-    
-    float *partial_Ksum_t; //!< NBlocks elements, each is a partial sum of m*v^2
-    float *partial_Ksum_r; //!< NBlocks elements, each is a partial sum of L*w^2
-    float *Ksum_t;  //!< fully reduced Ksum_t on one GPU
-    float *Ksum_r;  //!< fully reduced Ksum_r on one GPU
+    float  eta_dot_t0;      //!< Thermostat translational velocity
+    float  eta_dot_r0;      //!< Thermostat rotational velocity
+    float4 *conjqm;         //!< Thermostat angular momentum
+        
+    float *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
+    float *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2
+    float *Ksum_t;          //!< fully reduced Ksum_t on one GPU
+    float *Ksum_r;          //!< fully reduced Ksum_r on one GPU
     };
 
 //! Kernel driver for the first part of the NVT update called by TwoStepNVTRigidGPU
