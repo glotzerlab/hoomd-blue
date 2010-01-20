@@ -625,7 +625,7 @@ texture<float4, 1, cudaReadModeElementType> net_force_tex;
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
 extern __shared__ float4 sum[];
 
-//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
+//! Calculates the body forces and torques by summing the constituent particle forces
 /*! \param rdata_force Particle data to step forward in time
     \param rdata_torque List of pointers to forces on each particle
     \param n_bodies Number of forces listed in \a force_data_ptrs
@@ -669,7 +669,6 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
         body_force[threadIdx.x].z = fi.z;
         body_force[threadIdx.x].w = fi.w;
         
-        // project the position in the body frame to the space frame: ri = rotation_matrix * particle_pos
         ri.x = pos.x - com.x;
         ri.y = pos.y - com.y;
         ri.z = pos.z - com.z;
@@ -721,14 +720,16 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
         float4 force2 = body_force[0];
         float4 torque2 = body_torque[0];
         
-        rdata_force[idx_body] = force2;
-        rdata_torque[idx_body] = torque2;
+        if (threadIdx.x == 0)
+            {
+            rdata_force[idx_body] = force2;
+            rdata_torque[idx_body] = torque2;
+            }
         }
-
            
     }
 
-//! Takes the 2nd 1/2 step forward in the velocity-verlet NVE integration scheme
+//! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
 /*! \param rdata_force Particle data to step forward in time
     \param rdata_torque List of pointers to forces on each particle
     \param n_bodies Number of forces listed in \a force_data_ptrs
@@ -760,6 +761,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     
     unsigned int n_windows = nmax / window_size + 1;
     
+    // slide the window throughout the block
     for (unsigned int start = 0; start < n_windows; start++)
     {
         unsigned int iwindow = threadIdx.x / window_size;
@@ -781,7 +783,6 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
             body_force[ilocal].z = fi.z;
             body_force[ilocal].w = fi.w;
             
-            // project the position in the body frame to the space frame: ri = rotation_matrix * particle_pos
             ri.x = pos.x - com.x;
             ri.y = pos.y - com.y;
             ri.z = pos.z - com.z;
@@ -828,6 +829,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
             __syncthreads();
             }
         
+        // accumulate the body force into the thread-local variables
         force2.x += body_force[0].x;
         force2.y += body_force[0].y;
         force2.z += body_force[0].z;
@@ -843,12 +845,12 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
         
     if (idx_body < n_bodies)
         {
-        
-        rdata_force[idx_body] = force2;
-        rdata_torque[idx_body] = torque2;
+        if (threadIdx.x == 0)
+            {
+            rdata_force[idx_body] = force2;
+            rdata_torque[idx_body] = torque2;
+            }
         }
-
-           
     }
 
 /*! \param pdata Particle data to step forward 1/2 step
@@ -896,7 +898,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     dim3 force_grid(n_bodies, 1, 1);
     dim3 force_threads(block_size, 1, 1); 
     
-    if (nmax <= 256)   // 256 is some threshold for really big rigid bodies
+    if (nmax <= 128)   // 128 is some threshold for really big rigid bodies
         gpu_rigid_force_kernel<<< force_grid, force_threads, 2 * nmax * sizeof(float4) >>>(rigid_data.force, 
                                                                                              rigid_data.torque, 
                                                                                              n_bodies, 
