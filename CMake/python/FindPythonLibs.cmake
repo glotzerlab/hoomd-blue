@@ -3,11 +3,25 @@
 # include files and libraries are. It also determines what the name of
 # the library is. This code sets the following variables:
 #
-#  PYTHONLIBS_FOUND     = have the Python libs been found
-#  PYTHON_LIBRARIES     = path to the python library
-#  PYTHON_INCLUDE_PATH  = path to where Python.h is found
-#  PYTHON_DEBUG_LIBRARIES = path to the debug library
+#  PYTHONLIBS_FOUND       - have the Python libs been found
+#  PYTHON_LIBRARIES       - path to the python library
+#  PYTHON_INCLUDE_PATH    - path to where Python.h is found (deprecated)
+#  PYTHON_INCLUDE_DIRS    - path to where Python.h is found
+#  PYTHON_DEBUG_LIBRARIES - path to the debug library
 #
+
+#=============================================================================
+# Copyright 2001-2009 Kitware, Inc.
+#
+# Distributed under the OSI-approved BSD License (the "License");
+# see accompanying file Copyright.txt for details.
+#
+# This software is distributed WITHOUT ANY WARRANTY; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the License for more information.
+#=============================================================================
+# (To distributed this file outside of CMake, substitute the full
+#  License text for the above reference.)
 
 INCLUDE(CMakeFindFrameworks)
 # Search for the python framework on Apple.
@@ -27,17 +41,26 @@ FOREACH(_CURRENT_VERSION 2.6 2.5 2.4 2.3 2.2 2.1 2.0 1.6 1.5)
     NAMES python${_CURRENT_VERSION_NO_DOTS} python${_CURRENT_VERSION}
     PATHS
       [HKEY_LOCAL_MACHINE\\SOFTWARE\\Python\\PythonCore\\${_CURRENT_VERSION}\\InstallPath]/libs
+    # Avoid finding the .dll in the PATH.  We want the .lib.
+    NO_SYSTEM_ENVIRONMENT_PATH
   )
 
+  # For backward compatibility, honour value of PYTHON_INCLUDE_PATH, if 
+  # PYTHON_INCLUDE_DIR is not set.
+  IF(DEFINED PYTHON_INCLUDE_PATH AND NOT DEFINED PYTHON_INCLUDE_DIR)
+    SET(PYTHON_INCLUDE_DIR "${PYTHON_INCLUDE_PATH}" CACHE PATH
+      "Path to where Python.h is found" FORCE)
+  ENDIF(DEFINED PYTHON_INCLUDE_PATH AND NOT DEFINED PYTHON_INCLUDE_DIR)
+
   SET(PYTHON_FRAMEWORK_INCLUDES)
-  IF(Python_FRAMEWORKS AND NOT PYTHON_INCLUDE_PATH)
+  IF(Python_FRAMEWORKS AND NOT PYTHON_INCLUDE_DIR)
     FOREACH(dir ${Python_FRAMEWORKS})
       SET(PYTHON_FRAMEWORK_INCLUDES ${PYTHON_FRAMEWORK_INCLUDES}
         ${dir}/Versions/${_CURRENT_VERSION}/include/python${_CURRENT_VERSION})
     ENDFOREACH(dir)
-  ENDIF(Python_FRAMEWORKS AND NOT PYTHON_INCLUDE_PATH)
+  ENDIF(Python_FRAMEWORKS AND NOT PYTHON_INCLUDE_DIR)
 
-  FIND_PATH(PYTHON_INCLUDE_PATH
+  FIND_PATH(PYTHON_INCLUDE_DIR
     NAMES Python.h
     PATHS
       ${PYTHON_FRAMEWORK_INCLUDES}
@@ -45,41 +68,32 @@ FOREACH(_CURRENT_VERSION 2.6 2.5 2.4 2.3 2.2 2.1 2.0 1.6 1.5)
     PATH_SUFFIXES
       python${_CURRENT_VERSION}
   )
+
+  # For backward compatibility, set PYTHON_INCLUDE_PATH, but make it internal.
+  SET(PYTHON_INCLUDE_PATH "${PYTHON_INCLUDE_DIR}" CACHE INTERNAL 
+    "Path to where Python.h is found (deprecated)")
   
 ENDFOREACH(_CURRENT_VERSION)
 
 MARK_AS_ADVANCED(
   PYTHON_DEBUG_LIBRARY
   PYTHON_LIBRARY
-  PYTHON_INCLUDE_PATH
+  PYTHON_INCLUDE_DIR
 )
 
-# Python Should be built and installed as a Framework on OSX
-IF(Python_FRAMEWORKS)
-  # If a framework has been selected for the include path,
-  # make sure "-framework" is used to link it.
-  IF("${PYTHON_INCLUDE_PATH}" MATCHES "Python\\.framework")
-    SET(PYTHON_LIBRARY "")
-    SET(PYTHON_DEBUG_LIBRARY "")
-  ENDIF("${PYTHON_INCLUDE_PATH}" MATCHES "Python\\.framework")
-  IF(NOT PYTHON_LIBRARY)
-    SET (PYTHON_LIBRARY "-framework Python" CACHE FILEPATH "Python Framework" FORCE)
-  ENDIF(NOT PYTHON_LIBRARY)
-  IF(NOT PYTHON_DEBUG_LIBRARY)
-    SET (PYTHON_DEBUG_LIBRARY "-framework Python" CACHE FILEPATH "Python Framework" FORCE)
-  ENDIF(NOT PYTHON_DEBUG_LIBRARY)
-ENDIF(Python_FRAMEWORKS)
+# **** Difference from cmake's FindPythonLibs.cmake: the broken framework linking setup has been removed
 
-# We use PYTHON_LIBRARY and PYTHON_DEBUG_LIBRARY for the cache entries
-# because they are meant to specify the location of a single library.
-# We now set the variables listed by the documentation for this
+# We use PYTHON_INCLUDE_DIR, PYTHON_LIBRARY and PYTHON_DEBUG_LIBRARY for the
+# cache entries because they are meant to specify the location of a single
+# library. We now set the variables listed by the documentation for this
 # module.
+SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
 SET(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 
 
 INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG PYTHON_LIBRARIES PYTHON_INCLUDE_PATH)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG PYTHON_LIBRARIES PYTHON_INCLUDE_DIRS)
 
 
 # PYTHON_ADD_MODULE(<name> src1 src2 ... srcN) is used to build modules for python.
