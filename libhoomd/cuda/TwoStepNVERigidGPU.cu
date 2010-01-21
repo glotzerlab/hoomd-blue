@@ -251,7 +251,7 @@ __device__ void advanceQuaternion(float4& angmom, float4& moment_inertia, float4
 
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
     \param rdata_com Body center of mass
-    \param rdata_vel Body velocity
+    \param rdata_vel Body translational velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
     \param rdata_orientation Quaternion
@@ -444,7 +444,7 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
         }
     }
 
-//! Takes the first 1/2 step forward in the NVE integration step
+// Takes the first 1/2 step forward in the NVE integration step
 /*! \param pdata Particle data to step forward 1/2 step
     \param rigid_data Rigid body data to step forward 1/2 step
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
@@ -626,10 +626,10 @@ texture<float4, 1, cudaReadModeElementType> net_force_tex;
 extern __shared__ float4 sum[];
 
 //! Calculates the body forces and torques by summing the constituent particle forces
-/*! \param rdata_force Particle data to step forward in time
-    \param rdata_torque List of pointers to forces on each particle
-    \param n_bodies Number of forces listed in \a force_data_ptrs
-    \param local_beg Amount of real time to step forward in one time step
+/*! \param rdata_force Body forces
+    \param rdata_torque Body torques
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param window_size Window size for reduction
     \param box Box dimensions for periodic boundary condition handling
@@ -730,10 +730,10 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
     }
 
 //! Calculates the body forces and torques by summing the constituent particle forces using a fixed sliding window size
-/*! \param rdata_force Particle data to step forward in time
-    \param rdata_torque List of pointers to forces on each particle
-    \param n_bodies Number of forces listed in \a force_data_ptrs
-    \param local_beg Amount of real time to step forward in one time step
+/*! \param rdata_force Body forces
+    \param rdata_torque Body torques
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param window_size Window size for reduction
     \param box Box dimensions for periodic boundary condition handling
@@ -928,7 +928,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
 #pragma mark RIGID_STEP_TWO_KERNEL
 
 /*! Takes the second half-step forward for rigid bodies in the velocity-verlet NVE integration
-    \param rdata_vel Body velocity
+    \param rdata_vel Body translational velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
     \param n_bodies Number of rigid bodies
@@ -1035,7 +1035,7 @@ extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel,
     }
 
 
-//! Take 1/2 first 1/2 step forward in the NVE integration step
+// Take the second 1/2 step forward in the NVE integration step
 /*! \param pdata Particle data to step forward 1/2 step
     \param rigid_data Rigid body data to step forward 1/2 step
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
