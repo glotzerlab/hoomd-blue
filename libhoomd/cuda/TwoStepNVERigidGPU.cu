@@ -581,6 +581,10 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
 
+    error = cudaBindTexture(0, rigid_data_particle_pos_tex, rigid_data.particle_pos, sizeof(float4) * n_bodies * nmax);
+    if (error != cudaSuccess)
+        return error;
+
     // bind the textures for particles: pos, vel, accel and image of ALL particles
     error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
@@ -652,16 +656,21 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
     body_torque[threadIdx.x] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     
     unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
-    float4 com, pos, ri;
+//  float4 com, pos;
+    float4 ri, ex_space, ey_space, ez_space, particle_pos;
     float4 fi = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 torquei = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     
     if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
         {
         // calculate body force and torques
-        com = tex1Dfetch(rigid_data_com_tex, idx_body);
-
-        pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+   //   com = tex1Dfetch(rigid_data_com_tex, idx_body);
+   //   pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+        ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
+        ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
+        ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
+        particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+        
         fi = tex1Dfetch(net_force_tex, idx_particle_index);
         
         body_force[threadIdx.x].x = fi.x;
@@ -669,6 +678,7 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
         body_force[threadIdx.x].z = fi.z;
         body_force[threadIdx.x].w = fi.w;
         
+        /*
         ri.x = pos.x - com.x;
         ri.y = pos.y - com.y;
         ri.z = pos.z - com.z;
@@ -679,6 +689,23 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
         ri.y -= box.Ly * y_shift;
         float z_shift = rintf(ri.z * box.Lzinv);
         ri.z -= box.Lz * z_shift;
+        
+        if (ri.x >= box.Lx/2.0) ri.x -= box.Lx;
+        else if (ri.x <= -box.Lx/2.0) ri.x += box.Lx;
+        if (ri.y >= box.Ly/2.0) ri.y -= box.Ly;
+        else if (ri.y <= -box.Ly/2.0) ri.y += box.Ly;            
+        if (ri.z >= box.Lz/2.0) ri.z -= box.Lz;
+        else if (ri.z <= -box.Lz/2.0) ri.z += box.Lz;
+        */
+        
+        // This might require more calculations but more stable 
+        // particularly when the rigid body longer than half the box
+        ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y 
+                + ez_space.x * particle_pos.z;
+        ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y 
+                + ez_space.y * particle_pos.z;
+        ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y 
+                + ez_space.z * particle_pos.z;
         
         torquei.x = ri.y * fi.z - ri.z * fi.y;
         torquei.y = ri.z * fi.x - ri.x * fi.z;
@@ -753,7 +780,8 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
     float4 *body_torque = &sum[window_size];
     
     unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
-    float4 com, pos, ri;
+//  float4 com, pos;
+    float4 ri, ex_space, ey_space, ez_space, particle_pos;
     float4 fi = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 torquei = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 force2 = make_float4(0.0f, 0.0f, 0.0f, 0.0f); 
@@ -773,9 +801,13 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
         if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX && iwindow == start)
             {
             // calculate body force and torques
-            com = tex1Dfetch(rigid_data_com_tex, idx_body);
-
-            pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+       //   com = tex1Dfetch(rigid_data_com_tex, idx_body);
+       //   pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+            ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
+            ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
+            ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
+            particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+        
             fi = tex1Dfetch(net_force_tex, idx_particle_index);
             
             body_force[ilocal].x = fi.x;
@@ -783,6 +815,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
             body_force[ilocal].z = fi.z;
             body_force[ilocal].w = fi.w;
             
+            /*
             ri.x = pos.x - com.x;
             ri.y = pos.y - com.y;
             ri.z = pos.z - com.z;
@@ -794,6 +827,22 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
             float z_shift = rintf(ri.z * box.Lzinv);
             ri.z -= box.Lz * z_shift;
             
+            if (ri.x >= box.Lx/2.0) ri.x -= box.Lx;
+            else if (ri.x <= -box.Lx/2.0) ri.x += box.Lx;
+            if (ri.y >= box.Ly/2.0) ri.y -= box.Ly;
+            else if (ri.y <= -box.Ly/2.0) ri.y += box.Ly;            
+            if (ri.z >= box.Lz/2.0) ri.z -= box.Lz;
+            else if (ri.z <= -box.Lz/2.0) ri.z += box.Lz;
+            */
+            
+            // This might require more calculations but more stable
+            ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y 
+                    + ez_space.x * particle_pos.z;
+            ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y 
+                    + ez_space.y * particle_pos.z;
+            ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y 
+                    + ez_space.z * particle_pos.z;
+
             torquei.x = ri.y * fi.z - ri.z * fi.y;
             torquei.y = ri.z * fi.x - ri.x * fi.z;
             torquei.z = ri.x * fi.y - ri.y * fi.x;
@@ -878,6 +927,22 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
     
+    error = cudaBindTexture(0, rigid_data_exspace_tex, rigid_data.ex_space, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_eyspace_tex, rigid_data.ey_space, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_ezspace_tex, rigid_data.ez_space, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_particle_pos_tex, rigid_data.particle_pos, sizeof(float4) * n_bodies * nmax);
+    if (error != cudaSuccess)
+        return error;
+            
     error = cudaBindTexture(0, rigid_data_particle_indices_tex, rigid_data.particle_indices, sizeof(unsigned int) * n_bodies * nmax);
     if (error != cudaSuccess)
         return error;    
@@ -893,12 +958,13 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
         
     // run the kernel: the shared memory size is used for dynamic memory allocation of extern __shared__ sum
     // tested with separate extern __shared__ body_force and body_torque each with size of nmax * sizeof(float4) but it did not work
-    unsigned int window_size = 64; // some fixed value
+    unsigned int window_size = 16; // some fixed value
     unsigned int block_size = nmax; // each thread in a block takes care of a particle in a rigid body
     dim3 force_grid(n_bodies, 1, 1);
     dim3 force_threads(block_size, 1, 1); 
     
-    if (nmax <= 128)   // 128 is some threshold for really big rigid bodies
+    // 32 is some threshold for really big rigid bodies- this should be small to reduce overhead in required shared memory
+    if (nmax <= 32)   
         gpu_rigid_force_kernel<<< force_grid, force_threads, 2 * nmax * sizeof(float4) >>>(rigid_data.force, 
                                                                                              rigid_data.torque, 
                                                                                              n_bodies, 
