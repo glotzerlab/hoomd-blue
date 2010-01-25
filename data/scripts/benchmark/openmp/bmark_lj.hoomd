@@ -1,0 +1,41 @@
+#! /usr/bin/env hoomd
+
+import os
+from hoomd_script import *
+
+# file output for spreadsheet
+f = open('bmark.csv', 'w')
+f.write("num_threads\tlj_msec\tlj_eff\n")
+
+t1 = None;
+
+# sweep over num_threads
+for num_threads in xrange(1,9):
+    hoomd.omp_set_num_threads(num_threads)    
+
+    init.create_random(N=64000, phi_p=0.2)
+    lj = pair.lj(r_cut=3.0)
+    lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+    all = group.all()
+    integrate.mode_standard(dt=0.005)
+    integrate.nvt(group=all, T=1.2, tau=0.5)
+
+    # sort the particles
+    run(1)
+
+    # benchmark the neighbor list
+    t = lj.benchmark(n = 300)
+
+    # record the time for one thread
+    if num_threads == 1:
+        t1 = t;
+    
+    # output a line to the spreadsheet
+    f.write("%f\t%f\t%f\n" % (num_threads, t, (t1 / float(num_threads)) / t));
+
+    # reset for the next run
+    del lj
+    del all
+    init.reset()
+
