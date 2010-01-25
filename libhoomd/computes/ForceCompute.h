@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signals.hpp>
 
 #include "Compute.h"
+#include "Index1D.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -135,6 +136,12 @@ private:
 
     Like with ParticleData forces are stored with contiguous x,y,z components on the CPU
     and interleaved ones on the GPU.
+
+    \b OpenMP <br>
+    To aid in OpenMP force computations, the base class ForceCompute will optionally allocate a memory area to hold
+    partial force sums for the forces computed by each CPU thread. The partial arrays will be indexed by the 
+    Index2D m_index_thread_partial created in the allocateThreadPartial() function. 
+
     \ingroup computes
 */
 class ForceCompute : public Compute
@@ -207,6 +214,9 @@ class ForceCompute : public Compute
             {
             m_particles_sorted = true;
             }
+
+        //! Allocates the force and virial partial data
+        void allocateThreadPartial();
             
         Scalar * __restrict__ m_fx;     //!< x-component of the force
         Scalar * __restrict__ m_fy;     //!< y-component of the force
@@ -214,7 +224,11 @@ class ForceCompute : public Compute
         Scalar * __restrict__ m_pe;     //!< per-particle potential energy (see ForceDataArrays for definition)
         Scalar * __restrict__ m_virial; //!< per-particle virial (see ForceDataArrays for definition)
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
-        
+
+        Scalar4 * __restrict__ m_fdata_partial; //!< Stores partial force/pe for each CPU thread
+        Scalar * __restrict__ m_virial_partial; //!< Stores partial virial data summed for each CPU thread
+        Index2D m_index_thread_partial;         //!< Indexer to index the above 2 arrays by (particle, thread)
+
         //! Connection to the signal notifying when particles are resorted
         boost::signals::connection m_sort_connection;   
         

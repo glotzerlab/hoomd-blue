@@ -57,6 +57,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ForceCompute.h"
 #include "NeighborList.h"
 
+#ifdef ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4103 4244 )
@@ -194,6 +198,9 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy");
+
+    // initialize memory for per thread reduction
+    allocateThreadPartial();
     }
 
 /*! \param typ1 First type index in the pair
@@ -321,15 +328,20 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
+#pragma omp parallel
+    {
+    #ifdef ENABLE_OPENMP
+    int tid = omp_get_thread_num();
+    #else
+    int tid = 0;
+    #endif
+
     // need to start from a zero force, energy and virial
-    // (MEM TRANSFER: 5*N scalars)
-    memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
+    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
+    memset(&m_virial_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar)*arrays.nparticles);
     
     // for each particle
+#pragma omp for schedule(dynamic, 100)
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
@@ -473,24 +485,53 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
                 // add the force to particle j if we are using the third law (MEM TRANSFER: 10 scalars / FLOPS: 8)
                 if (third_law)
                     {
-                    m_fx[j] -= dx*force_divr;
-                    m_fy[j] -= dy*force_divr;
-                    m_fz[j] -= dz*force_divr;
-                    m_pe[j] += pair_eng * Scalar(0.5);
-                    m_virial[j] += pair_virial;
+                    unsigned int mem_idx = m_index_thread_partial(j,tid);
+                    m_fdata_partial[mem_idx].x -= dx*force_divr;
+                    m_fdata_partial[mem_idx].y -= dy*force_divr;
+                    m_fdata_partial[mem_idx].z -= dz*force_divr;
+                    m_fdata_partial[mem_idx].w += pair_eng * Scalar(0.5);
+                    m_virial_partial[mem_idx] += pair_virial;
                     }
                 }
             }
             
         // finally, increment the force, potential energy and virial for particle i
-        // (MEM TRANSFER: 10 scalars / FLOPS: 5)
-        m_fx[i] += fxi;
-        m_fy[i] += fyi;
-        m_fz[i] += fzi;
-        m_pe[i] += pei;
-        m_virial[i] += viriali;
+        unsigned int mem_idx = m_index_thread_partial(i,tid);
+        m_fdata_partial[mem_idx].x += fxi;
+        m_fdata_partial[mem_idx].y += fyi;
+        m_fdata_partial[mem_idx].z += fzi;
+        m_fdata_partial[mem_idx].w += pei;
+        m_virial_partial[mem_idx] += viriali;
         }
-        
+#pragma omp barrier
+    
+    // now that the partial sums are complete, sum up the results in parallel
+#pragma omp for
+    for (int i = 0; i < (int)arrays.nparticles; i++)
+        {
+        // assign result from thread 0
+        m_fx[i] = m_fdata_partial[i].x;
+        m_fy[i] = m_fdata_partial[i].y;
+        m_fz[i] = m_fdata_partial[i].z;
+        m_pe[i] = m_fdata_partial[i].w;
+        m_virial[i] = m_virial_partial[i];
+
+        #ifdef ENABLE_OPENMP
+        // add results from other threads
+        int nthreads = omp_get_num_threads();
+        for (int thread = 1; thread < nthreads; thread++)
+            {
+            unsigned int mem_idx = m_index_thread_partial(i,thread);
+            m_fx[i] += m_fdata_partial[mem_idx].x;
+            m_fy[i] += m_fdata_partial[mem_idx].y;
+            m_fz[i] += m_fdata_partial[mem_idx].z;
+            m_pe[i] += m_fdata_partial[mem_idx].w;
+            m_virial[i] += m_virial_partial[mem_idx];
+            }
+        #endif
+        }
+    } // end omp parallel
+
     m_pdata->release();
     
 #ifdef ENABLE_CUDA
