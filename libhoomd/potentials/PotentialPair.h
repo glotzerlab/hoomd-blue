@@ -341,7 +341,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     memset(&m_virial_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar)*arrays.nparticles);
     
     // for each particle
-#pragma omp for schedule(dynamic, 100)
+#pragma omp for schedule(guided)
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
