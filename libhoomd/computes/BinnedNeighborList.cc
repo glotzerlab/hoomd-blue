@@ -269,6 +269,7 @@ void BinnedNeighborList::updateListFromBins()
         m_list[i].clear();
         
     // now we can loop over all particles in a binned fashion and build the list
+#pragma omp parallel for schedule(dynamic, 100)
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
         // compare all pairs of particles n,m that are in neighboring bins
