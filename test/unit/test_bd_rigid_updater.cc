@@ -286,8 +286,8 @@ void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfigurat
     unsigned int averaging_delay = 1000;
     
 
-    // Initialize rigid bodies, bonds, etc.
-    sysdef->init();
+    // Initialize rigid bodies
+    rdata->initializeData();
         
         
     nrigid_dof = rdata->getNumDOF();
