@@ -54,7 +54,13 @@ endif(NOT PASSED_FIRST_CONFIGURE)
 
 
 if (CMAKE_COMPILER_IS_GNUCXX)
+    # workaround for compiler warnings in nvcc generated code
     set(CUDA_ADDITIONAL_OPTIONS "-Xcompiler;-Wno-strict-aliasing")
+    # workaround for surf errors with CUDA 3.0 beta
+    if (CUDA_VERSION VERSION_EQUAL 3.0)
+        message(STATUS "Enabling -fpermissive workaround for CUDA 3.0 beta")
+        set(CUDA_ADDITIONAL_OPTIONS "-Xcompiler;-Wno-strict-aliasing -fpermissive")
+    endif (CUDA_VERSION VERSION_EQUAL 3.0)    
 else (CMAKE_COMPILER_IS_GNUCXX)
     set(CUDA_ADDITIONAL_OPTIONS "")
 endif (CMAKE_COMPILER_IS_GNUCXX)

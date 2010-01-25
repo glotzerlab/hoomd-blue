@@ -11,9 +11,10 @@ find_package(Threads)
 # find the python interpreter, first
 find_package(PythonInterp REQUIRED)
 # find the python libraries to link to
+set(CMAKE_FIND_FRAMEWORK "LAST")
 find_package(PythonLibs REQUIRED)
 
-include_directories(${PYTHON_INCLUDE_PATH})
+include_directories(${PYTHON_INCLUDE_DIR})
 
 # find ZLIB
 if (ENABLE_ZLIB)

@@ -96,6 +96,9 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
     // target a bin size of 7.0 * max_radius
     // the requirement is really only 2, 7 is to save memory
     Scalar target_size = Scalar(7.0)*max_radius;
+    // cap the size to a minimum of 2 to prevent small sizes from blowing up the memory uszge
+    if (target_size < Scalar(2.0))
+        target_size = Scalar(2.0);
     
     // calculate the particle binning
     m_Mx = (int)((m_box.xhi - m_box.xlo) / (target_size));
@@ -107,6 +110,11 @@ GeneratedParticles::GeneratedParticles(unsigned int n_particles,
         m_My = 1;
     if (m_Mz == 0)
         m_Mz = 1;
+
+    if (m_Mx > 100 || m_My > 100 || m_Mz > 100)
+        {
+        cout << "***Warning! random generator is about to allocate a very large amount of memory and may crash." << endl << endl;
+        }
         
     // make even bin dimensions
     Scalar binx = (m_box.xhi - m_box.xlo) / Scalar(m_Mx);
