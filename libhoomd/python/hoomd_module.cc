@@ -142,6 +142,10 @@ using namespace boost::python;
 #include <sstream>
 using namespace std;
 
+#ifdef ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 // include gpu_settings.h for g_gpu_error_checking
 #ifdef ENABLE_CUDA
 #include "gpu_settings.h"
@@ -333,7 +337,11 @@ BOOST_PYTHON_MODULE(hoomd)
     def("find_vmd", &find_vmd);
     def("set_gpu_error_checking", &set_gpu_error_checking);
     def("get_hoomd_version", &get_hoomd_version);
-    
+
+    #ifdef ENABLE_OPENMP
+    def("omp_set_num_threads", &omp_set_num_threads);
+    #endif
+
     // data structures
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());
