@@ -55,6 +55,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gpu_settings.h"
 #endif
 
+#ifdef ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -106,6 +110,8 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
 #else
     exec_mode=CPU;
 #endif
+
+    setupStats();
     }
 
 /*! \param mode Execution mode to set (cpu or gpu)
@@ -134,6 +140,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, bool min_cpu,
         initializeGPUs(gpu_ids, min_cpu);
         }
 #endif
+
+    setupStats();
     }
 
 /*! \param gpu_ids List of GPUs to execute on
@@ -156,6 +164,8 @@ ExecutionConfiguration::ExecutionConfiguration(const std::vector<int>& gpu_ids, 
          << endl;
     throw runtime_error("Error initializing execution configuration");
 #endif
+
+    setupStats();
     }
 
 #ifdef ENABLE_CUDA
@@ -301,8 +311,6 @@ void ExecutionConfiguration::initializeGPUs(const std::vector<int>& gpu_ids, boo
              << endl << "        set to compute-exclusive mode. This will likely result in strange behavior."
              << endl;
         }
-        
-    printGPUStats();
     }
 
 /*! Simply loops through all of the chosen GPUs and prints out a line of stats on them
@@ -351,6 +359,7 @@ void ExecutionConfiguration::printGPUStats()
         cout << s.str() << endl;
         }
     }
+
 
 //! Element in a priority sort of GPUs
 struct gpu_elem
@@ -571,6 +580,34 @@ int ExecutionConfiguration::getNumCapableGPUs()
     }
 
 #endif
+
+/*! Print out GPU stats if running on the GPU, otherwise determine and print out the CPU stats
+*/
+void ExecutionConfiguration::setupStats()
+    {
+    #ifdef ENABLE_CUDA
+    if (exec_mode == GPU)
+        {
+        printGPUStats();
+        }
+    #endif
+    
+    if (exec_mode == CPU)
+        {
+        #ifdef ENABLE_OPENMP
+        n_cpu = omp_get_max_threads();
+        cout << "HOOMD is running on " << n_cpu << " CPU";
+        if (n_cpu > 1)
+            cout << " cores ";
+        else
+            cout << " core ";
+        cout << "as instructed to by OMP_NUM_THREADS" << endl;
+        #else
+        n_cpu = 1;
+        cout << "HOOMD is running on a single CPU core" << endl;
+        #endif
+        }
+    }
 
 void export_ExecutionConfiguration()
     {
