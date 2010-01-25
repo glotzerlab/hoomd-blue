@@ -30,6 +30,22 @@ class variant_tests (unittest.TestCase):
         self.assertEqual(20.0, v.cpp_variant.getValue(100));
         self.assertEqual(20.0, v.cpp_variant.getValue(1000));
 
+    # test the zero option on linear_interp
+    def test_linear_interp(self):
+        run(1000)
+    
+        v = variant.linear_interp(points = [(0, 10), (100, 20)], zero='now');
+        self.assertEqual(15.0, v.cpp_variant.getValue(1050));
+        self.assertEqual(10.0, v.cpp_variant.getValue(1000));
+        self.assertEqual(20.0, v.cpp_variant.getValue(1100));
+        self.assertEqual(20.0, v.cpp_variant.getValue(2000));
+
+        v2 = variant.linear_interp(points = [(0, 10), (100, 20)], zero=500);
+        self.assertEqual(15.0, v2.cpp_variant.getValue(550));
+        self.assertEqual(10.0, v2.cpp_variant.getValue(500));
+        self.assertEqual(20.0, v2.cpp_variant.getValue(600));
+        self.assertEqual(20.0, v2.cpp_variant.getValue(1500));
+
     # test the setup helper
     def setup_variant_input_test(self):
         v = variant._setup_variant_input(55);

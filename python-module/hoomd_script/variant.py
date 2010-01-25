@@ -100,7 +100,7 @@ class _constant(_variant):
 # after the final point, the value is identical to the value at the last given point. All points
 # between are determined by linear interpolation.
 #
-# A time step for a given point is referenced to the current time step of the simulation.
+# By default, a time step for a given point is referenced to the current time step of the simulation.
 # For example,
 # \code
 # init.create_random(N=1000, phi_p=0.2)
@@ -111,13 +111,15 @@ class _constant(_variant):
 # \endcode
 # A value specified at time 0 in the shown linear_interp is set at the actual \b absolute time step
 # 1000. To say it another way, time for validate.linear_interp starts counting from 0 right
-# at the time of creation.
+# at the time of creation. The point where 0 is defined can be changed by setting the \z zero paramter in the 
+# command that specifies the linear_interp.
 #
 # See __init__() for the syntax which the set values can be specified.
 class linear_interp(_variant):
     ## Specify a linearly interpolated %variant
     #
     # \param points Set points in the linear interpolation (see below)
+    # \param zero Specify absolute time step number location for 0 in \a points. Use 'now' to indicate the current step.
     #
     # \a points is a list of (time, set value) tuples. For example, to specify
     # a series of points that goes from 10 at timestep 0 to 20 at timestep 100 and then
@@ -132,17 +134,28 @@ class linear_interp(_variant):
     # \b Examples:
     # \code
     # L = variant.linear_interp(points = [(0, 10), (100, 20), (200, 5)])
-    # V = variant.linear_interp(points = [(0, 10), (1e6, 20)])
+    # V = variant.linear_interp(points = [(0, 10), (1e6, 20)], zero=80000)
     # integrate.nvt(group=all, tau = 0.5, 
     #     T = variant.linear_interp(points = [(0, 1.0), (1e5, 2.0)])
     # \endcode
-    def __init__(self, points):
+    def __init__(self, points, zero='now'):
         # initialize the base class
         _variant.__init__(self);
         
         # create the c++ mirror class
         self.cpp_variant = hoomd.VariantLinear();
-        self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+        if zero == 'now':
+            self.cpp_variant.setOffset(globals.system.getCurrentTimeStep());
+        else:
+            # validate zero
+            if zero < 0:
+                print >> sys.stderr, "\n***Error! Cannot create a linear_interp variant with a negative zero\n";
+                raise RuntimeError('Error creating variant');
+            if zero > globals.system.getCurrentTimeStep():
+                print >> sys.stderr, "\n***Error! Cannot create a linear_interp variant with a zero in the future\n";
+                raise RuntimeError('Error creating variant');
+                                
+            self.cpp_variant.setOffset(zero);
         
         # set the points
         if len(points) == 0:
