@@ -1,0 +1,15 @@
+#! /usr/bin/env hoomd
+
+import os
+from hoomd_script import *
+
+init.create_random(N=64000, phi_p=0.2)
+lj = pair.lj(r_cut=3.0)
+lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+
+all = group.all()
+integrate.mode_standard(dt=0.005)
+integrate.nvt(group=all, T=1.2, tau=0.5)
+
+# run a quick, profiled run
+run(250, profile=True)
