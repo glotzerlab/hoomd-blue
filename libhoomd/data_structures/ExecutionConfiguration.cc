@@ -585,8 +585,11 @@ int ExecutionConfiguration::getNumCapableGPUs()
 */
 void ExecutionConfiguration::setupStats()
     {
-    // catch all default setting for n_cpu
+    #ifdef ENABLE_OPENMP
+    n_cpu = omp_get_max_threads();
+    #else
     n_cpu = 1;
+    #endif
     
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
@@ -598,7 +601,6 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
-        n_cpu = omp_get_max_threads();
         cout << "HOOMD is running on " << n_cpu << " CPU";
         if (n_cpu > 1)
             cout << " cores ";
@@ -606,7 +608,6 @@ void ExecutionConfiguration::setupStats()
             cout << " core ";
         cout << "as instructed to by OMP_NUM_THREADS" << endl;
         #else
-        n_cpu = 1;
         cout << "HOOMD is running on a single CPU core" << endl;
         #endif
         }
