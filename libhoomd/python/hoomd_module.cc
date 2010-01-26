@@ -339,7 +339,7 @@ BOOST_PYTHON_MODULE(hoomd)
     def("get_hoomd_version", &get_hoomd_version);
 
     #ifdef ENABLE_OPENMP
-    def("omp_set_num_threads", &omp_set_num_threads);
+    def("set_num_threads", &omp_set_num_threads);
     #endif
 
     // data structures

@@ -11,7 +11,7 @@ t1 = None;
 
 # sweep over num_threads
 for num_threads in xrange(1,9):
-    hoomd.omp_set_num_threads(num_threads)    
+    hoomd.set_num_threads(num_threads)
 
     init.create_random(N=64000, phi_p=0.2)
     lj = pair.lj(r_cut=3.0)
