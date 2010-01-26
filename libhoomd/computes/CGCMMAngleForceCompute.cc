@@ -163,7 +163,7 @@ void CGCMMAngleForceCompute::setParams(unsigned int type, Scalar K, Scalar t_0, 
     m_rcut[type] = my_rcut;
     
     // check for some silly errors a user could make
-    if (cg_type < 0 || cg_type > 3)
+    if (cg_type > 3)
         cout << "***Warning! Unrecognized exponents specified for CGCMM Angle" << endl;
     if (K <= 0)
         cout << "***Warning! K <= 0 specified for CGCMM Angle" << endl;

@@ -112,7 +112,7 @@ class AngleData : boost::noncopyable
         //! Get the number of angles
         /*! \return Number of angles present
         */
-        const unsigned int getNumAngles() const
+        unsigned int getNumAngles() const
             {
             return (unsigned int)m_angles.size();
             }
@@ -128,7 +128,7 @@ class AngleData : boost::noncopyable
         //! Get the number of angle types
         /*! \return Number of angle types in the list of angles
         */
-        const unsigned int getNAngleTypes() const
+        unsigned int getNAngleTypes() const
             {
             return m_n_angle_types;
             }

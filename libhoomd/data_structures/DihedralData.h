@@ -114,7 +114,7 @@ class DihedralData : boost::noncopyable
         //! Get the number of dihedrals
         /*! \return Number of dihedrals present
         */
-        const unsigned int getNumDihedrals() const
+        unsigned int getNumDihedrals() const
             {
             return (unsigned int)m_dihedrals.size();
             }
@@ -130,7 +130,7 @@ class DihedralData : boost::noncopyable
         //! Get the number of dihedral types
         /*! \return Number of dihedral types in the list of dihedrals
         */
-        const unsigned int getNDihedralTypes() const
+        unsigned int getNDihedralTypes() const
             {
             return m_n_dihedral_types;
             }

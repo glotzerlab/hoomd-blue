@@ -196,7 +196,7 @@ class ParticleGroup
         //! Get the number of members in the group
         /*! \returns The number of particles that belong to this group
         */
-        const unsigned int getNumMembers() const
+        unsigned int getNumMembers() const
             {
             return (unsigned int)m_member_tags.size();
             }
@@ -205,7 +205,7 @@ class ParticleGroup
         /*! \param i Index from 0 to getNumMembers()-1 of the group member to get
             \returns Tag of the member at index \a i
         */
-        const unsigned int getMemberTag(unsigned int i) const
+        unsigned int getMemberTag(unsigned int i) const
             {
             assert(i < getNumMembers());
             return m_member_tags[i];
@@ -217,7 +217,7 @@ class ParticleGroup
             \note getMemberTag(j) \b does \b NOT get the tag of the particle with index getMemberIndex(j). These two
                   lists are stored in different orders. Access the ParticleData to convert between tags and indices.
         */
-        const unsigned int getMemberIndex(unsigned int j) const
+        unsigned int getMemberIndex(unsigned int j) const
             {
             assert(j < getNumMembers());
             ArrayHandle<unsigned int> h_handle(m_member_idx, access_location::host, access_mode::read);
@@ -228,7 +228,7 @@ class ParticleGroup
         /*! \param idx Index of the particle to query (from 0 to the number of partilces in ParticleData -1)
             \returns true if the particle with index \a idx is in the group
         */
-        const bool isMember(unsigned int idx) const
+        bool isMember(unsigned int idx) const
             {
             return m_is_member[idx];
             }
@@ -247,9 +247,9 @@ class ParticleGroup
         // @{
         
         //! Compute the total mass of the group
-        const Scalar getTotalMass() const;
+        Scalar getTotalMass() const;
         //! Compute the center of mass of the group
-        const Scalar3 getCenterOfMass() const;
+        Scalar3 getCenterOfMass() const;
         
         // @}
         //! \name Combination methods
