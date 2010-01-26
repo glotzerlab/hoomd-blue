@@ -9,8 +9,10 @@ f.write("num_threads\tnlist_msec\tnlist_eff\n")
 
 t1 = None;
 
+max_threads = min(8, hoomd.get_num_procs());
+
 # sweep over num_threads
-for num_threads in xrange(1,9):
+for num_threads in xrange(1,max_threads+1):
     hoomd.set_num_threads(num_threads)
 
     init.create_random(N=64000, phi_p=0.2)
