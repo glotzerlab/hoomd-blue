@@ -270,7 +270,7 @@ void BinnedNeighborList::updateListFromBins()
         
     // now we can loop over all particles in a binned fashion and build the list
 #pragma omp parallel for schedule(dynamic, 100)
-    for (unsigned int n = 0; n < arrays.nparticles; n++)
+    for (int n = 0; n < (int)arrays.nparticles; n++)
         {
         // compare all pairs of particles n,m that are in neighboring bins
         Scalar xn = arrays.x[n];
@@ -326,7 +326,7 @@ void BinnedNeighborList::updateListFromBins()
                     for (unsigned int k = 0; k < bin_size; k++)
                         {
                         // we need to consider the pair m,n for the neihgborlist
-                        unsigned int m = bin_list[k];
+                        int m = (int)bin_list[k];
                         
                         // skip self pair
                         if (n == m)

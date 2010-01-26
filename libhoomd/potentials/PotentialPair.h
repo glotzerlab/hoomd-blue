@@ -342,7 +342,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     
     // for each particle
 #pragma omp for schedule(guided)
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+    for (int i = 0; i < (int)arrays.nparticles; i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar xi = arrays.x[i];
