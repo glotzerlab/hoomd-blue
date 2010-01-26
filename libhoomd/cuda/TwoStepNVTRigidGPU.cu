@@ -636,16 +636,34 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
 
-    block_size = nmax; // maximum number of particles in a rigid body: each thread in a block takes care of a particle in a rigid body
-    dim3 particle_grid(n_bodies, 1, 1);
-    dim3 particle_threads(block_size, 1, 1);
-    
-    gpu_rigid_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
-                                                                 pdata.vel, 
-                                                                 pdata.image,
-                                                                 n_bodies, 
-                                                                 local_beg,
-                                                                 box);
+    if (nmax <= 32)
+        {
+        block_size = nmax; // maximum number of particles in a rigid body: each thread in a block takes care of a particle in a rigid body
+        dim3 particle_grid(n_bodies, 1, 1);
+        dim3 particle_threads(block_size, 1, 1);
+        
+        gpu_rigid_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
+                                                                     pdata.vel, 
+                                                                     pdata.image,
+                                                                     n_bodies, 
+                                                                     local_beg,
+                                                                     box);
+        }
+    else
+        {
+        block_size = 16; 
+        dim3 particle_grid(n_bodies, 1, 1);
+        dim3 particle_threads(block_size, 1, 1);
+        
+        gpu_rigid_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
+                                                                     pdata.vel, 
+                                                                     pdata.image,
+                                                                     n_bodies, 
+                                                                     local_beg,
+                                                                     nmax,
+                                                                     block_size,
+                                                                     box);
+        }
                                                                     
     if (!g_gpu_error_checking)
         {
@@ -884,14 +902,29 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
         return error;
  
                                                                                                                                     
-    block_size = nmax; // each thread in a block takes care of a particle in a rigid body
-    dim3 particle_grid(n_bodies, 1, 1);
-    dim3 particle_threads(block_size, 1, 1);                                                
-    gpu_rigid_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
-                                                                                n_bodies, 
-                                                                                local_beg,
-                                                                                nmax, 
-                                                                                box);
+    if (nmax <= 32)
+        {                                                                                                                                    
+        block_size = nmax; // each thread in a block takes care of a particle in a rigid body
+        dim3 particle_grid(n_bodies, 1, 1);
+        dim3 particle_threads(block_size, 1, 1);                                                
+        gpu_rigid_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+                                                        n_bodies, 
+                                                        local_beg,
+                                                        nmax, 
+                                                        box);
+        }
+    else
+        {
+        block_size = 16; 
+        dim3 particle_grid(n_bodies, 1, 1);
+        dim3 particle_threads(block_size, 1, 1);                                                
+        gpu_rigid_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+                                                        n_bodies, 
+                                                        local_beg,
+                                                        nmax,
+                                                        block_size, 
+                                                        box);
+        } 
                                                                                                                                              
     if (!g_gpu_error_checking)
         {
