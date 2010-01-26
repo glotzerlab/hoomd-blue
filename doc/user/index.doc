@@ -50,6 +50,7 @@ Table of contents:
 
 \section sec_index_run Control the running of simulations
  - \link hoomd_script.run() run\endlink - <i>\copybrief hoomd_script::run() </i>
+ - \link hoomd_script.run_upto() run\endlink - <i>\copybrief hoomd_script::run_upto() </i>
 
 \section sec_index_init Initialization commands 
 \link hoomd_script.init init\endlink:
