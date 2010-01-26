@@ -278,6 +278,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 */
 void ForceCompute::allocateThreadPartial()
     {
+    assert(exec_conf.n_cpu >= 1);
     m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf.n_cpu);
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
