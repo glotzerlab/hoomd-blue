@@ -661,9 +661,6 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
 
 #pragma mark RIGID_STEP_TWO_KERNEL
 
-//! The texture for reading the net force array
-texture<float4, 1, cudaReadModeElementType> net_force_tex;
-
 
 //! Takes the 2nd 1/2 step forward in the velocity-verlet NVT integration scheme
 /*!  
@@ -851,11 +848,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
     error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
         return error;
-        
-    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;    
-                                                                                            
+                                                                                          
     error = cudaBindTexture(0, rigid_data_force_tex, rigid_data.force, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -980,7 +973,7 @@ extern "C" __global__ void gpu_nvt_rigid_reduce_ksum_kernel(gpu_nvt_rigid_data n
 cudaError_t gpu_nvt_rigid_reduce_ksum(const gpu_nvt_rigid_data& nvt_rdata)
     {
     // setup the grid to run the kernel
-    int block_size = 128;
+    int block_size = 16;
     int nblocks = nvt_rdata.n_bodies / block_size + 1;
     dim3 grid(nblocks, 1, 1);
     dim3 threads(block_size, 1, 1);

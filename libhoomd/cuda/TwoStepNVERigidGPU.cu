@@ -598,6 +598,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
 
+    
     block_size = nmax; // maximum number of particles in a rigid body: each thread in a block takes care of a particle in a rigid body
     dim3 particle_grid(n_bodies, 1, 1);
     dim3 particle_threads(block_size, 1, 1);
@@ -799,7 +800,7 @@ extern "C" __global__ void gpu_rigid_force_sliding_kernel(float4* rdata_force,
 		int idx_particle = idx_body * nmax + start * window_size + threadIdx.x;
 		unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
 				     
-        if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX && idx_particle < nmax)
+        if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
             {
             // calculate body force and torques
 			particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
