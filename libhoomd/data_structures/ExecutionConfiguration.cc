@@ -585,6 +585,9 @@ int ExecutionConfiguration::getNumCapableGPUs()
 */
 void ExecutionConfiguration::setupStats()
     {
+    // catch all default setting for n_cpu
+    n_cpu = 1;
+    
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
