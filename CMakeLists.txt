@@ -68,7 +68,7 @@ if (BUILD_TESTING)
     add_custom_target(test_all ${_default_test_all})
     add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
     add_dependencies(check test_all)
-    add_subdirectory (test EXCLUDE_FROM_ALL)
+    add_subdirectory (test)
 endif (BUILD_TESTING)
 
 ###############################
