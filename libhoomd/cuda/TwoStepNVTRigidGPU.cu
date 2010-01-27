@@ -1006,8 +1006,7 @@ extern "C" __global__ void gpu_nvt_rigid_reduce_ksum_kernel(gpu_nvt_rigid_data n
 cudaError_t gpu_nvt_rigid_reduce_ksum(const gpu_nvt_rigid_data& nvt_rdata)
     {
     // setup the grid to run the kernel
-    int block_size = 16;
-    int nblocks = nvt_rdata.n_bodies / block_size + 1;
+    int block_size = 128;
     dim3 grid( 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     

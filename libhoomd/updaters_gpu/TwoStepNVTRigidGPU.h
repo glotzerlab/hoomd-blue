@@ -61,7 +61,11 @@ class TwoStepNVTRigidGPU : public TwoStepNVTRigid
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, boost::shared_ptr<Variant> temperature);
+        TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, 
+                            boost::shared_ptr<ParticleGroup> group, 
+                            boost::shared_ptr<Variant> T,
+                            Scalar tau=10.0);
+                            
         virtual ~TwoStepNVTRigidGPU() {};
         
         //! Performs the first step of the integration

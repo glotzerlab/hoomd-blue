@@ -823,21 +823,23 @@ class nvt_rigid(_integration_method):
     #
     # \b Examples:
     # \code
-    # integrator.set_params(T=2.0)
+    # integrator.set_params(T=2.0, tau=10.0)
     # \endcode
-    def set_params(self, T=None):
+    def set_params(self, T=None, tau=None):
         util.print_status_line();
         # check that proper initialization has occured
         if self.cpp_method == None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating nvt params');
+            raise RuntimeError('Error updating nvt rigid params');
         
         # change the parameters
         if T != None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
-            
+        if tau != None:
+            self.cpp_method.setTau(tau);  
+              
 ## NVT integration via Brownian dynamics for rigid bodies
 #
 # integrate.bdnvt_rigid performs constant volume, fixed average temperature simulation based on a 

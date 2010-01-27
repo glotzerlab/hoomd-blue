@@ -67,16 +67,33 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         //! Constructor
         TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
                         boost::shared_ptr<ParticleGroup> group,
-                        boost::shared_ptr<Variant> temperature);
+                        boost::shared_ptr<Variant> T,
+                        Scalar tau=10.0);
         
         //! Setup the initial net forces, torques and angular momenta
         void setup();
         
         //! First step of velocit Verlet integration
-        void integrateStepOne(unsigned int timestep);
+        virtual void integrateStepOne(unsigned int timestep);
         
         //! Second step of velocit Verlet integration
-        void integrateStepTwo(unsigned int timestep);
+        virtual void integrateStepTwo(unsigned int timestep);
+        
+        //! Update the temperature
+        /*! \param T New temperature to set
+        */
+        virtual void setT(boost::shared_ptr<Variant> T)
+            {
+            m_temperature = T;
+            }
+            
+        /*! Set tau
+            \param tau New time constant to set
+        */
+        virtual void setTau(Scalar tau)
+            {
+            t_freq = tau;
+            }
             
     protected:
         //! Update thermostats

@@ -60,19 +60,22 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
  \param group The group of particles this integration method is to work on
- \param temperature Controlled temperature
+ \param T Controlled temperature
+ \param tau Time constant
 */
 TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<ParticleGroup> group, 
-                                 boost::shared_ptr<Variant> temperature) : TwoStepNVERigid(sysdef, group)
+                                 boost::shared_ptr<Variant> T,
+                                 Scalar tau) 
+: TwoStepNVERigid(sysdef, group), m_temperature(T), t_freq(tau)
     {
-    m_temperature = temperature;
+    if (t_freq <= 0.0)
+        cout << "***Warning! tau set less than 0.0 in TwoStepNVTRigid. Recommended values: 5.0-10.0" << endl;
     
     boltz = 1.0;
     chain = 5;
     order = 3;
-    iter = 1;
-    t_freq = 10.0;
+    iter = 5;
     }
 
 void TwoStepNVTRigid::setup()
@@ -668,11 +671,13 @@ inline Scalar TwoStepNVTRigid::maclaurin_series(Scalar x)
     }
 
 void export_TwoStepNVTRigid()
-{
+    {
     class_<TwoStepNVTRigid, boost::shared_ptr<TwoStepNVTRigid>, bases<TwoStepNVERigid>, boost::noncopyable>
     ("TwoStepNVTRigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<Variant> >())
+    .def("setT", &TwoStepNVTRigid::setT)
+    .def("setTau", &TwoStepNVTRigid::setTau)
     ;
-}
+    }
 
 #ifdef WIN32
 #pragma warning( pop )
