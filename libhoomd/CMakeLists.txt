@@ -9,7 +9,7 @@ add_subdirectory(${dir})
 # find all source files in this directory
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cc)
 file(GLOB CU_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cu)
-file(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}*.h ${CMAKE_CURRENT_SOURCE_DIR}/${dir}*.cuh)
+file(GLOB HDRS ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*.cuh)
 
 # add them to the source group
 source_group(${dir} FILES ${CU_SRCS} ${SRCS} ${HDRS})
