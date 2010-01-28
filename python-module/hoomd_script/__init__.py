@@ -70,7 +70,8 @@ __all__ = [ "analyze",
             "update", 
             "wall",
             "variant", 
-            "run", 
+            "run",
+            "run_upto",
             "tune", 
             "hoomd",
             "get_hoomd_script_version"];
@@ -183,3 +184,41 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     if not quiet:
         print "** run complete **"
 
+## \brief Runs the simulation up to a given time step number
+#
+# \param step Final timestep of the simulation which to run
+# \param keywords (see below) Catch for all keyword arguments to pass on to run()
+#
+# run_upto() runs the simulation, but only until it reaches the given time step, \a step. If the simulation has already
+# reached the speicfied step, a warning is printed and no simulation steps are run.
+#
+# It accepts all keyword options that run() does.
+#
+# \b Examples:
+# \code
+# run_upto(1000)
+# run_upto(10000, profile=True)
+# run_upto(1e9, limit_hours=11)
+# \endcode
+#
+def run_upto(step, **keywords):
+    if 'quiet' in keywords and not keywords['quiet']:
+        util.print_status_line();
+    # check if initialization has occured
+    if (globals.system == None):
+        print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
+        raise RuntimeError('Error running');
+    
+    # determine the number of steps to run
+    step = int(step);
+    cur_step = globals.system.getCurrentTimeStep();
+    
+    if cur_step >= step:
+        print "***Warning! Requesting run up to a time step that has already passed, doing nothing\n";
+        return;
+    
+    n_steps = step - cur_step;
+    
+    util._disable_status_lines = True;
+    run(n_steps, **keywords);
+    util._disable_status_lines = False;
