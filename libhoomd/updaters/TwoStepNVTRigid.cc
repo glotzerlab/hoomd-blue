@@ -211,6 +211,9 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
         m_first_step = false;
         }
     
+    if (m_prof)
+        m_prof->push("NVT rigid step 1");
+    
     // get box
     const BoxDim& box = m_pdata->getBox();
     // sanity check
@@ -368,12 +371,18 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     // set positions and velocities of particles in rigid bodies
     set_xv();
     
+    if (m_prof)
+        m_prof->pop();
+    
     }
 
 void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
     {
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque();
+    
+    if (m_prof)
+        m_prof->push("NVT rigid step 2");
     
     Scalar tmp, scale_t, scale_r;
     Scalar4 mbody, tbody, fquat;
@@ -443,6 +452,8 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
     // set velocities of particles in rigid bodies
     set_v();
     
+    if (m_prof)
+        m_prof->pop();
     }
 
 void TwoStepNVTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep)

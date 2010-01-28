@@ -99,6 +99,9 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
 
 void TwoStepNVERigid::setup()
     {
+    if (m_prof)
+        m_prof->push("Rigid setup");
+        
      // Get the number of rigid bodies for frequent use
     m_n_bodies = m_rigid_data->getNumBodies();
     
@@ -226,6 +229,9 @@ void TwoStepNVERigid::setup()
         
     // Set the velocities of particles in rigid bodies
     set_v();
+    
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -239,6 +245,9 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
         setup();
         m_first_step = false;
         }
+    
+    if (m_prof)
+        m_prof->push("NVE rigid step 1");
     
     // get box
     const BoxDim& box = m_pdata->getBox();
@@ -332,6 +341,8 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     // set positions and velocities of particles in rigid bodies
     set_xv();
     
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \param timestep Current time step
@@ -341,6 +352,9 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     {
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque();
+    
+    if (m_prof)
+        m_prof->push("NVE rigid step 2");
     
         {
         // rigid data handes
@@ -380,6 +394,8 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     // set velocities of particles in rigid bodies
     set_v();
     
+    if (m_prof)
+        m_prof->pop();
     }
 
 /* Compute the body forces and torques once all the particle forces are computed
@@ -387,6 +403,9 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
 */
 void TwoStepNVERigid::computeForceAndTorque()
     {
+    if (m_prof)
+        m_prof->push("Rigid force sum");
+    
     // get box
     const BoxDim& box = m_pdata->getBox();
     // sanity check
@@ -470,6 +489,8 @@ void TwoStepNVERigid::computeForceAndTorque()
         
     m_pdata->release();
     
+    if (m_prof)
+        m_prof->pop();
     }
 
 /* Set position and velocity of constituent particles in rigid bodies in the 1st half of integration

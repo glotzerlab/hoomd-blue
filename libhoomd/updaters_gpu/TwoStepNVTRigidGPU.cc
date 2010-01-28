@@ -87,7 +87,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     {
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE step 1");
+        m_prof->push(exec_conf, "NVT rigid step 1");
     
     if (m_first_step)
         {
@@ -234,7 +234,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVE step 2");
+        m_prof->push(exec_conf, "NVT rigid step 2");
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
