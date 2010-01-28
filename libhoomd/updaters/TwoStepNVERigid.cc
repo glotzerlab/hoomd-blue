@@ -122,8 +122,9 @@ void TwoStepNVERigid::setup()
         ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
         unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
+        ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
+        unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
         
         ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
@@ -188,15 +189,16 @@ void TwoStepNVERigid::setup()
                 force_handle.data[body].z += fz;
                 
                 // Torque = r x f (all are in the space frame)
-                Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[j].x
-                        + ey_space_handle.data[body].x * particle_pos_handle.data[j].y
-                        + ez_space_handle.data[body].x * particle_pos_handle.data[j].z;
-                Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[j].x
-                        + ey_space_handle.data[body].y * particle_pos_handle.data[j].y
-                        + ez_space_handle.data[body].y * particle_pos_handle.data[j].z;
-                Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[j].x
-                        + ey_space_handle.data[body].z * particle_pos_handle.data[j].y
-                        + ez_space_handle.data[body].z * particle_pos_handle.data[j].z;
+                unsigned int localidx = body * particle_pos_pitch + j;
+                Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
+                Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
+                Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
+                        + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
+                        + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
                 
                 torque_handle.data[body].x += ry * fz - rz * fy;
                 torque_handle.data[body].y += rz * fx - rx * fz;
@@ -426,6 +428,7 @@ void TwoStepNVERigid::computeForceAndTorque()
     ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
     unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
+    unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
     
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
@@ -471,15 +474,16 @@ void TwoStepNVERigid::computeForceAndTorque()
             force_handle.data[body].z += fz;
             
             // torque = r x f
-            Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[j].x
-                        + ey_space_handle.data[body].x * particle_pos_handle.data[j].y
-                        + ez_space_handle.data[body].x * particle_pos_handle.data[j].z;
-            Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[j].x
-                        + ey_space_handle.data[body].y * particle_pos_handle.data[j].y
-                        + ez_space_handle.data[body].y * particle_pos_handle.data[j].z;
-            Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[j].x
-                        + ey_space_handle.data[body].z * particle_pos_handle.data[j].y
-                        + ez_space_handle.data[body].z * particle_pos_handle.data[j].z;
+            unsigned int localidx = body * particle_pos_pitch + j;
+            Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
+                    + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
+                    + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
+            Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
+                    + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
+                    + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
+            Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
+                    + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
+                    + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
             torque_handle.data[body].x += ry * fz - rz * fy;
             torque_handle.data[body].y += rz * fx - rx * fz;
@@ -661,7 +665,10 @@ void TwoStepNVERigid::set_v()
     }
 
 /* Compute orientation (ex_space, ey_space, ez_space) from quaternion.
-
+    \param quat Quaternion
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
 */
 
 void TwoStepNVERigid::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space)
@@ -735,8 +742,7 @@ void TwoStepNVERigid::computeAngularVelocity(Scalar4& angmom, Scalar4& moment_in
     \param ey_space y-axis unit vector
     \param ez_space z-axis unit vector
     \param quat Returned quaternion
-    \param deltaT Time step
-    
+
 */
 void TwoStepNVERigid::advanceQuaternion(Scalar4& angmom, Scalar4 &moment_inertia, Scalar4 &angvel,
                                         Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space, Scalar4 &quat)
