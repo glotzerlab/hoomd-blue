@@ -385,6 +385,9 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
     
     float4 com, vel, angvel, ex_space, ey_space, ez_space, particle_pos;
     float4 ri = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float Lx2 = box.Lx/2;
+    float Ly2 = box.Ly/2;
+    float Lz2 = box.Lz/2;
     
     // ri, body_mass and moment_inertia is used throughout the kernel
     if (idx_body < n_bodies)
@@ -400,8 +403,13 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
         unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);        
         // Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
         // the particle index of these empty slots is set to be INVALID_INDEX.
+        // Setting particle images here is different from normal point particles
+        // because the particle position is set from the body center of mass: 
+        // two adjacent wraps do not mean the particle has moved twice the box lengths, 
+        // so we have to check with the old position
         if (idx_particle_index != INVALID_INDEX)
             {
+            float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
             
             // compute ri with new orientation
@@ -419,15 +427,18 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
             // time to fix the periodic boundary conditions (FLOPS: 15)
             float x_shift = rintf(ppos.x * box.Lxinv);
             ppos.x -= box.Lx * x_shift;
-            image.x += (int)x_shift;
+            if (ppos.x - pos.x >= Lx2 || ppos.x - pos.x <= -Lx2)
+                image.x += (int)x_shift;
             
             float y_shift = rintf(ppos.y * box.Lyinv);
             ppos.y -= box.Ly * y_shift;
-            image.y += (int)y_shift;
+            if (ppos.y - pos.y >= Ly2 || ppos.y - pos.y <= -Ly2)
+                image.y += (int)y_shift;
             
             float z_shift = rintf(ppos.z * box.Lzinv);
             ppos.z -= box.Lz * z_shift;
-            image.z += (int)z_shift;
+            if (ppos.z - pos.z >= Lx2 || ppos.z - pos.z <= -Lz2)
+                image.z += (int)z_shift;
             
             // v_particle = vel + angvel x ri
             float4 pvel;

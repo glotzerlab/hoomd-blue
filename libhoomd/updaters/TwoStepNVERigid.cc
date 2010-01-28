@@ -512,6 +512,9 @@ void TwoStepNVERigid::set_xv()
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
+    Scalar Lx2 = Lx / 2.0;
+    Scalar Ly2 = Ly / 2.0;
+    Scalar Lz2 = Lz / 2.0;
     
     // handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
@@ -557,41 +560,62 @@ void TwoStepNVERigid::set_xv()
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
                         
             // x_particle = x_com + xr
+            Scalar4 old_pos;
+            old_pos.x = arrays.x[pidx];
+            old_pos.y = arrays.y[pidx];
+            old_pos.z = arrays.z[pidx];
+            
             arrays.x[pidx] = com.data[body].x + xr;
             arrays.y[pidx] = com.data[body].y + yr;
             arrays.z[pidx] = com.data[body].z + zr;
             
+            // setting particle images here is different from normal point particles
+            // because the particle position is set from the body center of mass: 
+            // two adjacent wraps do not mean the particle has moved twice the box lengths, 
+            // so we have to check with the old position
             if (arrays.x[pidx] >= box.xhi)
                 {
                 arrays.x[pidx] -= Lx;
-                arrays.ix[pidx]++;
+                // adjust image only when particle really move to other side of the box
+                if (arrays.x[pidx] - old_pos.x < -Lx2)   
+                    arrays.ix[pidx]++;
                 }
             else if (arrays.x[pidx] < box.xlo)
                 {
                 arrays.x[pidx] += Lx;
-                arrays.ix[pidx]--;
+                // adjust image only when particle really move to other side of the box
+                if (arrays.x[pidx] - old_pos.x > Lx2)   
+                    arrays.ix[pidx]--;
                 }
                 
             if (arrays.y[pidx] >= box.yhi)
                 {
                 arrays.y[pidx] -= Ly;
-                arrays.iy[pidx]++;
+                // adjust image only when particle really move to other side of the box
+                if (arrays.y[pidx] - old_pos.y < -Ly2) 
+                    arrays.iy[pidx]++;
                 }
             else if (arrays.y[pidx] < box.ylo)
                 {
                 arrays.y[pidx] += Ly;
-                arrays.iy[pidx]--;
+                // adjust image only when particle really move to other side of the box
+                if (arrays.y[pidx] - old_pos.y > Ly2)
+                    arrays.iy[pidx]--;
                 }
                 
             if (arrays.z[pidx] >= box.zhi)
                 {
                 arrays.z[pidx] -= Lz;
-                arrays.iz[pidx]++;
+                // adjust image only when particle really move to other side of the box
+                if (arrays.z[pidx] - old_pos.z < -Lz2)
+                    arrays.iz[pidx]++;
                 }
             else if (arrays.z[pidx] < box.zlo)
                 {
                 arrays.z[pidx] += Lz;
-                arrays.iz[pidx]--;
+                // adjust image only when particle really move to other side of the box
+                if (arrays.z[pidx] - old_pos.z > Lz2)
+                    arrays.iz[pidx]--;
                 }
                 
             // v_particle = v_com + angvel x xr
