@@ -119,6 +119,10 @@ void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
 */
 void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step
@@ -138,7 +142,6 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     
     // a(t+deltaT) gets modified with the bd forces
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-    unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);

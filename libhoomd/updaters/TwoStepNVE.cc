@@ -108,6 +108,10 @@ void TwoStepNVE::removeLimit()
 */
 void TwoStepNVE::integrateStepOne(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     // profile this step
     if (m_prof)
         m_prof->push("NVE step 1");
@@ -117,7 +121,6 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
     // perform the first half step of velocity verlet
     // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
     // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
-    unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -207,6 +210,10 @@ void TwoStepNVE::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVE::integrateStepTwo(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step
@@ -217,7 +224,6 @@ void TwoStepNVE::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-    unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);

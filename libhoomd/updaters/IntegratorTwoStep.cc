@@ -157,6 +157,9 @@ void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethod
     // check for intersections with existing methods
     shared_ptr<ParticleGroup> new_group = new_method->getGroup();
     
+    if (new_group->getNumMembers() == 0)
+        cout << "***Warning! An integration method has been added that operates on zero particles." << endl;
+    
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
