@@ -119,6 +119,7 @@ void TwoStepNVERigid::setup()
         ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
         unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
         
         ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
@@ -184,16 +185,15 @@ void TwoStepNVERigid::setup()
                 force_handle.data[body].z += fz;
                 
                 // Torque = r x f (all are in the space frame)
-                Scalar rx = arrays.x[pidx] - com_handle.data[body].x;
-                Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
-                Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
-                
-                if (rx >= Lx/2.0) rx -= Lx;
-                if (rx < -Lx/2.0) rx += Lx;
-                if (ry >= Ly/2.0) ry -= Ly;
-                if (ry < -Ly/2.0) ry += Ly;
-                if (rz >= Lz/2.0) rz -= Lz;
-                if (rz < -Lz/2.0) rz += Lz;
+                Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[j].x
+                        + ey_space_handle.data[body].x * particle_pos_handle.data[j].y
+                        + ez_space_handle.data[body].x * particle_pos_handle.data[j].z;
+                Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[j].x
+                        + ey_space_handle.data[body].y * particle_pos_handle.data[j].y
+                        + ez_space_handle.data[body].y * particle_pos_handle.data[j].z;
+                Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[j].x
+                        + ey_space_handle.data[body].z * particle_pos_handle.data[j].y
+                        + ez_space_handle.data[body].z * particle_pos_handle.data[j].z;
                 
                 torque_handle.data[body].x += ry * fz - rz * fy;
                 torque_handle.data[body].y += rz * fx - rx * fz;
@@ -406,7 +406,12 @@ void TwoStepNVERigid::computeForceAndTorque()
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
     unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
+    ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
     
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
     
@@ -447,16 +452,15 @@ void TwoStepNVERigid::computeForceAndTorque()
             force_handle.data[body].z += fz;
             
             // torque = r x f
-            Scalar rx = arrays.x[pidx] - com_handle.data[body].x;
-            Scalar ry = arrays.y[pidx] - com_handle.data[body].y;
-            Scalar rz = arrays.z[pidx] - com_handle.data[body].z;
-            
-            if (rx >= Lx/2.0) rx -= Lx;
-            if (rx < -Lx/2.0) rx += Lx;
-            if (ry >= Ly/2.0) ry -= Ly;
-            if (ry < -Ly/2.0) ry += Ly;
-            if (rz >= Lz/2.0) rz -= Lz;
-            if (rz < -Lz/2.0) rz += Lz;
+            Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[j].x
+                        + ey_space_handle.data[body].x * particle_pos_handle.data[j].y
+                        + ez_space_handle.data[body].x * particle_pos_handle.data[j].z;
+            Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[j].x
+                        + ey_space_handle.data[body].y * particle_pos_handle.data[j].y
+                        + ez_space_handle.data[body].y * particle_pos_handle.data[j].z;
+            Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[j].x
+                        + ey_space_handle.data[body].z * particle_pos_handle.data[j].y
+                        + ez_space_handle.data[body].z * particle_pos_handle.data[j].z;
             
             torque_handle.data[body].x += ry * fz - rz * fy;
             torque_handle.data[body].y += rz * fx - rx * fz;
