@@ -422,7 +422,7 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
             ppos.x = com.x + ri.x;
             ppos.y = com.y + ri.y;
             ppos.z = com.z + ri.z;
-            ppos.w = com.w;
+            ppos.w = pos.w;
             
             // time to fix the periodic boundary conditions (FLOPS: 15)
             float x_shift = rintf(ppos.x * box.Lxinv);
@@ -505,6 +505,7 @@ extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pd
         if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
             {
             particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+            float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
             
             // compute ri with new orientation
@@ -517,7 +518,7 @@ extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pd
             ppos.x = com.x + ri.x;
             ppos.y = com.y + ri.y;
             ppos.z = com.z + ri.z;
-            ppos.w = com.w;
+            ppos.w = pos.w;
             
             // time to fix the periodic boundary conditions (FLOPS: 15)
             float x_shift = rintf(ppos.x * box.Lxinv);
@@ -688,7 +689,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
 
-    // bind the textures for particles: pos, vel, accel and image of ALL particles
+    // bind the textures for particles: pos, vel and image of ALL particles (remember pos.w is the partice type needed to for new positions)
     error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
         return error;
