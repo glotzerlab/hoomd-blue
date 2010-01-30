@@ -81,6 +81,10 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     {
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     if (m_first_step)
         {
         setup();
@@ -164,6 +168,10 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     {
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step

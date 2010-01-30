@@ -242,6 +242,10 @@ void TwoStepNVERigid::setup()
 */
 void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     {
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     if (m_first_step)
         {
         setup();
@@ -352,6 +356,10 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     {
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque();
     
