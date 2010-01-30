@@ -204,13 +204,17 @@ void TwoStepNVTRigid::setup()
     \param timestep Current time step
 */
 void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
-    {
+    {        
     if (m_first_step)
         {
         setup();
         m_first_step = false;
         }
     
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     if (m_prof)
         m_prof->push("NVT rigid step 1");
     
@@ -378,6 +382,10 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
 
 void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
     {
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque();
     

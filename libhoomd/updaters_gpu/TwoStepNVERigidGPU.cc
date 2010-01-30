@@ -81,15 +81,15 @@ TwoStepNVERigidGPU::TwoStepNVERigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     {
-    // sanity check
-    if (m_n_bodies <= 0)
-        return;
-        
     if (m_first_step)
         {
         setup();
         m_first_step = false;
         }
+    
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
         
     // profile this step
     if (m_prof)

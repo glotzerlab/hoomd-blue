@@ -105,6 +105,10 @@ void TwoStepNVERigid::setup()
      // Get the number of rigid bodies for frequent use
     m_n_bodies = m_rigid_data->getNumBodies();
     
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+    
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // get box

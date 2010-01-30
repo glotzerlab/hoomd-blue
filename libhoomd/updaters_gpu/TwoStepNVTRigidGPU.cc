@@ -85,19 +85,18 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
 */
 void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     {
-    // profile this step
-    if (m_prof)
-        m_prof->push(exec_conf, "NVT rigid step 1");
-    
     if (m_first_step)
         {
         setup();
         
-        unsigned int n_bodies = m_sysdef->getRigidData()->getNumBodies();
-        GPUArray<float> partial_Ksum_t(n_bodies, m_pdata->getExecConf());
+        // sanity check
+        if (m_n_bodies <= 0)
+            return;
+        
+        GPUArray<float> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_t.swap(partial_Ksum_t);
         
-        GPUArray<float> partial_Ksum_r(n_bodies, m_pdata->getExecConf());
+        GPUArray<float> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_r.swap(partial_Ksum_r);
         
         GPUArray<float> Ksum_t(1, m_pdata->getExecConf());
@@ -108,6 +107,14 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
         
         m_first_step = false;
         }
+        
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
+    // profile this step
+    if (m_prof)
+        m_prof->push(exec_conf, "NVT rigid step 1");
     
     // access all the needed data
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
@@ -197,6 +204,10 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     {
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // phase 1, reduce to find the final Ksum_t and Ksum_r

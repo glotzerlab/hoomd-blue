@@ -88,13 +88,17 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
           method.
 */
 void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
-    {
+    {        
     if (m_first_step)
         {
         setup();
         m_first_step = false;
         }
-        
+    
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "BD NVT rigid step 1");
@@ -172,6 +176,10 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     {
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step
