@@ -549,12 +549,12 @@ class ParticleData : boost::noncopyable
             return result;
             }
         //! Get the current diameter of a particle
-        unsigned int getBody(unsigned int tag)
+        int getBody(unsigned int tag)
             {
             assert(tag < getN());
             acquireReadOnly();
             unsigned int idx = m_arrays.rtag[tag];
-            unsigned int result = m_arrays.body[idx];
+            int result = m_arrays.body[idx];
             release();
             return result;
             }
@@ -634,12 +634,12 @@ class ParticleData : boost::noncopyable
             release();
             }
         //! Set the current diameter of a particle
-        void setBody(unsigned int tag, unsigned int body)
+        void setBody(unsigned int tag, int body)
             {
             assert(tag < getN());
             acquireReadWrite();
             unsigned int idx = m_arrays.rtag[tag];
-            m_arrays.body[idx] = body;
+            m_arrays.body[idx] = (unsigned int)body;
             release();
             }
         //! Get the current type of a particle

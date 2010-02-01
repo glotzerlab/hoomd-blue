@@ -326,6 +326,7 @@ class particle_data:
 # - \c mass         : A single float
 # - \c diameter     : A single float
 # - \c type         : A string naming the type
+# - \c body         : Rigid body id integer (-1 for free particles)
 #
 # In the current version of the API, only already defined type names can be used. A future improvement will allow 
 # dynamic creation of new type names from within the python API.
@@ -354,6 +355,7 @@ class particle_data_proxy:
         result += "diameter    : " + str(self.diameter) + "\n";
         result += "type        : " + str(self.type) + "\n";
         result += "typeid      : " + str(self.typeid) + "\n";
+        result += "body        : " + str(self.body) + "\n";
         return result;
     
     ## \internal
@@ -379,6 +381,8 @@ class particle_data_proxy:
             return self.pdata.getDiameter(self.tag);
         if name == "typeid":
             return self.pdata.getType(self.tag);
+        if name == "body":
+            return self.pdata.getBody(self.tag);
         if name == "type":
             typeid = self.pdata.getType(self.tag);
             return self.pdata.getNameByType(typeid);
@@ -418,6 +422,9 @@ class particle_data_proxy:
             return;
         if name == "diameter":
             self.pdata.setDiameter(self.tag, value);
+            return;
+        if name == "body":
+            self.pdata.setBody(self.tag, value);
             return;
         if name == "type":
             typeid = self.pdata.getTypeByName(value);
