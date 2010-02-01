@@ -299,7 +299,7 @@ void RigidData::initializeData()
             if (dz >= Lz/2.0) dz -= Lz;
             if (dz < -Lz/2.0) dz += Lz;
             
-            inertia_handle.data[inertia_pitch * body] += mass_one * (dy * dy + dz * dz);
+            inertia_handle.data[inertia_pitch * body + 0] += mass_one * (dy * dy + dz * dz);
             inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);
             inertia_handle.data[inertia_pitch * body + 2] += mass_one * (dx * dx + dy * dy);
             inertia_handle.data[inertia_pitch * body + 3] -= mass_one * dx * dy;
@@ -319,9 +319,10 @@ void RigidData::initializeData()
             }
             
         unsigned int dof_one;
+        unsigned int dimension = 3;  // need to access to system dimension here
         for (unsigned int body = 0; body < m_n_bodies; body++)
             {
-            matrix[0][0] = inertia_handle.data[inertia_pitch * body];
+            matrix[0][0] = inertia_handle.data[inertia_pitch * body + 0];
             matrix[1][1] = inertia_handle.data[inertia_pitch * body + 1];
             matrix[2][2] = inertia_handle.data[inertia_pitch * body + 2];
             matrix[0][1] = matrix[1][0] = inertia_handle.data[inertia_pitch * body + 3];
@@ -337,26 +338,38 @@ void RigidData::initializeData()
             moment_inertia_handle.data[body].z = evalues[2];
             
             // set tiny moment of inertia component to be zero, count the number of degrees of freedom
-            dof_one = 6;
+            // 3D ojbects start with 6; 2D objects start with 3
+            if (dimension == 3) dof_one = 6;
+            else if (dimension == 2) dof_one = 3;
+            
             Scalar max = MAX(moment_inertia_handle.data[body].x, moment_inertia_handle.data[body].y);
             max = MAX(max, moment_inertia_handle.data[body].z);
             
-            if (moment_inertia_handle.data[body].x < EPSILON * max)
+            if (dimension == 3)
                 {
-                dof_one--;
-                moment_inertia_handle.data[body].x = Scalar(0.0);
+                if (moment_inertia_handle.data[body].x < EPSILON * max)
+                    {
+                    dof_one--;
+                    moment_inertia_handle.data[body].x = Scalar(0.0);
+                    }
+                    
+                if (moment_inertia_handle.data[body].y < EPSILON * max)
+                    {
+                    dof_one--;
+                    moment_inertia_handle.data[body].y = Scalar(0.0);
+                    }
+                    
+                if (moment_inertia_handle.data[body].z < EPSILON * max)
+                    {
+                    dof_one--;
+                    moment_inertia_handle.data[body].z = Scalar(0.0);
+                    }
                 }
-                
-            if (moment_inertia_handle.data[body].y < EPSILON * max)
+            else if (dimension == 2)
                 {
-                dof_one--;
-                moment_inertia_handle.data[body].y = Scalar(0.0);
-                }
-                
-            if (moment_inertia_handle.data[body].z < EPSILON * max)
-                {
-                dof_one--;
-                moment_inertia_handle.data[body].z = Scalar(0.0);
+                    // rigid body as a point particle (e.g. composed of overlapping beads): DOFs = 2
+                    if (moment_inertia_handle.data[body].z < EPSILON * max)
+                        dof_one--;
                 }
                 
             m_ndof += dof_one;

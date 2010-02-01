@@ -200,7 +200,14 @@ __device__ void no_squish_rotate(unsigned int k, float4& p, float4& q, float4& i
         kq.z = -q.y;  kp.z = -p.y;
         kq.w =  q.x;  kp.w =  p.x;
         }
-        
+    else
+        {
+        kq.x = 0.0f;  kp.x = 0.0f;
+        kq.y = 0.0f;  kp.y = 0.0f;
+        kq.z = 0.0f;  kp.z = 0.0f;
+        kq.w = 0.0f;  kp.w = 0.0f;
+        }
+            
     // obtain phi, cosines and sines
     
     phi = p.x * kq.x + p.y * kq.y + p.z * kq.z + p.w * kq.w;

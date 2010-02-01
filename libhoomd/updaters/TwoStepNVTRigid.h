@@ -139,7 +139,7 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         GPUArray<Scalar>    wdti1;                  //!< Thermostat chain coefficients
         GPUArray<Scalar>    wdti2;                  //!< Thermostat chain coefficients
         GPUArray<Scalar>    wdti4;                  //!< Thermostat chain coefficients
-        GPUArray<Scalar4>   conjqm;                 //!< Thermostat angular momentum
+        GPUArray<Scalar4>   conjqm;                 //!< Thermostat conjugate momentum
 
     };
 

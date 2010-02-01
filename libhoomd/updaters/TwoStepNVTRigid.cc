@@ -586,8 +586,13 @@ void TwoStepNVTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
         
     }
 
-// Apply evolution operators to quat, quat momentum (see ref. Miller)
-
+/*! Apply evolution operators to quat, quat momentum (see ref. Miller)
+    \param k Direction
+    \param p Thermostat angular momentum conjqm
+    \param q Quaternion
+    \param inertia Moment of inertia
+    \param dt Time step
+*/
 void TwoStepNVTRigid::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt)
     {
     Scalar phi, c_phi, s_phi;
@@ -615,7 +620,14 @@ void TwoStepNVTRigid::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, S
         kq.z = -q.y;  kp.z = -p.y;
         kq.w =  q.x;  kp.w =  p.x;
         }
-        
+    else
+        {
+        kq.x = 0.0;  kp.x = 0.0;
+        kq.y = 0.0;  kp.y = 0.0;
+        kq.z = 0.0;  kp.z = 0.0;
+        kq.w = 0.0;  kp.w = 0.0;
+        }
+            
     // obtain phi, cosines and sines
     
     phi = p.x * kq.x + p.y * kq.y + p.z * kq.z + p.w * kq.w;
@@ -644,8 +656,11 @@ void TwoStepNVTRigid::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, S
     q.w = c_phi * q.w + s_phi * kq.w;
     }
 
-// Quaternion multiply: c = a*b where a is a quaternion, b = (0, b)
-
+/*! Quaternion multiply: c = a * b 
+    \param a Quaternion
+    \param b A three component vector
+    \param c Returned quaternion
+*/
 void TwoStepNVTRigid::quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
     {
     c.x = -a.y * b.x - a.z * b.y - a.w * b.z;
@@ -654,8 +669,11 @@ void TwoStepNVTRigid::quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
     c.w = -a.z * b.x + a.y * b.y + a.x * b.z;
     }
 
-// Quaternion multiply: c = inv(a)*b where a is a quaternion, b is a four component vector and c is a three component vector.
-
+/*! Inverse quaternion multiply: c = inv(a) * b 
+    \param a Quaternion
+    \param b A four component vector
+    \param c A three component vector
+*/
 void TwoStepNVTRigid::inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
     {
     c.x = -a.y * b.x + a.x * b.y + a.w * b.z - a.z * b.w;
@@ -663,8 +681,13 @@ void TwoStepNVTRigid::inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
     c.z = -a.w * b.x + a.z * b.y - a.y * b.z + a.x * b.w;
     }
 
-// Matrix dot: c = dot(A, b) where rows of A are ax, ay, az
-
+/*! Matrix dot: c = dot(A, b) 
+    \param ax The first row of A
+    \param ay The second row of A
+    \param az The third row of A
+    \param b A three component vector
+    \param c A three component vector    
+*/
 void TwoStepNVTRigid::matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c)
     {
     c.x = ax.x * b.x + ax.y * b.y + ax.z * b.z;
@@ -672,8 +695,13 @@ void TwoStepNVTRigid::matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4&
     c.z = az.x * b.x + az.y * b.y + az.z * b.z;
     }
 
-// Matrix transpose dot: c = dot(trans(A), b) where rows of A are ax, ay, az
-
+/*! Matrix transpose dot: c = dot(trans(A), b) 
+    \param ax The first row of A
+    \param ay The second row of A
+    \param az The third row of A
+    \param b A three component vector
+    \param c A three component vector
+*/
 void TwoStepNVTRigid::transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c)
     {
     c.x = ax.x * b.x + ay.x * b.y + az.x * b.z;
@@ -681,6 +709,10 @@ void TwoStepNVTRigid::transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scala
     c.z = ax.z * b.x + ay.z * b.y + az.z * b.z;
     }
 
+/*! Taylor expansion
+    \param x Point to take the expansion
+
+*/
 inline Scalar TwoStepNVTRigid::maclaurin_series(Scalar x)
     {
     Scalar x2, x4;

@@ -132,7 +132,7 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         {
         // Modify the net forces with the random and drag forces
         const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
 
         // grab some initial variables
@@ -152,7 +152,7 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
             // Generate three random numbers
             Scalar rx = saru.d(-1,1);
             Scalar ry = saru.d(-1,1);
-            Scalar rz =  saru.d(-1,1);
+            Scalar rz = saru.d(-1,1);
             
             Scalar gamma;
             if (m_gamma_diam)

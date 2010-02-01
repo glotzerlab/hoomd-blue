@@ -246,16 +246,16 @@ void TwoStepNVERigid::setup()
 */
 void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     {
-    // sanity check
-    if (m_n_bodies <= 0)
-        return;
-        
     if (m_first_step)
         {
         setup();
         m_first_step = false;
         }
     
+    // sanity check
+    if (m_n_bodies <= 0)
+        return;
+        
     if (m_prof)
         m_prof->push("NVE rigid step 1");
     
