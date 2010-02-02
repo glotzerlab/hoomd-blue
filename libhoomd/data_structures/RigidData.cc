@@ -288,16 +288,13 @@ void RigidData::initializeData()
             unsigned int body = arrays.body[j];
             Scalar mass_one = arrays.mass[j];
             
-            Scalar dx = arrays.x[j] - com_handle.data[body].x;
-            Scalar dy = arrays.y[j] - com_handle.data[body].y;
-            Scalar dz = arrays.z[j] - com_handle.data[body].z;
+            Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
+            Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
+            Scalar unwrappedz = arrays.z[j] + Lz * arrays.iz[j];
             
-            if (dx >= Lx/2.0) dx -= Lx;
-            if (dx < -Lx/2.0) dx += Lx;
-            if (dy >= Ly/2.0) dy -= Ly;
-            if (dy < -Ly/2.0) dy += Ly;
-            if (dz >= Lz/2.0) dz -= Lz;
-            if (dz < -Lz/2.0) dz += Lz;
+            Scalar dx = unwrappedx - com_handle.data[body].x;
+            Scalar dy = unwrappedy - com_handle.data[body].y;
+            Scalar dz = unwrappedz - com_handle.data[body].z;
             
             inertia_handle.data[inertia_pitch * body + 0] += mass_one * (dy * dy + dz * dz);
             inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);

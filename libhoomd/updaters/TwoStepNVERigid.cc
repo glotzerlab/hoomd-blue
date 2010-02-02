@@ -110,16 +110,6 @@ void TwoStepNVERigid::setup()
         return;
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-
-    // get box
-    const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
     
         {
         // rigid data handles
@@ -418,17 +408,7 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
 void TwoStepNVERigid::computeForceAndTorque()
     {
     if (m_prof)
-        m_prof->push("Rigid force sum");
-    
-    // get box
-    const BoxDim& box = m_pdata->getBox();
-    // sanity check
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    
-    // precalculate box lenghts
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
+        m_prof->push("Rigid force and torque summing");
     
     // access net force data
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -460,12 +440,7 @@ void TwoStepNVERigid::computeForceAndTorque()
         torque_handle.data[body].y = 0.0;
         torque_handle.data[body].z = 0.0;
         }
-        
-    // access the particle data arrays
-    const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
-    assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-    assert(arrays.ax != NULL && arrays.ay != NULL && arrays.az != NULL);
-    
+            
     // for each body
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
