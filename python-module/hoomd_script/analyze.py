@@ -425,6 +425,7 @@ class log(_analyzer):
         
     ## Retrieve a cached value of a monitored quantity from the last update of the logger.
     # \param quantity Name of the quantity to return.
+    # \param quiet (optional) if True, does not print to screen
     # Using query() requires that the specified logger was saved in a variable when created.
     # i.e. 
     # \code
@@ -437,8 +438,9 @@ class log(_analyzer):
     # \code
     # logdata = logger.query('timestep')
     # \endcode
-    def query(self, quantity):
-        util.print_status_line();
+    def query(self, quantity, quiet=False):
+        if not quiet:
+            util.print_status_line();
         
         # retrieve data from internal cache.
         return self.cpp_analyzer.getCachedQuantity(quantity);
