@@ -85,7 +85,7 @@ Check out the \ref page_quick_start to start learning how to use hoomd.
 
 \section sec_install_hoomd_linux Installing HOOMD-blue in Linux
 
- -# <b>Download</b> the NVIDIA CUDA Toolkit appropriate for your system from http://www.nvidia.com/object/cuda_get.html. 
+ -# <b>Download</b> the NVIDIA CUDA Toolkit appropriate for your system from http://www.nvidia.com/object/cuda_get.html . 
     <br><b>To install</b>, open a terminal, cd to the directory where you downloaded the file and then run
     \code
  sudo bash cudatoolkit_*.run
@@ -98,7 +98,7 @@ export PATH=${PATH}:/usr/local/cuda/bin
 \endcode
     You will probably need to log out and back in for the path setting to take effect.
     <br><br>
- -# (if you have an NVIDIA GPU) <b>Download</b> the latest drivers for your GPU from http://www.nvidia.com. 
+ -# (if you have an NVIDIA GPU) <b>Download</b> the latest drivers for your GPU from http://www.nvidia.com . 
     <br><b>To install</b>, open a terminal, cd to the directory where you downloaded the file and then run
     \code
 sudo bash NVIDIA-Linux-*.run
@@ -147,11 +147,11 @@ Check out the \ref page_quick_start to start learning how to use hoomd.
 
 \section sec_install_hoomd_mac Installing HOOMD-blue in Mac OS X
 
- -# <b>Download</b> the NVIDIA CUDA Toolkit appropriate for your system from http://www.nvidia.com/object/cuda_get.html. 
+ -# <b>Download</b> the NVIDIA CUDA Toolkit appropriate for your system from http://www.nvidia.com/object/cuda_get.html . 
     <br><b>To install</b>, open Finder, navigate to the directory where you downloaded the file and double-click on it.
     Follow the on screen prompts to complete the installation.
     <br><br>
- -# (if you have an NVIDIA GPU) <b>Download</b> the CUDA drivers for your GPU from http://www.nvidia.com/object/cuda_get.html. 
+ -# (if you have an NVIDIA GPU) <b>Download</b> the CUDA drivers for your GPU from http://www.nvidia.com/object/cuda_get.html . 
     <br><b>To install</b>, open Finder, navigate to the directory where you downloaded the file and double-click on it.
     Follow the on screen prompts to complete the installation.
     <br><br>
