@@ -601,14 +601,16 @@ void ExecutionConfiguration::setupStats()
     if (exec_mode == CPU)
         {
         #ifdef ENABLE_OPENMP
-        cout << "HOOMD is running on " << n_cpu << " CPU";
+        cout << "OpenMP is available. HOOMD is running on " << n_cpu << " CPU";
         if (n_cpu > 1)
-            cout << " cores ";
+            cout << " cores";
         else
-            cout << " core ";
-        cout << "as instructed to by OMP_NUM_THREADS" << endl;
+            cout << " core";
+        
+        cout << endl;
+        
         #else
-        cout << "HOOMD is running on a single CPU core" << endl;
+        cout << "OpenMP is not available. HOOMD is running on a single CPU core" << endl;
         #endif
         }
     }
