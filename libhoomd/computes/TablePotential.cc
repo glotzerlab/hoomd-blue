@@ -53,6 +53,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace boost::python;
 
 #include "TablePotential.h"
+
+#ifdef ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 #include <stdexcept>
 
 /*! \file TablePotential.cc
@@ -93,6 +98,9 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     
     assert(!m_tables.isNull());
     assert(!m_params.isNull());
+    
+    // initialize memory for per thread reduction
+    allocateThreadPartial();
     }
 
 /*! \param typ1 First particle type index in the pair to set
@@ -206,13 +214,6 @@ void TablePotential::computeForces(unsigned int timestep)
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
-    // need to start from a zero force, energy and virial
-    memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fy, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_fz, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_pe, 0, sizeof(Scalar)*arrays.nparticles);
-    memset(m_virial, 0, sizeof(Scalar)*arrays.nparticles);
-    
     // access the table data
     ArrayHandle<float2> h_tables(m_tables, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_params(m_params, access_location::host, access_mode::read);
@@ -221,8 +222,21 @@ void TablePotential::computeForces(unsigned int timestep)
     Index2DUpperTriangular table_index(m_ntypes);
     Index2D table_value(m_table_width);
     
+#pragma omp parallel
+    {
+    #ifdef ENABLE_OPENMP
+    int tid = omp_get_thread_num();
+    #else
+    int tid = 0;
+    #endif
+
+    // need to start from a zero force, energy and virial
+    memset(&m_fdata_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar4)*arrays.nparticles);
+    memset(&m_virial_partial[m_index_thread_partial(0,tid)] , 0, sizeof(Scalar)*arrays.nparticles);
+    
     // for each particle
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+#pragma omp for schedule(guided)
+    for (int i = 0; i < (int)arrays.nparticles; i++)
         {
         // access the particle's position and type (MEM TRANSFER: 4 scalars)
         Scalar xi = arrays.x[i];
@@ -330,22 +344,54 @@ void TablePotential::computeForces(unsigned int timestep)
                 // add the force to particle j if we are using the third law
                 if (third_law)
                     {
-                    m_fx[k] -= dx*forcemag_divr;
-                    m_fy[k] -= dy*forcemag_divr;
-                    m_fz[k] -= dz*forcemag_divr;
-                    m_pe[k] += pair_eng;
-                    m_virial[k] += pair_virial;
+                    unsigned int mem_idx = m_index_thread_partial(k,tid);
+                    m_fdata_partial[mem_idx].x -= dx*forcemag_divr;
+                    m_fdata_partial[mem_idx].y -= dy*forcemag_divr;
+                    m_fdata_partial[mem_idx].z -= dz*forcemag_divr;
+                    m_fdata_partial[mem_idx].w += pair_eng;
+                    m_virial_partial[mem_idx] += pair_virial;
                     }
                 }
             }
             
         // finally, increment the force, potential energy and virial for particle i
-        m_fx[i] += fxi;
-        m_fy[i] += fyi;
-        m_fz[i] += fzi;
-        m_pe[i] += pei;
-        m_virial[i] += viriali;
+        unsigned int mem_idx = m_index_thread_partial(i,tid);
+        m_fdata_partial[mem_idx].x += fxi;
+        m_fdata_partial[mem_idx].y += fyi;
+        m_fdata_partial[mem_idx].z += fzi;
+        m_fdata_partial[mem_idx].w += pei;
+        m_virial_partial[mem_idx] += viriali;
         }
+    
+#pragma omp barrier
+    
+    // now that the partial sums are complete, sum up the results in parallel
+#pragma omp for
+    for (int i = 0; i < (int)arrays.nparticles; i++)
+        {
+        // assign result from thread 0
+        m_fx[i] = m_fdata_partial[i].x;
+        m_fy[i] = m_fdata_partial[i].y;
+        m_fz[i] = m_fdata_partial[i].z;
+        m_pe[i] = m_fdata_partial[i].w;
+        m_virial[i] = m_virial_partial[i];
+
+        #ifdef ENABLE_OPENMP
+        // add results from other threads
+        int nthreads = omp_get_num_threads();
+        for (int thread = 1; thread < nthreads; thread++)
+            {
+            unsigned int mem_idx = m_index_thread_partial(i,thread);
+            m_fx[i] += m_fdata_partial[mem_idx].x;
+            m_fy[i] += m_fdata_partial[mem_idx].y;
+            m_fz[i] += m_fdata_partial[mem_idx].z;
+            m_pe[i] += m_fdata_partial[mem_idx].w;
+            m_virial[i] += m_virial_partial[mem_idx];
+            }
+        #endif
+        }
+    } // end omp parallel
+
         
     m_pdata->release();
     
