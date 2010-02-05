@@ -97,6 +97,7 @@ struct ExecutionConfiguration
     ExecutionConfiguration(const std::vector<int>& gpu_ids, bool min_cpu=false, bool ignore_display=false);
     
     executionMode exec_mode;    //!< Execution mode specified in the constructor
+    unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     
 #ifdef ENABLE_CUDA
     //! Sets tags for all GPUWorkers
@@ -145,6 +146,9 @@ private:
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
 #endif
+    
+    //! Setup and print out stats on the chosen CPUs/GPUs
+    void setupStats();
     };
 
 //! Exports ExecutionConfiguration to python

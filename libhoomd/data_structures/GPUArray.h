@@ -257,7 +257,7 @@ template<class T> class GPUArray
         mutable T* h_data;      //!< Pointer to allocated host memory
         
         //! Acquires the data pointer for use
-        inline T* const aquire(const access_location::Enum location, const access_mode::Enum mode, unsigned int gpu) const;
+        inline T* aquire(const access_location::Enum location, const access_mode::Enum mode, unsigned int gpu) const;
         
         //! Helper function to allocate memory
         inline void allocate();
@@ -566,8 +566,8 @@ template<class T> void GPUArray<T>::memcpyHostToDevice() const
 
     aquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
 */
-template<class T> T* const GPUArray<T>::aquire(const access_location::Enum location, const access_mode::Enum mode,
-                                               unsigned int gpu) const
+template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, const access_mode::Enum mode,
+                                         unsigned int gpu) const
     {
     // sanity check
     assert(!m_acquired);

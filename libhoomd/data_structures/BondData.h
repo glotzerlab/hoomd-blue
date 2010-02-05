@@ -107,7 +107,7 @@ class BondData : boost::noncopyable
         //! Get the number of bonds
         /*! \return Number of bonds present
         */
-        const unsigned int getNumBonds() const
+        unsigned int getNumBonds() const
             {
             return (unsigned int)m_bonds.size();
             }
@@ -123,7 +123,7 @@ class BondData : boost::noncopyable
         //! Get the number of bond types
         /*! \return Number of bond types in the list of bonds
         */
-        const unsigned int getNBondTypes() const
+        unsigned int getNBondTypes() const
             {
             return m_n_bond_types;
             }

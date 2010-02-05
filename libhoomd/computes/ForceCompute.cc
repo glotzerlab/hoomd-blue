@@ -232,7 +232,8 @@ cudaError_t ForceDataArraysGPU::deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar 
     \post \c fx, \c fy, \c fz pointers in m_arrays are set
     \post All forces are initialized to 0
 */
-ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
+ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false),
+    m_index_thread_partial(0)
     {
     assert(m_pdata);
     assert(m_pdata->getN() > 0);
@@ -244,6 +245,8 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     m_arrays.fz = m_fz = new Scalar[num_particles];
     m_arrays.pe = m_pe = new Scalar[num_particles];
     m_arrays.virial = m_virial = new Scalar[num_particles];
+    m_fdata_partial = NULL;
+    m_virial_partial = NULL;
     
     // zero host data
     for (unsigned int i = 0; i < num_particles; i++)
@@ -271,6 +274,16 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
     }
 
+/*! \post m_fdata and virial _partial are both allocated, and m_index_thread_partial is intiialized for indexing them
+*/
+void ForceCompute::allocateThreadPartial()
+    {
+    assert(exec_conf.n_cpu >= 1);
+    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf.n_cpu);
+    m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
+    m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
+    }
+
 /*! Frees allocated memory
 */
 ForceCompute::~ForceCompute()
@@ -291,7 +304,15 @@ ForceCompute::~ForceCompute()
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
         exec_conf.gpu[cur_gpu]->call(bind(&ForceDataArraysGPU::deallocate, &m_gpu_forces[cur_gpu]));
 #endif
-        
+
+    if (m_fdata_partial)
+        {
+        delete[] m_fdata_partial;
+        m_fdata_partial = NULL;
+        delete[] m_virial_partial;
+        m_virial_partial = NULL;
+        }
+
     m_sort_connection.disconnect();
     }
 

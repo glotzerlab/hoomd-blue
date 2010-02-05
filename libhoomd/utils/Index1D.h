@@ -70,9 +70,15 @@ class Index2D
     {
     public:
         //! Contstructor
-        /*! \param w Width of the 2D array
+        /*! \param w Width of the square 2D array
         */
-        HOSTDEVICE inline Index2D(unsigned int w) : m_w(w) {}
+        HOSTDEVICE inline Index2D(unsigned int w) : m_w(w), m_h(w) {}
+        
+        //! Contstructor
+        /*! \param w Width of the rectangular 2D array
+            \param h Height of the rectangular 2D array
+        */
+        HOSTDEVICE inline Index2D(unsigned int w, unsigned int h) : m_w(w), m_h(h) {}
         
         //! Calculate an index
         /*! \param i column index
@@ -89,11 +95,12 @@ class Index2D
         */
         HOSTDEVICE inline unsigned int getNumElements()
             {
-            return m_w*m_w;
+            return m_w*m_h;
             }
             
     private:
         unsigned int m_w;   //!< Width of the 2D array
+        unsigned int m_h;   //!< Height of the 2D array
     };
 
 //! Index a 2D upper triangular array

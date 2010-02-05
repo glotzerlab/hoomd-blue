@@ -148,6 +148,10 @@ using namespace boost::python;
 #include <sstream>
 using namespace std;
 
+#ifdef ENABLE_OPENMP
+#include <omp.h>
+#endif
+
 // include gpu_settings.h for g_gpu_error_checking
 #ifdef ENABLE_CUDA
 #include "gpu_settings.h"
@@ -327,6 +331,24 @@ string get_hoomd_version()
     return ver.str();
     }
 
+//! Layer for omp_set_num_threads
+void set_num_threads(int nthreads)
+    {
+    #ifdef ENABLE_OPENMP
+    omp_set_num_threads(nthreads);
+    #endif
+    }
+
+//! Layer for omp_get_num_procs()
+int get_num_procs()
+    {
+    #ifdef ENABLE_OPENMP
+    return omp_get_num_procs();
+    #else
+    return 1;
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -339,7 +361,10 @@ BOOST_PYTHON_MODULE(hoomd)
     def("find_vmd", &find_vmd);
     def("set_gpu_error_checking", &set_gpu_error_checking);
     def("get_hoomd_version", &get_hoomd_version);
-    
+
+    def("set_num_threads", &set_num_threads);
+    def("get_num_procs", &get_num_procs);
+
     // data structures
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());

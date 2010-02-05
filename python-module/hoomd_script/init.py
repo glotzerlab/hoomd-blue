@@ -587,8 +587,8 @@ def _parse_command_line():
     
     parser = OptionParser();
     parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)");
-    parser.add_option("--gpu", dest="gpu", help="GPU to execute on");
-    parser.add_option("--ngpu", dest="ngpu", help="Number of GPUs to execute on (requires that CUDA 2.2 compute-exclusive mode be enabled on all GPUs)");
+    parser.add_option("--gpu", dest="gpu", help="GPU on which to execute");
+    parser.add_option("--ncpu", dest="ncpu", help="Number of CPU cores on which to execute");
     parser.add_option("--gpu_error_checking", dest="gpu_error_checking", action="store_true", default=False, help="Enable error checking on the GPU");
     parser.add_option("--minimize-cpu-usage", dest="min_cpu", action="store_true", default=False, help="Enable to keep the CPU usage of HOOMD to a bare minimum (will degrade overall performance somewhat)");
     parser.add_option("--ignore-display-gpu", dest="ignore_display", action="store_true", default=False, help="Attempt to avoid running on the display GPU");
@@ -596,24 +596,42 @@ def _parse_command_line():
     (_options, args) = parser.parse_args();
     
     # chedk for valid mode setting
-    if _options.mode:
+    if _options.mode is not None:
         if not (_options.mode == "cpu" or _options.mode == "gpu"):
             parser.error("--mode must be either cpu or gpu");
     
     # check for sane options
-    if _options.mode == "cpu" and (_options.gpu or _options.ngpu):
-        parser.error("It doesn't make sense to specify --mode=cpu and a value for --gpu")
+    if _options.mode == "cpu" and (_options.gpu is not None):
+        parser.error("--mode=cpu cannot be specified along with --gpu")
+
+    if _options.mode == "gpu" and (_options.ncpu is not None):
+        parser.error("--mode=gpu cannot be specified along with --ncpu")
 
     # set the mode to gpu if the gpu # was set
-    if (_options.gpu and not _options.mode) or (_options.ngpu and not _options.mode):
+    if _options.gpu is not None and _options.mode is None:
         _options.mode = "gpu"
-        
-    if _options.gpu and _options.ngpu:
-        parser.error("--gpu and --ngpu are mutually exclusive options")
-        
+
+    # set the mode to cpu if the ncpu was set
+    if _options.ncpu is not None and _options.mode is None:
+        _options.mode = "cpu"
+    
     # if gpu_error_checking is set, enable it on the GPU
     if _options.gpu_error_checking:
         hoomd.set_gpu_error_checking(True);
+    
+    # convert ncpu to an integer
+    if _options.ncpu is not None:
+        try:
+            _options.ncpu = int(_options.ncpu);
+        except ValueError:
+            parser.error('--ncpu must be an integer')
+    
+    # convert gpu to an integer
+    if _options.gpu:
+        try:
+            _options.gpu = int(_options.gpu);
+        except ValueError:
+            parser.error('--gpu must be an integer')
     
 ## Initializes the execution configuration
 #
@@ -622,22 +640,21 @@ def _parse_command_line():
 def _create_exec_conf():
     global _options;
     
+    # set the openmp thread limits
+    if _options.ncpu is not None:
+        if _options.ncpu > hoomd.get_num_procs():
+            print "\n***Warning! Requesting more CPU cores than there are available in the system";
+        hoomd.set_num_threads(_options.ncpu);
+    
     # if no command line options were specified, create a default ExecutionConfiguration
-    if not _options.mode:
+    if _options.mode is None:
         exec_conf = hoomd.ExecutionConfiguration(_options.min_cpu, _options.ignore_display);
     else:
-        # create a list of GPUs to execute on
+        # determine the GPU on which to execute
         gpu_ids = hoomd.std_vector_int();
-        if _options.gpu:
-            # parse the list of gpus
-            string_gpu_list = _options.gpu.split(",")
-            for gpu in string_gpu_list:
-                gpu_ids.append(int(gpu));
-        elif _options.ngpu:
-            for i in xrange(0, int(_options.ngpu)):
-                gpu_ids.append(-1);
+        if _options.gpu is not None:
+            gpu_ids.append(_options.gpu);
         else:
-            # otherwise, assume the default GPU
             gpu_ids.append(-1);
         
         # create the specified configuration

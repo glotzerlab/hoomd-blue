@@ -1425,7 +1425,8 @@ void NeighborList::buildNlist()
         
     // now we can loop over all particles in n^2 fashion and build the list
     unsigned int n_neigh = 0;
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
+#pragma omp parallel for schedule(dynamic, 100) reduction(+:n_neigh)
+    for (int i = 0; i < (int)arrays.nparticles; i++)
         {
         Scalar xi = arrays.x[i];
         Scalar yi = arrays.y[i];
@@ -1496,9 +1497,12 @@ void NeighborList::buildNlist()
                 {
                 if (m_storage_mode == full)
                     {
-                    n_neigh += 2;
-                    m_list[i].push_back(j);
-                    m_list[j].push_back(i);
+                    #pragma omp critical
+                        {
+                        n_neigh += 2;
+                        m_list[i].push_back(j);
+                        m_list[j].push_back(i);
+                        }
                     }
                 else
                     {

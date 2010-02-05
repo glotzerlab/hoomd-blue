@@ -6,7 +6,7 @@
 <h3>Options</h3>
 <i>no options given</i>
 \par
-hoomd will run on an automatically determined GPU, or on the CPU if no capable GPUs are found
+hoomd will run on an automatically determined GPU, or on the CPUs if no capable GPUs are found.
 
 <b>-h, --help</b>
 \par
@@ -14,16 +14,15 @@ print a description of all the command line options
 
 <b>--mode</b>={\a cpu | \a gpu}<br>
 \par
-force hoomd to run either on a \a cpu or \a gpu
+force hoomd to run either on the \a cpu or \a gpu
 
-<b>--gpu</b>={# | #,# | #,#,# | ...}
+<b>--gpu</b>={#}
 \par
 specify explicitly which GPU(s) on which hoomd will execute. Implies --mode=gpu.
 
-<b>--ngpu</b>=#
+<b>--ncpu</b>={#}
 \par
-specify the number of GPUs to use in parallel. The specific GPUs will be determined automatically. Implies --mode=gpu and
-cannot be used with --gpu.
+specify the number of CPU cores on which hoomd will execute. <i>Does not</i> imply --mode=cpu.
 
 <b>--ignore-display-gpu</b>
 \par
@@ -41,7 +40,7 @@ enable error checks after every GPU kernel call
 <h2>Detailed description</h2>
 
 <h3>Control where a simulation is executed</h3>
-Any simulation in HOOMD-blue can be run on a CPU or GPU.  To control which, 
+Any simulation in HOOMD-blue can be run on a number of CPUs or a GPU.  To control which, 
 set the \c --mode option on the script command line. Valid settings are \c cpu
 and \c gpu.
 \code
@@ -62,12 +61,6 @@ Note that specifying \c --gpu implies \c --mode=gpu. To find out which id
 is assigned to each GPU in your system, download the CUDA SDK for your system
 from http://www.nvidia.com/object/cuda_get.html and run the \c deviceQuery sample.
 
-Multiple GPUs can be selected for a parallel run by specifying a comma separated list:
-\code
-hoomd some_script.hoomd --gpu=0,1
-\endcode
-Any number of GPUs can be specified in the list.
-
 If you run a script without any options
 \code
 hoomd some_script.hoomd
@@ -82,12 +75,6 @@ capability, the system administrator (root) must first use the \c nvidia-smi uti
 the compute-exclusive mode on all GPUs in the system (for an example, see http://forums.nvidia.com/index.php?showtopic=96638&hl=nvidia-smi).
 With this mode enabled, running hoomd with no options or with the \c --mode=gpu option will result in an automatic
 choice of the first free GPU from the prioritized list.
-
-To run in parallel on the first \a N free GPUs:
-\code
-hoomd some_script.hoomd --ngpu=N
-\endcode
-, where N is an integer
 
 Furthermore, the compute-exclusive mode <em>only allows a</em> \b single CUDA application to run on each GPU. If you have
 4 compute-exclusive GPUs available in the system, executing a fifth instance of hoomd with "hoomd some_script.hoomd"
@@ -127,6 +114,14 @@ To do this, run the script with the \c --gpu_error_checking command line option:
 \code
 hoomd some_script.hoomd --gpu_error_checking
 \endcode
+
+<hr>
+
+<h3>Controlling the number of CPU cores on which HOOMD-blue executes</h3>
+HOOMD-blue runs in parallel on any number of local CPU cores using OpenMP. The number of CPU cores
+used is determined by the OpenMP runtime, which usually defaults to all CPU cores in the system. Limit the number of 
+CPU cores used by setting the environment variable OMP_NUM_THREADS before executing hoomd or by using the --ncpu
+command line option.
 
 <hr>
 

@@ -96,7 +96,7 @@ class IntegratorData
         //! Get the number of integrator variables
         /*! \return Number of integrator variables present
         */
-        const unsigned int getNumIntegrators() const
+        unsigned int getNumIntegrators() const
             {
             return (unsigned int)m_integrator_variables.size();
             }
