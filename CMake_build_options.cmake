@@ -57,6 +57,11 @@ else (CUDA_FOUND)
 option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
 endif (CUDA_FOUND)
 
+# disable CUDA if the intel compiler is detected
+if (CMAKE_CXX_COMPILER MATCHES "icpc")
+    set(ENABLE_CUDA OFF CACHE BOOL "Forced OFF by the use of the intel c++ compiler" FORCE)
+endif (CMAKE_CXX_COMPILER MATCHES "icpc")
+
 if (ENABLE_CUDA)
     add_definitions (-DENABLE_CUDA)
 
@@ -106,3 +111,24 @@ if(WIN32)
 elseif(UNIX)
     add_definitions(-D_REENTRANT)
 endif(WIN32)
+
+################################
+## detect and optionally enable OpenMP
+
+# needs CMake 2.6.4 or newer
+set (_cmake_ver "${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
+if (_cmake_ver VERSION_GREATER 2.6.3)
+
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    option(ENABLE_OPENMP "Enable openmp compliation to accelerate CPU code on multi-core machines" ON)
+    if (ENABLE_OPENMP)
+        add_definitions (-DENABLE_OPENMP)
+        # the compiler options to enable openmp are set in HOOMDCFlagsSetup
+    endif (ENABLE_OPENMP)
+endif (OPENMP_FOUND)
+
+else (_cmake_ver VERSION_GREATER 2.6.3)
+message(STATUS "Upgrade to CMake 2.6.4 or newer to enable OpenMP compilation")
+endif (_cmake_ver VERSION_GREATER 2.6.3)
+

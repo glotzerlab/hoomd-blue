@@ -36,11 +36,11 @@
 #if !defined(__HOST_DEFINES_H__)
 #define __HOST_DEFINES_H__
 
-#if !defined(__GNUC__) && !defined(_WIN32)
+#if !defined(__GNUC__) && !defined(_WIN32) && !defined(__ICC)
 
 #error --- !!! UNSUPPORTED COMPILER !!! ---
 
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) || defined(__ICC)
 
 #define __no_return__ \
         __attribute__((__noreturn__))

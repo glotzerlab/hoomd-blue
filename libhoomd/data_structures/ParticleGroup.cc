@@ -256,7 +256,7 @@ ParticleGroup::~ParticleGroup()
 /*! \returns Total mass of all particles in the group
     \note This method aquires the ParticleData internally
 */
-const Scalar ParticleGroup::getTotalMass() const
+Scalar ParticleGroup::getTotalMass() const
     {
     // grab the particle data
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
@@ -275,7 +275,7 @@ const Scalar ParticleGroup::getTotalMass() const
 /*! \returns The center of mass of the group, in unwrapped coordinates
     \note This method aquires the ParticleData internally
 */
-const Scalar3 ParticleGroup::getCenterOfMass() const
+Scalar3 ParticleGroup::getCenterOfMass() const
     {
     // grab the particle data
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
