@@ -118,6 +118,10 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNPT::integrateStepOne(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+
     // profile this step
     if (m_prof)
         m_prof->push("NPT step 1");
@@ -142,8 +146,6 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
     Scalar exp_r_fac_inv = Scalar(1.0) / exp_r_fac;
         
     // perform the first half step of NPT
-    
-    unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -237,6 +239,10 @@ void TwoStepNPT::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNPT::integrateStepTwo(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
    
     // compute temperature for the next half time step
@@ -259,7 +265,6 @@ void TwoStepNPT::integrateStepTwo(unsigned int timestep)
     Scalar exp_v_fac = exp(-Scalar(1.0/4.0)*(eta+xi)*m_deltaT);
     
     // perform second half step of NPT integration
-    unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);

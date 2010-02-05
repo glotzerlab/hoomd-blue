@@ -195,21 +195,21 @@ pre {
 	margin: 0; padding: 0;
 	height: 60px;
 }
-#topheader span#slogan {
+#header-slogan span#slogan {
 	z-index: 3;
 	position: absolute;
-	left: 3px; bottom: 32px;
+	left: 3px; bottom: 8px;
 	font: bold 0.8em Verdana, Arial, Tahoma,  Sans-serif;	
 	color: #000;	
 }
 
-#header-logo {
+#header-slogan {
 	position: relative;
 	clear: both;
-	height: 50px; 
+	height: 24px; 
 	margin: 0; padding: 0;	
 }
-#header-logo #logo {
+#topheader #logo {
 	position: absolute;
 	top: 3px; left: 5px;
 	font: bold 30px "trebuchet MS", Arial, Tahoma, Sans-Serif;

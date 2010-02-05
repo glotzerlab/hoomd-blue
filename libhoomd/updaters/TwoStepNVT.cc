@@ -98,6 +98,10 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNVT::integrateStepOne(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 1");
@@ -115,7 +119,6 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
     // add up a total of 2*K while we loop through the particles, as well
     Scalar sum2K = Scalar(0.0);
     
-    unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
@@ -197,6 +200,10 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step
@@ -210,7 +217,6 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
     // perform second half step of Nose-Hoover integration
-    unsigned int group_size = m_group->getNumMembers();
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
