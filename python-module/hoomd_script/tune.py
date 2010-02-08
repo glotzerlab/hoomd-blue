@@ -507,3 +507,4 @@ def pair_morse_setup():
     # no valid run() occurs, so we need to manually update the nlist
     globals.neighbor_list.update_rcut();
     return fc;
+
