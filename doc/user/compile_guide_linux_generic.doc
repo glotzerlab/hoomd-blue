@@ -1,0 +1,279 @@
+/*! 
+\page page_compile_guide_linux_generic Compiling HOOMD-blue on Linux (generic)
+
+Table of contents:
+ - \ref sec_build_linux_generic_prereq
+ - \ref sec_build_linux_generic_compile
+<hr>
+
+\section sec_build_linux_generic_prereq Software Prerequisites
+
+This page assumes that you have a standard terminal window open. Commands to run will
+be indicated as below:
+\code
+ $ echo hello
+hello
+\endcode
+" $ " indicates a shell prompt. As demonstrated above, if you type "echo hello", then you should see the same
+output obtained above on the next line: "hello"
+
+The process for installing software/libraries differs from linux distribution to distribution. 
+In Gentoo (http://www.gentoo.org/) 
+\code
+ $ emerge python
+\endcode
+would install python. Look at your linux distribution's documentation to find how to install
+packages on your system (i.e. yum, apt-get, up2date, or another). You may need to "su -" or use sudo to
+become root before installing.
+
+\section software_req_install_linux_python Python
+
+First, check if python is already installed
+\code
+ $ python -V
+Python 2.4.4
+\endcode
+Make sure that the version is 2.3 or greater. If you get
+\code
+bash: python: command not found
+\endcode
+or have a version older than 2.3, you will need to upgrade/install python. 
+Note that you will also 
+need the python development libraries which some distributions might separate into into
+python-devel or some such. The existence of the python development package can be tested
+by checking the output of 
+\code 
+ $ ls /usr/include/python2.X/Python.h
+/usr/include/python2.X/Python.h
+\endcode
+where X is replaced with the major version of python that you have (i.e. For python 2.4.4 above,
+X would be 4). If this returned 
+\code
+ls: cannot access /usr/include/python2.X/Python.h: No such file or directory
+\endcode
+then you do not have the python development libraries installed.
+
+
+
+\section software_req_install_linux_boost Boost
+
+First, check if boost is already installed
+\code
+ $ grep BOOST_LIB_VERSION /usr/include/boost/version.hpp
+//  BOOST_LIB_VERSION must be defined to be the same as BOOST_VERSION
+#define BOOST_LIB_VERSION "1_34_1"
+\endcode
+Make sure that the version is 1_32_0 or newer. If you get
+\code
+grep: /usr/include/boost/version.hpp: No such file or directory
+\endcode
+then boost is not installed. You can upgrade/install boost with your distribution's package
+manager. You may need to install the boost-static package to get the static libraries needed by
+HOOMD-blue.
+
+If your distribution doesn't have a new enough version of boost, you can build it by hand. Building boost is a time consuming process, but not complicated if you follow these instructions.
+
+Start by downloading \b boost_1_41_0.tar.bz2 from http://www.boost.org/ . Extract the tarball and 
+configure boost for building with the following commands.
+\code
+ $ tar -xjf boost_1_41_0.tar.bz2 
+ $ cd boost_1_41_0
+ $ ./bootstrap.sh --prefix=/home/myuser/software
+-n Building Boost.Jam with toolset darwin... 
+tools/jam/src/bin.macosxx86/bjam
+-n Detecting Python version... 
+2.5
+-n Detecting Python root... 
+/System/Library/Frameworks/Python.framework/Versions/2.5
+...
+\endcode
+
+Now, run the command
+\code
+ $ ./bjam variant=release threading=multi link=shared,static
+\endcode
+and wait a \e long time for everything to compile. At the end, you should see a message saying
+\code
+...updated 765 targets...
+\endcode
+
+Now, you are ready to install the library.
+\code
+ $ ./bjam variant=release threading=multi link=shared,static install
+\endcode
+After a considerably shorter wait, you should see
+\code
+...updated 7684 targets...
+\endcode
+again. Boost is now installed.
+
+You can delete the boost_1_41_0 directory now if you wish. It might be worth 
+saving for a little while until you have compiled HOOMD-blue and know everything 
+is working so that you won't need to go through all the setup steps again. 
+
+
+Before running ccmake or cmake-gui, set the following environment variables to the location where you installed boost:
+\code
+ $ export BOOST_ROOT=/home/myuser/software
+ $ ccmake ../src  # or run cmake-gui
+ ... continue with build instructions ...
+\endcode
+
+\section software_req_install_linux_compiler Compiler
+
+These instructions test for the installation of gcc. Other C++ compilers can be used
+if you wish, though compilations with CUDA enabled are only supported with gcc.
+
+Test if g++ is installed.
+\code 
+ $ g++ --version
+ $ g++ (GCC) 4.1.2 (Gentoo 4.1.2)
+\endcode
+Any version should do. If you get
+\code
+bash: g++: command not found
+\endcode
+then you will need to install gcc using your distributions package management system.
+
+
+\section software_req_install_linux_cmake CMake
+
+It is not very likely that your linux distribution includes CMake by default, 
+but check anyways.
+\code
+ $ cmake --version
+cmake version 2.6-patch 1
+\endcode
+Make sure the version is 2.6 or later. If you have an old version or get
+\code
+bash: cmake: command not found
+\endcode
+then you will need to upgrade/install CMake. Try your distributions package 
+manager first. I.e. in Gentoo
+\code
+ $ emerge cmake
+\endcode
+
+If your distribution does not have a cmake package, 
+then you can install it into your home directory by hand. First, download
+cmake-2.6.1-Linux-i386.tar.gz from the Downloads section at http://www.cmake.org.
+Unpack the tarball to any location you prefer: this example assumes you are installing it to the 
+${HOME}/software
+\code 
+ $ mkdir ~/software
+ $ mv cmake-2.6.1-Linux-i386.tar.gz ~/software/
+ $ cd ~/software
+ $ tar -xvzf cmake-2.6.1-Linux-i386.tar.gz
+\endcode
+Then you need to put the bin directory for cmake into your path. If you use bash for a shell you can do 
+this by editing ~/.bashrc. Look for a line with PATH=... and add the cmake directory to the end separated 
+by a colon. If you can't find the line, create it like so.
+\code
+PATH=$PATH:$HOME/software/cmake-2.6.1-Linux-i386/bin
+export PATH
+\endcode
+Restart your bash shell (or open a new one) and try the version check above to test your installation.
+
+\section software_req_install_linux_cuda CUDA
+
+Even if you do not have the needed graphics hardware to run, you can still install the CUDA toolkit and 
+run executables in emulation mode. The emulation is slow, but will allow you to develop and test
+any changes you make that affect any of the *GPU classes. 
+
+CUDA is quite new and it is not likely that there is a package available through your linux distribution. 
+Gentoo is the only distribution currently offering a package:
+\code
+ $ emerge nvidia-cuda-toolkit
+\endcode
+will install the latest version of the CUDA toolkit and set all environment variables for you.
+
+If your distribution doesn't come with a package, go to http://developer.nvidia.com/object/cuda.html  
+and download the latest CUDA toolkit for you architecture and linux distribution. If your distribution isn't listed,
+pick one that looks close, it will likely work. To install, simply go to the directory where you downloaded 
+the toolkit and run:
+\code
+ $ bash NVIDIA_CUDA_Toolkit_2.0_rhel5_x86_64.run
+\endcode
+Note, this example lists a specific file: change the command to match the file that you downloaded. The
+file is a self-unpacking and installing script. Just accept the default location if you have root access
+to install, or install to ~/CUDA or anywhere else you please. Open up ~/.bashrc in your
+favorite text editor and add the following line:
+\code
+export LD_LIBRARY_PATH=/usr/local/cuda/lib:$DYLD_LIBRARY_PATH
+export PATH=$PATH:/usr/local/cuda/bin
+\endcode
+Change the paths on these lines if you did not install to the default location.
+
+If you have a CUDA capable graphics card, you will also need the proper graphics driver version. See
+the CUDA webpage linked to above for more information.
+
+If you wish, you can download the CUDA SDK from the same website and compile the example files to
+test your CUDA installation. The CUDA SDK is not required to compile or run HOOMD-blue, however.
+
+\section software_req_install_linux_subversion Subversion
+
+Subversion is used for version control. You need to install it if you have commit access and are going to 
+work on active development of HOOMD-blue, or if you just want to download and compile the latest and greatest
+version.
+
+First, see if you already have subversion installed.
+\code
+ $ svn --version
+svn, version 1.4.4 (r25188)
+\endcode
+If you get
+\code
+-bash: svn: command not found
+\endcode
+then you will need to install it with your distrubition's package manager.
+
+\section sec_build_linux_generic_compile Compile hoomd
+
+Now that all of the prerequisite software is installed, you are ready to compile hoomd.
+
+<b>Step 1: Get a copy of the source code</b>
+There are many ways to get the source code for HOOMD-blue. 
+ - You can download it (http://codeblue.umich.edu/hoomd-blue/download.html).
+ - You could use subversion to check out a tagged release (list: https://codeblue.umich.edu/hoomd-blue/trac/browser/tags).
+ - You could use subversion to check out a branch (list: https://codeblue.umich.edu/hoomd-blue/trac/browser/branches).
+
+Or you could check out the current mainline development version in trunk:
+\code
+ $ mkdir hoomd-trunk
+ $ cd hoomd-trunk
+ $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
+\endcode
+<b>Note:</b> This example shows how to checkout the current mainline development version in trunk. Whatever method you
+use to get the source code, the instructions below assume that it has been extracted into the <i>hoomd</i> directory
+inside of the <b>hoomd-trunk</b> directory.
+
+<b>Step 2: Compile and install hoomd with makefiles</b>
+\code
+ $ cd hoomd-trunk
+ $ mkdir build
+ $ cd build
+ $ cmake ../hoomd -DCMAKE_INSTALL_PREFIX=~/hoomd-install
+ $ make install -j4
+\endcode
+The -j4 option to make allows it to compile many files in parallel. Set the number to the number of CPU cores in your
+system plus two.
+
+Now run
+\code
+ $ make check -j4
+\endcode
+to test your build
+
+<b>Step 3: Setup your PATH</b>
+\code
+ open ~/.bash_profile
+\endcode
+and add the following line to the end
+\code
+ export PATH=$PATH:${HOME}/hoomd-install/bin
+\endcode
+assuming that you set CMAKE_INSTALL_PREFIX to ~/hoomd-install above. If you prefer to install hoomd to a different
+location, simply set CMAKE_INSTALL_PREFIX to the desired directory in the cmake command in step 2.
+
+<hr>
+*/
