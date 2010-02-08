@@ -236,7 +236,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
 void export_FIREEnergyMinimizerGPU()
     {
-    class_<FIREEnergyMinimizerGPU, boost::shared_ptr<FIREEnergyMinimizerGPU>, boost::noncopyable>
+    class_<FIREEnergyMinimizerGPU, boost::shared_ptr<FIREEnergyMinimizerGPU>,  bases<IntegratorTwoStep>, boost::noncopyable>
         ("FIREEnergyMinimizerGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }
