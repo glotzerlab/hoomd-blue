@@ -131,11 +131,16 @@ void TwoStepNVERigid::setup()
         ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
         
+        ArrayHandle<bool> angmom_init_handle(m_rigid_data->getAngMomInit(), access_location::host, access_mode::read);
+        
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+        
         
         // Reset all forces and torques
         for (unsigned int body = 0; body < m_n_bodies; body++)
             {
+            bool angmom_init = angmom_init_handle.data[body];
+            
             vel_handle.data[body].x = 0.0;
             vel_handle.data[body].y = 0.0;
             vel_handle.data[body].z = 0.0;
@@ -148,9 +153,12 @@ void TwoStepNVERigid::setup()
             torque_handle.data[body].y = 0.0;
             torque_handle.data[body].z = 0.0;
             
-            angmom_handle.data[body].x = 0.0;
-            angmom_handle.data[body].y = 0.0;
-            angmom_handle.data[body].z = 0.0;
+            if (angmom_init == false) // needs to initialize
+                {
+                angmom_handle.data[body].x = 0.0;
+                angmom_handle.data[body].y = 0.0;
+                angmom_handle.data[body].z = 0.0;
+                }
             }
             
         // Access the particle data arrays
@@ -159,6 +167,8 @@ void TwoStepNVERigid::setup()
         // for each body
         for (unsigned int body = 0; body < m_n_bodies; body++)
             {
+            bool angmom_init = angmom_init_handle.data[body];
+            
             // for each particle
             unsigned int len = body_size_handle.data[body];
             for (unsigned int j = 0; j < len; j++)
@@ -199,12 +209,14 @@ void TwoStepNVERigid::setup()
                 torque_handle.data[body].z += rx * fy - ry * fx;
                 
                 // Angular momentum = r x (m * v) is calculated for setup
-                angmom_handle.data[body].x += ry * (mass_one * arrays.vz[pidx]) - rz * (mass_one * arrays.vy[pidx]);
-                angmom_handle.data[body].y += rz * (mass_one * arrays.vx[pidx]) - rx * (mass_one * arrays.vz[pidx]);
-                angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
+                if (angmom_init == false) // if angmom is not yet set for this body
+                    {
+                    angmom_handle.data[body].x += ry * (mass_one * arrays.vz[pidx]) - rz * (mass_one * arrays.vy[pidx]);
+                    angmom_handle.data[body].y += rz * (mass_one * arrays.vx[pidx]) - rx * (mass_one * arrays.vz[pidx]);
+                    angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
+                    }
                 }
             
-                
             }
             
         for (unsigned int body = 0; body < m_n_bodies; body++)
