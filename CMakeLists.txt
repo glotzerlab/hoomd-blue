@@ -54,6 +54,12 @@ add_subdirectory (share)
 add_subdirectory (python-module)
 add_subdirectory (python-runner)
 
+###############################
+## include documentation directories
+if (ENABLE_DOXYGEN)
+    add_subdirectory (doc)
+endif (ENABLE_DOXYGEN)
+
 ################################
 # set up unit tests
 include(CTest)
@@ -70,11 +76,5 @@ if (BUILD_TESTING)
     add_dependencies(check test_all)
     add_subdirectory (test)
 endif (BUILD_TESTING)
-
-###############################
-## include documentation directories
-if (ENABLE_DOXYGEN)
-    add_subdirectory (doc)
-endif (ENABLE_DOXYGEN)
 
 add_subdirectory (installer)
