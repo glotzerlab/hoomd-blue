@@ -542,20 +542,33 @@ endmacro()
 
 # CUDA_LIBRARIES
 find_library_local_first(CUDA_CUDART_LIBRARY cudart "\"cudart\" library")
+find_library_local_first(CUDA_CUDART_EMU_LIBRARY cudartemu "\"cudartemu\" library")
+
+if (CUDA_VERSION VERSION_GREATER 2.9.9)
+if (CUDA_BUILD_EMULATION)
+set(CUDA_LIBRARIES ${CUDA_CUDART_EMU_LIBRARY})
+else (CUDA_BUILD_EMULATION)
 set(CUDA_LIBRARIES ${CUDA_CUDART_LIBRARY})
+endif(CUDA_BUILD_EMULATION)
+else (CUDA_VERSION VERSION_GREATER 2.9.9)
+set(CUDA_LIBRARIES ${CUDA_CUDART_LIBRARY})
+endif (CUDA_VERSION VERSION_GREATER 2.9.9)
 
 # 1.1 toolkit on linux doesn't appear to have a separate library on
 # some platforms.
 find_library_local_first(CUDA_CUDA_LIBRARY cuda "\"cuda\" library (older versions only).")
 
 # Add cuda library to the link line only if it is found.
+if (CUDA_VERSION VERSION_LESS 2.0)
 if (CUDA_CUDA_LIBRARY)
   set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_CUDA_LIBRARY})
 endif(CUDA_CUDA_LIBRARY)
+endif (CUDA_VERSION VERSION_LESS 2.0)
 
 mark_as_advanced(
   CUDA_CUDA_LIBRARY
   CUDA_CUDART_LIBRARY
+  CUDA_CUDART_EMU_LIBRARY
   )
 
 #######################
@@ -845,7 +858,7 @@ macro(CUDA_WRAP_SRCS cuda_target format generated_files)
   endif()
 
   # Initialize our list of includes with the user ones followed by the CUDA system ones.
-  set(CUDA_NVCC_INCLUDE_ARGS ${CUDA_NVCC_INCLUDE_ARGS_USER} "-I${CUDA_INCLUDE_DIRS}")
+  set(CUDA_NVCC_INCLUDE_ARGS ${CUDA_NVCC_INCLUDE_ARGS_USER} "--system-include;${CUDA_INCLUDE_DIRS}")
   # Get the include directories for this directory and use them for our nvcc command.
   get_directory_property(CUDA_NVCC_INCLUDE_DIRECTORIES INCLUDE_DIRECTORIES)
   if(CUDA_NVCC_INCLUDE_DIRECTORIES)
