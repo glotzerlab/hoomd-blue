@@ -68,7 +68,7 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
                                                     boost::shared_ptr<ParticleGroup> group,
                                                     Scalar dt, 
                                                     bool reset_and_create_integrator)
-    :   FIREEnergyMinimizer(sysdef, dt, false) // using false for the parent class
+    :   FIREEnergyMinimizer(sysdef, group, dt, false) // using false for the parent class
     {
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
     m_nparticles = arrays.nparticles;
@@ -91,14 +91,14 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
         }
     }
 
-void FIREEnergyMinimizerRigid::createIntegrator()
-    {
-    boost::shared_ptr<ParticleSelector> selector_rigid(new ParticleSelectorRigid(m_sysdef, true));
-    boost::shared_ptr<ParticleGroup> group_rigid(new ParticleGroup(m_sysdef, selector_rigid));
-    boost::shared_ptr<TwoStepNVERigid> integrator(new TwoStepNVERigid(m_sysdef, group_rigid));
-    addIntegrationMethod(integrator);
-    setDeltaT(m_deltaT);
-    }
+//void FIREEnergyMinimizerRigid::createIntegrator()
+//    {
+//    boost::shared_ptr<ParticleSelector> selector_rigid(new ParticleSelectorRigid(m_sysdef, true));
+//    boost::shared_ptr<ParticleGroup> group_rigid(new ParticleGroup(m_sysdef, selector_rigid));
+//    boost::shared_ptr<TwoStepNVERigid> integrator(new TwoStepNVERigid(m_sysdef, group_rigid));
+//    addIntegrationMethod(integrator);
+//    setDeltaT(m_deltaT);
+//    }
 
 void FIREEnergyMinimizerRigid::reset()
     {

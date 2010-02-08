@@ -87,7 +87,7 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
             
     protected:
         //! Function to create the underlying integrator 
-        virtual void createIntegrator();    
+        //virtual void createIntegrator();    
         
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to the rigid data 
         unsigned int m_nparticles;                  //!< Total number of particles 

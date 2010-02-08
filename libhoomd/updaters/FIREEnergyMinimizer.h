@@ -39,6 +39,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
 // $Id: FIREEnergyMinimizer.h 2587 2010-01-08 17:02:54Z joaander $
 // $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/updaters/FIREEnergyMinimizer.h $
 // Maintainer: askeys
@@ -63,7 +64,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
     {
     public:
         //! Constructs the minimizer and associates it with the system
-        FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition>, Scalar, bool=true);
+        FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition>,  boost::shared_ptr<ParticleGroup>, Scalar, bool=true);
         virtual ~FIREEnergyMinimizer() {}
         
         //! Reset the minimization
@@ -108,7 +109,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         
     protected:
         //! Function to create the underlying integrator 
-        virtual void createIntegrator(); 
+        //virtual void createIntegrator(); 
         unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha 
         unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions 
         Scalar m_finc;                      //!< fractional increase in timestep upon successful seach

@@ -65,8 +65,8 @@ using namespace boost;
     \param group The group of particles this integration method is to work on
     \post The method is constructed with the given particle data and a NULL profiler.
 */
-FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar dt)
-    :   FIREEnergyMinimizer(sysdef, dt, false)
+FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar dt)
+    :   FIREEnergyMinimizer(sysdef, group, dt, false)
     {
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
     m_nparticles = arrays.nparticles;
@@ -237,7 +237,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 void export_FIREEnergyMinimizerGPU()
     {
     class_<FIREEnergyMinimizerGPU, boost::shared_ptr<FIREEnergyMinimizerGPU>, boost::noncopyable>
-        ("FIREEnergyMinimizerGPU", init< boost::shared_ptr<SystemDefinition>, Scalar >())
+        ("FIREEnergyMinimizerGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }
 

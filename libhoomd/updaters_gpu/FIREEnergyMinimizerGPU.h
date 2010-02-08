@@ -63,7 +63,7 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     {
     public:
         //! Constructs the minimizer and associates it with the system
-        FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinition>, Scalar);
+        FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar);
 
         //! Destroys the minimizer
         virtual ~FIREEnergyMinimizerGPU() {}
