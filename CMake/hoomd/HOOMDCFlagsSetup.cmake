@@ -74,6 +74,7 @@ else (CMAKE_COMPILER_IS_GNUCXX)
 endif (CMAKE_COMPILER_IS_GNUCXX)
 
 # add openmp compile option to the flags
+find_package(OpenMP)
 if (ENABLE_OPENMP AND OPENMP_FOUND)
     # these changes unfortunately don't make it into the cache, but the user doesn't really need to see it, they can control it with the ENABLE_OPENMP option
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
