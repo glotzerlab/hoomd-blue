@@ -99,6 +99,7 @@ Table of contents:
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>\copybrief hoomd_script::pair::cgcmm </i>
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
  - \link hoomd_script.pair.lj pair.lj\endlink - <i>\copybrief hoomd_script::pair::lj </i>
+ - \link hoomd_script.pair.morse pair.morse\endlink - <i>\copybrief hoomd_script::pair::morse </i>
  - \link hoomd_script.pair.table pair.table\endlink - <i>\copybrief hoomd_script::pair::table </i>
  - \link hoomd_script.pair.slj pair.slj\endlink - <i>\copybrief hoomd_script::pair::slj </i>
  - \link hoomd_script.pair.yukawa pair.yukawa\endlink - <i>\copybrief hoomd_script::pair::yukawa </i>
