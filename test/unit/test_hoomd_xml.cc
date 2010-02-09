@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.2\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.3\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
@@ -828,7 +828,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.2\">");
+        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.3\">");
         BOOST_REQUIRE(!f.bad());
         
         getline(f, line);
