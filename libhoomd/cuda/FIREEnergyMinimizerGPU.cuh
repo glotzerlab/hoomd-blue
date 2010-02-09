@@ -58,11 +58,15 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 //! Kernel driver for zeroing velocities called by FIREEnergyMinimizerGPU
-cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata); 
+cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
+                            unsigned int *d_group_members,
+                            unsigned int group_size); 
 
 
 //! Kernel driver for summing the potential energy called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_compute_sum_pe(const gpu_pdata_arrays& pdata, 
+                            unsigned int *d_group_members,
+                            unsigned int group_size,
                             float4* d_net_force, 
                             float* d_sum_pe, 
                             float* d_partial_sum_pe, 
@@ -71,6 +75,8 @@ cudaError_t gpu_fire_compute_sum_pe(const gpu_pdata_arrays& pdata,
 
 //! Kernel driver for summing over P, vsq, and asq called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_compute_sum_all(const gpu_pdata_arrays& pdata, 
+                            unsigned int *d_group_members,
+                            unsigned int group_size,
                             float* d_sum_all, 
                             float* d_partial_sum_P, 
                             float* d_partial_sum_vsq, 
@@ -80,6 +86,8 @@ cudaError_t gpu_fire_compute_sum_all(const gpu_pdata_arrays& pdata,
                             
 //! Kernel driver for updating the velocities called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_update_v(gpu_pdata_arrays pdata, 
+                            unsigned int *d_group_members,
+                            unsigned int group_size,
                             float alpha, 
                             float vnorm, 
                             float invfnorm);

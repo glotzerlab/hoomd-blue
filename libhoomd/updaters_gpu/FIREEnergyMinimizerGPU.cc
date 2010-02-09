@@ -101,9 +101,9 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinitio
 
 void FIREEnergyMinimizerGPU::createIntegrator()
     {
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
-    boost::shared_ptr<TwoStepNVEGPU> integrator(new TwoStepNVEGPU(m_sysdef, group_all));
+//   boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
+//    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
+    boost::shared_ptr<TwoStepNVEGPU> integrator(new TwoStepNVEGPU(m_sysdef, m_group));
     addIntegrationMethod(integrator);
     setDeltaT(m_deltaT);
     }
@@ -115,7 +115,12 @@ void FIREEnergyMinimizerGPU::reset()
     m_alpha = m_alpha_start;
     m_was_reset = true;
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-    exec_conf.gpu[0]->call(bind(gpu_fire_zero_v, d_pdata[0]));
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getIndexArray().getNumElements();    
+    exec_conf.gpu[0]->call(bind(gpu_fire_zero_v, 
+                                d_pdata[0],
+                                d_index_array.data,
+                                group_size));
     m_pdata->release();
     setDeltaT(m_deltaT_set);
     }
@@ -142,10 +147,20 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->push(exec_conf, "FIRE compute total energy");
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getIndexArray().getNumElements();
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     ArrayHandle<float> d_partial_sumE(m_partial_sum1, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_sumE(m_sum, access_location::device, access_mode::overwrite);
-    exec_conf.gpu[0]->call(bind(gpu_fire_compute_sum_pe, d_pdata[0], d_net_force.data, d_sumE.data, d_partial_sumE.data, m_block_size, m_num_blocks));
+    exec_conf.gpu[0]->call(bind(gpu_fire_compute_sum_pe, 
+                                d_pdata[0], 
+                                d_index_array.data,
+                                group_size,
+                                d_net_force.data, 
+                                d_sumE.data, 
+                                d_partial_sumE.data, 
+                                m_block_size, 
+                                m_num_blocks));
     }
     {
     ArrayHandle<float> h_sumE(m_sum, access_location::host, access_mode::read);
@@ -170,11 +185,22 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->push(exec_conf, "FIRE P, vnorm, fnorm");
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getIndexArray().getNumElements();
     ArrayHandle<float> d_partial_sum_P(m_partial_sum1, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_partial_sum_vsq(m_partial_sum2, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_partial_sum_fsq(m_partial_sum3, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_sum(m_sum3, access_location::device, access_mode::overwrite);
-    exec_conf.gpu[0]->call(bind(gpu_fire_compute_sum_all, d_pdata[0], d_sum.data, d_partial_sum_P.data, d_partial_sum_vsq.data, d_partial_sum_fsq.data, m_block_size, m_num_blocks));
+    exec_conf.gpu[0]->call(bind(gpu_fire_compute_sum_all, 
+                                d_pdata[0], 
+                                d_index_array.data,
+                                group_size,
+                                d_sum.data, 
+                                d_partial_sum_P.data, 
+                                d_partial_sum_vsq.data, 
+                                d_partial_sum_fsq.data, 
+                                m_block_size,
+                                m_num_blocks));
     }
     {
     ArrayHandle<float> h_sum(m_sum3, access_location::host, access_mode::read);
@@ -201,7 +227,15 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
     Scalar invfnorm = 1.0/fnorm;        
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-    exec_conf.gpu[0]->call(bind(gpu_fire_update_v, d_pdata[0], m_alpha, vnorm, invfnorm));
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getIndexArray().getNumElements();
+    exec_conf.gpu[0]->call(bind(gpu_fire_update_v,
+                                d_pdata[0], 
+                                d_index_array.data,
+                                group_size,
+                                m_alpha, 
+                                vnorm, 
+                                invfnorm));
     m_pdata->release();
 
     if (m_prof)
@@ -225,7 +259,12 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         if (m_prof)
             m_prof->push(exec_conf, "FIRE zero velocities");
         vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
-        exec_conf.gpu[0]->call(bind(gpu_fire_zero_v, d_pdata[0]));
+        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+        unsigned int group_size = m_group->getIndexArray().getNumElements();
+        exec_conf.gpu[0]->call(bind(gpu_fire_zero_v, 
+                                    d_pdata[0],
+                                    d_index_array.data,
+                                    group_size));
         m_pdata->release();
         if (m_prof)
             m_prof->pop(exec_conf);        

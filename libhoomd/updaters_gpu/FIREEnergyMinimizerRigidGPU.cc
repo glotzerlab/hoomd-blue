@@ -172,8 +172,18 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     ArrayHandle<float> d_partial_sum_pe(m_partial_sum_pe, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_sum_pe(m_sum_pe, access_location::device, access_mode::overwrite);
-    
-    exec_conf.gpu[0]->call(bind(gpu_fire_compute_sum_pe, d_pdata[0], d_net_force.data, d_sum_pe.data, d_partial_sum_pe.data, m_block_size, m_num_blocks));
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getIndexArray().getNumElements();
+        
+    exec_conf.gpu[0]->call(bind(gpu_fire_compute_sum_pe, 
+                                d_pdata[0], 
+                                d_index_array.data,
+                                group_size,
+                                d_net_force.data, 
+                                d_sum_pe.data, 
+                                d_partial_sum_pe.data, 
+                                m_block_size, 
+                                m_num_blocks));
     
     m_pdata->release();
     

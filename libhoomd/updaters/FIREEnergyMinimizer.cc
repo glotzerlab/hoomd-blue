@@ -67,6 +67,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
                                          Scalar dt, 
                                          bool reset_and_create_integrator)
     :   IntegratorTwoStep(sysdef, dt),
+        m_group(group),
         m_nmin(5),
         m_finc(1.1),
         m_fdec(0.5),
@@ -193,15 +194,19 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     if (m_converged)
         return;
         
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;    
+    
     IntegratorTwoStep::update(timesteps);
         
     Scalar P(0.0);
     Scalar vnorm(0.0);
     Scalar fnorm(0.0);
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-    unsigned int n = arrays.nparticles;
 
-    Scalar energy = computePotentialEnergy(timesteps)/Scalar(n);
+    // Calculate potential energy over all particles
+    Scalar energy = computePotentialEnergy(timesteps)/Scalar(arrays.nparticles);
 
     if (m_was_reset)
         {
@@ -209,27 +214,31 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         m_old_energy = energy + Scalar(100000)*m_etol;
         }
 
-    for (unsigned int i=0; i<n; i++)
+     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        P += arrays.ax[i]*arrays.vx[i] + arrays.ay[i]*arrays.vy[i] + arrays.az[i]*arrays.vz[i];
-        fnorm += arrays.ax[i]*arrays.ax[i] + arrays.ay[i]*arrays.ay[i] + arrays.az[i]*arrays.az[i];
-        vnorm += arrays.vx[i]*arrays.vx[i] + arrays.vy[i]*arrays.vy[i] + arrays.vz[i]*arrays.vz[i];
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        P += arrays.ax[j]*arrays.vx[j] + arrays.ay[j]*arrays.vy[j] + arrays.az[j]*arrays.vz[j];
+        fnorm += arrays.ax[j]*arrays.ax[j] + arrays.ay[j]*arrays.ay[j] + arrays.az[j]*arrays.az[j];
+        vnorm += arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j];
         }
+        
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
 
-    if (fnorm/sqrt(m_sysdef->getNDimensions()*n) < m_ftol || fabs(energy-m_old_energy) < m_etol)
+    if (fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol)
         {
         m_converged = true;
         return;
         }
 
     Scalar invfnorm = 1.0/fnorm;        
-    for (unsigned int i=0; i<n; i++)
+     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        arrays.vx[i] = arrays.vx[i]*(1.0-m_alpha) + m_alpha*arrays.ax[i]*invfnorm*vnorm;
-        arrays.vy[i] = arrays.vy[i]*(1.0-m_alpha) + m_alpha*arrays.ay[i]*invfnorm*vnorm;
-        arrays.vz[i] = arrays.vz[i]*(1.0-m_alpha) + m_alpha*arrays.az[i]*invfnorm*vnorm;
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        
+        arrays.vx[j] = arrays.vx[j]*(1.0-m_alpha) + m_alpha*arrays.ax[j]*invfnorm*vnorm;
+        arrays.vy[j] = arrays.vy[j]*(1.0-m_alpha) + m_alpha*arrays.ay[j]*invfnorm*vnorm;
+        arrays.vz[j] = arrays.vz[j]*(1.0-m_alpha) + m_alpha*arrays.az[j]*invfnorm*vnorm;
         }
         
     if (P > Scalar(0.0))
@@ -246,11 +255,12 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
-        for (unsigned int i=0; i<n; i++)
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
-            arrays.vx[i] = Scalar(0.0);
-            arrays.vy[i] = Scalar(0.0);
-            arrays.vz[i] = Scalar(0.0);
+            unsigned int j = m_group->getMemberIndex(group_idx);
+            arrays.vx[j] = Scalar(0.0);
+            arrays.vy[j] = Scalar(0.0);
+            arrays.vz[j] = Scalar(0.0);
             }
         }
     m_pdata->release();

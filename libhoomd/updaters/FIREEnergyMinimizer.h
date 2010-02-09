@@ -106,10 +106,13 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         */
         void setEtol(Scalar etol) {m_etol = etol;}
         
+        //! Access the group
+        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }        
         
     protected:
         //! Function to create the underlying integrator 
         //virtual void createIntegrator(); 
+        const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
         unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha 
         unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions 
         Scalar m_finc;                      //!< fractional increase in timestep upon successful seach
