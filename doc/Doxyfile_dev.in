@@ -553,8 +553,10 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = "${HOOMD_SOURCE_DIR}/libhoomd" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/prereq_install.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_windows.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/dev/DeveloperInfo.doc" \

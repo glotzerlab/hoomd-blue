@@ -132,8 +132,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMAngleForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
-#include "FIREEnergyMinimizerGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.h"
+#include "FIREEnergyMinimizerGPU.h"
 #endif
 
 #include "SignalHandler.h"

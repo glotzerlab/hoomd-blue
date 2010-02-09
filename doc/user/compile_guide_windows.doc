@@ -1,0 +1,204 @@
+/*! 
+\page page_compile_guide_windows Compiling HOOMD-blue on Windows
+
+Table of contents:
+ - \ref sec_build_windows_prereq
+ - \ref sec_build_windows_compile
+<hr>
+
+\section sec_build_windows_prereq Software Prerequisites
+
+\section software_req_install_windows_vstudio Visual Studio
+
+First things first, you will need a compiler to build C++ applications. If you don't already
+have one, that is not a problem. You can download and install a fully featured IDE and compiler, <b>Visual 
+C++ Express 2005</b> from here: http://www.microsoft.com/express/2005/ . 
+
+To build \b 64-bit applications, the express edition is not sufficient. You must install the
+professional edition. If you don't have Visual C++ professional, you can still install the express edition
+and 32-bit versions of all the other libraries and tools to build 32-bit executables on windows 64-bit.
+
+After installing Visual C++ Express (or professional), you <b>absolutely, positively, most certainly MUST</b>
+install Service Pack 1 for it. This can be done using Windows Update or by accessing Help->Update 
+from within Visual Studio.
+
+If you install the express edition, you must also follow the link from 
+http://www.microsoft.com/express/2005/ to download the <b>Windows Platform SDK</b>
+(ignore that the platform sdk says it is for windows 2003 server, it works on XP). If you
+get an option, the preferred installation path is <i>C:\\Program Files\\Microsoft Platform SDK</i>.
+
+Only a few options need to be activated for the install, namely the Windows Core SDK, and
+only those componets you really need for your architecture as shown in this
+screenshot (shown for the x86 32-bit arch).
+\image html windows_platform_sdk_options.png
+
+All other installation options can be disabled (not all shown).
+
+After installing the SDK, you need to set some paths. Open Visual Studio and select
+the \b Tools menu and then select \b Options... Navigate to the section
+<b>Projects and Solutions -> VC++ Directories</b>. As shown in this image:
+\image html vstudio_directories.png
+(yours may look slightly different from this one).
+
+Using the upper right drop down box labeled \b "Show directories for" add<br>
+<b>C:\\Program Files\\Microsoft Platform SDK\\bin</b> to \e Executables<br>
+<b>C:\\Program Files\\Microsoft Platform SDK\\include</b> to \e Include files<br>
+and <b>C:\\Program Files\\Microsoft Platform SDK\\lib</b> to \e Library files<br>
+These are accomplished in the image above with the $(PLATFORMSDK_DIR) environment variable,
+but you do not need to do the same, just type in the full path where you installed the
+platform SDK directly or use the file chooser dialog box.
+
+\b Note: If you intend to build installer packages to be redistributed, make sure that the 
+registry key [HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\8.0;InstallDir] is set 
+properly (typically C:\\Program Files (x86)\\Microsoft Visual Studio 8\\Common7\\IDE). You
+need this to get proper installation of the VS redistributable dlls required to run HOOMD-blue
+on user's machines.
+
+\section software_req_install_windows_python Python
+
+Download and install python binaries from http://www.python.org. If you choose to 
+download the boost binaries (below), you \e must install python version \b 2.5.x. 
+If you plan to build boost from source, you can install any version of python
+you like, as long as it is newer than \b 2.3 and older than \b 2.6 (boost is not currently 
+compatible. with 2.6)
+
+If you are going to be building a \b 64-bit hoomd, make sure you download and install the
+64-bit python.
+
+\section software_req_install_windows_boost Boost
+
+<b>Option 1: Install binaries.</b> Easy, but it only supports version \b 2.5.x of python 
+(for boost 1.35.0, this may differ for the other boost versions, depending on which version of python 
+boost-consulting compiled them against). This option \b cannot be used if you are going to build
+a \b 64-bit hoomd.
+
+Download the boost 1.35.0 installer from here http://www.boostpro.com/products/free .
+When you run it, you will get an option screen that looks like this:
+\image html boost_binary_install_windows.png
+Select the options as indicated.
+
+<b>Option 2: Compile from source.</b> Difficult, but enables the use of any supported version of python. 
+These instructions are really only intended for advanced users and developers that will be building statically 
+linked builds for download. This is the only way to get a \b 64-bit boost to use in compiling hoomd.
+
+Download the source code from http://www.boost.org. This document assumes you have
+downloaded boost 1.38.0. Additionally, you must download and install python before continuing. Instructions are above.
+
+The full instructions for building boost are here: http://www.boost.org/doc/libs/1_38_0/more/getting_started/index.html . 
+A summary of the commands needed are listed below.
+
+\b 1. Download bjam: http://sourceforge.net/project/showfiles.php?group_id=7586&package_id=72941
+You will need the file \b boost-jam-3.1.17-1-ntx86.zip
+
+\b 2. Extract everything to a nice place. These instructions assume that \b boost has been 
+extracted to <i>c:\\libraries\\boost_1_38_0</i> and \b bjam.exe is extracted to 
+<i> c:\\libraries\\boost_1_38_0\\bjam.exe </i>.
+
+\b 3. To compile, first open a build environment: 
+	Start->Microsoft Platform SDK->Open Build Environment Window->Windows XP 32-bit Build Environment->Set Windows XP 32-bit Build Environment (Retail)
+	(open the \b 64-bit build environment if you are going to build a 64-bit hoomd)
+	
+\b 4. In the terminal window that opens, cd to the extracted \e boost_1_38_0 directory and
+	run the following command, then wait a \e long time for everything to compile.
+	It is easiest to copy the entire command as one line and paste it
+	(right click and choose paste in the command line window).
+	It will install boost header files and libraries into c:\\opt (you can change
+	the location by changing the value after --prefix).
+\code
+bjam --toolset="msvc" python=2.5 variant=release,debug threading=multi link=shared,static --prefix=c:\opt install
+\endcode
+	\b Note: add \c address-model=64 to the command line if you are going to build a \b 64-bit hoomd
+
+For CMake to find your newly compiled boost libraries, you must set the environment 
+variable \b BOOST_ROOT to c:\\opt (or wherever you installed boost).
+
+\section software_req_install_windows_cuda CUDA
+Download and install the latest toolkit from http://www.nvidia.com/object/cuda_get.html. There
+is no need to install the SDK. If you have a CUDA capable graphics card, you will also need
+the latest driver in order to execute HOOMD-blue on the GPU (get from http://www.nvidia.com). 
+
+If you do not have a CUDA capable graphics card, you can still install the toolkit and compile HOOMD-blue in
+CPU emulation mode. It is quite slow, but developers can use it to test any code they 
+work on that touches GPU classes.
+
+\section software_req_install_windows_cmake CMake
+Download the latest CMake installer from here: http://www.cmake.org/HTML/Download.html
+
+\section software_req_install_windows_subversion Subversion
+
+TortoiseSVN is a nice graphical interface to subversion that integrates into the
+windows explorer. Download from here: http://tortoisesvn.net/
+
+If you prefer a command line, you can download one from here: 
+http://www.sliksvn.com/en/download
+
+Even if you only plan on using the GUI, there is a good reason to install both. It 
+allows HOOMD-blue executables to report the svnversion which can only be done if the command line tool 
+is installed.
+
+\section sec_build_windows_compile Compile hoomd
+
+Now that all of the prerequisite software is installed, you are ready to compile hoomd.
+
+<b>Step 1: Get a copy of the source code</b>
+There are many ways to get the source code for HOOMD-blue. 
+ - You can download it (http://codeblue.umich.edu/hoomd-blue/download.html).
+ - You could use subversion to check out a tagged release (list: https://codeblue.umich.edu/hoomd-blue/trac/browser/tags).
+ - You could use subversion to check out a branch (list: https://codeblue.umich.edu/hoomd-blue/trac/browser/branches).
+
+Or you could check out the current mainline development version in trunk:
+\code
+ $ mkdir hoomd-trunk
+ $ cd hoomd-trunk
+ $ svn co http://codeblue.umich.edu/hoomd-blue/svn/trunk hoomd
+\endcode
+The same operations can be performed in the explorer GUI. Right click in a desired location and create a new folder
+\b hoomd-trunk. Traverse into that foler, right click and select "SVN Checkout...", then follow the on screen promps
+to check out the svn URL <b>http://codeblue.umich.edu/hoomd-blue/svn/trunk</b> into the working directory <b>hoomd</b>.
+
+<b>Note:</b> This example shows how to checkout the current mainline development version in trunk. Whatever method you
+use to get the source code, the instructions below assume that it has been extracted into the <i>hoomd</i> directory
+inside of the <b>hoomd-trunk</b> directory.
+	
+<b>3. Run CMake</b>
+
+You should now have a directory \b hoomd-trunk on your hard drive with a subdirectory
+\b hoomd containing the source code. CMake must be run to generate the visual studio
+project that will compile hoomd. 
+ -# Start cmake-gui
+ -# Set the input box labeled <i>Where is the Source code</i> to the location of the \b hoomd directory.
+ -# Set the input box labeled <i>Where to build the binaries</i> to the location of the \b build directory.
+ -# You should now have a screen that looks like this: \image html cmake_windows_initial.png
+ -# Click configure and a dialog pops up: \image html cmake_windows_generator.png
+ -# Select the IDE you installed (most likely Visual Studio 8 2005) and click OK.
+ -# After a short wait while CMake should display a screen that looks like this: \image html cmake_windows_firstpress.png
+	If you received an error message instead, it is possible that you are missing one of the
+	prerequisite software packages or it is installed to a non-standard location. In the second case,
+	you can click on the text box with CMAKE-SOMETHING-NOTFOUND in it and specify the full path
+	to the corresponding file or directory.
+ -# You can configure any of the build options on this screen to your liking. 
+	See \ref sec_build_options for more information on what these options do.
+ -# Click configure several times until all the red options turn white. Then click generate 
+	the create project file.
+ -# Close CMake
+
+<b>4. Compile HOOMD-blue</b><br>
+Open \b build/HOOMD.sln project in visual studio. Press F7 (or use the GUI build button)
+to build all executables. You can also make a single target the active project
+(right click and choose set as startup project) and press F7 to build
+only it. 
+
+Build the \b check target to run a series of unit tests that verify proper operation of the build.
+
+Source can be modified in visual studio, but any files added to the project must 
+be done via CMake. In most cases, a file can be added simply by placing it in the 
+proper directory and then rerunning CMake.
+
+If you have a system with more than 1 CPU core, you can greatly improve the performance
+of the build by making use of all cores. In VS2005, navigate to the menu item <b>Tools</b>-\><b>Options</b>. 
+In the left tab, select <b>Projects And Solutions</b>-\><b>Build and Run</b>. Set the value for the
+<b>maximum number of parallel project builds</b> to be the total number of CPU cores in your system.
+There is more information at http://msdn2.microsoft.com/en-us/library/y0xettzf.aspx .
+
+<hr>
+*/

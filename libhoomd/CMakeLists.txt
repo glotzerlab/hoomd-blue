@@ -34,7 +34,10 @@ add_libhoomd_source_dir(${dir})
 endforeach (dir)
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_libhoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
+if (BUILD_SHARED_LIBS)
+set (_libhoomd_shared SHARED)
+endif (BUILD_SHARED_LIBS)
+CUDA_COMPILE(_CUDA_GENERATED_FILES ${_libhoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} ${_libhoomd_shared})
 source_group(cuda_generated FILES ${_CUDA_GENERATED_FILES})
 endif (ENABLE_CUDA)
 

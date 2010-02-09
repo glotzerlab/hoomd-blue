@@ -966,64 +966,29 @@ class bdnvt_rigid(_integration_method):
 ## Energy Minimizer (FIRE)
 #
 # integrate.energyminimizer_FIRE uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
-# for a rigid or non-rigid body of particles. 
+# for a group of particles while keeping all other particles fixed.
 #
-# EDIT - The total added %force \f$ \vec{F}\f$ is
-# \f[ \vec{F} = -\gamma \cdot \vec{v} + \vec{F}_{\mathrm{rand}} \f]
-# where \f$ \vec{v} \f$ is the particle's velocity and \f$ \vec{F}_{\mathrm{rand}} \f$
-# is a random force with magnitude chosen via the fluctuation-dissipation theorem
-# to be consistent with the specified drag (\a gamma) and temperature (\a T).
-#
-# EDIT integrate.bdnvt_rigid \b only operates on particles that belong to rigid bodies. Use integrate.bdnvt on particles
-# that do not belong to rigid bodies.
-#
-# EDIT \b Limitataions:<br>
-# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
-# integrate.bdnvt_rigid will still behave as if group.rigid() was specified.
-#
-# EDIT - integrate.bdnvt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
-# the following modes are active:
-# - integrate.mode_standard
-class energyminimizer_FIRE(_integrator):
-    ## Specifies the energy minimizer.   An integration method MUST be specified too. (true?)
-    # EDIT
-    # \param group Group of particles on which to apply this method.
-    # \param T Temperature of the simulation \a T
-    # \param seed Random seed to use for the run. Simulations that are identical, except for the seed, will follow 
-    # different trajectories.
-    # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
-    #                   default), gammas are assigned per particle type via set_gamma().
+# TODO: document me
+class mode_minimize_fire(_integrator):
+    ## Specifies the FIRE energy minimizer.
     #
-    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
-    #
-    # \b Examples:
-    # \code
-    # rigid = group.rigid();
-    # integrate.bdnvt_rigid(group=rigid, T=1.0, seed=5)
-    # integrator = integrate.bdnvt_rigid(group=all, T=1.0, seed=100)
-    # integrate.bdnvt_rigid(group=all, T=1.0, gamma_diam=True)
-    # \endcode
+    # TODO: document me
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, alpha_final=None, ftol = None, Etol= None):
         util.print_status_line();
         
         # initialize base class
         _integrator.__init__(self);
         
-        # Break provided group into rigid and nonrigid components (this may have compatibility issues across versions of Hoomd,
-        # but seeing if can get away from having to separately specify an energy minimizer based on rigid or non-rigid
-        #rigidgroup = group.intersection(group.rigid(), group.cpp_group)   #suspect these lines won't work!
-        #nonrigidgroup=group.intersection(group.non_rigid(), group.cpp_group)
-        
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
             self.cpp_integrator = hoomd.FIREEnergyMinimizer(globals.system_definition, group.cpp_group, dt);
-            #self.cpp_method = hoomd.FIREEnergyMinimizerRigid(globals.system_definition, rigidgroup.cpp_group, dt);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             self.cpp_integrator = hoomd.FIREEnergyMinimizerGPU(globals.system_definition, group.cpp_group, dt);
-            #self.cpp_method = hoomd.FIREEnergyMinimizerRigidGPU(globals.system_definition, rigidgroup.cpp_group, dt);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating FIRE Energy Minimizer");
+
+        self.supports_methods = False;
         
         globals.system.setIntegrator(self.cpp_integrator);        
         
@@ -1041,21 +1006,11 @@ class energyminimizer_FIRE(_integrator):
             
     ## Asks if Energy Minimizer has converged
     #
-    # EDIT To change the parameters of an existing integrator, you must save it in a variable when it is
-    # specified, like so:
-    # \code
-    # integrator = integrate.nvt_rigid(group=rigid, T=0.65)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # integrator.set_params(T=2.0, tau=10.0)
-    # \endcode
+    # TODO: document me
     def has_converged(self):
-        util.print_status_line();
         # check that proper initialization has occured
         if self.cpp_integrator == None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
             raise RuntimeError('Error in FIRE Energy Minimizer');
         return self.cpp_integrator.hasConverged()
-                             
+ 

@@ -560,7 +560,9 @@ INPUT                  = "${CMAKE_CURRENT_SOURCE_DIR}/user/installation_guide.do
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/command_line_options.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc" \
-                         "${CMAKE_CURRENT_SOURCE_DIR}/user/prereq_install.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_windows.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
                          "${HOOMD_SOURCE_DIR}/python-module/hoomd_script"

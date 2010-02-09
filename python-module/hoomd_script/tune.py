@@ -69,18 +69,19 @@ import sys
 #
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
-_default_block_size_db['1.0'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 64, 
-                                'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 320, 'bond.fene': 224, 'angle.harmonic': 192, 
-                                'pair.gauss': 64, 'pair.table': 256, 'pair.yukawa': 64,
-                                'pair.slj': 64, 'pair.morse': 64}
-_default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.cgcmm': 64, 'dihedral.harmonic': 128, 'angle.cgcmm': 64,
-                                'pair.lj': 64, 'nlist': 64, 'bond.harmonic': 64, 'bond.fene': 64, 
-                                'angle.harmonic': 192, 'pair.gauss': 64, 'pair.table': 256, 'pair.yukawa': 64,
-                                'pair.slj': 64, 'pair.morse': 64};
-_default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.cgcmm': 352, 'dihedral.harmonic': 128, 
-                                'angle.cgcmm': 320, 'pair.lj': 352, 'nlist': 160, 'bond.harmonic': 352, 
-                                'bond.fene': 96, 'angle.harmonic': 192, 'pair.gauss': 416, 'pair.table': 256,
-                                'pair.yukawa': 64, 'pair.slj': 64, 'pair.morse':64}
+_default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.lj': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 128,
+                                 'pair.cgcmm': 64, 'pair.table': 256, 'pair.slj': 128, 'pair.morse': 64, 'nlist': 64,
+                                 'bond.harmonic': 64, 'pair.yukawa': 64, 'bond.fene': 96, 'angle.harmonic': 192,
+                                 'pair.gauss': 64}
+
+# no longer independantly tuning 1.0 devices, they are very old
+_default_block_size_db['1.0'] = _default_block_size_db['1.1'];
+_default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 96, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
+                                 'pair.cgcmm': 352, 'pair.table': 192, 'pair.slj': 352, 'pair.morse': 96, 'nlist': 192,
+                                 'bond.harmonic': 352, 'pair.yukawa': 96, 'bond.fene': 224, 'angle.harmonic': 192,
+                                 'pair.gauss': 96}
+# notice!: forcing pair.slj to 288 to work around strange ULF problems
+_default_block_size_db['1.3']['pair.slj'] = 288;
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -336,17 +337,19 @@ def find_optimal_block_sizes(save = True, only=None):
         save = False;
     
     # list of force computes to tune
-    fc_list = [ ('pair.table', 'pair_table_bmark', '()', 500),
-                ('pair.lj', 'pair.lj', '(r_cut=3.0)', 500),
-                ('pair.cgcmm', 'pair.cgcmm', '(r_cut=3.0)', 500),
-                ('pair.gauss', 'pair.gauss', '(r_cut=3.0)', 500),
-                ('pair.morse', 'pair.morse', '(r_cut=3.0)', 500),
-                ('bond.harmonic', 'bond.harmonic', '()', 10000),
-                ('angle.harmonic', 'angle.harmonic', '()', 3000),
-                ('angle.cgcmm', 'angle.cgcmm', '()', 2000),
-                ('dihedral.harmonic', 'dihedral.harmonic', '()', 1000),
-                ('improper.harmonic', 'improper.harmonic', '()', 1000),
-                ('bond.fene', 'bond.fene', '()', 2000)
+    fc_list = [ ('pair.table', 'pair_table_setup', 500),
+                ('pair.lj', 'pair_lj_setup', 500),
+                ('pair.slj', 'pair_slj_setup', 500),
+                ('pair.yukawa', 'pair_yukawa_setup', 500),
+                ('pair.cgcmm', 'pair_cgcmm_setup', 500),
+                ('pair.gauss', 'pair_gauss_setup', 500),
+                ('pair.morse', 'pair_morse_setup', 500),
+                ('bond.harmonic', 'bond.harmonic', 10000),
+                ('angle.harmonic', 'angle.harmonic', 3000),
+                ('angle.cgcmm', 'angle.cgcmm', 2000),
+                ('dihedral.harmonic', 'dihedral.harmonic', 1000),
+                ('improper.harmonic', 'improper.harmonic', 1000),
+                ('bond.fene', 'bond.fene', 2000)
                 ];
     
     # setup the particle system to benchmark
@@ -358,9 +361,9 @@ def find_optimal_block_sizes(save = True, only=None):
     sysdef = init.create_random_polymers(box=hoomd.BoxDim(L), polymers=[polymer], separation=dict(A=0.35, B=0.35), seed=12)
     
     # need some angles, dihedrals, and impropers to benchmark
-    angle_data = sysdef.getAngleData();
-    dihedral_data = sysdef.getDihedralData();
-    improper_data = sysdef.getImproperData();
+    angle_data = sysdef.sysdef.getAngleData();
+    dihedral_data = sysdef.sysdef.getDihedralData();
+    improper_data = sysdef.sysdef.getImproperData();
     num_particles = len(polymer['type']) * polymer['count'];
     
     for i in xrange(1,num_particles-3):
@@ -387,13 +390,13 @@ def find_optimal_block_sizes(save = True, only=None):
         optimal_db = {};
         
         # for each force compute
-        for (fc_name,fc_init,fc_args,n) in fc_list:
+        for (fc_name,fc_init,n) in fc_list:
             if only and (not fc_name in only):
                 continue
 
             print 'Benchmarking ', fc_name
             # create it and benchmark it
-            fc = eval(fc_init + fc_args)
+            fc = eval(fc_init + '()')
             optimal = _find_optimal_block_size_fc(fc, n)
             optimal_db[fc_name] = optimal;
             
@@ -437,13 +440,71 @@ def lj_table(r, rmin, rmax, epsilon, sigma):
 
 ## \internal
 # \brief Setup pair.table for benchmarking
-def pair_table_bmark():
+def pair_table_setup():
     table = pair.table(width=1000);
     table.pair_coeff.set('A', 'A', func=lj_table, rmin=0.8, rmax=3.0, coeff=dict(epsilon=1.0, sigma=1.0));
     
     # no valid run() occurs, so we need to manually update the nlist
-    pair._update_global_nlist(3.0);
+    globals.neighbor_list.update_rcut();
     return table;
 
+## \internal
+# \brief Setup pair.lj for benchmarking
+def pair_lj_setup():
+    fc = pair.lj(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
 
+## \internal
+# \brief Setup pair.slj for benchmarking
+def pair_slj_setup():
+    fc = pair.slj(r_cut=3.0, d_max=1.0);
+    fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+    
+## \internal
+# \brief Setup pair.yukawa for benchmarking
+def pair_yukawa_setup():
+    fc = pair.yukawa(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.cgcmm for benchmarking
+def pair_cgcmm_setup():
+    fc = pair.cgcmm(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, exponents='LJ12-6');
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.cgcmm for benchmarking
+def pair_gauss_setup():
+    fc = pair.gauss(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
+
+## \internal
+# \brief Setup pair.morse for benchmarking
+def pair_morse_setup():
+    fc = pair.morse(r_cut=3.0);
+    fc.pair_coeff.set('A', 'A', D0=1.0, alpha=3.0, r0=1.0);
+    
+    # no valid run() occurs, so we need to manually update the nlist
+    globals.neighbor_list.update_rcut();
+    return fc;
 

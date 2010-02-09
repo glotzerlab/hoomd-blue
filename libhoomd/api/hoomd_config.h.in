@@ -7,5 +7,6 @@
 #cmakedefine SINGLE_PRECISION
 #cmakedefine LARGE_EXCLUSION_LIST
 #cmakedefine ENABLE_ZLIB
+#cmakedefine ENABLE_OPENMP
 
 #endif // _HOOMD_CONFIG_H
