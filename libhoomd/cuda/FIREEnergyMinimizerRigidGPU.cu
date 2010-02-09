@@ -39,9 +39,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: FIREEnergyMinimizerGPU.cu 2587 2010-01-08 17:02:54Z askeys $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/cuda/FIREEnergyMinimizerGPU.cu $
-// Maintainer: askeys
+// $Id$
+// $URL$
+// Maintainer: ndtrung
 
 #include "FIREEnergyMinimizerRigidGPU.cuh"
 #include "gpu_settings.h"
@@ -448,3 +448,4 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
         return cudaGetLastError();
         }
     }
+

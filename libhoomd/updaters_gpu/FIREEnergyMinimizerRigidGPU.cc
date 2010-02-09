@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: FIREEnergyMinimizerRigidGPU.cc 2587 2010-01-08 17:02:54Z ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/updaters/FIREEnergyMinimizerRigidGPU.cc $
+// $Id$
+// $URL$
 // Maintainer: ndtrung
 
 #ifdef WIN32

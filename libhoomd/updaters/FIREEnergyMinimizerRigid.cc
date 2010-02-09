@@ -39,9 +39,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: FIREEnergyMinimizer.cc 2587 2010-01-08 17:02:54Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/updaters/FIREEnergyMinimizer.cc $
-// Maintainer: joaander
+// $Id$
+// $URL$
+// Maintainer: ndtrung
 
 #ifdef WIN32
 #pragma warning( push )

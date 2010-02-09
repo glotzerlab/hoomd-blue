@@ -39,9 +39,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: FIREEnergyMinimizerRigid.h 2587 2010-01-08 17:02:54Z ndtrung $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/rigid-bodies/libhoomd/updaters/FIREEnergyMinimizerRigid.h $
-// Maintainer: askeys
+// $Id$
+// $URL$
+// Maintainer: ndtrung
 
 #include <boost/shared_ptr.hpp>
 
