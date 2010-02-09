@@ -101,6 +101,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPT.h"
 #include "TempRescaleUpdater.h"
 #include "ZeroMomentumUpdater.h"
+#include "FIREEnergyMinimizer.h"
 #include "SFCPackUpdater.h"
 #include "BoxResizeUpdater.h"
 #include "Enforce2DUpdater.h"
@@ -124,6 +125,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMAngleForceComputeGPU.h"
 #include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
+#include "FIREEnergyMinimizerGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -453,12 +455,14 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TwoStepBDNVT();
     export_TwoStepNPT();
     export_Enforce2DUpdater();
+    export_FIREEnergyMinimizer();
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU();
     export_TwoStepNVTGPU();
     export_TwoStepBDNVTGPU();
     export_TwoStepNPTGPU();
     export_Enforce2DUpdaterGPU();
+    export_FIREEnergyMinimizerGPU();
 #endif
     
     // system

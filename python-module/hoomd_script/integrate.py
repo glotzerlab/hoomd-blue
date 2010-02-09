@@ -727,3 +727,54 @@ class bdnvt(_integration_method):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
 
+## Energy Minimizer (FIRE)
+#
+# integrate.energyminimizer_FIRE uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
+# for a group of particles while keeping all other particles fixed.
+#
+# TODO: document me
+class mode_minimize_fire(_integrator):
+    ## Specifies the FIRE energy minimizer.
+    #
+    # TODO: document me
+    def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, alpha_final=None, ftol = None, Etol= None):
+        util.print_status_line();
+        
+        # initialize base class
+        _integrator.__init__(self);
+        
+        # initialize the reflected c++ class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_integrator = hoomd.FIREEnergyMinimizer(globals.system_definition, group.cpp_group, dt);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_integrator = hoomd.FIREEnergyMinimizerGPU(globals.system_definition, group.cpp_group, dt);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating FIRE Energy Minimizer");
+
+        self.supports_methods = False;
+        
+        globals.system.setIntegrator(self.cpp_integrator);        
+        
+        # change the set parameters if not None
+        if not(Nmin is None):
+            self.cpp_integrator.setNmin(Nmin);
+        if not(finc is None):
+            self.cpp_integrator.setFinc(finc);
+        if not(fdec is None):
+            self.cpp_integrator.setFdec(fdec);
+        if not(alpha_start is None):
+            self.cpp_integrator.setAlphaStart(alpha_start);
+        if not(alpha_final is None):
+            self.cpp_integrator.setFalpha(alpha_final);
+            
+    ## Asks if Energy Minimizer has converged
+    #
+    # TODO: document me
+    def has_converged(self):
+        # check that proper initialization has occured
+        if self.cpp_integrator == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+            raise RuntimeError('Error in FIRE Energy Minimizer');
+        return self.cpp_integrator.hasConverged()
+ 
