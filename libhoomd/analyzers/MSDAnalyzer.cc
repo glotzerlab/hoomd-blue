@@ -193,6 +193,11 @@ void MSDAnalyzer::setR0(const std::string& xml_fname)
     
     // determine if we have image data
     bool have_image = (xml.getImage().size() == nparticles);
+    if (!have_image)
+        {
+        cout << "***Warning! Image data missing or corrupt in " << xml_fname
+             << ". Computed msd values will not be correct." << endl;
+        }
     
     // reset the initial positions
     BoxDim box = m_pdata->getBox();
