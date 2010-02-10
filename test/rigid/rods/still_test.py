@@ -14,3 +14,4 @@ dump.dcd(filename='still.dcd', period=50, overwrite=True)
 analyze.log(filename="still.log", period=100, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
 run(5000)
+

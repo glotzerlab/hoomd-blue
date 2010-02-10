@@ -11,3 +11,4 @@ g = packmol.GeneratorXML(simulation_box=box, seed=1, tolerance=1.2)
 g.addBuildingBlock(cube, n_cubes)
 
 g.writeOutput(open('cubes.xml', 'w'));
+

@@ -10,3 +10,4 @@ g = packmol.GeneratorXML(simulation_box=box, seed=1, tolerance=1.2)
 g.addBuildingBlock(rod, 300)
 
 g.writeOutput(open('rods.xml', 'w'));
+

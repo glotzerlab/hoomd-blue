@@ -14,3 +14,4 @@ dcd = dump.dcd(filename='bdnvt_basic.dcd', period=100, overwrite=True)
 log = analyze.log(filename="bdnvt_basic.log", period=100, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
 run(100e3)
+

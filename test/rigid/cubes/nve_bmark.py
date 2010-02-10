@@ -21,3 +21,4 @@ nve = integrate.nve_rigid(group=group.all())
 run(5000, profile=True)
 
 run(50000)
+
