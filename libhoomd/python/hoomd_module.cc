@@ -57,6 +57,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ClockSource.h"
 #include "Profiler.h"
 #include "ParticleData.h"
+#include "RigidData.h"
 #include "SystemDefinition.h"
 #include "BondData.h"
 #include "AngleData.h"
@@ -384,6 +385,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BoxDim();
     export_ParticleDataInitializer();
     export_ParticleData();
+    export_RigidData();
     export_ExecutionConfiguration();
     export_BondData();
     export_SystemDefinition();

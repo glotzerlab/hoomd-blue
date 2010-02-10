@@ -46,9 +46,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines RigidData and related classes.
 */
 
-#include "RigidData.h"
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4103 4244 )
+#endif
+
 #include <cassert>
 #include <math.h>
+#include <boost/python.hpp>
+using namespace boost::python;
+
+#include "RigidData.h"
 
 using namespace boost;
 using namespace std;
@@ -685,4 +693,15 @@ void RigidData::setAngMom(unsigned int body, Scalar4 angmom)
     
     angmom_init_handle.data[body] = true;
 }
+
+void export_RigidData()
+    {
+    class_<RigidData, boost::shared_ptr<RigidData>, boost::noncopyable>("RigidData", init< boost::shared_ptr<ParticleData> >())
+    .def("initializeData", &RigidData::initializeData)
+    ;
+    }
+
+#ifdef WIN32
+#pragma warning( pop )
+#endif
 

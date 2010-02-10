@@ -266,5 +266,8 @@ class RigidData
         
     };
 
+//! Export the RigidData class to python
+void export_RigidData();
+
 #endif
 
