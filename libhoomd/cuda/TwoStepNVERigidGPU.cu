@@ -484,6 +484,9 @@ extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pd
     float4 ex_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 ey_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 ez_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float Lx2 = box.Lx/2;
+    float Ly2 = box.Ly/2;
+    float Lz2 = box.Lz/2;
     
     if (idx_body < n_bodies)
         {
@@ -523,15 +526,18 @@ extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pd
             // time to fix the periodic boundary conditions (FLOPS: 15)
             float x_shift = rintf(ppos.x * box.Lxinv);
             ppos.x -= box.Lx * x_shift;
-            image.x += (int)x_shift;
+            if (ppos.x - pos.x >= Lx2 || ppos.x - pos.x <= -Lx2)
+                image.x += (int)x_shift;
             
             float y_shift = rintf(ppos.y * box.Lyinv);
             ppos.y -= box.Ly * y_shift;
-            image.y += (int)y_shift;
+            if (ppos.y - pos.y >= Ly2 || ppos.y - pos.y <= -Ly2)
+                image.y += (int)y_shift;
             
             float z_shift = rintf(ppos.z * box.Lzinv);
             ppos.z -= box.Lz * z_shift;
-            image.z += (int)z_shift;
+            if (ppos.z - pos.z >= Lx2 || ppos.z - pos.z <= -Lz2)
+                image.z += (int)z_shift;
             
             // v_particle = vel + angvel x ri
             float4 pvel;
