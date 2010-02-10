@@ -108,6 +108,9 @@ class AngleData;
 // Forward declaration of DihedralData
 class DihedralData;
 
+// Forward declaration of RigidData
+class RigidData;
+
 // Forward declaration of IntegratorData
 class IntegratorData;
 
@@ -335,6 +338,11 @@ class ParticleDataInitializer
         */
         virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const {}
         
+        //! Initialize the rigid data
+        /*! \param rigid_data Shared pointer to the RigidData to be initialized
+            Rigid bodies are optional: the base class does nothing
+        */
+        virtual void initRigidData(boost::shared_ptr<RigidData> rigid_data) const {}
     };
 
 //! Manages all of the data arrays for the particles

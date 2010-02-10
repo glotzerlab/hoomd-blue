@@ -129,7 +129,15 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
 #endif
         {
         m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
+        
+        // the follwing calls may cause confusion, but their tasks are completely different
+        // This makes sure that the rigid bodies are initialized correctly based on the particle data (body flags)
+        // It computes relevant static data, i.e. body mass, body size, inertia of momentia, particle pos, and particle indices.
         m_rigid_data->initializeData();
+        
+        // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta, forces, torques, 
+        // quaternions, and body images; otherwise, nothing is done here.
+        init.initRigidData(m_rigid_data);
         }
         
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
