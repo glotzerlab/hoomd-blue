@@ -48,9 +48,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "MSDAnalyzer.h"
+#include "HOOMDInitializer.h"
 
 #include <boost/python.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 using namespace boost::python;
+using namespace boost::filesystem;
 
 #include <iomanip>
 using namespace std;
@@ -58,17 +62,38 @@ using namespace std;
 /*! \param sysdef SystemDefinition containing the Particle data to analyze
     \param fname File name to write output to
     \param header_prefix String to print before the file header
+    \param overwrite Will overwite an exiting file if true (default is to append)
 
     On construction, the initial coordinates of all parrticles in the system are recoreded. The file is opened
-    (and overwritten if necessary). Nothing is initially written to the file, that will occur on the first call to
+    (and overwritten if told to). Nothing is initially written to the file, that will occur on the first call to
     analyze()
 */
 MSDAnalyzer::MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
                          std::string fname,
-                         const std::string& header_prefix)
-    : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_columns_changed(false),
-      m_file(fname.c_str())
+                         const std::string& header_prefix,
+                         bool overwrite)
+    : Analyzer(sysdef), m_delimiter("\t"), m_header_prefix(header_prefix), m_appending(false),
+      m_columns_changed(false)
     {
+    // open the file
+    if (exists(fname) && !overwrite)
+        {
+        cout << "Notice: Appending msd to existing file \"" << fname << "\"" << endl;
+        m_file.open(fname.c_str(), ios_base::in | ios_base::out | ios_base::ate);
+        m_appending = true;
+        }
+    else
+        {
+        cout << "Notice: Creating new msd in file \"" << fname << "\"" << endl;
+        m_file.open(fname.c_str(), ios_base::out);
+        }
+        
+    if (!m_file.good())
+        {
+        cerr << endl << "***Error! Error opening msd file " << fname << endl << endl;
+        throw runtime_error("Error initializing analyze.msd");
+        }
+    
     // record the initial particle positions by tag
     m_initial_x.resize(m_pdata->getN());
     m_initial_y.resize(m_pdata->getN());
@@ -108,7 +133,14 @@ void MSDAnalyzer::analyze(unsigned int timestep)
         cout << "***Warning! No columns specified in the MSD analysis" << endl;
         return;
         }
-        
+    
+    // ignore writing the header on the first call when appending the file
+    if (m_columns_changed && m_appending)
+        {
+        m_appending = false;
+        m_columns_changed = false;
+        }
+    
     // write out the header only once if the columns change
     if (m_columns_changed)
         {
@@ -139,6 +171,54 @@ void MSDAnalyzer::addColumn(boost::shared_ptr<ParticleGroup> group, const std::s
     {
     m_columns.push_back(column(group, name));
     m_columns_changed = true;
+    }
+
+/*! \param xml_fname Name of the XML file to read in to the r0 positions
+    
+    \post \a xml_fname is read and all initial r0 positions are assigned from that file.
+*/
+void MSDAnalyzer::setR0(const std::string& xml_fname)
+    {
+    // read in the xml file
+    HOOMDInitializer xml(xml_fname);
+    
+    // verify that the input matches the current system size
+    unsigned int nparticles = m_pdata->getN();
+    if (nparticles != xml.getPos().size())
+        {
+        cerr << endl << "***Error! Found " << xml.getPos().size() << " particles in "
+             << xml_fname << ", but there are " << nparticles << " in the current simulation." << endl << endl;
+        throw runtime_error("Error setting r0 in analyze.msd");
+        }
+    
+    // determine if we have image data
+    bool have_image = (xml.getImage().size() == nparticles);
+    
+    // reset the initial positions
+    BoxDim box = m_pdata->getBox();
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    // for each particle in the data
+    for (unsigned int tag = 0; tag < nparticles; tag++)
+        {
+        // save its initial position
+        HOOMDInitializer::vec pos = xml.getPos()[tag];
+        m_initial_x[tag] = pos.x;
+        m_initial_y[tag] = pos.y;
+        m_initial_z[tag] = pos.z;
+        
+        // adjust the positions by the image flags if we have them
+        if (have_image)
+            {
+            HOOMDInitializer::vec_int image = xml.getImage()[tag];
+            m_initial_x[tag] += Scalar(image.x) * Lx;
+            m_initial_y[tag] += Scalar(image.y) * Ly;
+            m_initial_z[tag] += Scalar(image.z) * Lz;
+            }
+        }
+    m_pdata->release();
     }
 
 /*! The entire header row is written to the file. First, timestep is written as every file includes it and then the
@@ -254,9 +334,10 @@ void MSDAnalyzer::writeRow(unsigned int timestep)
 void export_MSDAnalyzer()
     {
     class_<MSDAnalyzer, boost::shared_ptr<MSDAnalyzer>, bases<Analyzer>, boost::noncopyable>
-    ("MSDAnalyzer", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string& >())
+    ("MSDAnalyzer", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("setDelimiter", &MSDAnalyzer::setDelimiter)
     .def("addColumn", &MSDAnalyzer::addColumn)
+    .def("setR0", &MSDAnalyzer::setR0)
     ;
     }
 
