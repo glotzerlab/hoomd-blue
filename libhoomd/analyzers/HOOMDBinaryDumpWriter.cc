@@ -398,7 +398,8 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.write((char*)&(body_imagex_handle.data[body]), sizeof(int));
         f.write((char*)&(body_imagey_handle.data[body]), sizeof(int));
         f.write((char*)&(body_imagez_handle.data[body]), sizeof(int));
-        
+
+#ifdef RIGID_WRITING_DEBUG
         cout << "Writing to the binary file " << body << "\n";
         cout << "com: " << com_handle.data[body].x << " " << com_handle.data[body].y << " " << com_handle.data[body].z << "\n";
         cout << "vel: " << vel_handle.data[body].x << " " << vel_handle.data[body].y << " " << vel_handle.data[body].z << "\n";
@@ -406,6 +407,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         cout << "orientation: " << orientation_handle.data[body].x << " " << orientation_handle.data[body].y << " " << orientation_handle.data[body].z << " " << orientation_handle.data[body].w << "\n";
         cout << "force: " << force_handle.data[body].x << " " << force_handle.data[body].y << " " << force_handle.data[body].z << "\n";
         cout << "body images: " << body_imagex_handle.data[body] << " " << body_imagey_handle.data[body] << " " << body_imagez_handle.data[body] << "\n";
+#endif        
         }
     }    
                 

@@ -664,6 +664,10 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
     ArrayHandle<Scalar4> r_force_handle(rigid_data->getForce(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> r_torque_handle(rigid_data->getTorque(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> r_orientation_handle(rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> r_ex_space_handle(rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> r_ey_space_handle(rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> r_ez_space_handle(rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
+    
     ArrayHandle<int> r_body_imagex_handle(rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
     ArrayHandle<int> r_body_imagey_handle(rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
     ArrayHandle<int> r_body_imagez_handle(rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
@@ -715,6 +719,12 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         r_body_imagey_handle.data[body] = body_imagey_handle.data[body];
         r_body_imagez_handle.data[body] = body_imagez_handle.data[body];
         
+        // computes the axes based on the quaternion
+        rigid_data->exyzFromQuaternion(orientation_handle.data[body], 
+                r_ex_space_handle.data[body], r_ey_space_handle.data[body], r_ez_space_handle.data[body]);
+
+//#define RIGID_READING_DEBUG         
+#ifdef RIGID_READING_DEBUG        
         cout << "Reading from the binary file for body " << body << "\n";
         cout << "com: " << r_com_handle.data[body].x << " " << r_com_handle.data[body].y << " " << r_com_handle.data[body].z << "\n";
         cout << "vel: " << r_vel_handle.data[body].x << " " << r_vel_handle.data[body].y << " " << r_vel_handle.data[body].z << "\n";
@@ -722,8 +732,10 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         cout << "orientation: " << r_orientation_handle.data[body].x << " " << r_orientation_handle.data[body].y << " " << r_orientation_handle.data[body].z << " " << r_orientation_handle.data[body].w << "\n";
         cout << "force: " << r_force_handle.data[body].x << " " << r_force_handle.data[body].y << " " << r_force_handle.data[body].z << "\n";
         cout << "body images: " << r_body_imagex_handle.data[body] << " " << r_body_imagey_handle.data[body] << " " << r_body_imagez_handle.data[body] << "\n";
+#endif
         }
-    
+        
+#ifdef RIGID_READING_DEBUG            
     ArrayHandle<unsigned int> r_body_size_handle(rigid_data->getBodySize(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> r_moment_inertia_handle(rigid_data->getMomentInertia(), access_location::host, access_mode::read);
     
@@ -733,7 +745,7 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         cout << "body size: " << r_body_size_handle.data[body] << "\n";
         cout << "moment of inertia: " << r_moment_inertia_handle.data[body].x << " " << r_moment_inertia_handle.data[body].y << " " << r_moment_inertia_handle.data[body].z << "\n";
         }
-    
+#endif    
     }
 
 

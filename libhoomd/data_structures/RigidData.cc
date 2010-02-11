@@ -670,7 +670,29 @@ void RigidData::quaternionFromExyz(Scalar4 &ex_space, Scalar4 &ey_space, Scalar4
     quat.w *= norm;
     
     }
-        
+
+/*! Calculate the axes from quaternion
+    \param quat returned quaternion
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    
+*/
+void RigidData::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space)
+    {
+    ex_space.x = quat.x * quat.x + quat.y * quat.y - quat.z * quat.z - quat.w * quat.w;
+    ex_space.y = 2.0 * (quat.y * quat.z + quat.x * quat.w);
+    ex_space.z = 2.0 * (quat.y * quat.w - quat.x * quat.z);
+    
+    ey_space.x = 2.0 * (quat.y * quat.z - quat.x * quat.w);
+    ey_space.y = quat.x * quat.x - quat.y * quat.y + quat.z * quat.z - quat.w * quat.w;
+    ey_space.z = 2.0 * (quat.z * quat.w + quat.x * quat.y);
+  
+    ez_space.x = 2.0 * (quat.y * quat.w + quat.x * quat.z);
+    ez_space.y = 2.0 * (quat.z * quat.w - quat.x * quat.y);
+    ez_space.z = quat.x * quat.x - quat.y * quat.y - quat.z * quat.z + quat.w * quat.w;
+    }
+    
 /*!
     \param body Body index to set angular momentum
     \param angmom Angular momentum

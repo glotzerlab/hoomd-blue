@@ -215,6 +215,9 @@ class RigidData
         //! Intitialize and fill out all data members: public to be called from NVEUpdater when the body information of particles wss already set.
         void initializeData();
         
+        //! Compute the axes from quaternion, used when reading from restart files
+        void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
+
     private:
         boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data with which this RigidData is associated
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
