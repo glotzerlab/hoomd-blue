@@ -75,7 +75,7 @@ extern __shared__ float fire_sdata3[];
 
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
 /*! \param pdata Particle data to zero velocities for
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indicies of the mebers of the group to zero
     \param group_size Number of members in the group
 */
 extern "C" __global__ 
@@ -83,13 +83,15 @@ void gpu_fire_zero_v_kernel(gpu_pdata_arrays pdata,
                             unsigned int *d_group_members,
                             unsigned int group_size)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx_local < pdata.local_num)
-        {        
-        // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+     
+        // read the particle's velocity (MEM TRANSFER: 32 bytes)
+        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
                 
         // zero the velocity(FLOPS: ?)
         vel.x = 0.0f;
@@ -98,7 +100,7 @@ void gpu_fire_zero_v_kernel(gpu_pdata_arrays pdata,
         vel.w = 0.0f;
                 
         // write out the results (MEM_TRANSFER: 32 bytes)
-        pdata.vel[idx_global] = vel;
+        pdata.vel[idx] = vel;
         }
     }
 
@@ -140,8 +142,8 @@ cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
     }
 
 //! Kernel function for reducing the potential energy to a partial sum
-/*! \param pdata Particle data to zero velocities for
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+/*! \param pdata Particle data 
+    \param d_group_members Device array listing the indicies of the mebers of the group to sum
     \param group_size Number of members in the group
     \param d_net_force Pointer to the force array for all particles
     \param d_partial_sum_pe Placeholder for the partial sum
@@ -153,38 +155,38 @@ extern "C" __global__
                                            float4* d_net_force, 
                                            float* d_partial_sum_pe)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float pe;
-     if (idx_local < pdata.local_num)
-        {        
-        pe = d_net_force[idx_local].w;
-        }
-    else
+    if (group_idx < group_size)
         {
-        pe = 0.0f;
-        }
-
-    fire_sdata[threadIdx.x] = pe;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-        offs >>= 1;
+        unsigned int idx = d_group_members[group_idx];
+ 
+        float pe;
+        pe = d_net_force[idx].w;
+         
+               
+        fire_sdata[threadIdx.x] = pe;
         __syncthreads();
-        }
+    
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
         
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        {
-        d_partial_sum_pe[blockIdx.x] = fire_sdata[0];
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            {
+            d_partial_sum_pe[blockIdx.x] = fire_sdata[0];
+            }
         }
     }
-
+    
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
     \param d_partial_sum Array containing the parial sum
@@ -285,39 +287,36 @@ extern "C" __global__
                                           unsigned int group_size,    
                                           float* d_partial_sum_P)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float P;
-     if (idx_local < pdata.local_num)
-        {   
-        float4 a = tex1Dfetch(pdata_accel_tex, idx_global);
-        float4 v = tex1Dfetch(pdata_vel_tex, idx_global);
-        P = a.x*v.x + a.y*v.y + a.z*v.z;
-        }
-    else
+    if (group_idx < group_size)
         {
-        P = 0.0f;
-        }
-
-    fire_sdata[threadIdx.x] = P;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-        offs >>= 1;
-        __syncthreads();
-        }
+        unsigned int idx = d_group_members[group_idx];
+     
+        float4 a = tex1Dfetch(pdata_accel_tex, idx);
+        float4 v = tex1Dfetch(pdata_vel_tex, idx);
+        float P = a.x*v.x + a.y*v.y + a.z*v.z;
         
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        d_partial_sum_P[blockIdx.x] = fire_sdata[0];
+        fire_sdata[threadIdx.x] = P;
+        __syncthreads();
+    
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
+        
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            d_partial_sum_P[blockIdx.x] = fire_sdata[0];
+        }
     }
-
+    
 //! Kernel function to compute the partial sum over the vsq term in the FIRE algorithm
 /*! \param pdata Particle data to compute vsq for
     \param d_group_members Array listing members of the group
@@ -330,38 +329,37 @@ extern "C" __global__
                                             unsigned int group_size,
                                             float* d_partial_sum_vsq)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float vsq;
-     if (idx_local < pdata.local_num)
-        {   
-        float4 v = tex1Dfetch(pdata_vel_tex, idx_global);
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+    
+        float vsq;
+   
+        float4 v = tex1Dfetch(pdata_vel_tex, idx);
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
-        }
-    else
-        {
-        vsq = 0.0f;
-        }
 
-    fire_sdata[threadIdx.x] = vsq;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-        offs >>= 1;
+        fire_sdata[threadIdx.x] = vsq;
         __syncthreads();
-        }
+    
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
         
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        d_partial_sum_vsq[blockIdx.x] = fire_sdata[0];
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            d_partial_sum_vsq[blockIdx.x] = fire_sdata[0];
+        }
     }
-
+    
 //! Kernel function to compute the partial sum over the asq term in the FIRE algorithm
 /*! \param pdata Particle data to compute asq for
     \param d_group_members Array listing members of the group
@@ -374,38 +372,36 @@ extern "C" __global__
                                             unsigned int group_size,
                                             float* d_partial_sum_asq)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float asq;
-     if (idx_local < pdata.local_num)
-        {   
-        float4 a = tex1Dfetch(pdata_accel_tex, idx_global);
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+    
+        float asq;
+        float4 a = tex1Dfetch(pdata_accel_tex, idx);
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
-        }
-    else
-        {
-        asq = 0.0f;
-        }
 
-    fire_sdata[threadIdx.x] = asq;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-        offs >>= 1;
+
+        fire_sdata[threadIdx.x] = asq;
         __syncthreads();
-        }
+    
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
         
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        d_partial_sum_asq[blockIdx.x] = fire_sdata[0];
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            d_partial_sum_asq[blockIdx.x] = fire_sdata[0];
+        }
     }
-
 
 //! Kernel function to simultaneously compute the partial sum over P, vsq and asq for the FIRE algorithm
 /*! \param pdata Particle data to compute P, vsq and asq for
@@ -425,53 +421,48 @@ extern "C" __global__
                                             float* d_partial_sum_vsq, 
                                             float* d_partial_sum_asq)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float P, vsq, asq;
-     if (idx_local < pdata.local_num)
-        {   
-        float4 a = tex1Dfetch(pdata_accel_tex, idx_global);
-        float4 v = tex1Dfetch(pdata_vel_tex, idx_global);
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+    
+        float P, vsq, asq; 
+        float4 a = tex1Dfetch(pdata_accel_tex, idx);
+        float4 v = tex1Dfetch(pdata_vel_tex, idx);
         P = a.x*v.x + a.y*v.y + a.z*v.z;
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
-        }
-    else
-        {
-        P = 0.0f;
-        asq = 0.0f;
-        vsq = 0.0f;
-        }
 
-    fire_sdata1[threadIdx.x] = P;
-    fire_sdata2[threadIdx.x] = vsq;
-    fire_sdata3[threadIdx.x] = asq;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            {
-            fire_sdata1[threadIdx.x] += fire_sdata1[threadIdx.x + offs];
-            fire_sdata2[threadIdx.x] += fire_sdata2[threadIdx.x + offs];
-            fire_sdata3[threadIdx.x] += fire_sdata3[threadIdx.x + offs];
-            }
-        offs >>= 1;
+        fire_sdata1[threadIdx.x] = P;
+        fire_sdata2[threadIdx.x] = vsq;
+        fire_sdata3[threadIdx.x] = asq;
         __syncthreads();
-        }
+    
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                {
+                fire_sdata1[threadIdx.x] += fire_sdata1[threadIdx.x + offs];
+                fire_sdata2[threadIdx.x] += fire_sdata2[threadIdx.x + offs];
+                fire_sdata3[threadIdx.x] += fire_sdata3[threadIdx.x + offs];
+                }
+            offs >>= 1;
+            __syncthreads();
+            }
         
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        {
-        d_partial_sum_P[blockIdx.x] = fire_sdata1[0];
-        d_partial_sum_vsq[blockIdx.x] = fire_sdata2[0];
-        d_partial_sum_asq[blockIdx.x] = fire_sdata3[0];
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            {
+            d_partial_sum_P[blockIdx.x] = fire_sdata1[0];
+            d_partial_sum_vsq[blockIdx.x] = fire_sdata2[0];
+            d_partial_sum_asq[blockIdx.x] = fire_sdata3[0];
+            }
         }
     }
-
 
 //! Kernel function to simultaneously reduce three partial sums at the same time
 /*! \param d_sum Array to hold the sums
@@ -636,22 +627,22 @@ extern "C" __global__
                                   float vnorm, 
                                   float invfnorm)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx_local < pdata.local_num)
-        {        
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];       
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 v = tex1Dfetch(pdata_vel_tex, idx_global);
-        float4 a = tex1Dfetch(pdata_accel_tex, idx_global);
+        float4 v = tex1Dfetch(pdata_vel_tex, idx);
+        float4 a = tex1Dfetch(pdata_accel_tex, idx);
                         
         v.x = v.x*(1.0f-alpha) + alpha*a.x*invfnorm*vnorm;
         v.y = v.y*(1.0f-alpha) + alpha*a.y*invfnorm*vnorm;
         v.z = v.z*(1.0f-alpha) + alpha*a.z*invfnorm*vnorm;
                         
         // write out the results (MEM_TRANSFER: 32 bytes)
-        pdata.vel[idx_global] = v;
-        pdata.accel[idx_global] = a;
+        pdata.vel[idx] = v;
         }
     }
 
