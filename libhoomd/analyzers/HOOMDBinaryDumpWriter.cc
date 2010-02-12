@@ -362,7 +362,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     ArrayHandle<int> body_imagex_handle(rigid_data->getBodyImagex(), access_location::host, access_mode::read);
     ArrayHandle<int> body_imagey_handle(rigid_data->getBodyImagey(), access_location::host, access_mode::read);
     ArrayHandle<int> body_imagez_handle(rigid_data->getBodyImagez(), access_location::host, access_mode::read);
-    
+        
     for (unsigned int body = 0; body < n_bodies; body++)
         {
         f.write((char*)&(com_handle.data[body].x), sizeof(Scalar));
@@ -398,7 +398,9 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         f.write((char*)&(body_imagex_handle.data[body]), sizeof(int));
         f.write((char*)&(body_imagey_handle.data[body]), sizeof(int));
         f.write((char*)&(body_imagez_handle.data[body]), sizeof(int));
-
+        
+                        
+//#define RIGID_WRITING_DEBUG
 #ifdef RIGID_WRITING_DEBUG
         cout << "Writing to the binary file " << body << "\n";
         cout << "com: " << com_handle.data[body].x << " " << com_handle.data[body].y << " " << com_handle.data[body].z << "\n";
@@ -406,6 +408,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         cout << "angmom: " << angmom_handle.data[body].x << " " << angmom_handle.data[body].y << " " << angmom_handle.data[body].z << "\n";
         cout << "orientation: " << orientation_handle.data[body].x << " " << orientation_handle.data[body].y << " " << orientation_handle.data[body].z << " " << orientation_handle.data[body].w << "\n";
         cout << "force: " << force_handle.data[body].x << " " << force_handle.data[body].y << " " << force_handle.data[body].z << "\n";
+        cout << "torque: " << torque_handle.data[body].x << " " << torque_handle.data[body].y << " " << torque_handle.data[body].z << "\n";
         cout << "body images: " << body_imagex_handle.data[body] << " " << body_imagey_handle.data[body] << " " << body_imagez_handle.data[body] << "\n";
 #endif        
         }

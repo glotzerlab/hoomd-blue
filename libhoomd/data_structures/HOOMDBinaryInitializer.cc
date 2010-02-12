@@ -502,6 +502,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
     ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
     ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
+    
     for (unsigned int body = 0; body < n_bodies; body++)
         {
         f.read((char*)&(com_handle.data[body].x), sizeof(Scalar));
@@ -537,6 +538,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&(body_imagex_handle.data[body]), sizeof(int));
         f.read((char*)&(body_imagey_handle.data[body]), sizeof(int));
         f.read((char*)&(body_imagez_handle.data[body]), sizeof(int));
+
         }
     }
     
@@ -700,7 +702,7 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         r_angmom_handle.data[body].z = angmom_handle.data[body].z;
         r_angmom_handle.data[body].w = angmom_handle.data[body].w;
         
-        r_force_handle.data[body].x = force_handle.data[body].x;
+    /*    r_force_handle.data[body].x = force_handle.data[body].x;
         r_force_handle.data[body].y = force_handle.data[body].y;
         r_force_handle.data[body].z = force_handle.data[body].z;
         r_force_handle.data[body].w = force_handle.data[body].w;
@@ -709,20 +711,22 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         r_torque_handle.data[body].y = torque_handle.data[body].y;
         r_torque_handle.data[body].z = torque_handle.data[body].z;
         r_torque_handle.data[body].w = torque_handle.data[body].w;
-        
+    */    
+        r_body_imagex_handle.data[body] = body_imagex_handle.data[body];
+        r_body_imagey_handle.data[body] = body_imagey_handle.data[body];
+        r_body_imagez_handle.data[body] = body_imagez_handle.data[body];
+  /*      
         r_orientation_handle.data[body].x = orientation_handle.data[body].x;
         r_orientation_handle.data[body].y = orientation_handle.data[body].y;
         r_orientation_handle.data[body].z = orientation_handle.data[body].z;
         r_orientation_handle.data[body].w = orientation_handle.data[body].w;
         
-        r_body_imagex_handle.data[body] = body_imagex_handle.data[body];
-        r_body_imagey_handle.data[body] = body_imagey_handle.data[body];
-        r_body_imagez_handle.data[body] = body_imagez_handle.data[body];
         
+         
         // computes the axes based on the quaternion
         rigid_data->exyzFromQuaternion(orientation_handle.data[body], 
                 r_ex_space_handle.data[body], r_ey_space_handle.data[body], r_ez_space_handle.data[body]);
-
+    */
 //#define RIGID_READING_DEBUG         
 #ifdef RIGID_READING_DEBUG        
         cout << "Reading from the binary file for body " << body << "\n";
