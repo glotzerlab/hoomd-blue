@@ -863,7 +863,15 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
     error = cudaBindTexture(0, rigid_data_particle_indices_tex, rigid_data.particle_indices, sizeof(unsigned int) * n_bodies * nmax);
     if (error != cudaSuccess)
         return error;
+    
+    error = cudaBindTexture(0, rigid_data_force_tex, rigid_data.force, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
         
+    error = cudaBindTexture(0, rigid_data_torque_tex, rigid_data.torque, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+
     error = cudaBindTexture(0, nvt_rdata_conjqm_tex, nvt_rdata.conjqm, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -874,14 +882,6 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
                                                                                           
-    error = cudaBindTexture(0, rigid_data_force_tex, rigid_data.force, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-    error = cudaBindTexture(0, rigid_data_torque_tex, rigid_data.torque, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
     unsigned int block_size = 64;
     unsigned int n_blocks = n_bodies / block_size + 1;                                
     dim3 body_grid(n_blocks, 1, 1);

@@ -76,11 +76,6 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
     chain = 5;
     order = 3;
     iter = 5;
-    }
-
-void TwoStepNVTRigid::setup()
-    {
-    TwoStepNVERigid::setup();
     
     // allocate memory for thermostat chains
     
@@ -96,7 +91,6 @@ void TwoStepNVTRigid::setup()
     GPUArray<Scalar> wdti1_alloc(order, m_pdata->getExecConf());
     GPUArray<Scalar> wdti2_alloc(order, m_pdata->getExecConf());
     GPUArray<Scalar> wdti4_alloc(order, m_pdata->getExecConf());
-    GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
     
     q_t.swap(q_t_alloc);
     q_r.swap(q_r_alloc);
@@ -110,8 +104,74 @@ void TwoStepNVTRigid::setup()
     wdti1.swap(wdti1_alloc);
     wdti2.swap(wdti2_alloc);
     wdti4.swap(wdti4_alloc);
-    conjqm.swap(conjqm_alloc);
     
+    {
+    ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> w_handle(w, access_location::host, access_mode::readwrite);
+        
+    if (order == 3)
+        {
+        w_handle.data[0] = 1.0 / (2.0 - pow(2.0, 1.0/3.0));
+        w_handle.data[1] = 1.0 - 2.0*w_handle.data[0];
+        w_handle.data[2] = w_handle.data[0];
+        }
+    else if (order == 5)
+        {
+        w_handle.data[0] = 1.0 / (4.0 - pow(4.0, 1.0/3.0));
+        w_handle.data[1] = w_handle.data[0];
+        w_handle.data[2] = 1.0 - 4.0 * w_handle.data[0];
+        w_handle.data[3] = w_handle.data[0];
+        w_handle.data[4] = w_handle.data[0];
+        }
+    
+    
+    eta_t_handle.data[0] = eta_r_handle.data[0] = 0.0;
+    eta_dot_t_handle.data[0] = eta_dot_r_handle.data[0] = 0.0;
+    f_eta_t_handle.data[0] = f_eta_r_handle.data[0] = 0.0;
+    for (unsigned int i = 1; i < chain; i++)
+        {
+        eta_t_handle.data[i] = eta_r_handle.data[i] = 0.0;
+        eta_dot_t_handle.data[i] = eta_dot_r_handle.data[i] = 0.0;
+        }
+    }
+        
+    // set initial state
+    IntegratorVariables v = getIntegratorVariables();
+
+    if (!restartInfoTestValid(v, "nvt_rigid", 4))
+        {
+        v.type = "nvt_rigid";
+        v.variable.resize(4);
+        v.variable[0] = Scalar(0.0);
+        v.variable[1] = Scalar(0.0);
+        v.variable[2] = Scalar(0.0);
+        v.variable[3] = Scalar(0.0);
+        setValidRestart(false);
+        }
+    else
+        setValidRestart(true);
+
+    setIntegratorVariables(v);
+    
+    }
+
+void TwoStepNVTRigid::setup()
+    {
+    TwoStepNVERigid::setup();
+    
+    if (m_n_bodies <= 0)
+        return;
+    
+    
+    GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
+    conjqm.swap(conjqm_alloc);
     
     // initialize thermostats
     // set timesteps, constants
@@ -137,6 +197,13 @@ void TwoStepNVTRigid::setup()
         ArrayHandle<Scalar> w_handle(w, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
         
+        // retrieve integrator variables from restart files
+        IntegratorVariables v = getIntegratorVariables();
+        eta_t_handle.data[0] = v.variable[0];
+        eta_r_handle.data[0] = v.variable[1];
+        eta_dot_r_handle.data[0] = v.variable[2];
+        eta_dot_t_handle.data[0] = v.variable[3];
+        
         //! Total translational and rotational degrees of freedom of rigid bodies
         nf_t = 3 * m_n_bodies;
         nf_r = 3 * m_n_bodies;
@@ -149,21 +216,7 @@ void TwoStepNVTRigid::setup()
             if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
             }
             
-        if (order == 3)
-            {
-            w_handle.data[0] = 1.0 / (2.0 - pow(2.0, 1.0/3.0));
-            w_handle.data[1] = 1.0 - 2.0*w_handle.data[0];
-            w_handle.data[2] = w_handle.data[0];
-            }
-        else if (order == 5)
-            {
-            w_handle.data[0] = 1.0 / (4.0 - pow(4.0, 1.0/3.0));
-            w_handle.data[1] = w_handle.data[0];
-            w_handle.data[2] = 1.0 - 4.0 * w_handle.data[0];
-            w_handle.data[3] = w_handle.data[0];
-            w_handle.data[4] = w_handle.data[0];
-            }
-            
+                    
         Scalar4 mbody;
         for (unsigned int body = 0; body < m_n_bodies; body++)
             {
@@ -185,13 +238,8 @@ void TwoStepNVTRigid::setup()
             
         // initialize thermostat chain positions, velocites, forces
         
-        eta_t_handle.data[0] = eta_r_handle.data[0] = 0.0;
-        eta_dot_t_handle.data[0] = eta_dot_r_handle.data[0] = 0.0;
-        f_eta_t_handle.data[0] = f_eta_r_handle.data[0] = 0.0;
         for (unsigned int i = 1; i < chain; i++)
             {
-            eta_t_handle.data[i] = eta_r_handle.data[i] = 0.0;
-            eta_dot_t_handle.data[i] = eta_dot_r_handle.data[i] = 0.0;
             f_eta_t_handle.data[i] = q_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] - kt;
             f_eta_r_handle.data[i] = q_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] - kt;
             }

@@ -57,7 +57,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
     updated according to the velocity verlet algorithm. The forces that drive this motion are defined external to this class
     in ForceCompute. Any number of ForceComputes can be given, the resulting forces will be summed to produce a net force on
     each particle.
-
+    
+    Integrator variables mapping:
+     - [0] -> eta_t
+     - [1] -> eta_r
+     - [2] -> eta_dot_t
+     - [3] -> eta_dot_r
+    
     \ingroup updaters
 */
 
