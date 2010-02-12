@@ -124,6 +124,74 @@ void FIREEnergyMinimizerRigid::reset()
         
     setDeltaT(m_deltaT_set);
     }
+
+/*The timestep is used by the underlying NVE integrator to advance the particles.
+*/
+void FIREEnergyMinimizerRigid::setDeltaT(Scalar dt)
+    {
+    IntegratorTwoStep::setDeltaT(dt);
+    m_deltaT_max = 10.0*dt;
+    }
+
+
+/*! \param finc is the new fractional increase to set
+*/
+void FIREEnergyMinimizerRigid::setFinc(Scalar finc)
+    {
+    if (!(finc > 1.0))
+        {
+        cerr << endl << "***Error! FIREENergyMinimizerRigid: fractional increase in timestep should be > 1" << endl << endl;
+        throw runtime_error("Error setting parameters for FIREEnergyMinimizerRigid");
+        }
+        m_finc = finc;
+    }
+
+/*! \param fdec is the new fractional decrease to set
+*/
+void FIREEnergyMinimizerRigid::setFdec(Scalar fdec)
+    {
+    if (!(fdec < 1.0 && fdec >= 0.0))
+        {
+        cerr << endl << "***Error! FIREENergyMinimizerRigid: fractional decrease in timestep should be between 0 and 1" << endl << endl;
+        throw runtime_error("Error setting parameters for FIREEnergyMinimizerRigid");
+        }
+        m_fdec = fdec;
+    }
+
+/*! \param alpha_start is the new initial coupling parameter to set
+
+The coupling parameter "alpha" enters into the equations of motion as
+v = v*(1-alpha) + alpha*(f_unit*|v|).  Thus, the stronger the coupling, the
+more important the "f dot v" term.  When the search direction is successful
+for > Nmin steps alpha is decreased by falpha.
+*/
+void FIREEnergyMinimizerRigid::setAlphaStart(Scalar alpha_start)
+    {
+    if (!(alpha_start < 1.0 && alpha_start > 0.0))
+        {
+        cerr << endl << "***Error! FIREENergyMinimizerRigid: alpha_start should be between 0 and 1" << endl << endl;
+        throw runtime_error("Error setting parameters for FIREEnergyMinimizerRigid");
+        }
+        m_alpha_start = alpha_start;
+    }
+
+/*! \param falpha is the fractional decrease in alpha upon finding a valid search direction
+
+The coupling parameter "alpha" enters into the equations of motion as
+v = v*(1-alpha) + alpha*(f_unit*|v|).  Thus, the stronger the coupling, the
+more important the "f dot v" term.  When the search direction is successful
+for > Nmin steps alpha is decreased by falpha.
+*/
+void FIREEnergyMinimizerRigid::setFalpha(Scalar falpha)
+    {
+    if (!(falpha < 1.0 && falpha > 0.0))
+        {
+        cerr << endl << "***Error! FIREENergyMinimizerRigid: falpha should be between 0 and 1" << endl << endl;
+        throw runtime_error("Error setting parameters for FIREEnergyMinimizerRigid");
+        }
+        m_falpha = falpha;
+    }
+
         
 /*! \param timestep is the current timestep
 */
@@ -253,11 +321,20 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
 
 void export_FIREEnergyMinimizerRigid()
     {
-    class_<FIREEnergyMinimizerRigid, boost::shared_ptr<FIREEnergyMinimizerRigid>, boost::noncopyable>
+    class_<FIREEnergyMinimizerRigid, boost::shared_ptr<FIREEnergyMinimizerRigid>, bases<IntegratorTwoStep>, boost::noncopyable>
         ("FIREEnergyMinimizerRigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
         .def("getEvery", &FIREEnergyMinimizerRigid::getEvery)
         .def("setEvery", &FIREEnergyMinimizerRigid::setEvery)
-        ;
+        .def("reset", &FIREEnergyMinimizer::reset)
+        .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)
+        .def("hasConverged", &FIREEnergyMinimizer::hasConverged)
+        .def("setNmin", &FIREEnergyMinimizer::setNmin)
+        .def("setFinc", &FIREEnergyMinimizer::setFinc)
+        .def("setFdec", &FIREEnergyMinimizer::setFdec)
+        .def("setAlphaStart", &FIREEnergyMinimizer::setAlphaStart)
+        .def("setFalpha", &FIREEnergyMinimizer::setFalpha)
+        .def("setFtol", &FIREEnergyMinimizer::setFtol)
+        .def("setEtol", &FIREEnergyMinimizer::setEtol);
     }
 
 #ifdef WIN32

@@ -69,7 +69,44 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
         
         virtual void reset();
         
-        virtual void update(unsigned int timesteps);
+        //! Set the timestep
+        virtual void setDeltaT(Scalar);
+
+        //! Perform one minimization iteration
+        virtual void update(unsigned int);
+
+        //! Return whether or not the minimization has converged
+        bool hasConverged() const {return m_converged;}
+
+        //! Set the minimum number of steps for which the search direction must be bad before finding a new direction
+        /*! \param nmin is the new nmin to set 
+        */
+        void setNmin(unsigned int nmin) {m_nmin = nmin;}
+        
+        //! Set the fractional increase in the timestep upon a valid search direction
+        void setFinc(Scalar finc);
+        
+        //! Set the fractional increase in the timestep upon a valid search direction
+        void setFdec(Scalar fdec);
+        
+        //! Set the relative strength of the coupling between the "f dot v" vs the "v" term 
+        void setAlphaStart(Scalar alpha0);
+
+        //! Set the fractional decrease in alpha upon finding a valid search direction 
+        void setFalpha(Scalar falpha);
+        
+        //! Set the stopping criterion based on the total force on all particles in the system  
+        /*! \param ftol is the new force tolerance to set
+        */
+        void setFtol(Scalar ftol) {m_ftol = ftol;}
+
+        //! Set the stopping criterion based on the change in energy between successive iterations  
+        /*! \param etol is the new energy tolerance to set
+        */
+        void setEtol(Scalar etol) {m_etol = etol;}
+        
+        //! Access the group
+        boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }       
         
         //! Get the period of minimization
         unsigned int getEvery() 

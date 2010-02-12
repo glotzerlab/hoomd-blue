@@ -332,8 +332,8 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
 
 void export_FIREEnergyMinimizerRigidGPU()
     {
-    class_<FIREEnergyMinimizerRigidGPU, boost::shared_ptr<FIREEnergyMinimizerRigidGPU>, boost::noncopyable>
-        ("FIREEnergyMinimizerRigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar, bool>() )
+    class_<FIREEnergyMinimizerRigidGPU, boost::shared_ptr<FIREEnergyMinimizerRigidGPU>, bases<FIREEnergyMinimizer>, boost::noncopyable>
+        ("FIREEnergyMinimizerRigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, Scalar >())
         ;
     }
 
