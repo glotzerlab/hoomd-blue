@@ -208,8 +208,8 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     Scalar fnorm(0.0);
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
 
-    // Calculate potential energy over all particles
-    Scalar energy = computePotentialEnergy(timesteps)/Scalar(arrays.nparticles);
+    // Calculate the per-particle potential energy over particles in the group
+    Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
 
     if (m_was_reset)
         {
@@ -227,7 +227,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
-
+    
     if (fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol)
         {
         m_converged = true;
@@ -238,7 +238,6 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
      for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        
         arrays.vx[j] = arrays.vx[j]*(1.0-m_alpha) + m_alpha*arrays.ax[j]*invfnorm*vnorm;
         arrays.vy[j] = arrays.vy[j]*(1.0-m_alpha) + m_alpha*arrays.ay[j]*invfnorm*vnorm;
         arrays.vz[j] = arrays.vz[j]*(1.0-m_alpha) + m_alpha*arrays.az[j]*invfnorm*vnorm;

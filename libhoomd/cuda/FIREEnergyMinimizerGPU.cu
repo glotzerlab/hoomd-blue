@@ -158,33 +158,33 @@ extern "C" __global__
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
+    float pe = 0;
+    
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
- 
-        float pe;
         pe = d_net_force[idx].w;
-         
+        } 
                
         fire_sdata[threadIdx.x] = pe;
         __syncthreads();
     
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-            offs >>= 1;
-            __syncthreads();
-            }
-        
-        // write out our partial sum
-        if (threadIdx.x == 0)
-            {
-            d_partial_sum_pe[blockIdx.x] = fire_sdata[0];
-            }
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
         }
+    
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_partial_sum_pe[blockIdx.x] = fire_sdata[0];
+        }
+    
     }
     
 //! Kernel function for reducing a partial sum to a full sum (one value)
@@ -290,31 +290,34 @@ extern "C" __global__
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
+    float P = 0;
+    
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
      
         float4 a = tex1Dfetch(pdata_accel_tex, idx);
         float4 v = tex1Dfetch(pdata_vel_tex, idx);
-        float P = a.x*v.x + a.y*v.y + a.z*v.z;
-        
-        fire_sdata[threadIdx.x] = P;
-        __syncthreads();
-    
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-            offs >>= 1;
-            __syncthreads();
-            }
-        
-        // write out our partial sum
-        if (threadIdx.x == 0)
-            d_partial_sum_P[blockIdx.x] = fire_sdata[0];
+        P = a.x*v.x + a.y*v.y + a.z*v.z;
         }
+    
+    fire_sdata[threadIdx.x] = P;
+    __syncthreads();
+
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
+        }
+    
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        d_partial_sum_P[blockIdx.x] = fire_sdata[0];
+        
     }
     
 //! Kernel function to compute the partial sum over the vsq term in the FIRE algorithm
@@ -332,32 +335,33 @@ extern "C" __global__
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
+    float vsq = 0;
+    
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float vsq;
-   
         float4 v = tex1Dfetch(pdata_vel_tex, idx);
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
-
-        fire_sdata[threadIdx.x] = vsq;
-        __syncthreads();
-    
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-            offs >>= 1;
-            __syncthreads();
-            }
-        
-        // write out our partial sum
-        if (threadIdx.x == 0)
-            d_partial_sum_vsq[blockIdx.x] = fire_sdata[0];
         }
+    
+    fire_sdata[threadIdx.x] = vsq;
+    __syncthreads();
+          
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
+        }
+        
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        d_partial_sum_vsq[blockIdx.x] = fire_sdata[0];
+        
     }
     
 //! Kernel function to compute the partial sum over the asq term in the FIRE algorithm
@@ -375,32 +379,33 @@ extern "C" __global__
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
+    float asq = 0;
+
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float asq;
         float4 a = tex1Dfetch(pdata_accel_tex, idx);
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
-
-
-        fire_sdata[threadIdx.x] = asq;
-        __syncthreads();
-    
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
-            offs >>= 1;
-            __syncthreads();
-            }
-        
-        // write out our partial sum
-        if (threadIdx.x == 0)
-            d_partial_sum_asq[blockIdx.x] = fire_sdata[0];
         }
+
+    fire_sdata[threadIdx.x] = asq;
+    __syncthreads();
+    
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            fire_sdata[threadIdx.x] += fire_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
+        }
+    
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        d_partial_sum_asq[blockIdx.x] = fire_sdata[0];
+        
     }
 
 //! Kernel function to simultaneously compute the partial sum over P, vsq and asq for the FIRE algorithm
@@ -424,44 +429,49 @@ extern "C" __global__
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
+    float P, vsq, asq; 
+    P=0;
+    vsq=0;
+    asq=0;
+    
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
     
-        float P, vsq, asq; 
         float4 a = tex1Dfetch(pdata_accel_tex, idx);
         float4 v = tex1Dfetch(pdata_vel_tex, idx);
         P = a.x*v.x + a.y*v.y + a.z*v.z;
         vsq = v.x*v.x + v.y*v.y + v.z*v.z;
         asq = a.x*a.x + a.y*a.y + a.z*a.z;
-
-        fire_sdata1[threadIdx.x] = P;
-        fire_sdata2[threadIdx.x] = vsq;
-        fire_sdata3[threadIdx.x] = asq;
-        __syncthreads();
-    
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                {
-                fire_sdata1[threadIdx.x] += fire_sdata1[threadIdx.x + offs];
-                fire_sdata2[threadIdx.x] += fire_sdata2[threadIdx.x + offs];
-                fire_sdata3[threadIdx.x] += fire_sdata3[threadIdx.x + offs];
-                }
-            offs >>= 1;
-            __syncthreads();
-            }
-        
-        // write out our partial sum
-        if (threadIdx.x == 0)
-            {
-            d_partial_sum_P[blockIdx.x] = fire_sdata1[0];
-            d_partial_sum_vsq[blockIdx.x] = fire_sdata2[0];
-            d_partial_sum_asq[blockIdx.x] = fire_sdata3[0];
-            }
         }
+        
+    fire_sdata1[threadIdx.x] = P;
+    fire_sdata2[threadIdx.x] = vsq;
+    fire_sdata3[threadIdx.x] = asq;
+    __syncthreads();
+
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            {
+            fire_sdata1[threadIdx.x] += fire_sdata1[threadIdx.x + offs];
+            fire_sdata2[threadIdx.x] += fire_sdata2[threadIdx.x + offs];
+            fire_sdata3[threadIdx.x] += fire_sdata3[threadIdx.x + offs];
+            }
+        offs >>= 1;
+        __syncthreads();
+        }
+    
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_partial_sum_P[blockIdx.x] = fire_sdata1[0];
+        d_partial_sum_vsq[blockIdx.x] = fire_sdata2[0];
+        d_partial_sum_asq[blockIdx.x] = fire_sdata3[0];
+        }
+    
     }
 
 //! Kernel function to simultaneously reduce three partial sums at the same time
