@@ -72,25 +72,25 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 //! Typedef'd FIREEnergyMinimizer class factory
-typedef boost::function<shared_ptr<FIREEnergyMinimizer> (shared_ptr<SystemDefinition> sysdef, Scalar dT)> fire_creator;
+typedef boost::function<shared_ptr<FIREEnergyMinimizer> (shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;
 
 //! FIREEnergyMinimizer creator
-shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(shared_ptr<SystemDefinition> sysdef, Scalar dt)
+shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar dt)
     {
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    return shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizer(sysdef, group_all, dt));
+//    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+//    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+//    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    return shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizer(sysdef, group, dt));
     }
 
 #ifdef ENABLE_CUDA
 //! FIREEnergyMinimizerGPU creator
-shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(shared_ptr<SystemDefinition> sysdef, Scalar dt)
+shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar dt)
     {
-    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
-    return shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizerGPU(sysdef, group_all, dt));
+//    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+//    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+//    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    return shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizerGPU(sysdef, group, dt));
     }
 #endif
 
@@ -396,8 +396,16 @@ Scalar x_blj [] = {
 0.139363, 2.78531, -0.483974
 };
 
+//Calculated from Matlab file.  Changes to the way FIRE works may require recalculation of these values.
+Scalar x_two_lj [] = {
+2,2,2,2,2,1.9999,1.9999,1.9999,1.9998,1.9998,1.9997,1.9996,1.9995,1.9994,1.9992,1.999,1.9987,1.9984,1.998,1.9975,1.9969,1.9962,
+1.9953,1.9942,1.9928,1.9912,1.9891,1.9866,1.9836,1.9799,1.9754,1.9703,1.9648,1.9587,1.9521,1.9449,1.9372,1.929,1.9201,
+1.9107,1.9006,1.8899,1.8785,1.8665,1.8537,1.8402,1.8258,1.8106,1.7946,1.7776,1.7596,1.7405,1.7203,1.6988,1.676,1.6517,1.6258,
+1.5981,1.5684,1.5365,1.5021,1.4648,1.4242,1.3798,1.3309,1.2768,1.2169,1.1511,1.0822,1.0833,1.0864,1.0913,1.0977,1.1052,1.1135,
+1.123,1.123};
+
 //! Compares the output from one NVEUpdater to another
-void fire_basic_test(fire_creator fire_creator1, ExecutionConfiguration exec_conf)
+void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -454,7 +462,7 @@ void fire_basic_test(fire_creator fire_creator1, ExecutionConfiguration exec_con
     fc->setRcut(1,1,2.5);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.005));
+    shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_all, Scalar(0.005));
     fire->addForceCompute(fc);
     
     int max_step = 1000;
@@ -484,18 +492,96 @@ void fire_basic_test(fire_creator fire_creator1, ExecutionConfiguration exec_con
     //cerr << fire->computePotentialEnergy(max_step)/Scalar(N) << endl;
     
     }
+    
+void fire_twoparticle_test(fire_creator fire_creator1, ExecutionConfiguration exec_conf)
+    {
+#ifdef ENABLE_CUDA
+    g_gpu_error_checking = true;
+#endif
+    
+    const unsigned int N = 2;
+    //Scalar rho(1.2);
+    Scalar L = Scalar(20);
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, exec_conf));    
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    const ParticleDataArrays& arrays = pdata->acquireReadWrite();
+
+    arrays.x[0] = 0;
+    arrays.y[0] = 0;
+    arrays.z[0] = 0;
+    arrays.type[0] = 0;
+    arrays.x[1] = 2;
+    arrays.y[1] = 0;
+    arrays.z[1] = 0;
+    arrays.type[0] = 0;
+    
+    pdata->release();
+    
+    shared_ptr<ParticleSelector> selector_one(new ParticleSelectorTag(sysdef, 1, 1));
+    shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
+    
+    shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.3)));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    fc->setRcut(0, 0, Scalar(3.0));
+
+    
+   // setup some values for alpha and sigma
+    Scalar epsilon00 = Scalar(1.0);
+    Scalar sigma00 = Scalar(1.0);
+    Scalar alpha = Scalar(1.0);
+    Scalar lj001 = Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(12.0));
+    Scalar lj002 = alpha * Scalar(4.0) * epsilon00 * pow(sigma00,Scalar(6.0));
+   
+    // specify the force parameters
+    fc->setParams(0,0,make_scalar2(lj001,lj002));
+    fc->setRcut(0,0,3.0);
+    fc->setShiftMode(PotentialPairLJ::shift);
+
+    shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_one, Scalar(0.005));
+    fire->addForceCompute(fc);
+    fire->setFtol(1e-7);
+    fire->setEtol(1e-7);
+    
+    int max_step = 100;
+    Scalar diff = Scalar(0.0);
+    for (int i = 1; i<=max_step; i++)
+        {
+        fire->update(i);
+        if (fire->hasConverged()) break;
+        
+        shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+        const ParticleDataArrays& arrays = pdata->acquireReadWrite();
+        diff += (arrays.x[1]- x_two_lj[i])*(arrays.x[1]- x_two_lj[i]);
+//        MY_BOOST_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
+        pdata->release();
+        }
+       MY_BOOST_CHECK_SMALL(diff, 0.001);
+            
+    }    
+
+//! Sees if a single particle's trajectory is being calculated correctly
+BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_twoparticle_test )
+    {
+    fire_twoparticle_test(base_class_fire_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    }
 
 //! Compares the output of FIREEnergyMinimizer to the conjugate gradient method from LAMMPS
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_basic_test )
+BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_smallsystem_test )
     {
-    fire_basic_test(base_class_fire_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    fire_smallsystem_test(base_class_fire_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 #ifdef ENABLE_CUDA
-//! Compares the output of FIREEnergyMinimizerGPU to the conjugate gradient method from LAMMPS
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_basic_test )
+//! Sees if a single particle's trajectory is being calculated correctly
+BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_twoparticle_test )
     {
-    fire_basic_test(gpu_fire_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    fire_twoparticle_test(gpu_fire_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    }
+
+//! Compares the output of FIREEnergyMinimizerGPU to the conjugate gradient method from LAMMPS
+BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_smallsystem_test )
+    {
+    fire_smallsystem_test(gpu_fire_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 #endif
 
