@@ -135,8 +135,8 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, const Ex
         // It computes relevant static data, i.e. body mass, body size, inertia of momentia, particle pos, and particle indices.
         m_rigid_data->initializeData();
         
-        // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta, forces, torques, 
-        // quaternions, and body images; otherwise, nothing is done here.
+        // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images; 
+        // otherwise, nothing is done here.
         init.initRigidData(m_rigid_data);
         }
         

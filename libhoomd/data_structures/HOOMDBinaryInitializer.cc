@@ -475,9 +475,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     GPUArray<Scalar4> com(n_bodies, exec_conf);
     GPUArray<Scalar4> vel(n_bodies, exec_conf);
     GPUArray<Scalar4> angmom(n_bodies, exec_conf);
-    GPUArray<Scalar4> force(n_bodies, exec_conf);
-    GPUArray<Scalar4> torque(n_bodies, exec_conf);
-    GPUArray<Scalar4> orientation(n_bodies, exec_conf);
     GPUArray<int> body_imagex(n_bodies, exec_conf);
     GPUArray<int> body_imagey(n_bodies, exec_conf);
     GPUArray<int> body_imagez(n_bodies, exec_conf);
@@ -485,9 +482,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     m_com.swap(com);
     m_vel.swap(vel);
     m_angmom.swap(angmom);
-    m_force.swap(force);
-    m_torque.swap(torque);
-    m_orientation.swap(orientation);
     m_body_imagex.swap(body_imagex);
     m_body_imagey.swap(body_imagey);
     m_body_imagez.swap(body_imagez);
@@ -496,9 +490,6 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> force_handle(m_force, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> torque_handle(m_torque, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::readwrite);
     ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
     ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
     ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
@@ -520,25 +511,9 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         f.read((char*)&(angmom_handle.data[body].z), sizeof(Scalar));
         f.read((char*)&(angmom_handle.data[body].w), sizeof(Scalar));
         
-        f.read((char*)&(force_handle.data[body].x), sizeof(Scalar));
-        f.read((char*)&(force_handle.data[body].y), sizeof(Scalar));
-        f.read((char*)&(force_handle.data[body].z), sizeof(Scalar));
-        f.read((char*)&(force_handle.data[body].w), sizeof(Scalar));
-        
-        f.read((char*)&(torque_handle.data[body].x), sizeof(Scalar));
-        f.read((char*)&(torque_handle.data[body].y), sizeof(Scalar));
-        f.read((char*)&(torque_handle.data[body].z), sizeof(Scalar));
-        f.read((char*)&(torque_handle.data[body].w), sizeof(Scalar));
-        
-        f.read((char*)&(orientation_handle.data[body].x), sizeof(Scalar));
-        f.read((char*)&(orientation_handle.data[body].y), sizeof(Scalar));
-        f.read((char*)&(orientation_handle.data[body].z), sizeof(Scalar));
-        f.read((char*)&(orientation_handle.data[body].w), sizeof(Scalar));
-        
         f.read((char*)&(body_imagex_handle.data[body]), sizeof(int));
         f.read((char*)&(body_imagey_handle.data[body]), sizeof(int));
         f.read((char*)&(body_imagez_handle.data[body]), sizeof(int));
-
         }
     }
     
@@ -663,13 +638,6 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
     ArrayHandle<Scalar4> r_com_handle(rigid_data->getCOM(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> r_vel_handle(rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> r_angmom_handle(rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_force_handle(rigid_data->getForce(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_torque_handle(rigid_data->getTorque(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_orientation_handle(rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_ex_space_handle(rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_ey_space_handle(rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> r_ez_space_handle(rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
-    
     ArrayHandle<int> r_body_imagex_handle(rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
     ArrayHandle<int> r_body_imagey_handle(rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
     ArrayHandle<int> r_body_imagez_handle(rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
@@ -677,13 +645,12 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
     ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> force_handle(m_force, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> torque_handle(m_torque, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::read);
     ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::read);
     ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::read);
     ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::read);
     
+    // We don't need to restore force, torque and orientation because the setup will do the rest,
+    // and simulation still resumes smoothly.
     unsigned int n_bodies = rigid_data->getNumBodies();
     for (unsigned int body = 0; body < n_bodies; body++)
         {
@@ -702,54 +669,10 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
         r_angmom_handle.data[body].z = angmom_handle.data[body].z;
         r_angmom_handle.data[body].w = angmom_handle.data[body].w;
         
-    /*    r_force_handle.data[body].x = force_handle.data[body].x;
-        r_force_handle.data[body].y = force_handle.data[body].y;
-        r_force_handle.data[body].z = force_handle.data[body].z;
-        r_force_handle.data[body].w = force_handle.data[body].w;
-        
-        r_torque_handle.data[body].x = torque_handle.data[body].x;
-        r_torque_handle.data[body].y = torque_handle.data[body].y;
-        r_torque_handle.data[body].z = torque_handle.data[body].z;
-        r_torque_handle.data[body].w = torque_handle.data[body].w;
-    */    
         r_body_imagex_handle.data[body] = body_imagex_handle.data[body];
         r_body_imagey_handle.data[body] = body_imagey_handle.data[body];
         r_body_imagez_handle.data[body] = body_imagez_handle.data[body];
-  /*      
-        r_orientation_handle.data[body].x = orientation_handle.data[body].x;
-        r_orientation_handle.data[body].y = orientation_handle.data[body].y;
-        r_orientation_handle.data[body].z = orientation_handle.data[body].z;
-        r_orientation_handle.data[body].w = orientation_handle.data[body].w;
-        
-        
-         
-        // computes the axes based on the quaternion
-        rigid_data->exyzFromQuaternion(orientation_handle.data[body], 
-                r_ex_space_handle.data[body], r_ey_space_handle.data[body], r_ez_space_handle.data[body]);
-    */
-//#define RIGID_READING_DEBUG         
-#ifdef RIGID_READING_DEBUG        
-        cout << "Reading from the binary file for body " << body << "\n";
-        cout << "com: " << r_com_handle.data[body].x << " " << r_com_handle.data[body].y << " " << r_com_handle.data[body].z << "\n";
-        cout << "vel: " << r_vel_handle.data[body].x << " " << r_vel_handle.data[body].y << " " << r_vel_handle.data[body].z << "\n";
-        cout << "angmom: " << r_angmom_handle.data[body].x << " " << r_angmom_handle.data[body].y << " " << r_angmom_handle.data[body].z << "\n";
-        cout << "orientation: " << r_orientation_handle.data[body].x << " " << r_orientation_handle.data[body].y << " " << r_orientation_handle.data[body].z << " " << r_orientation_handle.data[body].w << "\n";
-        cout << "force: " << r_force_handle.data[body].x << " " << r_force_handle.data[body].y << " " << r_force_handle.data[body].z << "\n";
-        cout << "body images: " << r_body_imagex_handle.data[body] << " " << r_body_imagey_handle.data[body] << " " << r_body_imagez_handle.data[body] << "\n";
-#endif
         }
-        
-#ifdef RIGID_READING_DEBUG            
-    ArrayHandle<unsigned int> r_body_size_handle(rigid_data->getBodySize(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> r_moment_inertia_handle(rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-    
-    for (unsigned int body = 0; body < n_bodies; body++)
-        {
-        cout << "body " << body << "\n";
-        cout << "body size: " << r_body_size_handle.data[body] << "\n";
-        cout << "moment of inertia: " << r_moment_inertia_handle.data[body].x << " " << r_moment_inertia_handle.data[body].y << " " << r_moment_inertia_handle.data[body].z << "\n";
-        }
-#endif    
     }
 
 

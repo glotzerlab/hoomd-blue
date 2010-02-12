@@ -135,38 +135,6 @@ void TwoStepNVERigid::setup()
         
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
         
-//#define RIGID_CHECKING_DEBUG         
-#ifdef RIGID_CHECKING_DEBUG 
-        cout << "Setting up\n";
-        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-        
-        for (unsigned int body = 0; body < m_n_bodies; body++)
-            {
-            cout << "body " << body << "\n";
-            cout << "com: " << com_handle.data[body].x << " " << com_handle.data[body].y << " " << com_handle.data[body].z << "\n";
-            cout << "vel: " << vel_handle.data[body].x << " " << vel_handle.data[body].y << " " << vel_handle.data[body].z << "\n";
-            cout << "angvel: " << angvel_handle.data[body].x << " " << angvel_handle.data[body].y << " " << angvel_handle.data[body].z << "\n";
-            cout << "angmom: " << angmom_handle.data[body].x << " " << angmom_handle.data[body].y << " " << angmom_handle.data[body].z << "\n";
-            cout << "orientation: " << orientation_handle.data[body].x << " " << orientation_handle.data[body].y << " " 
-                        << orientation_handle.data[body].z << " " << orientation_handle.data[body].w << "\n";
-            cout << "ex_space: " << ex_space_handle.data[body].x << " " << ex_space_handle.data[body].y << " " << ex_space_handle.data[body].z << "\n";
-            cout << "ey_space: " << ey_space_handle.data[body].x << " " << ey_space_handle.data[body].y << " " << ey_space_handle.data[body].z << "\n";
-            cout << "ez_space: " << ez_space_handle.data[body].x << " " << ez_space_handle.data[body].y << " " << ez_space_handle.data[body].z << "\n";
-            cout << "force: " << force_handle.data[body].x << " " << force_handle.data[body].y << " " << force_handle.data[body].z << "\n";
-            cout << "torque: " << torque_handle.data[body].x << " " << torque_handle.data[body].y << " " << torque_handle.data[body].z << "\n";
-            
-            cout << "inertia: " << moment_inertia_handle.data[body].x << " " << moment_inertia_handle.data[body].y << " " << moment_inertia_handle.data[body].z << "\n";
-            
-            unsigned int len = body_size_handle.data[body];
-            for (unsigned int j = 0; j < len; j++)
-                {
-                unsigned int localidx = body * particle_pos_pitch + j;
-                cout << "particle pos " << j << " " << particle_pos_handle.data[localidx].x << " " << particle_pos_handle.data[localidx].y << " " << particle_pos_handle.data[localidx].z << "\n";
-                }
-                
-            }
-#endif
-
         // Reset all forces and torques
         for (unsigned int body = 0; body < m_n_bodies; body++)
             {
@@ -238,11 +206,7 @@ void TwoStepNVERigid::setup()
                 torque_handle.data[body].x += ry * fz - rz * fy;
                 torque_handle.data[body].y += rz * fx - rx * fz;
                 torque_handle.data[body].z += rx * fy - ry * fx;
-          /*      
-                cout << "Computing torque for body " << body << " from pidx " << pidx << "\n";
-                cout << rx << " " << ry << " " << rz << "\n";
-                cout << fx << " " << fy << " " << fz << "\n";
-          */      
+              
                 // Angular momentum = r x (m * v) is calculated for setup
                 if (angmom_init == false) // if angmom is not yet set for this body
                     {
@@ -267,37 +231,10 @@ void TwoStepNVERigid::setup()
         m_pdata->release();
 
         } // out of scope for handles   
-/*    
-    Scalar ke = 0.0;
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
     
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-    {
-    //    cout << "vel " << i << " " << arrays.body[i] << " " << arrays.vx[i] << " " << arrays.vy[i] << " " << arrays.vz[i] << "\n";
-        ke += arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i] * arrays.vz[i];
-    }
-    
-    ke *= 0.5;
-    cout << "before set v " << ke << "\n";
-    
-    m_pdata->release();
-*/    
     // Set the velocities of particles in rigid bodies
     set_v();
-/*    
-    arrays = m_pdata->acquireReadWrite();
-    ke = 0.0;
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-    {
-    //    cout << "vel " << i << " " << arrays.body[i] << " " << arrays.vx[i] << " " << arrays.vy[i] << " " << arrays.vz[i] << "\n";
-        ke += arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i] * arrays.vz[i];
-    }
-    
-    ke *= 0.5;
-    cout << "after set v " << ke << "\n";
-    
-    m_pdata->release();
-*/    
+
     if (m_prof)
         m_prof->pop();
     }
@@ -413,30 +350,6 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     // set positions and velocities of particles in rigid bodies
     set_xv();
     
-//#define RIGID_CHECKINGXV_DEBUG         
-#ifdef RIGID_CHECKINGXV_DEBUG 
-    {
-    cout << "after set xv \n";
-    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-    for (unsigned int body = 0; body < m_n_bodies; body++)
-        {
-        
-        cout << "body " << body << "\n";
-        cout << "vel: " << vel_handle.data[body].x << " " << vel_handle.data[body].y << " " << vel_handle.data[body].z << "\n";
-        cout << "angvel: " << angvel_handle.data[body].x << " " << angvel_handle.data[body].y << " " << angvel_handle.data[body].z << "\n";
-        cout << "angmom: " << angmom_handle.data[body].x << " " << angmom_handle.data[body].y << " " << angmom_handle.data[body].z << "\n";
-        cout << "force: " << force_handle.data[body].x << " " << force_handle.data[body].y << " " << force_handle.data[body].z << "\n";
-        cout << "torque: " << torque_handle.data[body].x << " " << torque_handle.data[body].y << " " << torque_handle.data[body].z << "\n";
-        
-        }
-    }
-#endif
-
-
     if (m_prof)
         m_prof->pop();
     }
@@ -490,62 +403,10 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
                                    ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
             }
         } // out of scope for handles
-/*    
-    Scalar ke = 0.0;
-    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
-    
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-    {
-    //    cout << "vel " << i << " " << arrays.body[i] << " " << arrays.vx[i] << " " << arrays.vy[i] << " " << arrays.vz[i] << "\n";
-        ke += arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i] * arrays.vz[i];
-    }
-    
-    ke *= 0.5;
-    cout << "ke before set v " << ke << "\n";
-    
-    m_pdata->release();
-*/    
-//#define RIGID_CHECKINGV_DEBUG         
-#ifdef RIGID_CHECKINGV_DEBUG 
-    {
-    cout << "before set v \n";
-    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-    for (unsigned int body = 0; body < m_n_bodies; body++)
-        {
-        if (body == 272)
-        {
-        cout << "body " << body << "\n";
-        cout << "vel: " << vel_handle.data[body].x << " " << vel_handle.data[body].y << " " << vel_handle.data[body].z << "\n";
-        cout << "angvel: " << angvel_handle.data[body].x << " " << angvel_handle.data[body].y << " " << angvel_handle.data[body].z << "\n";
-        cout << "angmom: " << angmom_handle.data[body].x << " " << angmom_handle.data[body].y << " " << angmom_handle.data[body].z << "\n";
-     //   cout << "force: " << force_handle.data[body].x << " " << force_handle.data[body].y << " " << force_handle.data[body].z << "\n";
-        cout << "torque: " << torque_handle.data[body].x << " " << torque_handle.data[body].y << " " << torque_handle.data[body].z << "\n";
-        }
-        }
-    }
-#endif
 
     // set velocities of particles in rigid bodies
     set_v();
-/*
-    ke = 0.0;
-    arrays = m_pdata->acquireReadWrite();
-    
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-    {
-    //    cout << "vel " << i << " " << arrays.body[i] << " " << arrays.vx[i] << " " << arrays.vy[i] << " " << arrays.vz[i] << "\n";
-        ke += arrays.vx[i] * arrays.vx[i] + arrays.vy[i] * arrays.vy[i] + arrays.vz[i] * arrays.vz[i];
-    }
-    
-    ke *= 0.5;
-    cout << "ke after set v " << ke << "\n";
-    
-    m_pdata->release();
-*/   
+
     if (m_prof)
         m_prof->pop();
     }
