@@ -48,6 +48,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#define EPSILON 1e-6
+
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
@@ -276,9 +278,18 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
     
-    Scalar invfnorm = 1.0 / fnorm;        
-    Scalar invtnorm = 1.0 / tnorm;
-    
+    // Scales velocities and angular momenta
+    Scalar invfnorm, invtnorm;
+    if (fabs(fnorm) > EPSILON)
+        invfnorm = 1.0 / fnorm; 
+    else
+        invfnorm = 1.0;
+        
+    if (fabs(tnorm) > EPSILON)    
+        invtnorm = 1.0 / tnorm;
+    else 
+        invtnorm = 1.0; 
+
     exec_conf.gpu[0]->call(bind(gpu_fire_rigid_update_v, 
                                             d_rdata, 
                                             m_alpha, 

@@ -220,7 +220,6 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     Scalar fnorm(0.0), tnorm(0.0);
     
     // The energy minimized is currently the system potential energy
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     Scalar energy = computePotentialEnergy(timestep) / m_nparticles;
 
     if (m_was_reset)
@@ -274,12 +273,12 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     if (fabs(fnorm) > EPSILON)
         factor_t = m_alpha * vnorm / fnorm;
     else
-        factor_t = 1.0; // set to one to allow force drive the body
+        factor_t = 1.0; 
         
     if (fabs(tnorm) > EPSILON)    
         factor_r = m_alpha * wnorm / tnorm;
     else 
-        factor_r = 1.0; // set to one to allow torque drive the body
+        factor_r = 1.0; 
         
     for (unsigned int body = 0; body < n_bodies; body++)
         {
@@ -322,7 +321,7 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
             angmom_handle.data[body].z = Scalar(0.0);
             }
         }
-    m_pdata->release();
+    
     m_old_energy = energy;
 
     }
