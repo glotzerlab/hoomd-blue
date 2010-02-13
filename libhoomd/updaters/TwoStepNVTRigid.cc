@@ -630,6 +630,12 @@ void TwoStepNVTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
                 }
             }
             
+            IntegratorVariables v = getIntegratorVariables();
+            v.variable[0] = eta_t_handle.data[0];
+            v.variable[1] = eta_r_handle.data[0];
+            v.variable[2] = eta_dot_r_handle.data[0];
+            v.variable[3] = eta_dot_t_handle.data[0];
+            setIntegratorVariables(v);
         } // end of scope for handles
         
     }

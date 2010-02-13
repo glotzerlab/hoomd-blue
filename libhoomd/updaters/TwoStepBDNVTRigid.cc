@@ -129,51 +129,51 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push("BD NVT rigid step 2");
 
+    {
+    // Modify the net forces with the random and drag forces
+    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
+
+    // grab some initial variables
+    const Scalar currentTemp = m_T->getValue(timestep);
+
+    // initialize the RNG
+    Saru saru(m_seed, timestep);
+
+    // a(t+deltaT) gets modified with the bd forces
+    // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
-        // Modify the net forces with the random and drag forces
-        const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
-
-        // grab some initial variables
-        const Scalar currentTemp = m_T->getValue(timestep);
-
-        // initialize the RNG
-        Saru saru(m_seed, timestep);
-
-        // a(t+deltaT) gets modified with the bd forces
-        // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
-        unsigned int group_size = m_group->getNumMembers();
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-            {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            
-            // first, calculate the BD forces
-            // Generate three random numbers
-            Scalar rx = saru.d(-1,1);
-            Scalar ry = saru.d(-1,1);
-            Scalar rz = saru.d(-1,1);
-            
-            Scalar gamma;
-            if (m_gamma_diam)
-                gamma = arrays.diameter[j];
-            else
-                gamma = h_gamma.data[arrays.type[j]];
-            
-            // compute the bd force
-            Scalar coeff = sqrt(Scalar(6.0)*gamma*currentTemp/m_deltaT);
-            Scalar bd_fx = rx*coeff - gamma*arrays.vx[j];
-            Scalar bd_fy = ry*coeff - gamma*arrays.vy[j];
-            Scalar bd_fz = rz*coeff - gamma*arrays.vz[j];
-            
-            h_net_force.data[j].x += bd_fx;
-            h_net_force.data[j].y += bd_fy;
-            h_net_force.data[j].z += bd_fz;
-            }
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        
+        // first, calculate the BD forces
+        // Generate three random numbers
+        Scalar rx = saru.d(-1,1);
+        Scalar ry = saru.d(-1,1);
+        Scalar rz = saru.d(-1,1);
+        
+        Scalar gamma;
+        if (m_gamma_diam)
+            gamma = arrays.diameter[j];
+        else
+            gamma = h_gamma.data[arrays.type[j]];
+        
+        // compute the bd force
+        Scalar coeff = sqrt(Scalar(6.0)*gamma*currentTemp/m_deltaT);
+        Scalar bd_fx = rx*coeff - gamma*arrays.vx[j];
+        Scalar bd_fy = ry*coeff - gamma*arrays.vy[j];
+        Scalar bd_fz = rz*coeff - gamma*arrays.vz[j];
+        
+        h_net_force.data[j].x += bd_fx;
+        h_net_force.data[j].y += bd_fy;
+        h_net_force.data[j].z += bd_fz;
         }
-    
-    m_pdata->release();
-    
+        
+        m_pdata->release();
+    }
+        
     // Perform the second step like in TwoStepNVERigid
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque();
