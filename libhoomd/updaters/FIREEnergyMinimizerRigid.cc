@@ -48,6 +48,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
+#define EPSILON 1e-6
+
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -219,8 +221,7 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     
     // The energy minimized is currently the system potential energy
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
-    unsigned int nparticles = arrays.nparticles;
-    Scalar energy = computePotentialEnergy(timestep) / nparticles;
+    Scalar energy = computePotentialEnergy(timestep) / m_nparticles;
 
     if (m_was_reset)
         {
@@ -230,7 +231,7 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
    
     
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
@@ -261,7 +262,6 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     tnorm = sqrt(tnorm);
     wnorm = sqrt(wnorm);
     
-    
     if (fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol)
         {
         printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
@@ -270,8 +270,17 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
         }
 
     // Scales velocities and angular momenta
-    Scalar factor_t = m_alpha * vnorm / fnorm;
-    Scalar factor_r = m_alpha * wnorm / tnorm;
+    Scalar factor_t, factor_r;
+    if (fabs(fnorm) > EPSILON)
+        factor_t = m_alpha * vnorm / fnorm;
+    else
+        factor_t = 1.0; // set to one to allow force drive the body
+        
+    if (fabs(tnorm) > EPSILON)    
+        factor_r = m_alpha * wnorm / tnorm;
+    else 
+        factor_r = 1.0; // set to one to allow torque drive the body
+        
     for (unsigned int body = 0; body < n_bodies; body++)
         {
         // scales translational velocity
