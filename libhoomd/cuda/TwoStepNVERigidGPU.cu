@@ -800,8 +800,7 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
     body_force[threadIdx.x] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     body_torque[threadIdx.x] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     
-    unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
-//  float4 com, pos;
+    unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);//  float4 com, pos;
     float4 ri, ex_space, ey_space, ez_space, particle_pos;
     float4 fi = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 torquei = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -809,8 +808,6 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
     if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
         {
         // calculate body force and torques
-   //   com = tex1Dfetch(rigid_data_com_tex, idx_body);
-   //   pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
         ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
         ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
         ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
@@ -822,27 +819,7 @@ extern "C" __global__ void gpu_rigid_force_kernel(float4* rdata_force,
         body_force[threadIdx.x].y = fi.y;
         body_force[threadIdx.x].z = fi.z;
         body_force[threadIdx.x].w = fi.w;
-        
-        /*
-        ri.x = pos.x - com.x;
-        ri.y = pos.y - com.y;
-        ri.z = pos.z - com.z;
-        
-        float x_shift = rintf(ri.x * box.Lxinv);
-        ri.x -= box.Lx * x_shift;
-        float y_shift = rintf(ri.y * box.Lyinv);
-        ri.y -= box.Ly * y_shift;
-        float z_shift = rintf(ri.z * box.Lzinv);
-        ri.z -= box.Lz * z_shift;
-        
-        if (ri.x >= box.Lx/2.0) ri.x -= box.Lx;
-        else if (ri.x <= -box.Lx/2.0) ri.x += box.Lx;
-        if (ri.y >= box.Ly/2.0) ri.y -= box.Ly;
-        else if (ri.y <= -box.Ly/2.0) ri.y += box.Ly;            
-        if (ri.z >= box.Lz/2.0) ri.z -= box.Lz;
-        else if (ri.z <= -box.Lz/2.0) ri.z += box.Lz;
-        */
-        
+                
         // This might require more calculations but more stable 
         // particularly when rigid bodies are bigger than half the box
         ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y 
