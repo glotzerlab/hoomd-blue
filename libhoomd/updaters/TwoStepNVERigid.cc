@@ -108,7 +108,7 @@ void TwoStepNVERigid::setup()
     // sanity check
     if (m_n_bodies <= 0)
         return;
-    
+
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
         {
@@ -486,8 +486,6 @@ void TwoStepNVERigid::computeForceAndTorque()
             torque_handle.data[body].z += rx * fy - ry * fx;
             }
         }
-        
-    m_pdata->release();
     
     if (m_prof)
         m_prof->pop();
