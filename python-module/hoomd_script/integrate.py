@@ -814,6 +814,7 @@ class nvt_rigid(_integration_method):
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
+    # \param tau New coupling constant (if set)
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:

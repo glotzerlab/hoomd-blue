@@ -342,34 +342,34 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
             if (com_handle.data[body].x >= box.xhi)
                 {
                 com_handle.data[body].x -= Lx;
-                body_imagex_handle.data[body]--;
+                body_imagex_handle.data[body]++;
                 }
             else if (com_handle.data[body].x < box.xlo)
                 {
                 com_handle.data[body].x += Lx;
-                body_imagex_handle.data[body]++;
+                body_imagex_handle.data[body]--;
                 }
                 
             if (com_handle.data[body].y >= box.yhi)
                 {
                 com_handle.data[body].y -= Ly;
-                body_imagey_handle.data[body]--;
+                body_imagey_handle.data[body]++;
                 }
             else if (com_handle.data[body].y < box.ylo)
                 {
                 com_handle.data[body].y += Ly;
-                body_imagey_handle.data[body]++;
+                body_imagey_handle.data[body]--;
                 }
                 
             if (com_handle.data[body].z >= box.zhi)
                 {
                 com_handle.data[body].z -= Lz;
-                body_imagez_handle.data[body]--;
+                body_imagez_handle.data[body]++;
                 }
             else if (com_handle.data[body].z < box.zlo)
                 {
                 com_handle.data[body].z += Lz;
-                body_imagez_handle.data[body]++;
+                body_imagez_handle.data[body]--;
                 }
                 
             matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
