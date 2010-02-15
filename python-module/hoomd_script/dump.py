@@ -418,6 +418,7 @@ class dcd(analyze._analyzer):
     # \param filename File name to write to
     # \param period Number of time steps between file dumps
     # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD file \a filename will be overwritten.
+    # \param wrap When True, (the defulat) wrapped particle coordinates are written. When False, particles will be unwrapped into their current box image before writing to the dcd file.
     # 
     # \b Examples:
     # \code
@@ -431,7 +432,7 @@ class dcd(analyze._analyzer):
     # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, overwrite=False):
+    def __init__(self, filename, period, overwrite=False, wrap=True):
         util.print_status_line();
         
         # initialize base class
@@ -443,6 +444,7 @@ class dcd(analyze._analyzer):
             reported_period = 1000;
             
         self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), overwrite);
+        self.cpp_analyzer.setWrap(wrap);
         self.setupAnalyzer(period);
     
     def enable(self):

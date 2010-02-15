@@ -90,6 +90,12 @@ class DCDDumpWriter : public Analyzer
         
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
+        
+        //! Set whether coordinates should be written out wrapped or unwrapped.
+        void setWrap(bool wrap)
+            {
+            m_wrap = wrap;
+            }
     private:
         std::string m_fname;                //!< The file name we are writing to
         unsigned int m_start_timestep;      //!< First time step written to the file
@@ -97,6 +103,7 @@ class DCDDumpWriter : public Analyzer
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
+        bool m_wrap;                        //!< True if coordinates should be written out wrapped in the box
         
         Scalar *m_staging_buffer;           //!< Buffer for staging particle positions in tag order
         

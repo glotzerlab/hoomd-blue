@@ -106,7 +106,7 @@ static unsigned int read_int(fstream &file)
     the time step inforamtion in the file will be invalid. analyze() will print a warning
     if it is called out of sequence.
 */
-DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const std::string &fname, unsigned int period, bool overwrite) : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_num_frames_written(0), m_last_written_step(0), m_appending(false)
+DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const std::string &fname, unsigned int period, bool overwrite) : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_num_frames_written(0), m_last_written_step(0), m_appending(false), m_wrap(true)
     {
     // handle appending to an existing file if it is requested
     if (!overwrite && exists(fname))
@@ -293,10 +293,18 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     assert(m_staging_buffer);
     
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    
+    BoxDim box = m_pdata->getBox();
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+
     // prepare x coords for writing
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
         m_staging_buffer[i] = arrays.x[arrays.rtag[i]];
+        if (!m_wrap)
+            m_staging_buffer[i] += Scalar(arrays.ix[arrays.rtag[i]]) * Lx;
+        }
     // write x coords
     write_int(file, m_pdata->getN() * sizeof(float));
     file.write((char *)m_staging_buffer, m_pdata->getN() * sizeof(float));
@@ -304,7 +312,11 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     
     // prepare y coords for writing
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
         m_staging_buffer[i] = arrays.y[arrays.rtag[i]];
+        if (!m_wrap)
+            m_staging_buffer[i] += Scalar(arrays.iy[arrays.rtag[i]]) * Ly;
+        }
     // write y coords
     write_int(file, m_pdata->getN() * sizeof(float));
     file.write((char *)m_staging_buffer, m_pdata->getN() * sizeof(float));
@@ -312,7 +324,11 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     
     // prepare z coords for writing
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
         m_staging_buffer[i] = arrays.z[arrays.rtag[i]];
+        if (!m_wrap)
+            m_staging_buffer[i] += Scalar(arrays.iz[arrays.rtag[i]]) * Lz;
+        }
     // write z coords
     write_int(file, m_pdata->getN() * sizeof(float));
     file.write((char *)m_staging_buffer, m_pdata->getN() * sizeof(float));
@@ -347,6 +363,7 @@ void export_DCDDumpWriter()
     {
     class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
     ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, bool>())
+    .def("setWrap", &DCDDumpWriter::setWrap)
     ;
     }
 
