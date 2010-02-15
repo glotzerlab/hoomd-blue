@@ -13,4 +13,8 @@ integrate.nve_rigid(group=group.all())
 dcd = dump.dcd(filename='restart_bin.dcd', period=100, overwrite=True)
 log = analyze.log(filename="restart_bin.log", period=1, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
-run(50000)
+xml = dump.xml()
+xml.set_params(all=True)
+xml.write(filename="restart_bin.xml")
+
+run(5000)

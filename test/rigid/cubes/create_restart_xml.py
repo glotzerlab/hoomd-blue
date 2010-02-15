@@ -13,17 +13,17 @@ bdnvt = integrate.bdnvt_rigid(group=group.all(), T=1.2)
 dcd = dump.dcd(filename='nve.dcd', period=100, overwrite=True)
 log = analyze.log(filename="nve_basic.log", period=100, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
-run(50000)
+run(5000)
 
 bdnvt.disable()
 nve = integrate.nve_rigid(group=group.all())
 
-run(50000)
+run(5000)
 
 xml = dump.xml()
 xml.set_params(all=True)
 xml.write(filename="continue.xml")
 
-dcd = dump.dcd(filename='baseline.dcd', period=100)
+dcd = dump.dcd(filename='baseline.dcd', period=100, overwrite=True)
 
-run(50000)
+run(5000)

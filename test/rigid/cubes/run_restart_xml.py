@@ -10,7 +10,7 @@ nlist.reset_exclusions(exclusions=['body'])
 integrate.mode_standard(dt=0.005)
 integrate.nve_rigid(group=group.all())
 
-dcd = dump.dcd(filename='restart_xml.dcd', period=100)
+dcd = dump.dcd(filename='restart_xml.dcd', period=100, overwrite=True)
 log = analyze.log(filename="restart_xml.log", period=1, overwrite=True, quantities=['potential_energy', 'kinetic_energy'])
 
-run(50000)
+run(5000)
