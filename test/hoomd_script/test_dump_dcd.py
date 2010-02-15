@@ -18,6 +18,12 @@ class dmp_dcd_tests (unittest.TestCase):
         dump.dcd(filename="dump_dcd", period=100);
         run(100)
         os.remove('dump_dcd')
+    
+    # tests wrap option
+    def test_wrap(self):
+        dump.dcd(filename="dump_dcd", period=100, wrap=False);
+        run(100)
+        os.remove('dump_dcd')
             
     # tests variable periods
     def test_variable(self):

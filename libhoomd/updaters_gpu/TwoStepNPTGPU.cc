@@ -104,6 +104,10 @@ TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NPT step 1");
@@ -116,7 +120,6 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
     ArrayHandle< float > d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
 
     // advance thermostat(m_Xi) half a time step
@@ -173,6 +176,10 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // compute temperature for the next half time step
@@ -191,7 +198,6 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
     
     // perform the update on the GPU
     exec_conf.gpu[0]->call(bind(gpu_npt_step_two,
