@@ -777,4 +777,4 @@ class mode_minimize_fire(_integrator):
             print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
             raise RuntimeError('Error in FIRE Energy Minimizer');
         return self.cpp_integrator.hasConverged()
- 
+

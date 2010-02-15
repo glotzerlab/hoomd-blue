@@ -30,3 +30,4 @@ run(2000)
 
 bin = dump.bin()
 bin.write(filename="continue.bin.gz")
+

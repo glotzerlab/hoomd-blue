@@ -28,3 +28,4 @@ analyze.msd(filename="msd_test_nor0.log", groups=[all], period=10)
 analyze.msd(filename="msd_test_r0.log", groups=[all], period=10, r0_file='init.xml')
 
 run(2000)
+

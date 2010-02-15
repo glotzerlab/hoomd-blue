@@ -39,9 +39,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: test_nvt_integrator.cc 2587 2010-01-08 17:02:54Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/test/unit/test_nvt_integrator.cc $
-// Maintainer: joaander
+// $Id$
+// $URL$
+// Maintainer: askeys
 
 #ifdef WIN32
 #pragma warning( push )
@@ -97,38 +97,38 @@ shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(shared_ptr<SystemDefinition> sy
 
 void randpts(vector<Scalar>& x, vector<Scalar>& y, vector<Scalar>& z, unsigned int N, Scalar box, Scalar rmin)
     {
-	unsigned int i = 0;
-	Scalar cut = rmin*rmin;
-	
-	while(i < N)
+    unsigned int i = 0;
+    Scalar cut = rmin*rmin;
+    
+    while(i < N)
         {
-		Scalar xi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
-		Scalar yi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
-		Scalar zi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
-		
-		int overlap = 0;
-		for(unsigned int j=0; j<i; j++)
+        Scalar xi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
+        Scalar yi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
+        Scalar zi = rand()/(Scalar(RAND_MAX)) * box - 0.5 * box;
+        
+        int overlap = 0;
+        for(unsigned int j=0; j<i; j++)
             {
-			Scalar dx = xi - x[j];
-			dx -= box * rint ( dx / box);
-			Scalar dy = yi - y[j];
-			dy -= box * rint ( dy / box);
-			Scalar dz = zi - z[j];
-			dz -= box * rint ( dz / box);
-			Scalar rsq = dx*dx + dy*dy + dz*dz;
-			if(rsq < cut)
+            Scalar dx = xi - x[j];
+            dx -= box * rint ( dx / box);
+            Scalar dy = yi - y[j];
+            dy -= box * rint ( dy / box);
+            Scalar dz = zi - z[j];
+            dz -= box * rint ( dz / box);
+            Scalar rsq = dx*dx + dy*dy + dz*dz;
+            if(rsq < cut)
                 {
-				overlap = 1;
-				break;
+                overlap = 1;
+                break;
                 }
             }
-		
-		if(!overlap)
+        
+        if(!overlap)
             {
-			x[i] = xi;
-			y[i] = yi;
-			z[i] = zi;
-			i++;
+            x[i] = xi;
+            y[i] = yi;
+            z[i] = zi;
+            i++;
             }
         }
     }
