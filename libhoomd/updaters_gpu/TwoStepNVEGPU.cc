@@ -81,6 +81,10 @@ TwoStepNVEGPU::TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVE step 1");
@@ -89,8 +93,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_nve_step_one,
@@ -115,6 +118,10 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
 */
 void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     {
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+    
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step
@@ -124,8 +131,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+
     // perform the update on the GPU
     exec_conf.gpu[0]->call(bind(gpu_nve_step_two,
                                 d_pdata[0],
