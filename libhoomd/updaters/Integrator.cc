@@ -439,15 +439,22 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
-    
-    // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
-    // will do that
-    
-    // now, add up the accelerations
+
     unsigned int nparticles = m_pdata->getN();
     assert(nparticles == net_force.getNumElements());
     assert(nparticles == net_virial.getNumElements());
     
+    // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
+    // will do that
+    // ahh!, but we do need to zer out the net force and virial if there are 0 forces!
+    if (m_forces.size() == 0)
+        {
+        // start by zeroing the net force and virial arrays
+        exec_conf.gpu[0]->call(bind(cudaMemset, d_net_force.data, 0, sizeof(Scalar4)*nparticles));
+        exec_conf.gpu[0]->call(bind(cudaMemset, d_net_virial.data, 0, sizeof(Scalar)*nparticles));
+        }
+    
+    // now, add up the accelerations
     // sum all the forces into the net force
     // perform the sum in groups of 6 to avoid kernel launch and memory access overheads
     for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)

@@ -425,7 +425,7 @@ class log(_analyzer):
         
     ## Retrieve a cached value of a monitored quantity from the last update of the logger.
     # \param quantity Name of the quantity to return.
-    # \param quiet (optional) if True, does not print to screen
+    #
     # Using query() requires that the specified logger was saved in a variable when created.
     # i.e. 
     # \code
@@ -438,10 +438,7 @@ class log(_analyzer):
     # \code
     # logdata = logger.query('timestep')
     # \endcode
-    def query(self, quantity, quiet=False):
-        if not quiet:
-            util.print_status_line();
-        
+    def query(self, quantity):
         # retrieve data from internal cache.
         return self.cpp_analyzer.getCachedQuantity(quantity);
         
@@ -465,6 +462,11 @@ class log(_analyzer):
 # \f[ \langle |\vec{r} - \vec{r}_0|^2 \rangle \f]
 #
 # The file format is the same convenient delimited format used by analyze.log 
+#
+# analyze.msd is capable of appending to an existing msd file (the default setting) for use in restarting in long jobs.
+# To generate a correct msd that does not reset to 0 at the start of each run, save the initial state of the system
+# in a hoomd_xml file, including position and image data at a minimum. In the continuation job, specify this file
+# in the \a r0_file argument to analyze.msd.
 class msd(_analyzer):
     ## Initialize the msd calculator
     #
@@ -472,6 +474,8 @@ class msd(_analyzer):
     # \param groups List of groups to calculate the MSDs of
     # \param period Quantities are logged every \a period time steps
     # \param header_prefix (optional) Specify a string to print before the header
+    # \param r0_file hoomd_xml file specifying the positions (and images) to use for \f$ \vec{r}_0 \f$
+    # \param overwrite set to True to overwrite a the file \a filename if it exists
     #
     # \b Examples:
     # \code
@@ -497,15 +501,18 @@ class msd(_analyzer):
     # automatically. Another use-case would be to specify a descriptive line containing
     # details of the current run. Examples of each of these cases are given above.
     #
+    # If \a r0_file is left at the default of None, then the current state of the system at the execution of the
+    # analyze.msd command is used to initialize \f$ \vec{r}_0 \f$.
+    #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, groups, period, header_prefix=''):
+    def __init__(self, filename, groups, period, header_prefix='', r0_file=None, overwrite=False):
         util.print_status_line();
         
         # initialize base class
         _analyzer.__init__(self);
         
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix);
+        self.cpp_analyzer = hoomd.MSDAnalyzer(globals.system_definition, filename, header_prefix, overwrite);
         self.setupAnalyzer(period);
     
         # it is an error to specify no groups
@@ -516,6 +523,9 @@ class msd(_analyzer):
         # set the group columns
         for cur_group in groups:
             self.cpp_analyzer.addColumn(cur_group.cpp_group, cur_group.name);
+        
+        if r0_file is not None:
+            self.cpp_analyzer.setR0(r0_file);
         
     ## Change the parameters of the msd analysis
     #

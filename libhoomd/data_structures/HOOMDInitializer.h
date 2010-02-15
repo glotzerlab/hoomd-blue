@@ -138,6 +138,52 @@ class HOOMDInitializer : public ParticleDataInitializer
         //! Initialize the improper data
         virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
         
+        //! simple vec for storing particle data
+        struct vec
+            {
+            //! Default construtor
+            vec() : x(0.0), y(0.0), z(0.0)
+                {
+                }
+            //! Constructs a vec with given components
+            /*! \param xp x-component
+                \param yp y-component
+                \param zp z-component
+            */
+            vec(Scalar xp, Scalar yp, Scalar zp) : x(xp), y(yp), z(zp)
+                {
+                }
+            Scalar x;   //!< x-component
+            Scalar y;   //!< y-component
+            Scalar z;   //!< z-component
+            };
+            
+        //! simple integer vec for storing particle data
+        struct vec_int
+            {
+            //! Default construtor
+            vec_int() : x(0), y(0), z(0)
+                {
+                }
+            //! Constructs a vec with given components
+            /*! \param xp x-component
+                \param yp y-component
+                \param zp z-component
+            */
+            vec_int(int xp, int yp, int zp) : x(xp), y(yp), z(zp)
+                {
+                }
+            int x;  //!< x-component
+            int y;  //!< y-component
+            int z;  //!< z-component
+            };
+            
+        //! Access the read particle positions
+        const std::vector< vec >& getPos() { return m_pos_array; }
+        
+        //! Access the read images
+        const std::vector< vec_int >& getImage() { return m_image_array; }
+
     private:
         //! Helper function to read the input file
         void readFile(const std::string &fname);
@@ -185,46 +231,6 @@ class HOOMDInitializer : public ParticleDataInitializer
         
         BoxDim m_box;   //!< Simulation box read from the file
         bool m_box_read;    //!< Stores the box we read in
-        
-        //! simple vec for storing particle data
-        struct vec
-            {
-            //! Default construtor
-            vec() : x(0.0), y(0.0), z(0.0)
-                {
-                }
-            //! Constructs a vec with given components
-            /*! \param xp x-component
-                \param yp y-component
-                \param zp z-component
-            */
-            vec(Scalar xp, Scalar yp, Scalar zp) : x(xp), y(yp), z(zp)
-                {
-                }
-            Scalar x;   //!< x-component
-            Scalar y;   //!< y-component
-            Scalar z;   //!< z-component
-            };
-            
-        //! simple integer vec for storing particle data
-        struct vec_int
-            {
-            //! Default construtor
-            vec_int() : x(0), y(0), z(0)
-                {
-                }
-            //! Constructs a vec with given components
-            /*! \param xp x-component
-                \param yp y-component
-                \param zp z-component
-            */
-            vec_int(int xp, int yp, int zp) : x(xp), y(yp), z(zp)
-                {
-                }
-            int x;  //!< x-component
-            int y;  //!< y-component
-            int z;  //!< z-component
-            };
         
         unsigned int m_num_dimensions;              //!< number of spatial dimensions
         std::vector< vec > m_pos_array;             //!< positions of all particles loaded
