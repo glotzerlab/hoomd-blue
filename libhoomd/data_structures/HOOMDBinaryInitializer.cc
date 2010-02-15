@@ -262,7 +262,7 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
         throw runtime_error("Error reading binary file");
         }
     
-    int version = 2;
+    int version = 3;
     int file_version;
     f.read((char*)&file_version, sizeof(int));
     

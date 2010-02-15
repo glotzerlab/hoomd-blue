@@ -136,7 +136,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
     unsigned int magic = 0x444d4f48;
     f.write((char*)&magic, sizeof(unsigned int));
     // write the version of the binary format used
-    int version = 2;
+    int version = 3;
     f.write((char*)&version, sizeof(int));
 
     // acquire the particle data
