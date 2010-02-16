@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: TwoStepNPTRigidGPU.cc 2680 2010-02-16 19:43:25Z ndtrung $
+// $URL: http://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/updaters_gpu/TwoStepNPTRigidGPU.cc $
 // Maintainer: ndtrung
 
 #ifdef WIN32
@@ -53,11 +53,11 @@ using namespace boost::python;
 #include <boost/bind.hpp>
 using namespace boost;
 
-#include "TwoStepNVTRigidGPU.h"
+#include "TwoStepNPTRigidGPU.h"
 #include "TwoStepNVTRigidGPU.cuh"
 
-/*! \file TwoStepNVTRigidGPU.cc
-    \brief Contains code for the TwoStepNVTRigidGPU class
+/*! \file TwoStepNPTRigidGPU.cc
+    \brief Contains code for the TwoStepNPTRigidGPU class
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
@@ -65,17 +65,19 @@ using namespace boost;
     \param T Controlled temperature
     \param tau Time constant
 */
-TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group, 
-                             boost::shared_ptr<Variant> T,
-                             Scalar tau)
-    : TwoStepNVTRigid(sysdef, group, T, tau)
+TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                                   boost::shared_ptr<ParticleGroup> group, 
+                                   Scalar tau,
+                                   Scalar tauP,
+                                   boost::shared_ptr<Variant> T,
+                                   boost::shared_ptr<Variant> P)
+    : TwoStepNPTRigid(sysdef, group, tau, tauP, T, P)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
         {
-        cerr << endl << "***Error! Creating a TwoStepNVTRigidGPU with 0 or more than one GPUs" << endl << endl;
-        throw std::runtime_error("Error initializing TwoStepNVTRigidGPU");
+        cerr << endl << "***Error! Creating a TwoStepNPTRigidGPU with 0 or more than one GPUs" << endl << endl;
+        throw std::runtime_error("Error initializing TwoStepNPTRigidGPU");
         }
     }
 
@@ -83,7 +85,7 @@ TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
     \post Particle positions are moved forward to timestep+1 and velocities to timestep+1/2 per the velocity verlet
           method.
 */
-void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
+void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     {
     if (m_first_step)
         {
@@ -202,7 +204,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
-void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
+void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     {
     // sanity check
     if (m_n_bodies <= 0)
@@ -335,10 +337,14 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
 
-void export_TwoStepNVTRigidGPU()
+void export_TwoStepNPTRigidGPU()
     {
-    class_<TwoStepNVTRigidGPU, boost::shared_ptr<TwoStepNVTRigidGPU>, bases<TwoStepNVTRigid>, boost::noncopyable>
-        ("TwoStepNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<Variant> >())
+    class_<TwoStepNPTRigidGPU, boost::shared_ptr<TwoStepNPTRigidGPU>, bases<TwoStepNPTRigid>, boost::noncopyable>
+        ("TwoStepNPTRigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, 
+        Scalar,
+        Scalar,
+        boost::shared_ptr<Variant>,
+        boost::shared_ptr<Variant> >())
         ;
     }
 
