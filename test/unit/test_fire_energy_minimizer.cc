@@ -77,9 +77,6 @@ typedef boost::function<shared_ptr<FIREEnergyMinimizer> (shared_ptr<SystemDefini
 //! FIREEnergyMinimizer creator
 shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar dt)
     {
-//    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-//    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-//    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     return shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizer(sysdef, group, dt));
     }
 
@@ -87,9 +84,6 @@ shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(shared_ptr<SystemDefinit
 //! FIREEnergyMinimizerGPU creator
 shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(shared_ptr<SystemDefinition> sysdef, shared_ptr<ParticleGroup> group, Scalar dt)
     {
-//    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-//    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-//    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     return shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizerGPU(sysdef, group, dt));
     }
 #endif
@@ -398,11 +392,11 @@ Scalar x_blj [] = {
 
 //Calculated from Matlab file.  Changes to the way FIRE works may require recalculation of these values.
 Scalar x_two_lj [] = {
-2,2,2,2,2,1.9999,1.9999,1.9999,1.9998,1.9998,1.9997,1.9996,1.9995,1.9994,1.9992,1.999,1.9987,1.9984,1.998,1.9975,1.9969,1.9962,
-1.9953,1.9942,1.9928,1.9912,1.9891,1.9866,1.9836,1.9799,1.9754,1.9703,1.9648,1.9587,1.9521,1.9449,1.9372,1.929,1.9201,
-1.9107,1.9006,1.8899,1.8785,1.8665,1.8537,1.8402,1.8258,1.8106,1.7946,1.7776,1.7596,1.7405,1.7203,1.6988,1.676,1.6517,1.6258,
-1.5981,1.5684,1.5365,1.5021,1.4648,1.4242,1.3798,1.3309,1.2768,1.2169,1.1511,1.0822,1.0833,1.0864,1.0913,1.0977,1.1052,1.1135,
-1.123,1.123};
+2,2,2,2,2,1.9999,1.9999,1.9998,1.9997,1.9996,1.9994,1.9992,1.999,1.9986,1.9982,1.9977,1.9971,1.9963,1.9953,1.994,1.9925,
+1.9907,1.9883,1.9855,1.982,1.9778,1.9729,1.9676,1.9618,1.9554,1.9486,1.9411,1.9332,1.9246,1.9155,1.9057,1.8953,1.8843,
+1.8726,1.8602,1.847,1.8331,1.8183,1.8027,1.7862,1.7687,1.7502,1.7305,1.7097,1.6875,1.664,1.6389,1.6122,1.5835,1.5528,
+1.5196,1.4839,1.445,1.4025,1.356,1.3046,1.2476,1.1847,1.1167,1.1168,1.1171,1.1176,1.1183,1.1192,1.1202,1.1213,1.1227,
+1.1227};
 
 //! Compares the output from one NVEUpdater to another
 void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration exec_conf)
@@ -462,16 +456,17 @@ void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration ex
     fc->setRcut(1,1,2.5);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_all, Scalar(0.005));
+    shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_all, Scalar(0.05));
     fire->addForceCompute(fc);
+    fire->setMinSteps(10);
     
     int max_step = 1000;
-    for (int i = 1; i<=max_step; i++)
+    for (int i = 1; i<=max_step; i++) {
         fire->update(i);
-        
+        if (fire->hasConverged())  {break;}
+        }
+              
     MY_BOOST_CHECK_CLOSE(fire->computePotentialEnergy(max_step)/Scalar(N), -7.75, (0.01/7.75)*100);
-
-    //cerr << fire->computePotentialEnergy(max_step)/Scalar(N) << endl;
     
     fire->reset();
 
@@ -537,25 +532,27 @@ void fire_twoparticle_test(fire_creator fire_creator1, ExecutionConfiguration ex
     fc->setRcut(0,0,3.0);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_one, Scalar(0.005));
+    shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_one, Scalar(0.05));
     fire->addForceCompute(fc);
     fire->setFtol(1e-7);
     fire->setEtol(1e-7);
+    fire->setMinSteps(10);
     
     int max_step = 100;
     Scalar diff = Scalar(0.0);
+    
     for (int i = 1; i<=max_step; i++)
         {
         fire->update(i);
-        if (fire->hasConverged()) break;
-        
-        shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-        const ParticleDataArrays& arrays = pdata->acquireReadWrite();
+        if (fire->hasConverged()) { break;}
+        ParticleDataArraysConst arrays = pdata->acquireReadOnly();
         diff += (arrays.x[1]- x_two_lj[i])*(arrays.x[1]- x_two_lj[i]);
-//        MY_BOOST_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
         pdata->release();
+
+        //MY_BOOST_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
         }
-       MY_BOOST_CHECK_SMALL(diff, 0.001);
+
+    MY_BOOST_CHECK_SMALL(diff, 0.001);
             
     }    
 

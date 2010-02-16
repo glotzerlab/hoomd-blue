@@ -60,7 +60,7 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param dt Default step size
+    \param dt maximum step size
     \param reset_and_create_integrator Set to true to completely initialize this class
 
     \post The method is constructed with the given particle data and a NULL profiler.
@@ -78,7 +78,9 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         m_falpha(0.99),
         m_ftol(1e-4), 
         m_etol(1e-3),
-        m_deltaT_set(dt)
+        m_deltaT_max(dt),
+        m_deltaT_set(dt/10),
+        m_run_minsteps(10)
     {
     // sanity check
     assert(m_sysdef);
@@ -89,7 +91,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
         //createIntegrator();
         boost::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(sysdef, group));
         addIntegrationMethod(integrator);
-        setDeltaT(m_deltaT);      
+        setDeltaT(m_deltaT_set);      
         }
     }
 
@@ -109,7 +111,6 @@ The timestep is used by the underlying NVE integrator to advance the particles.
 void FIREEnergyMinimizer::setDeltaT(Scalar dt)
     {
     IntegratorTwoStep::setDeltaT(dt);
-    m_deltaT_max = 10.0*dt;
     }
 
 
@@ -174,7 +175,8 @@ void FIREEnergyMinimizer::setFalpha(Scalar falpha)
 void FIREEnergyMinimizer::reset()
     {
     m_converged = false;
-    m_n_since_negative = 0;
+    m_n_since_negative = m_nmin+1; 
+    m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
@@ -230,7 +232,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
     
-    if (fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol)
+    if ((fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         m_pdata->release();
@@ -268,6 +270,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             arrays.vz[j] = Scalar(0.0);
             }
         }
+    m_n_since_start++;    
     m_old_energy = energy;
     m_pdata->release();   
 
@@ -288,6 +291,7 @@ void export_FIREEnergyMinimizer()
         .def("setFalpha", &FIREEnergyMinimizer::setFalpha)
         .def("setFtol", &FIREEnergyMinimizer::setFtol)
         .def("setEtol", &FIREEnergyMinimizer::setEtol)
+        .def("setMinSteps", &FIREEnergyMinimizer::setMinSteps)
         ;
     }
 

@@ -104,6 +104,11 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         /*! \param etol is the new energy tolerance to set
         */
         void setEtol(Scalar etol) {m_etol = etol;}
+
+        //! Set the a minimum number of steps before the other stopping criteria will be evaluated 
+        /*! \param steps is the minimum number of steps (attempts) that will be made
+        */
+        void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
         
         //! Access the group
         boost::shared_ptr<ParticleGroup> getGroup() { return m_group; }        
@@ -114,6 +119,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
         unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha 
         unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions 
+        unsigned int m_n_since_start;       //!< counts the number of consecutvie search attempts 
         Scalar m_finc;                      //!< fractional increase in timestep upon successful seach
         Scalar m_fdec;                      //!< fractional decrease in timestep upon unsuccessful seach
         Scalar m_alpha;                     //!< relative coupling strength between alpha  
@@ -123,8 +129,9 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         Scalar m_etol;                      //!< stopping tolerance based on the chance in energy
         Scalar m_old_energy;                //!< energy from the previous iteration
         bool m_converged;                   //!< whether the minimization has converged
-        Scalar m_deltaT_max;                //!< maximum timesteps after rescaling
-        Scalar m_deltaT_set;                //!< the timestep that was set by the user
+        Scalar m_deltaT_max;                //!< maximum timesteps after rescaling (set by user)
+        Scalar m_deltaT_set;                //!< the initial timestep
+        unsigned int m_run_minsteps;        //!< A minimum number of seach attempts the search will use
         bool m_was_reset;                   //!< whether or not the minimizer was reset
 
     private:

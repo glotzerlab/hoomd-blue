@@ -110,7 +110,8 @@ void FIREEnergyMinimizerGPU::createIntegrator()
 void FIREEnergyMinimizerGPU::reset()
     {
     m_converged = false;
-    m_n_since_negative = 0;
+    m_n_since_negative =  m_nmin+1;
+    m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
@@ -213,7 +214,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->pop(exec_conf);            
     
     
-    if (fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol)
+    if ((fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         m_pdata->release();
@@ -263,8 +264,9 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         if (m_prof)
             m_prof->pop(exec_conf);        
         }
-    m_old_energy = energy;
     
+    m_n_since_start++;            
+    m_old_energy = energy;
     m_pdata->release();  
     }
 
