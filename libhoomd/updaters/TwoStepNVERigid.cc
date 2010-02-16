@@ -69,19 +69,7 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     {
     if (!skip_restart)
         {
-        // set a named, but otherwise blank set of integrator variables
-        IntegratorVariables v = getIntegratorVariables();
-        
-        if (!restartInfoTestValid(v, "nve_rigid", 0))
-            {
-            v.type = "nve_rigid";
-            v.variable.resize(0);
-            setValidRestart(false);
-            }
-        else
-            setValidRestart(true);
-        
-        setIntegratorVariables(v);
+        setRestartIntegratorVariables();
         }
         
     // Get the system rigid data
@@ -92,6 +80,23 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     
     m_first_step = true;
     }
+
+void TwoStepNVERigid::setRestartIntegratorVariables()
+{
+    // set a named, but otherwise blank set of integrator variables
+    IntegratorVariables v = getIntegratorVariables();
+    
+    if (!restartInfoTestValid(v, "nve_rigid", 0))
+        {
+        v.type = "nve_rigid";
+        v.variable.resize(0);
+        setValidRestart(false);
+        }
+    else
+        setValidRestart(true);
+    
+    setIntegratorVariables(v);
+}
 
 /* Setup computes the initial body forces and torques prior to the first update step
     

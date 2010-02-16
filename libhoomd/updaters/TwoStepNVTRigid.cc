@@ -66,8 +66,9 @@ using namespace boost::python;
 TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<ParticleGroup> group, 
                                  boost::shared_ptr<Variant> T,
-                                 Scalar tau) 
-: TwoStepNVERigid(sysdef, group), m_temperature(T), t_freq(tau)
+                                 Scalar tau,
+                                 bool skip_restart) 
+: TwoStepNVERigid(sysdef, group, skip_restart), m_temperature(T), t_freq(tau)
     {
     if (t_freq <= 0.0)
         cout << "***Warning! tau set less than 0.0 in TwoStepNVTRigid. Recommended values: 5.0-10.0" << endl;
@@ -141,12 +142,25 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         eta_dot_t_handle.data[i] = eta_dot_r_handle.data[i] = 0.0;
         }
     }
-        
+    
+    if (!skip_restart)
+        {
+        setRestartIntegratorVariables();
+        }
+    
+    }
+
+/* Set integrator variables for restart info
+*/
+
+void TwoStepNVTRigid::setRestartIntegratorVariables()
+    {
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
-    if (!restartInfoTestValid(v, "nvt_rigid", 4))
+    if (!restartInfoTestValid(v, "nvt_rigid", 4))   // since NVT derives from NVE, this is true
         {
+        // reset the integrator variable
         v.type = "nvt_rigid";
         v.variable.resize(4);
         v.variable[0] = Scalar(0.0);
@@ -159,8 +173,10 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         setValidRestart(true);
 
     setIntegratorVariables(v);
-    
     }
+
+/* Compute the initial forces/torques
+*/
 
 void TwoStepNVTRigid::setup()
     {

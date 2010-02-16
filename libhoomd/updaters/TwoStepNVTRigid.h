@@ -74,7 +74,8 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
                         boost::shared_ptr<ParticleGroup> group,
                         boost::shared_ptr<Variant> T,
-                        Scalar tau=10.0);
+                        Scalar tau=10.0,
+                        bool skip_restart=false);
         
         //! Setup the initial net forces, torques and angular momenta
         void setup();
@@ -102,6 +103,9 @@ class TwoStepNVTRigid : public TwoStepNVERigid
             }
             
     protected:
+        //! Integrator variables
+        virtual void setRestartIntegratorVariables();
+        
         //! Update thermostats
         void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
         

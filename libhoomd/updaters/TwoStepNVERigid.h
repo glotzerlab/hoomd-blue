@@ -84,6 +84,9 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         void computeForceAndTorque();
         
     protected:
+        //! Integrator variables
+        virtual void setRestartIntegratorVariables();
+        
         //! Set positions and velocities for particles in rigid bodies at the first step
         void set_xv();
         
