@@ -206,7 +206,6 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     Scalar P(0.0);
     Scalar vnorm(0.0);
     Scalar fnorm(0.0);
-    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
 
     // Calculate the per-particle potential energy over particles in the group
     Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
@@ -217,7 +216,10 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         m_old_energy = energy + Scalar(100000)*m_etol;
         }
 
-     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
+    const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
+
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         P += arrays.ax[j]*arrays.vx[j] + arrays.ay[j]*arrays.vy[j] + arrays.az[j]*arrays.vz[j];
@@ -231,18 +233,19 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     if (fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol)
         {
         m_converged = true;
+        m_pdata->release();
         return;
         }
 
     Scalar invfnorm = 1.0/fnorm;        
-     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
         arrays.vx[j] = arrays.vx[j]*(1.0-m_alpha) + m_alpha*arrays.ax[j]*invfnorm*vnorm;
         arrays.vy[j] = arrays.vy[j]*(1.0-m_alpha) + m_alpha*arrays.ay[j]*invfnorm*vnorm;
         arrays.vz[j] = arrays.vz[j]*(1.0-m_alpha) + m_alpha*arrays.az[j]*invfnorm*vnorm;
         }
-        
+             
     if (P > Scalar(0.0))
         {
         m_n_since_negative++;
@@ -265,8 +268,9 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             arrays.vz[j] = Scalar(0.0);
             }
         }
-    m_pdata->release();
     m_old_energy = energy;
+    m_pdata->release();   
+
     }
 
 
