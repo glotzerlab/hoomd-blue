@@ -54,7 +54,7 @@ using namespace boost::python;
 using namespace boost;
 
 #include "TwoStepNPTRigidGPU.h"
-#include "TwoStepNVTRigidGPU.cuh"
+#include "TwoStepNPTRigidGPU.cuh"
 
 /*! \file TwoStepNPTRigidGPU.cc
     \brief Contains code for the TwoStepNPTRigidGPU class
@@ -116,7 +116,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
         
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT rigid step 1");
+        m_prof->push(exec_conf, "NPT rigid step 1");
     
     // access all the needed data
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
@@ -174,23 +174,23 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
-    gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = d_rdata.n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
-    d_nvt_rdata.conjqm = conjqm_handle.data;
-    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    gpu_npt_rigid_data d_npt_rdata;
+    d_npt_rdata.n_bodies = d_rdata.n_bodies;
+    d_npt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
+    d_npt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_npt_rdata.conjqm = conjqm_handle.data;
+    d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);    
-    exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_step_one, 
+    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_step_one, 
                                 d_pdata[0],
                                 d_rdata, 
                                 d_index_array.data,
                                 group_size,
                                 box,
-                                d_nvt_rdata,
+                                d_npt_rdata,
                                 m_deltaT));
 
     
@@ -215,21 +215,21 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     // phase 1, reduce to find the final Ksum_t and Ksum_r
         {
         if (m_prof)
-            m_prof->push(exec_conf, "NVT reducing");
+            m_prof->push(exec_conf, "NPT reducing");
         
         ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
         ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
         ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
     
-        gpu_nvt_rigid_data d_nvt_rdata;
-        d_nvt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
-        d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-        d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
-        d_nvt_rdata.Ksum_t = Ksum_t_handle.data;
-        d_nvt_rdata.Ksum_r = Ksum_r_handle.data;
+        gpu_npt_rigid_data d_npt_rdata;
+        d_npt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
+        d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+        d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+        d_npt_rdata.Ksum_t = Ksum_t_handle.data;
+        d_npt_rdata.Ksum_r = Ksum_r_handle.data;
 
-        exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rdata));
+        exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_ksum, d_npt_rdata));
         
         if (m_prof)
             m_prof->pop(exec_conf);
@@ -247,7 +247,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     // profile this step
     if (m_prof)
-        m_prof->push(exec_conf, "NVT rigid step 2");
+        m_prof->push(exec_conf, "NPT rigid step 2");
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
@@ -299,13 +299,13 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
-    gpu_nvt_rigid_data d_nvt_rdata;
-    d_nvt_rdata.n_bodies = d_rdata.n_bodies;
-    d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
-    d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
-    d_nvt_rdata.conjqm = conjqm_handle.data;
-    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    gpu_npt_rigid_data d_npt_rdata;
+    d_npt_rdata.n_bodies = d_rdata.n_bodies;
+    d_npt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
+    d_npt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_npt_rdata.conjqm = conjqm_handle.data;
+    d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_rigid_force, 
@@ -319,14 +319,14 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_step_two, 
+    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_step_two, 
                                 d_pdata[0], 
                                 d_rdata, 
                                 d_index_array.data,
                                 group_size,
                                 d_net_force.data,
                                 box,
-                                d_nvt_rdata, 
+                                d_npt_rdata, 
                                 m_deltaT)); 
                                 
    

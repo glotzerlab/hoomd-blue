@@ -778,7 +778,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     int n_blocks = n_bodies / block_size + 1;
     dim3 body_grid(n_blocks, 1, 1);
     dim3 body_threads(block_size, 1, 1);
-/*    gpu_nvt_rigid_step_one_body_kernel<<< body_grid, body_threads  >>>(rigid_data.com, 
+    gpu_nvt_rigid_step_one_body_kernel<<< body_grid, body_threads  >>>(rigid_data.com, 
                                                                         rigid_data.vel, 
                                                                         rigid_data.angmom, 
                                                                         rigid_data.angvel,
@@ -798,7 +798,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                         nvt_rdata.partial_Ksum_r, 
                                                                         box, 
                                                                         deltaT);
- */   
+   
     // get the body information after the above update
     error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
