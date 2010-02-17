@@ -473,7 +473,7 @@ void TwoStepNVERigid::computeForceAndTorque()
             force_handle.data[body].x += fx;
             force_handle.data[body].y += fy;
             force_handle.data[body].z += fz;
-            
+
             // torque = r x f
             unsigned int localidx = body * particle_pos_pitch + j;
             Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
@@ -491,6 +491,8 @@ void TwoStepNVERigid::computeForceAndTorque()
             torque_handle.data[body].z += rx * fy - ry * fx;
             }
         }
+    
+    //m_pdata->release();
     
     if (m_prof)
         m_prof->pop();

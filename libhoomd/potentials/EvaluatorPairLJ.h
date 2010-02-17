@@ -181,7 +181,6 @@ class EvaluatorPairLJ
                 Scalar r2inv = Scalar(1.0)/rsq;
                 Scalar r6inv = r2inv * r2inv * r2inv;
                 force_divr= r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);
-                
                 pair_eng = r6inv * (lj1*r6inv - lj2);
                 
                 if (energy_shift)

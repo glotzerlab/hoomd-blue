@@ -118,7 +118,8 @@ void FIREEnergyMinimizerRigidGPU::createIntegrator()
 void FIREEnergyMinimizerRigidGPU::reset()
     {
     m_converged = false;
-    m_n_since_negative = 0;
+    m_n_since_negative =  m_nmin+1;
+    m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
 
@@ -252,8 +253,11 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     
     }
     
+    printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+
     // Check if convergent
-    if (fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol)
+    if ((fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+
         {
         m_converged = true;
         return;
@@ -336,7 +340,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         if (m_prof)
             m_prof->pop(exec_conf);        
         }
-        
+    m_n_since_start++;            
     m_old_energy = energy;
     }
 
