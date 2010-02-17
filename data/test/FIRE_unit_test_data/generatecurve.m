@@ -11,13 +11,13 @@
 
 initx = 2;
 initv = 0;
-init_dt = 0.005;
+dt_max = 0.05;
+init_dt = dt_max/10.0;
 init_alpha = 0.1;
 Nmin = 5;
 finc = 1.1;
 fdec = 0.5;
 falpha = 0.99;
-dt_max = 10*init_dt;
 Etol = 1e-7;
 Ftol = 1e-7;
 
@@ -36,7 +36,7 @@ alpha = init_alpha;
 fireon = 1;
 
 
-Nsteps = 0; %Aaron apparently assumes this is zero! for initialization!
+Nsteps = Nmin + 1; 
 dE = 1000;
 E = 1000;
 F = 1000;

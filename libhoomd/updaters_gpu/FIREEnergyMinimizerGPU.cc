@@ -86,7 +86,8 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinitio
     
     // initialize the partial sum arrays
     m_block_size = 256; //128;
-    m_num_blocks = m_pdata->getN() / m_block_size + 1;
+    unsigned int group_size = m_group->getIndexArray().getNumElements();    
+    m_num_blocks = group_size / m_block_size + 1;
     GPUArray<float> partial_sum1(m_num_blocks, m_pdata->getExecConf());
     m_partial_sum1.swap(partial_sum1);
     GPUArray<float> partial_sum2(m_num_blocks, m_pdata->getExecConf());
@@ -110,7 +111,8 @@ void FIREEnergyMinimizerGPU::createIntegrator()
 void FIREEnergyMinimizerGPU::reset()
     {
     m_converged = false;
-    m_n_since_negative = 0;
+    m_n_since_negative =  m_nmin+1;
+    m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
@@ -213,7 +215,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->pop(exec_conf);            
     
     
-    if (fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol)
+    if ((fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         m_pdata->release();
@@ -263,8 +265,9 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         if (m_prof)
             m_prof->pop(exec_conf);        
         }
-    m_old_energy = energy;
     
+    m_n_since_start++;            
+    m_old_energy = energy;
     m_pdata->release();  
     }
 

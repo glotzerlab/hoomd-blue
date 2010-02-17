@@ -63,6 +63,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 texture<float4, 1, cudaReadModeElementType> pdata_vel_tex;
 //! The texture for reading the pdata accel array
 texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
+//! The texture for reading the pdata force array
+texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
 //! Shared memory used in reducing sums
 extern __shared__ float fire_sdata[];
@@ -118,7 +120,7 @@ cudaError_t gpu_fire_zero_v(gpu_pdata_arrays pdata,
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (pdata.local_num/block_size) + 1, 1, 1);
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
             
     cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
@@ -163,7 +165,14 @@ extern "C" __global__
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
-        pe = d_net_force[idx].w;
+        // read the particle's force and extract the pe from w component (MEM TRANSFER: 32 bytes)
+        
+        float4 force = tex1Dfetch(net_force_tex, idx);
+        pe = force.w;
+        
+        // Uncoalesced Memory Read replace by Texture Read above.  floats4* d_net_force still being passed to support this
+        // defunct structure.
+        //pe = d_net_force[idx].w;  
         } 
                
         fire_sdata[threadIdx.x] = pe;
@@ -249,9 +258,15 @@ cudaError_t gpu_fire_compute_sum_pe(
                                     unsigned int block_size, 
                                     unsigned int num_blocks)
     {
+    
+
     // setup the grid to run the kernel
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
+    
+    cudaError_t    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;    
     
     // run the kernel
     gpu_fire_reduce_pe_partial_kernel<<< grid, threads, block_size*sizeof(float) >>>(pdata, 
@@ -565,7 +580,9 @@ cudaError_t gpu_fire_compute_sum_all(
     {
     // setup the grid to run the kernel
     dim3 grid(num_blocks, 1, 1);
+    dim3 grid1(1, 1, 1);
     dim3 threads(block_size, 1, 1);
+    dim3 threads1(256, 1, 1);
 
     cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
@@ -581,7 +598,7 @@ cudaError_t gpu_fire_compute_sum_all(
                                                                                       group_size,
                                                                                       d_partial_sum_P);
 
-    gpu_fire_reduce_partial_sum_kernel<<< grid, threads, block_size*sizeof(float) >>>(&d_sum_all[0], 
+    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(float) >>>(&d_sum_all[0], 
                                                                                       d_partial_sum_P, 
                                                                                       num_blocks);
 
@@ -590,7 +607,7 @@ cudaError_t gpu_fire_compute_sum_all(
                                                                                       group_size,
                                                                                       d_partial_sum_vsq);
 
-    gpu_fire_reduce_partial_sum_kernel<<< grid, threads, block_size*sizeof(float) >>>(&d_sum_all[1], 
+    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(float) >>>(&d_sum_all[1], 
                                                                                       d_partial_sum_vsq, 
                                                                                       num_blocks);
 
@@ -599,7 +616,7 @@ cudaError_t gpu_fire_compute_sum_all(
                                                                                       group_size,
                                                                                       d_partial_sum_asq);
 
-    gpu_fire_reduce_partial_sum_kernel<<< grid, threads, block_size*sizeof(float) >>>(&d_sum_all[2], 
+    gpu_fire_reduce_partial_sum_kernel<<< grid1, threads1, block_size*sizeof(float) >>>(&d_sum_all[2], 
                                                                                       d_partial_sum_asq, 
                                                                                       num_blocks);
 
@@ -675,7 +692,7 @@ cudaError_t gpu_fire_update_v(gpu_pdata_arrays pdata,
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (pdata.local_num/block_size) + 1, 1, 1);
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
             
     cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);

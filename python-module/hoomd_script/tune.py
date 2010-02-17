@@ -76,7 +76,7 @@ _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.lj': 64, 'dihedr
 
 # no longer independantly tuning 1.0 devices, they are very old
 _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
-_default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 96, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
+_default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
                                  'pair.cgcmm': 352, 'pair.table': 192, 'pair.slj': 352, 'pair.morse': 96, 'nlist': 192,
                                  'bond.harmonic': 352, 'pair.yukawa': 96, 'bond.fene': 224, 'angle.harmonic': 192,
                                  'pair.gauss': 96}

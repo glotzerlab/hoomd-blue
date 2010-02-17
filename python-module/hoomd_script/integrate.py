@@ -967,16 +967,59 @@ class bdnvt_rigid(_integration_method):
 ## Energy Minimizer (FIRE)
 #
 # integrate.energyminimizer_FIRE uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
-# for a group of particles while keeping all other particles fixed.
+# for a group of particles while keeping all other particles fixed.  This method is published in Bitzek, et al, PRL, 2006.
 #
-# For the time being, energy minimization will be handled separately for rigid and non-rigid bodies
+# At each time step,\f$\Delta t \f$, the algorithm uses the NVE Integrator to generate a x, v, and F, and then adjusts v according to
+# \f[ \vec{v} = (1-\alpha)\vec{v} + \alpha \hat{F}|\vec{v}|)  \f]
+# where \f$ \alpha \f$ and \f$\Delta t \f$ are dynamically adaptive quantities.  While a current search has been lowering 
+# the energy of system for more than \f$N_{min}\f$ steps, \f$ \alpha \f$  is decreased by \f$ \alpha \rightarrow \alpha f_{alpha} \f$ and
+# \f$\Delta t \f$ is increased by \f$ \Delta t \rightarrow max(\Delta t * f_{inc}, \Delta t_{max}) \f$.
+# If the energy of the system increases (or stays the same), the velocity of the particles is set to 0,  \f$ \alpha \rightarrow \alpha_{start}\f$ and
+# \f$ \Delta t \rightarrow \Delta t * f_{dec} \f$.  Convergence is determined by either the force per particle or the 
+# change in energy per particle dropping below \a ftol or \a Etol, respectively or,
+# 
+# \f[ \frac{\sum |F|}{N*\sqrt{DOF}} <ftol \;\; or \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
+# where N is the number of particles the minimization is acting over (i.e. the group size).
 #
-# TODO: document me
+# If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept frozen
+# but will still interact as a static force and energy interacton with the particles being moved.
+#
+#
+# \b Example:
+# \code
+# fire=integrate.mode_minimize_fire( group=group.all(), dt=0.05, ftol=1e-7, Etol=1e-7)
+# while not(fire.has_converged()):
+#    xml = dump.xml(filename="dump",period=1)
+#    run(1)
+# \endcode
+#
+# \note As a default setting, the algorithm will start with a \f$ \Delta t = \frac{1}{10} \Delta t_{max} \f$ and attempt
+# at least 10 search steps.  In practice, it was found that this prevents the simulation from making too aggressive a 
+# first step, but also from quitting before having found a good search direction. The minimum number of attempts can be 
+# set by the user. 
+#
+# \warning All other integration methods should be disabled before using the FIRE energy minimizer
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
-    # TODO: document me
-    def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, alpha_final=None, ftol = None, Etol= None):
+    # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting.
+    # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
+    #   - <i>optional</i>: defaults to 5
+    # \param finc Factor to increase \f$ \Delta t \f$ by 
+    #   - <i>optional</i>: defaults to 1.1
+    # \param fdec Factor to decrease \f$ \Delta t \f$ by 
+    #   - <i>optional</i>: defaults to 0.5
+    # \param alpha_start Initial (and maximum) \f$ \alpha \f$ 
+    #   - <i>optional</i>: defaults to 0.1
+    # \param falpha Factor to decrease \f$ \alpha t \f$ by 
+    #   - <i>optional</i>: defaults to 0.99
+    # \param ftol force convergence criteria 
+    #   - <i>optional</i>: defaults to 1e-5
+    # \param Etol energy convergence criteria 
+    #   - <i>optional</i>: defaults to 1e-5
+    # \param min_steps A minimum number of attempts before convergence criteria are considered 
+    #   - <i>optional</i>: defaults to 10
+    def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, falpha=None, ftol = None, Etol= None, min_steps=None):
         util.print_status_line();
         
         # initialize base class
@@ -1004,12 +1047,17 @@ class mode_minimize_fire(_integrator):
             self.cpp_integrator.setFdec(fdec);
         if not(alpha_start is None):
             self.cpp_integrator.setAlphaStart(alpha_start);
-        if not(alpha_final is None):
-            self.cpp_integrator.setFalpha(alpha_final);
+        if not(falpha is None):
+            self.cpp_integrator.setFalpha(falpha);
+        if not(ftol is None):
+            self.cpp_integrator.setFtol(ftol);
+        if not(Etol is None):
+            self.cpp_integrator.setEtol(Etol); 
+        if not(min_steps is None):
+            self.cpp_integrator.setMinSteps(min_steps);               
             
     ## Asks if Energy Minimizer has converged
     #
-    # TODO: document me
     def has_converged(self):
         # check that proper initialization has occured
         if self.cpp_integrator == None:
