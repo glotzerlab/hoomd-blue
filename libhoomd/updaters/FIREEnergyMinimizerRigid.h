@@ -89,10 +89,7 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
             m_nevery = nevery; 
             }
             
-    protected:
-        //! Function to create the underlying integrator 
-        //virtual void createIntegrator();    
-        
+    protected:        
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to the rigid data 
         unsigned int m_nparticles;                  //!< Total number of particles 
         unsigned int m_nevery;                      //!< Period of minimization

@@ -113,6 +113,37 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
+    
+    Scalar tmp, akin_t, akin_r, scale;
+    Scalar dt_half;    
+    dt_half = 0.5 * m_deltaT;
+    
+    // refresh the virial
+    {
+    ArrayHandle<Scalar> virial_handle(virial, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i<virial.getPitch(); i++)
+        virial_handle.data[i] = 0.0;
+    }
+            
+    // update barostat variables a half step
+    {
+    
+    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
+    
+    Scalar kt = boltz * m_temperature->getValue(timestep);
+    w = (nf_t + nf_r + dimension) * kt / (p_freq * p_freq);
+
+    tmp = -1.0 * dt_half * eta_dot_b_handle.data[0];
+    scale = exp(tmp);
+    epsilon_dot += dt_half * f_epsilon;
+    epsilon_dot *= scale;
+    epsilon += m_deltaT * epsilon_dot;
+    dilation = exp(m_deltaT * epsilon_dot);
+    }
+    
+    // update thermostat coupled to barostat
+
+    update_nhcb(timestep);
         
     // profile this step
     if (m_prof)
@@ -176,8 +207,12 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     
     gpu_npt_rigid_data d_npt_rdata;
     d_npt_rdata.n_bodies = d_rdata.n_bodies;
+    d_npt_rdata.nf_t = nf_t;
+    d_npt_rdata.nf_r = nf_r;
+    d_npt_rdata.dimension = dimension;
     d_npt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
     d_npt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_npt_rdata.epsilon_dot = epsilon_dot;
     d_npt_rdata.conjqm = conjqm_handle.data;
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
@@ -192,9 +227,50 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
                                 box,
                                 d_npt_rdata,
                                 m_deltaT));
-
-    
+/*
+    // remap coordinates and box using dilation
+    exec_conf.tagAll(__FILE__, __LINE__);    
+    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_remap, 
+                                d_pdata[0],
+                                d_rdata, 
+                                d_index_array.data,
+                                group_size,
+                                box));
+*/
     m_pdata->release();
+    
+    // update thermostats
+    {
+    if (m_prof)
+        m_prof->push(exec_conf, "NPT reducing");
+    
+    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
+
+    gpu_npt_rigid_data d_npt_rdata;
+    d_npt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
+    d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_npt_rdata.Ksum_t = Ksum_t_handle.data;
+    d_npt_rdata.Ksum_r = Ksum_r_handle.data;
+
+    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_ksum, d_npt_rdata));
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
+
+    {
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
+        
+    akin_t = Ksum_t_handle.data[0];
+    akin_r = Ksum_r_handle.data[0];
+    update_nhcp(akin_t, akin_r, m_deltaT);
+    }
+
     
     // done profiling
     if (m_prof)
@@ -209,48 +285,18 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-        
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
-    // phase 1, reduce to find the final Ksum_t and Ksum_r
-        {
-        if (m_prof)
-            m_prof->push(exec_conf, "NPT reducing");
-        
-        ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
+    Scalar akin_t, akin_r;
+    Scalar dt_half;
+    dt_half = 0.5 * m_deltaT;
     
-        gpu_npt_rigid_data d_npt_rdata;
-        d_npt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
-        d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-        d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
-        d_npt_rdata.Ksum_t = Ksum_t_handle.data;
-        d_npt_rdata.Ksum_r = Ksum_r_handle.data;
-
-        exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_ksum, d_npt_rdata));
-        
-        if (m_prof)
-            m_prof->pop(exec_conf);
-        }
-    
-    // phase 1.5, move the thermostat variables forward
-        {
-        ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
-            
-        Scalar Ksum_t = Ksum_t_handle.data[0];
-        Scalar Ksum_r = Ksum_r_handle.data[0];
-        update_nhcp(Ksum_t, Ksum_r, m_deltaT);
-        }
-
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NPT rigid step 2");
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
+     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -295,14 +341,19 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
     gpu_npt_rigid_data d_npt_rdata;
     d_npt_rdata.n_bodies = d_rdata.n_bodies;
+    d_npt_rdata.nf_t = nf_t;
+    d_npt_rdata.nf_r = nf_r;
+    d_npt_rdata.dimension = dimension;
     d_npt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
     d_npt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
+    d_npt_rdata.epsilon_dot = epsilon_dot;
     d_npt_rdata.conjqm = conjqm_handle.data;
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
@@ -335,6 +386,61 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
+    
+    // calculate current temperature and pressure
+    Scalar t_current, p_current;
+    {
+    if (m_prof)
+        m_prof->push(exec_conf, "NPT reducing");
+    
+    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
+
+    gpu_npt_rigid_data d_npt_rdata;
+    d_npt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
+    d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_npt_rdata.Ksum_t = Ksum_t_handle.data;
+    d_npt_rdata.Ksum_r = Ksum_r_handle.data;
+
+    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_ksum, d_npt_rdata));
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
+
+    {
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
+        
+    akin_t = Ksum_t_handle.data[0];
+    akin_r = Ksum_r_handle.data[0];
+    t_current = (akin_t + akin_r) / (nf_t + nf_r);
+    p_current = computePressure(timestep);
+    }
+    
+    // update barostat
+    {
+    const BoxDim& box = m_pdata->getBox();
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
+    Scalar vol;   // volume
+    if (dimension == 2) 
+        vol = Lx * Ly;
+    else 
+        vol = Lx * Ly * Lz;
+
+    Scalar p_target = m_pressure->getValue(timestep);
+    f_epsilon = dimension * (vol * (p_current - p_target) + t_current);
+    f_epsilon /= w;
+    Scalar tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
+    epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
+    }
+    
     }
 
 void export_TwoStepNPTRigidGPU()

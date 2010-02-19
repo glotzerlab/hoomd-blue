@@ -92,7 +92,8 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
         }
     }
 
-
+/*! Reset minimizer parameters and zero velocities
+*/
 void FIREEnergyMinimizerRigid::reset()
     {
     m_converged = false;

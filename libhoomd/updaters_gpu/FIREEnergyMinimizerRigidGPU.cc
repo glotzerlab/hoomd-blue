@@ -99,21 +99,15 @@ FIREEnergyMinimizerRigidGPU::FIREEnergyMinimizerRigidGPU(boost::shared_ptr<Syste
     if (reset_and_create_integrator)
         {
         reset();
-    //    createIntegrator();
+    
         boost::shared_ptr<TwoStepNVERigidGPU> integrator(new TwoStepNVERigidGPU(sysdef, group));
         addIntegrationMethod(integrator);
         setDeltaT(m_deltaT);
         }
     }
 
-void FIREEnergyMinimizerRigidGPU::createIntegrator()
-    {
-    boost::shared_ptr<ParticleSelector> selector_rigid(new ParticleSelectorRigid(m_sysdef, true));
-    boost::shared_ptr<ParticleGroup> group_rigid(new ParticleGroup(m_sysdef, selector_rigid));
-    boost::shared_ptr<TwoStepNVERigidGPU> integrator(new TwoStepNVERigidGPU(m_sysdef, group_rigid));
-    addIntegrationMethod(integrator);
-    setDeltaT(m_deltaT);
-    }
+/*! Reset minimizer parameters and zero velocities
+*/
 
 void FIREEnergyMinimizerRigidGPU::reset()
     {
@@ -253,7 +247,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     
     }
     
-    printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+//    printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
 
     // Check if convergent
     if ((fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)

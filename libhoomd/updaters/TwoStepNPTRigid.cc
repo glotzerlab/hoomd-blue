@@ -348,10 +348,6 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
         akin_t += body_mass_handle.data[body] * tmp;    
         }
 
-    // remap coordinates and box using dilation
-
-    remap();
-
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
         // step 1.2 - update xcm by full step
@@ -438,7 +434,11 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
 
         }
+    
+    // remap coordinates and box using dilation
 
+    remap();
+    
     // update thermostats
 
     update_nhcp(akin_t, akin_r, timestep);
@@ -979,7 +979,7 @@ void TwoStepNPTRigid::deform(unsigned int flag)
 
 // Convert box coords to reduced lambda coords for one atom: lamda = H^-1 (x - x0)
 /*! 
-   \param x Normal coordinates
+   \param pos Normal coordinates
    \param lambda Reduced coordinates in lambda coords
    \param invLx Inverse box length in x-direction
    \param invLy Inverse box length in y-direction
@@ -1018,7 +1018,9 @@ void TwoStepNPTRigid::lamda2x(Scalar4& lambda, Scalar4& pos, Scalar Lx, Scalar L
 
 
 /*! Update Nose-Hoover thermostats
-
+    \param akin_t Translational kinetic energy
+    \param akin_r Rotational kinetic energy
+    \param timestep Current time step
 */
 void TwoStepNPTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep)
 {
@@ -1121,6 +1123,7 @@ void TwoStepNPTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
     }
 
 /*! Update Nose-Hoover barostats
+    \param timestep Current time step
 */
 void TwoStepNPTRigid::update_nhcb(unsigned int timestep)
     {
@@ -1314,7 +1317,7 @@ void TwoStepNPTRigid::transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scala
     c.z = ax.z * b.x + ay.z * b.y + az.z * b.z;
     }
 
-/*! Taylor expansion
+/*! Maclaurine expansion
     \param x Point to take the expansion
 
 */

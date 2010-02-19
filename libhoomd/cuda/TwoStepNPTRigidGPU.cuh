@@ -56,9 +56,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 struct gpu_npt_rigid_data
     {
     unsigned int n_bodies;  //!< Number of rigid bodies
-    
+    unsigned int nf_t;      //!< Translational degrees of freedom
+    unsigned int nf_r;      //!< Rotational degrees of freedom
+    unsigned int dimension; //!< System dimension
+                                                          
     float  eta_dot_t0;      //!< Thermostat translational velocity
     float  eta_dot_r0;      //!< Thermostat rotational velocity
+    float  epsilon_dot;     //!< Barostat velocity
     float4 *conjqm;         //!< Thermostat angular momentum
         
     float *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2

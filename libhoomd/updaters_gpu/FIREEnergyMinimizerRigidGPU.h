@@ -75,8 +75,6 @@ class FIREEnergyMinimizerRigidGPU : public FIREEnergyMinimizerRigid
         virtual void update(unsigned int);
         
     protected:
-        //! Creates the underlying NVE integrator
-        virtual void createIntegrator();  
         GPUArray<float> m_sum_pe;                  //!< memory space for the sum over potential energy
         GPUArray<float> m_sum_Pt;                 //!< memory space for the sum over P, vsq, fsq
         GPUArray<float> m_sum_Pr;                 //!< memory space for the sum over P, wsq, tsq 
