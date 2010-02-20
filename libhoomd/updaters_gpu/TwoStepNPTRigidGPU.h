@@ -81,6 +81,7 @@ class TwoStepNPTRigidGPU : public TwoStepNPTRigid
         GPUArray<Scalar> m_partial_Ksum_r;  //!< Rotational kinetic energy per body
         GPUArray<Scalar> m_Ksum_t;          //!< Translational kinetic energy 
         GPUArray<Scalar> m_Ksum_r;          //!< Rotational kinetic energy
+        GPUArray<Scalar4> m_new_box;         //!< New box size
     
     };
 

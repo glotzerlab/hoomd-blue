@@ -697,7 +697,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
-    \param npt_rdata Thermostat data
+    \param npt_rdata Thermostat/barostat data
     \param deltaT Amount of real time to step forward in one time step
     
 */
@@ -1129,7 +1129,7 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
     \param box Box dimensions for periodic boundary condition handling
-    \param npt_rdata Thermostat data
+    \param npt_rdata Thermostat/barostat data
     \param deltaT Amount of real time to step forward in one time step
     
 */
@@ -1342,8 +1342,7 @@ extern "C" __global__ void gpu_npt_rigid_reduce_ksum_kernel(gpu_npt_rigid_data n
     }
 
 /*! 
-    \param npt_rdata Thermostat data for rigid bodies 
-    
+    \param npt_rdata Thermostat/barostat data for rigid bodies 
 */
 cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data& npt_rdata)
     {
@@ -1366,3 +1365,130 @@ cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data& npt_rdata)
         }
     }
 
+#pragma mark RIGID_REMAP
+
+/*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
+    \param rdata_com Body center of mass
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param box Box dimensions for periodic boundary condition handling
+    \param npt_rdata Thermostat/barostat data
+    \param dilation Box size change
+    
+*/
+
+extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
+                                                      unsigned int n_bodies, 
+                                                      unsigned int local_beg, 
+                                                      gpu_boxsize box,
+                                                      gpu_npt_rigid_data npt_rdata,
+                                                      float dilation)
+    {
+    unsigned int idx_body = blockIdx.x * blockDim.x + threadIdx.x + local_beg;
+    
+    if (idx_body < n_bodies)
+        {
+        float oldlo, oldhi, ctr;
+        float xlo, xhi, ylo, yhi, zlo, zhi, Lx, Ly, Lz;
+        float4 pos, delta;
+        
+        xlo = -box.Lx/2.0;
+        xhi = box.Lx/2.0;
+        ylo = -box.Ly/2.0;
+        yhi = box.Ly/2.0;
+        zlo = -box.Lz/2.0;
+        zhi = box.Lz/2.0;
+        
+        float4 com = tex1Dfetch(rigid_data_com_tex, idx_body);
+        
+        delta.x = com.x - xlo;
+        delta.y = com.y - ylo;
+        delta.z = com.z - zlo;
+
+        pos.x = box.Lxinv * delta.x;
+        pos.y = box.Lyinv * delta.y;
+        pos.z = box.Lzinv * delta.z;
+        
+        // reset box to new size/shape
+        oldlo = xlo;
+        oldhi = xhi;
+        ctr = 0.5 * (oldlo + oldhi);
+        xlo = (oldlo - ctr) * dilation + ctr;
+        xhi = (oldhi - ctr) * dilation + ctr;
+        Lx = xhi - xlo;
+        
+        oldlo = ylo;
+        oldhi = yhi;
+        ctr = 0.5 * (oldlo + oldhi);
+        ylo = (oldlo - ctr) * dilation + ctr;
+        yhi = (oldhi - ctr) * dilation + ctr;
+        Ly = yhi - ylo;
+        
+        oldlo = zlo;
+        oldhi = zhi;
+        ctr = 0.5 * (oldlo + oldhi);
+        zlo = (oldlo - ctr) * dilation + ctr;
+        zhi = (oldhi - ctr) * dilation + ctr;
+        Lz = zhi - zlo;
+        
+        // convert rigid body COMs back to box coords
+        pos.x = Lx * pos.x;
+        pos.y = Ly * pos.y;
+        pos.z = Lz * pos.z;
+        
+        // write out results
+        *(npt_rdata.new_box) = make_float4(Lx, Ly, Lz, 0.0f);;
+        
+        rdata_com[idx_body].x = pos.x;
+        rdata_com[idx_body].y = pos.y;
+        rdata_com[idx_body].z = pos.z;
+        }
+    
+    }
+
+/*! 
+    \param rigid_data Rigid body data
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+    \param box Box dimensions for periodic boundary condition handling
+    \param npt_rdata Thermostat data
+    \param dilation Box size change 
+*/
+cudaError_t gpu_npt_rigid_remap(const gpu_rigid_data_arrays& rigid_data,
+                                unsigned int *d_group_members,
+                                unsigned int group_size,
+                                const gpu_boxsize &box,
+                                const gpu_npt_rigid_data& npt_rdata,
+                                float dilation)
+    {
+    unsigned int n_bodies = rigid_data.n_bodies;
+    unsigned int local_beg = rigid_data.local_beg;
+        
+    // bind the textures for ALL rigid bodies
+    cudaError_t error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+                                                                                          
+    unsigned int block_size = 64;
+    unsigned int n_blocks = n_bodies / block_size + 1;                                
+    dim3 body_grid(n_blocks, 1, 1);
+    dim3 body_threads(block_size, 1, 1);    
+    
+    gpu_npt_rigid_remap_kernel<<< body_grid, body_threads >>>(rigid_data.com, 
+                                                                n_bodies,
+                                                                local_beg,
+                                                                box, 
+                                                                npt_rdata,
+                                                                dilation);
+    
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+    }

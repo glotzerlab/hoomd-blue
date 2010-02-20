@@ -59,6 +59,7 @@ struct gpu_npt_rigid_data
     unsigned int nf_t;      //!< Translational degrees of freedom
     unsigned int nf_r;      //!< Rotational degrees of freedom
     unsigned int dimension; //!< System dimension
+    float4* new_box;         //!< New box size
                                                           
     float  eta_dot_t0;      //!< Thermostat translational velocity
     float  eta_dot_r0;      //!< Thermostat rotational velocity
@@ -82,6 +83,14 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
 
 //! Kernel driver for the Ksum reduction final pass called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
+
+//! Kernel driver for remap the body COMs from the old box to the new one, called by TwoStepNPTRigidGPU
+cudaError_t gpu_npt_rigid_remap(const gpu_rigid_data_arrays& rigid_data,
+                                unsigned int *d_group_members,
+                                unsigned int group_size,
+                                const gpu_boxsize &box,
+                                const gpu_npt_rigid_data& npt_rdata,
+                                float dilation);
 
 //! Kernel driver for the second part of the NVT update called by TwoStepNVTRigidGPU
 cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata, 

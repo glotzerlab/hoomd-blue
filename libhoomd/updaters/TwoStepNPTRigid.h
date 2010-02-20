@@ -168,12 +168,6 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         //! Transposed matrix multiply
         void transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
         
-        //! Convert normal positions to reduced coordindates
-        void x2lamda(Scalar4& pos, Scalar4& lambda, Scalar invLx, Scalar invLy, Scalar invLz, Scalar xlo, Scalar ylo, Scalar zlo);
-        
-        //! Convert reduced coordindates back to normal positions
-        void lamda2x(Scalar4& lambda, Scalar4& pos, Scalar Lx, Scalar Ly, Scalar Lz);
-        
         //! Maclaurin expansion
         inline Scalar maclaurin_series(Scalar x);
         

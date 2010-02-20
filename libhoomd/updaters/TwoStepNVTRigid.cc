@@ -62,6 +62,7 @@ using namespace boost::python;
  \param group The group of particles this integration method is to work on
  \param T Controlled temperature
  \param tau Time constant
+ \param skip_restart Flag indicating if restart info is skipped
 */
 TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<ParticleGroup> group, 

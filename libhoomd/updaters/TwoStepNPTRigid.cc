@@ -902,20 +902,45 @@ Scalar TwoStepNPTRigid::computeTemperature(unsigned int timestep)
     return T;
     }
     
-/*!
+/*! Calculate the new box size from dilation
+    Remap the rigid body COMs from old box to new box
+    Note that NPT rigid currently only deals with rigid bodies, no point particles
+    For hybrid systems, use TwoStepNPT coupled with TwoStepNVTRigid to avoid duplicating box resize
 */
 void TwoStepNPTRigid::remap()
 {
     Scalar oldlo, oldhi, ctr;
-    Scalar Lx, Ly, Lz;
+    Scalar xlo, ylo, zlo, Lx, Ly, Lz, invLx, invLy, invLz;
     
-    // convert pertinent atoms and rigid bodies to lamda coords
-
-    deform(0);
-
-    // reset box to new size/shape
     BoxDim box = m_pdata->getBox();
     
+    // convert rigid body COMs to lamda coords
+
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+    
+    xlo = box.xlo;
+    ylo = box.ylo;
+    zlo = box.zlo;
+    Lx = box.xhi - box.xlo;
+    Ly = box.yhi - box.ylo;
+    Lz = box.zhi - box.zlo;
+    invLx = 1.0 / Lx;
+    invLy = 1.0 / Ly;
+    invLz = 1.0 / Lz;
+    
+    Scalar4 delta;
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+        delta.x = com_handle.data[body].x - xlo;
+        delta.y = com_handle.data[body].y - ylo;
+        delta.z = com_handle.data[body].z - zlo;
+
+        com_handle.data[body].x = invLx * delta.x;
+        com_handle.data[body].y = invLy * delta.y;
+        com_handle.data[body].z = invLz * delta.z;
+        }
+
+    // reset box to new size/shape
     oldlo = box.xlo;
     oldhi = box.xhi;
     ctr = 0.5 * (oldlo + oldhi);
@@ -939,83 +964,16 @@ void TwoStepNPTRigid::remap()
     
     m_pdata->setBox(BoxDim(Lx, Ly, Lz));
     
-    // convert pertinent atoms and rigid bodies back to box coords
+    // convert rigid body COMs back to box coords
 
-    deform(1);
-    
-    // set the position of constituent particles based on the new center of mass 
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+        {
+        com_handle.data[body].x = Lx * com_handle.data[body].x;
+        com_handle.data[body].y = Ly * com_handle.data[body].y;
+        com_handle.data[body].z = Lz * com_handle.data[body].z;
+        }
     
     }
-
-/*! 
-    \param flag  Flag 0/1 means map from box to lamda coords or vice versa
-*/
-void TwoStepNPTRigid::deform(unsigned int flag)
-{
-    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-    
-    BoxDim box = m_pdata->getBox();
-    Scalar xlo = box.xlo;
-    Scalar ylo = box.ylo;
-    Scalar zlo = box.zlo;
-    Scalar Lx = box.xhi - box.xlo;
-    Scalar Ly = box.yhi - box.ylo;
-    Scalar Lz = box.zhi - box.zlo;
-    Scalar invLx = 1.0 / Lx;
-    Scalar invLy = 1.0 / Ly;
-    Scalar invLz = 1.0 / Lz;
-     
-    if (flag == 0)
-        { 
-        for (unsigned int body = 0; body < m_n_bodies; body++)
-            x2lamda(com_handle.data[body], com_handle.data[body], invLx, invLy, invLz, xlo, ylo, zlo);
-        }
-    else
-        {
-        for (unsigned int body = 0; body < m_n_bodies; body++)
-            lamda2x(com_handle.data[body], com_handle.data[body], Lx, Ly, Lz);
-        }
-}
-
-// Convert box coords to reduced lambda coords for one atom: lamda = H^-1 (x - x0)
-/*! 
-   \param pos Normal coordinates
-   \param lambda Reduced coordinates in lambda coords
-   \param invLx Inverse box length in x-direction
-   \param invLy Inverse box length in y-direction
-   \param invLz Inverse box length in z-direction
-   \param xlo Lower box corner in x-direction
-   \param ylo Lower box corner in y-direction
-   \param zlo Lower box corner in z-direction
-*/
-void TwoStepNPTRigid::x2lamda(Scalar4& pos, Scalar4& lambda, Scalar invLx, Scalar invLy, Scalar invLz, Scalar xlo, Scalar ylo, Scalar zlo)
-{
-    Scalar4 delta;
-    delta.x = pos.x - xlo;
-    delta.y = pos.y - ylo;
-    delta.z = pos.z - zlo;
-
-    lambda.x = invLx * delta.x;
-    lambda.y = invLy * delta.y;
-    lambda.z = invLz * delta.z;
-}
-
-
-// Convert reduced lambda coords to box coords for one atom: pos = H lamda + x0;
-/*! 
-   \param lambda Reduced coordinates in lambda coords
-   \param pos Normal coordinates
-   \param Lx Box length in x-direction
-   \param Ly Box length in y-direction
-   \param Lz Box length in z-direction
-*/
-void TwoStepNPTRigid::lamda2x(Scalar4& lambda, Scalar4& pos, Scalar Lx, Scalar Ly, Scalar Lz)
-{
-    pos.x = Lx * lambda.x;
-    pos.y = Ly * lambda.y;
-    pos.z = Lz * lambda.z;
-}
-
 
 /*! Update Nose-Hoover thermostats
     \param akin_t Translational kinetic energy

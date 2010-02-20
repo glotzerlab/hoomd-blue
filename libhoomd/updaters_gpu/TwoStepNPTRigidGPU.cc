@@ -62,8 +62,10 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param tau Time constant for thermostat
+    \param tauP Time constant for barostat
     \param T Controlled temperature
-    \param tau Time constant
+    \param P Controlled pressure
 */
 TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ParticleGroup> group, 
@@ -95,17 +97,20 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
         if (m_n_bodies <= 0)
             return;
         
-        GPUArray<float> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
+        GPUArray<Scalar> partial_Ksum_t(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_t.swap(partial_Ksum_t);
         
-        GPUArray<float> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
+        GPUArray<Scalar> partial_Ksum_r(m_n_bodies, m_pdata->getExecConf());
         m_partial_Ksum_r.swap(partial_Ksum_r);
         
-        GPUArray<float> Ksum_t(1, m_pdata->getExecConf());
+        GPUArray<Scalar> Ksum_t(1, m_pdata->getExecConf());
         m_Ksum_t.swap(Ksum_t);
         
-        GPUArray<float> Ksum_r(1, m_pdata->getExecConf());
+        GPUArray<Scalar> Ksum_r(1, m_pdata->getExecConf());
         m_Ksum_r.swap(Ksum_r);
+        
+        GPUArray<Scalar4> new_box(1, m_pdata->getExecConf());
+        m_new_box.swap(new_box);
         
         m_first_step = false;
         }
@@ -144,7 +149,8 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     // update thermostat coupled to barostat
 
     update_nhcb(timestep);
-        
+    
+    {
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NPT rigid step 1");
@@ -204,6 +210,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> new_box_handle(m_new_box, access_location::device, access_mode::readwrite);
     
     gpu_npt_rigid_data d_npt_rdata;
     d_npt_rdata.n_bodies = d_rdata.n_bodies;
@@ -216,6 +223,8 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_npt_rdata.conjqm = conjqm_handle.data;
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_npt_rdata.new_box = new_box_handle.data;
+    
     
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);    
@@ -227,17 +236,29 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
                                 box,
                                 d_npt_rdata,
                                 m_deltaT));
-/*
-    // remap coordinates and box using dilation
+
+    // remap COMs into new box using dilation
     exec_conf.tagAll(__FILE__, __LINE__);    
     exec_conf.gpu[0]->call(bind(gpu_npt_rigid_remap, 
-                                d_pdata[0],
                                 d_rdata, 
                                 d_index_array.data,
                                 group_size,
-                                box));
-*/
+                                box,
+                                d_npt_rdata, 
+                                dilation));
+    
     m_pdata->release();
+    
+    }
+    
+    // set new box
+    {
+    ArrayHandle<Scalar4> new_box_handle(m_new_box, access_location::host, access_mode::read);
+    Scalar Lx = new_box_handle.data[0].x;
+    Scalar Ly = new_box_handle.data[0].y;
+    Scalar Lz = new_box_handle.data[0].z;
+    m_pdata->setBox(BoxDim(Lx, Ly, Lz));
+    }
     
     // update thermostats
     {
@@ -248,7 +269,9 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
     ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
-
+    
+    
+    
     gpu_npt_rigid_data d_npt_rdata;
     d_npt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
@@ -261,11 +284,12 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->pop(exec_conf);
     }
-
+    
+    
     {
     ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
-        
+    
     akin_t = Ksum_t_handle.data[0];
     akin_r = Ksum_r_handle.data[0];
     update_nhcp(akin_t, akin_r, m_deltaT);
@@ -290,6 +314,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     Scalar dt_half;
     dt_half = 0.5 * m_deltaT;
     
+    {
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NPT rigid step 2");
@@ -341,7 +366,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
@@ -382,10 +406,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 
    
     m_pdata->release();
-    
-    // done profiling
-    if (m_prof)
-        m_prof->pop(exec_conf);
+    }
     
     // calculate current temperature and pressure
     Scalar t_current, p_current;
@@ -423,6 +444,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     
     // update barostat
     {
+    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
@@ -441,6 +463,9 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
     }
     
+    // done profiling
+    if (m_prof)
+        m_prof->pop(exec_conf);
     }
 
 void export_TwoStepNPTRigidGPU()
