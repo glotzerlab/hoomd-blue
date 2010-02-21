@@ -37,11 +37,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 // $Id: TwoStepNVTRigidGPU.cuh 2626 2010-01-18 06:04:23Z ndtrung $
-// $URL: http://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/cuda/TwoStepNVTRigidGPU.cuh $
+// $URL: http://codeblue.umich.edu/hoomd-blue/svn/branches/rigid-bodies/libhoomd/cuda/TwoStepNPTRigidGPU.cuh $
 // Maintainer: ndtrung
 
-/*! \file TwoStepNVTRigidGPU.cuh
-    \brief Declares GPU kernel code for NVT rigid body integration on the GPU. Used by TwoStepNVTRigidGPU.
+/*! \file TwoStepNPTRigidGPU.cuh
+    \brief Declares GPU kernel code for NPT rigid body integration on the GPU. Used by TwoStepNPTRigidGPU.
 */
 
 #include "ParticleData.cuh"
@@ -59,7 +59,9 @@ struct gpu_npt_rigid_data
     unsigned int nf_t;      //!< Translational degrees of freedom
     unsigned int nf_r;      //!< Rotational degrees of freedom
     unsigned int dimension; //!< System dimension
-    float4* new_box;         //!< New box size
+    float4* new_box;        //!< New box size
+    float    dilation;      //!< Box size change 
+    float*   virial_rigid;  //!< Virial contribution from rigid bodies
                                                           
     float  eta_dot_t0;      //!< Thermostat translational velocity
     float  eta_dot_r0;      //!< Thermostat rotational velocity
@@ -77,6 +79,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                         const gpu_rigid_data_arrays& rigid_data,
                                         unsigned int *d_group_members,
                                         unsigned int group_size,
+                                        float4 *d_net_force,
                                         const gpu_boxsize &box, 
                                         const gpu_npt_rigid_data &npt_rdata,
                                         float deltaT);
@@ -84,13 +87,17 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
 //! Kernel driver for the Ksum reduction final pass called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
 
-//! Kernel driver for remap the body COMs from the old box to the new one, called by TwoStepNPTRigidGPU
-cudaError_t gpu_npt_rigid_remap(const gpu_rigid_data_arrays& rigid_data,
-                                unsigned int *d_group_members,
-                                unsigned int group_size,
-                                const gpu_boxsize &box,
-                                const gpu_npt_rigid_data& npt_rdata,
-                                float dilation);
+//! Kernel driver for the viral reduction final pass called by TwoStepNPTRigidGPU
+cudaError_t gpu_npt_rigid_reduce_partial_virial(gpu_pdata_arrays pdata,
+                              float *d_virial_rigid,
+                              float *d_partial_sum_virial_rigid,
+                              unsigned int block_size,
+                              unsigned int num_blocks);
+
+//! Kernel driver for the viral reduction final pass called by TwoStepNPTRigidGPU
+cudaError_t gpu_npt_rigid_reduce_virial(float *d_partial_sum_virial_rigid, 
+                                        float *d_sum_virial_rigid, 
+                                        unsigned int num_blocks);
 
 //! Kernel driver for the second part of the NVT update called by TwoStepNVTRigidGPU
 cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata, 
@@ -102,5 +109,5 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                     const gpu_npt_rigid_data &npt_rdata,
                                     float deltaT);
 
-#endif // __TWO_STEP_NVT_RIGID_CUH__
+#endif // __TWO_STEP_NPT_RIGID_CUH__
 

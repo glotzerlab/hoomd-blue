@@ -105,6 +105,11 @@ texture<float4, 1, cudaReadModeElementType> rigid_data_torque_tex;
 //! The texture for reading the rigid data conjugate qm array
 texture<float4, 1, cudaReadModeElementType> npt_rdata_conjqm_tex;
 
+//! The texture for reading the rigid virial contribution
+texture<float, 1, cudaReadModeElementType> virial_rigid_tex;
+
+//! The texture for reading the net force array
+texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
 #pragma mark HELPER
 //! Helper functions for rigid body quaternion update
@@ -303,7 +308,85 @@ __device__ float maclaurin_series(float x)
     return (1.0 + (1.0/6.0) * x2 + (1.0/120.0) * x4 + (1.0/5040.0) * x2 * x4 + (1.0/362880.0) * x4 * x4);
     }
 
+#pragma mark RIGID_REMAP_KERNEL
 
+/*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
+    \param rdata_com Body center of mass
+    \param n_bodies Number of rigid bodies
+    \param local_beg Starting body index in this card
+    \param box Box dimensions for periodic boundary condition handling
+    \param npt_rdata Thermostat/barostat data
+*/
+
+extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
+                                                      unsigned int n_bodies, 
+                                                      unsigned int local_beg, 
+                                                      gpu_boxsize box,
+                                                      gpu_npt_rigid_data npt_rdata)
+    {
+    unsigned int idx_body = blockIdx.x * blockDim.x + threadIdx.x + local_beg;
+    
+    if (idx_body < n_bodies)
+        {
+        float oldlo, oldhi, ctr;
+        float xlo, xhi, ylo, yhi, zlo, zhi, Lx, Ly, Lz;
+        float4 pos, delta;
+        float dilation = npt_rdata.dilation;
+        
+        xlo = -box.Lx/2.0;
+        xhi = box.Lx/2.0;
+        ylo = -box.Ly/2.0;
+        yhi = box.Ly/2.0;
+        zlo = -box.Lz/2.0;
+        zhi = box.Lz/2.0;
+        
+        float4 com = tex1Dfetch(rigid_data_com_tex, idx_body);
+        
+        delta.x = com.x - xlo;
+        delta.y = com.y - ylo;
+        delta.z = com.z - zlo;
+
+        pos.x = box.Lxinv * delta.x;
+        pos.y = box.Lyinv * delta.y;
+        pos.z = box.Lzinv * delta.z;
+        
+        // reset box to new size/shape
+        oldlo = xlo;
+        oldhi = xhi;
+        ctr = 0.5 * (oldlo + oldhi);
+        xlo = (oldlo - ctr) * dilation + ctr;
+        xhi = (oldhi - ctr) * dilation + ctr;
+        Lx = xhi - xlo;
+        
+        oldlo = ylo;
+        oldhi = yhi;
+        ctr = 0.5 * (oldlo + oldhi);
+        ylo = (oldlo - ctr) * dilation + ctr;
+        yhi = (oldhi - ctr) * dilation + ctr;
+        Ly = yhi - ylo;
+        
+        oldlo = zlo;
+        oldhi = zhi;
+        ctr = 0.5 * (oldlo + oldhi);
+        zlo = (oldlo - ctr) * dilation + ctr;
+        zhi = (oldhi - ctr) * dilation + ctr;
+        Lz = zhi - zlo;
+        
+        // convert rigid body COMs back to box coords
+        pos.x = Lx * pos.x;
+        pos.y = Ly * pos.y;
+        pos.z = Lz * pos.z;
+        
+        // write out results
+        *(npt_rdata.new_box) = make_float4(Lx, Ly, Lz, 0.0f);;
+        
+        rdata_com[idx_body].x = pos.x;
+        rdata_com[idx_body].y = pos.y;
+        rdata_com[idx_body].z = pos.z;
+        }
+    
+    }
+    
 #pragma mark RIGID_STEP_ONE_KERNEL
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
     \param rdata_com Body center of mass
@@ -501,16 +584,20 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
     \param pdata_image Particle image
+    \param d_virial_rigid Virial contribution from rigid bodies
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
     \param box Box dimensions for periodic boundary condition handling
+    \param deltaT Time step
 */
 extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
+                                                        float* d_virial_rigid,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
-                                                        gpu_boxsize box)
+                                                        gpu_boxsize box,
+                                                        float deltaT)
     {
     unsigned int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int idx_body = blockIdx.x + local_beg;
@@ -520,7 +607,8 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
     int body_imagex = 0;
     int body_imagey = 0;
     int body_imagez = 0;
-        
+    float dt_half = 0.5 * deltaT; 
+      
     // ri, body_mass and moment_inertia is used throughout the kernel
     if (idx_body < n_bodies)
         {
@@ -538,14 +626,14 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
         unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);        
         // Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
         // the particle index of these empty slots is set to be INVALID_INDEX.
-        // Setting particle images here is different from normal point particles
-        // because the particle position is set from the body center of mass: 
-        // two adjacent wraps do not mean the particle has moved twice the box lengths, 
-        // so we have to check with the old position
         if (idx_particle_index != INVALID_INDEX)
             {
-            float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+            float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+            float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
+            float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
+            float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
+            float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
             
             // compute ri with new orientation
             ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
@@ -557,7 +645,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
             ppos.x = com.x + ri.x;
             ppos.y = com.y + ri.y;
             ppos.z = com.z + ri.z;
-            ppos.w = pos.w;
+            ppos.w = old_pos.w;
             
             // time to fix the periodic boundary conditions (FLOPS: 15)
             float x_shift = rintf(ppos.x * box.Lxinv);
@@ -582,10 +670,18 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
             pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
             pvel.w = 0.0;
             
+            float4 fc;
+            fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
+            fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
+            fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
+            
+            float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                            
             // write out the results (MEM_TRANSFER: ? bytes)
             pdata_pos[idx_particle_index] = ppos;
             pdata_vel[idx_particle_index] = pvel;
             pdata_image[idx_particle_index] = image;
+            d_virial_rigid[idx_particle_index] = pvirial;
             }
         }
     }
@@ -594,20 +690,24 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
     \param pdata_image Particle image
+    \param d_virial_rigid Virial contribution from rigid bodies
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param block_size Block size
     \param box Box dimensions for periodic boundary condition handling
+    \param deltaT Time step
 */
 extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
+                                                        float* d_virial_rigid,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
                                                         unsigned int nmax,
                                                         unsigned int block_size,
-                                                        gpu_boxsize box)
+                                                        gpu_boxsize box,
+                                                        float deltaT)
     {
     unsigned int idx_body = blockIdx.x + local_beg;
     
@@ -622,6 +722,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
     int body_imagex = 0;
     int body_imagey = 0;
     int body_imagez = 0;
+    float dt_half = 0.5 * deltaT;
     
     if (idx_body < n_bodies)
         {
@@ -646,8 +747,12 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
         if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
             {
             particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-            float4 pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+            float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+            float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
+            float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
+            float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
+            float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
             
             // compute ri with new orientation
             ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
@@ -659,7 +764,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
             ppos.x = com.x + ri.x;
             ppos.y = com.y + ri.y;
             ppos.z = com.z + ri.z;
-            ppos.w = pos.w;
+            ppos.w = old_pos.w;
             
             // time to fix the periodic boundary conditions (FLOPS: 15)
             float x_shift = rintf(ppos.x * box.Lxinv);
@@ -684,10 +789,18 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
             pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
             pvel.w = 0.0;
             
+            float4 fc;
+            fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
+            fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
+            fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
+            
+            float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            
             // write out the results (MEM_TRANSFER: ? bytes)
             pdata_pos[idx_particle_index] = ppos;
             pdata_vel[idx_particle_index] = pvel;
             pdata_image[idx_particle_index] = image;
+            d_virial_rigid[idx_particle_index] = pvirial;
             }
         }
     }
@@ -696,6 +809,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
     \param rigid_data Rigid body data to step forward 1/2 step
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
+    \param d_net_force Particle net forces
     \param box Box dimensions for periodic boundary condition handling
     \param npt_rdata Thermostat/barostat data
     \param deltaT Amount of real time to step forward in one time step
@@ -705,6 +819,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                     const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int *d_group_members,
                                     unsigned int group_size,
+                                    float4 *d_net_force,
                                     const gpu_boxsize &box, 
                                     const gpu_npt_rigid_data& npt_rdata,
                                     float deltaT)
@@ -816,6 +931,18 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                         npt_rdata.dimension,
                                                                         box, 
                                                                         deltaT);
+    
+    // update COMs
+    error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+    
+    gpu_npt_rigid_remap_kernel<<< body_grid, body_threads >>>(rigid_data.com, 
+                                                                n_bodies,
+                                                                local_beg,
+                                                                box, 
+                                                                npt_rdata);
+
 
     // get the body information after the above update
     error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
@@ -854,7 +981,19 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     error = cudaBindTexture(0, pdata_image_tex, pdata.image, sizeof(int4) * pdata.N);
     if (error != cudaSuccess)
         return error;
-
+    
+    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+    
+    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error; 
+        
+    error = cudaBindTexture(0, virial_rigid_tex, npt_rdata.virial_rigid, sizeof(float) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+        
     if (nmax <= 32)
         {
         block_size = nmax; // maximum number of particles in a rigid body: each thread in a block takes care of a particle in a rigid body
@@ -864,9 +1003,11 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
         gpu_rigid_npt_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
+                                                                     npt_rdata.virial_rigid,
                                                                      n_bodies, 
                                                                      local_beg,
-                                                                     box);
+                                                                     box,
+                                                                     deltaT);
         }
     else
         {
@@ -877,11 +1018,13 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
         gpu_rigid_npt_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
+                                                                     npt_rdata.virial_rigid,
                                                                      n_bodies, 
                                                                      local_beg,
                                                                      nmax,
                                                                      block_size,
-                                                                     box);
+                                                                     box,
+                                                                     deltaT);
         }
                                                                     
     if (!g_gpu_error_checking)
@@ -1018,22 +1161,27 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(float4* rdata_vel,
 
 /*!
     \param pdata_vel Particle velocity
+    \param d_virial_rigid Virial contribution from rigid bodies
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param box Box dimensions for periodic boundary condition handling
+    \param deltaT Time step
 */
-extern "C" __global__ void gpu_rigid_npt_step_two_particle_kernel(float4* pdata_vel, 
+extern "C" __global__ void gpu_rigid_npt_step_two_particle_kernel(float4* pdata_vel,
+                                                         float* d_virial_rigid, 
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
                                                          unsigned int nmax,
-                                                         gpu_boxsize box)
+                                                         gpu_boxsize box,
+                                                         float deltaT)
     {
     int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_body = blockIdx.x + local_beg;
     
     unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
     float4 vel, angvel, ex_space, ey_space, ez_space, particle_pos, ri;
+    float dt_half = 0.5 * deltaT;
     
     if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
         {
@@ -1043,6 +1191,12 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_kernel(float4* pdata_
         ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
         ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
         particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+        
+        float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+        float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
+        float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
+        float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
+        float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
             
         ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
         ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
@@ -1055,25 +1209,37 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_kernel(float4* pdata_
         pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
         pvel.w = 0.0;
         
+        float4 fc;
+        fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
+        fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
+        fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
+        
+        float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                            
         // write out the results
         pdata_vel[idx_particle_index] = pvel;
+        d_virial_rigid[idx_particle_index] = pvirial;
         }
     }
 
 /*!
     \param pdata_vel Particle velocity
+    \param d_virial_rigid Virial contribution from rigid bodies
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param block_size Block size
     \param box Box dimensions for periodic boundary condition handling
+    \param deltaT Time step
 */
-extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4* pdata_vel, 
+extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4* pdata_vel,
+                                                         float* d_virial_rigid,
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
                                                          unsigned int nmax,
                                                          unsigned int block_size,
-                                                         gpu_boxsize box)
+                                                         gpu_boxsize box,
+                                                         float deltaT)
     {
     int idx_body = blockIdx.x + local_beg;
     
@@ -1084,7 +1250,8 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4
     float4 ex_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 ey_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 ez_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-
+    float dt_half = 0.5 * deltaT;
+    
     if (idx_body < n_bodies)
         {
         vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
@@ -1104,7 +1271,13 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4
         if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
             {
             particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-                
+            
+            float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+            float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
+            float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
+            float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
+            float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
+            
             ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
             ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
             ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
@@ -1116,8 +1289,16 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4
             pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
             pvel.w = 0.0;
             
+            float4 fc;
+            fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
+            fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
+            fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
+            
+            float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                            
             // write out the results
             pdata_vel[idx_particle_index] = pvel;
+            d_virial_rigid[idx_particle_index] = pvirial;
             }
         }
 
@@ -1207,12 +1388,7 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
         
-    // bind the textures for particles
-    
-    error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-                                                                                          
+                                                                                                                                                                            
     unsigned int block_size = 64;
     unsigned int n_blocks = n_bodies / block_size + 1;                                
     dim3 body_grid(n_blocks, 1, 1);
@@ -1242,30 +1418,55 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     error = cudaBindTexture(0, rigid_data_angvel_tex, rigid_data.angvel, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
- 
+    
+     // bind the textures for particles
+    
+    error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+    
+    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+    
+    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error; 
+        
+    error = cudaBindTexture(0, virial_rigid_tex, npt_rdata.virial_rigid, sizeof(float) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
                                                                                                                                     
     if (nmax <= 32)
         {                                                                                                                                    
         block_size = nmax; // each thread in a block takes care of a particle in a rigid body
         dim3 particle_grid(n_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
-        gpu_rigid_npt_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+        gpu_rigid_npt_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
+                                                        npt_rdata.virial_rigid,
                                                         n_bodies, 
                                                         local_beg,
                                                         nmax, 
-                                                        box);
+                                                        box,
+                                                        deltaT);
         }
     else
         {
         block_size = 16; 
         dim3 particle_grid(n_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
-        gpu_rigid_npt_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+        gpu_rigid_npt_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
+                                                        npt_rdata.virial_rigid,
                                                         n_bodies, 
                                                         local_beg,
                                                         nmax,
                                                         block_size, 
-                                                        box);
+                                                        box,
+                                                        deltaT);
         } 
                                                                                                                                              
     if (!g_gpu_error_checking)
@@ -1365,123 +1566,137 @@ cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data& npt_rdata)
         }
     }
 
-#pragma mark RIGID_REMAP
 
-/*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
-    \param rdata_com Body center of mass
-    \param n_bodies Number of rigid bodies
-    \param local_beg Starting body index in this card
-    \param box Box dimensions for periodic boundary condition handling
-    \param npt_rdata Thermostat/barostat data
-    \param dilation Box size change
-    
+#pragma mark RIGID_VIRIAL_REDUCTION
+
+/*! Kernel to do the partial sum of virial rigid (first pass)
+    \param d_virial_rigid Virial contribution from particles in rigid bodies
+    \param d_partial_sum_virial_rigid Partial sum of virial
+    \param local_num Number of particles in this card
 */
-
-extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
-                                                      unsigned int n_bodies, 
-                                                      unsigned int local_beg, 
-                                                      gpu_boxsize box,
-                                                      gpu_npt_rigid_data npt_rdata,
-                                                      float dilation)
-    {
-    unsigned int idx_body = blockIdx.x * blockDim.x + threadIdx.x + local_beg;
+extern "C" __global__ void gpu_npt_rigid_reduce_partial_virial_rigid_kernel(float *d_virial_rigid, 
+                                                                            float *d_partial_sum_virial_rigid, 
+                                                                            unsigned int local_num)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x; // particle's index
     
-    if (idx_body < n_bodies)
+    // *** First sum the virial
+    float virial = 0.0f;
+    if (idx < local_num)
         {
-        float oldlo, oldhi, ctr;
-        float xlo, xhi, ylo, yhi, zlo, zhi, Lx, Ly, Lz;
-        float4 pos, delta;
-        
-        xlo = -box.Lx/2.0;
-        xhi = box.Lx/2.0;
-        ylo = -box.Ly/2.0;
-        yhi = box.Ly/2.0;
-        zlo = -box.Lz/2.0;
-        zhi = box.Lz/2.0;
-        
-        float4 com = tex1Dfetch(rigid_data_com_tex, idx_body);
-        
-        delta.x = com.x - xlo;
-        delta.y = com.y - ylo;
-        delta.z = com.z - zlo;
-
-        pos.x = box.Lxinv * delta.x;
-        pos.y = box.Lyinv * delta.y;
-        pos.z = box.Lzinv * delta.z;
-        
-        // reset box to new size/shape
-        oldlo = xlo;
-        oldhi = xhi;
-        ctr = 0.5 * (oldlo + oldhi);
-        xlo = (oldlo - ctr) * dilation + ctr;
-        xhi = (oldhi - ctr) * dilation + ctr;
-        Lx = xhi - xlo;
-        
-        oldlo = ylo;
-        oldhi = yhi;
-        ctr = 0.5 * (oldlo + oldhi);
-        ylo = (oldlo - ctr) * dilation + ctr;
-        yhi = (oldhi - ctr) * dilation + ctr;
-        Ly = yhi - ylo;
-        
-        oldlo = zlo;
-        oldhi = zhi;
-        ctr = 0.5 * (oldlo + oldhi);
-        zlo = (oldlo - ctr) * dilation + ctr;
-        zhi = (oldhi - ctr) * dilation + ctr;
-        Lz = zhi - zlo;
-        
-        // convert rigid body COMs back to box coords
-        pos.x = Lx * pos.x;
-        pos.y = Ly * pos.y;
-        pos.z = Lz * pos.z;
-        
-        // write out results
-        *(npt_rdata.new_box) = make_float4(Lx, Ly, Lz, 0.0f);;
-        
-        rdata_com[idx_body].x = pos.x;
-        rdata_com[idx_body].y = pos.y;
-        rdata_com[idx_body].z = pos.z;
+        virial = d_virial_rigid[idx];
         }
     
+    npt_rigid_sdata[threadIdx.x] = virial;
+    __syncthreads();
+    
+    // reduce the sum in parallel
+    int offset = blockDim.x >> 1;
+    while (offset > 0)
+        {
+        if (threadIdx.x < offset)
+            npt_rigid_sdata[threadIdx.x] += npt_rigid_sdata[threadIdx.x + offset];
+        offset >>= 1;
+        __syncthreads();
+        }
+        
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_partial_sum_virial_rigid[blockIdx.x] = npt_rigid_sdata[0];
+        }
+
     }
 
-/*! 
-    \param rigid_data Rigid body data
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
-    \param group_size Number of members in the group
-    \param box Box dimensions for periodic boundary condition handling
-    \param npt_rdata Thermostat data
-    \param dilation Box size change 
+/*!
+    \param pdata Particle data
+    \param d_virial_rigid Virial contribution from particles in rigid bodies
+    \param d_partial_sum_virial_rigid Partial sum of virial rigid
+    \param block_size Block size to do the partial sum
+    \param num_blocks Number of blocks to do the partial sum 
 */
-cudaError_t gpu_npt_rigid_remap(const gpu_rigid_data_arrays& rigid_data,
-                                unsigned int *d_group_members,
-                                unsigned int group_size,
-                                const gpu_boxsize &box,
-                                const gpu_npt_rigid_data& npt_rdata,
-                                float dilation)
+cudaError_t gpu_npt_rigid_reduce_partial_virial(gpu_pdata_arrays pdata,
+                              float *d_virial_rigid,
+                              float *d_partial_sum_virial_rigid,
+                              unsigned int block_size,
+                              unsigned int num_blocks)
+{    
+    // setup the grid to run the kernel
+    dim3 grid(num_blocks, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    
+    // run the kernel
+    gpu_npt_rigid_reduce_partial_virial_rigid_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_virial_rigid,
+                                                                                                    d_partial_sum_virial_rigid, 
+                                                                                                    pdata.local_num);
+    
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+
+}
+
+/*! Kernel to do the total sum of virial rigid from the partial sum (second pass)
+    \param d_partial_sum_virial_rigid Partial sum of virial rigid
+    \param d_sum_virial_rigid Sum of virial rigid
+    \param num_blocks Number of blocks, i.e. the number of elements of the particle sum array
+*/
+extern "C" __global__ void gpu_npt_reduce_virial_rigid_kernel(float *d_partial_sum_virial_rigid, 
+                                                              float *d_sum_virial_rigid, 
+                                                              unsigned int num_blocks)
     {
-    unsigned int n_bodies = rigid_data.n_bodies;
-    unsigned int local_beg = rigid_data.local_beg;
-        
-    // bind the textures for ALL rigid bodies
-    cudaError_t error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
-    if (error != cudaSuccess)
-        return error;
-        
-                                                                                          
-    unsigned int block_size = 64;
-    unsigned int n_blocks = n_bodies / block_size + 1;                                
-    dim3 body_grid(n_blocks, 1, 1);
-    dim3 body_threads(block_size, 1, 1);    
+    float sum_virial = 0.0f;
     
-    gpu_npt_rigid_remap_kernel<<< body_grid, body_threads >>>(rigid_data.com, 
-                                                                n_bodies,
-                                                                local_beg,
-                                                                box, 
-                                                                npt_rdata,
-                                                                dilation);
+    // sum up the values in the partial sum via a sliding window
+    for (int start = 0; start < num_blocks; start += blockDim.x)
+        {
+        __syncthreads();
+        if (start + threadIdx.x < num_blocks)
+            npt_rigid_sdata[threadIdx.x] = d_partial_sum_virial_rigid[start + threadIdx.x];
+        else
+            npt_rigid_sdata[threadIdx.x] = 0.0f;
+        __syncthreads();
+        
+        // reduce the sum in parallel
+        int offset = blockDim.x >> 1;
+        while (offset > 0)
+            {
+            if (threadIdx.x < offset)
+                npt_rigid_sdata[threadIdx.x] += npt_rigid_sdata[threadIdx.x + offset];
+            offset >>= 1;
+            __syncthreads();
+            }
+            
+        // everybody sums up sum2K
+        sum_virial += npt_rigid_sdata[0];
+        }
+        
+    if (threadIdx.x == 0)
+        *d_sum_virial_rigid = sum_virial;
+    }
+
+/*!
+*/
+cudaError_t gpu_npt_rigid_reduce_virial(float *d_partial_sum_virial_rigid, 
+                                        float *d_sum_virial_rigid, 
+                                        unsigned int num_blocks)
+{
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
     
+    // run the kernel
+    gpu_npt_reduce_virial_rigid_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_partial_sum_virial_rigid, 
+                                                                                      d_sum_virial_rigid, 
+                                                                                      num_blocks);
+
     if (!g_gpu_error_checking)
         {
         return cudaSuccess;

@@ -198,7 +198,7 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         
         GPUArray<Scalar4>   conjqm;                 //!< Thermostat conjugate quaternion momentum
         
-        GPUArray<Scalar>    virial;                 //!< Virial contribution from rigid bodies
+        GPUArray<Scalar>    virial_rigid;          //!< Virial contribution from rigid bodies
     };
 
 //! Exports the TwoStepNVTRigid class to python

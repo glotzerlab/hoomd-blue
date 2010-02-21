@@ -75,13 +75,26 @@ class TwoStepNPTRigidGPU : public TwoStepNPTRigid
         
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-    
+        
+        //! Compute pressure
+        virtual Scalar computePressure(unsigned int timestep);
+        
     protected:
         GPUArray<Scalar> m_partial_Ksum_t;  //!< Translational kinetic energy per body
         GPUArray<Scalar> m_partial_Ksum_r;  //!< Rotational kinetic energy per body
         GPUArray<Scalar> m_Ksum_t;          //!< Translational kinetic energy 
         GPUArray<Scalar> m_Ksum_r;          //!< Rotational kinetic energy
-        GPUArray<Scalar4> m_new_box;         //!< New box size
+        GPUArray<Scalar4> m_new_box;        //!< New box size
+        GPUArray<Scalar> m_partial_sum_virial_rigid;  //!< Partial sum for first pass reduction
+        GPUArray<Scalar> m_sum_virial_rigid;  //!< Total sum of virial on the GPU
+        
+        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
+        unsigned int m_group_num_blocks;  //!< Number of blocks of \a block_size to launch when updating the group
+        unsigned int m_full_num_blocks;   //!< Number of blocks to launch when updating all particles
+        GPUArray<Scalar> m_partial_sum2K;  //!< Partial sums from the first pass reduction
+        GPUArray<Scalar> m_sum2K;          //!< Total sum of 2K on the GPU
+        GPUArray<Scalar> m_partial_sumW;   //!< Partial sums for the first pass reduction of W
+        GPUArray<Scalar> m_sumW;           //!< Total sum of W on the GPU
     
     };
 

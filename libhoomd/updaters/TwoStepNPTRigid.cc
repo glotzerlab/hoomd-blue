@@ -222,8 +222,8 @@ void TwoStepNPTRigid::setup()
     m_dof = dimension * non_rigid_count + rigid_dof; 
     
     // setup virial
-    GPUArray<Scalar> viriral_alloc(6, m_pdata->getExecConf());
-    virial.swap(viriral_alloc);
+    GPUArray<Scalar> viriral_rigid_alloc(m_pdata->getN(), m_pdata->getExecConf());
+    virial_rigid.swap(viriral_rigid_alloc);
     
     m_pdata->release();
     }
@@ -289,9 +289,9 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     
     // refresh the virial
     {
-    ArrayHandle<Scalar> virial_handle(virial, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i<virial.getPitch(); i++)
-        virial_handle.data[i] = 0.0;
+    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i<m_pdata->getN(); i++)
+        virial_rigid_handle.data[i] = 0.0;
     }
             
     // update barostat variables a half step
@@ -446,6 +446,7 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     // set positions and velocities of particles in rigid bodies
     set_xv();
     
+    
     if (m_prof)
         m_prof->pop();
 
@@ -491,7 +492,6 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
     
     // intialize velocity scale for translation and rotation
@@ -549,9 +549,9 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     
     if (m_prof)
         m_prof->pop();
-    
+   
     // update barostat
-    
+    ArrayHandle<Scalar> eta_dot_b_handle(eta_dot_b, access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
@@ -588,9 +588,6 @@ void TwoStepNPTRigid::set_xv()
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
-    Scalar Lx2 = Lx / 2.0;
-    Scalar Ly2 = Ly / 2.0;
-    Scalar Lz2 = Lz / 2.0;
     
     Scalar dt_half = 0.5 * m_deltaT;
     
@@ -602,7 +599,10 @@ void TwoStepNPTRigid::set_xv()
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    
+    ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::read);
+    ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::read);
+    ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::read);
+     
     ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
     unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
@@ -613,7 +613,7 @@ void TwoStepNPTRigid::set_xv()
     
     Scalar massone;
     Scalar4 fc;
-    ArrayHandle<Scalar> virial_handle(virial, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::readwrite);
     
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
@@ -654,53 +654,42 @@ void TwoStepNPTRigid::set_xv()
             arrays.y[pidx] = com.data[body].y + yr;
             arrays.z[pidx] = com.data[body].z + zr;
             
-            // setting particle images here is different from normal point particles
-            // because the particle position is set from the body center of mass: 
-            // two adjacent wraps do not mean the particle has moved twice the box lengths, 
-            // so we have to check with the old position
+            // adjust particle images based on body images
+            arrays.ix[pidx] = body_imagex_handle.data[body];
+            arrays.iy[pidx] = body_imagey_handle.data[body];
+            arrays.iz[pidx] = body_imagez_handle.data[body];
+            
             if (arrays.x[pidx] >= box.xhi)
                 {
                 arrays.x[pidx] -= Lx;
-                // adjust image only when particle really move to other side of the box
-                if (arrays.x[pidx] - old_pos.x < -Lx2)   
-                    arrays.ix[pidx]++;
+                arrays.ix[pidx]++;
                 }
             else if (arrays.x[pidx] < box.xlo)
                 {
                 arrays.x[pidx] += Lx;
-                // adjust image only when particle really move to other side of the box
-                if (arrays.x[pidx] - old_pos.x > Lx2)   
-                    arrays.ix[pidx]--;
+                arrays.ix[pidx]--;
                 }
                 
             if (arrays.y[pidx] >= box.yhi)
                 {
                 arrays.y[pidx] -= Ly;
-                // adjust image only when particle really move to other side of the box
-                if (arrays.y[pidx] - old_pos.y < -Ly2) 
-                    arrays.iy[pidx]++;
+                arrays.iy[pidx]++;
                 }
             else if (arrays.y[pidx] < box.ylo)
                 {
                 arrays.y[pidx] += Ly;
-                // adjust image only when particle really move to other side of the box
-                if (arrays.y[pidx] - old_pos.y > Ly2)
-                    arrays.iy[pidx]--;
+                arrays.iy[pidx]--;
                 }
                 
             if (arrays.z[pidx] >= box.zhi)
                 {
                 arrays.z[pidx] -= Lz;
-                // adjust image only when particle really move to other side of the box
-                if (arrays.z[pidx] - old_pos.z < -Lz2)
-                    arrays.iz[pidx]++;
+                arrays.iz[pidx]++;
                 }
             else if (arrays.z[pidx] < box.zlo)
                 {
                 arrays.z[pidx] += Lz;
-                // adjust image only when particle really move to other side of the box
-                if (arrays.z[pidx] - old_pos.z > Lz2)
-                    arrays.iz[pidx]--;
+                arrays.iz[pidx]--;
                 }
             
             Scalar4 old_vel;
@@ -717,14 +706,8 @@ void TwoStepNPTRigid::set_xv()
             fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
             fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
-
-            virial_handle.data[0] += 0.5 * old_pos.x * fc.x;
-            virial_handle.data[1] += 0.5 * old_pos.y * fc.y;
-            virial_handle.data[2] += 0.5 * old_pos.z * fc.z;
-            virial_handle.data[3] += 0.5 * old_pos.x * fc.y;
-            virial_handle.data[4] += 0.5 * old_pos.x * fc.z;
-            virial_handle.data[5] += 0.5 * old_pos.y * fc.z;
-
+            
+            virial_rigid_handle.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }
         
@@ -756,7 +739,7 @@ void TwoStepNPTRigid::set_v()
     
     Scalar massone;
     Scalar4 fc;
-    ArrayHandle<Scalar> virial_handle(virial, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::readwrite);
     
     Scalar dt_half = 0.5 * m_deltaT;
     
@@ -808,12 +791,7 @@ void TwoStepNPTRigid::set_v()
             fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
 
-            virial_handle.data[0] += 0.5 * old_pos.x * fc.x;
-            virial_handle.data[1] += 0.5 * old_pos.y * fc.y;
-            virial_handle.data[2] += 0.5 * old_pos.z * fc.z;
-            virial_handle.data[3] += 0.5 * old_pos.x * fc.y;
-            virial_handle.data[4] += 0.5 * old_pos.x * fc.z;
-            virial_handle.data[5] += 0.5 * old_pos.y * fc.z;
+            virial_rigid_handle.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }
         
@@ -828,7 +806,8 @@ Scalar TwoStepNPTRigid::computePressure(unsigned int timestep)
     {
     // grab access to the particle data
     const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    ArrayHandle<Scalar> h_virial(m_pdata->getNetVirial(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_virial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::read);
     
     // sum up the kinetic energy and virial of the whole system
     double ke_total = 0.0;
@@ -841,11 +820,8 @@ Scalar TwoStepNPTRigid::computePressure(unsigned int timestep)
                                             (double)arrays.vz[i] * (double)arrays.vz[i]);
         
         W += h_virial.data[i];
+        W += virial_rigid_handle.data[i];
         }
-
-    // take into account the virial contribution of the rigid bodies
-    ArrayHandle<Scalar> virial_handle(virial, access_location::host, access_mode::read);
-    W += ((virial_handle.data[0] + virial_handle.data[1] + virial_handle.data[2]) / 3.0);
     
     // compute the system temperature for computing pressure
     ke_total *= 0.5;
