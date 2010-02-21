@@ -770,7 +770,7 @@ class nve_rigid(_integration_method):
 ## NVT Integration for rigid bodies
 #
 # integrate.nvt_rigid performs constant volume, constant temperature simulations of the rigid bodies in the system.
-# The ____ method is used from reference _____.
+# The Nose-Hoover method is used from references Miller et al. (JCP 2002, 116(20)) and Kamberaj et al. (JCP 2005, 112, 224114).
 # It \b only operates on particles that belong to rigid bodies. Use integrate.nvt on particles that do not belong to
 # rigid bodies.
 #
@@ -785,16 +785,17 @@ class nvt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
     # \param T Temperature set point for the thermostat.
+    # \param tau Time constant for the thermostat
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
     # \b Examples:
     # \code
     # rigid = group.rigid()
-    # integrate.nvt_rigid(group=all, T=1.0)
-    # integrator = integrate.nvt_rigid(group=all, tau=1.0)
+    # integrate.nvt_rigid(group=all, T=1.0, tau=10.0)
+    # integrator = integrate.nvt_rigid(group=all, tau=5.0, T=1.0)
     # \endcode
-    def __init__(self, group, T):
+    def __init__(self, group, T, tau):
         util.print_status_line();
         
         # initialize base class
@@ -963,6 +964,89 @@ class bdnvt_rigid(_integration_method):
         for i in xrange(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
+
+## NPT Integration for rigid bodies
+#
+# integrate.npt_rigid performs constant pressure, constant temperature simulations of the rigid bodies in the system.
+# The Nose-Hoover method is used from references Miller et al. (JCP 2002, 116(20)) and Kamberaj et al. (JCP 2005, 112, 224114).
+# It \b only operates on particles that belong to rigid bodies. This integrator works with systems consisting of rigid bodies.
+#
+# \b Limitataions:<br>
+# The specified %group \b MUST be a %group containing all rigid bodies in the system. If any other %group is specified, 
+# integrate.npt_rigid will still behave as if group.rigid() was specified.
+#
+# integrate.npt_rigid is an integration method. It must be used in concert with an integration mode. It can be used while
+# the following modes are active:
+# - integrate.mode_standard
+class npt_rigid(_integration_method):
+    ## Specifies the NVT integration method for rigid bodies
+    # \param group Group of particles on which to apply this method.
+    # \param T Temperature set point for the thermostat.
+    # \param P Pressure set point for the barostat.
+    #
+    # \a T (and P) can be a variant type, allowing for temperature (and pressure) ramps in simulation runs.
+    #
+    # \b Examples:
+    # \code
+    # rigid = group.rigid()
+    # integrate.npt_rigid(group=all, T=1.0, P=1.0)
+    # integrator = integrate.npt_rigid(group=all, T=1.0)
+    # \endcode
+    def __init__(self, group, T, tau, P, tauP):
+        util.print_status_line();
+        
+        # initialize base class
+        _integration_method.__init__(self);
+        
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+        P = variant._setup_variant_input(P);
+        
+        # initialize the reflected c++ class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_method = hoomd.TwoStepNPTRigid(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_method = hoomd.TwoStepNPTRigidGPU(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating NPT rigid integrator");
+    
+    ## Changes parameters of an existing integrator
+    # \param T New temperature (if set)
+    # \param tau New coupling constant (if set)
+    # \param P New pressure (if set)
+    # \param tauP New coupling constant (if set)
+    #
+    # To change the parameters of an existing integrator, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # integrator = integrate.npt_rigid(group=rigid, T=0.65, P=1.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(T=2.0, tau=10.0, P=1.5)
+    # \endcode
+    def set_params(self, T=None, tau=None, P=None, tauP=None):
+        util.print_status_line();
+        # check that proper initialization has occured
+        if self.cpp_method == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError('Error updating nvt rigid params');
+        
+        # change the parameters
+        if T != None:
+            # setup the variant inputs
+            T = variant._setup_variant_input(T);
+            self.cpp_method.setT(T.cpp_variant);
+        if tau != None:
+            self.cpp_method.setTau(tau); 
+        if P != None:
+            # setup the variant inputs
+            P = variant._setup_variant_input(P);
+            self.cpp_method.setP(P.cpp_variant);
+        if tauP != None:
+            self.cpp_method.setTauP(tauP); 
 
 ## Energy Minimizer (FIRE)
 #

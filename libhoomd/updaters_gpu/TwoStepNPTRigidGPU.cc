@@ -70,9 +70,9 @@ using namespace boost;
     \param P Controlled pressure
 */
 TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<ParticleGroup> group, 
+                                   boost::shared_ptr<ParticleGroup> group,
                                    Scalar tau,
-                                   Scalar tauP,
+                                   Scalar tauP, 
                                    boost::shared_ptr<Variant> T,
                                    boost::shared_ptr<Variant> P)
     : TwoStepNPTRigid(sysdef, group, tau, tauP, T, P)
