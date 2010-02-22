@@ -192,7 +192,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     {
     
     ArrayHandle<float> h_sum_pe(m_sum_pe, access_location::host, access_mode::read);
-    energy = h_sum_pe.data[0] / Scalar(n_bodies);    
+    energy = h_sum_pe.data[0] / Scalar(m_nparticles);    
     
     }
 
@@ -251,8 +251,8 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
 
     // Check if convergent
     if ((fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
-
         {
+        printf("f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;
         return;
         }
