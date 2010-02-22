@@ -143,13 +143,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     Scalar tmp, akin_t, akin_r, scale;
     Scalar dt_half;    
     dt_half = 0.5 * m_deltaT;
-    
-    // refresh the virial
-    {
-    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i<m_pdata->getN(); i++)
-        virial_rigid_handle.data[i] = 0.0;
-    }
             
     // update barostat variables a half step
     {

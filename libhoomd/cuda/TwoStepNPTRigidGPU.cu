@@ -308,6 +308,24 @@ __device__ float maclaurin_series(float x)
     return (1.0 + (1.0/6.0) * x2 + (1.0/120.0) * x4 + (1.0/5040.0) * x2 * x4 + (1.0/362880.0) * x4 * x4);
     }
 
+#pragma mark RIGID_ZERO_VIRIAL_KERNEL
+
+/*! Kernel to zero virial contribution from particles from rigid bodies
+    \param d_virial_rigid Virial contribution from particles in rigid bodies
+    \param local_num Number of particles in this card
+*/
+extern "C" __global__ void gpu_npt_rigid_zero_virial_rigid_kernel(float *d_virial_rigid, 
+                                                                 unsigned int local_num)
+    {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x; // particle's index
+
+    if (idx < local_num)
+        {
+        d_virial_rigid[idx] = 0.0;
+        }
+
+    }
+    
 #pragma mark RIGID_REMAP_KERNEL
 
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
@@ -378,14 +396,18 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
         pos.z = Lz * pos.z;
         
         // write out results
-        *(npt_rdata.new_box) = make_float4(Lx, Ly, Lz, 0.0f);;
-        
         rdata_com[idx_body].x = pos.x;
         rdata_com[idx_body].y = pos.y;
         rdata_com[idx_body].z = pos.z;
+        
+        if (idx_body == 0)
+            {
+            *(npt_rdata.new_box) = make_float4(Lx, Ly, Lz, 0.0f);
+            }
         }
     
     }
+
     
 #pragma mark RIGID_STEP_ONE_KERNEL
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVT integration 
@@ -587,7 +609,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
     \param d_virial_rigid Virial contribution from rigid bodies
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
-    \param box Box dimensions for periodic boundary condition handling
+    \param new_box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
 */
 extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_pos,
@@ -596,7 +618,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
                                                         float* d_virial_rigid,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
-                                                        gpu_boxsize box,
+                                                        float4* new_box,
                                                         float deltaT)
     {
     unsigned int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
@@ -608,7 +630,13 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
     int body_imagey = 0;
     int body_imagez = 0;
     float dt_half = 0.5 * deltaT; 
-      
+    
+    float4 boxsize = *new_box;
+    float4 invboxsize;
+    invboxsize.x = 1.0 / boxsize.x;
+    invboxsize.y = 1.0 / boxsize.y;
+    invboxsize.z = 1.0 / boxsize.z;
+     
     // ri, body_mass and moment_inertia is used throughout the kernel
     if (idx_body < n_bodies)
         {
@@ -648,18 +676,18 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
             ppos.w = old_pos.w;
             
             // time to fix the periodic boundary conditions (FLOPS: 15)
-            float x_shift = rintf(ppos.x * box.Lxinv);
-            ppos.x -= box.Lx * x_shift;
+            float x_shift = rintf(ppos.x * invboxsize.x);
+            ppos.x -= boxsize.x * x_shift;
             image.x = body_imagex;
             image.x += (int)x_shift;
             
-            float y_shift = rintf(ppos.y * box.Lyinv);
-            ppos.y -= box.Ly * y_shift;
+            float y_shift = rintf(ppos.y * invboxsize.y);
+            ppos.y -= boxsize.y * y_shift;
             image.y = body_imagey;
             image.y += (int)y_shift;
             
-            float z_shift = rintf(ppos.z * box.Lzinv);
-            ppos.z -= box.Lz * z_shift;
+            float z_shift = rintf(ppos.z * invboxsize.z);
+            ppos.z -= boxsize.z * z_shift;
             image.z = body_imagez;
             image.z += (int)z_shift;
             
@@ -695,7 +723,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
     \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param block_size Block size
-    \param box Box dimensions for periodic boundary condition handling
+    \param new_box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
 */
 extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4* pdata_pos,
@@ -706,11 +734,10 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
                                                         unsigned int local_beg,
                                                         unsigned int nmax,
                                                         unsigned int block_size,
-                                                        gpu_boxsize box,
+                                                        float4* new_box,
                                                         float deltaT)
     {
     unsigned int idx_body = blockIdx.x + local_beg;
-    
     float4 particle_pos, ri;
     
     float4 com = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -723,6 +750,12 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
     int body_imagey = 0;
     int body_imagez = 0;
     float dt_half = 0.5 * deltaT;
+    
+    float4 boxsize = *new_box;
+    float4 invboxsize;
+    invboxsize.x = 1.0 / boxsize.x;
+    invboxsize.y = 1.0 / boxsize.y;
+    invboxsize.z = 1.0 / boxsize.z;
     
     if (idx_body < n_bodies)
         {
@@ -767,18 +800,18 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
             ppos.w = old_pos.w;
             
             // time to fix the periodic boundary conditions (FLOPS: 15)
-            float x_shift = rintf(ppos.x * box.Lxinv);
-            ppos.x -= box.Lx * x_shift;
+            float x_shift = rintf(ppos.x * invboxsize.x);
+            ppos.x -= boxsize.x * x_shift;
             image.x = body_imagex;
             image.x += (int)x_shift;
             
-            float y_shift = rintf(ppos.y * box.Lyinv);
-            ppos.y -= box.Ly * y_shift;
+            float y_shift = rintf(ppos.y * invboxsize.y);
+            ppos.y -= boxsize.y * y_shift;
             image.y = body_imagey;
             image.y += (int)y_shift;
             
-            float z_shift = rintf(ppos.z * box.Lzinv);
-            ppos.z -= box.Lz * z_shift;
+            float z_shift = rintf(ppos.z * invboxsize.z);
+            ppos.z -= boxsize.z * z_shift;
             image.z = body_imagez;
             image.z += (int)z_shift;
             
@@ -943,7 +976,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                 box, 
                                                                 npt_rdata);
 
-
+    
     // get the body information after the above update
     error = cudaBindTexture(0, rigid_data_com_tex, rigid_data.com, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
@@ -993,7 +1026,19 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     error = cudaBindTexture(0, virial_rigid_tex, npt_rdata.virial_rigid, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
         return error;
-        
+    
+    // first refresh the virial rigid
+    {
+    // setup the grid to run the kernel
+    unsigned int block_size = 256;
+    unsigned int num_blocks = pdata.local_num / block_size + 1;
+    dim3 grid(num_blocks, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    
+    // run the kernel
+    gpu_npt_rigid_zero_virial_rigid_kernel<<< grid, threads >>>(npt_rdata.virial_rigid, pdata.local_num);
+    }
+    
     if (nmax <= 32)
         {
         block_size = nmax; // maximum number of particles in a rigid body: each thread in a block takes care of a particle in a rigid body
@@ -1006,7 +1051,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      npt_rdata.virial_rigid,
                                                                      n_bodies, 
                                                                      local_beg,
-                                                                     box,
+                                                                     npt_rdata.new_box,
                                                                      deltaT);
         }
     else
@@ -1023,7 +1068,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      local_beg,
                                                                      nmax,
                                                                      block_size,
-                                                                     box,
+                                                                     npt_rdata.new_box,
                                                                      deltaT);
         }
                                                                     
