@@ -474,6 +474,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
         vol = Lx * Ly * Lz;
 
     Scalar p_target = m_pressure->getValue(timestep);
+    
     f_epsilon = dimension * (vol * (p_current - p_target) + t_current);
     f_epsilon /= w;
     Scalar tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);

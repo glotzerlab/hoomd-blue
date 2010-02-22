@@ -981,6 +981,8 @@ class bdnvt_rigid(_integration_method):
 class npt_rigid(_integration_method):
     ## Specifies the NVT integration method for rigid bodies
     # \param group Group of particles on which to apply this method.
+    # \param tau Time constant for the thermostat
+    # \param tauP Time constatnt for the barostat
     # \param T Temperature set point for the thermostat.
     # \param P Pressure set point for the barostat.
     #
@@ -989,8 +991,8 @@ class npt_rigid(_integration_method):
     # \b Examples:
     # \code
     # rigid = group.rigid()
-    # integrate.npt_rigid(group=all, T=1.0, P=1.0)
-    # integrator = integrate.npt_rigid(group=all, T=1.0)
+    # integrate.npt_rigid(group=all, T=1.0, tau=10.0, P=1.0, tauP=1.0)
+    # 
     # \endcode
     def __init__(self, group, T, tau, P, tauP):
         util.print_status_line();
@@ -1085,7 +1087,7 @@ class npt_rigid(_integration_method):
 # \warning All other integration methods should be disabled before using the FIRE energy minimizer
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
-    #
+    # \param group Particle group to be applied FIRE 
     # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting.
     # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
     #   - <i>optional</i>: defaults to 5
@@ -1156,11 +1158,25 @@ class mode_minimize_fire(_integrator):
 #
 # For the time being, energy minimization will be handled separately for rigid and non-rigid bodies
 #
-# TODO: document me
 class mode_minimize_rigid_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
-    # TODO: document me
+    # \param group Group of particles in rigid bodies
+    # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting.
+    # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
+    #   - <i>optional</i>: defaults to 5
+    # \param finc Factor to increase \f$ \Delta t \f$ by 
+    #   - <i>optional</i>: defaults to 1.1
+    # \param fdec Factor to decrease \f$ \Delta t \f$ by 
+    #   - <i>optional</i>: defaults to 0.5
+    # \param alpha_start Initial (and maximum) \f$ \alpha \f$ 
+    #   - <i>optional</i>: defaults to 0.1
+    # \param falpha Factor to decrease \f$ \alpha t \f$ by 
+    #   - <i>optional</i>: defaults to 0.99
+    # \param ftol force convergence criteria 
+    #   - <i>optional</i>: defaults to 1e-5
+    # \param Etol energy convergence criteria 
+    #   - <i>optional</i>: defaults to 1e-5
     def __init__(self, group, dt, Nmin=None, finc=None, fdec=None, alpha_start=None, alpha_final=None, ftol = None, Etol= None):
         util.print_status_line();
         
