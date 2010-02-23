@@ -16,7 +16,7 @@ log = analyze.log(filename="nvt_basic.log", period=100, overwrite=True, quantiti
 run(50000)
 
 bdnvt.disable()
-nvt = integrate.nvt_rigid(group=group.all(), T=1.2)
+nvt = integrate.nvt_rigid(group=group.all(), T=1.2, tau=10.0)
 
 run(100e3)
 

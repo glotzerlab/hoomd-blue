@@ -468,17 +468,14 @@ void RigidData::initializeData()
             
             // determine the particle position in the body frame
             // with ex_space, ey_space and ex_space vectors computed from the diagonalization
-            Scalar dx = arrays.x[j] - com_handle.data[body].x;
-            Scalar dy = arrays.y[j] - com_handle.data[body].y;
-            Scalar dz = arrays.z[j] - com_handle.data[body].z;
+            Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
+            Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
+            Scalar unwrappedz = arrays.z[j] + Lz * arrays.iz[j];
             
-            if (dx >= Lx/2.0) dx -= Lx;
-            if (dx < -Lx/2.0) dx += Lx;
-            if (dy >= Ly/2.0) dy -= Ly;
-            if (dy < -Ly/2.0) dy += Ly;
-            if (dz >= Lz/2.0) dz -= Lz;
-            if (dz < -Lz/2.0) dz += Lz;
-            
+            Scalar dx = unwrappedx - com_handle.data[body].x;
+            Scalar dy = unwrappedy - com_handle.data[body].y;
+            Scalar dz = unwrappedz - com_handle.data[body].z;
+                        
             unsigned int idx = body * particle_pos_pitch + current_localidx;
             particle_pos_handle.data[idx].x = dx * ex_space_handle.data[body].x + dy * ex_space_handle.data[body].y +
                     dz * ex_space_handle.data[body].z;
