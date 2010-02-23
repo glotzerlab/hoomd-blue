@@ -155,17 +155,23 @@ void RigidData::initializeData()
     Scalar Lz = box.zhi - box.zlo;
     
     // determine the number of rigid bodies
-    unsigned int maxbody = arrays.body[0];
+    unsigned int maxbody = 0;
+    bool found_body = false;
     for (unsigned int j = 0; j < arrays.nparticles; j++)
         {
         if (arrays.body[j] != NO_BODY)
             {
+            found_body = true;
             if (maxbody < arrays.body[j])
                 maxbody = arrays.body[j];
             }
         }
+    
+    if (found_body)
+        m_n_bodies = maxbody + 1;   // arrays.body[j] is numbered from 0
+    else
+        m_n_bodies = 0;
         
-    m_n_bodies = maxbody + 1;   // arrays.body[j] is numbered from 0
     if (m_n_bodies <= 0)
         {
         m_pdata->release();
