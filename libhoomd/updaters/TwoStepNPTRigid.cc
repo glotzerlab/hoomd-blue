@@ -444,7 +444,7 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     update_nhcp(akin_t, akin_r, timestep);
 
     // set positions and velocities of particles in rigid bodies
-    set_xv();
+    set_xv(timestep);
     
     
     if (m_prof)
@@ -462,7 +462,7 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
         return;
         
     // compute net forces and torques on rigid bodies from particle forces
-    computeForceAndTorque();
+    computeForceAndTorque(timestep);
     
     if (m_prof)
         m_prof->push("NPT rigid step 2");
@@ -545,7 +545,7 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
         }
         
     // set velocities of particles in rigid bodies
-    set_v();
+    set_v(timestep);
     
     if (m_prof)
         m_prof->pop();
@@ -577,8 +577,9 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
 /* Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
    based on the body center of mass and particle relative position in each body frame.
    References for rigid body virial contribution: N. Matyr et al, PRE 1999, 59 (3), 3733.
+   \param timestep Current time step
 */
-void TwoStepNPTRigid::set_xv()
+void TwoStepNPTRigid::set_xv(unsigned int timestep)
     {
     // get box
     const BoxDim& box = m_pdata->getBox();
@@ -718,8 +719,9 @@ void TwoStepNPTRigid::set_xv()
 /* Set velocity of constituent particles in rigid bodies in the 2nd half of integration
    based on the body center of mass and particle relative position in each body frame.
    References for rigid body virial contribution: N. Matyr et al, PRE 1999, 59 (3), 3733.
+   \param timestep Current time step
 */
-void TwoStepNPTRigid::set_v()
+void TwoStepNPTRigid::set_v(unsigned int timestep)
     {
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);

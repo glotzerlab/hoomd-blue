@@ -62,7 +62,7 @@ using namespace boost;
 using namespace std;
 
 //! Tolerance for zero principle moment of inertia
-#define EPSILON 1.0e-7
+#define EPSILON 1.0e-3
 //! Maximum number of iterations for Jacobi rotations
 #define MAXJACOBI 50
 //! Maximum value macro

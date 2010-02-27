@@ -136,10 +136,10 @@ class TwoStepNPTRigid : public TwoStepNVERigid
                 
     protected:
         //! Set positions and velocities for particles in rigid bodies at the first step
-        void set_xv();
+        void set_xv(unsigned int timestep);
         
         //! Set velocities for particles in rigid bodies at the second step
-        void set_v();
+        void set_v(unsigned int timestep);
         
         //! Update thermostats
         void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);

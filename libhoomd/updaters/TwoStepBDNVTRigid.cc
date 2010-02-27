@@ -171,12 +171,12 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         h_net_force.data[j].z += bd_fz;
         }
         
-        m_pdata->release();
+    m_pdata->release();
     }
         
     // Perform the second step like in TwoStepNVERigid
     // compute net forces and torques on rigid bodies from particle forces
-    computeForceAndTorque();
+    computeForceAndTorque(timestep);
     
         {
         // rigid data handes
@@ -214,7 +214,7 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         } // out of scope for handles
         
     // set velocities of particles in rigid bodies
-    set_v();
+    set_v(timestep);
     
     // done profiling
     if (m_prof)

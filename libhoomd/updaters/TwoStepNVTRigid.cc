@@ -438,7 +438,7 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     
     
     // set positions and velocities of particles in rigid bodies
-    set_xv();
+    set_xv(timestep);
     
     if (m_prof)
         m_prof->pop();
@@ -452,7 +452,7 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
         return;
         
     // compute net forces and torques on rigid bodies from particle forces
-    computeForceAndTorque();
+    computeForceAndTorque(timestep);
     
     if (m_prof)
         m_prof->push("NVT rigid step 2");
@@ -523,7 +523,7 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
         } // out of scope for handles
         
     // set velocities of particles in rigid bodies
-    set_v();
+    set_v(timestep);
     
     if (m_prof)
         m_prof->pop();

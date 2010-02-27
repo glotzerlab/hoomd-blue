@@ -81,17 +81,17 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         virtual void integrateStepTwo(unsigned int timestep);        
        
         //! Computes the body forces and torques
-        void computeForceAndTorque();
+        void computeForceAndTorque(unsigned int timestep);
         
     protected:
         //! Integrator variables
         virtual void setRestartIntegratorVariables();
         
         //! Set positions and velocities for particles in rigid bodies at the first step
-        void set_xv();
+        void set_xv(unsigned int timestep);
         
         //! Set velocities for particles in rigid bodies at the second step
-        void set_v();
+        void set_v(unsigned int timestep);
         
         //! Convert quaternion to rotation matrix
         void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);

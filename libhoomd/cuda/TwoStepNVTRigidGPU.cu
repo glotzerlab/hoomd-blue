@@ -53,6 +53,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
 */
 
+//! Absolute threshold for zero moment of inertia
+#define EPSILON 1e-3
+
 //! Flag for invalid particle index, identical to the sentinel value NO_INDEX in RigidData.h
 #define INVALID_INDEX 0xffffffff
 
@@ -150,13 +153,13 @@ __device__ void computeAngularVelocity(float4& angmom, float4& moment_inertia, f
     float4 angbody;
     
     //! angbody = angmom_body / moment_inertia = transpose(rotation_matrix) * angmom / moment_inertia
-    if (moment_inertia.x == 0.0) angbody.x = 0.0;
+    if (moment_inertia.x < EPSILON) angbody.x = 0.0;
     else angbody.x = (ex_space.x * angmom.x + ex_space.y * angmom.y + ex_space.z * angmom.z) / moment_inertia.x;
     
-    if (moment_inertia.y == 0.0) angbody.y = 0.0;
+    if (moment_inertia.y < EPSILON) angbody.y = 0.0;
     else angbody.y = (ey_space.x * angmom.x + ey_space.y * angmom.y + ey_space.z * angmom.z) / moment_inertia.y;
     
-    if (moment_inertia.z == 0.0) angbody.z = 0.0;
+    if (moment_inertia.z < EPSILON) angbody.z = 0.0;
     else angbody.z = (ez_space.x * angmom.x + ez_space.y * angmom.y + ez_space.z * angmom.z) / moment_inertia.z;
     
     //! Convert to angbody to the space frame: angvel = rotation_matrix * angbody

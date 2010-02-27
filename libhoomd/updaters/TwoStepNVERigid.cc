@@ -53,6 +53,12 @@ using namespace boost::python;
 
 #include "TwoStepNVERigid.h"
 #include <math.h>
+#include <fstream>
+
+//! Absolute threshold for zero moment of inertia
+#define EPSILON 1e-3
+
+using namespace std;
 
 /*! \file TwoStepNVERigid.cc
  \brief Defines the TwoStepNVERigid class
@@ -191,7 +197,7 @@ void TwoStepNVERigid::setup()
                 fx = h_net_force.data[pidx].x;
                 fy = h_net_force.data[pidx].y;
                 fz = h_net_force.data[pidx].z;
-                    
+                
                 force_handle.data[body].x += fx;
                 force_handle.data[body].y += fy;
                 force_handle.data[body].z += fz;
@@ -238,8 +244,37 @@ void TwoStepNVERigid::setup()
         } // out of scope for handles   
     
     // Set the velocities of particles in rigid bodies
-    set_v();
-
+    set_v(0);
+/*
+#define __DEBUG
+#ifdef __DEBUG
+    {
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+                
+    std::ofstream ofs("bodies.txt");
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+    {
+        ofs << "body " << body << "\n";
+        ofs << "angvel = " << angvel_handle.data[body].x << "\t" << angvel_handle.data[body].y << "\t" << angvel_handle.data[body].z << "\n";
+        ofs << "force = " << force_handle.data[body].x << "\t" << force_handle.data[body].y << "\t" << force_handle.data[body].z << "\n";
+        ofs << "torque = " << torque_handle.data[body].x << "\t" << torque_handle.data[body].y << "\t" << torque_handle.data[body].z << "\n";
+        ofs << "angmom = " << angmom_handle.data[body].x << "\t" << angmom_handle.data[body].y << "\t" << angmom_handle.data[body].z << "\n";
+        
+        
+    }
+    ofs.close();
+    }
+#endif
+#undef __DEBUG
+*/
     if (m_prof)
         m_prof->pop();
     }
@@ -353,8 +388,8 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
         } // out of scope for handles
         
     // set positions and velocities of particles in rigid bodies
-    set_xv();
-    
+    set_xv(timestep);
+
     if (m_prof)
         m_prof->pop();
     }
@@ -369,8 +404,37 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         return;
         
     // compute net forces and torques on rigid bodies from particle forces
-    computeForceAndTorque();
-    
+    computeForceAndTorque(timestep);
+/*    
+#define __DEBUG
+#ifdef __DEBUG
+    {
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+                
+    std::ofstream ofs("bodies1.txt");
+    for (unsigned int body = 0; body < m_n_bodies; body++)
+    {
+        ofs << "body " << body << "\n";
+        ofs << "angvel = " << angvel_handle.data[body].x << "\t" << angvel_handle.data[body].y << "\t" << angvel_handle.data[body].z << "\n";
+        ofs << "force = " << force_handle.data[body].x << "\t" << force_handle.data[body].y << "\t" << force_handle.data[body].z << "\n";
+        ofs << "torque = " << torque_handle.data[body].x << "\t" << torque_handle.data[body].y << "\t" << torque_handle.data[body].z << "\n";
+        ofs << "angmom = " << angmom_handle.data[body].x << "\t" << angmom_handle.data[body].y << "\t" << angmom_handle.data[body].z << "\n";
+        
+        
+    }
+    ofs.close();
+    }
+#endif
+//#undef __DEBUG
+*/
     if (m_prof)
         m_prof->push("NVE rigid step 2");
     
@@ -410,16 +474,17 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         } // out of scope for handles
 
     // set velocities of particles in rigid bodies
-    set_v();
+    set_v(timestep);
 
     if (m_prof)
         m_prof->pop();
     }
 
 /* Compute the body forces and torques once all the particle forces are computed
+    \param timestep Current time step
 
 */
-void TwoStepNVERigid::computeForceAndTorque()
+void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push("Rigid force and torque summing");
@@ -469,7 +534,7 @@ void TwoStepNVERigid::computeForceAndTorque()
             Scalar fx = h_net_force.data[pidx].x;
             Scalar fy = h_net_force.data[pidx].y;
             Scalar fz = h_net_force.data[pidx].z;
-            
+
             force_handle.data[body].x += fx;
             force_handle.data[body].y += fy;
             force_handle.data[body].z += fz;
@@ -500,10 +565,10 @@ void TwoStepNVERigid::computeForceAndTorque()
 
 /* Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
     based on the body center of mass and particle relative position in each body frame.
-
+    \param timestep Current time step
 */
 
-void TwoStepNVERigid::set_xv()
+void TwoStepNVERigid::set_xv(unsigned int timestep)
     {
     // get box
     const BoxDim& box = m_pdata->getBox();
@@ -617,10 +682,10 @@ void TwoStepNVERigid::set_xv()
 
 /* Set velocity of constituent particles in rigid bodies in the 2nd half of integration
  based on the body center of mass and particle relative position in each body frame.
+    \param timestep Current time step
+*/
 
- */
-
-void TwoStepNVERigid::set_v()
+void TwoStepNVERigid::set_v(unsigned int timestep)
     {
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
@@ -725,15 +790,15 @@ void TwoStepNVERigid::computeAngularVelocity(Scalar4& angmom, Scalar4& moment_in
     Scalar angbody[3];
     
     //! angbody = angmom_body / moment_inertia = transpose(rotation_matrix) * angmom / moment_inertia
-    if (moment_inertia.x == 0.0) angbody[0] = 0.0;
+    if (moment_inertia.x < EPSILON) angbody[0] = 0.0;
     else angbody[0] = (ex_space.x * angmom.x + ex_space.y * angmom.y
                            + ex_space.z * angmom.z) / moment_inertia.x;
                            
-    if (moment_inertia.y == 0.0) angbody[1] = 0.0;
+    if (moment_inertia.y < EPSILON) angbody[1] = 0.0;
     else angbody[1] = (ey_space.x * angmom.x + ey_space.y * angmom.y
                            + ey_space.z * angmom.z) / moment_inertia.y;
                            
-    if (moment_inertia.z == 0.0) angbody[2] = 0.0;
+    if (moment_inertia.z < EPSILON) angbody[2] = 0.0;
     else angbody[2] = (ez_space.x * angmom.x + ez_space.y * angmom.y
                            + ez_space.z * angmom.z) / moment_inertia.z;
                            
