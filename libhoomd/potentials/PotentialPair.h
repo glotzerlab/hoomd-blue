@@ -412,10 +412,6 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dx*dx + dy*dy + dz*dz;
             
-            if (rsq < 0.25) 
-                printf("overlapping at time step = %d between particle %d (body %d) and particle %d (body %d): dist = %g\n",
-                    timestep, i, arrays.body[i], j, arrays.body[j], sqrt(rsq));
-            
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
             param_type param = h_params.data[typpair_idx];
