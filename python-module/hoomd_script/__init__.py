@@ -175,9 +175,13 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
         globals.neighbor_list.update_rcut();
         globals.neighbor_list.update_exclusions_defaults();
 
+    # detect 0 hours remaining properly
+    if limit_hours == 0.0:
+        print "***Warning! Requesting a run() with a 0 time limit, doing nothing.\n";
+        return;
     if limit_hours == None:
         limit_hours = 0.0
-    
+
     if not quiet:
         print "** starting run **"
     globals.system.run(int(tsteps), callback_period, callback, limit_hours);
