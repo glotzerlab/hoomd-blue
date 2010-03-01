@@ -143,7 +143,9 @@ class _analyzer:
     # to the integer period and the variable period is enabled
     #
     def setupAnalyzer(self, period):
-        if type(period) == type(1):
+        if type(period) == type(1.0):
+            globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, int(period));
+        elif type(period) == type(1):
             globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, period);
         elif type(period) == type(lambda n: n*2):
             globals.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, 1000);
