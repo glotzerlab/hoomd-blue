@@ -47,6 +47,7 @@ import sys;
 import hoomd;
 import util;
 import data;
+import init;
 
 ## \package hoomd_script.force
 # \brief Other types of forces
@@ -69,7 +70,7 @@ class _force:
     # Assigns a name to the force in force_name;
     def __init__(self):
         # check if initialization has occured
-        if globals.system is None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
             raise RuntimeError('Error creating force');
         

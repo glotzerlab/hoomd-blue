@@ -47,6 +47,7 @@ import globals;
 import util;
 import variant;
 import sys;
+import init;
 
 ## \package hoomd_script.update
 # \brief Commands that modify the system state in some way
@@ -70,7 +71,7 @@ class _updater:
     # Assigns a name to the updater in updater_name;
     def __init__(self):
         # check if initialization has occured
-        if globals.system == None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create updater before initialization\n";
             raise RuntimeError('Error creating updater');
         

@@ -47,6 +47,7 @@ import sys;
 import util;
 import globals;
 import data;
+import init;
 
 ## \package hoomd_script.group
 # \brief Commands for grouping particles
@@ -182,7 +183,7 @@ def all():
     util.print_status_line();
 
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
 
@@ -232,7 +233,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
     
@@ -295,7 +296,7 @@ def tags(tag_min, tag_max=None, name=None):
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
     
@@ -340,7 +341,7 @@ def type(type, name=None):
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
 

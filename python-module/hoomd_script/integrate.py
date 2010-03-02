@@ -90,6 +90,7 @@ import globals;
 import sys;
 import util;
 import variant;
+import init;
 
 ## \internal
 # \brief Base class for integrators
@@ -106,7 +107,7 @@ class _integrator:
     # This doesn't really do much bet set some member variables to None
     def __init__(self):
         # check if initialization has occured
-        if globals.system == None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create integrator before initialization\n";
             raise RuntimeError('Error creating integrator');
         
@@ -187,7 +188,7 @@ class _integration_method:
     # Initializes the cpp_method to None.
     def __init__(self):
         # check if initialization has occured
-        if globals.system == None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create an integration method before initialization\n";
             raise RuntimeError('Error creating integration method');
         

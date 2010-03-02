@@ -46,6 +46,7 @@ import hoomd;
 import globals;
 import sys;
 import util;
+import init;
 
 ## \package hoomd_script.analyze
 # \brief Commands that %analyze the system and provide some output
@@ -120,7 +121,7 @@ class _analyzer:
     # Assigns a name to the analyzer in analyzer_name;
     def __init__(self):
         # check if initialization has occurred
-        if globals.system == None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create analyzer before initialization\n";
             raise RuntimeError('Error creating analyzer');
         

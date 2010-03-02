@@ -68,6 +68,16 @@ _options = {};
 #
 # \sa \ref page_quick_start
 
+## Tests if the system has been initialized
+#
+# Returns True if a previous init.create* or init.read* command has completed sucessfully and initialized the system.
+# Returns False otherwise.
+def is_initialized():
+    if globals.system is None:
+        return False;
+    else:
+        return True;
+
 ## Resets all hoomd_script variables
 #
 # After calling init.reset() all global variables used in hoomd_script are cleared and all allocated
@@ -91,13 +101,13 @@ _options = {};
 # .... setup and run simulation
 # \endcode
 def reset():
-    if globals.system_definition == None:
+    if not is_initialized():
         print "\n***Warning! Trying to reset an uninitialized system";
         return;
 
     # perform some reference counting magic to verify that the user has cleared all saved variables
     sysdef = globals.system_definition;
-    globals._clear();
+    globals.clear();
     
     gc.collect();
     count = sys.getrefcount(sysdef)
@@ -161,7 +171,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
     _parse_command_line();
     
     # check if initialization has already occurred
-    if (globals.system_definition != None):
+    if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
 
@@ -215,7 +225,7 @@ def read_xml(filename, time_step = None):
     _parse_command_line();
 
     # check if initialization has already occurred
-    if (globals.system_definition != None):
+    if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
 
@@ -264,7 +274,7 @@ def read_bin(filename):
     _parse_command_line();
 
     # check if initialization has already occurred
-    if (globals.system_definition != None):
+    if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
 
@@ -310,7 +320,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
     my_exec_conf = _create_exec_conf();
     
     # check if initialization has already occurred
-    if (globals.system_definition != None):
+    if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
 
@@ -454,7 +464,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
     my_exec_conf = _create_exec_conf();
         
     # check if initialization has already occured
-    if (globals.system_definition != None):
+    if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError("Error creating random polymers");
     
@@ -666,4 +676,3 @@ def _create_exec_conf():
             raise RuntimeError("Error initializing");
         
     return exec_conf;
-

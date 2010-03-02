@@ -45,6 +45,7 @@
 import hoomd;
 import globals;
 import sys;
+import init;
 
 ## \package hoomd_script.variant
 # \brief Commands for specifying values that vary over time
@@ -64,7 +65,7 @@ class _variant:
     #
     def __init__(self):
         # check if initialization has occured
-        if globals.system == None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create a variant before initialization\n";
             raise RuntimeError('Error creating variant');
         

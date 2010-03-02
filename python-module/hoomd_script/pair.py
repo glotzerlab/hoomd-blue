@@ -74,6 +74,7 @@ import force;
 import hoomd;
 import util;
 import tune;
+import init;
 
 import math;
 import sys;
@@ -212,7 +213,7 @@ class coeff:
     # This can only be run after the system has been initialized
     def verify(self, required_coeffs):
         # first, check that the system has been initialized
-        if globals.system == None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot verify pair coefficients before initialization\n";
             raise RuntimeError('Error verifying pair coefficients');
         
@@ -294,7 +295,7 @@ class nlist:
     # \param r_cut Cutoff radius
     def __init__(self, r_cut):
         # check if initialization has occured
-        if globals.system == None:
+        if not init.is_initialized():
             print >> sys.stderr, "\n***Error!Cannot create neighbor list before initialization\n";
             raise RuntimeError('Error creating neighbor list');
         
