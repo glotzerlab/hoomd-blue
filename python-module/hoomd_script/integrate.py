@@ -127,20 +127,25 @@ class _integrator:
     # \brief True if this integrator supports integration methods
     # \note If hoomd ever needs to support multiple TYPES of methods, we could just change this to a string naming the
     # type that is supported and add a type string to each of the integration_methods.
-    
+
+    ## \internal
+    # \brief Checks that proper initialization has completed
+    def check_initialization(self):
+        # check that we have been initialized properly
+        if self.cpp_integrator is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
+            raise RuntimeError();
+
     ## \internal
     # \brief Updates the integrators in the reflected c++ class
     def update_forces(self):
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
+        self.check_initialization();
         
         # set the forces
         self.cpp_integrator.removeForceComputes();
         for f in globals.forces:
             if f.enabled:
-                if f.cpp_force == None:
+                if f.cpp_force is None:
                     print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
                     raise RuntimeError('Error updating forces');
                 else:
@@ -150,10 +155,7 @@ class _integrator:
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class
     def update_methods(self):
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating integrator methods');
+        self.check_initialization();
             
         # if we support methods, add them all to the list
         if self.supports_methods:
@@ -204,7 +206,15 @@ class _integration_method:
     ## \var cpp_method
     # \internal
     # \brief Stores the C++ side IntegrationMethod managed by this class
-    
+
+    ## \internal
+    # \brief Checks that proper initialization has completed
+    def check_initialization(self):
+        # check that we have been initialized properly
+        if self.cpp_method is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError();
+
     ## Disables the integration method
     #
     # \b Examples:
@@ -225,11 +235,7 @@ class _integration_method:
     # \endcode
     def disable(self):
         util.print_status_line();
-        
-        # check that we have been initialized properly
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error disabling integration method');
+        self.check_initialization()
         
         # check if we are already disabled
         if not self.enabled:
@@ -249,11 +255,7 @@ class _integration_method:
     # See disable() for a detailed description.
     def enable(self):
         util.print_status_line();
-        
-        # check that we have been initialized properly
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error enabling integration method');
+        self.check_initialization();
         
         # check if we are already disabled
         if self.enabled:
@@ -316,13 +318,10 @@ class mode_standard(_integrator):
     # \endcode
     def set_params(self, dt=None):
         util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error updating forces');
+        self.check_initialization();
         
         # change the parameters
-        if dt != None:
+        if dt is not None:
             self.cpp_integrator.setDeltaT(dt);
 
 ## NVT Integration via the Nos&eacute;-Hoover thermostat
@@ -393,17 +392,14 @@ class nvt(_integration_method):
     # \endcode
     def set_params(self, T=None, tau=None):
         util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating nvt params');
+        self.check_initialization();
         
         # change the parameters
-        if T != None:
+        if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
-        if tau != None:
+        if tau is not None:
             self.cpp_method.setTau(tau);
 
 ## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat
@@ -482,25 +478,22 @@ class npt(_integration_method):
     # \endcode
     def set_params(self, T=None, tau=None, P=None, tauP=None, partial_scale=None):
         util.print_status_line();
-        # check that proper initialization has occurred
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating npt params');
+        self.check_initialization();
         
         # change the parameters
-        if T != None:
+        if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
-        if tau != None:
+        if tau is not None:
             self.cpp_method.setTau(tau);
-        if P != None:
+        if P is not None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
-        if tauP != None:
+        if tauP is not None:
             self.cpp_method.setTauP(tauP);
-        if partial_scale != None:
+        if partial_scale is not None:
             self.cpp_method.setPartialScale(partial_scale);
 
 ## NVE Integration via Velocity-Verlet
@@ -555,7 +548,7 @@ class nve(_integration_method):
             raise RuntimeError("Error creating NVE integration method");
         
         # set the limit
-        if limit != None:
+        if limit is not None:
             self.cpp_method.setLimit(limit);
         
         self.cpp_method.setZeroForce(zero_force);
@@ -577,19 +570,16 @@ class nve(_integration_method):
     # \endcode
     def set_params(self, limit=None, zero_force=None):
         util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error setting nve params');
+        self.check_initialization();
         
         # change the parameters
-        if limit != None:
+        if limit is not None:
             if limit == False:
                 self.cpp_method.removeLimit();
             else:
                 self.cpp_method.setLimit(limit);
         
-        if zero_force != None:
+        if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
 
 ## NVT integration via Brownian dynamics
@@ -660,7 +650,7 @@ class bdnvt(_integration_method):
             raise RuntimeError("Error creating BD NVT integrator");
         
         # set the limit
-        if limit != None:
+        if limit is not None:
             self.cpp_method.setLimit(limit);
     
     ## Changes parameters of an existing integrator
@@ -678,13 +668,10 @@ class bdnvt(_integration_method):
     # \endcode
     def set_params(self, T=None):
         util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating bdnvt params');
+        self.check_initialization();
         
         # change the parameters
-        if T != None:
+        if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
@@ -712,11 +699,7 @@ class bdnvt(_integration_method):
     #
     def set_gamma(self, a, gamma):
         util.print_status_line();
-        
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating bdnvt gamma');
+        self.check_initialization();
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -823,9 +806,6 @@ class mode_minimize_fire(_integrator):
     ## Asks if Energy Minimizer has converged
     #
     def has_converged(self):
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error in FIRE Energy Minimizer');
+        self.check_initialization();
         return self.cpp_integrator.hasConverged()
 
