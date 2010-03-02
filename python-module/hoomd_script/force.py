@@ -105,7 +105,7 @@ class _force:
         # check that we have been initialized properly
         if self.cpp_force is None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-            raise RuntimeError('Error disabling force');
+            raise RuntimeError();
         
 
     ## Disables the force
