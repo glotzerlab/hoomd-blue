@@ -22,6 +22,16 @@ class force_constant_tests (unittest.TestCase):
         const = force.constant(fx=1.0, fy=0.5, fz=0.74);
         const.set_force(fx=1.45, fy=0.25, fz=-0.1);
     
+    # test the initialization checks
+    def test_init_checks(self):
+        const = force.constant(fx=1.0, fy=0.5, fz=0.74);
+        const.cpp_force = None;
+        
+        self.assertRaises(RuntimeError, const.set_force, fx=1.45, fy=0.25, fz=-0.1);
+        self.assertRaises(RuntimeError, const.enable);
+        self.assertRaises(RuntimeError, const.disable);
+        self.assertRaises(RuntimeError, const.benchmark, 500);
+        
     def tearDown(self):
         init.reset();
 
