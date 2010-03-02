@@ -39,12 +39,16 @@ else (ENABLE_STATIC)
 endif (ENABLE_STATIC)
 message(STATUS "searching for first: " ${_python_lib_first})
 
+# add a blank suffix to the beginning to find the Python framework
+set(_old_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+set(CMAKE_FIND_LIBRARY_SUFFIXES ";${CMAKE_FIND_LIBRARY_SUFFIXES}")
 find_library(PYTHON_LIBRARY
              NAMES ${_python_lib_first} python${_python_version_no_dots} python${_python_version}
              HINTS ${_python_prefix_hint} ${_python_static_hint}
              PATH_SUFFIXES lib64 lib libs
              NO_DEFAULT_PATH
              )
+set(${CMAKE_FIND_LIBRARY_SUFFIXES} _old_suffixes)
 
 message(STATUS "python library " ${PYTHON_LIBRARY})
 
