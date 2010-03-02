@@ -123,6 +123,14 @@ class _updater:
     # \internal
     # \brief Saved period retrived when an updater is disabled: used to set the period when re-enabled
 
+    ## \internal
+    # \brief Checks that proper initialization has completed
+    def check_initialization(self):
+        # check that we have been initialized properly
+        if self.cpp_updater is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
+            raise RuntimeError();
+
     ## Disables the updater
     #
     # \b Examples:
@@ -144,12 +152,8 @@ class _updater:
     # \endcode
     def disable(self):
         util.print_status_line();
+        self.check_initialization();
         
-        # check that we have been initialized properly
-        if self.cpp_updater == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
-            raise RuntimeError('Error disabling updater');
-            
         # check if we are already disabled
         if not self.enabled:
             print "***Warning! Ignoring command to disable an updater that is already disabled";
@@ -169,11 +173,7 @@ class _updater:
     # See disable() for a detailed description.
     def enable(self):
         util.print_status_line();
-        
-        # check that we have been initialized properly
-        if self.cpp_updater == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
-            raise RuntimeError('Error enabling updater');
+        self.check_initialization();
             
         # check if we are already disabled
         if self.enabled:
@@ -280,13 +280,9 @@ class sort(_updater):
     # \endcode
     def set_params(self, bin_width=None):
         util.print_status_line();
-    
-        # check that proper initialization has occured
-        if self.cpp_updater == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
-            raise RuntimeError('Error setting sorter parameters');
+        self.check_initialization();
         
-        if bin_width != None:
+        if bin_width is not None:
             self.cpp_updater.setBinWidth(bin_width);
 
 
@@ -336,13 +332,9 @@ class rescale_temp(_updater):
     # \endcode
     def set_params(self, T=None):
         util.print_status_line();
-    
-        # check that proper initialization has occured
-        if self.cpp_updater == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
-            raise RuntimeError('Error setting temp_rescale parameters');
+        self.check_initialization();
             
-        if T != None:
+        if T is not None:
             self.cpp_updater.setT(T);
 
 ## Zeroes system momentum
@@ -449,9 +441,9 @@ class box_resize(_updater):
         _updater.__init__(self);
         
         # setup arguments
-        if Ly == None:
+        if Ly is None:
             Ly = Lx;
-        if Lz == None:
+        if Lz is None:
             Lz = Lx;
             
         Lx = variant._setup_variant_input(Lx);
@@ -479,13 +471,9 @@ class box_resize(_updater):
     # \endcode
     def set_params(self, scale_particles=None):
         util.print_status_line();
-    
-        # check that proper initialization has occured
-        if self.cpp_updater == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_updater not set, please report\n";
-            raise RuntimeError('Error setting box_resize parameters');
+        self.check_initialization();
             
-        if scale_particles != None:
+        if scale_particles is not None:
             self.cpp_updater.setParams(scale_particles);
 
 # Global current id counter to assign updaters unique names
