@@ -416,7 +416,7 @@ class log(_analyzer):
     def set_params(self, quantities=None, delimiter=None):
         util.print_status_line();
         
-        if quantities != None:
+        if quantities is not None:
             # set the logged quantities
             quantity_list = hoomd.std_vector_string();
             for item in quantities:

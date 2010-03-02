@@ -419,16 +419,16 @@ class nlist:
     def set_params(self, r_buff=None, check_period=None):
         util.print_status_line();
         
-        if self.cpp_nlist == None:
+        if self.cpp_nlist is None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
             raise RuntimeError('Error setting neighbor list parameters');
         
         # update the parameters
-        if r_buff != None:
+        if r_buff is not None:
             self.cpp_nlist.setRCut(self.r_cut, r_buff);
             self.r_buff = r_buff;
             
-        if check_period != None:
+        if check_period is not None:
             self.cpp_nlist.setEvery(check_period);
 
     ## Resets all exclusions in the neighborlist
@@ -470,14 +470,14 @@ class nlist:
         util.print_status_line();
         self.is_exclusion_overridden = True;
         
-        if self.cpp_nlist == None:
+        if self.cpp_nlist is None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
             raise RuntimeError('Error resetting exclusions');
         
         # clear all of the existing exclusions
         self.cpp_nlist.clearExclusions();
         
-        if exclusions == None:
+        if exclusions is None:
             # confirm that no exclusions are left.
             self.cpp_nlist.countExclusions();
             return
@@ -539,7 +539,7 @@ class nlist:
     #
     def benchmark(self, n):
         # check that we have been initialized properly
-        if self.cpp_nlist == None:
+        if self.cpp_nlist is None:
             print >> sys.stderr, "\nBug in hoomd_script: cpp_nlist not set, please report\n";
             raise RuntimeError('Error benchmarking neighbor list');
         
@@ -554,7 +554,7 @@ class nlist:
 # to be the maximum of the current and the one specified here
 def _update_global_nlist(r_cut):
     # check to see if we need to create the neighbor list
-    if globals.neighbor_list == None:
+    if globals.neighbor_list is None:
         globals.neighbor_list = nlist(r_cut);
         # set the global neighbor list using the evil import __main__ trick to provide the user with a default variable
         import __main__;
@@ -662,7 +662,7 @@ class pair(force._force):
     def set_params(self, mode=None):
         util.print_status_line();
         
-        if mode != None:
+        if mode is not None:
             if mode == "no_shift":
                 self.cpp_force.setShiftMode(self.cpp_class.energyShiftMode.no_shift)
             elif mode == "shift":
@@ -1036,7 +1036,7 @@ class slj(pair):
         
         pair.set_params(self, mode=mode);
         
-        if d_max != None:
+        if d_max is not None:
             self.d_max = d_max;
 
 ## Yukawa %pair %force

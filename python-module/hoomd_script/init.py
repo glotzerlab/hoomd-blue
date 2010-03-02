@@ -234,7 +234,7 @@ def read_xml(filename, time_step = None):
     globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
     
     # initialize the system
-    if time_step == None:
+    if time_step is None:
         globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
     else:
         initializer.setTimeStep(time_step)
@@ -493,7 +493,7 @@ def create_random_polymers(box, polymers, separation, seed=1):
             print >> sys.stderr, '\n***Error! Polymer specification missing bond_len\n';
             raise RuntimeError("Error creating random polymers");
         
-        if min_bond_len == None:
+        if min_bond_len is None:
             min_bond_len = poly['bond_len'];
         else:
             min_bond_len = min(min_bond_len, poly['bond_len']);
