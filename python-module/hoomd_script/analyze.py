@@ -171,6 +171,14 @@ class _analyzer:
     # \internal
     # \brief Saved period retrieved when an analyzer is disabled: used to set the period when re-enabled
 
+    ## \internal
+    # \brief Checks that proper initialization has completed
+    def check_initialization(self):
+        # check that we have been initialized properly
+        if self.cpp_analyzer is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
+            raise RuntimeError();
+
     ## Disables the analyzer
     #
     # \b Examples:
@@ -192,12 +200,8 @@ class _analyzer:
     # \endcode
     def disable(self):
         util.print_status_line();
+        self.check_initialization();
         
-        # check that we have been initialized properly
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error disabling analyzer');
-            
         # check if we are already disabled
         if not self.enabled:
             print "***Warning! Ignoring command to disable an analyzer that is already disabled";
@@ -217,12 +221,8 @@ class _analyzer:
     # See disable() for a detailed description.
     def enable(self):
         util.print_status_line();
+        self.check_initialization();
         
-        # check that we have been initialized properly
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error disabling analyzer');
-            
         # check if we are already disabled
         if self.enabled:
             print "***Warning! Ignoring command to enable an analyzer that is already enabled";

@@ -33,6 +33,14 @@ class analyze_log_tests (unittest.TestCase):
         ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = lambda n: n*10, filename="test.log");
         run(100);        
     
+    # test the initialization checks
+    def test_init_checks(self):
+        ana = analyze.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename="test.log");
+        ana.cpp_analyzer = None;
+        
+        self.assertRaises(RuntimeError, ana.enable);
+        self.assertRaises(RuntimeError, ana.disable);
+    
     def tearDown(self):
         init.reset();
         os.remove("test.log");
