@@ -69,7 +69,7 @@ class _force:
     # Assigns a name to the force in force_name;
     def __init__(self):
         # check if initialization has occured
-        if globals.system == None:
+        if globals.system is None:
             print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
             raise RuntimeError('Error creating force');
         
@@ -98,6 +98,15 @@ class _force:
     # \internal
     # \brief The Force's name as it is assigned to the System
 
+    ## \internal
+    # \brief Checks that proper initialization has completed
+    def check_initialization(self):
+        # check that we have been initialized properly
+        if self.cpp_force is None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+            raise RuntimeError('Error disabling force');
+        
+
     ## Disables the force
     #
     # \b Examples:
@@ -119,11 +128,7 @@ class _force:
     # \endcode
     def disable(self):
         util.print_status_line();
-        
-        # check that we have been initialized properly
-        if self.cpp_force == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-            raise RuntimeError('Error disabling force');
+        self.check_initialization();
             
         # check if we are already disabled
         if not self.enabled:
@@ -163,10 +168,7 @@ class _force:
     # t = force.benchmark(n = 100)
     # \endcode
     def benchmark(self, n):
-        # check that we have been initialized properly
-        if self.cpp_force == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-            raise RuntimeError('Error benchmarking force');
+        self.check_initialization();
         
         # run the benchmark
         return self.cpp_force.benchmark(int(n))
@@ -181,11 +183,7 @@ class _force:
     # See disable() for a detailed description.
     def enable(self):
         util.print_status_line();
-        
-        # check that we have been initialized properly
-        if self.cpp_force == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-            raise RuntimeError('Error enabling force');
+        self.check_initialization();
             
         # check if we are already disabled
         if self.enabled:
@@ -251,10 +249,7 @@ class constant(_force):
     # const.set_force(fx=0.2, fy=0.1, fz=-0.5)
     # \endcode
     def set_force(self, fx, fy, fz):
-        # check that we have been initialized properly
-        if self.cpp_force == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-            raise RuntimeError('Error enabling force');
+        self.check_initialization();
             
         self.cpp_force.setForce(fx, fy, fz);
         
