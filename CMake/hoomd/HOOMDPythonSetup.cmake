@@ -37,7 +37,6 @@ if (ENABLE_STATIC)
 else (ENABLE_STATIC)
     get_filename_component(_python_lib_first ${_python_dynamic_lib_name} NAME)
 endif (ENABLE_STATIC)
-message(STATUS "searching for first: " ${_python_lib_first})
 
 # add a blank suffix to the beginning to find the Python framework
 set(_old_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
@@ -50,8 +49,6 @@ find_library(PYTHON_LIBRARY
              )
 set(${CMAKE_FIND_LIBRARY_SUFFIXES} _old_suffixes)
 
-message(STATUS "python library " ${PYTHON_LIBRARY})
-
 MARK_AS_ADVANCED(
   PYTHON_LIBRARY
   PYTHON_INCLUDE_DIR
@@ -60,3 +57,5 @@ MARK_AS_ADVANCED(
 SET(PYTHON_INCLUDE_DIRS "${PYTHON_INCLUDE_DIR}")
 SET(PYTHON_LIBRARIES "${PYTHON_LIBRARY}")
 
+INCLUDE(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonLibs DEFAULT_MSG PYTHON_LIBRARIES PYTHON_INCLUDE_DIRS)
