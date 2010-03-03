@@ -78,7 +78,7 @@ loggers = [];
 ## \internal
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
-def _clear():
+def clear():
     global system_definition, system, forces, integration_methods, integrator, neighbor_list, loggers;
     
     system_definition = None;

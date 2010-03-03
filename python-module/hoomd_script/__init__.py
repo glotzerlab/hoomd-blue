@@ -156,11 +156,11 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     if not quiet:
         util.print_status_line();
     # check if initialization has occured
-    if (globals.system == None):
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
         raise RuntimeError('Error running');
         
-    if (globals.integrator == None):
+    if globals.integrator is None:
         print "***Warning! Starting a run without an integrator set";
     else:
         globals.integrator.update_forces();
@@ -179,7 +179,7 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
     if limit_hours == 0.0:
         print "***Warning! Requesting a run() with a 0 time limit, doing nothing.\n";
         return;
-    if limit_hours == None:
+    if limit_hours is None:
         limit_hours = 0.0
 
     if not quiet:
@@ -209,7 +209,7 @@ def run_upto(step, **keywords):
     if 'quiet' in keywords and not keywords['quiet']:
         util.print_status_line();
     # check if initialization has occured
-    if (globals.system == None):
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot run before initialization\n";
         raise RuntimeError('Error running');
     
