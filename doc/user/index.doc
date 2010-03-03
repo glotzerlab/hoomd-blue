@@ -59,7 +59,9 @@ Table of contents:
  - \link hoomd_script.init.create_random_polymers() init.create_random_polymers\endlink - <i>\copybrief hoomd_script::init::create_random_polymers() </i>
  - \link hoomd_script.init.read_bin() init.read_bin\endlink - <i>\copybrief hoomd_script::init::read_bin() </i>
  - \link hoomd_script.init.read_xml() init.read_xml\endlink - <i>\copybrief hoomd_script::init::read_xml() </i>
+
  - \link hoomd_script.init.reset() init.reset\endlink - <i>\copybrief hoomd_script::init::reset() </i>
+ - \link hoomd_script.init.is_initialized() init.is_initialized\endlink - <i>\copybrief hoomd_script::init::is_initialized() </i>
 
  - \link hoomd_script.data data access\endlink - <i>\copybrief hoomd_script::data </i>
 

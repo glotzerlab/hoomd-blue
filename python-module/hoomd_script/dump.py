@@ -95,7 +95,7 @@ class xml(analyze._analyzer):
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.HOOMDDumpWriter(globals.system_definition, filename);
         
-        if period != None:
+        if period is not None:
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
@@ -148,53 +148,49 @@ class xml(analyze._analyzer):
                    improper=None,
                    acceleration=None):
         util.print_status_line();
-    
-        # check that proper initialization has occurred
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error setting xml parameters');
-            
+        self.check_initialization();
+        
         if all:
             position = image = velocity = mass = diameter = type = wall = bond = angle = dihedral = improper = True;
             acceleration = body = True;
 
-        if position != None:
+        if position is not None:
             self.cpp_analyzer.setOutputPosition(position);
 
-        if image != None:
+        if image is not None:
             self.cpp_analyzer.setOutputImage(image);
 
-        if velocity != None:
+        if velocity is not None:
             self.cpp_analyzer.setOutputVelocity(velocity);
             
-        if mass != None:
+        if mass is not None:
             self.cpp_analyzer.setOutputMass(mass);
             
-        if diameter != None:
+        if diameter is not None:
             self.cpp_analyzer.setOutputDiameter(diameter);
             
-        if type != None:
+        if type is not None:
             self.cpp_analyzer.setOutputType(type);
         
         if body != None:
             self.cpp_analyzer.setOutputBody(body);
         
-        if wall != None:
+        if wall is not None:
             self.cpp_analyzer.setOutputWall(wall);
             
-        if bond != None:
+        if bond is not None:
             self.cpp_analyzer.setOutputBond(bond);
 
-        if angle != None:
+        if angle is not None:
             self.cpp_analyzer.setOutputAngle(angle);
             
-        if dihedral != None:
+        if dihedral is not None:
             self.cpp_analyzer.setOutputDihedral(dihedral);
             
-        if improper != None:
+        if improper is not None:
             self.cpp_analyzer.setOutputImproper(improper);
         
-        if acceleration != None:
+        if acceleration is not None:
             self.cpp_analyzer.setOutputAccel(acceleration);
             
     ## Write a file at the current time step
@@ -215,11 +211,7 @@ class xml(analyze._analyzer):
     # \endcode
     def write(self, filename):
         util.print_status_line();
-        
-        # check that proper initialization has occured
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error writing xml');
+        self.check_initialization();
         
         self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
 
@@ -292,16 +284,16 @@ class bin(analyze._analyzer):
         
         # handle the alternation setting
         # first, check that they are both set
-        if (file1 != None and file2 == None) or (file2 != None and file1 == None):
+        if (file1 is not None and file2 is None) or (file2 is not None and file1 is None):
             print >> sys.stderr, "\n***Error! file1 and file2 must either both be set or both left as None.\n";
             raise RuntimeError('Error initializing dump.bin');
-        if file1 != None:
+        if file1 is not None:
             self.cpp_analyzer.setAlternatingWrites(file1, file2)
-            if period == None:
+            if period is None:
                 print "\n***Warning! Alternating file output set for dump.bin, but period is not set."
                 print "No output will be written.\n"
         
-        if period != None:
+        if period is not None:
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
@@ -324,11 +316,7 @@ class bin(analyze._analyzer):
     # \endcode
     def write(self, filename):
         util.print_status_line();
-        
-        # check that proper initialization has occured
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error writing xml');
+        self.check_initialization();
         
         self.cpp_analyzer.writeFile(filename, globals.system.getCurrentTimeStep());
 
@@ -371,7 +359,7 @@ class mol2(analyze._analyzer):
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.MOL2DumpWriter(globals.system_definition, filename);
         
-        if period != None:
+        if period is not None:
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
@@ -394,11 +382,7 @@ class mol2(analyze._analyzer):
     # \endcode
     def write(self, filename):
         util.print_status_line();
-        
-        # check that proper initialization has occured
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error writing pdb');
+        self.check_initialization();
         
         self.cpp_analyzer.writeFile(filename);
 
@@ -505,7 +489,7 @@ class pdb(analyze._analyzer):
         # create the c++ mirror class
         self.cpp_analyzer = hoomd.PDBDumpWriter(globals.system_definition, filename);
         
-        if period != None:
+        if period is not None:
             self.setupAnalyzer(period);
             self.enabled = False;
             self.prev_period = 1;
@@ -525,13 +509,9 @@ class pdb(analyze._analyzer):
     # \endcode
     def set_params(self, bond=None):
         util.print_status_line();
-    
-        # check that proper initialization has occured
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error setting pdb parameters');
+        self.check_initialization();
             
-        if bond != None:
+        if bond is not None:
             self.cpp_analyzer.setOutputBond(bond);
     
     ## Write a file at the current time step
@@ -552,11 +532,7 @@ class pdb(analyze._analyzer):
     # \endcode
     def write(self, filename):
         util.print_status_line();
-        
-        # check that proper initialization has occured
-        if self.cpp_analyzer == None:
-            print >> sys.stderr, "\n***Error! Bug in hoomd_script: cpp_analyzer not set, please report\n";
-            raise RuntimeError('Error writing pdb');
+        self.check_initialization();
         
         self.cpp_analyzer.writeFile(filename);
 

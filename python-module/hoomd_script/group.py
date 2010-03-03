@@ -47,6 +47,7 @@ import sys;
 import util;
 import globals;
 import data;
+import init;
 
 ## \package hoomd_script.group
 # \brief Commands for grouping particles
@@ -184,7 +185,7 @@ def all():
     util.print_status_line();
 
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
 
@@ -234,23 +235,23 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
     
     # handle the optional arguments
     box = globals.system_definition.getParticleData().getBox();
-    if xmin == None:
+    if xmin is None:
         xmin = box.xlo - 0.5;
-    if xmax == None:
+    if xmax is None:
         xmax = box.xhi + 0.5;
-    if ymin == None:
+    if ymin is None:
         ymin = box.ylo - 0.5;
-    if ymax == None:
+    if ymax is None:
         ymax = box.yhi + 0.5;
-    if zmin == None:
+    if zmin is None:
         zmin = box.zlo - 0.5;
-    if zmax == None:
+    if zmax is None:
         zmax = box.zhi + 0.5;
     
     ll = hoomd.Scalar3();
@@ -365,19 +366,19 @@ def tags(tag_min, tag_max=None, name=None):
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
     
     # handle the optional argument
-    if tag_max != None:
-        if name == None:
+    if tag_max is not None:
+        if name is None:
             name = 'tags ' + str(tag_min) + '-' + str(tag_max);
     else:
         # if the option is not specified, tag_max is set equal to tag_min to include only that particle in the range
         # and the name is chosen accordingly
         tag_max = tag_min;
-        if name == None:
+        if name is None:
             name = 'tag ' + str(tag_min);
 
     # create the group
@@ -410,13 +411,13 @@ def type(type, name=None):
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
 
     # create the group
     type_id = globals.system_definition.getParticleData().getTypeByName(type);
-    if name == None:
+    if name is None:
         name = 'type ' + type;
     selector = hoomd.ParticleSelectorType(globals.system_definition, type_id, type_id);
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);

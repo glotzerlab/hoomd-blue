@@ -175,7 +175,7 @@ def _get_optimal_block_size(name):
     compute_cap = globals.system_definition.getParticleData().getExecConf().getComputeCapability();
     
     # check for the override first
-    if _override_block_size_db != None:
+    if _override_block_size_db is not None:
         # first verify the compute capability
         if compute_cap == _override_block_size_compute_cap:
             if name in _override_block_size_db:
