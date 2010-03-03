@@ -41,7 +41,7 @@ fi
 
 if [ "$#" -eq 0 ]; then
         # This shell is an interactive launch with no arguments
-        echo "Launching intractive python shell now.... run \"from hoomd_script import *\" to load the HOOMD python module"
+        echo "Launching intractive python shell now.... run \"from hoomd_script import *\" to load the HOOMD-blue python module"
 		echo ""
 fi
 
