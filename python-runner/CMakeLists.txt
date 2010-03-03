@@ -11,12 +11,14 @@ install(TARGETS hoomd
         RUNTIME DESTINATION ${LIB_INSTALL_DIR})
     
 # install the hoomd runner script
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_static.in
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/hoomd_run.in
                 ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
                 @ONLY
                 )
 
+if (NOT WIN32)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/hoomd_run_install
     DESTINATION ${BIN_INSTALL_DIR}
     RENAME hoomd
     )
+endif (NOT WIN32)
