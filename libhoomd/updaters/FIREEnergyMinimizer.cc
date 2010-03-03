@@ -54,6 +54,13 @@ using namespace boost::python;
 #include "FIREEnergyMinimizer.h"
 #include "TwoStepNVE.h"
 
+// windows feels the need to #define min and max
+#ifdef WIN32
+#undef min
+#undef max
+#endif
+
+
 /*! \file FIREEnergyMinimizer.h
     \brief Contains code for the FIREEnergyMinimizer class
 */
@@ -232,7 +239,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
     
-    if ((fnorm/sqrt(m_sysdef->getNDimensions()*group_size) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         m_pdata->release();
