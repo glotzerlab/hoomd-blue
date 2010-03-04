@@ -813,17 +813,14 @@ class nvt_rigid(_integration_method):
     # \endcode
     def set_params(self, T=None, tau=None):
         util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating nvt rigid params');
+        self.check_initialization();
         
         # change the parameters
-        if T != None:
+        if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
-        if tau != None:
+        if tau is not None:
             self.cpp_method.setTau(tau);  
               
 ## NVT integration via Brownian dynamics for rigid bodies
@@ -899,13 +896,10 @@ class bdnvt_rigid(_integration_method):
     # \endcode
     def set_params(self, T=None):
         util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating bdnvt params');
-        
+        self.check_initialization();
+                
         # change the parameters
-        if T != None:
+        if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
@@ -933,11 +927,7 @@ class bdnvt_rigid(_integration_method):
     #
     def set_gamma(self, a, gamma):
         util.print_status_line();
-        
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating bdnvt_rigid gamma');
+        self.check_initialization();
         
         ntypes = globals.system_definition.getParticleData().getNTypes();
         type_list = [];
@@ -1015,23 +1005,20 @@ class npt_rigid(_integration_method):
     # \endcode
     def set_params(self, T=None, tau=None, P=None, tauP=None):
         util.print_status_line();
-        # check that proper initialization has occured
-        if self.cpp_method == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error updating nvt rigid params');
+        self.check_initialization();
         
         # change the parameters
-        if T != None:
+        if T is not None:
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
-        if tau != None:
+        if tau is not None:
             self.cpp_method.setTau(tau); 
-        if P != None:
+        if P is not None:
             # setup the variant inputs
             P = variant._setup_variant_input(P);
             self.cpp_method.setP(P.cpp_variant);
-        if tauP != None:
+        if tauP is not None:
             self.cpp_method.setTauP(tauP); 
 
 ## Energy Minimizer (FIRE)
@@ -1197,9 +1184,6 @@ class mode_minimize_rigid_fire(_integrator):
     #
     # TODO: document me
     def has_converged(self):
-        # check that proper initialization has occured
-        if self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_integrator not set, please report\n";
-            raise RuntimeError('Error in FIRE Energy Minimizer');
+        self.check_initialization();
         return self.cpp_integrator.hasConverged()
  

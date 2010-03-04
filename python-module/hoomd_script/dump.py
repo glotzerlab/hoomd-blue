@@ -172,7 +172,7 @@ class xml(analyze._analyzer):
         if type is not None:
             self.cpp_analyzer.setOutputType(type);
         
-        if body != None:
+        if body is not None:
             self.cpp_analyzer.setOutputBody(body);
         
         if wall is not None:

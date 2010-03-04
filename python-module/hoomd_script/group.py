@@ -292,7 +292,7 @@ def nonrigid():
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
 
@@ -326,7 +326,7 @@ def rigid():
     util.print_status_line();
     
     # check if initialization has occurred
-    if globals.system == None:
+    if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
 
