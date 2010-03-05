@@ -247,15 +247,16 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     
     }
     
-//    printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+    printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
 
     // Check if convergent
     if ((fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
-        printf("f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+       // printf("f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;
         return;
         }
+        
 
     // Update velocities
     {
@@ -277,30 +278,29 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     d_rdata.torque = torque_handle.data;
     
     // Scales velocities and angular momenta
-    Scalar invfnorm, invtnorm;
+    Scalar factor_t, factor_r;
     if (fabs(fnorm) > EPSILON)
-        invfnorm = 1.0 / fnorm; 
+        factor_t = Scalar(m_alpha * vnorm / fnorm);
     else
-        invfnorm = 1.0;
+        factor_t = Scalar(1.0); 
         
     if (fabs(tnorm) > EPSILON)    
-        invtnorm = 1.0 / tnorm;
+        factor_r = Scalar(m_alpha * wnorm / tnorm);
     else 
-        invtnorm = 1.0; 
-
+        factor_r = Scalar(1.0); 
+        
+    
     exec_conf.gpu[0]->call(bind(gpu_fire_rigid_update_v, 
                                             d_rdata, 
                                             m_alpha, 
-                                            vnorm, 
-                                            invfnorm, 
-                                            wnorm, 
-                                            invtnorm));
+                                            factor_t,
+                                            factor_r));
     
     
     if (m_prof)
         m_prof->pop(exec_conf);                
     }
-     
+    
     Scalar P = Pt + Pr;
     if (P > Scalar(0.0))
         {
@@ -336,6 +336,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         }
     m_n_since_start++;            
     m_old_energy = energy;
+    
     }
 
 
