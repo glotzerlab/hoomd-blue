@@ -627,13 +627,10 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
     unsigned int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int idx_body = blockIdx.x + local_beg;
     
-    float4 com, vel, angvel, ex_space, ey_space, ez_space, particle_pos;
-    float4 ri = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    int body_imagex = 0;
-    int body_imagey = 0;
-    int body_imagez = 0;
-    float dt_half = 0.5 * deltaT; 
+    __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
+    __shared__ int body_imagex, body_imagey, body_imagez;
     
+    float dt_half = 0.5 * deltaT; 
     float4 boxsize = *new_box;
     float4 invboxsize;
     invboxsize.x = 1.0 / boxsize.x;
@@ -641,7 +638,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
     invboxsize.z = 1.0 / boxsize.z;
      
     // ri, body_mass and moment_inertia is used throughout the kernel
-    if (idx_body < n_bodies)
+    if (idx_body < n_bodies && threadIdx.x == 0)
         {
         com = tex1Dfetch(rigid_data_com_tex, idx_body);
         vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
@@ -652,13 +649,19 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
         body_imagex = tex1Dfetch(rigid_data_body_imagex_tex, idx_body);
         body_imagey = tex1Dfetch(rigid_data_body_imagey_tex, idx_body);
         body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
-        particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-                    
+        }
+    
+    __syncthreads();
+    
+    if (idx_body < n_bodies)
+        {
         unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);        
         // Since we use nmax for all rigid bodies, there might be some empty slot for particles in a rigid body
         // the particle index of these empty slots is set to be INVALID_INDEX.
         if (idx_particle_index != INVALID_INDEX)
             {
+            float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+            
             float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
@@ -667,6 +670,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_kernel(float4* pdata_
             float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
             
             // compute ri with new orientation
+            float4 ri;
             ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
             ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
             ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
@@ -741,17 +745,9 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
                                                         float deltaT)
     {
     unsigned int idx_body = blockIdx.x + local_beg;
-    float4 particle_pos, ri;
     
-    float4 com = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 vel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 angvel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 ex_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 ey_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 ez_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    int body_imagex = 0;
-    int body_imagey = 0;
-    int body_imagez = 0;
+    __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
+    __shared__ int body_imagex, body_imagey, body_imagez;
     float dt_half = 0.5 * deltaT;
     
     float4 boxsize = *new_box;
@@ -760,7 +756,7 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
     invboxsize.y = 1.0 / boxsize.y;
     invboxsize.z = 1.0 / boxsize.z;
     
-    if (idx_body < n_bodies)
+    if (idx_body < n_bodies && threadIdx.x == 0)
         {
         com = tex1Dfetch(rigid_data_com_tex, idx_body);
         vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
@@ -772,71 +768,77 @@ extern "C" __global__ void gpu_rigid_npt_step_one_particle_sliding_kernel(float4
         body_imagey = tex1Dfetch(rigid_data_body_imagey_tex, idx_body);
         body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
         }
-
-    unsigned int n_windows = nmax / block_size;
+    
+    __syncthreads();
+    
+    unsigned int n_windows = nmax / block_size + 1;
     
     for (unsigned int start = 0; start < n_windows; start++)
         {
         int idx_particle = idx_body * nmax + start * block_size + threadIdx.x;
-        unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);  
-        
-        if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
+        if (idx_particle < nmax * n_bodies && start * block_size + threadIdx.x < nmax)
             {
-            particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-            float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
-            float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
-            int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
-            float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
-            float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
-            float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
+            unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);  
             
-            // compute ri with new orientation
-            ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
-            ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
-            ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
-            
-            // x_particle = com + ri
-            float4 ppos;
-            ppos.x = com.x + ri.x;
-            ppos.y = com.y + ri.y;
-            ppos.z = com.z + ri.z;
-            ppos.w = old_pos.w;
-            
-            // time to fix the periodic boundary conditions (FLOPS: 15)
-            float x_shift = rintf(ppos.x * invboxsize.x);
-            ppos.x -= boxsize.x * x_shift;
-            image.x = body_imagex;
-            image.x += (int)x_shift;
-            
-            float y_shift = rintf(ppos.y * invboxsize.y);
-            ppos.y -= boxsize.y * y_shift;
-            image.y = body_imagey;
-            image.y += (int)y_shift;
-            
-            float z_shift = rintf(ppos.z * invboxsize.z);
-            ppos.z -= boxsize.z * z_shift;
-            image.z = body_imagez;
-            image.z += (int)z_shift;
-            
-            // v_particle = vel + angvel x ri
-            float4 pvel;
-            pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
-            pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
-            pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-            pvel.w = 0.0;
-            
-            float4 fc;
-            fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
-            fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
-            fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
-            
-            float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
-            
-            // write out the results (MEM_TRANSFER: ? bytes)
-            pdata_pos[idx_particle_index] = ppos;
-            pdata_vel[idx_particle_index] = pvel;
-            pdata_image[idx_particle_index] = image;
-            d_virial_rigid[idx_particle_index] = pvirial;
+            if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
+                {
+                float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+                float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+                float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
+                int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
+                float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
+                float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
+                float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
+                
+                // compute ri with new orientation
+                float4 ri;
+                ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
+                ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
+                ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
+                
+                // x_particle = com + ri
+                float4 ppos;
+                ppos.x = com.x + ri.x;
+                ppos.y = com.y + ri.y;
+                ppos.z = com.z + ri.z;
+                ppos.w = old_pos.w;
+                
+                // time to fix the periodic boundary conditions (FLOPS: 15)
+                float x_shift = rintf(ppos.x * invboxsize.x);
+                ppos.x -= boxsize.x * x_shift;
+                image.x = body_imagex;
+                image.x += (int)x_shift;
+                
+                float y_shift = rintf(ppos.y * invboxsize.y);
+                ppos.y -= boxsize.y * y_shift;
+                image.y = body_imagey;
+                image.y += (int)y_shift;
+                
+                float z_shift = rintf(ppos.z * invboxsize.z);
+                ppos.z -= boxsize.z * z_shift;
+                image.z = body_imagez;
+                image.z += (int)z_shift;
+                
+                // v_particle = vel + angvel x ri
+                float4 pvel;
+                pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
+                pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
+                pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
+                pvel.w = 0.0;
+                
+                float4 fc;
+                fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
+                fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
+                fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
+                
+                float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                
+                // write out the results (MEM_TRANSFER: ? bytes)
+                pdata_pos[idx_particle_index] = ppos;
+                pdata_vel[idx_particle_index] = pvel;
+                pdata_image[idx_particle_index] = image;
+                d_virial_rigid[idx_particle_index] = pvirial;
+                }
             }
         }
     }
@@ -1059,7 +1061,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
         }
     else
         {
-        block_size = 16; 
+        block_size = 32; 
         dim3 particle_grid(n_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);
         
@@ -1227,25 +1229,33 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_kernel(float4* pdata_
     int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_body = blockIdx.x + local_beg;
     
-    unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
-    float4 vel, angvel, ex_space, ey_space, ez_space, particle_pos, ri;
+    __shared__ float4 vel, angvel, ex_space, ey_space, ez_space;
+    
     float dt_half = 0.5 * deltaT;
     
-    if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
+    if (idx_body < n_bodies && threadIdx.x == 0)
         {
         vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
         angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
         ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
         ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
         ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
-        particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+        }
+    
+    __syncthreads();
+    
+    unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
+    if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
+        {
+        float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
         
         float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
         float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
         float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
         float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
         float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
-            
+        
+        float4 ri;
         ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
         ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
         ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
@@ -1291,16 +1301,11 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4
     {
     int idx_body = blockIdx.x + local_beg;
     
-    float4 particle_pos, ri;
+    __shared__ float4 vel, angvel, ex_space, ey_space, ez_space;
     
-    float4 vel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 angvel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 ex_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 ey_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 ez_space = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     float dt_half = 0.5 * deltaT;
     
-    if (idx_body < n_bodies)
+    if (idx_body < n_bodies && threadIdx.x == 0)
         {
         vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
         angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
@@ -1309,44 +1314,50 @@ extern "C" __global__ void gpu_rigid_npt_step_two_particle_sliding_kernel(float4
         ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
         }
     
-    unsigned int n_windows = nmax / block_size;
+    __syncthreads();
+    
+    unsigned int n_windows = nmax / block_size + 1;
     
     for (unsigned int start = 0; start < n_windows; start++)
         {
         int idx_particle = idx_body * nmax + start * block_size + threadIdx.x;
-		unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
-    
-        if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
+        if (idx_particle < nmax * n_bodies && start * block_size + threadIdx.x < nmax)
             {
-            particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
-            
-            float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
-            float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
-            float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
-            float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
-            float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
-            
-            ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
-            ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
-            ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
-            
-            // v_particle = v_com + angvel x xr
-            float4 pvel;
-            pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
-            pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
-            pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
-            pvel.w = 0.0;
-            
-            float4 fc;
-            fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
-            fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
-            fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
-            
-            float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
-                            
-            // write out the results
-            pdata_vel[idx_particle_index] = pvel;
-            d_virial_rigid[idx_particle_index] = pvirial;
+            unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
+        
+            if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
+                {
+                float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+                
+                float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
+                float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
+                float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
+                float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
+                float virial = tex1Dfetch(virial_rigid_tex, idx_particle_index);
+                
+                float4 ri;
+                ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
+                ri.y = ex_space.y * particle_pos.x + ey_space.y * particle_pos.y + ez_space.y * particle_pos.z;
+                ri.z = ex_space.z * particle_pos.x + ey_space.z * particle_pos.y + ez_space.z * particle_pos.z;
+                
+                // v_particle = v_com + angvel x xr
+                float4 pvel;
+                pvel.x = vel.x + angvel.y * ri.z - angvel.z * ri.y;
+                pvel.y = vel.y + angvel.z * ri.x - angvel.x * ri.z;
+                pvel.z = vel.z + angvel.x * ri.y - angvel.y * ri.x;
+                pvel.w = 0.0;
+                
+                float4 fc;
+                fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
+                fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
+                fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
+                
+                float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                                
+                // write out the results
+                pdata_vel[idx_particle_index] = pvel;
+                d_virial_rigid[idx_particle_index] = pvirial;
+                }
             }
         }
 
@@ -1504,7 +1515,7 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
         }
     else
         {
-        block_size = 16; 
+        block_size = 32; 
         dim3 particle_grid(n_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
         gpu_rigid_npt_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
@@ -1730,6 +1741,9 @@ extern "C" __global__ void gpu_npt_reduce_virial_rigid_kernel(float *d_partial_s
     }
 
 /*!
+    \param d_partial_sum_virial_rigid Partial sum of virial rigid
+    \param d_sum_virial_rigid Virial contribution from particles in rigid bodies
+    \param num_blocks Number of blocks to do the partial sum
 */
 cudaError_t gpu_npt_rigid_reduce_virial(float *d_partial_sum_virial_rigid, 
                                         float *d_sum_virial_rigid, 
