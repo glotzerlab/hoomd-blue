@@ -340,45 +340,39 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
 /*! \param rdata_vel Body velocities to be updated
     \param rdata_angmom Angular momenta to be updated 
     \param alpha Alpha coupling parameter used by the FIRE algorithm
-    \param vnorm Magnitude of the (3*N) dimensional velocity vector
-    \param invfnorm 1 over the magnitude of the (3*N) dimensional force vector
-    \param wnorm Magnitude of the (3*N) dimensional angular velocity vector
-    \param invtnorm 1 over the magnitude of the (3*N) dimensional torque vector
+    \param factor_t factor equal to alpha*vnorm/fnorm
+    \param factor_r factor equal to alpha*wnorm/tnorm
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
 */
 extern "C" __global__ void gpu_fire_rigid_update_v_kernel(float4* rdata_vel, 
                                                         float4* rdata_angmom,
                                                         float alpha, 
-                                                        float vnorm, 
-                                                        float invfnorm,
-                                                        float wnorm,
-                                                        float invtnorm,
+                                                        float factor_t,
+                                                        float factor_r,
                                                         unsigned int n_bodies,
                                                         unsigned int local_beg)
     {
     int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
     int idx_body = idx_local + local_beg;
-    float scale_t = alpha * invfnorm * vnorm;
-    float scale_r = alpha * invtnorm * wnorm;
     
     if (idx_body < n_bodies)
         {        
         // read the body data (MEM TRANSFER: 32 bytes)
         float4 vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-        float4 angmom = tex1Dfetch(rigid_data_angvel_tex, idx_body);
+        float4 angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
         float4 force = tex1Dfetch(rigid_data_force_tex, idx_body);
         float4 torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
         
         float4 vel2;
-        vel2.x = vel.x * (1.0 - alpha) + force.x * scale_t;
-        vel2.y = vel.y * (1.0 - alpha) + force.y * scale_t;
-        vel2.z = vel.z * (1.0 - alpha) + force.z * scale_t;
+        vel2.x = vel.x * (1.0 - alpha) + force.x * factor_t;
+        vel2.y = vel.y * (1.0 - alpha) + force.y * factor_t;
+        vel2.z = vel.z * (1.0 - alpha) + force.z * factor_t;
         
         float4 angmom2;
-        angmom2.x = angmom.x * (1.0 - alpha) + torque.x * scale_r;
-        angmom2.y = angmom.y * (1.0 - alpha) + torque.y * scale_r;
-        angmom2.z = angmom.z * (1.0 - alpha) + torque.z * scale_r;                
+        angmom2.x = angmom.x * (1.0 - alpha) + torque.x * factor_r;
+        angmom2.y = angmom.y * (1.0 - alpha) + torque.y * factor_r;
+        angmom2.z = angmom.z * (1.0 - alpha) + torque.z * factor_r;                
         
         // write out the results (MEM_TRANSFER: 32 bytes)
         rdata_vel[idx_body] = vel2;
@@ -389,18 +383,14 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(float4* rdata_vel,
 
 /*! \param rdata Rigid data to update the velocities for
     \param alpha Alpha coupling parameter used by the FIRE algorithm
-    \param vnorm Magnitude of the (3*Nbodies) dimensional velocity vector
-    \param invfnorm Inverse of the magnitude of the (3*Nbodies) dimensional force vector
-    \param wnorm Magnitude of the (3*Nbodies) dimensional angular velocity vector
-    \param invtnorm Inverse of the magnitude of the (3*Nbodies) dimensional torque vector
+    \param factor_t factor equal to alpha*vnorm/fnorm
+    \param factor_r factor equal to alpha*wnorm/tnorm
     This function is a driver for gpu_fire_rigid_update_v_kernel(), see it for details.
 */
 cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata, 
                                                     float alpha, 
-                                                    float vnorm, 
-                                                    float invfnorm,
-                                                    float wnorm,
-                                                    float invtnorm)
+                                                    float factor_t,
+                                                    float factor_r)
     {
     unsigned int n_bodies = rdata.n_bodies;
     unsigned int local_beg = rdata.local_beg;
@@ -431,10 +421,8 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
     gpu_fire_rigid_update_v_kernel<<< grid, threads >>>(rdata.vel,
                                                     rdata.angmom,
                                                     alpha, 
-                                                    vnorm, 
-                                                    invfnorm,
-                                                    wnorm,
-                                                    invtnorm,
+                                                    factor_t,
+                                                    factor_r,
                                                     n_bodies,
                                                     local_beg);
     

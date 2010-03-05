@@ -69,10 +69,8 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
 //! Kernel driver for updating the velocities called by FIREEnergyMinimizerRigidGPU
 cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata, 
                             float alpha, 
-                            float vnorm, 
-                            float invfnorm,
-                            float wnorm, 
-                            float invtnorm);
+                            float scalar_t,
+                            float scalar_r);
 
 #endif //__FIRE_ENERGY_MINIMIZER_RIGID_GPU_CUH__
 
