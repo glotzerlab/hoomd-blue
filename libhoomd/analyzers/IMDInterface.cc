@@ -282,8 +282,16 @@ void IMDInterface::processIMD_TRATE(int rate)
 
 void IMDInterface::processIMD_PAUSE()
     {
-    cout << "analyze.imd: Received IMD_PAUSE, pausing simulation" << endl;
-    m_paused = true;
+    if (!m_paused)
+        {
+        cout << "analyze.imd: Received IMD_PAUSE, pausing simulation" << endl;
+        m_paused = true;
+        }
+    else
+        {
+        cout << "analyze.imd: Received IMD_PAUSE, unpausing simulation" << endl;
+        m_paused = false;
+        }
     }
 
 void IMDInterface::processIMD_IOERROR()
