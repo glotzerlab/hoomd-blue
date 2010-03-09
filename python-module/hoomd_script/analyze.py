@@ -291,6 +291,8 @@ class imd(_analyzer):
     # \param period Number of time steps to run before checking for new IMD messages
     # \param rate Number of \a periods between coordinate data transmissions.
     # \param pause Set to True to \b pause the simulation at the first time step until an imd connection is made
+    # \param force Give a saved force.constant to analyze.imd to apply forces received from VMD
+    # \param force_scale Factor by which to scale all forces received from VMD
     #
     # \b Examples:
     # \code
@@ -300,14 +302,20 @@ class imd(_analyzer):
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, port, period=1, rate=1, pause=False):
+    def __init__(self, port, period=1, rate=1, pause=False, force=None, force_scale=0.1):
         util.print_status_line();
         
         # initialize base class
         _analyzer.__init__(self);
         
+        # get the cpp force
+        if force is not None:
+            cpp_force = force.cpp_force;
+        else:
+            cpp_force = None;
+        
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port, pause, rate);
+        self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port, pause, rate, cpp_force);
         self.setupAnalyzer(period);
 
 

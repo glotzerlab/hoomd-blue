@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "Analyzer.h"
+#include "ConstForceCompute.h"
 
 #ifndef __IMD_INTERFACE_H__
 #define __IMD_INTERFACE_H__
@@ -72,7 +73,9 @@ class IMDInterface : public Analyzer
         IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
                      int port = 54321,
                      bool pause = false,
-                     unsigned int rate=1);
+                     unsigned int rate=1,
+                     boost::shared_ptr<ConstForceCompute> force = boost::shared_ptr<ConstForceCompute>(),
+                     float force_scale=1.0);
         
         //! Destructor
         ~IMDInterface();
@@ -89,8 +92,13 @@ class IMDInterface : public Analyzer
         unsigned int m_trate;   //!< Transmission rate
         unsigned int m_count;   //!< Count the number of times analyze() is called (used with trate)
         
+        boost::shared_ptr<ConstForceCompute> m_force;   //!< Force for applying IMD forces
+        float m_force_scale;                            //!< Factor by which to scale all IMD forces
+        
         //! Helper function that reads message headers and dispatches them to the relevant process functions
         void dispatch();
+        //! Helper function to determine of messages are still available
+        bool messagesAvailable();
         //! Process the IMD_DISCONNECT message
         void processIMD_DISCONNECT();
         //! Process the IMD_GO message

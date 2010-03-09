@@ -73,11 +73,16 @@ using namespace std;
     \param port port number to listen for connections on
     \param pause Set to true to pause the simulation and waith for IMD_GO before continuing
     \param rate Initial rate at which to send data
+    \param force Constant force used to apply forces received from VMD
+    \param force_scale Factor by which to scale all forces from IMD
 */
 IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
                            int port,
                            bool pause,
-                           unsigned int rate) : Analyzer(sysdef)
+                           unsigned int rate,
+                           boost::shared_ptr<ConstForceCompute> force,
+                           float force_scale)
+    : Analyzer(sysdef)
     {
     int err = 0;
     
@@ -126,6 +131,10 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
     m_paused = pause;
     m_trate = rate;
     m_count = 0;
+    m_force = force;
+    m_force_scale = force_scale;
+    if (m_force)
+        m_force->setForce(0,0,0);
     }
 
 IMDInterface::~IMDInterface()
@@ -161,7 +170,13 @@ void IMDInterface::analyze(unsigned int timestep)
         
         // dispatch incoming commands
         if (m_connected_sock)
-            dispatch();
+            {
+            do
+                {
+                dispatch();
+                }
+                while (messagesAvailable());
+            }
         
         // quit if cntrl-C was pressed
         if (g_sigint_recvd)
@@ -239,6 +254,24 @@ void IMDInterface::dispatch()
     // otherwise no message was received, do nothing
     }
 
+/*! \pre m_connected_sock is connected
+*/
+bool IMDInterface::messagesAvailable()
+    {
+    int res = vmdsock_selread(m_connected_sock, 0);
+    
+    if (res == -1)
+        {
+        cout << "analyze.imd: connection appears to have been terminated" << endl;
+        processDeadConnection();
+        return false;
+        }
+    if (res == 1)
+        return true;
+    else
+        return false;
+    }
+
 void IMDInterface::processIMD_DISCONNECT()
     {
     // cleanly disconnect and continue running the simulation. This is no different than what we do with a dead
@@ -266,7 +299,6 @@ void IMDInterface::processIMD_KILL()
 void IMDInterface::processIMD_MDCOMM(unsigned int n)
     {
     // mdcomm is not currently handled
-    cout << "**Warning! Ignoring IMD_MDCOMM message" << endl;
     shared_array<int32> indices(new int32[n]);
     shared_array<float> forces(new float[3*n]);
     
@@ -277,6 +309,25 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
         cerr << endl << "***Error! Error receiving mdcomm data, disconnecting" << endl << endl;
         processDeadConnection();
         return;
+        }
+    
+    if (m_force)
+        {
+        const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+        m_force->setForce(0,0,0);
+        for (unsigned int i = 0; i < n; i++)
+            {
+            unsigned int j = arrays.rtag[indices[i]];
+            m_force->setParticleForce(j,
+                                      forces[3*i+0]*m_force_scale,
+                                      forces[3*i+1]*m_force_scale,
+                                      forces[3*i+2]*m_force_scale);
+            }
+        m_pdata->release();
+        }
+    else
+        {
+        cout << "***Warning! Receiving forces over IMD, but no force was given to analyze.imd. Doing nothing" << endl;
         }
     }
     
@@ -314,6 +365,8 @@ void IMDInterface::processDeadConnection()
     m_connected_sock = NULL;
     m_active = false;
     m_paused = false;
+    if (m_force)
+        m_force->setForce(0,0,0);
     }
 
 /*! \pre \a m_connected_sock is not connected
@@ -404,7 +457,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
 void export_IMDInterface()
     {
     class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>
-        ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, unsigned int >())
+        ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, unsigned int, boost::shared_ptr<ConstForceCompute> >())
         ;
     }
 

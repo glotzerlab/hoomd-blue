@@ -66,6 +66,9 @@ class ConstForceCompute : public ForceCompute
         //! Set the force to a new value
         void setForce(Scalar fx, Scalar fy, Scalar fz);
         
+        //! Set the force for an individual particle
+        void setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz);
+        
     protected:
     
         //! Actually compute the forces

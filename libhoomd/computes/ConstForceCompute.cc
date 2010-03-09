@@ -94,6 +94,27 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz)
 #endif
     }
 
+/*! \param i Index of the particle to set
+    \param fx x-component of the force
+    \param fy y-component of the force
+    \param fz z-component of the force
+*/
+void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz)
+    {
+    assert(m_fx != NULL && m_fy != NULL && m_fz != NULL && m_pdata != NULL);
+    assert(i < m_pdata->getN());
+    
+    m_fx[i] = fx;
+    m_fy[i] = fy;
+    m_fz[i] = fz;
+    m_pe[i] = 0;
+        
+#ifdef ENABLE_CUDA
+    // data now only exists on the CPU
+    m_data_location = cpu;
+#endif
+    }
+
 /*! Actually, this function does nothing. Since the data arrays were already filled out by setForce(),
     we don't need to do a thing here :)
     \param timestep Current timestep
