@@ -148,6 +148,9 @@ IMDInterface::~IMDInterface()
 */
 void IMDInterface::analyze(unsigned int timestep)
     {
+    if (m_prof)
+        m_prof->push("IMD");
+    
     m_count++;
     
     do
@@ -172,6 +175,9 @@ void IMDInterface::analyze(unsigned int timestep)
     // send data when active, connected, and the rate matches
     if (m_connected_sock && m_active && (m_trate == 0 || m_count % m_trate == 0))
         sendCoords(timestep);
+    
+    if (m_prof)
+        m_prof->pop();
     }
 
 /*! \pre \a m_connected_sock is connected and handshaking has occured
