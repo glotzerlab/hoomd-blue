@@ -206,7 +206,7 @@ void IMDInterface::dispatch()
             case IMD_DISCONNECT:
                 processIMD_DISCONNECT();
                 break;
-            case 1:
+            case IMD_GO:
                 processIMD_GO();
                 break;
             case IMD_KILL:
