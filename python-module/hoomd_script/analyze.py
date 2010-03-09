@@ -307,7 +307,7 @@ class imd(_analyzer):
         _analyzer.__init__(self);
         
         # create the c++ mirror class
-        self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port, rate, pause);
+        self.cpp_analyzer = hoomd.IMDInterface(globals.system_definition, port, pause, rate);
         self.setupAnalyzer(period);
 
 
