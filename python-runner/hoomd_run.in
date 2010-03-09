@@ -49,4 +49,8 @@ export PYTHONPATH="${HOOMD_ROOT}/lib/hoomd/python-module:${PYTHONPATH}"
 export DYLD_LIBRARY_PATH="${HOOMD_ROOT}/lib/hoomd/python-module:${DYLD_LIBRARY_PATH}"
 export LD_LIBRARY_PATH="${HOOMD_ROOT}/lib/hoomd/python-module:${LD_LIBRARY_PATH}"
 export HOOMD_ROOT
-${HOOMD_ROOT}/lib/hoomd/hoomd $*
+if [ "${DEBUG}" -eq 1 ]; then
+    gdb ${HOOMD_ROOT}/lib/hoomd/hoomd $*
+else
+    ${HOOMD_ROOT}/lib/hoomd/hoomd $*
+fi
