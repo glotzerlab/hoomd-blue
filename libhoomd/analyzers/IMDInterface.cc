@@ -74,7 +74,10 @@ using namespace std;
     \param pause Set to true to pause the simulation and waith for IMD_GO before continuing
     \param rate Initial rate at which to send data
 */
-IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port, bool pause, int rate) : Analyzer(sysdef)
+IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
+                           int port,
+                           bool pause,
+                           unsigned int rate) : Analyzer(sysdef)
     {
     int err = 0;
     
@@ -167,7 +170,7 @@ void IMDInterface::analyze(unsigned int timestep)
         while (m_paused);
     
     // send data when active, connected, and the rate matches
-    if (m_connected_sock && m_active && (m_count % m_trate == 0))
+    if (m_connected_sock && m_active && (m_trate == 0 || m_count % m_trate == 0))
         sendCoords(timestep);
     }
 
@@ -177,9 +180,14 @@ void IMDInterface::dispatch()
     {
     assert(m_connected_sock != NULL);
     
+    // wait for messages, but only when paused
+    int timeout = 0;
+    if (m_paused)
+        timeout = 5;
+    
     // begin by checking to see if any commands have been received
     int length;
-    int res = vmdsock_selread(m_connected_sock, 0);
+    int res = vmdsock_selread(m_connected_sock, timeout);
     // check to see if there are any errors
     if (res == -1)
         {
@@ -305,8 +313,13 @@ void IMDInterface::establishConnectionAttempt()
     assert(m_listen_sock != NULL);
     assert(m_connected_sock == NULL);
     
+    // wait for messages, but only when paused
+    int timeout = 0;
+    if (m_paused)
+        timeout = 5;
+    
     // check to see if there is an incoming connection
-    if (vmdsock_selread(m_listen_sock, 0) > 0)
+    if (vmdsock_selread(m_listen_sock, timeout) > 0)
         {
         // create the connection
         m_connected_sock = vmdsock_accept(m_listen_sock);
@@ -323,7 +336,8 @@ void IMDInterface::establishConnectionAttempt()
         }
     }
 
-/*! \pre A connection has been established
+/*! \param timestep Current time step of the simulation
+    \pre A connection has been established
 
     Sends the current coordinates to VMD for display.
 */
@@ -376,7 +390,7 @@ void IMDInterface::sendCoords(unsigned int timestep)
 void export_IMDInterface()
     {
     class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>
-        ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, int >())
+        ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, unsigned int >())
         ;
     }
 

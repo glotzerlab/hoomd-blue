@@ -69,7 +69,10 @@ class IMDInterface : public Analyzer
     {
     public:
         //! Constructor
-        IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port = 54321, bool pause = false, int rate=1);
+        IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
+                     int port = 54321,
+                     bool pause = false,
+                     unsigned int rate=1);
         
         //! Destructor
         ~IMDInterface();
