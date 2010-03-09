@@ -52,10 +52,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4103 4244 )
 #endif
 
+#include <boost/shared_array.hpp>
 #include <boost/python.hpp>
 using namespace boost::python;
+using namespace boost;
 
 #include "IMDInterface.h"
+#include "SignalHandler.h"
 
 #include "vmdsock.h"
 #include "imd.h"
@@ -68,8 +71,10 @@ using namespace std;
     analyze() must be called to handle any incoming connections.
     \param sysdef SystemDefinition containing the ParticleData that will be transmitted to VMD
     \param port port number to listen for connections on
+    \param pause Set to true to pause the simulation and waith for IMD_GO before continuing
+    \param rate Initial rate at which to send data
 */
-IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port) : Analyzer(sysdef)
+IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port, bool pause, int rate) : Analyzer(sysdef)
     {
     int err = 0;
     
@@ -115,6 +120,9 @@ IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port)
     
     // initialize state
     m_active = false;
+    m_paused = pause;
+    m_trate = rate;
+    m_count = 0;
     }
 
 IMDInterface::~IMDInterface()
@@ -137,149 +145,239 @@ IMDInterface::~IMDInterface()
 */
 void IMDInterface::analyze(unsigned int timestep)
     {
-    // handle a dead connection
-    if (m_connected_sock == NULL)
+    m_count++;
+    
+    do
         {
-        // check to see if there is an incoming connection
-        if (vmdsock_selread(m_listen_sock, 0) > 0)
+        // establish a connection if one has not been made
+        if (m_connected_sock == NULL)
+            establishConnectionAttempt();
+        
+        // dispatch incoming commands
+        if (m_connected_sock)
+            dispatch();
+        
+        // quit if cntrl-C was pressed
+        if (g_sigint_recvd)
             {
-            // create the connection
-            m_connected_sock = vmdsock_accept(m_listen_sock);
-            if (imd_handshake(m_connected_sock))
-                {
-                vmdsock_destroy(m_connected_sock);
-                m_connected_sock = NULL;
-                return;
-                }
-            else
-                {
-                cout << "analyze.imd: accepted connection" << endl;
-                }
+            g_sigint_recvd = 0;
+            throw runtime_error("SIG INT received while paused in IMD");
             }
         }
-        
-    // handle a live connection
-    if (m_connected_sock && !m_active)
+        while (m_paused);
+    
+    // send data when active, connected, and the rate matches
+    if (m_connected_sock && m_active && (m_count % m_trate == 0))
+        sendCoords(timestep);
+    }
+
+/*! \pre \a m_connected_sock is connected and handshaking has occured
+*/
+void IMDInterface::dispatch()
+    {
+    assert(m_connected_sock != NULL);
+    
+    // begin by checking to see if any commands have been received
+    int length;
+    int res = vmdsock_selread(m_connected_sock, 0);
+    // check to see if there are any errors
+    if (res == -1)
         {
-        // begin by checking to see if any commands have been received
-        int length;
-        int res = vmdsock_selread(m_connected_sock, 0);
-        // also check to see if there are any errors
-        if (res == -1)
+        cout << "analyze.imd: connection appears to have been terminated" << endl;
+        processDeadConnection();
+        return;
+        }
+    // if a command is waiting
+    if (res == 1)
+        {
+        // receive the header
+        IMDType header = imd_recv_header(m_connected_sock, &length);
+
+        switch (header)
             {
-            cout << "analyze.imd: connection appears to have been terminated" << endl;
-            vmdsock_destroy(m_connected_sock);
-            m_connected_sock = NULL;
-            m_active = false;
-            return;
-            }
-        // if a command is waiting
-        if (res == 1)
-            {
-            // receive the header
-            IMDType header = imd_recv_header(m_connected_sock, &length);
-            // currently, only the GO command is implemented
-            if (header != IMD_GO)
-                {
-                cout << "analyze.imd: received an unimplemented command, disconnecting" << endl;
-                vmdsock_destroy(m_connected_sock);
-                m_connected_sock = NULL;
-                m_active = false;
-                return;
-                }
-            else
-                {
-                cout << "analyze.imd: received IMD_GO, transmitting data now" << endl;
-                m_active = true;
-                }
+            case IMD_DISCONNECT:
+                processIMD_DISCONNECT();
+                break;
+            case 1:
+                processIMD_GO();
+                break;
+            case IMD_KILL:
+                processIMD_KILL();
+                break;
+            case IMD_MDCOMM:
+                processIMD_MDCOMM(length);
+                break;
+            case IMD_TRATE:
+                processIMD_TRATE(length);
+                break;
+            case IMD_PAUSE:
+                processIMD_PAUSE();
+                break;
+            case IMD_IOERROR:
+                processIMD_IOERROR();
+                break;
+            default:
+                cout << "analyze.imd: received an unimplemented command (" << header << "), disconnecting" << endl;
+                processDeadConnection();
+                break;
             }
         }
-        
-    // handle a live connection that has been activated
-    if (m_connected_sock && m_active)
+    // otherwise no message was received, do nothing
+    }
+
+void IMDInterface::processIMD_DISCONNECT()
+    {
+    // cleanly disconnect and continue running the simulation. This is no different than what we do with a dead
+    // connection
+    processDeadConnection();
+    }
+
+void IMDInterface::processIMD_GO()
+    {
+    // unpause and start transmitting data
+    m_paused = false;
+    m_active = true;
+    cout << "analyze.imd: Received IMD_GO, transmitting data now" << endl;
+    }
+
+void IMDInterface::processIMD_KILL()
+    {
+    // disconnect (no different from handling a dead connection)
+    processDeadConnection();
+    // terminate the simulation
+    cout << "analyze.imd: Received IMD_KILL message, stopping the simulation" << endl;
+    throw runtime_error("Received IMD_KILL message");
+    }
+
+void IMDInterface::processIMD_MDCOMM(unsigned int n)
+    {
+    // mdcomm is not currently handled
+    cout << "**Warning! Ignoring IMD_MDCOMM message" << endl;
+    shared_array<int32> indices(new int32[n]);
+    shared_array<float> forces(new float[3*n]);
+    
+    int err = imd_recv_mdcomm(m_connected_sock, n, &indices[0], &forces[0]);
+    
+    if (err)
         {
-        int length;
-        int res = vmdsock_selread(m_connected_sock, 0);
-        // also check to see if there are any errors
-        if (res == -1)
+        cerr << endl << "***Error! Error receiving mdcomm data, disconnecting" << endl << endl;
+        processDeadConnection();
+        return;
+        }
+    }
+    
+void IMDInterface::processIMD_TRATE(int rate)
+    {
+    cout << "analyze.imd: Received IMD_TRATE, setting trate to " << rate << endl;
+    m_trate = rate;
+    }
+
+void IMDInterface::processIMD_PAUSE()
+    {
+    cout << "analyze.imd: Received IMD_PAUSE, pausing simulation" << endl;
+    m_paused = true;
+    }
+
+void IMDInterface::processIMD_IOERROR()
+    {
+    // disconnect (no different from handling a dead connection)
+    processDeadConnection();
+    // terminate the simulation
+    cerr << endl << "***Error! Received IMD_IOERROR message, dropping the connection" << endl << endl;
+    }
+
+void IMDInterface::processDeadConnection()
+    {
+    vmdsock_destroy(m_connected_sock);
+    m_connected_sock = NULL;
+    m_active = false;
+    m_paused = false;
+    }
+
+/*! \pre \a m_connected_sock is not connected
+    \pre \a m_listen_sock is listening
+    
+    \a m_listen_sock is checked for any incoming connections. If an incoming connection is found, a handshake is made
+    and \a m_connected_sock is set. If no connection is established, \a m_connected_sock is set to NULL.
+*/
+void IMDInterface::establishConnectionAttempt()
+    {
+    assert(m_listen_sock != NULL);
+    assert(m_connected_sock == NULL);
+    
+    // check to see if there is an incoming connection
+    if (vmdsock_selread(m_listen_sock, 0) > 0)
+        {
+        // create the connection
+        m_connected_sock = vmdsock_accept(m_listen_sock);
+        if (imd_handshake(m_connected_sock))
             {
-            cout << "analyze.imd: connection appears to have been terminated" << endl;
             vmdsock_destroy(m_connected_sock);
             m_connected_sock = NULL;
-            m_active = false;
             return;
             }
-        // if a command is waiting
-        if (res == 1)
+        else
             {
-            // receive the header
-            IMDType header = imd_recv_header(m_connected_sock, &length);
-            // currently, only the GO command is implemented
-            if (header == IMD_DISCONNECT || header == IMD_KILL)
-                {
-                cout << "analyze.imd: received a disconnect command, disconnecting" << endl;
-                vmdsock_destroy(m_connected_sock);
-                m_connected_sock = NULL;
-                m_active = false;
-                return;
-                }
-            else
-                {
-                cout << "analyze.imd: received unknown command, ignoring" << endl;
-                }
+            cout << "analyze.imd: accepted connection" << endl;
             }
-            
-        // setup and send the energies structure
-        IMDEnergies energies;
-        energies.tstep = timestep;
-        energies.T = 0.0f;
-        energies.Etot = 0.0f;
-        energies.Epot = 0.0f;
-        energies.Evdw = 0.0f;
-        energies.Eelec = 0.0f;
-        energies.Ebond = 0.0f;
-        energies.Eangle = 0.0f;
-        energies.Edihe = 0.0f;
-        energies.Eimpr = 0.0f;
+        }
+    }
+
+/*! \pre A connection has been established
+
+    Sends the current coordinates to VMD for display.
+*/
+void IMDInterface::sendCoords(unsigned int timestep)
+    {
+    assert(m_connected_sock != NULL);
+    
+    // setup and send the energies structure
+    IMDEnergies energies;
+    energies.tstep = timestep;
+    energies.T = 0.0f;
+    energies.Etot = 0.0f;
+    energies.Epot = 0.0f;
+    energies.Evdw = 0.0f;
+    energies.Eelec = 0.0f;
+    energies.Ebond = 0.0f;
+    energies.Eangle = 0.0f;
+    energies.Edihe = 0.0f;
+    energies.Eimpr = 0.0f;
+    
+    int err = imd_send_energies(m_connected_sock, &energies);
+    if (err)
+        {
+        cerr << endl << "***Error! Error sending energies, disconnecting" << endl << endl;
+        processDeadConnection();
+        return;
+        }
         
-        int err = imd_send_energies(m_connected_sock, &energies);
-        if (err)
-            {
-            cerr << endl << "***Error! Error sending energies, disconnecting" << endl << endl;
-            vmdsock_destroy(m_connected_sock);
-            m_connected_sock = NULL;
-            m_active = false;
-            return;
-            }
-            
-        // copy the particle data to the hodling array and send it
-        ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-        for (unsigned int i = 0; i < arrays.nparticles; i++)
-            {
-            unsigned int tag = arrays.tag[i];
-            m_tmp_coords[tag*3] = float(arrays.x[i]);
-            m_tmp_coords[tag*3 + 1] = float(arrays.y[i]);
-            m_tmp_coords[tag*3 + 2] = float(arrays.z[i]);
-            }
-        m_pdata->release();
-        
-        err = imd_send_fcoords(m_connected_sock, arrays.nparticles, m_tmp_coords);
-        
-        if (err)
-            {
-            cerr << "***Error! Error sending coordinates, disconnecting" << endl << endl;
-            vmdsock_destroy(m_connected_sock);
-            m_connected_sock = NULL;
-            m_active = false;
-            return;
-            }
+    // copy the particle data to the holding array and send it
+    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        {
+        unsigned int tag = arrays.tag[i];
+        m_tmp_coords[tag*3] = float(arrays.x[i]);
+        m_tmp_coords[tag*3 + 1] = float(arrays.y[i]);
+        m_tmp_coords[tag*3 + 2] = float(arrays.z[i]);
+        }
+    m_pdata->release();
+    
+    err = imd_send_fcoords(m_connected_sock, arrays.nparticles, m_tmp_coords);
+    
+    if (err)
+        {
+        cerr << "***Error! Error sending coordinates, disconnecting" << endl << endl;
+        processDeadConnection();
+        return;
         }
     }
 
 void export_IMDInterface()
     {
-    class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int >())
-    ;
+    class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>
+        ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, int >())
+        ;
     }
 
 #ifdef WIN32

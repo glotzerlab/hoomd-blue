@@ -69,7 +69,7 @@ class IMDInterface : public Analyzer
     {
     public:
         //! Constructor
-        IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port = 54321);
+        IMDInterface(boost::shared_ptr<SystemDefinition> sysdef, int port = 54321, bool pause = false, int rate=1);
         
         //! Destructor
         ~IMDInterface();
@@ -82,6 +82,33 @@ class IMDInterface : public Analyzer
         float *m_tmp_coords;    //!< Temporary holding location for coordinate data
         
         bool m_active;          //!< True if we have received a go command
+        bool m_paused;          //!< True if we are paused
+        unsigned int m_trate;   //!< Transmission rate
+        unsigned int m_count;   //!< Count the number of times analyze() is called (used with trate)
+        
+        //! Helper function that reads message headers and dispatches them to the relevant process functions
+        void dispatch();
+        //! Process the IMD_DISCONNECT message
+        void processIMD_DISCONNECT();
+        //! Process the IMD_GO message
+        void processIMD_GO();
+        //! Process the IMD_KILL message
+        void processIMD_KILL();
+        //! Process the IMD_MDCOMM message
+        void processIMD_MDCOMM(unsigned int n);
+        //! Process the IMD_TRATE message
+        void processIMD_TRATE(int rate);
+        //! Process the IMD_PAUSE message
+        void processIMD_PAUSE();
+        //! Process the IMD_IOERROR message
+        void processIMD_IOERROR();
+        //! Process a dead connection
+        void processDeadConnection();
+        
+        //! Helper function to establish a connection
+        void establishConnectionAttempt();
+        //! Helper function to send current data to VMD
+        void sendCoords(unsigned int timestep);
     };
 
 //! Exports the IMDInterface class to python
