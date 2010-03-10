@@ -101,8 +101,8 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
     // BUT, updateBins is going to free the arrays first, so allocate some dummy arrays
     allocateGPUBinData(1,1,1,1);
     
-    // a reasonable default Nmax. This will expand as needed.
-    m_Nmax = 128;
+    // set a small default Nmax. This will expand as needed.
+    m_Nmax = 1;
     m_curNmax = 0;
     m_avgNmax = Scalar(0.0);
     
