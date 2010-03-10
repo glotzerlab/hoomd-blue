@@ -75,6 +75,7 @@ import hoomd;
 import util;
 import tune;
 import init;
+import data;
 
 import math;
 import sys;
@@ -955,7 +956,8 @@ class slj(pair):
     # \param d_max Maximum diameter particles in the simulation will have
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
-    # run() commands. If particle diameters change during this time, it is \b imperitive that \a d_max is the largest
+    # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized
+    # If particle diameters change after initialization, it is \b imperitive that \a d_max be the largest
     # diameter that any particle will attain at any time during the following run() command. If \a d_max is smaller
     # than it should be, some particles will effectively have a smaller value of \a r_cut then was set and the
     # simulation will be incorrect. \a d_max can be changed between runs by calling set_params().
@@ -970,7 +972,7 @@ class slj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, d_max):
+    def __init__(self, r_cut, d_max=None):
         util.print_status_line();
         
         # tell the base class how we operate
@@ -979,7 +981,13 @@ class slj(pair):
         pair.__init__(self, r_cut);
         
         # update the neighbor list
-        self.d_max = d_max;
+        if d_max is None :
+            sysdef = globals.system_definition;
+            self.d_max = max([x.diameter for x in data.particle_data(sysdef.getParticleData())])
+            print "slj internally setting d_max to", self.d_max
+        else:    
+            self.d_max = d_max;
+                        
         neighbor_list = _update_global_nlist(r_cut);
         neighbor_list.subscribe(lambda: self.get_max_rcut() + self.d_max - 1.0)
         
