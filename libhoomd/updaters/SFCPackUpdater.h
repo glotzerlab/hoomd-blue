@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include <vector>
+#include <utility>
 
 #include "Updater.h"
 #include "NeighborList.h"
@@ -106,7 +107,8 @@ class SFCPackUpdater : public Updater
         unsigned int m_lastMmax;    //!< The last value of MMax
         unsigned int m_last_dim;    //!< Check the last dimension we ran at
         
-        std::vector< std::vector<unsigned int> > m_bins;    //!< Binned particles
+        std::vector< std::pair<unsigned int, unsigned int> > m_particle_bins;    //!< Binned particles
+        
         std::vector< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
         std::vector<unsigned int> m_sort_order;             //!< Generated sort order of the particles
         

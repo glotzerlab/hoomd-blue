@@ -57,6 +57,7 @@ using namespace boost::python;
 
 #include <math.h>
 #include <stdexcept>
+#include <algorithm>
 
 #include "SFCPackUpdater.h"
 
@@ -79,6 +80,7 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scala
         }
         
     m_sort_order.resize(m_pdata->getN());
+    m_particle_bins.resize(m_pdata->getN());
     }
 
 /*! Performs the sort.
@@ -229,37 +231,6 @@ void SFCPackUpdater::applySortOrder()
     
     m_pdata->release();
     }
-
-// this function will generate a Z-order traversal through the 3d array Mx by Mx x Mx
-// it is done recursively through an octree subdivision (supporting power-of-2 cubic dimensions only for simplicity at this stage)
-// w on the first call should be equal to Mx
-// i,j,k on the first call should be 0
-
-// as it recurses down, w will be decreased appropriately
-// traversal_order will be filled out with unique values i*Mx*Mx + j*Mx + k for the coordinates
-// i,j,k in the Z-order
-/*static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector< unsigned int > &traversal_order)
-    {
-    if (w == 1)
-        {
-        // handle base case
-        traversal_order.push_back(i*Mx*Mx + j*Mx + k);
-        }
-    else
-        {
-        // handle arbitrary case, split the box into 8 sub boxes
-        w = w / 2;
-        generateTraversalOrder(i,j,k,w,Mx,traversal_order);
-        generateTraversalOrder(i,j,k+w,w,Mx,traversal_order);
-        generateTraversalOrder(i,j+w,k,w,Mx,traversal_order);
-        generateTraversalOrder(i,j+w,k+w,w,Mx,traversal_order);
-
-        generateTraversalOrder(i+w,j,k,w,Mx,traversal_order);
-        generateTraversalOrder(i+w,j,k+w,w,Mx,traversal_order);
-        generateTraversalOrder(i+w,j+w,k,w,Mx,traversal_order);
-        generateTraversalOrder(i+w,j+w,k+w,w,Mx,traversal_order);
-        }
-    }*/
 
 //! x walking table for the hilbert curve
 static int istep[] = {0, 0, 0, 0, 1, 1, 1, 1};
@@ -486,27 +457,13 @@ void SFCPackUpdater::getSortedOrder2D()
     assert(m_pdata);
     assert(m_sort_order.size() == m_pdata->getN());
     
-    // calculate the bin dimensions
-    const BoxDim& box = m_pdata->getBox();
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    unsigned int Mx = (unsigned int)((box.xhi - box.xlo) / (m_bin_width));
-    unsigned int My = (unsigned int)((box.yhi - box.ylo) / (m_bin_width));
-    if (Mx == 0)
-        Mx = 1;
-    if (My == 0)
-        My = 1;
-        
-    // now, we need to play a game here: the quadtree traversal only works with squares
-    // and only works if Mx is a power of 2. So, choose the largest of the 2 dimesions and
-    // make them all the same
-    unsigned int Mmax = Mx;
-    if (My > Mmax)
-        Mmax = My;
-        
-    // round up to the nearest power of 2
-    Mmax = (unsigned int)pow(2.0, ceil(log(double(Mmax)) / log(2.0)));
+    // Mmax must always be a power of 2 and determines the memory usage for m_traversal_order
+    // To prevent massive overruns of the memory, always use 4096
+    unsigned int Mmax = 4096;
     
     // make even bin dimensions
+    const BoxDim& box = m_pdata->getBox();
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     Scalar binx = (box.xhi - box.xlo) / Scalar(Mmax);
     Scalar biny = (box.yhi - box.ylo) / Scalar(Mmax);
     
@@ -514,40 +471,10 @@ void SFCPackUpdater::getSortedOrder2D()
     Scalar scalex = Scalar(1.0) / binx;
     Scalar scaley = Scalar(1.0) / biny;
     
-    // reallocate memory arrays if Mmax changed
-    // also regenerate the traversal order
-    if (m_lastMmax != Mmax || m_last_dim != 2)
-        {
-        if (Mmax > 1000)
-            {
-            cout << endl;
-            cout << "***Warning! sorter is about to allocate a very large amount of memory and may crash." << endl;
-            cout << "            Reduce the amount of memory allocated to prevent this by increasing the " << endl;
-            cout << "            bin width (i.e. sorter.set_params(bin_width=3.0) ) or by disabling it " << endl;
-            cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
-            }
-            
-        m_bins.resize(Mmax*Mmax);
-        
-        // generate the traversal order
-        m_traversal_order.resize(Mmax*Mmax);
-        m_traversal_order.clear();
-        
-        // trivial traversal order for now: could be improved slightly with a 2D hilbert curve
-        for (unsigned int i = 0; i < Mmax*Mmax; i++)
-            m_traversal_order.push_back(i);
-        
-        m_lastMmax = Mmax;
-        }
-        
     // sanity checks
     assert(m_bins.size() == Mmax*Mmax);
     assert(m_traversal_order.size() == Mmax*Mmax);
     
-    // need to clear the bins
-    for (unsigned int bin = 0; bin < Mmax*Mmax; bin++)
-        m_bins[bin].clear();
-        
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
     // for each particle
@@ -569,21 +496,17 @@ void SFCPackUpdater::getSortedOrder2D()
         // record its bin
         unsigned int bin = ib*Mmax + jb;
         
-        m_bins[bin].push_back(n);
+        m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
         }
     m_pdata->release();
     
-    // now, loop through the bins and produce the sort order
-    int cur = 0;
+    // sort the tuples
+    sort(m_particle_bins.begin(), m_particle_bins.end());
     
-    for (unsigned int i = 0; i < Mmax*Mmax; i++)
+    // translate the sorted order
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
-        unsigned int bin = m_traversal_order[i];
-        
-        for (unsigned int j = 0; j < m_bins[bin].size(); j++)
-            {
-            m_sort_order[cur++] = m_bins[bin][j];
-            }
+        m_sort_order[j] = m_particle_bins[j].second;
         }
     }
 
@@ -593,32 +516,13 @@ void SFCPackUpdater::getSortedOrder3D()
     assert(m_pdata);
     assert(m_sort_order.size() == m_pdata->getN());
     
-    // calculate the bin dimensions
-    const BoxDim& box = m_pdata->getBox();
-    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    unsigned int Mx = (unsigned int)((box.xhi - box.xlo) / (m_bin_width));
-    unsigned int My = (unsigned int)((box.yhi - box.ylo) / (m_bin_width));
-    unsigned int Mz = (unsigned int)((box.zhi - box.zlo) / (m_bin_width));
-    if (Mx == 0)
-        Mx = 1;
-    if (My == 0)
-        My = 1;
-    if (Mz == 0)
-        Mz = 1;
-        
-    // now, we need to play a game here: the octtree traversal only works with cubes
-    // and only works if Mx is a power of 2. So, choose the largest of the 3 dimesions and
-    // make them all the same
-    unsigned int Mmax = Mx;
-    if (My > Mmax)
-        Mmax = My;
-    if (Mz > Mmax)
-        Mz = Mmax;
-        
-    // round up to the nearest power of 2
-    Mmax = (unsigned int)pow(2.0, ceil(log(double(Mmax)) / log(2.0)));
+    // Mmax must always be a power of 2 and determines the memory usage for m_traversal_order
+    // To prevent massive overruns of the memory, always use 256
+    unsigned int Mmax = 256;
     
     // make even bin dimensions
+    const BoxDim& box = m_pdata->getBox();
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
     Scalar binx = (box.xhi - box.xlo) / Scalar(Mmax);
     Scalar biny = (box.yhi - box.ylo) / Scalar(Mmax);
     Scalar binz = (box.zhi - box.zlo) / Scalar(Mmax);
@@ -632,77 +536,52 @@ void SFCPackUpdater::getSortedOrder3D()
     // also regenerate the traversal order
     if (m_lastMmax != Mmax || m_last_dim != 3)
         {
-        if (Mmax > 100)
-            {
-            cout << endl;
-            cout << "***Warning! sorter is about to allocate a very large amount of memory and may crash." << endl;
-            cout << "            Reduce the amount of memory allocated to prevent this by increasing the " << endl;
-            cout << "            bin width (i.e. sorter.set_params(bin_width=3.0) ) or by disabling it " << endl;
-            cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
-            }
-            
-        m_bins.resize(Mmax*Mmax*Mmax);
-        
         // generate the traversal order
         m_traversal_order.resize(Mmax*Mmax*Mmax);
         m_traversal_order.clear();
+        vector< unsigned int > reverse_order(Mmax*Mmax*Mmax);
+        reverse_order.clear();
         
         // we need to start the hilbert curve with a seed order 0,1,2,3,4,5,6,7
         vector<unsigned int> cell_order(8);
         for (unsigned int i = 0; i < 8; i++)
             cell_order[i] = i;
-        generateTraversalOrder(0,0,0, Mmax, Mmax, cell_order, m_traversal_order);
+        generateTraversalOrder(0,0,0, Mmax, Mmax, cell_order, reverse_order);
+        
+        for (unsigned int i = 0; i < Mmax*Mmax*Mmax; i++)
+            m_traversal_order[reverse_order[i]] = i;
         
         m_lastMmax = Mmax;
         }
         
     // sanity checks
-    assert(m_bins.size() == Mmax*Mmax*Mmax);
+    assert(m_particle_bins.size() == m_pdata->getN());
     assert(m_traversal_order.size() == Mmax*Mmax*Mmax);
     
-    // need to clear the bins
-    for (unsigned int bin = 0; bin < Mmax*Mmax*Mmax; bin++)
-        m_bins[bin].clear();
-        
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
     // for each particle
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex);
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley);
-        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez);
-        
-        // need to handle the case where the particle is exactly at the box hi
-        if (ib == Mmax)
-            ib = 0;
-        if (jb == Mmax)
-            jb = 0;
-        if (kb == Mmax)
-            kb = 0;
-            
-        // sanity check
-        assert(ib < (unsigned int)(Mmax) && jb < (unsigned int)(Mmax) && kb < (unsigned int)(Mmax));
+        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % Mmax;
+        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % Mmax;
+        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez) % Mmax;
         
         // record its bin
         unsigned int bin = ib*(Mmax*Mmax) + jb * Mmax + kb;
         
-        m_bins[bin].push_back(n);
+        m_particle_bins[n] = std::pair<unsigned int, unsigned int>(m_traversal_order[bin], n);
         }
     m_pdata->release();
     
-    // now, loop through the bins and produce the sort order
-    int cur = 0;
+    // sort the tuples
+    sort(m_particle_bins.begin(), m_particle_bins.end());
     
-    for (unsigned int i = 0; i < Mmax*Mmax*Mmax; i++)
+    // translate the sorted order
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
-        unsigned int bin = m_traversal_order[i];
-        
-        for (unsigned int j = 0; j < m_bins[bin].size(); j++)
-            {
-            m_sort_order[cur++] = m_bins[bin][j];
-            }
+        m_sort_order[j] = m_particle_bins[j].second;
         }
     }
 
