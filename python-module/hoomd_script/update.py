@@ -259,7 +259,7 @@ class sort(_updater):
     # The created sorter can be accessed via the built-in variable \c sorter.
     #
     # By default, the sorter is created with a \a grid of 256 (4096 in 2D) and
-    # an update period of 500 time steps (100 if running on the CPU).
+    # an update period of 300 time steps (100 if running on the CPU).
     # The period can be changed with set_period() and the grid width can be
     # changed with set_params()
     def __init__(self):
@@ -269,7 +269,7 @@ class sort(_updater):
         # create the c++ mirror class
         self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition);
         
-        default_period = 500;
+        default_period = 300;
         # change default period to 100 on the CPU
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
             default_period = 100;
