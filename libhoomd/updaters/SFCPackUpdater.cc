@@ -408,7 +408,6 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned 
         w = w / 2;
         
         // we ned to handle each sub box in the order defined by cell order
-        assert(cell_order.size() == 8);
         for (int m = 0; m < 8; m++)
             {
             unsigned int cur_cell = cell_order[m];
@@ -500,7 +499,6 @@ void SFCPackUpdater::getSortedOrder3D()
 
         // generate the traversal order
         m_traversal_order.resize(m_grid*m_grid*m_grid);
-        m_traversal_order.clear();
         vector< unsigned int > reverse_order(m_grid*m_grid*m_grid);
         reverse_order.clear();
         
