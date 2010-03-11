@@ -13,6 +13,8 @@ class update_enforce2d_tests (unittest.TestCase):
         print
         s = init.create_random(N=100, phi_p=0.05);
         s.dimensions = 2
+        import __main__;
+        __main__.sorter.set_params(grid=8)
 
     # tests basic creation of the updater
     def test(self):

@@ -14,6 +14,8 @@ class pair_nlist_tests (unittest.TestCase):
         init.create_random(N=100, phi_p=0.05);
         #indirectly create the neighbor list by creating a pair.lj
         pair.lj(r_cut=3.0);
+        import __main__;
+        __main__.sorter.set_params(grid=8)
         
 
     # test set_params

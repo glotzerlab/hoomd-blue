@@ -12,7 +12,9 @@ class variant_tests (unittest.TestCase):
     def setUp(self):
         print
         init.create_random(N=100, phi_p=0.05);
-
+        import __main__;
+        __main__.sorter.set_params(grid=8)
+        
     # tests creation of the constant variant
     def test_const(self):
         v = variant._constant(5)
