@@ -241,173 +241,147 @@ static int kstep[] = {0, 1, 1, 0, 0, 1, 1, 0};
 
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 1
+/*! \param result Output sequence to be permuted by rule 1
+    \param in Input sequence
 */
-static vector<unsigned int> permute1(const vector<unsigned int>& in)
+static void permute1(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[0]);
-    result.push_back(in[3]);
-    result.push_back(in[4]);
-    result.push_back(in[7]);
-    result.push_back(in[6]);
-    result.push_back(in[5]);
-    result.push_back(in[2]);
-    result.push_back(in[1]);
-    
-    return result;
+    result[0] = in[0];
+    result[1] = in[3];
+    result[2] = in[4];
+    result[3] = in[7];
+    result[4] = in[6];
+    result[5] = in[5];
+    result[6] = in[2];
+    result[7] = in[1];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 2
+/*! \param result Output sequence to be permuted by rule 2
+    \param in Input sequence
 */
-static vector<unsigned int> permute2(const vector<unsigned int>& in)
+static void permute2(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[0]);
-    result.push_back(in[7]);
-    result.push_back(in[6]);
-    result.push_back(in[1]);
-    result.push_back(in[2]);
-    result.push_back(in[5]);
-    result.push_back(in[4]);
-    result.push_back(in[3]);
-    
-    return result;
+    result[0] = in[0];
+    result[1] = in[7];
+    result[2] = in[6];
+    result[3] = in[1];
+    result[4] = in[2];
+    result[5] = in[5];
+    result[6] = in[4];
+    result[7] = in[3];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 3
+/*! \param result Output sequence to be permuted by rule 3
+    \param in Input sequence
 */
-static vector<unsigned int> permute3(const vector<unsigned int>& in)
+static void permute3(unsigned int result[8], const unsigned int in[8])
     {
-    return permute2(in);
+    permute2(result, in);
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 4
+/*! \param result Output sequence to be permuted by rule 4
+    \param in Input sequence
 */
-static vector<unsigned int> permute4(const vector<unsigned int>& in)
+static void permute4(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[2]);
-    result.push_back(in[3]);
-    result.push_back(in[0]);
-    result.push_back(in[1]);
-    result.push_back(in[6]);
-    result.push_back(in[7]);
-    result.push_back(in[4]);
-    result.push_back(in[5]);
-    
-    return result;
+    result[0] = in[2];
+    result[1] = in[3];
+    result[2] = in[0];
+    result[3] = in[1];
+    result[4] = in[6];
+    result[5] = in[7];
+    result[6] = in[4];
+    result[7] = in[5];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 5
+/*! \param result Output sequence to be permuted by rule 5
+    \param in Input sequence
 */
-static vector<unsigned int> permute5(const vector<unsigned int>& in)
+static void permute5(unsigned int result[8], const unsigned int in[8])
     {
-    return permute4(in);
+    permute4(result, in);
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 6
+/*! \param result Output sequence to be permuted by rule 6
+    \param in Input sequence
 */
-static vector<unsigned int> permute6(const vector<unsigned int>& in)
+static void permute6(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[4]);
-    result.push_back(in[3]);
-    result.push_back(in[2]);
-    result.push_back(in[5]);
-    result.push_back(in[6]);
-    result.push_back(in[1]);
-    result.push_back(in[0]);
-    result.push_back(in[7]);
-    
-    return result;
+    result[0] = in[4];
+    result[1] = in[3];
+    result[2] = in[2];
+    result[3] = in[5];
+    result[4] = in[6];
+    result[5] = in[1];
+    result[6] = in[0];
+    result[7] = in[7];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 7
+/*! \param result Output sequence to be permuted by rule 7
+    \param in Input sequence
 */
-static vector<unsigned int> permute7(const vector<unsigned int>& in)
+static void permute7(unsigned int result[8], const unsigned int in[8])
     {
-    return permute6(in);
+    permute6(result, in);
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 8
+/*! \param result Output sequence to be permuted by rule 8
+    \param in Input sequence
 */
-static vector<unsigned int> permute8(const vector<unsigned int>& in)
+static void permute8(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[6]);
-    result.push_back(in[5]);
-    result.push_back(in[2]);
-    result.push_back(in[1]);
-    result.push_back(in[0]);
-    result.push_back(in[3]);
-    result.push_back(in[4]);
-    result.push_back(in[7]);
-    
-    return result;
+    result[0] = in[6];
+    result[1] = in[5];
+    result[2] = in[2];
+    result[3] = in[1];
+    result[4] = in[0];
+    result[5] = in[3];
+    result[6] = in[4];
+    result[7] = in[7];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
+/*! \param result Output sequence to be permuted by rule \a p-1
+    \param in Input sequence
     \param p permutation rule to apply
-    \returns output sequence permuted by rule \a p
 */
-static vector<unsigned int> permute(int p, const vector<unsigned int>& in)
+void permute(unsigned int result[8], const unsigned int in[8], int p)
     {
     switch (p)
         {
         case 0:
-            return permute1(in);
+            permute1(result, in);
             break;
         case 1:
-            return permute2(in);
+            permute2(result, in);
             break;
         case 2:
-            return permute3(in);
+            permute3(result, in);
             break;
         case 3:
-            return permute4(in);
+            permute4(result, in);
             break;
         case 4:
-            return permute5(in);
+            permute5(result, in);
             break;
         case 5:
-            return permute6(in);
+            permute6(result, in);
             break;
         case 6:
-            return permute7(in);
+            permute7(result, in);
             break;
         case 7:
-            return permute8(in);
+            permute8(result, in);
             break;
         default:
             assert(false);
-            return vector<unsigned int>();
         }
     }
 
@@ -424,7 +398,7 @@ static vector<unsigned int> permute(int p, const vector<unsigned int>& in)
     \post traversal order contains the grid index (i*Mx*Mx + j*Mx + k) of each grid point
         listed in the order of the hilbert curve
 */
-static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector<unsigned int> cell_order, vector< unsigned int > &traversal_order)
+static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order)
     {
     if (w == 1)
         {
@@ -445,7 +419,8 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector<un
             int jc = j + w * jstep[cur_cell];
             int kc = k + w * kstep[cur_cell];
             
-            vector<unsigned int> child_cell_order = permute(m, cell_order);
+            unsigned int child_cell_order[8];
+            permute(child_cell_order, cell_order, m);
             generateTraversalOrder(ic,jc,kc,w,Mx, child_cell_order, traversal_order);
             }
         }
@@ -543,7 +518,7 @@ void SFCPackUpdater::getSortedOrder3D()
         reverse_order.clear();
         
         // we need to start the hilbert curve with a seed order 0,1,2,3,4,5,6,7
-        vector<unsigned int> cell_order(8);
+        unsigned int cell_order[8];
         for (unsigned int i = 0; i < 8; i++)
             cell_order[i] = i;
         generateTraversalOrder(0,0,0, Mmax, Mmax, cell_order, reverse_order);
