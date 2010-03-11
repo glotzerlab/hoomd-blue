@@ -64,23 +64,23 @@ using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef System to perform sorts on
-    \param bin_width Maximum width of bins to place particles in
-    \note bin_width will be dynamically decreased to reach a power of two grid size
  */
-SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar bin_width)
-        : Updater(sysdef), m_bin_width(bin_width), m_lastMmax(0)
+SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+        : Updater(sysdef), m_last_grid(0), m_last_dim(0)
     {
     // perform lots of sanity checks
     assert(m_pdata);
     
-    if (m_bin_width < 0.01)
-        {
-        cerr << endl << "***Error! Bin width in SFCPackUpdater much too small" << endl << endl;
-        throw runtime_error("Error initializing SFCPackUpdater");
-        }
-        
     m_sort_order.resize(m_pdata->getN());
     m_particle_bins.resize(m_pdata->getN());
+    
+    // set the default grid
+    // Grid dimension must always be a power of 2 and determines the memory usage for m_traversal_order
+    // To prevent massive overruns of the memory, always use 256 for 3d and 4096 for 2d
+    if (m_sysdef->getNDimensions() == 2)
+        m_grid = 4096;
+    else
+        m_grid = 256;
     }
 
 /*! Performs the sort.
@@ -98,9 +98,6 @@ void SFCPackUpdater::update(unsigned int timestep)
         getSortedOrder2D();
     else
         getSortedOrder3D();
-    
-    // store the last system dimension computed so we can be mindful if that ever changes
-    m_last_dim = m_sysdef->getNDimensions();
     
     // apply that sort order to the particles
     applySortOrder();
@@ -432,23 +429,15 @@ void SFCPackUpdater::getSortedOrder2D()
     assert(m_pdata);
     assert(m_sort_order.size() == m_pdata->getN());
     
-    // Mmax must always be a power of 2 and determines the memory usage for m_traversal_order
-    // To prevent massive overruns of the memory, always use 4096
-    unsigned int Mmax = 4096;
-    
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    Scalar binx = (box.xhi - box.xlo) / Scalar(Mmax);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(Mmax);
+    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
+    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
     
     // precompute scale factors to eliminate division in inner loop
     Scalar scalex = Scalar(1.0) / binx;
     Scalar scaley = Scalar(1.0) / biny;
-    
-    // sanity checks
-    assert(m_bins.size() == Mmax*Mmax);
-    assert(m_traversal_order.size() == Mmax*Mmax);
     
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
@@ -456,20 +445,11 @@ void SFCPackUpdater::getSortedOrder2D()
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex);
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley);
-        
-        // need to handle the case where the particle is exactly at the box hi
-        if (ib == Mmax)
-            ib = 0;
-        if (jb == Mmax)
-            jb = 0;
-            
-        // sanity check
-        assert(ib < (unsigned int)(Mmax) && jb < (unsigned int)(Mmax));
+        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % m_grid;
+        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % m_grid;
         
         // record its bin
-        unsigned int bin = ib*Mmax + jb;
+        unsigned int bin = ib*m_grid + jb;
         
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
         }
@@ -491,47 +471,56 @@ void SFCPackUpdater::getSortedOrder3D()
     assert(m_pdata);
     assert(m_sort_order.size() == m_pdata->getN());
     
-    // Mmax must always be a power of 2 and determines the memory usage for m_traversal_order
-    // To prevent massive overruns of the memory, always use 256
-    unsigned int Mmax = 256;
-    
     // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    Scalar binx = (box.xhi - box.xlo) / Scalar(Mmax);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(Mmax);
-    Scalar binz = (box.zhi - box.zlo) / Scalar(Mmax);
+    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
+    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
+    Scalar binz = (box.zhi - box.zlo) / Scalar(m_grid);
     
     // precompute scale factors to eliminate division in inner loop
     Scalar scalex = Scalar(1.0) / binx;
     Scalar scaley = Scalar(1.0) / biny;
     Scalar scalez = Scalar(1.0) / binz;
     
-    // reallocate memory arrays if Mmax changed
+    // reallocate memory arrays if m_grid changed
     // also regenerate the traversal order
-    if (m_lastMmax != Mmax || m_last_dim != 3)
+    if (m_last_grid != m_grid || m_last_dim != 3)
         {
+        if (m_grid > 256)
+            {
+            unsigned int mb = m_grid*m_grid*m_grid*4 / 1024 / 1024;
+            cout << endl;
+            cout << "***Warning! sorter is about to allocate a very large amount of memory (" << mb << "MB)"
+                 << " and may crash." << endl;
+            cout << "            Reduce the amount of memory allocated to prevent this by decreasing the " << endl;
+            cout << "            grid dimension (i.e. sorter.set_params(grid=128) ) or by disabling it " << endl;
+            cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
+            }
+
         // generate the traversal order
-        m_traversal_order.resize(Mmax*Mmax*Mmax);
+        m_traversal_order.resize(m_grid*m_grid*m_grid);
         m_traversal_order.clear();
-        vector< unsigned int > reverse_order(Mmax*Mmax*Mmax);
+        vector< unsigned int > reverse_order(m_grid*m_grid*m_grid);
         reverse_order.clear();
         
         // we need to start the hilbert curve with a seed order 0,1,2,3,4,5,6,7
         unsigned int cell_order[8];
         for (unsigned int i = 0; i < 8; i++)
             cell_order[i] = i;
-        generateTraversalOrder(0,0,0, Mmax, Mmax, cell_order, reverse_order);
+        generateTraversalOrder(0,0,0, m_grid, m_grid, cell_order, reverse_order);
         
-        for (unsigned int i = 0; i < Mmax*Mmax*Mmax; i++)
+        for (unsigned int i = 0; i < m_grid*m_grid*m_grid; i++)
             m_traversal_order[reverse_order[i]] = i;
         
-        m_lastMmax = Mmax;
+        m_last_grid = m_grid;
+        // store the last system dimension computed so we can be mindful if that ever changes
+        m_last_dim = m_sysdef->getNDimensions();
         }
         
     // sanity checks
     assert(m_particle_bins.size() == m_pdata->getN());
-    assert(m_traversal_order.size() == Mmax*Mmax*Mmax);
+    assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
     
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
@@ -539,12 +528,12 @@ void SFCPackUpdater::getSortedOrder3D()
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % Mmax;
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % Mmax;
-        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez) % Mmax;
+        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % m_grid;
+        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % m_grid;
+        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez) % m_grid;
         
         // record its bin
-        unsigned int bin = ib*(Mmax*Mmax) + jb * Mmax + kb;
+        unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;
         
         m_particle_bins[n] = std::pair<unsigned int, unsigned int>(m_traversal_order[bin], n);
         }
@@ -563,8 +552,8 @@ void SFCPackUpdater::getSortedOrder3D()
 void export_SFCPackUpdater()
     {
     class_<SFCPackUpdater, boost::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
-    ("SFCPackUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar >())
-    .def("setBinWidth", &SFCPackUpdater::setBinWidth)
+    ("SFCPackUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    .def("setGrid", &SFCPackUpdater::setGrid)
     ;
     }
 

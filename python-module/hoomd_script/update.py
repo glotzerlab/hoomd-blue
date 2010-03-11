@@ -228,12 +228,18 @@ class _updater:
 # significantly improve performance of all other algorithmic steps in HOOMD. 
 # 
 # The reordering is accomplished by placing particles in spatial bins
-# \a bin_width distance units wide. A Hilbert curve is generated that traverses
+# distance units wide. A Hilbert curve is generated that traverses
 # these bins and particles are reordered in memory in the same order in which 
-# they fall on the curve. Testing indicates that a bin width equal to the
-# particle diameter works well, though it may lead to excessive memory usage
-# in extremely low density systems. set_params() can be used to increase the
-# bin width in such situations.
+# they fall on the curve. The grid dimension used over the course of the simulation is held constant, and the default
+# is chosen to be as fine as possible without utilizing too much memory. It can be changed with set_params(), just be
+# aware that the value chosen will be rounded up to the next power of 2 and that the amount of memory usage for
+# 3D simulations grows very quickly:
+# - \a grid=128 uses 8 MB
+# - \a grid=256 uses 64 MB
+# - \a grid=512 uses 512 MB
+# - \a grid=1024 uses 4096 MB
+#
+# 2D simulations do not use any additional memory and default to \a grid=4096
 # 
 # Because all simulations benefit from this process, a sorter is created by 
 # default. If you have reason to disable it or modify parameters, you
@@ -252,16 +258,16 @@ class sort(_updater):
     # when any initialization command from init is run. 
     # The created sorter can be accessed via the built-in variable \c sorter.
     #
-    # By default, the sorter is created with a \a bin_width of 1.0 and
+    # By default, the sorter is created with a \a grid of 256 (4096 in 2D) and
     # an update period of 500 time steps (100 if running on the CPU).
-    # The period can be changed with set_period() and the bin width can be
+    # The period can be changed with set_period() and the grid width can be
     # changed with set_params()
     def __init__(self):
         # initialize base class
         _updater.__init__(self);
         
         # create the c++ mirror class
-        self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition, 1.0);
+        self.cpp_updater = hoomd.SFCPackUpdater(globals.system_definition);
         
         default_period = 500;
         # change default period to 100 on the CPU
@@ -272,18 +278,18 @@ class sort(_updater):
 
     ## Change sorter parameters
     #
-    # \param bin_width New bin width (if set)
+    # \param grid New grid dimension (if set)
     # 
     # \b Examples:
     # \code
-    # sorter.set_params(bin_width=2.0)
+    # sorter.set_params(grid=128)
     # \endcode
-    def set_params(self, bin_width=None):
+    def set_params(self, grid=None):
         util.print_status_line();
         self.check_initialization();
         
-        if bin_width is not None:
-            self.cpp_updater.setBinWidth(bin_width);
+        if grid is not None:
+            self.cpp_updater.setGrid(grid);
 
 
 ## Rescales particle velocities

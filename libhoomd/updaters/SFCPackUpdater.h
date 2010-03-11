@@ -75,14 +75,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     that value to 2,000 or more.
 
     Usage:<br>
-    Constructe the SFCPackUpdater, attaching it to the ParticleData and setting reasonable
-    parameters. \a bin_width should  be chosen small in principle, but there is little gain
-    to going smaller than the diameter of the typical particle in the simulation.
+    Constructe the SFCPackUpdater, attaching it to the ParticleData. The grid size is automatically set to reasonable 
+    defaults, which is as high as it can possibly go without consuming a significant amount of memory. The grid
+    dimension can be changed by calling setGrid().
 
     Implementation details:<br>
-    The rearranging is done by placing the particles into bins and then traversing the bins
-    along a hilbert curve. It is very efficient, as long as the box size does not change
-    quickly necessitating a rebuild of the hilbert curve.
+    The rearranging is done by computing bins for the particles, and then ordering the particles based on the order in
+    which those bins appear along a hilbert curve. It is very efficient, even when the box size changes often as the
+    grid dimension is kept constant.
 
     \ingroup updaters
 */
@@ -90,21 +90,23 @@ class SFCPackUpdater : public Updater
     {
     public:
         //! Constructor
-        SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar bin_width);
+        SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef);
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
         
-        //! Set the bin width
-        /*! \param bin_width New bin width to set */
-        void setBinWidth(Scalar bin_width)
+        //! Set the grid dimension
+        /*! \param grid New grid dimension to set
+            \note It is automatically rounded up to the nearest power of 2
+        */
+        void setGrid(unsigned int grid)
             {
-            m_bin_width = bin_width;
+            m_grid = (unsigned int)pow(2.0, ceil(log(double(grid)) / log(2.0)));;
             }
             
     private:
-        Scalar m_bin_width;         //!< The side length of the bins used to sort particles
-        unsigned int m_lastMmax;    //!< The last value of MMax
+        unsigned int m_grid;        //!< Grid dimension to use
+        unsigned int m_last_grid;   //!< The last value of MMax
         unsigned int m_last_dim;    //!< Check the last dimension we ran at
         
         std::vector< std::pair<unsigned int, unsigned int> > m_particle_bins;    //!< Binned particles
