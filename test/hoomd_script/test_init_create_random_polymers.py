@@ -16,8 +16,6 @@ class init_create_random_polymer_tests (unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = hoomd.BoxDim(35);
         self.separation=dict(A=0.35, B=0.35)
-        import __main__;
-        __main__.sorter.set_params(grid=8)
     
     # tests basic creation of the random initializer
     def test(self):
