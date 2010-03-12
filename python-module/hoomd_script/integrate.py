@@ -144,13 +144,14 @@ class _integrator:
         # set the forces
         self.cpp_integrator.removeForceComputes();
         for f in globals.forces:
+            if f.cpp_force is None:
+                print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+                raise RuntimeError('Error updating forces');
+                
+            f.update_coeffs();
+                
             if f.enabled:
-                if f.cpp_force is None:
-                    print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
-                    raise RuntimeError('Error updating forces');
-                else:
                     self.cpp_integrator.addForceCompute(f.cpp_force);
-                    f.update_coeffs();
     
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class

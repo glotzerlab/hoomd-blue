@@ -136,9 +136,10 @@ class _force:
             print "***Warning! Ignoring command to disable a force that is already disabled";
             return;
         
-        globals.system.removeCompute(self.force_name);
+        #globals.system.removeCompute(self.force_name);
         self.enabled = False;
-        globals.forces.remove(self);
+        #globals.forces.remove(self);
+        #globas.disabled_forces.append(self);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -193,7 +194,8 @@ class _force:
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         self.enabled = True;
-        globals.forces.append(self);
+        #globals.forces.append(self);
+        #globals.disabled_forces.remove(self);
         
     ## \internal
     # \brief updates force coefficients

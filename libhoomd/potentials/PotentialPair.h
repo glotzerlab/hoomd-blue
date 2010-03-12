@@ -129,7 +129,7 @@ class PotentialPair : public ForceCompute
         typedef typename evaluator::param_type param_type;
     
         //! Construct the pair potential
-        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist);
+        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix);
         //! Destructor
         virtual ~PotentialPair() { };
 
@@ -177,7 +177,7 @@ class PotentialPair : public ForceCompute
 */
 template < class evaluator >
 PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist)
+                                                boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(1)
     {
     assert(m_pdata);
@@ -197,7 +197,7 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
-    m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy");
+    m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // initialize memory for per thread reduction
     allocateThreadPartial();
@@ -232,7 +232,7 @@ void PotentialPair< evaluator >::setParams(unsigned int typ1, unsigned int typ2,
 */
 template< class evaluator >
 void PotentialPair< evaluator >::setRcut(unsigned int typ1, unsigned int typ2, Scalar rcut)
-    {
+    {    
     if (typ1 >= m_pdata->getNTypes() || typ2 >= m_pdata->getNTypes())
         {
         std::cerr << std::endl << "***Error! Trying to set rcut for a non existant type! "
@@ -305,6 +305,7 @@ Scalar PotentialPair< evaluator >::getLogValue(const std::string& quantity, unsi
 template< class evaluator >
 void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     {
+    
     // start by updating the neighborlist
     m_nlist->compute(timestep);
     
@@ -412,10 +413,13 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             // calculate r_ij squared (FLOPS: 5)
             Scalar rsq = dx*dx + dy*dy + dz*dz;
             
+            
             // get parameters for this type pair
             unsigned int typpair_idx = m_typpair_idx(typei, typej);
             param_type param = h_params.data[typpair_idx];
             Scalar rcutsq = h_rcutsq.data[typpair_idx];
+
+            
             Scalar ronsq = Scalar(0.0);
             if (m_shift_mode == xplor)
                 ronsq = h_ronsq.data[typpair_idx];
@@ -550,7 +554,7 @@ template < class T > void export_PotentialPair(const std::string& name)
     {
     boost::python::scope in_pair = 
         boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
+                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)
