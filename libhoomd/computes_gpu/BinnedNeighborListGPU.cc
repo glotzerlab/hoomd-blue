@@ -132,6 +132,10 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
     m_Mx = 0;
     m_My = 0;
     m_Mz = 0;
+    
+    // allocate the array of bin ids
+    GPUArray< unsigned int > bin_ids(m_pdata->getN(), exec_conf);
+    m_bin_ids.swap(bin_ids);
     }
 
 BinnedNeighborListGPU::~BinnedNeighborListGPU()
@@ -400,9 +404,6 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     // start up the profile
     if (m_prof) m_prof->push(exec_conf, "Bin");
     
-    // acquire the particle data
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    
     // calculate the bin dimensions
     const BoxDim& box = m_pdata->getBox();
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
@@ -453,6 +454,26 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     Scalar scaley = Scalar(1.0) / biny;
     Scalar scalez = Scalar(1.0) / binz;
     
+    // use the GPU to determine which bin in which each particle resides
+    // acquire the particle data
+        {
+        vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+        ArrayHandle<unsigned int> d_bin_ids(m_bin_ids, access_location::device, access_mode::overwrite);
+        
+        // call the kernel to compute the bin ids
+        exec_conf.gpu[0]->call(bind(gpu_compute_bin_ids, d_bin_ids.data,
+                                                         pdata[0],
+                                                         m_pdata->getBoxGPU(),
+                                                         m_Mx,
+                                                         m_My,
+                                                         m_Mz,
+                                                         scalex,
+                                                         scaley,
+                                                         scalez));
+        m_pdata->release();
+        }
+    
+    // now prep to use those bin ids on the host to actually bin the particles
     // setup the memory arrays
     for (unsigned int i = 0; i < m_Mx*m_My*m_Mz; i++)
         m_bin_sizes[i] = 0;
@@ -463,42 +484,15 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     // reset the counter that keeps track of the current size of the largest bin
     m_curNmax = 0;
     
+    // get the bin ids from the gpu
+    ArrayHandle<unsigned int> h_bin_ids(m_bin_ids, access_location::host, access_mode::read);
+    
     // for each particle
     bool overflow = false;
     unsigned int overflow_value = 0;
-    for (unsigned int n = 0; n < arrays.nparticles; n++)
+    for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
-        if (isnan(arrays.x[n]) || isnan(arrays.y[n]) || isnan(arrays.z[n]))
-            {
-            cerr << endl << "***Error! Particle " << n << " has NaN for its position." << endl << endl;
-            throw runtime_error("Error binning particles");
-            }
-            
-        // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex);
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley);
-        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez);
-        
-        // need to handle the case where the particle is exactly at the box hi
-        if (ib == m_Mx)
-            ib = 0;
-        if (jb == m_My)
-            jb = 0;
-        if (kb == m_Mz)
-            kb = 0;
-            
-        // sanity check
-        assert(ib >= 0 && ib < m_Mx && jb >= 0 && jb < m_My && kb >= 0 && kb < m_Mz);
-        
-        // record its bin
-        unsigned int bin = ib*(m_Mz*m_My) + jb * m_Mz + kb;
-        // check if the particle is inside
-        if (bin >= m_Mx*m_My*m_Mz)
-            {
-            cerr << endl << "***Error! Elvis has left the building (particle " << n << " is no longer in the simulation box)." << endl << endl;
-            throw runtime_error("Error binning particles");
-            }
-            
+        unsigned int bin = h_bin_ids.data[n];
         unsigned int size = m_bin_sizes[bin];
         
         // track the size of the largest bin
@@ -525,8 +519,6 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
         m_avgNmax += m_bin_sizes[i];
         }
     m_avgNmax /= Scalar(m_Mx * m_My * m_Mz);
-    
-    m_pdata->release();
     
     // update profile
     if (m_prof) m_prof->pop(exec_conf);

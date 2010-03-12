@@ -370,5 +370,77 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
         }
     }
 
+/*! Kernel that computes the bin ids of all particles in the simulation.
+*/
+__global__ void gpu_compute_bin_ids_kernel(unsigned int *d_bin_ids,
+                                           float4 *d_pos,
+                                           unsigned int num_particles,
+                                           gpu_boxsize box,
+                                           unsigned int Mx,
+                                           unsigned int My,
+                                           unsigned int Mz,
+                                           float scalex,
+                                           float scaley,
+                                           float scalez)
+    {
+    // each thread computes the bin of a single particle
+    int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    // quit early if we are past the end of the array
+    if (my_pidx >= num_particles)
+        return;
+        
+    // first, determine which bin this particle belongs to
+    float4 my_pos = d_pos[my_pidx];
+    
+    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex) % Mx;
+    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley) % My;
+    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*scalez) % Mz;
+    
+    int my_bin = ib*(Mz*My) + jb * Mz + kb;
+    d_bin_ids[my_pidx] = my_bin;
+    }
+
+/*! This is just a driver for gpu_compute_bin_ids_kernel, see it for details
+*/
+cudaError_t gpu_compute_bin_ids(unsigned int *d_bin_ids,
+                                const gpu_pdata_arrays &pdata,
+                                const gpu_boxsize &box,
+                                unsigned int Mx,
+                                unsigned int My,
+                                unsigned int Mz,
+                                float scalex,
+                                float scaley,
+                                float scalez)
+    {
+    // setup the grid to run the kernel
+    unsigned int block_size=128;
+    int nblocks = (int)ceil((double)pdata.local_num/ (double)block_size);
+    
+    dim3 grid(nblocks, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    
+    gpu_compute_bin_ids_kernel<<< grid, threads>>>(d_bin_ids,
+                                                   pdata.pos,
+                                                   pdata.local_num,
+                                                   box,
+                                                   Mx,
+                                                   My,
+                                                   Mz,
+                                                   scalex,
+                                                   scaley,
+                                                   scalez);
+        
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+    }
+
 // vim:syntax=cpp
 
