@@ -142,7 +142,7 @@ class EvaluatorPairYukawa
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            if (rsq < rcutsq)
+            if (rsq < rcutsq && epsilon != 0)
                 {
                 Scalar rinv = RSQRT(rsq);
                 Scalar r = Scalar(1.0) / rinv;

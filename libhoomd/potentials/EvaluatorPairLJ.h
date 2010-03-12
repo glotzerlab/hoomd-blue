@@ -176,7 +176,7 @@ class EvaluatorPairLJ
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            if (rsq < rcutsq)
+            if (rsq < rcutsq && lj1 != 0)
                 {
                 Scalar r2inv = Scalar(1.0)/rsq;
                 Scalar r6inv = r2inv * r2inv * r2inv;
