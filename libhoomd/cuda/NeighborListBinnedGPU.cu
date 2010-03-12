@@ -158,9 +158,7 @@ texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
     \param bins The binned particles
     \param r_maxsq Precalculated value for r_max*r_max
     \param actual_Nmax Number of particles currently in the largest bin
-    \param scalex Scale factor to convert particle position to bin i-coordinate
-    \param scaley Scale factor to convert particle position to bin j-coordinate
-    \param scalez Scale factor to convert particle position to bin k-coordinate
+    \param d_bin_ids Computed bin ids for each particle
 
     This kernel runs one thread per particle: Thread \a i handles particle \a i.
     The bin of particle \a i is first determined. Neighboring bins are read from
@@ -181,9 +179,7 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
                                                 gpu_bin_array bins,
                                                 float r_maxsq,
                                                 unsigned int actual_Nmax,
-                                                float scalex,
-                                                float scaley,
-                                                float scalez)
+                                                unsigned int *d_bin_ids)
     {
     // each thread is going to compute the neighbor list for a single particle
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -203,21 +199,8 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     uint4 exclude4 = nlist.exclusions4[my_pidx];
 #endif
     
-    // FLOPS: 9
-    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
-    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley);
-    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*scalez);
-    
-    // need to handle the case where the particle is exactly at the box hi
-    if (ib == bins.Mx)
-        ib = 0;
-    if (jb == bins.My)
-        jb = 0;
-    if (kb == bins.Mz)
-        kb = 0;
-        
     // MEM TRANSFER: 4 bytes
-    int my_bin = ib*(bins.Mz*bins.My) + jb * bins.Mz + kb;
+    int my_bin = d_bin_ids[my_pidx];
     
     // each thread will determine the neighborlist of a single particle
     int n_neigh = 0;    // count number of neighbors found so far
@@ -297,6 +280,7 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     \param pdata Particle data to generate the neighbor list for
     \param box Box dimensions for handling periodic boundary conditions
     \param bins The binned particles
+    \param d_bin_ids Bin ids computed for each particle
     \param r_maxsq Precalculated value for r_max*r_max
     \param curNmax Number of particles currently in the largest bin
     \param block_size Block size to run the kernel on the device
@@ -308,6 +292,7 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const gpu_bin_array &bins,
+                                     unsigned int *d_bin_ids,
                                      float r_maxsq,
                                      int curNmax,
                                      int block_size,
@@ -343,21 +328,11 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     if (error != cudaSuccess)
         return error;
         
-    // make even bin dimensions
-    float binx = (box.Lx) / float(bins.Mx);
-    float biny = (box.Ly) / float(bins.My);
-    float binz = (box.Lz) / float(bins.Mz);
-    
-    // precompute scale factors to eliminate division in inner loop
-    float scalex = 1.0f / binx;
-    float scaley = 1.0f / biny;
-    float scalez = 1.0f / binz;
-    
     // run the kernel
     if (ulf_workaround)
-        gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+        gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, d_bin_ids);
     else
-        gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez);
+        gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, d_bin_ids);
         
     if (!g_gpu_error_checking)
         {
