@@ -493,6 +493,13 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         unsigned int bin = h_bin_ids.data[n];
+        if (bin == 0xffffffff)
+            {
+            cerr << endl << "***Error! A particle's coordinates are no longer finite" << endl << endl;
+            throw runtime_error("Error updating neighbor list bins");
+            }
+        
+        assert(bin < m_Mx*m_My*m_Mz);
         unsigned int size = m_bin_sizes[bin];
         
         // track the size of the largest bin

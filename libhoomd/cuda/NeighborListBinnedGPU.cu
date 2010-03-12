@@ -398,6 +398,10 @@ __global__ void gpu_compute_bin_ids_kernel(unsigned int *d_bin_ids,
     unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*scalez) % Mz;
     
     int my_bin = ib*(Mz*My) + jb * Mz + kb;
+    
+    if (!(isfinite(my_pos.x) && isfinite(my_pos.y) && isfinite(my_pos.z)))
+        my_bin = 0xffffffff;
+    
     d_bin_ids[my_pidx] = my_bin;
     }
 
