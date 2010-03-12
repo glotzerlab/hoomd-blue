@@ -495,7 +495,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
         unsigned int bin = h_bin_ids.data[n];
         if (bin == 0xffffffff)
             {
-            cerr << endl << "***Error! A particle's coordinates are no longer finite" << endl << endl;
+            cerr << endl << "***Error! Particle " << n << "'s coordinates are no longer finite" << endl << endl;
             throw runtime_error("Error updating neighbor list bins");
             }
         

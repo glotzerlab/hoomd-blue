@@ -346,6 +346,22 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     }
 
 /*! Kernel that computes the bin ids of all particles in the simulation.
+
+    The bin index for each particle in parallel: one thread per particle. Coordinates are modded by the grid dimensions
+    for robust handling of particles that may have ended up outside the box. Special treatement is given to particle
+    coordinates that have gone infinite or NaN. Any particle where this is true will have its bin set to the maximum
+    unsigned int. Host code can then detect this condition and report an error to the user.
+
+    \param d_bin_ids Output array to place computed bin ids for each particle
+    \param d_pos Array of particle positions
+    \param num_particles Number of particles in the simulation
+    \param box Box the particles are in
+    \param Mx Number of grid cells along the x direction
+    \param My Number of grid cells along the y direction
+    \param Mz Number of grid cells along the z direction
+    \param scalex Scale factor by which to bring particle coordinates to grid coordinates (x direction)
+    \param scaley Scale factor by which to bring particle coordinates to grid coordinates (y direction)
+    \param scalez Scale factor by which to bring particle coordinates to grid coordinates (z direction)
 */
 __global__ void gpu_compute_bin_ids_kernel(unsigned int *d_bin_ids,
                                            float4 *d_pos,
@@ -381,6 +397,15 @@ __global__ void gpu_compute_bin_ids_kernel(unsigned int *d_bin_ids,
     }
 
 /*! This is just a driver for gpu_compute_bin_ids_kernel, see it for details
+    \param d_bin_ids Output array to place computed bin ids for each particle
+    \param pdata Particle data to compute bin ids for
+    \param box Box the particles are in
+    \param Mx Number of grid cells along the x direction
+    \param My Number of grid cells along the y direction
+    \param Mz Number of grid cells along the z direction
+    \param scalex Scale factor by which to bring particle coordinates to grid coordinates (x direction)
+    \param scaley Scale factor by which to bring particle coordinates to grid coordinates (y direction)
+    \param scalez Scale factor by which to bring particle coordinates to grid coordinates (z direction)
 */
 cudaError_t gpu_compute_bin_ids(unsigned int *d_bin_ids,
                                 const gpu_pdata_arrays &pdata,
