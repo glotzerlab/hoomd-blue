@@ -785,7 +785,7 @@ class lj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
@@ -876,7 +876,7 @@ class gauss(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
@@ -1100,7 +1100,7 @@ class yukawa(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
@@ -1456,7 +1456,7 @@ class morse(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
