@@ -67,7 +67,7 @@ class FENEBondForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix);
         
         //! Destructor
         ~FENEBondForceCompute();
@@ -89,7 +89,8 @@ class FENEBondForceCompute : public ForceCompute
         Scalar *m_epsilon;  //!< epsilon value for multiple bond types
         
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        
+        std::string m_log_name;                     //!< Cached log name
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };

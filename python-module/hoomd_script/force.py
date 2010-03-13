@@ -68,12 +68,18 @@ class _force:
     #
     # Initializes the cpp_analyzer to None.
     # Assigns a name to the force in force_name;
-    def __init__(self):
+    def __init__(self, name=None):
         # check if initialization has occured
         if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
             raise RuntimeError('Error creating force');
         
+        # Allow force to store a name.  Used for discombobulation in the logger
+        if name is None:    
+            self.name = "";
+        else:
+            self.name="_" + name;
+                        
         self.cpp_force = None;
 
         # increment the id counter
@@ -136,10 +142,7 @@ class _force:
             print "***Warning! Ignoring command to disable a force that is already disabled";
             return;
         
-        #globals.system.removeCompute(self.force_name);
         self.enabled = False;
-        #globals.forces.remove(self);
-        #globas.disabled_forces.append(self);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over

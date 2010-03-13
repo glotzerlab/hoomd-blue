@@ -68,8 +68,8 @@ using namespace std;
 
 /*! \param sysdef System to compute bond forces on
 */
-HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-    : HarmonicBondForceCompute(sysdef), m_block_size(64)
+HarmonicBondForceComputeGPU::HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix )
+    : HarmonicBondForceCompute(sysdef, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)
@@ -163,7 +163,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
 void export_HarmonicBondForceComputeGPU()
     {
     class_<HarmonicBondForceComputeGPU, boost::shared_ptr<HarmonicBondForceComputeGPU>, bases<HarmonicBondForceCompute>, boost::noncopyable >
-    ("HarmonicBondForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    ("HarmonicBondForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, const std::string& >())
     .def("setBlockSize", &HarmonicBondForceComputeGPU::setBlockSize)
     ;
     }

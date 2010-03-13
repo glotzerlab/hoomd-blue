@@ -81,7 +81,7 @@ class FENEBondForceComputeGPU : public FENEBondForceCompute
     {
     public:
         //! Constructs the compute
-        FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix);
         //! Destructor
         ~FENEBondForceComputeGPU();
         

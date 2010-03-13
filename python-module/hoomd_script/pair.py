@@ -633,17 +633,9 @@ class pair(force._force):
     #       self.cpp_force.set_params())
     def __init__(self, r_cut, name=None):
         # initialize the base class
-        force._force.__init__(self);
+        force._force.__init__(self, name);
         
         self.global_r_cut = r_cut;
-        
-        # Allow pair force to store a name.  Used for discombobulation in the logger
-        if name is None:    
-            self.name = "";
-        else:
-            self.name="_" + name;
-        
-        print "My Name is", self.name
 
         # setup the coefficent matrix
         self.pair_coeff = coeff();
