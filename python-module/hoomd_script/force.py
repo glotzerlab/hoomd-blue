@@ -66,7 +66,10 @@ class _force:
     ## \internal
     # \brief Constructs the force
     #
+    # \param name name of the force instance 
+    #
     # Initializes the cpp_analyzer to None.
+    # If specified, assigns a name to the instance
     # Assigns a name to the force in force_name;
     def __init__(self, name=None):
         # check if initialization has occured

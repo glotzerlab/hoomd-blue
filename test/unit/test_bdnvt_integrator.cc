@@ -524,7 +524,7 @@ void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfigurat
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
     
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(1.3), Scalar(3.0)));
-    shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist));
+    shared_ptr<PotentialPairLJ> fc3(new PotentialPairLJ(sysdef, nlist, ""));
     fc3->setRcut(0, 0, Scalar(1.3));
     
     Scalar epsilon = Scalar(1.15);

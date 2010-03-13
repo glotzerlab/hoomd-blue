@@ -427,7 +427,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration ex
     shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist, ""));
     fc->setRcut(0, 0, Scalar(2.5));
     fc->setRcut(0, 1, Scalar(2.5));
     fc->setRcut(1, 1, Scalar(2.5));
@@ -516,7 +516,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, ExecutionConfiguration ex
     shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
     
     shared_ptr<NeighborList> nlist(new NeighborList(sysdef, Scalar(3.0), Scalar(0.3)));
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist, ""));
     fc->setRcut(0, 0, Scalar(3.0));
 
     

@@ -347,6 +347,34 @@ class imd(_analyzer):
 # - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
 #
+# The following quanitities can also be given names so that the energy of multiple types of the same force or bond 
+# can be logged seperately
+# - \b pair_lj_energy (pair.lj) - Total Lennard-Jones potential energy
+# - \b pair_wlj_energy (pair.lj) - Total ShiftedLennard-Jones potential energy
+# - \b pair_gauss_energy (pair.gauss) - Total Gaussian potential energy
+# - \b pair_yukawa_energy (pair.yukawa) - Total Yukawa potential energy
+# - \b pair_morse_energy (pair.yukawa) - Total Yukawa potential energy
+# - \b bond_fene_energy (bond.fene) - Total fene bond potential energy
+# - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
+#
+#  By creating a force, disabling it, and logging it, different energy terms can be calculated
+# \b Examples:
+# \code
+# lj1 = pair.lj(r_cut=3.0, name="lj1")
+# lj1.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+# lj1.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
+# lj1.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+#
+# lj2 = pair.lj(r_cut=3.0, name="lj2")
+# lj2.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
+# lj2.pair_coeff.set('A', 'B', epsilon=0.0, sigma=1.0, alpha=0.0)
+# lj2.pair_coeff.set('B', 'B', epsilon=0.0, sigma=1.0, alpha=1.0)
+# lj2.disable()
+#
+# analyze.log(filename='mylog.log', quantities=['pair_lj_energy_lj1', 'pair_lj_energy_lj2',],
+#             period=1, header_prefix='#')
+# \endcode 
+#
 class log(_analyzer):
     ## Initialize the log
     #

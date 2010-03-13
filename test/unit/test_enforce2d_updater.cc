@@ -132,7 +132,7 @@ void enforce2d_basic_test(enforce2d_creator creator, ExecutionConfiguration exec
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.3)));
     nlist->setStorageMode(NeighborList::half);
 
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist, ""));
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);

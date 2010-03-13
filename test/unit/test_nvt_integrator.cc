@@ -1195,9 +1195,9 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     shared_ptr<NeighborList> nlist1(new NeighborList(sysdef1, Scalar(3.0), Scalar(0.8)));
     shared_ptr<NeighborList> nlist2(new NeighborList(sysdef2, Scalar(3.0), Scalar(0.8)));
     
-    shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
+    shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1, ""));
     fc1->setRcut(0, 0, Scalar(3.0));
-    shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
+    shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2, ""));
     fc2->setRcut(0, 0, Scalar(3.0));
 
     

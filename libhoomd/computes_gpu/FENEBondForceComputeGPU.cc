@@ -63,6 +63,7 @@ using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute bond forces on
+    \param log_suffix Name given to this instance of the fene bond
 */
 FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix)
         : FENEBondForceCompute(sysdef, log_suffix), m_block_size(64)

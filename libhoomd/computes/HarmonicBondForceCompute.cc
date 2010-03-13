@@ -65,6 +65,7 @@ using namespace std;
 */
 
 /*! \param sysdef System to compute forces on
+    \param log_suffix Name given to this instance of the harmonic bond
     \post Memory is allocated, and forces are zeroed.
 */
 HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix) 

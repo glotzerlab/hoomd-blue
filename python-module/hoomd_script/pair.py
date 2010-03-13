@@ -773,6 +773,7 @@ class lj(pair):
     ## Specify the Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance 
     #
     # \b Example:
     # \code
@@ -864,6 +865,7 @@ class gauss(pair):
     ## Specify the Gaussian %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance 
     #
     # \b Example:
     # \code
@@ -953,6 +955,7 @@ class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
     # \param d_max Maximum diameter particles in the simulation will have
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
@@ -1086,6 +1089,7 @@ class yukawa(pair):
     ## Specify the Gaussian %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
     #
     # \b Example:
     # \code
@@ -1441,6 +1445,7 @@ class morse(pair):
     ## Specify the Morse %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
     #
     # \b Example:
     # \code

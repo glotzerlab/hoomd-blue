@@ -389,7 +389,7 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, ExecutionConfigura
 shared_ptr<PotentialPairGauss> base_class_gauss_creator(shared_ptr<SystemDefinition> sysdef,
                                                         shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist));
+    return shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist, ""));
     }
 
 #ifdef ENABLE_CUDA
@@ -398,7 +398,7 @@ shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(shared_ptr<SystemDefinition>
                                                     shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist));
+    shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist, ""));
     // the default block size kills valgrind :) reduce it
     gauss->setBlockSize(64);
     return gauss;

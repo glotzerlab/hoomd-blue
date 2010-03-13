@@ -174,6 +174,7 @@ class PotentialPair : public ForceCompute
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
+    \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
 PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,

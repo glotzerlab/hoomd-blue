@@ -371,14 +371,14 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
 //! FEBEBondForceCompute creator for bond_force_basic_tests()
 shared_ptr<FENEBondForceCompute> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(sysdef));
+    return shared_ptr<FENEBondForceCompute>(new FENEBondForceCompute(sysdef, ""));
     }
 
 #ifdef ENABLE_CUDA
 //! FENEBondForceCompute creator for bond_force_basic_tests()
 shared_ptr<FENEBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<FENEBondForceCompute>(new FENEBondForceComputeGPU(sysdef));
+    return shared_ptr<FENEBondForceCompute>(new FENEBondForceComputeGPU(sysdef, ""));
     }
 #endif
 

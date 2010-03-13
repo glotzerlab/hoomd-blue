@@ -108,7 +108,7 @@ void npt_updater_test(twostepnpt_creator npt_creator, ExecutionConfiguration exe
     
     shared_ptr<BinnedNeighborList> nlist(new BinnedNeighborList(sysdef, Scalar(2.5), Scalar(0.8)));
     
-    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist, ""));
     fc->setRcut(0, 0, Scalar(2.5));
     
     // setup some values for alpha and sigma

@@ -224,7 +224,7 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
 shared_ptr<PotentialPairYukawa> base_class_yukawa_creator(shared_ptr<SystemDefinition> sysdef,
                                                           shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairYukawa>(new PotentialPairYukawa(sysdef, nlist));
+    return shared_ptr<PotentialPairYukawa>(new PotentialPairYukawa(sysdef, nlist, ""));
     }
 
 #ifdef ENABLE_CUDA
@@ -233,7 +233,7 @@ shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(shared_ptr<SystemDefinitio
                                                       shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairYukawaGPU> yukawa(new PotentialPairYukawaGPU(sysdef, nlist));
+    shared_ptr<PotentialPairYukawaGPU> yukawa(new PotentialPairYukawaGPU(sysdef, nlist, ""));
     // the default block size kills valgrind :) reduce it
     yukawa->setBlockSize(64);
     return yukawa;

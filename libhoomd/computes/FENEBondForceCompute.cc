@@ -65,6 +65,7 @@ using namespace std;
 */
 
 /*! \param sysdef System to compute forces on
+    \param log_suffix Name given to this instance of the fene bond
     \post Memory is allocated, default parameters are set and forces are zeroed.
 */
 FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix) : ForceCompute(sysdef),

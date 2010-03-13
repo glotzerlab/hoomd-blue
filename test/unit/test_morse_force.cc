@@ -219,7 +219,7 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
 shared_ptr<PotentialPairMorse> base_class_morse_creator(shared_ptr<SystemDefinition> sysdef,
                                                           shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairMorse>(new PotentialPairMorse(sysdef, nlist));
+    return shared_ptr<PotentialPairMorse>(new PotentialPairMorse(sysdef, nlist, ""));
     }
 
 #ifdef ENABLE_CUDA
@@ -228,7 +228,7 @@ shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(shared_ptr<SystemDefinition>
                                                       shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairMorseGPU> morse(new PotentialPairMorseGPU(sysdef, nlist));
+    shared_ptr<PotentialPairMorseGPU> morse(new PotentialPairMorseGPU(sysdef, nlist, ""));
     // the default block size kills valgrind :) reduce it
     morse->setBlockSize(64);
     return morse;

@@ -373,7 +373,7 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
 shared_ptr<PotentialPairSLJ> base_class_shiftedlj_creator(shared_ptr<SystemDefinition> sysdef,
                                                           shared_ptr<NeighborList> nlist)
     {
-    return shared_ptr<PotentialPairSLJ>(new PotentialPairSLJ(sysdef, nlist));
+    return shared_ptr<PotentialPairSLJ>(new PotentialPairSLJ(sysdef, nlist, ""));
     }
 
 #ifdef ENABLE_CUDA
@@ -382,7 +382,7 @@ shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> 
                                                    shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    shared_ptr<PotentialPairSLJGPU> lj(new PotentialPairSLJGPU(sysdef, nlist));
+    shared_ptr<PotentialPairSLJGPU> lj(new PotentialPairSLJGPU(sysdef, nlist, ""));
     // the default block size kills valgrind :) reduce it
     lj->setBlockSize(64);
     return lj;

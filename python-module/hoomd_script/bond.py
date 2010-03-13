@@ -76,9 +76,11 @@ import sys;
 class harmonic(force._force):
     ## Specify the %harmonic %bond %force
     #
+    # \param name Name of the bond instance
+    #
     # \b Example:
     # \code
-    # harmonic = bond.harmonic()
+    # harmonic = bond.harmonic(name="mybond")
     # \endcode
     def __init__(self,name=None):
         util.print_status_line();
@@ -168,6 +170,8 @@ class harmonic(force._force):
 # \note Specifying the bond.fene command when no bonds are defined in the simulation results in an error.
 class fene(force._force):
     ## Specify the %fene %bond %force
+    #
+    # \param name Name of the bond instance
     #
     # \b Example:
     # \code
