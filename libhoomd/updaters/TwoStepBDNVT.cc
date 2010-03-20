@@ -69,7 +69,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool gamma_diam)
-    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam)
+    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0)
     {
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
@@ -114,6 +114,23 @@ void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
     h_gamma.data[typ] = gamma;
     }
 
+
+/*! \param quantity Name of the log quantity to get
+    \param timestep Current time step of the simulation
+    \param my_quantity_flag passed as false, changed to true if quanity logged here
+*/
+
+Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+    {
+    if (quantity == "bd_reservoir_energy")  
+        {
+        my_quantity_flag = true;
+        return m_reservoir_energy;
+        }
+    else
+        return 0;  // Terrible flag     
+    }
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1
 */
@@ -124,6 +141,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         return;
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    
     
     // profile this step
     if (m_prof)
@@ -139,6 +157,9 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
     
     // initialize the RNG
     Saru saru(m_seed, timestep);
+    
+    // energy transferred over this time step
+    Scalar bd_energy_transfer = 0;
     
     // a(t+deltaT) gets modified with the bd forces
     // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
@@ -178,6 +199,10 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
         arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
         
+        //Tally the Energy Transfer from the BD Reservor to the particles
+        
+        bd_energy_transfer += bd_fx * arrays.vx[j] + bd_fy * arrays.vy[j] + bd_fz * arrays.vz[j];
+        
         // limit the movement of the particles
         if (m_limit)
             {
@@ -190,6 +215,9 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
                 }
             }
         }
+    
+    // update energy reservoir        
+    m_reservoir_energy += bd_energy_transfer*m_deltaT;
     
     m_pdata->release();
     

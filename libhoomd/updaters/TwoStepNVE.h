@@ -80,7 +80,7 @@ class TwoStepNVE : public IntegrationMethodTwoStep
             {
             m_zero_force = zero_force;
             }
-        
+                   
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         

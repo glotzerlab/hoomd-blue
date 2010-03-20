@@ -81,6 +81,23 @@ void IntegratorTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
         (*method)->setProfiler(prof);
     }
 
+/*! \param quantity Name of the log quantity to get
+    \param timestep Current time step of the simulation
+*/
+Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, unsigned int timestep)
+    {
+    bool quantity_flag = false;
+    Scalar log_value;
+
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        log_value = (*method)->getLogValue(quantity,timestep,quantity_flag);
+        if (quantity_flag) return log_value;
+        }
+    return Integrator::getLogValue(quantity, timestep);
+    }
+
 /*! \param timestep Current time step of the simulation
     \post All integration methods previously added with addIntegrationMethod() are applied in order to move the system
           state variables forward to \a timestep+1.

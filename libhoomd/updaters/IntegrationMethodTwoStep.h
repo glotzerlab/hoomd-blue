@@ -145,6 +145,9 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Sets the profiler for the integration method to use
         void setProfiler(boost::shared_ptr<Profiler> prof);
         
+        //! Returns logged values
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag) {return 0;}
+            
         //! Change the timestep
         void setDeltaT(Scalar deltaT);
         

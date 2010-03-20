@@ -113,7 +113,7 @@ class TwoStepNPT : public IntegrationMethodTwoStep
             {
             m_partial_scale = partial_scale;
             }
-        
+                
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         

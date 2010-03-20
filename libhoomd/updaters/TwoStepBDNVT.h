@@ -86,6 +86,9 @@ class TwoStepBDNVT : public TwoStepNVE
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
         
+        //! Returns logged values
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
+        
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     
@@ -93,6 +96,7 @@ class TwoStepBDNVT : public TwoStepNVE
         boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
+        Scalar m_reservoir_energy;         //!< The energy of the reservoir the bd couples the system to.
         
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
     };

@@ -478,6 +478,7 @@ class ParticleData : boost::noncopyable
         //! Get the net virial array
         const GPUArray< Scalar >& getNetVirial() const { return m_net_virial; }
         
+        
         //! Get the current position of a particle
         Scalar3 getPosition(unsigned int tag)
             {
@@ -672,7 +673,7 @@ class ParticleData : boost::noncopyable
         
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle
-        
+                
 #ifdef ENABLE_CUDA
         
         //! Simple type for identifying where the most up to date particle data is
