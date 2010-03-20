@@ -387,14 +387,14 @@ void const_force_test(ExecutionConfiguration exec_conf)
 //! HarmonicBondForceCompute creator for bond_force_basic_tests()
 shared_ptr<HarmonicBondForceCompute> base_class_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceCompute(sysdef, ""));
+    return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceCompute(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! BondForceCompute creator for bond_force_basic_tests()
 shared_ptr<HarmonicBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition> sysdef)
     {
-    return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceComputeGPU(sysdef, ""));
+    return shared_ptr<HarmonicBondForceCompute>(new HarmonicBondForceComputeGPU(sysdef));
     }
 #endif
 
