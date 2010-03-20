@@ -67,7 +67,7 @@ class HarmonicBondForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix);
+        HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix="");
         
         //! Destructor
         ~HarmonicBondForceCompute();

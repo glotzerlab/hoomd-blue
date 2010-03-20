@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "HOOMDMath.h"
 
+
 /*! \file EvaluatorPairSLJ.h
     \brief Defines the pair evaluator class for shifted Lennard-Jones potentials
 */

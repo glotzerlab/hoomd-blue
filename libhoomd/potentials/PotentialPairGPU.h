@@ -91,7 +91,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
         //! Construct the pair potential
-        PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist,const std::string& log_suffix);
+        PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist,const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairGPU() { };
         

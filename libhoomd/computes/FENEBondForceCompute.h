@@ -67,7 +67,7 @@ class FENEBondForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix);
+        FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix="");
         
         //! Destructor
         ~FENEBondForceCompute();

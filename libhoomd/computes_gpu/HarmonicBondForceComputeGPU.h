@@ -77,7 +77,7 @@ class HarmonicBondForceComputeGPU : public HarmonicBondForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix);
+        HarmonicBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix="");
         //! Destructor
         ~HarmonicBondForceComputeGPU();
         

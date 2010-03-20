@@ -129,7 +129,7 @@ class PotentialPair : public ForceCompute
         typedef typename evaluator::param_type param_type;
     
         //! Construct the pair potential
-        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix);
+        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPair() { };
 
@@ -372,6 +372,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
         // loop over all of the neighbors of this particle
         const vector< unsigned int >& list = full_list[i];
         const unsigned int size = (unsigned int)list.size();
+        
         for (unsigned int k = 0; k < size; k++)
             {
             // access the index of this neighbor (MEM TRANSFER: 1 scalar)
@@ -442,7 +443,8 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
             Scalar pair_eng = Scalar(0.0);
             evaluator eval(rsq, rcutsq, param);
             if (evaluator::needsDiameter())
-                eval.setDiameter(di, dj);
+                {
+                eval.setDiameter(di, dj); }
             if (evaluator::needsCharge())
                 eval.setCharge(qi, qj);
             
