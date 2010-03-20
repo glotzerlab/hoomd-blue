@@ -62,7 +62,6 @@ system = None;
 
 ## Global variable that tracks the all of the force computes specified in the script so far
 forces = [];
-#disabled_forces[];
 
 ## Global variable that tracks all the integration methods that have been specified in the script so far
 integration_methods = [];

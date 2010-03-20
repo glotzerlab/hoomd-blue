@@ -147,8 +147,9 @@ class _integrator:
             if f.cpp_force is None:
                 print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
                 raise RuntimeError('Error updating forces');
-                
-            f.update_coeffs();
+            
+            if f.log:    
+                f.update_coeffs();
                 
             if f.enabled:
                     self.cpp_integrator.addForceCompute(f.cpp_force);

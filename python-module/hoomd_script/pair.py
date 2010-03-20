@@ -795,7 +795,7 @@ class lj(pair):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -886,7 +886,7 @@ class gauss(pair):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -992,7 +992,7 @@ class slj(pair):
             self.d_max = d_max;
                         
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut() + self.d_max - 1.0)
+        neighbor_list.subscribe(lambda: self.log*(self.get_max_rcut() + self.d_max - 1.0))
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1110,7 +1110,7 @@ class yukawa(pair):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1198,7 +1198,7 @@ class cgcmm(force._force):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: r_cut)
+        neighbor_list.subscribe(lambda: self.log*r_cut)
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1322,7 +1322,7 @@ class table(force._force):
 
         # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
         neighbor_list = _update_global_nlist(0);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1466,7 +1466,7 @@ class morse(pair):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:

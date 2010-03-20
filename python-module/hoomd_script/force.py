@@ -82,6 +82,8 @@ class _force:
             self.name = "";
         else:
             self.name="_" + name;
+            
+        print "force named : ", self.name    
                         
         self.cpp_force = None;
 
@@ -91,6 +93,7 @@ class _force:
         
         self.force_name = "force%d" % (id);
         self.enabled = True;
+        self.log =True;
         globals.forces.append(self);
         
         # create force data iterator
@@ -122,12 +125,20 @@ class _force:
     # \b Examples:
     # \code
     # force.disable()
+    # force.disable(log=True)
     # \endcode
     #
     # Executing the disable command will remove the force from the simulation.
     # Any run() command executed after disabling a force will not calculate or 
     # use the force during the simulation. A disabled force can be re-enabled
     # with enable()
+    #
+    # By setting log to True, the values of the force can be logged even though the forces are not applied 
+    # in the simulation.  For forces that use r_cuts
+    # setting log=True will cause the correct r_cuts to be used, and therefore possibly drive the neighbor list size  
+    # for the simlation (so use log=True sparingly).  If log=True is not set, the force will evaluate as if r_cut = 0, or
+    # probably, as a value of zero.  For forces with no r_cut, e.g. bonds, the force will be logged
+    # correctly whether or not log=True is specified.
     #
     # To use this command, you must have saved the force in a variable, as 
     # shown in this example:
@@ -136,7 +147,7 @@ class _force:
     # # ... later in the script
     # force.disable()
     # \endcode
-    def disable(self):
+    def disable(self, log=False):
         util.print_status_line();
         self.check_initialization();
             
@@ -146,6 +157,7 @@ class _force:
             return;
         
         self.enabled = False;
+        self.log = log;
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -200,8 +212,7 @@ class _force:
             
         globals.system.addCompute(self.cpp_force, self.force_name);
         self.enabled = True;
-        #globals.forces.append(self);
-        #globals.disabled_forces.remove(self);
+        self.log = True;
         
     ## \internal
     # \brief updates force coefficients
