@@ -114,6 +114,14 @@ void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
     h_gamma.data[typ] = gamma;
     }
 
+/*! Returns a list of log quantities this compute calculates
+*/
+std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
+    {
+    vector<string> result;
+    result.push_back("bd_reservoir_energy");
+    return result;
+    }
 
 /*! \param quantity Name of the log quantity to get
     \param timestep Current time step of the simulation
@@ -128,7 +136,7 @@ Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int times
         return m_reservoir_energy;
         }
     else
-        return 0;  // Terrible flag     
+        return Scalar(0);     
     }
 
 /*! \param timestep Current time step
@@ -217,7 +225,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         }
     
     // update energy reservoir        
-    m_reservoir_energy += bd_energy_transfer*m_deltaT;
+    m_reservoir_energy -= bd_energy_transfer*m_deltaT;
     
     m_pdata->release();
     

@@ -81,6 +81,27 @@ void IntegratorTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
         (*method)->setProfiler(prof);
     }
 
+/*! Returns a list of log quantities this compute calculates
+*/
+std::vector< std::string > IntegratorTwoStep::getProvidedLogQuantities()
+    {
+    std::vector<std::string> combined_result;
+    std::vector<std::string> result;
+    
+    // Get base class provided log quantities
+    result = Integrator::getProvidedLogQuantities();
+    combined_result.insert(combined_result.end(), result.begin(), result.end());
+    
+    // add integrationmethod quantities
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        result = (*method)->getProvidedLogQuantities();
+        combined_result.insert(combined_result.end(), result.begin(), result.end());
+        }
+    return combined_result;
+    }
+
 /*! \param quantity Name of the log quantity to get
     \param timestep Current time step of the simulation
 */

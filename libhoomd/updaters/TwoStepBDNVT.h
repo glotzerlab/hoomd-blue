@@ -86,6 +86,9 @@ class TwoStepBDNVT : public TwoStepNVE
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
         
+        //! Returns a list of log quantities this integrator calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+        
         //! Returns logged values
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
         

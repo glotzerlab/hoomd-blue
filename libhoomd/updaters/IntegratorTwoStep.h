@@ -80,6 +80,9 @@ class IntegratorTwoStep : public Integrator
         //! Sets the profiler for the compute to use
         virtual void setProfiler(boost::shared_ptr<Profiler> prof);
         
+        //! Returns a list of log quantities this integrator calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+                
         //! Returns logged values
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
                 
