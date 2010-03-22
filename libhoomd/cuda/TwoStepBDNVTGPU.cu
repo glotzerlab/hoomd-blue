@@ -192,9 +192,8 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         vel.y += (1.0f/2.0f) * accel.y * deltaT;
         vel.z += (1.0f/2.0f) * accel.z * deltaT;
         
-        // tally the energy transfer from the bd thermal reservor to the particles (FLOPS: 5)
+        // tally the energy transfer from the bd thermal reservor to the particles (FLOPS: 6)
         bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
-        
                         
         if (limit)
             {
@@ -213,8 +212,8 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         pdata.accel[idx] = accel;
         }
        
-        bdtally_sdata[threadIdx.x] = bd_energy_transfer;
-        __syncthreads();
+    bdtally_sdata[threadIdx.x] = bd_energy_transfer;
+    __syncthreads();
     
     // reduce the sum in parallel
     int offs = blockDim.x >> 1;
@@ -302,7 +301,9 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
     
     // setup the grid to run the kernel
     dim3 grid(bdnvt_args.num_blocks, 1, 1);
+    dim3 grid1(1, 1, 1);
     dim3 threads(bdnvt_args.block_size, 1, 1);
+    dim3 threads1(256, 1, 1);
 
     // bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
@@ -330,7 +331,7 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
         return error;
     
     // run the kernel
-    gpu_bdnvt_step_two_kernel<<< grid, threads, sizeof(float)*bdnvt_args.n_types >>>
+    gpu_bdnvt_step_two_kernel<<< grid, threads, sizeof(float)*bdnvt_args.n_types + bdnvt_args.block_size*sizeof(float) >>>
                                                   (pdata,
                                                    d_group_members,
                                                    group_size,
@@ -348,7 +349,7 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                                    bdnvt_args.d_partial_sum_bdenergy);
                                                    
     // run the summation kernel
-    gpu_bdtally_reduce_partial_sum_kernel<<< grid, threads, bdnvt_args.block_size*sizeof(float) >>>(bdnvt_args.d_sum_bdenergy, 
+    gpu_bdtally_reduce_partial_sum_kernel<<< grid1, threads1, bdnvt_args.block_size*sizeof(float) >>>(&bdnvt_args.d_sum_bdenergy[0], 
                                                                                       bdnvt_args.d_partial_sum_bdenergy, 
                                                                                       bdnvt_args.num_blocks);    
     if (!g_gpu_error_checking)

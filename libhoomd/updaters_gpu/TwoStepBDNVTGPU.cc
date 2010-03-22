@@ -185,8 +185,8 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     }
     m_pdata->release();
  
-    ArrayHandle<float> h_sumBD(m_sum, access_location::host, access_mode::read);
-    m_reservoir_energy -= h_sumBD.data[0];
+    ArrayHandle<float> h_sumBD(m_sum, access_location::host, access_mode::read);   
+    m_reservoir_energy -= h_sumBD.data[0]*m_deltaT;
     
     // done profiling
     if (m_prof)
