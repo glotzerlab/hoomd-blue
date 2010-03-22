@@ -60,19 +60,6 @@ if(NOT PASSED_FIRST_CONFIGURE)
 SET(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "First configure has run: CXX_FLAGS have had their defaults changed" FORCE)
 endif(NOT PASSED_FIRST_CONFIGURE)
 
-# supress some warnings in nvcc generated code
-if (CMAKE_COMPILER_IS_GNUCXX)
-    # workaround for compiler warnings in nvcc generated code
-    set(CUDA_ADDITIONAL_OPTIONS "-Xcompiler;-Wno-strict-aliasing")
-    # workaround for surf errors with CUDA 3.0 beta
-    if (CUDA_VERSION VERSION_EQUAL 3.0)
-        message(STATUS "Enabling -fpermissive workaround for CUDA 3.0 beta")
-        set(CUDA_ADDITIONAL_OPTIONS "-Xcompiler;-Wno-strict-aliasing -fpermissive")
-    endif (CUDA_VERSION VERSION_EQUAL 3.0)    
-else (CMAKE_COMPILER_IS_GNUCXX)
-    set(CUDA_ADDITIONAL_OPTIONS "")
-endif (CMAKE_COMPILER_IS_GNUCXX)
-
 # add openmp compile option to the flags
 find_package(OpenMP)
 if (ENABLE_OPENMP AND OPENMP_FOUND)
