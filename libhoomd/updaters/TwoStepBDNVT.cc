@@ -69,7 +69,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool gamma_diam)
-    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0)
+    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0), m_tally(false)
     {
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
@@ -119,7 +119,8 @@ void TwoStepBDNVT::setGamma(unsigned int typ, Scalar gamma)
 std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
     {
     vector<string> result;
-    result.push_back("bd_reservoir_energy");
+    if (m_tally)
+        result.push_back("bd_reservoir_energy");
     return result;
     }
 
@@ -130,7 +131,7 @@ std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
 
 Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
     {
-    if (quantity == "bd_reservoir_energy")  
+    if (m_tally && quantity == "bd_reservoir_energy")  
         {
         my_quantity_flag = true;
         return m_reservoir_energy;
@@ -208,7 +209,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
         
         // tally the energy transfer from the bd thermal reservor to the particles
-        bd_energy_transfer += bd_fx * arrays.vx[j] + bd_fy * arrays.vy[j] + bd_fz * arrays.vz[j];
+        if (m_tally) bd_energy_transfer += bd_fx * arrays.vx[j] + bd_fy * arrays.vy[j] + bd_fz * arrays.vz[j];
         
         // limit the movement of the particles
         if (m_limit)
@@ -224,7 +225,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         }
     
     // update energy reservoir        
-    m_reservoir_energy -= bd_energy_transfer*m_deltaT;
+    if (m_tally) m_reservoir_energy -= bd_energy_transfer*m_deltaT;
     
     m_pdata->release();
     
@@ -244,6 +245,7 @@ void export_TwoStepBDNVT()
                          >())
         .def("setT", &TwoStepBDNVT::setT)
         .def("setGamma", &TwoStepBDNVT::setGamma)
+        .def("setTally", &TwoStepBDNVT::setTally)
         ;
     }
 

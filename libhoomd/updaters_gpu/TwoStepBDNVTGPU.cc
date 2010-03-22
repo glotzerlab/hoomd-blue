@@ -167,6 +167,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         args.d_partial_sum_bdenergy = d_partial_sumBD.data;
         args.block_size = m_block_size;
         args.num_blocks = m_num_blocks;
+        args.tally = m_tally;
         
         unsigned int group_size = m_group->getIndexArray().getNumElements();
    

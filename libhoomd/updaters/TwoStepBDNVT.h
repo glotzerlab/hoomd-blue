@@ -86,6 +86,13 @@ class TwoStepBDNVT : public TwoStepNVE
         //! Sets gamma for a given particle type
         void setGamma(unsigned int typ, Scalar gamma);
         
+        //! Turn on or off Tally
+        /*! \param tally if true, tallies energy exchange from bd thermal reservoir */
+        void setTally(bool tally)
+            {
+            m_tally= tally;
+            }        
+            
         //! Returns a list of log quantities this integrator calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         
@@ -100,6 +107,7 @@ class TwoStepBDNVT : public TwoStepNVE
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
         Scalar m_reservoir_energy;         //!< The energy of the reservoir the bd couples the system to.
+        bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
         
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
     };

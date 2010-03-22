@@ -97,6 +97,8 @@ extern __shared__ float bdtally_sdata[];
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
     
+    This kernel will tally the energy transfer from the bd thermal reservoir and the particle system
+    
     Random number generation is done per thread with Saru's 3-seed constructor. The seeds are, the time step,
     the particle tag, and the user-defined seed.
     
@@ -117,6 +119,7 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
                               float D,
                               bool limit,
                               float limit_val,
+                              bool tally,
                               float *d_partial_sum_bdenergy)
     {
     if (!gamma_diam)
@@ -211,28 +214,32 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         // since we calculate the acceleration, we need to write it for the next step
         pdata.accel[idx] = accel;
         }
-       
-    bdtally_sdata[threadIdx.x] = bd_energy_transfer;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
+
+    if (tally)
         {
-        if (threadIdx.x < offs)
-            bdtally_sdata[threadIdx.x] += bdtally_sdata[threadIdx.x + offs];
-        offs >>= 1;
+        bdtally_sdata[threadIdx.x] = bd_energy_transfer;
         __syncthreads();
-        }
-    
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        {
-        d_partial_sum_bdenergy[blockIdx.x] = bdtally_sdata[0];
-        } 
         
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                bdtally_sdata[threadIdx.x] += bdtally_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
+        
+        // write out our partial sum
+        if (threadIdx.x == 0)
+            {
+            d_partial_sum_bdenergy[blockIdx.x] = bdtally_sdata[0];
+            } 
+        }
         
     }
+
+
     
 //! Kernel function for reducing a partial sum to a full sum (one value)
 /*! \param d_sum Placeholder for the sum
@@ -346,12 +353,17 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                                    D,
                                                    limit,
                                                    limit_val,
+                                                   bdnvt_args.tally,
                                                    bdnvt_args.d_partial_sum_bdenergy);
                                                    
     // run the summation kernel
-    gpu_bdtally_reduce_partial_sum_kernel<<< grid1, threads1, bdnvt_args.block_size*sizeof(float) >>>(&bdnvt_args.d_sum_bdenergy[0], 
+    if (bdnvt_args.tally) 
+        gpu_bdtally_reduce_partial_sum_kernel<<< grid1, threads1, bdnvt_args.block_size*sizeof(float) >>>(&bdnvt_args.d_sum_bdenergy[0], 
                                                                                       bdnvt_args.d_partial_sum_bdenergy, 
                                                                                       bdnvt_args.num_blocks);    
+
+                                                   
+                                                   
     if (!g_gpu_error_checking)
         {
         return cudaSuccess;

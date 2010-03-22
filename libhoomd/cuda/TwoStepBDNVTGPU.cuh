@@ -65,6 +65,7 @@ struct bdnvt_step_two_args
     float *d_partial_sum_bdenergy;  //!< Array used for summation
     unsigned int block_size;  //!<  Block size
     unsigned int num_blocks;  //!<  Number of blocks 
+    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
     };
 
 //! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
