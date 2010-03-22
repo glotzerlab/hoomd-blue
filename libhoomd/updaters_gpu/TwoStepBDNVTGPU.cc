@@ -150,20 +150,26 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-
-    // perform the update on the GPU
-    bdnvt_step_two_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = m_gamma.getNumElements();
-    args.gamma_diam = m_gamma_diam;
-    args.T = m_T->getValue(timestep);
-    args.timestep = timestep;
-    args.seed = m_seed;
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
+ 
     {
         ArrayHandle<float> d_partial_sumBD(m_partial_sum1, access_location::device, access_mode::overwrite);
         ArrayHandle<float> d_sumBD(m_sum, access_location::device, access_mode::overwrite);
+        
+        // perform the update on the GPU
+        bdnvt_step_two_args args;
+        args.d_gamma = d_gamma.data;
+        args.n_types = m_gamma.getNumElements();
+        args.gamma_diam = m_gamma_diam;
+        args.T = m_T->getValue(timestep);
+        args.timestep = timestep;
+        args.seed = m_seed;
+        args.d_sum_bdenergy = d_sumBD.data;
+        args.d_partial_sum_bdenergy = d_partial_sumBD.data;
+        args.block_size = m_block_size;
+        args.num_blocks = m_num_blocks;
+        
+        unsigned int group_size = m_group->getIndexArray().getNumElements();
+   
 
         exec_conf.gpu[0]->call(bind(gpu_bdnvt_step_two,
                                     d_pdata[0],
@@ -174,11 +180,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
                                     m_deltaT,
                                     D,
                                     m_limit,
-                                    m_limit_val,
-                                    d_sumBD.data, 
-                                    d_partial_sumBD.data,
-                                    m_block_size, 
-                                    m_num_blocks));
+                                    m_limit_val));
         
     }
     m_pdata->release();

@@ -286,10 +286,6 @@ extern "C" __global__
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
-    \param d_sum_bdenergy Placeholder for the sum of the BD energy transfer
-    \param d_partial_sum_bdenergy Array containing the parial sum of the BD energy transfer
-    \param block_size The size of one block
-    \param num_blocks Number of blocks to execute
         
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
@@ -301,16 +297,12 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                float deltaT,
                                float D,
                                bool limit,
-                               float limit_val,
-                               float* d_sum_bdenergy,
-                               float* d_partial_sum_bdenergy,
-                               unsigned int block_size, 
-                               unsigned int num_blocks)
+                               float limit_val)
     {
     
     // setup the grid to run the kernel
-    dim3 grid(num_blocks, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 grid(bdnvt_args.num_blocks, 1, 1);
+    dim3 threads(bdnvt_args.block_size, 1, 1);
 
     // bind the textures
     cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
@@ -353,12 +345,12 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                                    D,
                                                    limit,
                                                    limit_val,
-                                                   d_partial_sum_bdenergy);
+                                                   bdnvt_args.d_partial_sum_bdenergy);
                                                    
     // run the summation kernel
-    gpu_bdtally_reduce_partial_sum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum_bdenergy, 
-                                                                                      d_partial_sum_bdenergy, 
-                                                                                      num_blocks);    
+    gpu_bdtally_reduce_partial_sum_kernel<<< grid, threads, bdnvt_args.block_size*sizeof(float) >>>(bdnvt_args.d_sum_bdenergy, 
+                                                                                      bdnvt_args.d_partial_sum_bdenergy, 
+                                                                                      bdnvt_args.num_blocks);    
     if (!g_gpu_error_checking)
         {
         return cudaSuccess;
