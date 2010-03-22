@@ -72,7 +72,11 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                float deltaT,
                                float D,
                                bool limit,
-                               float limit_val);
-
+                               float limit_val,
+                               float* d_sum_bdenergy,
+                               float* d_partial_sum_bdenergy,
+                               unsigned int block_size, 
+                               unsigned int num_blocks);
+                               
 #endif //__TWO_STEP_BDNVT_GPU_CUH__
 

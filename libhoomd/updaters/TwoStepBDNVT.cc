@@ -207,8 +207,7 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         arrays.vy[j] += Scalar(1.0/2.0)*arrays.ay[j]*m_deltaT;
         arrays.vz[j] += Scalar(1.0/2.0)*arrays.az[j]*m_deltaT;
         
-        //Tally the Energy Transfer from the BD Reservor to the particles
-        
+        // tally the energy transfer from the bd thermal reservor to the particles
         bd_energy_transfer += bd_fx * arrays.vx[j] + bd_fy * arrays.vy[j] + bd_fz * arrays.vz[j];
         
         // limit the movement of the particles

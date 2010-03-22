@@ -74,6 +74,9 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_tag_tex;
 //! Shared memory array for gpu_bdnvt_step_two_kernel()
 extern __shared__ float s_gammas[];
 
+//! Shared memory used in reducing sums for bd energy tally
+extern __shared__ float bdtally_sdata[];
+
 //! Takes the first half-step forward in the BDNVT integration on a group of particles with
 /*! \param pdata Particle data to step forward in time
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
@@ -90,7 +93,8 @@ extern __shared__ float s_gammas[];
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
-    
+    \param d_partial_sum_bdenergyPlaceholder for the partial sum
+
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
     
     Random number generation is done per thread with Saru's 3-seed constructor. The seeds are, the time step,
@@ -112,7 +116,8 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
                               float deltaT,
                               float D,
                               bool limit,
-                              float limit_val)
+                              float limit_val,
+                              float *d_partial_sum_bdenergy)
     {
     if (!gamma_diam)
         {
@@ -127,7 +132,9 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
     
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+ 
+    float bd_energy_transfer = 0;
+       
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
@@ -185,6 +192,10 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         vel.y += (1.0f/2.0f) * accel.y * deltaT;
         vel.z += (1.0f/2.0f) * accel.z * deltaT;
         
+        // tally the energy transfer from the bd thermal reservor to the particles (FLOPS: 5)
+        bd_energy_transfer =  bd_force.x *vel.x +  bd_force.y * vel.y +  bd_force.z * vel.z;
+        
+                        
         if (limit)
             {
             float vel_len = sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
@@ -201,7 +212,69 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
         // since we calculate the acceleration, we need to write it for the next step
         pdata.accel[idx] = accel;
         }
+       
+        bdtally_sdata[threadIdx.x] = bd_energy_transfer;
+        __syncthreads();
+    
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            bdtally_sdata[threadIdx.x] += bdtally_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
+        }
+    
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_partial_sum_bdenergy[blockIdx.x] = bdtally_sdata[0];
+        } 
+        
+        
     }
+    
+//! Kernel function for reducing a partial sum to a full sum (one value)
+/*! \param d_sum Placeholder for the sum
+    \param d_partial_sum Array containing the parial sum
+    \param num_blocks Number of blocks to execute
+*/
+extern "C" __global__ 
+    void gpu_bdtally_reduce_partial_sum_kernel(float *d_sum, 
+                                            float* d_partial_sum, 
+                                            unsigned int num_blocks)
+    {
+    float sum = 0.0f;
+    
+    // sum up the values in the partial sum via a sliding window
+    for (int start = 0; start < num_blocks; start += blockDim.x)
+        {
+        __syncthreads();
+        if (start + threadIdx.x < num_blocks)
+            bdtally_sdata[threadIdx.x] = d_partial_sum[start + threadIdx.x];
+        else
+            bdtally_sdata[threadIdx.x] = 0.0f;
+        __syncthreads();
+        
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                bdtally_sdata[threadIdx.x] += bdtally_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
+            
+        // everybody sums up sum2K
+        sum += bdtally_sdata[0];
+        }
+        
+    if (threadIdx.x == 0)
+        *d_sum = sum;
+    }
+    
 
 /*! \param pdata Particle data to step forward in time
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
@@ -213,7 +286,11 @@ void gpu_bdnvt_step_two_kernel(gpu_pdata_arrays pdata,
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
-    
+    \param d_sum_bdenergy Placeholder for the sum of the BD energy transfer
+    \param d_partial_sum_bdenergy Array containing the parial sum of the BD energy transfer
+    \param block_size The size of one block
+    \param num_blocks Number of blocks to execute
+        
     This is just a driver for gpu_nve_step_two_kernel(), see it for details.
 */
 cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
@@ -224,12 +301,15 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                float deltaT,
                                float D,
                                bool limit,
-                               float limit_val)
+                               float limit_val,
+                               float* d_sum_bdenergy,
+                               float* d_partial_sum_bdenergy,
+                               unsigned int block_size, 
+                               unsigned int num_blocks)
     {
     
     // setup the grid to run the kernel
-    int block_size = 256;
-    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // bind the textures
@@ -272,8 +352,13 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                                    deltaT,
                                                    D,
                                                    limit,
-                                                   limit_val);
-    
+                                                   limit_val,
+                                                   d_partial_sum_bdenergy);
+                                                   
+    // run the summation kernel
+    gpu_bdtally_reduce_partial_sum_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum_bdenergy, 
+                                                                                      d_partial_sum_bdenergy, 
+                                                                                      num_blocks);    
     if (!g_gpu_error_checking)
         {
         return cudaSuccess;
