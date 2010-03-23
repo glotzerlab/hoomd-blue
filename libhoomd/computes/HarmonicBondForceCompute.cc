@@ -65,13 +65,15 @@ using namespace std;
 */
 
 /*! \param sysdef System to compute forces on
+    \param log_suffix Name given to this instance of the harmonic bond
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef) 
+HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix) 
     : ForceCompute(sysdef), m_K(NULL), m_r_0(NULL)
     {
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
+    m_log_name = std::string( "bond_harmonic_energy") + log_suffix;
     
     // check for some silly errors a user could make
     if (m_bond_data->getNBondTypes() == 0)
@@ -126,7 +128,7 @@ void HarmonicBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0
 std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
     {
     vector<string> list;
-    list.push_back("bond_harmonic_energy");
+    list.push_back(m_log_name);
     return list;
     }
 
@@ -135,7 +137,7 @@ std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
 */
 Scalar HarmonicBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == string("bond_harmonic_energy"))
+    if (quantity == m_log_name)
         {
         compute(timestep);
         return calcEnergySum();
@@ -270,7 +272,7 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
 void export_HarmonicBondForceCompute()
     {
     class_<HarmonicBondForceCompute, boost::shared_ptr<HarmonicBondForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("HarmonicBondForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    ("HarmonicBondForceCompute", init< boost::shared_ptr<SystemDefinition>, const std::string& >())
     .def("setParams", &HarmonicBondForceCompute::setParams)
     ;
     }

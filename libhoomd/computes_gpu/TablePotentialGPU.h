@@ -65,7 +65,8 @@ class TablePotentialGPU : public TablePotential
         //! Constructs the compute
         TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
                           boost::shared_ptr<NeighborList> nlist,
-                          unsigned int table_width);
+                          unsigned int table_width,
+                          const std::string& log_suffix="");
                           
         //! Destructor
         virtual ~TablePotentialGPU() { }

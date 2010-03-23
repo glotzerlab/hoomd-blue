@@ -65,11 +65,13 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param table_width Width the tables will be in memory
+    \param log_suffix Name given to this instance of the table potential
 */
 TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                      boost::shared_ptr<NeighborList> nlist,
-                                     unsigned int table_width)
-    : TablePotential(sysdef, nlist, table_width), m_block_size(64)
+                                     unsigned int table_width,
+                                     const std::string& log_suffix)
+    : TablePotential(sysdef, nlist, table_width, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (exec_conf.gpu.size() == 0)
@@ -142,7 +144,8 @@ void export_TablePotentialGPU()
     ("TablePotentialGPU",
      init< boost::shared_ptr<SystemDefinition>,
      boost::shared_ptr<NeighborList>,
-     unsigned int >())
+     unsigned int,
+     const std::string& >())
     .def("setBlockSize", &TablePotentialGPU::setBlockSize)
     ;
     }

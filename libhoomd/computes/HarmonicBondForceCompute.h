@@ -67,7 +67,7 @@ class HarmonicBondForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix="");
         
         //! Destructor
         ~HarmonicBondForceCompute();
@@ -86,7 +86,8 @@ class HarmonicBondForceCompute : public ForceCompute
         Scalar *m_r_0;  //!< r_0 parameter for multiple bond types
         
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
-        
+        std::string m_log_name;                     //!< Cached log name
+
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };

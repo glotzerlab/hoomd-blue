@@ -129,7 +129,9 @@ class PotentialPair : public ForceCompute
         typedef typename evaluator::param_type param_type;
     
         //! Construct the pair potential
-        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist);
+        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
+                      boost::shared_ptr<NeighborList> nlist,
+                      const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPair() { };
 
@@ -174,10 +176,12 @@ class PotentialPair : public ForceCompute
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
+    \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
 PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist)
+                                                boost::shared_ptr<NeighborList> nlist,
+                                                const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(1)
     {
     assert(m_pdata);
@@ -197,7 +201,7 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     
     // initialize name
     m_prof_name = std::string("Pair ") + evaluator::getName();
-    m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy");
+    m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // initialize memory for per thread reduction
     allocateThreadPartial();
@@ -550,7 +554,7 @@ template < class T > void export_PotentialPair(const std::string& name)
     {
     boost::python::scope in_pair = 
         boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
+                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
                   .def("setParams", &T::setParams)
                   .def("setRcut", &T::setRcut)
                   .def("setRon", &T::setRon)
