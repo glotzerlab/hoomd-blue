@@ -159,6 +159,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
         //! Calculates the requested log value and returns it
         /*! \param quantity Name of the log quantity to get
             \param timestep Current time step of the simulation
+            \param my_quantity_flag Returns true if this method tracks this quantity
         
             The base class just returns 0. Derived classes should override this behavior and return
             the calculated value for the given quantity. Only quantities listed in

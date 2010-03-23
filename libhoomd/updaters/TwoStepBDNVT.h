@@ -107,6 +107,7 @@ class TwoStepBDNVT : public TwoStepNVE
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
         bool m_gamma_diam;                //!< flag to enable gamma set to the diameter of each particle
         Scalar m_reservoir_energy;         //!< The energy of the reservoir the bd couples the system to.
+        Scalar m_extra_energy_overdeltaT;             //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
         
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use

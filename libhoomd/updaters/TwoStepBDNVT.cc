@@ -69,7 +69,7 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool gamma_diam)
-    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0), m_tally(false)
+    : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false)
     {
     // set a named, but otherwise blank set of integrator variables
     IntegratorVariables v = getIntegratorVariables();
@@ -134,7 +134,7 @@ Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int times
     if (m_tally && quantity == "bd_reservoir_energy")  
         {
         my_quantity_flag = true;
-        return m_reservoir_energy;
+        return m_reservoir_energy+m_extra_energy_overdeltaT*m_deltaT;
         }
     else
         return Scalar(0);     
@@ -225,8 +225,11 @@ void TwoStepBDNVT::integrateStepTwo(unsigned int timestep)
         }
     
     // update energy reservoir        
-    if (m_tally) m_reservoir_energy -= bd_energy_transfer*m_deltaT;
-    
+    if (m_tally) {
+        m_reservoir_energy -= bd_energy_transfer*m_deltaT;
+        m_extra_energy_overdeltaT = 0.5*bd_energy_transfer;
+        }
+        
     m_pdata->release();
     
     // done profiling

@@ -93,7 +93,8 @@ extern __shared__ float bdtally_sdata[];
     \param limit If \a limit is true, then the dynamics will be limited so that particles do not move
         a distance further than \a limit_val in one step.
     \param limit_val Length to limit particle distance movement to
-    \param d_partial_sum_bdenergyPlaceholder for the partial sum
+    \param tally Boolean indicating whether energy tally is performed or not
+    \param d_partial_sum_bdenergy Placeholder for the partial sum
 
     This kernel is implemented in a very similar manner to gpu_nve_step_one_kernel(), see it for design details.
     
