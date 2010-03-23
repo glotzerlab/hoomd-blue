@@ -74,7 +74,6 @@ HarmonicBondForceCompute::HarmonicBondForceCompute(boost::shared_ptr<SystemDefin
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
     m_log_name = std::string( "bond_harmonic_energy") + log_suffix;
-    cout << "My log name is " << m_log_name << endl;
     
     // check for some silly errors a user could make
     if (m_bond_data->getNBondTypes() == 0)
@@ -138,7 +137,7 @@ std::vector< std::string > HarmonicBondForceCompute::getProvidedLogQuantities()
 */
 Scalar HarmonicBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == string(m_log_name))
+    if (quantity == m_log_name)
         {
         compute(timestep);
         return calcEnergySum();

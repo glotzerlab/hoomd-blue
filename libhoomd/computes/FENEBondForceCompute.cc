@@ -156,7 +156,7 @@ std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 */
 Scalar FENEBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == string(m_log_name))
+    if (quantity == m_log_name)
         {
         compute(timestep);
         return calcEnergySum();
