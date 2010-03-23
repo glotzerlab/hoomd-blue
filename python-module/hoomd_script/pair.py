@@ -1295,6 +1295,7 @@ class table(force._force):
     ## Specify the Tabulated %pair %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
+    # \param name Name of the force instance
     #
     # \b Example:
     # \code
@@ -1314,11 +1315,11 @@ class table(force._force):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, width):
+    def __init__(self, width, name=None):
         util.print_status_line();
         
         # initialize the base class
-        force._force.__init__(self);
+        force._force.__init__(self, name);
 
         # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
         neighbor_list = _update_global_nlist(0);
@@ -1326,10 +1327,10 @@ class table(force._force):
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.TablePotential(globals.system_definition, neighbor_list.cpp_nlist, int(width));
+            self.cpp_force = hoomd.TablePotential(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width));
+            self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.table'));
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
