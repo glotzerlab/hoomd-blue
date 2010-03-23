@@ -61,6 +61,11 @@ struct bdnvt_step_two_args
     float T;                //!< Current temperature
     unsigned int timestep;  //!< Current timestep
     unsigned int seed;      //!< User chosen random number seed
+    float *d_sum_bdenergy;   //!< Energy transfer sum from bd thermal reservoir
+    float *d_partial_sum_bdenergy;  //!< Array used for summation
+    unsigned int block_size;  //!<  Block size
+    unsigned int num_blocks;  //!<  Number of blocks 
+    bool tally;               //!< Set to true is bd thermal reservoir energy tally is to be performed
     };
 
 //! Kernel driver for the second part of the BDNVT update called by TwoStepBDNVTGPU
@@ -73,6 +78,6 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
                                float D,
                                bool limit,
                                float limit_val);
-
+                               
 #endif //__TWO_STEP_BDNVT_GPU_CUH__
 

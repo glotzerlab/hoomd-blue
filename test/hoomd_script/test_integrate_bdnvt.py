@@ -30,6 +30,10 @@ class integrate_bdnvt_tests (unittest.TestCase):
         run(100);
         bd.disable();
         bd = integrate.bdnvt(all, T=1.2, gamma_diam=True);
+        run(100);
+        bd.disable();
+        bd = integrate.bdnvt(all, T=1.2, gamma_diam=True,tally=True);
+        run(100);
         bd.disable();
     
     # test set_params
@@ -37,6 +41,7 @@ class integrate_bdnvt_tests (unittest.TestCase):
         all = group.all();
         bd = integrate.bdnvt(all, T=1.2);
         bd.set_params(T=1.3);
+        bd.set_params(tally=False);
 
     # test set_gamma
     def test_set_gamma(self):
@@ -44,7 +49,7 @@ class integrate_bdnvt_tests (unittest.TestCase):
         bd = integrate.bdnvt(all, T=1.2);
         bd.set_gamma('A', 0.5);
         bd.set_gamma('B', 1.0);
-    
+
     # test w/ empty group
     def test_empty(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
