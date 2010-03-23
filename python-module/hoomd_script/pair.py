@@ -975,7 +975,7 @@ class slj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, name, d_max=None):
+    def __init__(self, r_cut, d_max=None, name=None):
         util.print_status_line();
         
         # tell the base class how we operate

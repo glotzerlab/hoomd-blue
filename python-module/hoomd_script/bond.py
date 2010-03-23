@@ -177,7 +177,7 @@ class fene(force._force):
     # \code
     # fene = bond.fene()
     # \endcode
-    def __init__(self, name):
+    def __init__(self, name=None):
         util.print_status_line();
         
         # check that some bonds are defined
