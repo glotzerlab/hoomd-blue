@@ -83,7 +83,8 @@ class HarmonicBondForceCompute : public ForceCompute
         
     protected:
         Scalar *m_K;    //!< K parameter for multiple bond tyes
-        Scalar *m_r_0;  //!< r_0 parameter for multiple bond types        
+        Scalar *m_r_0;  //!< r_0 parameter for multiple bond types
+        
         boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         std::string m_log_name;                     //!< Cached log name
 

@@ -118,7 +118,7 @@ bool Compute::shouldCompute(unsigned int timestep)
         m_last_computed = timestep;
         return true;
         }
-
+        
     // otherwise, we update if the last computed timestep is less than the current
     if (m_last_computed != timestep)
         {

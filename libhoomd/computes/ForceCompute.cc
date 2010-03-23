@@ -472,7 +472,7 @@ void ForceCompute::deviceToHostCopy()
 void ForceCompute::compute(unsigned int timestep)
     {
     // skip if we shouldn't compute this step
-    if (!m_particles_sorted && !shouldCompute(timestep))  
+    if (!m_particles_sorted && !shouldCompute(timestep))
         return;
         
     computeForces(timestep);
