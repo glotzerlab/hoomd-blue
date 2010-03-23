@@ -65,14 +65,16 @@ using namespace std;
 */
 
 /*! \param sysdef System to compute forces on
+    \param log_suffix Name given to this instance of the fene bond
     \post Memory is allocated, default parameters are set and forces are zeroed.
 */
-FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef),
+FENEBondForceCompute::FENEBondForceCompute(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix) : ForceCompute(sysdef),
         m_K(NULL), m_r_0(NULL), m_lj1(NULL), m_lj2(NULL), m_epsilon(NULL)
     {
     // access the bond data for later use
     m_bond_data = m_sysdef->getBondData();
-    
+    m_log_name = std::string("bond_fene_energy") + log_suffix;
+  
     // check for some silly errors a user could make
     if (m_bond_data->getNBondTypes() == 0)
         {
@@ -145,7 +147,7 @@ void FENEBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0, Sc
 std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
     {
     vector<string> list;
-    list.push_back("bond_fene_energy");
+    list.push_back(m_log_name);
     return list;
     }
 
@@ -154,7 +156,7 @@ std::vector< std::string > FENEBondForceCompute::getProvidedLogQuantities()
 */
 Scalar FENEBondForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == string("bond_fene_energy"))
+    if (quantity == m_log_name)
         {
         compute(timestep);
         return calcEnergySum();
@@ -329,7 +331,7 @@ void FENEBondForceCompute::computeForces(unsigned int timestep)
 void export_FENEBondForceCompute()
     {
     class_<FENEBondForceCompute, boost::shared_ptr<FENEBondForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("FENEBondForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    ("FENEBondForceCompute", init< boost::shared_ptr<SystemDefinition>, const std::string& >())
     .def("setParams", &FENEBondForceCompute::setParams)
     ;
     }

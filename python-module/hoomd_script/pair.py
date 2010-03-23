@@ -638,12 +638,12 @@ class pair(force._force):
     #  - self.required_coeffs (a list of the coeff names the derived class needs)
     #  - self.process_coeffs() (a method that takes in the coeffs and spits out a param struct to use in 
     #       self.cpp_force.set_params())
-    def __init__(self, r_cut):
+    def __init__(self, r_cut, name=None):
         # initialize the base class
-        force._force.__init__(self);
+        force._force.__init__(self, name);
         
         self.global_r_cut = r_cut;
-        
+
         # setup the coefficent matrix
         self.pair_coeff = coeff();
         self.pair_coeff.set_default_coeff('r_cut', self.global_r_cut);
@@ -780,6 +780,7 @@ class lj(pair):
     ## Specify the Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance 
     #
     # \b Example:
     # \code
@@ -791,25 +792,25 @@ class lj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
         
         # initialize the base class
-        pair.__init__(self, r_cut);
+        pair.__init__(self, r_cut, name);
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.PotentialPairLJ(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJ;
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairLJGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
         else:
@@ -871,6 +872,7 @@ class gauss(pair):
     ## Specify the Gaussian %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance 
     #
     # \b Example:
     # \code
@@ -881,25 +883,25 @@ class gauss(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
         
         # initialize the base class
-        pair.__init__(self, r_cut);
+        pair.__init__(self, r_cut, name);
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.PotentialPairGauss(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairGauss(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGauss;
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairGaussGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairGaussGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.gauss'));
         else:
@@ -960,6 +962,7 @@ class slj(pair):
     ## Specify the Shifted Lennard-Jones %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
     # \param d_max Maximum diameter particles in the simulation will have
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
@@ -979,13 +982,13 @@ class slj(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut, d_max=None):
+    def __init__(self, r_cut, d_max=None, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
         
         # initialize the base class
-        pair.__init__(self, r_cut);
+        pair.__init__(self, r_cut, name);
         
         # update the neighbor list
         if d_max is None :
@@ -996,15 +999,15 @@ class slj(pair):
             self.d_max = d_max;
                         
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut() + self.d_max - 1.0)
+        neighbor_list.subscribe(lambda: self.log*(self.get_max_rcut() + self.d_max - 1.0))
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.PotentialPairSLJ(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairSLJ(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJ;
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairSLJGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairSLJGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.slj'));
         else:
@@ -1093,6 +1096,7 @@ class yukawa(pair):
     ## Specify the Gaussian %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
     #
     # \b Example:
     # \code
@@ -1103,25 +1107,25 @@ class yukawa(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
         
         # initialize the base class
-        pair.__init__(self, r_cut);
+        pair.__init__(self, r_cut, name);
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.PotentialPairYukawa(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairYukawa(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawa;
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairYukawaGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairYukawaGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairYukawaGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.yukawa'));
         else:
@@ -1201,7 +1205,7 @@ class cgcmm(force._force):
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: r_cut)
+        neighbor_list.subscribe(lambda: self.log*r_cut)
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1298,6 +1302,7 @@ class table(force._force):
     ## Specify the Tabulated %pair %force
     #
     # \param width Number of points to use to interpolate V and F (see documentation above)
+    # \param name Name of the force instance
     #
     # \b Example:
     # \code
@@ -1317,22 +1322,22 @@ class table(force._force):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, width):
+    def __init__(self, width, name=None):
         util.print_status_line();
         
         # initialize the base class
-        force._force.__init__(self);
+        force._force.__init__(self, name);
 
         # update the neighbor list with a dummy 0 r_cut. The r_cut will be properly updated before the first run()
         neighbor_list = _update_global_nlist(0);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.TablePotential(globals.system_definition, neighbor_list.cpp_nlist, int(width));
+            self.cpp_force = hoomd.TablePotential(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width));
+            self.cpp_force = hoomd.TablePotentialGPU(globals.system_definition, neighbor_list.cpp_nlist, int(width), self.name);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.table'));
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
@@ -1448,6 +1453,7 @@ class morse(pair):
     ## Specify the Morse %pair %force
     #
     # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
     #
     # \b Example:
     # \code
@@ -1458,25 +1464,25 @@ class morse(pair):
     #
     # \note %Pair coefficients for all type pairs in the simulation must be
     # set before it can be started with run()
-    def __init__(self, r_cut):
+    def __init__(self, r_cut, name=None):
         util.print_status_line();
         
         # tell the base class how we operate
         
         # initialize the base class
-        pair.__init__(self, r_cut);
+        pair.__init__(self, r_cut, name);
         
         # update the neighbor list
         neighbor_list = _update_global_nlist(r_cut);
-        neighbor_list.subscribe(lambda: self.get_max_rcut())
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.PotentialPairMorse(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairMorse(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorse;
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-            self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, neighbor_list.cpp_nlist);
+            self.cpp_force = hoomd.PotentialPairMorseGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairMorseGPU;
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.morse'));
         else:

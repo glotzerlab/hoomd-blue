@@ -97,7 +97,8 @@ class TablePotential : public ForceCompute
         //! Constructs the compute
         TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<NeighborList> nlist,
-                       unsigned int table_width);
+                       unsigned int table_width,
+                       const std::string& log_suffix="");
                        
         //! Destructor
         virtual ~TablePotential() { }
@@ -122,6 +123,7 @@ class TablePotential : public ForceCompute
         unsigned int m_ntypes;                      //!< Store the number of particle types
         GPUArray<float2> m_tables;                  //!< Stored V and F tables
         GPUArray<Scalar4> m_params;                 //!< Parameters stored for each table
+        std::string m_log_name;                     //!< Cached log name
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

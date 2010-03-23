@@ -69,10 +69,12 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
     \param table_width Width the tables will be in memory
+    \param log_suffix Name given to this instance of the table potential
 */
 TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
                                boost::shared_ptr<NeighborList> nlist,
-                               unsigned int table_width)
+                               unsigned int table_width,
+                               const std::string& log_suffix)
         : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
     {
     // sanity checks
@@ -101,6 +103,8 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     
     // initialize memory for per thread reduction
     allocateThreadPartial();
+    
+    m_log_name = std::string("pair_table_energy") + log_suffix;
     }
 
 /*! \param typ1 First particle type index in the pair to set
@@ -161,13 +165,13 @@ void TablePotential::setTable(unsigned int typ1,
 std::vector< std::string > TablePotential::getProvidedLogQuantities()
     {
     vector<string> list;
-    list.push_back("pair_table_energy");
+    list.push_back(m_log_name);
     return list;
     }
 
 Scalar TablePotential::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == string("pair_table_energy"))
+    if (quantity == m_log_name)
         {
         compute(timestep);
         return calcEnergySum();
@@ -407,7 +411,7 @@ void TablePotential::computeForces(unsigned int timestep)
 void export_TablePotential()
     {
     class_<TablePotential, boost::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
-    ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int >())
+    ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int, const std::string& >())
     .def("setTable", &TablePotential::setTable)
     ;
     

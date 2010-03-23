@@ -76,11 +76,13 @@ import sys;
 class harmonic(force._force):
     ## Specify the %harmonic %bond %force
     #
+    # \param name Name of the bond instance
+    #
     # \b Example:
     # \code
-    # harmonic = bond.harmonic()
+    # harmonic = bond.harmonic(name="mybond")
     # \endcode
-    def __init__(self):
+    def __init__(self,name=None):
         util.print_status_line();
         
         # check that some bonds are defined
@@ -89,13 +91,13 @@ class harmonic(force._force):
             raise RuntimeError("Error creating bond forces");
         
         # initialize the base class
-        force._force.__init__(self);
+        force._force.__init__(self,name);
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.HarmonicBondForceCompute(globals.system_definition);
+            self.cpp_force = hoomd.HarmonicBondForceCompute(globals.system_definition,self.name);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_force = hoomd.HarmonicBondForceComputeGPU(globals.system_definition);
+            self.cpp_force = hoomd.HarmonicBondForceComputeGPU(globals.system_definition,self.name);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.harmonic'));
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
@@ -169,11 +171,13 @@ class harmonic(force._force):
 class fene(force._force):
     ## Specify the %fene %bond %force
     #
+    # \param name Name of the bond instance
+    #
     # \b Example:
     # \code
     # fene = bond.fene()
     # \endcode
-    def __init__(self):
+    def __init__(self, name=None):
         util.print_status_line();
         
         # check that some bonds are defined
@@ -182,13 +186,13 @@ class fene(force._force):
             raise RuntimeError("Error creating bond forces");
         
         # initialize the base class
-        force._force.__init__(self);
+        force._force.__init__(self, name);
         
         # create the c++ mirror class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_force = hoomd.FENEBondForceCompute(globals.system_definition);
+            self.cpp_force = hoomd.FENEBondForceCompute(globals.system_definition,self.name);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_force = hoomd.FENEBondForceComputeGPU(globals.system_definition);
+            self.cpp_force = hoomd.FENEBondForceComputeGPU(globals.system_definition,self.name);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('bond.fene'));
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
