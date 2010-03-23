@@ -174,6 +174,7 @@ class _integrator:
                 print >> sys.stderr, "a different integrator.\n";
                 raise RuntimeError('Error initializing integrator methods');
 
+
 ## \internal
 # \brief Base class for integration methods
 #
@@ -1059,6 +1060,7 @@ class npt_rigid(_integration_method):
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     # \param group Particle group to be applied FIRE 
+    # \param group Group of particles on which to apply this method.
     # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting.
     # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
     #   - <i>optional</i>: defaults to 5
