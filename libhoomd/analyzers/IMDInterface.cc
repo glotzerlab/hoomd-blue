@@ -175,7 +175,7 @@ void IMDInterface::analyze(unsigned int timestep)
                 {
                 dispatch();
                 }
-                while (messagesAvailable());
+                while (m_connected_sock && messagesAvailable());
             }
         
         // quit if cntrl-C was pressed
