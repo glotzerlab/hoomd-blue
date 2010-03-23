@@ -339,13 +339,53 @@ class imd(_analyzer):
 # depends on which integrator is being used in the current run()
 # - \b time - Wall-clock running time from the start of the log in seconds
 #
-# The following quantities are only available of certain forces have been specified (as noted in the 
-# parantheses)
-# - \b pair_lj_energy (pair.lj) - Total Lennard-Jones potential energy
+# The following quantities are only available only if the command is parentheses has been specified and is active
+# for logging. 
 # - \b pair_gauss_energy (pair.gauss) - Total Gaussian potential energy
+# - \b pair_lj_energy (pair.lj) - Total Lennard-Jones potential energy
+# - \b pair_morse_energy (pair.yukawa) - Total Morse potential energy
+# - \b pair_table_energy (pair.table) - Total potential energy from Tabulated potentials
+# - \b pair_slj_energy (pair.slj) - Total Shifted Lennard-Jones potential energy
+# - \b pair_yukawa_energy (pair.yukawa) - Total Yukawa potential energy
+#
 # - \b bond_fene_energy (bond.fene) - Total fene bond potential energy
 # - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
+#
+# Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
+# logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).
+# - pair.gauss
+# - pair.lj
+# - pair.morse
+# - pair.table
+# - pair.slj
+# - pair.yukawa
+#
+# - bond.fene
+# - bond.harmonic
+#
+# By specifying a force, disabling it with the \a log=True options, and then logging it, different energy terms can
+# be computed while only a subset of them actually drive the simulation. Common use-cases of this capability
+# include separating out pair energy of given types (shown below) and free energy calculations. Be aware that the
+# globally chosen \a r_cut value is the largest of all active pair potentials and those with \a log=True, so you will
+# observe performance degredation if you \a disable(log=True) a potential with a large \a r_cut.
+#
+# \b Examples:
+# \code
+# lj1 = pair.lj(r_cut=3.0, name="lj1")
+# lj1.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# lj1.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0)
+# lj1.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0)
+#
+# lj2 = pair.lj(r_cut=3.0, name="lj2")
+# lj2.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# lj2.pair_coeff.set('A', 'B', epsilon=0.0, sigma=1.0)
+# lj2.pair_coeff.set('B', 'B', epsilon=0.0, sigma=1.0)
+# lj2.disable(log=True)
+#
+# analyze.log(filename='mylog.log', quantities=['pair_lj_energy_lj1', 'pair_lj_energy_lj2'],
+#             period=100, header_prefix='#')
+# \endcode
 #
 class log(_analyzer):
     ## Initialize the log

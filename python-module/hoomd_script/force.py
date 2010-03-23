@@ -66,13 +66,22 @@ class _force:
     ## \internal
     # \brief Constructs the force
     #
+    # \param name name of the force instance 
+    #
     # Initializes the cpp_analyzer to None.
+    # If specified, assigns a name to the instance
     # Assigns a name to the force in force_name;
-    def __init__(self):
+    def __init__(self, name=None):
         # check if initialization has occured
         if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create force before initialization\n";
             raise RuntimeError('Error creating force');
+        
+        # Allow force to store a name.  Used for discombobulation in the logger
+        if name is None:    
+            self.name = "";
+        else:
+            self.name="_" + name;
         
         self.cpp_force = None;
 
@@ -82,6 +91,7 @@ class _force:
         
         self.force_name = "force%d" % (id);
         self.enabled = True;
+        self.log =True;
         globals.forces.append(self);
         
         # create force data iterator
@@ -109,10 +119,12 @@ class _force:
         
 
     ## Disables the force
+    # \param log Set to True if you plan to continue logging the potential energy associated with this force.
     #
     # \b Examples:
     # \code
     # force.disable()
+    # force.disable(log=True)
     # \endcode
     #
     # Executing the disable command will remove the force from the simulation.
@@ -120,14 +132,21 @@ class _force:
     # use the force during the simulation. A disabled force can be re-enabled
     # with enable()
     #
+    # By setting \a log to True, the values of the force can be logged even though the forces are not applied 
+    # in the simulation.  For forces that use cutoff radii, setting \a log=True will cause the correct r_cut values 
+    # to be used throughought the simulation, and therefore possibly drive the neighbor list size larger than it
+    # otherwise would be. If \a log is left False, the potential energy associated with this force will not be
+    # available for logging.
+    #
     # To use this command, you must have saved the force in a variable, as 
     # shown in this example:
     # \code
     # force = pair.some_force()
     # # ... later in the script
     # force.disable()
+    # force.disable(log=True)
     # \endcode
-    def disable(self):
+    def disable(self, log=False):
         util.print_status_line();
         self.check_initialization();
             
@@ -136,9 +155,12 @@ class _force:
             print "***Warning! Ignoring command to disable a force that is already disabled";
             return;
         
-        globals.system.removeCompute(self.force_name);
         self.enabled = False;
-        globals.forces.remove(self);
+        self.log = log;
+        
+        # remove the compute from the system if it is not going to be logged
+        if not log:
+            globals.system.removeCompute(self.force_name);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -190,10 +212,13 @@ class _force:
         if self.enabled:
             print "***Warning! Ignoring command to enable a force that is already enabled";
             return;
-            
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # add the compute back to the system if it was removed
+        if not self.log:
+            globals.system.addCompute(self.cpp_force, self.force_name);
+        
         self.enabled = True;
-        globals.forces.append(self);
+        self.log = True;
         
     ## \internal
     # \brief updates force coefficients

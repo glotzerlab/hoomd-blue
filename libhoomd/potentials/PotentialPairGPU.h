@@ -91,7 +91,9 @@ class PotentialPairGPU : public PotentialPair<evaluator>
     {
     public:
         //! Construct the pair potential
-        PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist);
+        PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                         boost::shared_ptr<NeighborList> nlist,
+                         const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairGPU() { };
         
@@ -122,8 +124,8 @@ template< class evaluator, cudaError_t gpu_cgpf(const gpu_force_data_arrays& for
                                                 int ntypes,
                                                 const pair_args& args) >
 PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                          boost::shared_ptr<NeighborList> nlist)
-    : PotentialPair<evaluator>(sysdef, nlist), m_block_size(64)
+                                                          boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
+    : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (this->exec_conf.gpu.size() == 0)
@@ -239,7 +241,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
 template < class T, class Base > void export_PotentialPairGPU(const std::string& name)
     {
      boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList> >())
+              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
               .def("setBlockSize", &T::setBlockSize)
               ;
     }

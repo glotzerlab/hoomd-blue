@@ -63,9 +63,10 @@ using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute bond forces on
+    \param log_suffix Name given to this instance of the fene bond
 */
-FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
-        : FENEBondForceCompute(sysdef), m_block_size(64)
+FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, const std::string& log_suffix)
+        : FENEBondForceCompute(sysdef, log_suffix), m_block_size(64)
     {
     // only one GPU is currently supported
     if (exec_conf.gpu.size() == 0)
@@ -197,7 +198,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
 void export_FENEBondForceComputeGPU()
     {
     class_<FENEBondForceComputeGPU, boost::shared_ptr<FENEBondForceComputeGPU>, bases<FENEBondForceCompute>, boost::noncopyable >
-    ("FENEBondForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    ("FENEBondForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, const std::string& >())
     .def("setBlockSize", &FENEBondForceComputeGPU::setBlockSize)
     ;
     }
