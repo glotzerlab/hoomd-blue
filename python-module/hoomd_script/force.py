@@ -119,6 +119,7 @@ class _force:
         
 
     ## Disables the force
+    # \param log Set to True if you plan to continue logging the potential energy associated with this force.
     #
     # \b Examples:
     # \code
@@ -131,12 +132,11 @@ class _force:
     # use the force during the simulation. A disabled force can be re-enabled
     # with enable()
     #
-    # By setting log to True, the values of the force can be logged even though the forces are not applied 
-    # in the simulation.  For forces that use r_cuts
-    # setting log=True will cause the correct r_cuts to be used, and therefore possibly drive the neighbor list size  
-    # for the simlation (so use log=True sparingly).  If log=True is not set, the force will evaluate as if r_cut = 0, or
-    # probably, as a value of zero.  For forces with no r_cut, e.g. bonds, the force will be logged
-    # correctly whether or not log=True is specified.
+    # By setting \a log to True, the values of the force can be logged even though the forces are not applied 
+    # in the simulation.  For forces that use cutoff radii, setting \a log=True will cause the correct r_cut values 
+    # to be used throughought the simulation, and therefore possibly drive the neighbor list size larger than it
+    # otherwise would be. If \a log is left False, the potential energy associated with this force will not be
+    # available for logging.
     #
     # To use this command, you must have saved the force in a variable, as 
     # shown in this example:
@@ -144,6 +144,7 @@ class _force:
     # force = pair.some_force()
     # # ... later in the script
     # force.disable()
+    # force.disable(log=True)
     # \endcode
     def disable(self, log=False):
         util.print_status_line();
@@ -156,6 +157,10 @@ class _force:
         
         self.enabled = False;
         self.log = log;
+        
+        # remove the compute from the system if it is not going to be logged
+        if not log:
+            globals.system.removeCompute(self.force_name);
 
     ## Benchmarks the force computation
     # \param n Number of iterations to average the benchmark over
@@ -207,8 +212,11 @@ class _force:
         if self.enabled:
             print "***Warning! Ignoring command to enable a force that is already enabled";
             return;
-            
-        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # add the compute back to the system if it was removed
+        if not self.log:
+            globals.system.addCompute(self.cpp_force, self.force_name);
+        
         self.enabled = True;
         self.log = True;
         
