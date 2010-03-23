@@ -82,9 +82,7 @@ class _force:
             self.name = "";
         else:
             self.name="_" + name;
-            
-        print "force named : ", self.name    
-                        
+        
         self.cpp_force = None;
 
         # increment the id counter
