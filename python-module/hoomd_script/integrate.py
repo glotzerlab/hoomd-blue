@@ -115,8 +115,6 @@ class _integrator:
         self.cpp_integrator = None;
         self.supports_methods = False;
         
-        self.enabled = True;
-        
         # save ourselves in the global variable
         globals.integrator = self;
         
@@ -175,40 +173,6 @@ class _integrator:
                 print >> sys.stderr, "but some have been specified in the script. Remove them or use";
                 print >> sys.stderr, "a different integrator.\n";
                 raise RuntimeError('Error initializing integrator methods');
-
-
-    def disable(self):
-        util.print_status_line();
-        
-        # check that we have been initialized properly
-        if  self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error disabling integration method');
-        
-        # check if we are already disabled
-        if not self.enabled:
-            print "***Warning! Ignoring command to disable an integration method that is already disabled";
-            return;
-        
-        self.enabled = False;
-        globals.integrator = None;
-
-    def enable(self):
-        util.print_status_line();
-        
-        # check that we have been initialized properly
-        if  self.cpp_integrator == None:
-            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
-            raise RuntimeError('Error enabling integration method');
-        
-        # check if we are already disabled
-        if self.enabled:
-            print "***Warning! Ignoring command to enable an integration method that is already enabled";
-            return;
-        
-        self.enabled = True;
-        globals.integrator=self
-
 
 
 ## \internal
@@ -846,5 +810,4 @@ class mode_minimize_fire(_integrator):
     def has_converged(self):
         self.check_initialization();
         return self.cpp_integrator.hasConverged()
-        
 
