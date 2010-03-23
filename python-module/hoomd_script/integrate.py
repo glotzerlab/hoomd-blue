@@ -622,19 +622,23 @@ class bdnvt(_integration_method):
     # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
     #                   default), gammas are assigned per particle type via set_gamma().
     # \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
+    # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is tracked.
+    #                         Total energy conservation can then be monitored by adding bd_reservoir_energy to the logged 
+    #                         values
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
+    # \warning If starting from a restart binary file, the energy of the reservoir will be reset to zero.  
     # \b Examples:
     # \code
     # all = group.all();
     # integrate.bdnvt(group=all, T=1.0, seed=5)
     # integrator = integrate.bdnvt(group=all, T=1.0, seed=100)
-    # integrate.bdnvt(group=all, T=1.0, limit=0.01, gamma_diam=1)
+    # integrate.bdnvt(group=all, T=1.0, limit=0.01, gamma_diam=1, tally=True)
     # typeA = group.type('A');
     # integrate.bdnvt(group=typeA, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
-    def __init__(self, group, T, seed=0, gamma_diam=False, limit=None):
+    def __init__(self, group, T, seed=0, gamma_diam=False, limit=None, tally=False):
         util.print_status_line();
         
         # initialize base class
@@ -651,6 +655,8 @@ class bdnvt(_integration_method):
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating BD NVT integrator");
+       
+        self.cpp_method.setTally(tally);
         
         # set the limit
         if limit is not None:
@@ -658,6 +664,9 @@ class bdnvt(_integration_method):
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
+    # \param tally boolean If True, the energy exchange between the bd thermal reservoir and the particles is tracked.
+    #                         Total energy conservation can then be monitored by adding bd_reservoir_energy to the logged 
+    #                         values
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -668,8 +677,9 @@ class bdnvt(_integration_method):
     # \b Examples:
     # \code
     # integrator.set_params(T=2.0)
+    # integrator.set_params(tally=False)
     # \endcode
-    def set_params(self, T=None):
+    def set_params(self, T=None, tally=None):
         util.print_status_line();
         self.check_initialization();
         
@@ -678,6 +688,9 @@ class bdnvt(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+        
+        if tally is not None:
+            self.cpp_method.setTally(tally);
 
     ## Sets gamma parameter for a particle type
     # \param a Particle type
@@ -713,7 +726,8 @@ class bdnvt(_integration_method):
         for i in xrange(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
-
+        
+                
 ## Energy Minimizer (FIRE)
 #
 # integrate.energyminimizer_FIRE uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
