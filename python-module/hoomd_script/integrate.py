@@ -625,6 +625,7 @@ class bdnvt(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
+    # \warning If starting from a restart binary file, the energy of the reservoir will be reset to zero.  
     # \b Examples:
     # \code
     # all = group.all();
