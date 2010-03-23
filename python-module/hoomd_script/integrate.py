@@ -148,11 +148,11 @@ class _integrator:
                 print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
                 raise RuntimeError('Error updating forces');
             
-            if f.log:    
+            if f.log or f.enabled:    
                 f.update_coeffs();
                 
             if f.enabled:
-                    self.cpp_integrator.addForceCompute(f.cpp_force);
+                self.cpp_integrator.addForceCompute(f.cpp_force);
     
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class
