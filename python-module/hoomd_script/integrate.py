@@ -115,6 +115,8 @@ class _integrator:
         self.cpp_integrator = None;
         self.supports_methods = False;
         
+        self.enabled = True;
+        
         # save ourselves in the global variable
         globals.integrator = self;
         
@@ -173,6 +175,41 @@ class _integrator:
                 print >> sys.stderr, "but some have been specified in the script. Remove them or use";
                 print >> sys.stderr, "a different integrator.\n";
                 raise RuntimeError('Error initializing integrator methods');
+
+
+    def disable(self):
+        util.print_status_line();
+        
+        # check that we have been initialized properly
+        if  self.cpp_integrator == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError('Error disabling integration method');
+        
+        # check if we are already disabled
+        if not self.enabled:
+            print "***Warning! Ignoring command to disable an integration method that is already disabled";
+            return;
+        
+        self.enabled = False;
+        globals.integrator = None;
+
+    def enable(self):
+        util.print_status_line();
+        
+        # check that we have been initialized properly
+        if  self.cpp_integrator == None:
+            print >> sys.stderr, "\nBug in hoomd_script: cpp_method not set, please report\n";
+            raise RuntimeError('Error enabling integration method');
+        
+        # check if we are already disabled
+        if self.enabled:
+            print "***Warning! Ignoring command to enable an integration method that is already enabled";
+            return;
+        
+        self.enabled = True;
+        globals.integrator=self
+
+
 
 ## \internal
 # \brief Base class for integration methods
@@ -749,6 +786,7 @@ class bdnvt(_integration_method):
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
+    # \param group Group of particles on which to apply this method.
     # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting.
     # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
     #   - <i>optional</i>: defaults to 5
@@ -808,4 +846,5 @@ class mode_minimize_fire(_integrator):
     def has_converged(self):
         self.check_initialization();
         return self.cpp_integrator.hasConverged()
+        
 
