@@ -97,7 +97,7 @@ class TwoStepNVT : public IntegrationMethodTwoStep
             {
             m_dof = dof;
             }
-                
+        
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         
