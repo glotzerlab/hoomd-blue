@@ -150,7 +150,7 @@ class EvaluatorPairSLJ
             Scalar rcut = Scalar(1.0) / rcutinv;
             
             // compute the force divided by r in force_divr
-            if (r < (rcut + delta))
+            if (r < (rcut + delta) && lj1 != 0)
                 {
                 Scalar rmd = r - delta;
                 Scalar rmdinv = Scalar(1.0) / rmd;

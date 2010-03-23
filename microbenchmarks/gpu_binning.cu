@@ -1039,36 +1039,38 @@ void bmark_simple_updating()
 
 int main(int argc, char **argv)
     {
-#ifdef ENABLE_CAC_GPU_ID
-    if (!getenv("CAC_GPU_ID"))
-        printf("Error! Compiled with CAC_GPU_ID support, but no $CAC_GPU_ID specified\n");
-    else
-        cudaSetDevice(atoi(getenv("CAC_GPU_ID")));
-#endif
-    cudaSetDevice(1);
-    
     // choose defaults if no args specified
+    float phi;
     if (argc == 1)
         {
         g_N = 64000;
         g_rcut = 3.8f;
+        phi = 0.20f;
         }
     if (argc == 2)
         {
         g_N = atoi(argv[1]);
         g_rcut = 3.8f;
+        phi = 0.20f;
         }
     if (argc == 3)
         {
         g_N = atoi(argv[1]);
         g_rcut = atof(argv[2]);
+        phi = 0.20f;
+        }
+    if (argc == 4)
+        {
+        g_N = atoi(argv[1]);
+        g_rcut = atof(argv[2]);
+        phi = atof(argv[3]);
         }
         
-    float L = pow(float(M_PI/6.0)*float(g_N) / 0.20f, 1.0f/3.0f);
+    float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
     g_Lx = g_Ly = g_Lz = L;
     
     // setup
-    printf("Running gpu_binning microbenchmark: %d %f\n", g_N, g_rcut);
+    printf("Running gpu_binning microbenchmark: %d %f %f\n", g_N, g_rcut, phi);
     allocate_data();
     initialize_data();
     sort_data();
