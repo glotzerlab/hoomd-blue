@@ -662,6 +662,9 @@ class bdnvt(_integration_method):
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
+    # \param tally boolean If True, the energy exchange between the bd thermal reservoir and the particles is tracked.
+    #                         Total energy conservation can then be monitored by adding bd_reservoir_energy to the logged 
+    #                         values
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -672,8 +675,9 @@ class bdnvt(_integration_method):
     # \b Examples:
     # \code
     # integrator.set_params(T=2.0)
+    # integrator.set_params(tally=False)
     # \endcode
-    def set_params(self, T=None):
+    def set_params(self, T=None, tally=None):
         util.print_status_line();
         self.check_initialization();
         
@@ -682,6 +686,9 @@ class bdnvt(_integration_method):
             # setup the variant inputs
             T = variant._setup_variant_input(T);
             self.cpp_method.setT(T.cpp_variant);
+        
+        if tally is not None:
+            self.cpp_method.setTally(tally);
 
     ## Sets gamma parameter for a particle type
     # \param a Particle type
@@ -717,20 +724,7 @@ class bdnvt(_integration_method):
         for i in xrange(0,ntypes):
             if a == type_list[i]:
                 self.cpp_method.setGamma(i,gamma);
-                
-    ## Sets tally boolean to true or false
-    # \param tally boolean If true, the energy exchange between the bd thermal reservoir and the particles is tracked.
-    #                         Total energy conservation can then be monitored by adding bd_reservoir_energy to the logged 
-    #                         values
-    #
-    # \b Examples:
-    # \code
-    # bd.set_tally(False)
-    # \endcode
-    #
-    def set_tally(self, tally=False):
-        util.print_status_line();
-        self.cpp_method.setTally(tally);
+        
                 
 ## Energy Minimizer (FIRE)
 #
