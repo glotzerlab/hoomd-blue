@@ -81,6 +81,17 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
         cerr << endl << "***Error! Creating a TwoStepNVEGPU with 0 or more than one GPUs" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
+        
+    // allocate the sum arrays
+    GPUArray<float> sum(1, m_pdata->getExecConf());
+    m_sum.swap(sum);
+    
+    // initialize the partial sum array
+    m_block_size = 256; 
+    unsigned int group_size = m_group->getIndexArray().getNumElements();    
+    m_num_blocks = group_size / m_block_size + 1;
+    GPUArray<float> partial_sum1(m_num_blocks, m_pdata->getExecConf());
+    m_partial_sum1.swap(partial_sum1);          
     }
 
 /*! \param timestep Current time step
@@ -139,30 +150,48 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getIndexArray().getNumElements();
-    
-    // perform the update on the GPU
-    bdnvt_step_two_args args;
-    args.d_gamma = d_gamma.data;
-    args.n_types = m_gamma.getNumElements();
-    args.gamma_diam = m_gamma_diam;
-    args.T = m_T->getValue(timestep);
-    args.timestep = timestep;
-    args.seed = m_seed;
+ 
+    {
+        ArrayHandle<float> d_partial_sumBD(m_partial_sum1, access_location::device, access_mode::overwrite);
+        ArrayHandle<float> d_sumBD(m_sum, access_location::device, access_mode::overwrite);
+        
+        // perform the update on the GPU
+        bdnvt_step_two_args args;
+        args.d_gamma = d_gamma.data;
+        args.n_types = m_gamma.getNumElements();
+        args.gamma_diam = m_gamma_diam;
+        args.T = m_T->getValue(timestep);
+        args.timestep = timestep;
+        args.seed = m_seed;
+        args.d_sum_bdenergy = d_sumBD.data;
+        args.d_partial_sum_bdenergy = d_partial_sumBD.data;
+        args.block_size = m_block_size;
+        args.num_blocks = m_num_blocks;
+        args.tally = m_tally;
+        
+        unsigned int group_size = m_group->getIndexArray().getNumElements();
+   
 
-    exec_conf.gpu[0]->call(bind(gpu_bdnvt_step_two,
-                                d_pdata[0],
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                args,
-                                m_deltaT,
-                                D,
-                                m_limit,
-                                m_limit_val));
-    
+        exec_conf.gpu[0]->call(bind(gpu_bdnvt_step_two,
+                                    d_pdata[0],
+                                    d_index_array.data,
+                                    group_size,
+                                    d_net_force.data,
+                                    args,
+                                    m_deltaT,
+                                    D,
+                                    m_limit,
+                                    m_limit_val));
+        
+    }
     m_pdata->release();
-    
+ 
+    if (m_tally)
+        {
+        ArrayHandle<float> h_sumBD(m_sum, access_location::host, access_mode::read);   
+        m_reservoir_energy -= h_sumBD.data[0]*m_deltaT;
+        m_extra_energy_overdeltaT= 0.5*h_sumBD.data[0];
+        }
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
