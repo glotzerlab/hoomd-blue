@@ -467,7 +467,7 @@ class box_resize(_updater):
     # \b Examples:
     # \code
     # box_resize.set_params(scale_particles = False)
-    # box_resize.set_params(scale_particles = Talse)
+    # box_resize.set_params(scale_particles = True)
     # \endcode
     def set_params(self, scale_particles=None):
         util.print_status_line();
