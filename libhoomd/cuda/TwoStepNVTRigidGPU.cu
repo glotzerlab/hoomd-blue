@@ -168,6 +168,19 @@ __device__ void computeAngularVelocity(float4& angmom, float4& moment_inertia, f
     angvel.z = angbody.x * ex_space.z + angbody.y * ey_space.z + angbody.z * ez_space.z;
     }
 
+/*! Normalize a quaternion
+    \param q Quaternion to be normalized
+ */
+
+__device__ void normalize(float4 &q)
+    {
+    float norm = 1.0 / sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+    q.x *= norm;
+    q.y *= norm;
+    q.z *= norm;
+    q.w *= norm;
+    }
+    
 /*! Apply evolution operators to quat, quat momentum (see ref. Miller)
     \param k Direction
     \param p Thermostat angular momentum conjqm
@@ -237,6 +250,7 @@ __device__ void no_squish_rotate(unsigned int k, float4& p, float4& q, float4& i
     q.y = c_phi * q.y + s_phi * kq.y;
     q.z = c_phi * q.z + s_phi * kq.z;
     q.w = c_phi * q.w + s_phi * kq.w;
+    normalize(q);
     }
 
 /*! Quaternion multiply: c = a * b 
