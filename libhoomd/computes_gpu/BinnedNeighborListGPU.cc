@@ -136,6 +136,10 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
     // allocate the array of bin ids
     GPUArray< unsigned int > bin_ids(m_pdata->getN(), exec_conf);
     m_bin_ids.swap(bin_ids);
+    
+    // allocate the thread mapping array
+    GPUArray< unsigned int > thread_mapping(m_pdata->getN(), exec_conf);
+    m_thread_mapping.swap(thread_mapping);
     }
 
 BinnedNeighborListGPU::~BinnedNeighborListGPU()
@@ -543,6 +547,19 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
         updateBinsUnsorted();
         }
     // note, we don't copy the binned values to the device yet, that is for the compute to do
+    
+    // assign particles to threads
+    ArrayHandle<unsigned int> h_thread_mapping(m_thread_mapping, access_location::host, access_mode::overwrite);
+    unsigned int current = 0;
+    for (unsigned int bin = 0; bin < m_Mx * m_My * m_Mz; bin++)
+        {
+        unsigned int bin_size = m_bin_sizes[bin];
+        for (unsigned int slot = 0; slot < bin_size; slot++)
+            {
+            h_thread_mapping.data[current] = m_host_idxlist[slot + bin*m_Nmax];
+            current++;
+            }
+        }
     }
 
 /*! Sets up and executes the needed kernel calls to generate the actual neighbor list
@@ -575,9 +592,11 @@ void BinnedNeighborListGPU::updateListFromBins()
     
     Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
     ArrayHandle<unsigned int> d_bin_ids(m_bin_ids, access_location::device, access_mode::read);
-    
+    ArrayHandle<unsigned int> d_thread_mapping(m_thread_mapping, access_location::device, access_mode::read);
+
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
         {
+        m_gpu_nlist[cur_gpu].thread_mapping = d_thread_mapping.data;
         exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
         exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], d_bin_ids.data, r_max_sq, m_curNmax, m_block_size, m_ulf_workaround));
         }

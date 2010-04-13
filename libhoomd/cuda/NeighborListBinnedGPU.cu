@@ -183,12 +183,13 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     {
     // each thread is going to compute the neighbor list for a single particle
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    int my_pidx = idx + local_beg;
     
     // quit early if we are past the end of the array
     if (idx >= local_num)
         return;
-        
+
+    int my_pidx = nlist.thread_mapping[idx + local_beg];
+    
     // first, determine which bin this particle belongs to
     // MEM TRANSFER: 32 bytes
     float4 my_pos = d_pos[my_pidx];

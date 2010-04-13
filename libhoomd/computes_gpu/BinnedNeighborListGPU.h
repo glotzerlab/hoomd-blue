@@ -98,6 +98,7 @@ class BinnedNeighborListGPU : public NeighborList
             
     protected:
         std::vector< unsigned int > m_bin_sizes;    //!< Stores the size of each bin
+        GPUArray< unsigned int > m_thread_mapping;  //!< Mapping of threads to particles
         
         unsigned int m_Mx;      //!< Number of bins in x direction
         unsigned int m_last_Mx; //!< Number of bins in the x direction on the last call to updateBins

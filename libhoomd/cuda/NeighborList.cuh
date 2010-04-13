@@ -90,6 +90,7 @@ struct gpu_nlist_array
     uint4 *exclusions3;     //!< exclusions3[i] lists more the particles that are to be excluded from being neighbors with [i] by index
     uint4 *exclusions4;     //!< exclusions4[i] lists more the particles that are to be excluded from being neighbors with [i] by index
 #endif
+    unsigned int *thread_mapping;   //!< Mapping of threads to particles
     };
 
 //! Check if the neighborlist needs updating
