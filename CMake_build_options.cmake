@@ -79,7 +79,15 @@ if (ENABLE_CUDA)
     endif (NOT _cuda_arch_ok)
 
     add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
-    list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
+    if (CUDA_VERSION VERSION_GREATER 2.99) 
+        message(STATUS "Enabling Fermi compilation with CUDA 3.0") 
+        list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}")
+        list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${CUDA_ARCH},code=compute_${CUDA_ARCH}")
+        list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_20,code=sm_20")
+        list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_20,code=compute_20")
+    else (CUDA_VERSION VERSION_GREATER 2.99) 
+        list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
+    endif (CUDA_VERSION VERSION_GREATER 2.99) 
     
     # ULF bug workaround disable option
     option(DISABLE_ULF_WORKAROUND "Set to ON to enable higher performace at the cost of stability on pre C1060 GPUs" off)
