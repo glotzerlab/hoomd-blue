@@ -91,10 +91,22 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const gpu_bin_array &bins,
+                                     unsigned int *d_bin_ids,
                                      float r_maxsq,
                                      int curNmax,
                                      int block_size,
                                      bool ulf_workaround);
+
+//! Take particle positions and compute the bin in which that particle belongs
+cudaError_t gpu_compute_bin_ids(unsigned int *d_bin_ids,
+                                const gpu_pdata_arrays &pdata,
+                                const gpu_boxsize &box,
+                                unsigned int Mx,
+                                unsigned int My,
+                                unsigned int Mz,
+                                float scalex,
+                                float scaley,
+                                float scalez);
 
 #endif
 
