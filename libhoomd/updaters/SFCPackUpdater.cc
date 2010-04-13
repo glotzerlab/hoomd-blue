@@ -57,28 +57,30 @@ using namespace boost::python;
 
 #include <math.h>
 #include <stdexcept>
+#include <algorithm>
 
 #include "SFCPackUpdater.h"
 
 using namespace std;
 
 /*! \param sysdef System to perform sorts on
-    \param bin_width Maximum width of bins to place particles in
-    \note bin_width will be dynamically decreased to reach a power of two grid size
  */
-SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef, Scalar bin_width)
-        : Updater(sysdef), m_bin_width(bin_width), m_lastMmax(0)
+SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+        : Updater(sysdef), m_last_grid(0), m_last_dim(0)
     {
     // perform lots of sanity checks
     assert(m_pdata);
     
-    if (m_bin_width < 0.01)
-        {
-        cerr << endl << "***Error! Bin width in SFCPackUpdater much too small" << endl << endl;
-        throw runtime_error("Error initializing SFCPackUpdater");
-        }
-        
     m_sort_order.resize(m_pdata->getN());
+    m_particle_bins.resize(m_pdata->getN());
+    
+    // set the default grid
+    // Grid dimension must always be a power of 2 and determines the memory usage for m_traversal_order
+    // To prevent massive overruns of the memory, always use 256 for 3d and 4096 for 2d
+    if (m_sysdef->getNDimensions() == 2)
+        m_grid = 4096;
+    else
+        m_grid = 256;
     }
 
 /*! Performs the sort.
@@ -96,9 +98,6 @@ void SFCPackUpdater::update(unsigned int timestep)
         getSortedOrder2D();
     else
         getSortedOrder3D();
-    
-    // store the last system dimension computed so we can be mindful if that ever changes
-    m_last_dim = m_sysdef->getNDimensions();
     
     // apply that sort order to the particles
     applySortOrder();
@@ -236,37 +235,6 @@ void SFCPackUpdater::applySortOrder()
     m_pdata->release();
     }
 
-// this function will generate a Z-order traversal through the 3d array Mx by Mx x Mx
-// it is done recursively through an octree subdivision (supporting power-of-2 cubic dimensions only for simplicity at this stage)
-// w on the first call should be equal to Mx
-// i,j,k on the first call should be 0
-
-// as it recurses down, w will be decreased appropriately
-// traversal_order will be filled out with unique values i*Mx*Mx + j*Mx + k for the coordinates
-// i,j,k in the Z-order
-/*static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector< unsigned int > &traversal_order)
-    {
-    if (w == 1)
-        {
-        // handle base case
-        traversal_order.push_back(i*Mx*Mx + j*Mx + k);
-        }
-    else
-        {
-        // handle arbitrary case, split the box into 8 sub boxes
-        w = w / 2;
-        generateTraversalOrder(i,j,k,w,Mx,traversal_order);
-        generateTraversalOrder(i,j,k+w,w,Mx,traversal_order);
-        generateTraversalOrder(i,j+w,k,w,Mx,traversal_order);
-        generateTraversalOrder(i,j+w,k+w,w,Mx,traversal_order);
-
-        generateTraversalOrder(i+w,j,k,w,Mx,traversal_order);
-        generateTraversalOrder(i+w,j,k+w,w,Mx,traversal_order);
-        generateTraversalOrder(i+w,j+w,k,w,Mx,traversal_order);
-        generateTraversalOrder(i+w,j+w,k+w,w,Mx,traversal_order);
-        }
-    }*/
-
 //! x walking table for the hilbert curve
 static int istep[] = {0, 0, 0, 0, 1, 1, 1, 1};
 //! y walking table for the hilbert curve
@@ -276,173 +244,147 @@ static int kstep[] = {0, 1, 1, 0, 0, 1, 1, 0};
 
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 1
+/*! \param result Output sequence to be permuted by rule 1
+    \param in Input sequence
 */
-static vector<unsigned int> permute1(const vector<unsigned int>& in)
+static void permute1(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[0]);
-    result.push_back(in[3]);
-    result.push_back(in[4]);
-    result.push_back(in[7]);
-    result.push_back(in[6]);
-    result.push_back(in[5]);
-    result.push_back(in[2]);
-    result.push_back(in[1]);
-    
-    return result;
+    result[0] = in[0];
+    result[1] = in[3];
+    result[2] = in[4];
+    result[3] = in[7];
+    result[4] = in[6];
+    result[5] = in[5];
+    result[6] = in[2];
+    result[7] = in[1];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 2
+/*! \param result Output sequence to be permuted by rule 2
+    \param in Input sequence
 */
-static vector<unsigned int> permute2(const vector<unsigned int>& in)
+static void permute2(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[0]);
-    result.push_back(in[7]);
-    result.push_back(in[6]);
-    result.push_back(in[1]);
-    result.push_back(in[2]);
-    result.push_back(in[5]);
-    result.push_back(in[4]);
-    result.push_back(in[3]);
-    
-    return result;
+    result[0] = in[0];
+    result[1] = in[7];
+    result[2] = in[6];
+    result[3] = in[1];
+    result[4] = in[2];
+    result[5] = in[5];
+    result[6] = in[4];
+    result[7] = in[3];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 3
+/*! \param result Output sequence to be permuted by rule 3
+    \param in Input sequence
 */
-static vector<unsigned int> permute3(const vector<unsigned int>& in)
+static void permute3(unsigned int result[8], const unsigned int in[8])
     {
-    return permute2(in);
+    permute2(result, in);
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 4
+/*! \param result Output sequence to be permuted by rule 4
+    \param in Input sequence
 */
-static vector<unsigned int> permute4(const vector<unsigned int>& in)
+static void permute4(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[2]);
-    result.push_back(in[3]);
-    result.push_back(in[0]);
-    result.push_back(in[1]);
-    result.push_back(in[6]);
-    result.push_back(in[7]);
-    result.push_back(in[4]);
-    result.push_back(in[5]);
-    
-    return result;
+    result[0] = in[2];
+    result[1] = in[3];
+    result[2] = in[0];
+    result[3] = in[1];
+    result[4] = in[6];
+    result[5] = in[7];
+    result[6] = in[4];
+    result[7] = in[5];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 5
+/*! \param result Output sequence to be permuted by rule 5
+    \param in Input sequence
 */
-static vector<unsigned int> permute5(const vector<unsigned int>& in)
+static void permute5(unsigned int result[8], const unsigned int in[8])
     {
-    return permute4(in);
+    permute4(result, in);
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 6
+/*! \param result Output sequence to be permuted by rule 6
+    \param in Input sequence
 */
-static vector<unsigned int> permute6(const vector<unsigned int>& in)
+static void permute6(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[4]);
-    result.push_back(in[3]);
-    result.push_back(in[2]);
-    result.push_back(in[5]);
-    result.push_back(in[6]);
-    result.push_back(in[1]);
-    result.push_back(in[0]);
-    result.push_back(in[7]);
-    
-    return result;
+    result[0] = in[4];
+    result[1] = in[3];
+    result[2] = in[2];
+    result[3] = in[5];
+    result[4] = in[6];
+    result[5] = in[1];
+    result[6] = in[0];
+    result[7] = in[7];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 7
+/*! \param result Output sequence to be permuted by rule 7
+    \param in Input sequence
 */
-static vector<unsigned int> permute7(const vector<unsigned int>& in)
+static void permute7(unsigned int result[8], const unsigned int in[8])
     {
-    return permute6(in);
+    permute6(result, in);
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
-    \returns output sequence permuted by rule 8
+/*! \param result Output sequence to be permuted by rule 8
+    \param in Input sequence
 */
-static vector<unsigned int> permute8(const vector<unsigned int>& in)
+static void permute8(unsigned int result[8], const unsigned int in[8])
     {
-    assert(in.size() == 8);
-    
-    vector<unsigned int> result;
-    result.push_back(in[6]);
-    result.push_back(in[5]);
-    result.push_back(in[2]);
-    result.push_back(in[1]);
-    result.push_back(in[0]);
-    result.push_back(in[3]);
-    result.push_back(in[4]);
-    result.push_back(in[7]);
-    
-    return result;
+    result[0] = in[6];
+    result[1] = in[5];
+    result[2] = in[2];
+    result[3] = in[1];
+    result[4] = in[0];
+    result[5] = in[3];
+    result[6] = in[4];
+    result[7] = in[7];
     }
 
 //! Helper function for recursive hilbert curve generation
-/*! \param in Input sequence
+/*! \param result Output sequence to be permuted by rule \a p-1
+    \param in Input sequence
     \param p permutation rule to apply
-    \returns output sequence permuted by rule \a p
 */
-static vector<unsigned int> permute(int p, const vector<unsigned int>& in)
+void permute(unsigned int result[8], const unsigned int in[8], int p)
     {
     switch (p)
         {
         case 0:
-            return permute1(in);
+            permute1(result, in);
             break;
         case 1:
-            return permute2(in);
+            permute2(result, in);
             break;
         case 2:
-            return permute3(in);
+            permute3(result, in);
             break;
         case 3:
-            return permute4(in);
+            permute4(result, in);
             break;
         case 4:
-            return permute5(in);
+            permute5(result, in);
             break;
         case 5:
-            return permute6(in);
+            permute6(result, in);
             break;
         case 6:
-            return permute7(in);
+            permute7(result, in);
             break;
         case 7:
-            return permute8(in);
+            permute8(result, in);
             break;
         default:
             assert(false);
-            return vector<unsigned int>();
         }
     }
 
@@ -459,7 +401,7 @@ static vector<unsigned int> permute(int p, const vector<unsigned int>& in)
     \post traversal order contains the grid index (i*Mx*Mx + j*Mx + k) of each grid point
         listed in the order of the hilbert curve
 */
-static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector<unsigned int> cell_order, vector< unsigned int > &traversal_order)
+static void generateTraversalOrder(int i, int j, int k, int w, int Mx, unsigned int cell_order[8], vector< unsigned int > &traversal_order)
     {
     if (w == 1)
         {
@@ -472,7 +414,6 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector<un
         w = w / 2;
         
         // we ned to handle each sub box in the order defined by cell order
-        assert(cell_order.size() == 8);
         for (int m = 0; m < 8; m++)
             {
             unsigned int cur_cell = cell_order[m];
@@ -480,7 +421,8 @@ static void generateTraversalOrder(int i, int j, int k, int w, int Mx, vector<un
             int jc = j + w * jstep[cur_cell];
             int kc = k + w * kstep[cur_cell];
             
-            vector<unsigned int> child_cell_order = permute(m, cell_order);
+            unsigned int child_cell_order[8];
+            permute(child_cell_order, cell_order, m);
             generateTraversalOrder(ic,jc,kc,w,Mx, child_cell_order, traversal_order);
             }
         }
@@ -492,104 +434,39 @@ void SFCPackUpdater::getSortedOrder2D()
     assert(m_pdata);
     assert(m_sort_order.size() == m_pdata->getN());
     
-    // calculate the bin dimensions
+    // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    unsigned int Mx = (unsigned int)((box.xhi - box.xlo) / (m_bin_width));
-    unsigned int My = (unsigned int)((box.yhi - box.ylo) / (m_bin_width));
-    if (Mx == 0)
-        Mx = 1;
-    if (My == 0)
-        My = 1;
-        
-    // now, we need to play a game here: the quadtree traversal only works with squares
-    // and only works if Mx is a power of 2. So, choose the largest of the 2 dimesions and
-    // make them all the same
-    unsigned int Mmax = Mx;
-    if (My > Mmax)
-        Mmax = My;
-        
-    // round up to the nearest power of 2
-    Mmax = (unsigned int)pow(2.0, ceil(log(double(Mmax)) / log(2.0)));
-    
-    // make even bin dimensions
-    Scalar binx = (box.xhi - box.xlo) / Scalar(Mmax);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(Mmax);
+    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
+    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
     
     // precompute scale factors to eliminate division in inner loop
     Scalar scalex = Scalar(1.0) / binx;
     Scalar scaley = Scalar(1.0) / biny;
     
-    // reallocate memory arrays if Mmax changed
-    // also regenerate the traversal order
-    if (m_lastMmax != Mmax || m_last_dim != 2)
-        {
-        if (Mmax > 1000)
-            {
-            cout << endl;
-            cout << "***Warning! sorter is about to allocate a very large amount of memory and may crash." << endl;
-            cout << "            Reduce the amount of memory allocated to prevent this by increasing the " << endl;
-            cout << "            bin width (i.e. sorter.set_params(bin_width=3.0) ) or by disabling it " << endl;
-            cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
-            }
-            
-        m_bins.resize(Mmax*Mmax);
-        
-        // generate the traversal order
-        m_traversal_order.resize(Mmax*Mmax);
-        m_traversal_order.clear();
-        
-        // trivial traversal order for now: could be improved slightly with a 2D hilbert curve
-        for (unsigned int i = 0; i < Mmax*Mmax; i++)
-            m_traversal_order.push_back(i);
-        
-        m_lastMmax = Mmax;
-        }
-        
-    // sanity checks
-    assert(m_bins.size() == Mmax*Mmax);
-    assert(m_traversal_order.size() == Mmax*Mmax);
-    
-    // need to clear the bins
-    for (unsigned int bin = 0; bin < Mmax*Mmax; bin++)
-        m_bins[bin].clear();
-        
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
     // for each particle
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex);
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley);
-        
-        // need to handle the case where the particle is exactly at the box hi
-        if (ib == Mmax)
-            ib = 0;
-        if (jb == Mmax)
-            jb = 0;
-            
-        // sanity check
-        assert(ib < (unsigned int)(Mmax) && jb < (unsigned int)(Mmax));
+        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % m_grid;
+        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % m_grid;
         
         // record its bin
-        unsigned int bin = ib*Mmax + jb;
+        unsigned int bin = ib*m_grid + jb;
         
-        m_bins[bin].push_back(n);
+        m_particle_bins[n] = std::pair<unsigned int, unsigned int>(bin, n);
         }
     m_pdata->release();
     
-    // now, loop through the bins and produce the sort order
-    int cur = 0;
+    // sort the tuples
+    sort(m_particle_bins.begin(), m_particle_bins.end());
     
-    for (unsigned int i = 0; i < Mmax*Mmax; i++)
+    // translate the sorted order
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
-        unsigned int bin = m_traversal_order[i];
-        
-        for (unsigned int j = 0; j < m_bins[bin].size(); j++)
-            {
-            m_sort_order[cur++] = m_bins[bin][j];
-            }
+        m_sort_order[j] = m_particle_bins[j].second;
         }
     }
 
@@ -599,124 +476,88 @@ void SFCPackUpdater::getSortedOrder3D()
     assert(m_pdata);
     assert(m_sort_order.size() == m_pdata->getN());
     
-    // calculate the bin dimensions
+    // make even bin dimensions
     const BoxDim& box = m_pdata->getBox();
     assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
-    unsigned int Mx = (unsigned int)((box.xhi - box.xlo) / (m_bin_width));
-    unsigned int My = (unsigned int)((box.yhi - box.ylo) / (m_bin_width));
-    unsigned int Mz = (unsigned int)((box.zhi - box.zlo) / (m_bin_width));
-    if (Mx == 0)
-        Mx = 1;
-    if (My == 0)
-        My = 1;
-    if (Mz == 0)
-        Mz = 1;
-        
-    // now, we need to play a game here: the octtree traversal only works with cubes
-    // and only works if Mx is a power of 2. So, choose the largest of the 3 dimesions and
-    // make them all the same
-    unsigned int Mmax = Mx;
-    if (My > Mmax)
-        Mmax = My;
-    if (Mz > Mmax)
-        Mz = Mmax;
-        
-    // round up to the nearest power of 2
-    Mmax = (unsigned int)pow(2.0, ceil(log(double(Mmax)) / log(2.0)));
-    
-    // make even bin dimensions
-    Scalar binx = (box.xhi - box.xlo) / Scalar(Mmax);
-    Scalar biny = (box.yhi - box.ylo) / Scalar(Mmax);
-    Scalar binz = (box.zhi - box.zlo) / Scalar(Mmax);
+    Scalar binx = (box.xhi - box.xlo) / Scalar(m_grid);
+    Scalar biny = (box.yhi - box.ylo) / Scalar(m_grid);
+    Scalar binz = (box.zhi - box.zlo) / Scalar(m_grid);
     
     // precompute scale factors to eliminate division in inner loop
     Scalar scalex = Scalar(1.0) / binx;
     Scalar scaley = Scalar(1.0) / biny;
     Scalar scalez = Scalar(1.0) / binz;
     
-    // reallocate memory arrays if Mmax changed
+    // reallocate memory arrays if m_grid changed
     // also regenerate the traversal order
-    if (m_lastMmax != Mmax || m_last_dim != 3)
+    if (m_last_grid != m_grid || m_last_dim != 3)
         {
-        if (Mmax > 100)
+        if (m_grid > 256)
             {
+            unsigned int mb = m_grid*m_grid*m_grid*4 / 1024 / 1024;
             cout << endl;
-            cout << "***Warning! sorter is about to allocate a very large amount of memory and may crash." << endl;
-            cout << "            Reduce the amount of memory allocated to prevent this by increasing the " << endl;
-            cout << "            bin width (i.e. sorter.set_params(bin_width=3.0) ) or by disabling it " << endl;
+            cout << "***Warning! sorter is about to allocate a very large amount of memory (" << mb << "MB)"
+                 << " and may crash." << endl;
+            cout << "            Reduce the amount of memory allocated to prevent this by decreasing the " << endl;
+            cout << "            grid dimension (i.e. sorter.set_params(grid=128) ) or by disabling it " << endl;
             cout << "            ( sorter.disable() ) before beginning the run()." << endl << endl;
             }
-            
-        m_bins.resize(Mmax*Mmax*Mmax);
-        
+
         // generate the traversal order
-        m_traversal_order.resize(Mmax*Mmax*Mmax);
-        m_traversal_order.clear();
+        m_traversal_order.resize(m_grid*m_grid*m_grid);
+        vector< unsigned int > reverse_order(m_grid*m_grid*m_grid);
+        reverse_order.clear();
         
         // we need to start the hilbert curve with a seed order 0,1,2,3,4,5,6,7
-        vector<unsigned int> cell_order(8);
+        unsigned int cell_order[8];
         for (unsigned int i = 0; i < 8; i++)
             cell_order[i] = i;
-        generateTraversalOrder(0,0,0, Mmax, Mmax, cell_order, m_traversal_order);
+        generateTraversalOrder(0,0,0, m_grid, m_grid, cell_order, reverse_order);
         
-        m_lastMmax = Mmax;
+        for (unsigned int i = 0; i < m_grid*m_grid*m_grid; i++)
+            m_traversal_order[reverse_order[i]] = i;
+        
+        m_last_grid = m_grid;
+        // store the last system dimension computed so we can be mindful if that ever changes
+        m_last_dim = m_sysdef->getNDimensions();
         }
         
     // sanity checks
-    assert(m_bins.size() == Mmax*Mmax*Mmax);
-    assert(m_traversal_order.size() == Mmax*Mmax*Mmax);
+    assert(m_particle_bins.size() == m_pdata->getN());
+    assert(m_traversal_order.size() == m_grid*m_grid*m_grid);
     
-    // need to clear the bins
-    for (unsigned int bin = 0; bin < Mmax*Mmax*Mmax; bin++)
-        m_bins[bin].clear();
-        
     // put the particles in the bins
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
     // for each particle
     for (unsigned int n = 0; n < arrays.nparticles; n++)
         {
         // find the bin each particle belongs in
-        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex);
-        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley);
-        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez);
-        
-        // need to handle the case where the particle is exactly at the box hi
-        if (ib == Mmax)
-            ib = 0;
-        if (jb == Mmax)
-            jb = 0;
-        if (kb == Mmax)
-            kb = 0;
-            
-        // sanity check
-        assert(ib < (unsigned int)(Mmax) && jb < (unsigned int)(Mmax) && kb < (unsigned int)(Mmax));
+        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scalex) % m_grid;
+        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scaley) % m_grid;
+        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scalez) % m_grid;
         
         // record its bin
-        unsigned int bin = ib*(Mmax*Mmax) + jb * Mmax + kb;
+        unsigned int bin = ib*(m_grid*m_grid) + jb * m_grid + kb;
         
-        m_bins[bin].push_back(n);
+        m_particle_bins[n] = std::pair<unsigned int, unsigned int>(m_traversal_order[bin], n);
         }
     m_pdata->release();
     
-    // now, loop through the bins and produce the sort order
-    int cur = 0;
+    // sort the tuples
+    sort(m_particle_bins.begin(), m_particle_bins.end());
     
-    for (unsigned int i = 0; i < Mmax*Mmax*Mmax; i++)
+    // translate the sorted order
+    for (unsigned int j = 0; j < m_pdata->getN(); j++)
         {
-        unsigned int bin = m_traversal_order[i];
-        
-        for (unsigned int j = 0; j < m_bins[bin].size(); j++)
-            {
-            m_sort_order[cur++] = m_bins[bin][j];
-            }
+        m_sort_order[j] = m_particle_bins[j].second;
         }
     }
 
 void export_SFCPackUpdater()
     {
     class_<SFCPackUpdater, boost::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
-    ("SFCPackUpdater", init< boost::shared_ptr<SystemDefinition>, Scalar >())
-    .def("setBinWidth", &SFCPackUpdater::setBinWidth)
+    ("SFCPackUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    .def("setGrid", &SFCPackUpdater::setGrid)
     ;
     }
 

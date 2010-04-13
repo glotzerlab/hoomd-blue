@@ -13,6 +13,8 @@ class integrate_npt_tests (unittest.TestCase):
         print
         init.create_random(N=100, phi_p=0.05);
         force.constant(fx=0.1, fy=0.1, fz=0.1)
+        import __main__;
+        __main__.sorter.set_params(grid=8)
         
     # tests basic creation of the dump
     def test(self):

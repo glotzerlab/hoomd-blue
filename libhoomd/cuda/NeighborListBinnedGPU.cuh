@@ -82,6 +82,16 @@ struct gpu_bin_array
     cudaArray *bin_adj_array;   //!< bin_adj_array holds the neighboring bins of each bin in memory (x = idx (0:26), y = neighboring bin memory location)
     };
 
+//! Argument holder for gpu_compute_nlist_binned
+struct nlist_args
+    {
+    unsigned int *d_bin_ids;       //!< Bin ids computed for each particle
+    float r_maxsq;                 //!< Precalculated value for r_max*r_max
+    int curNmax;                   //!< Number of particles currently in the largest bin
+    int block_size;                //!< Block size to run the kernel on the device
+    bool ulf_workaround;           //!< Set to true to enable an attempted workaround for ULFs on compute 1.1 devices
+    bool exclude_same_body;        //!< Set to true to exclude particles that belong to the same rigid body
+    };
 
 //! Take the idxlist and generate coord_idxlist
 cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins, int curNmax, int block_size);
@@ -91,11 +101,18 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const gpu_bin_array &bins,
-                                     float r_maxsq,
-                                     int curNmax,
-                                     int block_size,
-                                     bool ulf_workaround,
-                                     bool exclude_same_body);
+                                     const nlist_args &args);
+
+//! Take particle positions and compute the bin in which that particle belongs
+cudaError_t gpu_compute_bin_ids(unsigned int *d_bin_ids,
+                                const gpu_pdata_arrays &pdata,
+                                const gpu_boxsize &box,
+                                unsigned int Mx,
+                                unsigned int My,
+                                unsigned int Mz,
+                                float scalex,
+                                float scaley,
+                                float scalez);
 
 #endif
 

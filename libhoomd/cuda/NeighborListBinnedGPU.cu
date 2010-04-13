@@ -160,6 +160,7 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_body_tex;
     \param bins The binned particles
     \param r_maxsq Precalculated value for r_max*r_max
     \param actual_Nmax Number of particles currently in the largest bin
+    \param d_bin_ids Computed bin ids for each particle
     \param scalex Scale factor to convert particle position to bin i-coordinate
     \param scaley Scale factor to convert particle position to bin j-coordinate
     \param scalez Scale factor to convert particle position to bin k-coordinate
@@ -185,19 +186,18 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
                                                 gpu_bin_array bins,
                                                 float r_maxsq,
                                                 unsigned int actual_Nmax,
-                                                float scalex,
-                                                float scaley,
-                                                float scalez,
+                                                unsigned int *d_bin_ids,
                                                 bool exclude_same_body)
     {
     // each thread is going to compute the neighbor list for a single particle
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    int my_pidx = idx + local_beg;
     
     // quit early if we are past the end of the array
     if (idx >= local_num)
         return;
-        
+
+    int my_pidx = nlist.thread_mapping[idx + local_beg];
+    
     // first, determine which bin this particle belongs to
     // MEM TRANSFER: 32 bytes
     float4 my_pos = d_pos[my_pidx];
@@ -212,21 +212,8 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     if (exclude_same_body)
         my_body = d_body[my_pidx];
     
-    // FLOPS: 9
-    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex);
-    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley);
-    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*scalez);
-    
-    // need to handle the case where the particle is exactly at the box hi
-    if (ib == bins.Mx)
-        ib = 0;
-    if (jb == bins.My)
-        jb = 0;
-    if (kb == bins.Mz)
-        kb = 0;
-        
     // MEM TRANSFER: 4 bytes
-    int my_bin = ib*(bins.Mz*bins.My) + jb * bins.Mz + kb;
+    int my_bin = d_bin_ids[my_pidx];
     
     // each thread will determine the neighborlist of a single particle
     int n_neigh = 0;    // count number of neighbors found so far
@@ -309,36 +296,38 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     nlist.last_updated_pos[my_pidx] = my_pos;
     }
 
-//! Generate the neighbor list on the GPU
-/*! \param nlist Neighbor list to write out to
-    \param pdata Particle data to generate the neighbor list for
-    \param box Box dimensions for handling periodic boundary conditions
-    \param bins The binned particles
+/* Holding old documentation here for replacement at a future date
+    \param d_bin_ids Bin ids computed for each particle
     \param r_maxsq Precalculated value for r_max*r_max
     \param curNmax Number of particles currently in the largest bin
     \param block_size Block size to run the kernel on the device
     \param ulf_workaround Set to true to enable an attempted workaround for ULFs on compute 1.1 devices
     \param exclude_same_body Set to true to exclude particles that belong to the same rigid body
+*/
+
+//! Generate the neighbor list on the GPU
+/*! \param nlist Neighbor list to write out to
+    \param pdata Particle data to generate the neighbor list for
+    \param box Box dimensions for handling periodic boundary conditions
+    \param bins The binned particles
+    \param args Additional arguments
 
     See updateFromBins_new for more information
 */
+
 cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
                                      const gpu_pdata_arrays &pdata,
                                      const gpu_boxsize &box,
                                      const gpu_bin_array &bins,
-                                     float r_maxsq,
-                                     int curNmax,
-                                     int block_size,
-                                     bool ulf_workaround,
-                                     bool exclude_same_body)
+                                     const nlist_args &args)
     {
-    assert(block_size > 0);
+    assert(args.block_size > 0);
     
     // setup the grid to run the kernel
-    int nblocks = (int)ceil((double)pdata.local_num/ (double)block_size);
+    int nblocks = (int)ceil((double)pdata.local_num/ (double)args.block_size);
     
     dim3 grid(nblocks, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    dim3 threads(args.block_size, 1, 1);
     
     // bind the textures
     nlist_coord_idxlist_tex.normalized = false;
@@ -366,21 +355,112 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     if (error != cudaSuccess)
         return error;
         
-    // make even bin dimensions
-    float binx = (box.Lx) / float(bins.Mx);
-    float biny = (box.Ly) / float(bins.My);
-    float binz = (box.Lz) / float(bins.Mz);
-    
-    // precompute scale factors to eliminate division in inner loop
-    float scalex = 1.0f / binx;
-    float scaley = 1.0f / biny;
-    float scalez = 1.0f / binz;
-    
     // run the kernel
-    if (ulf_workaround)
-        gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez, exclude_same_body);
+    if (args.ulf_workaround)
+        gpu_compute_nlist_binned_kernel<true><<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.local_beg, pdata.local_num, box, bins, args.r_maxsq, args.curNmax, args.d_bin_ids, args.exclude_same_body);
     else
-        gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, scalex, scaley, scalez, exclude_same_body);
+        gpu_compute_nlist_binned_kernel<false><<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.local_beg, pdata.local_num, box, bins, args.r_maxsq, args.curNmax, args.d_bin_ids, args.exclude_same_body);
+        
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+    }
+
+/*! Kernel that computes the bin ids of all particles in the simulation.
+
+    The bin index for each particle in parallel: one thread per particle. Coordinates are modded by the grid dimensions
+    for robust handling of particles that may have ended up outside the box. Special treatement is given to particle
+    coordinates that have gone infinite or NaN. Any particle where this is true will have its bin set to the maximum
+    unsigned int. Host code can then detect this condition and report an error to the user.
+
+    \param d_bin_ids Output array to place computed bin ids for each particle
+    \param d_pos Array of particle positions
+    \param num_particles Number of particles in the simulation
+    \param box Box the particles are in
+    \param Mx Number of grid cells along the x direction
+    \param My Number of grid cells along the y direction
+    \param Mz Number of grid cells along the z direction
+    \param scalex Scale factor by which to bring particle coordinates to grid coordinates (x direction)
+    \param scaley Scale factor by which to bring particle coordinates to grid coordinates (y direction)
+    \param scalez Scale factor by which to bring particle coordinates to grid coordinates (z direction)
+*/
+__global__ void gpu_compute_bin_ids_kernel(unsigned int *d_bin_ids,
+                                           float4 *d_pos,
+                                           unsigned int num_particles,
+                                           gpu_boxsize box,
+                                           unsigned int Mx,
+                                           unsigned int My,
+                                           unsigned int Mz,
+                                           float scalex,
+                                           float scaley,
+                                           float scalez)
+    {
+    // each thread computes the bin of a single particle
+    int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    // quit early if we are past the end of the array
+    if (my_pidx >= num_particles)
+        return;
+        
+    // first, determine which bin this particle belongs to
+    float4 my_pos = d_pos[my_pidx];
+    
+    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*scalex) % Mx;
+    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*scaley) % My;
+    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*scalez) % Mz;
+    
+    int my_bin = ib*(Mz*My) + jb * Mz + kb;
+    
+    if (!(isfinite(my_pos.x) && isfinite(my_pos.y) && isfinite(my_pos.z)))
+        my_bin = 0xffffffff;
+    
+    d_bin_ids[my_pidx] = my_bin;
+    }
+
+/*! This is just a driver for gpu_compute_bin_ids_kernel, see it for details
+    \param d_bin_ids Output array to place computed bin ids for each particle
+    \param pdata Particle data to compute bin ids for
+    \param box Box the particles are in
+    \param Mx Number of grid cells along the x direction
+    \param My Number of grid cells along the y direction
+    \param Mz Number of grid cells along the z direction
+    \param scalex Scale factor by which to bring particle coordinates to grid coordinates (x direction)
+    \param scaley Scale factor by which to bring particle coordinates to grid coordinates (y direction)
+    \param scalez Scale factor by which to bring particle coordinates to grid coordinates (z direction)
+*/
+cudaError_t gpu_compute_bin_ids(unsigned int *d_bin_ids,
+                                const gpu_pdata_arrays &pdata,
+                                const gpu_boxsize &box,
+                                unsigned int Mx,
+                                unsigned int My,
+                                unsigned int Mz,
+                                float scalex,
+                                float scaley,
+                                float scalez)
+    {
+    // setup the grid to run the kernel
+    unsigned int block_size=128;
+    int nblocks = (int)ceil((double)pdata.local_num/ (double)block_size);
+    
+    dim3 grid(nblocks, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    
+    gpu_compute_bin_ids_kernel<<< grid, threads>>>(d_bin_ids,
+                                                   pdata.pos,
+                                                   pdata.local_num,
+                                                   box,
+                                                   Mx,
+                                                   My,
+                                                   Mz,
+                                                   scalex,
+                                                   scaley,
+                                                   scalez);
         
     if (!g_gpu_error_checking)
         {

@@ -229,7 +229,7 @@ def all():
 # \b Examples:
 # \code
 # slab = group.cuboid(name="slab", ymin=-3, ymax=3)
-# cube = grouip.cuboid(name="cube", xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
+# cube = group.cuboid(name="cube", xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
 # \endcode
 def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None):
     util.print_status_line();
