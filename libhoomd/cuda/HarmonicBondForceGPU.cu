@@ -128,6 +128,8 @@ void gpu_compute_harmonic_bond_forces_kernel(gpu_force_data_arrays force_data,
         float rsq = dx*dx + dy*dy + dz*dz;
         float rinv = rsqrtf(rsq);
         float forcemag_divr = K * (r_0 * rinv - 1.0f);
+        if (!isfinite(forcemag_divr))
+            forcemag_divr = 0.0f;
         float bond_eng = 0.5f * K * (r_0 - 1.0f / rinv) * (r_0 - 1.0f / rinv);
         
         // add up the virial (FLOPS: 3)
