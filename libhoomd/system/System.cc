@@ -393,6 +393,31 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         {
         // check the clock and output a status line if needed
         uint64_t cur_time = m_clk.getTime();
+
+        // check if the time limit has exceeded
+        if (limit_hours != 0.0f)
+            {
+            int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
+            if (int64_t(cur_time) - initial_time > time_limit)
+                {
+                cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                break;
+                }
+            }
+        // execute python callback, if present and needed
+        // a negative return value indicates immediate end of run.
+        if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+            {
+            boost::python::object rv = callback(m_cur_tstep);
+            extract<int> extracted_rv(rv);
+            if (extracted_rv.check() && extracted_rv() < 0)
+                {
+                cout << "Notice: End of run requested by python callback at step "
+                     << m_cur_tstep << " / " << m_end_tstep << endl;
+                break;
+                }
+            }
+        
         if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
             {
             if (!m_quiet_run)
@@ -426,30 +451,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             {
             g_sigint_recvd = 0;
             return;
-            }
-            
-        // check if the time limit has exceeded
-        if (limit_hours != 0.0f)
-            {
-            int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
-            if (int64_t(cur_time) - initial_time > time_limit)
-                {
-                cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
-                break;
-                }
-            }
-        // execute python callback, if present and needed
-        // a negative return value indicates immediate end of run.
-        if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
-            {
-            boost::python::object rv = callback(m_cur_tstep);
-            extract<int> extracted_rv(rv);
-            if (extracted_rv.check() && extracted_rv() < 0)
-                {
-                cout << "Notice: End of run requested by python callback at step "
-                     << m_cur_tstep << " / " << m_end_tstep << endl;
-                break;
-                }
             }
         }
         
