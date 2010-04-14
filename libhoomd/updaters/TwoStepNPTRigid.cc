@@ -1198,6 +1198,7 @@ void TwoStepNPTRigid::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, S
     q.y = c_phi * q.y + s_phi * kq.y;
     q.z = c_phi * q.z + s_phi * kq.z;
     q.w = c_phi * q.w + s_phi * kq.w;
+    normalize(q);
     }
 
 /*! Quaternion multiply: c = a * b 
