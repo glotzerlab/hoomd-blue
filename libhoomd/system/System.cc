@@ -363,6 +363,8 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     \param limit_hours Number of hours to run for (0.0 => infinity)
     \param cb_frequency Modulus of timestep number when to call the callback (0 = at end)
     \param callback Python function to be called periodically during run.
+    \param limit_multiple Only allow \a limit_hours to break the simulation at steps that are a multiple of
+           \a limit_multiple .
 
     During each simulation step, all added Analyzers and
     Updaters are called, then the Integrator to move the system
@@ -373,7 +375,8 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     each time, it will continue at the time step where it left off.
 */
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
-                 boost::python::object callback, double limit_hours)
+                 boost::python::object callback, double limit_hours,
+                 unsigned int limit_multiple)
     {
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
@@ -398,7 +401,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         if (limit_hours != 0.0f)
             {
             int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
-            if (int64_t(cur_time) - initial_time > time_limit)
+            if (int64_t(cur_time) - initial_time > time_limit && (m_cur_tstep % limit_multiple) == 0)
                 {
                 cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
                 break;
