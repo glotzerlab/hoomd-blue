@@ -416,7 +416,7 @@ class dcd(analyze._analyzer):
     # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, overwrite=False, wrap=True):
+    def __init__(self, filename, period, natoms=0, overwrite=False, wrap=True):
         util.print_status_line();
         
         # initialize base class
@@ -427,7 +427,12 @@ class dcd(analyze._analyzer):
         if type(period) != type(1):
             reported_period = 1000;
             
-        self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), overwrite);
+        # create the c++ mirror class
+        reported_natoms = natoms;
+        if type(natoms) != type(2):
+            reported_natoms = 0;
+            
+        self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), int(reported_natoms), overwrite);
         self.cpp_analyzer.setWrap(wrap);
         self.setupAnalyzer(period);
     

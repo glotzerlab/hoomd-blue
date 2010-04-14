@@ -83,7 +83,7 @@ class DCDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const std::string &fname, unsigned int period, bool overwrite=false);
+        DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const std::string &fname, unsigned int period, unsigned int natoms=0, bool overwrite=false);
         
         //! Destructor
         ~DCDDumpWriter();
@@ -100,6 +100,7 @@ class DCDDumpWriter : public Analyzer
         std::string m_fname;                //!< The file name we are writing to
         unsigned int m_start_timestep;      //!< First time step written to the file
         unsigned int m_period;              //!< Time step period bewteen writes
+        unsigned int m_natoms;              //!< Number of particles to write out to the dcd file
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
