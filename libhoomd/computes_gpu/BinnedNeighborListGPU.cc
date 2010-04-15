@@ -489,12 +489,13 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     m_curNmax = 0;
     
     // get the bin ids from the gpu
-    { // (scope h_bin_ids access so that it isn't already acquired in the recursive call)
-    ArrayHandle<unsigned int> h_bin_ids(m_bin_ids, access_location::host, access_mode::read);
-    
     // for each particle
     bool overflow = false;
     unsigned int overflow_value = 0;
+    
+    { // (scope h_bin_ids access so that it isn't already acquired in the recursive call)
+    ArrayHandle<unsigned int> h_bin_ids(m_bin_ids, access_location::host, access_mode::read);
+    
     for (unsigned int n = 0; n < m_pdata->getN(); n++)
         {
         unsigned int bin = h_bin_ids.data[n];
@@ -549,17 +550,19 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
         updateBinsUnsorted();
         }
     // note, we don't copy the binned values to the device yet, that is for the compute to do
-    
-    // assign particles to threads
-    ArrayHandle<unsigned int> h_thread_mapping(m_thread_mapping, access_location::host, access_mode::overwrite);
-    unsigned int current = 0;
-    for (unsigned int bin = 0; bin < m_Mx * m_My * m_Mz; bin++)
+    else
         {
-        unsigned int bin_size = m_bin_sizes[bin];
-        for (unsigned int slot = 0; slot < bin_size; slot++)
-            {
-            h_thread_mapping.data[current] = m_host_idxlist[slot + bin*m_Nmax];
-            current++;
+        // assign particles to threads
+        ArrayHandle<unsigned int> h_thread_mapping(m_thread_mapping, access_location::host, access_mode::overwrite);
+        unsigned int current = 0;
+       for (unsigned int bin = 0; bin < m_Mx * m_My * m_Mz; bin++)
+           {
+           unsigned int bin_size = m_bin_sizes[bin];
+           for (unsigned int slot = 0; slot < bin_size; slot++)
+               {
+               h_thread_mapping.data[current] = m_host_idxlist[slot + bin*m_Nmax];
+               current++;
+               }
             }
         }
     }
