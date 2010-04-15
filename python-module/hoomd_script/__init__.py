@@ -100,6 +100,8 @@ def get_hoomd_script_version():
 # \param tsteps Number of time steps to advance the simulation by
 # \param profile Set to True to enable detailed profiling
 # \param limit_hours  (if set) Limit the run to a given number of hours.
+# \param limit_multiple Only allow the \a limit_hours setting to stop the simulation when the time step is a multiple of
+#                       \a limit_multiple .
 # \param callback     (if set) Sets a Python function to be called regularly during a run.
 # \param callback_period Sets the period, in time steps, between calls made to \a callback
 # \param quiet Set to True to eliminate the status information printed to the screen by the run
@@ -142,6 +144,13 @@ def get_hoomd_script_version():
 # job run times. A fractional value can be given to limit a run to only a few minutes,
 # if needed.
 #
+# When running restartable jobs, it may be advantageous to enforce that run() ends on a timestep that is a multiple
+# of some value. For example, when dumping dcd trajectories with a period of 200,000 you may want to ensure that a job
+# always ends on a multiple of 200,000 so that when the next run begins, dump.dcd can continue writing right where it
+# left off instead of at some random time (e.g. 234,187) that just happened to be when the time limit was reached in
+# the previous run. Set this multiple with the \a limit_multiple argument. Keep in mind that a large multiple may
+# require a long buffer time betweeh \a limit_hours and the job wall clock limit as submitted to the queue.
+#
 # If \a callback is set to a Python function then this function will be called regularly
 # at \a callback_period intervals. The callback function must receive one integer as argument
 # and can return an integer. The argument is the current time step number,
@@ -152,7 +161,7 @@ def get_hoomd_script_version():
 # once at the end of the run. Otherwise the callback is executed whenever the current
 # time step number is a multiple of \a callback_period.
 #
-def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=None, quiet=False):
+def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
     if not quiet:
         util.print_status_line();
     # check if initialization has occured
@@ -184,7 +193,7 @@ def run(tsteps, profile=False, limit_hours=None, callback_period=0, callback=Non
 
     if not quiet:
         print "** starting run **"
-    globals.system.run(int(tsteps), callback_period, callback, limit_hours);
+    globals.system.run(int(tsteps), callback_period, callback, limit_hours, limit_multiple);
     if not quiet:
         print "** run complete **"
 

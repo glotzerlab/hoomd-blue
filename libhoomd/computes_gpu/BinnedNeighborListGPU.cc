@@ -489,6 +489,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     m_curNmax = 0;
     
     // get the bin ids from the gpu
+    { // (scope h_bin_ids access so that it isn't already acquired in the recursive call)
     ArrayHandle<unsigned int> h_bin_ids(m_bin_ids, access_location::host, access_mode::read);
     
     // for each particle
@@ -530,7 +531,8 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
         m_avgNmax += m_bin_sizes[i];
         }
     m_avgNmax /= Scalar(m_Mx * m_My * m_Mz);
-    
+    } // (end of h_bin_ids scope)
+
     // update profile
     if (m_prof) m_prof->pop(exec_conf);
     

@@ -147,6 +147,19 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[0], -0.225, tol);
     MY_BOOST_CHECK_CLOSE(force_arrays.fx[1], 0.225, tol);
     
+    // check r=0 behavior
+    arrays = pdata_2->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.x[1] = Scalar(0.0);
+    arrays.y[1] = arrays.z[1] = 0.0;
+    pdata_2->release();
+    
+    fc_2->compute(2);
+    // the force should be zero
+    force_arrays = fc_2->acquire();
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[0], tol_small);
+    MY_BOOST_CHECK_SMALL(force_arrays.fx[1], tol_small);
+    
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply

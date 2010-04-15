@@ -363,6 +363,8 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     \param limit_hours Number of hours to run for (0.0 => infinity)
     \param cb_frequency Modulus of timestep number when to call the callback (0 = at end)
     \param callback Python function to be called periodically during run.
+    \param limit_multiple Only allow \a limit_hours to break the simulation at steps that are a multiple of
+           \a limit_multiple .
 
     During each simulation step, all added Analyzers and
     Updaters are called, then the Integrator to move the system
@@ -373,7 +375,8 @@ boost::shared_ptr<Integrator> System::getIntegrator()
     each time, it will continue at the time step where it left off.
 */
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
-                 boost::python::object callback, double limit_hours)
+                 boost::python::object callback, double limit_hours,
+                 unsigned int limit_multiple)
     {
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
@@ -393,6 +396,31 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         {
         // check the clock and output a status line if needed
         uint64_t cur_time = m_clk.getTime();
+
+        // check if the time limit has exceeded
+        if (limit_hours != 0.0f)
+            {
+            int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
+            if (int64_t(cur_time) - initial_time > time_limit && (m_cur_tstep % limit_multiple) == 0)
+                {
+                cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                break;
+                }
+            }
+        // execute python callback, if present and needed
+        // a negative return value indicates immediate end of run.
+        if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+            {
+            boost::python::object rv = callback(m_cur_tstep);
+            extract<int> extracted_rv(rv);
+            if (extracted_rv.check() && extracted_rv() < 0)
+                {
+                cout << "Notice: End of run requested by python callback at step "
+                     << m_cur_tstep << " / " << m_end_tstep << endl;
+                break;
+                }
+            }
+        
         if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
             {
             if (!m_quiet_run)
@@ -426,30 +454,6 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             {
             g_sigint_recvd = 0;
             return;
-            }
-            
-        // check if the time limit has exceeded
-        if (limit_hours != 0.0f)
-            {
-            int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
-            if (int64_t(cur_time) - initial_time > time_limit)
-                {
-                cout << "Notice: Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
-                break;
-                }
-            }
-        // execute python callback, if present and needed
-        // a negative return value indicates immediate end of run.
-        if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
-            {
-            boost::python::object rv = callback(m_cur_tstep);
-            extract<int> extracted_rv(rv);
-            if (extracted_rv.check() && extracted_rv() < 0)
-                {
-                cout << "Notice: End of run requested by python callback at step "
-                     << m_cur_tstep << " / " << m_end_tstep << endl;
-                break;
-                }
             }
         }
         

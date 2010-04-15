@@ -118,7 +118,7 @@ void HarmonicBondForceCompute::setParams(unsigned int type, Scalar K, Scalar r_0
     // check for some silly errors a user could make
     if (K <= 0)
         cout << "***Warning! K <= 0 specified for harmonic bond" << endl;
-    if (r_0 <= 0)
+    if (r_0 < 0)
         cout << "***Warning! r_0 <= 0 specified for harmonic bond" << endl;
     }
 
@@ -238,6 +238,8 @@ void HarmonicBondForceCompute::computeForces(unsigned int timestep)
         Scalar rsq = dx*dx+dy*dy+dz*dz;
         Scalar r = sqrt(rsq);
         Scalar forcemag_divr = m_K[bond.type] * (m_r_0[bond.type] / r - Scalar(1.0));
+        if (!isfinite(forcemag_divr))
+            forcemag_divr = 0.0f;
         Scalar bond_eng = Scalar(0.5) * Scalar(0.5) * m_K[bond.type] * (m_r_0[bond.type] - r) * (m_r_0[bond.type] - r);
         
         // calculate the virial (FLOPS: 2)
