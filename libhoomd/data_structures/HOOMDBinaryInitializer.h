@@ -190,12 +190,12 @@ class HOOMDBinaryInitializer : public ParticleDataInitializer
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
         
-        GPUArray<Scalar4> m_com;                    //!< n_bodies length 1D array of center of mass positions
-        GPUArray<Scalar4> m_vel;                    //!< n_bodies length 1D array of body velocities
-        GPUArray<Scalar4> m_angmom;                 //!< n_bodies length 1D array of angular momenta in the space frame
-        GPUArray<int> m_body_imagex;                //!< n_bodies length 1D array of the body image in x direction
-        GPUArray<int> m_body_imagey;                //!< n_bodies length 1D array of the body image in y direction
-        GPUArray<int> m_body_imagez;                //!< n_bodies length 1D array of the body image in z direction
+        std::vector< Scalar4 > m_com;                    //!< n_bodies length 1D array of center of mass positions
+        std::vector< Scalar4 > m_vel;                    //!< n_bodies length 1D array of body velocities
+        std::vector< Scalar4 > m_angmom;                 //!< n_bodies length 1D array of angular momenta in the space frame
+        std::vector< int > m_body_imagex;                //!< n_bodies length 1D array of the body image in x direction
+        std::vector< int > m_body_imagey;                //!< n_bodies length 1D array of the body image in y direction
+        std::vector< int > m_body_imagez;                //!< n_bodies length 1D array of the body image in z direction
     };
 
 //! Exports HOOMDBinaryInitializer to python

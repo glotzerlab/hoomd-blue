@@ -469,53 +469,35 @@ void HOOMDBinaryInitializer::readFile(const string &fname)
     f.read((char*)&n_bodies, sizeof(unsigned int));
     
     if (n_bodies == 0) return;
-    
-    ExecutionConfiguration exec_conf = ExecutionConfiguration(ExecutionConfiguration::CPU);
-    
-    GPUArray<Scalar4> com(n_bodies, exec_conf);
-    GPUArray<Scalar4> vel(n_bodies, exec_conf);
-    GPUArray<Scalar4> angmom(n_bodies, exec_conf);
-    GPUArray<int> body_imagex(n_bodies, exec_conf);
-    GPUArray<int> body_imagey(n_bodies, exec_conf);
-    GPUArray<int> body_imagez(n_bodies, exec_conf);
-    
-    m_com.swap(com);
-    m_vel.swap(vel);
-    m_angmom.swap(angmom);
-    m_body_imagex.swap(body_imagex);
-    m_body_imagey.swap(body_imagey);
-    m_body_imagez.swap(body_imagez);
-    
-    {
-    ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::readwrite);
-    ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::readwrite);
-    ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::readwrite);
-    ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::readwrite);
-    
+       
+    m_com.resize(n_bodies);
+    m_vel.resize(n_bodies);
+    m_angmom.resize(n_bodies);
+    m_body_imagex.resize(n_bodies);
+    m_body_imagey.resize(n_bodies);
+    m_body_imagez.resize(n_bodies);
+        
     for (unsigned int body = 0; body < n_bodies; body++)
         {
-        f.read((char*)&(com_handle.data[body].x), sizeof(Scalar));
-        f.read((char*)&(com_handle.data[body].y), sizeof(Scalar));
-        f.read((char*)&(com_handle.data[body].z), sizeof(Scalar));
-        f.read((char*)&(com_handle.data[body].w), sizeof(Scalar));
+        f.read((char*)&(m_com[body].x), sizeof(Scalar));
+        f.read((char*)&(m_com[body].y), sizeof(Scalar));
+        f.read((char*)&(m_com[body].z), sizeof(Scalar));
+        f.read((char*)&(m_com[body].w), sizeof(Scalar));
         
-        f.read((char*)&(vel_handle.data[body].x), sizeof(Scalar));
-        f.read((char*)&(vel_handle.data[body].y), sizeof(Scalar));
-        f.read((char*)&(vel_handle.data[body].z), sizeof(Scalar));
-        f.read((char*)&(vel_handle.data[body].w), sizeof(Scalar));
+        f.read((char*)&(m_vel[body].x), sizeof(Scalar));
+        f.read((char*)&(m_vel[body].y), sizeof(Scalar));
+        f.read((char*)&(m_vel[body].z), sizeof(Scalar));
+        f.read((char*)&(m_vel[body].w), sizeof(Scalar));
         
-        f.read((char*)&(angmom_handle.data[body].x), sizeof(Scalar));
-        f.read((char*)&(angmom_handle.data[body].y), sizeof(Scalar));
-        f.read((char*)&(angmom_handle.data[body].z), sizeof(Scalar));
-        f.read((char*)&(angmom_handle.data[body].w), sizeof(Scalar));
+        f.read((char*)&(m_angmom[body].x), sizeof(Scalar));
+        f.read((char*)&(m_angmom[body].y), sizeof(Scalar));
+        f.read((char*)&(m_angmom[body].z), sizeof(Scalar));
+        f.read((char*)&(m_angmom[body].w), sizeof(Scalar));
         
-        f.read((char*)&(body_imagex_handle.data[body]), sizeof(int));
-        f.read((char*)&(body_imagey_handle.data[body]), sizeof(int));
-        f.read((char*)&(body_imagez_handle.data[body]), sizeof(int));
+        f.read((char*)&(m_body_imagex[body]), sizeof(int));
+        f.read((char*)&(m_body_imagey[body]), sizeof(int));
+        f.read((char*)&(m_body_imagez[body]), sizeof(int));
         }
-    }
     
     }
     
@@ -642,36 +624,29 @@ void HOOMDBinaryInitializer::initRigidData(boost::shared_ptr<RigidData> rigid_da
     ArrayHandle<int> r_body_imagey_handle(rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
     ArrayHandle<int> r_body_imagez_handle(rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
     
-    ArrayHandle<Scalar4> com_handle(m_com, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> vel_handle(m_vel, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> angmom_handle(m_angmom, access_location::host, access_mode::read);
-    ArrayHandle<int> body_imagex_handle(m_body_imagex, access_location::host, access_mode::read);
-    ArrayHandle<int> body_imagey_handle(m_body_imagey, access_location::host, access_mode::read);
-    ArrayHandle<int> body_imagez_handle(m_body_imagez, access_location::host, access_mode::read);
-    
     // We don't need to restore force, torque and orientation because the setup will do the rest,
     // and simulation still resumes smoothly.
     unsigned int n_bodies = rigid_data->getNumBodies();
     for (unsigned int body = 0; body < n_bodies; body++)
         {
-        r_com_handle.data[body].x = com_handle.data[body].x;
-        r_com_handle.data[body].y = com_handle.data[body].y;
-        r_com_handle.data[body].z = com_handle.data[body].z;
-        r_com_handle.data[body].w = com_handle.data[body].w;
+        r_com_handle.data[body].x = m_com[body].x;
+        r_com_handle.data[body].y = m_com[body].y;
+        r_com_handle.data[body].z = m_com[body].z;
+        r_com_handle.data[body].w = m_com[body].w;
         
-        r_vel_handle.data[body].x = vel_handle.data[body].x;
-        r_vel_handle.data[body].y = vel_handle.data[body].y;
-        r_vel_handle.data[body].z = vel_handle.data[body].z;
-        r_vel_handle.data[body].w = vel_handle.data[body].w;
+        r_vel_handle.data[body].x = m_vel[body].x;
+        r_vel_handle.data[body].y = m_vel[body].y;
+        r_vel_handle.data[body].z = m_vel[body].z;
+        r_vel_handle.data[body].w = m_vel[body].w;
         
-        r_angmom_handle.data[body].x = angmom_handle.data[body].x;
-        r_angmom_handle.data[body].y = angmom_handle.data[body].y;
-        r_angmom_handle.data[body].z = angmom_handle.data[body].z;
-        r_angmom_handle.data[body].w = angmom_handle.data[body].w;
+        r_angmom_handle.data[body].x = m_angmom[body].x;
+        r_angmom_handle.data[body].y = m_angmom[body].y;
+        r_angmom_handle.data[body].z = m_angmom[body].z;
+        r_angmom_handle.data[body].w = m_angmom[body].w;
         
-        r_body_imagex_handle.data[body] = body_imagex_handle.data[body];
-        r_body_imagey_handle.data[body] = body_imagey_handle.data[body];
-        r_body_imagez_handle.data[body] = body_imagez_handle.data[body];
+        r_body_imagex_handle.data[body] = m_body_imagex[body];
+        r_body_imagey_handle.data[body] = m_body_imagey[body];
+        r_body_imagez_handle.data[body] = m_body_imagez[body];
         }
     }
 
