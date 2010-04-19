@@ -68,12 +68,11 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
   - Doxygen  >= 1.5.6
 
 <hr>
-\section sec_build_instructions Build instructions for Linux, Mac, and Windows.
+\section sec_build_instructions Build instructions for Linux and Mac.
 
 Detailed instructions are organized into separate pages below.
  - \subpage page_compile_guide_mac
  - \subpage page_compile_guide_linux_generic
- - \subpage page_compile_guide_windows
 
 <hr>
 \section sec_build_options Build options
