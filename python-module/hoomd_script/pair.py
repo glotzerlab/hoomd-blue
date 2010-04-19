@@ -1494,3 +1494,125 @@ class morse(pair):
 
         return hoomd.make_scalar4(D0, alpha, r0, 0.0);
 
+class eam(force._force):
+	## Specify the Lennard-Jones %pair %force
+	#
+	# \param r_cut Cutoff radius (see documentation above)
+	#
+	# \b Example:
+	# \code
+	# lj = pair.lj(r_cut=3.0)
+	# lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+	# \endcode
+	#
+	# \note Pair coefficients for all type pairs in the simulation must be
+	# set before it can be started with run()
+	def __init__(self, r_cut, file):
+		util.print_status_line();
+		
+		# initialize the base class
+		force._force.__init__(self);
+		
+		# update the neighbor list
+		neighbor_list = _update_global_nlist(r_cut);
+		
+		# create the c++ mirror class
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.EAMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+			self.cpp_force = hoomd.EAMForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating eam force");
+
+			
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		self.pair_coeff = coeff();
+		
+	def update_coeffs(self):
+		# check that the pair coefficents are valid
+		pass;
+
+class eam_tex_inter(force._force):
+	## Specify the Lennard-Jones %pair %force
+	#
+	# \param r_cut Cutoff radius (see documentation above)
+	#
+	# \b Example:
+	# \code
+	# lj = pair.lj(r_cut=3.0)
+	# lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+	# \endcode
+	#
+	# \note Pair coefficients for all type pairs in the simulation must be
+	# set before it can be started with run()
+	def __init__(self, r_cut, file):
+		util.print_status_line();
+		
+		# initialize the base class
+		force._force.__init__(self);
+		
+		# update the neighbor list
+		neighbor_list = _update_global_nlist(r_cut);
+		
+		# create the c++ mirror class
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.EAMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+			self.cpp_force = hoomd.EAMTexInterForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating eam force");
+
+			
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		self.pair_coeff = coeff();
+		
+	def update_coeffs(self):
+		# check that the pair coefficents are valid
+		pass;
+
+class eam_tex(force._force):
+	## Specify the Lennard-Jones %pair %force
+	#
+	# \param r_cut Cutoff radius (see documentation above)
+	#
+	# \b Example:
+	# \code
+	# lj = pair.lj(r_cut=3.0)
+	# lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0)
+	# \endcode
+	#
+	# \note Pair coefficients for all type pairs in the simulation must be
+	# set before it can be started with run()
+	def __init__(self, r_cut, file):
+		util.print_status_line();
+		
+		# initialize the base class
+		force._force.__init__(self);
+		
+		# update the neighbor list
+		neighbor_list = _update_global_nlist(r_cut);
+		
+		# create the c++ mirror class
+		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.EAMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+			self.cpp_force = hoomd.EAMTexForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
+		else:
+			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+			raise RuntimeError("Error creating eam force");
+
+			
+		globals.system.addCompute(self.cpp_force, self.force_name);
+		self.pair_coeff = coeff();
+		
+	def update_coeffs(self):
+		# check that the pair coefficents are valid
+		pass;

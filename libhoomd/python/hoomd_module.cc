@@ -107,6 +107,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdater.h"
 #include "System.h"
 #include "Variant.h"
+#include "EAMForceCompute.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -126,6 +127,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
+#include "EAMForceComputeGPU.h"
+#include "EAMTexInterForceComputeGPU.h"
+#include "EAMTexForceComputeGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -407,6 +411,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
     export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
+	export_EAMForceCompute();
     export_LJWallForceCompute();
     export_TempCompute();
     export_NeighborList();
@@ -421,6 +426,9 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_TablePotentialGPU();
+	export_EAMTexInterForceComputeGPU();
+	export_EAMTexForceComputeGPU();
+	export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
