@@ -1515,7 +1515,8 @@ class eam(force._force):
 		
 		# update the neighbor list
 		neighbor_list = _update_global_nlist(r_cut);
-		
+		neighbor_list.subscribe(lambda: r_cut)
+        
 		# create the c++ mirror class
 		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
 			self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut, file);
@@ -1556,6 +1557,7 @@ class eam_tex_inter(force._force):
 		
 		# update the neighbor list
 		neighbor_list = _update_global_nlist(r_cut);
+		neighbor_list.subscribe(lambda: r_cut)
 		
 		# create the c++ mirror class
 		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -1597,6 +1599,7 @@ class eam_tex(force._force):
 		
 		# update the neighbor list
 		neighbor_list = _update_global_nlist(r_cut);
+		neighbor_list.subscribe(lambda: r_cut)
 		
 		# create the c++ mirror class
 		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
