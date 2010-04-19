@@ -133,6 +133,9 @@ EAMTexForceComputeGPU::EAMTexForceComputeGPU(boost::shared_ptr<SystemDefinition>
 		eam_linear_data[cur_gpu].size_derivativeElectronDensity = sizeof(Scalar) * m_ntypes * nr;
 		eam_linear_data[cur_gpu].size_derivativeEmbeddingFunction = sizeof(Scalar) * m_ntypes * nrho;
 		}
+    
+    m_pdata->release();
+    
 	// allocate the coeff data on the CPU
 	h_coeffs = new float2[m_pdata->getNTypes()*m_pdata->getNTypes()];
 	

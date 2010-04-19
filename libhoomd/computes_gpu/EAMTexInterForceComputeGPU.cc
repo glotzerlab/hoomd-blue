@@ -130,6 +130,9 @@ EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemD
 		#undef copy_table
 		
 		}
+    
+    m_pdata->release();
+    
 	// allocate the coeff data on the CPU
 	h_coeffs = new float2[m_pdata->getNTypes()*m_pdata->getNTypes()];
 	
