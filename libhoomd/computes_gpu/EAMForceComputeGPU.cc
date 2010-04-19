@@ -25,13 +25,13 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-/*! \param pdata System to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\param filename	 Name of potential`s file.
 */
-EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename) 
-	: EAMForceCompute(pdata, nlist, r_cut, filename)
+EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename) 
+	: EAMForceCompute(sysdef, nlist, r_cut, filename)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -114,16 +114,16 @@ EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<ParticleData> pdata, bo
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
 		assert(d_coeffs[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_atomDerivativeEmbeddingFunction[cur_gpu]), arrays.nparticles * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_atomDerivativeEmbeddingFunction[cur_gpu]), arrays.nparticles * sizeof(float)));
 		assert(d_atomDerivativeEmbeddingFunction[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_atomDerivativeEmbeddingFunction[cur_gpu], 0, arrays.nparticles * sizeof(float)));
 		//Allocate mem on GPU for tables for EAM
 		
 		#define copy_table(gpuname, cpuname, count) \
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&gpuname[cur_gpu]), sizeof(Scalar) * count));\
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&gpuname[cur_gpu]), sizeof(Scalar) * count));\
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy,  (gpuname)[cur_gpu], &(cpuname)[0], sizeof(Scalar) * count, cudaMemcpyHostToDevice));
 		
 		copy_table(d_pairPotential, pairPotential, ((m_ntypes * m_ntypes / 2) + 1) * nr);
@@ -227,7 +227,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
 void export_EAMForceComputeGPU()
 	{
 	class_<EAMForceComputeGPU, boost::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
-		("EAMForceComputeGPU", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar, char* >())
+		("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar, char* >())
 		.def("setBlockSize", &EAMForceComputeGPU::setBlockSize)
 		;
 	}

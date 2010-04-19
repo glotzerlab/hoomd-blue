@@ -23,7 +23,7 @@ class EAMTexInterForceComputeGPU : public EAMForceCompute
 	{
 	public:
 		//! Constructs the compute
-		EAMTexInterForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename);
+		EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename);
 		
 		//! Destructor
 		virtual ~EAMTexInterForceComputeGPU();

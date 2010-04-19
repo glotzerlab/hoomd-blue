@@ -70,7 +70,7 @@ class EAMForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		EAMForceCompute(boost::shared_ptr<ParticleData> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename);
+		EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename);
 		
 		//! Destructor
 		virtual ~EAMForceCompute();

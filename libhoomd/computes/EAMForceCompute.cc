@@ -58,13 +58,13 @@ using namespace boost::python;
 
 using namespace std;
 
-/*! \param pdata System to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 */
-EAMForceCompute::EAMForceCompute(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename) 
-	: ForceCompute(pdata), m_nlist(nlist), m_r_cut(r_cut)
+EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename) 
+	: ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut)
 	{
 	assert(m_pdata);
 	assert(m_nlist);
@@ -102,13 +102,13 @@ void EAMForceCompute::loadFile(char *filename)
     	}
 	for(i = 0; i < 3; i++) while(fgetc(fp) != '\n');
 	fscanf(fp, "%d", &m_ntypes);
-	//Ñ÷èòûâàåì èìåíà
+	//â€”ËœÃ‹ÃšËšâ€šâ€¡Ã‚Ã Ã‹ÃÃ‚ÃŒâ€¡
 	for(i = 0; i < m_ntypes; i++)
 		{
 		fscanf(fp, "%2s", tmp_str);
 		names.push_back(tmp_str);
 		}
-	//Ñ÷èòûâàåì ïàðàìåòðû
+	//â€”ËœÃ‹ÃšËšâ€šâ€¡Ã‚Ã Ã”â€¡ï£¿â€¡ÃÃ‚Ãšï£¿Ëš
 	fscanf(fp,"%d", &nrho);
 	fscanf(fp,"%lg", &tmp);
 	drho = tmp;
@@ -119,7 +119,7 @@ void EAMForceCompute::loadFile(char *filename)
 	rdr = (Scalar)(1.0 / dr);
 	fscanf(fp,"%lg", &tmp);
 	m_r_cut = tmp;
-	//Ñ÷èòûâàåì Ôóíêöèè ïîãðóæåíèÿ è ýëåêòðîííûå ïëîòíîñòè.
+	//â€”ËœÃ‹ÃšËšâ€šâ€¡Ã‚Ã â€˜Ã›ÃŒÃË†Ã‹Ã‹ Ã”Ã“â€žï£¿Ã›ÃŠÃ‚ÃŒÃ‹Ë‡ Ã‹ ËÃŽÃ‚ÃÃšï£¿Ã“ÃŒÃŒËšÃ‚ Ã”ÃŽÃ“ÃšÃŒÃ“Ã’ÃšÃ‹.
 	for(type = 0 ; type < m_ntypes; type++)
 		{
 		fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, &tmp_str);
@@ -137,7 +137,7 @@ void EAMForceCompute::loadFile(char *filename)
 			}
 	
 		}
-	//Ñ÷èòûâàåì ïîòåíöèàëû âçàèìîäåéñòâèÿ.
+	//â€”ËœÃ‹ÃšËšâ€šâ€¡Ã‚Ã Ã”Ã“ÃšÃ‚ÃŒË†Ã‹â€¡ÃŽËš â€šÃâ€¡Ã‹ÃÃ“â€°Ã‚ÃˆÃ’Ãšâ€šÃ‹Ë‡.
 	for(i = 0; i < (ceil(m_ntypes * m_ntypes / 2) + 1) * nr; i++)
 		{
 		fscanf(fp, "%lg", &tmp);
@@ -148,7 +148,7 @@ void EAMForceCompute::loadFile(char *filename)
 	derivativeEmbeddingFunction.resize(m_ntypes * nrho);
 	derivativeElectronDensity.resize(m_ntypes * nr);
 	derivativePairPotential.resize((ceil(m_ntypes * m_ntypes / 2) + 1) * nr);
-	//Âû÷èñëÿåì ïðîèçâîäíûå Ôóíêöèè ïîãðóæåíèÿ è ýëåêòðîííîé ïëîòíîñòè.
+	//Â¬ËšËœÃ‹Ã’ÃŽË‡Ã‚Ã Ã”ï£¿Ã“Ã‹Ãâ€šÃ“â€°ÃŒËšÃ‚ â€˜Ã›ÃŒÃË†Ã‹Ã‹ Ã”Ã“â€žï£¿Ã›ÃŠÃ‚ÃŒÃ‹Ë‡ Ã‹ ËÃŽÃ‚ÃÃšï£¿Ã“ÃŒÃŒÃ“Ãˆ Ã”ÃŽÃ“ÃšÃŒÃ“Ã’ÃšÃ‹.
 	for(type = 0 ; type < m_ntypes; type++)
 		{
 		for(i = 0 ; i < nrho - 1; i++)
@@ -163,7 +163,7 @@ void EAMForceCompute::loadFile(char *filename)
 			}
 	
 		}
-	//Âû÷èñëÿåì ïðîèçâîäíûå ïîòåíöèàëîâ âçàèìîäåéñòâèÿ.
+	//Â¬ËšËœÃ‹Ã’ÃŽË‡Ã‚Ã Ã”ï£¿Ã“Ã‹Ãâ€šÃ“â€°ÃŒËšÃ‚ Ã”Ã“ÃšÃ‚ÃŒË†Ã‹â€¡ÃŽÃ“â€š â€šÃâ€¡Ã‹ÃÃ“â€°Ã‚ÃˆÃ’Ãšâ€šÃ‹Ë‡.
 	for(i = 0; i < (ceil(m_ntypes * m_ntypes / 2) + 1) * nr; i++)
 		{
 		if((i + 1)%nr == 0) continue;
@@ -456,7 +456,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 void export_EAMForceCompute()
 	{
 	scope in_eam = class_<EAMForceCompute, boost::shared_ptr<EAMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-		("EAMForceCompute", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar, char*>());
+		("EAMForceCompute", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar, char*>());
 		
 	}
 

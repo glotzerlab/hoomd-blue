@@ -25,13 +25,13 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-/*! \param pdata System to compute forces on
+/*! \param sysdef System to compute forces on
  	\param nlist Neighborlist to use for computing the forces
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\param filename	 Name of potential`s file.
 */
-EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename) 
-	: EAMForceCompute(pdata, nlist, r_cut, filename)
+EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename) 
+	: EAMForceCompute(sysdef, nlist, r_cut, filename)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -107,10 +107,10 @@ EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<Particl
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
 		{
 		exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_coeffs[cur_gpu]), nbytes));
 		assert(d_coeffs[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_coeffs[cur_gpu], 0, nbytes));
-		exec_conf.gpu[cur_gpu]->call(bind(cudaMalloc, (void **)((void *)&d_atomDerivativeEmbeddingFunction[cur_gpu]), arrays.nparticles * sizeof(float)));
+		exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void **)((void *)&d_atomDerivativeEmbeddingFunction[cur_gpu]), arrays.nparticles * sizeof(float)));
 		assert(d_atomDerivativeEmbeddingFunction[cur_gpu]);
 		exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void *)d_atomDerivativeEmbeddingFunction[cur_gpu], 0, arrays.nparticles * sizeof(float)));
 		//Allocate mem on GPU for tables for EAM in cudaArray
@@ -219,7 +219,7 @@ void EAMTexInterForceComputeGPU::computeForces(unsigned int timestep)
 void export_EAMTexInterForceComputeGPU()
 	{
 	class_<EAMTexInterForceComputeGPU, boost::shared_ptr<EAMTexInterForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
-		("EAMTexInterForceComputeGPU", init< boost::shared_ptr<ParticleData>, boost::shared_ptr<NeighborList>, Scalar, char* >())
+		("EAMTexInterForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar, char* >())
 		.def("setBlockSize", &EAMTexInterForceComputeGPU::setBlockSize)
 		;
 	}

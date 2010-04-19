@@ -1517,11 +1517,11 @@ class eam(force._force):
 		neighbor_list = _update_global_nlist(r_cut);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.EAMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut, file);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.EAMForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+			self.cpp_force = hoomd.EAMForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut, file);
 			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
@@ -1558,11 +1558,11 @@ class eam_tex_inter(force._force):
 		neighbor_list = _update_global_nlist(r_cut);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.EAMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut, file);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.EAMTexInterForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+			self.cpp_force = hoomd.EAMTexInterForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut, file);
 			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
@@ -1599,11 +1599,11 @@ class eam_tex(force._force):
 		neighbor_list = _update_global_nlist(r_cut);
 		
 		# create the c++ mirror class
-		if globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-			self.cpp_force = hoomd.EAMForceCompute(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
-		elif globals.particle_data.getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+		if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+			self.cpp_force = hoomd.EAMForceCompute(globals.system_definition, neighbor_list.cpp_nlist, r_cut, file);
+		elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
 			neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
-			self.cpp_force = hoomd.EAMTexForceComputeGPU(globals.particle_data, neighbor_list.cpp_nlist, r_cut, file);
+			self.cpp_force = hoomd.EAMTexForceComputeGPU(globals.system_definition, neighbor_list.cpp_nlist, r_cut, file);
 			self.cpp_force.setBlockSize(tune._get_optimal_block_size('pair.lj'));
 		else:
 			print >> sys.stderr, "\n***Error! Invalid execution mode\n";
