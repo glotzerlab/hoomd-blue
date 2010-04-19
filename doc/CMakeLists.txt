@@ -5,10 +5,8 @@
 if (DOXYGEN)
 
 # policy change: always build all documentation even on platforms that don't
-# have CUDA/Python/FFT/whatever
+# have CUDA
 set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_CUDA=1\" \\
-    \"ENABLE_FFT=1\" \\
-    \"ENABLE_FFTW=1\" \\ 
     \"NVCC=1\" \\
     \"BOOST_VERSION=103500\" ")
 
