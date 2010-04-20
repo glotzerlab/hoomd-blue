@@ -343,7 +343,6 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.yukawa', 'pair_yukawa_setup', 500),
                 ('pair.cgcmm', 'pair_cgcmm_setup', 500),
                 ('pair.gauss', 'pair_gauss_setup', 500),
-                ('pair.morse', 'pair_morse_setup', 500),
                 ('bond.harmonic', 'bond.harmonic', 10000),
                 ('angle.harmonic', 'angle.harmonic', 3000),
                 ('angle.cgcmm', 'angle.cgcmm', 2000),
@@ -351,6 +350,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('improper.harmonic', 'improper.harmonic', 1000),
                 ('bond.fene', 'bond.fene', 2000)
                 ];
+    # ('pair.morse', 'pair_morse_setup', 500),
     
     # setup the particle system to benchmark
     polymer = dict(bond_len=1.2, type=['A']*50, bond="linear", count=2000);
