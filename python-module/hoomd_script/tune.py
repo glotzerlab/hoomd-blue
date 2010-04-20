@@ -83,6 +83,11 @@ _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihed
 # notice!: forcing pair.slj to 288 to work around strange ULF problems
 _default_block_size_db['1.3']['pair.slj'] = 288;
 
+_default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihedral.harmonic': 64, 'angle.cgcmm': 96,
+                                 'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'nlist': 128,
+                                 'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
+                                 'pair.yukawa': 256}
+
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
 _override_block_size_db = None;
@@ -224,7 +229,7 @@ def _find_optimal_block_size_fc(fc, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,512,32):
+        for block_size in xrange(64,1024+32,32):
             fc.cpp_force.setBlockSize(block_size);
             t = fc.benchmark(n);
             print block_size, t
@@ -254,7 +259,7 @@ def _find_optimal_block_size_nl(nl, n):
     
     # run the benchmark
     try:
-        for block_size in xrange(64,544,32):
+        for block_size in xrange(64,1024+32,32):
             nl.cpp_nlist.setBlockSize(block_size);
             t = nl.benchmark(n);
             print block_size, t
