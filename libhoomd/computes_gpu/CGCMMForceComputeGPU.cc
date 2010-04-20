@@ -107,7 +107,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
     exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
     exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
     
-    if (deviceProp.major == 1 && deviceProp.minor >= 3)
+    if (deviceProp.major >= 1 && deviceProp.minor >= 2)
         m_ulf_workaround = false;
     if (string(deviceProp.name) == "GeForce GTX 280")
         m_ulf_workaround = true;

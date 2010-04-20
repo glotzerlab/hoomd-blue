@@ -153,7 +153,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     // it is not needed on C1060, S1070, GTX285, GTX295, and (hopefully) newer ones
     m_ulf_workaround = true;
     
-    if (deviceProp.major == 1 && deviceProp.minor >= 3)
+    if (deviceProp.major >= 1 && deviceProp.minor >= 2)
         m_ulf_workaround = false;
     if (std::string(deviceProp.name) == "GTX 280")
         m_ulf_workaround = true;
