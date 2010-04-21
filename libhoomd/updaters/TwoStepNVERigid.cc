@@ -249,15 +249,16 @@ void TwoStepNVERigid::setup()
 #define __DEBUG
 #ifdef __DEBUG
     {
+    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
                 
     std::ofstream ofs("bodies.txt");
     for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -267,6 +268,7 @@ void TwoStepNVERigid::setup()
         ofs << "force = " << force_handle.data[body].x << "\t" << force_handle.data[body].y << "\t" << force_handle.data[body].z << "\n";
         ofs << "torque = " << torque_handle.data[body].x << "\t" << torque_handle.data[body].y << "\t" << torque_handle.data[body].z << "\n";
         ofs << "angmom = " << angmom_handle.data[body].x << "\t" << angmom_handle.data[body].y << "\t" << angmom_handle.data[body].z << "\n";
+        ofs << "moment = " << moment_inertia_handle.data[body].x << "\t" << moment_inertia_handle.data[body].y << "\t" << moment_inertia_handle.data[body].z << "\n";
         
         
     }
@@ -405,19 +407,19 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         
     // compute net forces and torques on rigid bodies from particle forces
     computeForceAndTorque(timestep);
-/*    
+/*
 #define __DEBUG
 #ifdef __DEBUG
     {
     ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
                 
     std::ofstream ofs("bodies1.txt");
     for (unsigned int body = 0; body < m_n_bodies; body++)
@@ -433,7 +435,7 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     ofs.close();
     }
 #endif
-//#undef __DEBUG
+#undef __DEBUG
 */
     if (m_prof)
         m_prof->push("NVE rigid step 2");

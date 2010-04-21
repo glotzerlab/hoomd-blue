@@ -281,7 +281,7 @@ void RigidData::initializeData()
             Scalar unwrappedx = arrays.x[j] + Lx * arrays.ix[j];
             Scalar unwrappedy = arrays.y[j] + Ly * arrays.iy[j];
             Scalar unwrappedz = arrays.z[j] + Lz * arrays.iz[j];
-            
+                
             com_handle.data[body].x += mass_one * unwrappedx;
             com_handle.data[body].y += mass_one * unwrappedy;
             com_handle.data[body].z += mass_one * unwrappedz;
@@ -315,7 +315,7 @@ void RigidData::initializeData()
             Scalar dx = unwrappedx - com_handle.data[body].x;
             Scalar dy = unwrappedy - com_handle.data[body].y;
             Scalar dz = unwrappedz - com_handle.data[body].z;
-            
+                
             inertia_handle.data[inertia_pitch * body + 0] += mass_one * (dy * dy + dz * dz);
             inertia_handle.data[inertia_pitch * body + 1] += mass_one * (dz * dz + dx * dx);
             inertia_handle.data[inertia_pitch * body + 2] += mass_one * (dx * dx + dy * dy);
@@ -353,7 +353,7 @@ void RigidData::initializeData()
             moment_inertia_handle.data[body].x = evalues[0];
             moment_inertia_handle.data[body].y = evalues[1];
             moment_inertia_handle.data[body].z = evalues[2];
-            
+                
             // set tiny moment of inertia component to be zero, count the number of degrees of freedom
             // 3D ojbects start with 6; 2D objects start with 3
             if (dimension == 3) dof_one = 6;
@@ -388,6 +388,7 @@ void RigidData::initializeData()
                     if (moment_inertia_handle.data[body].z < EPSILON * max)
                         dof_one--;
                 }
+            
                 
             m_ndof += dof_one;
             

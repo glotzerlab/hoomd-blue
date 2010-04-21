@@ -377,7 +377,7 @@ boost::shared_ptr<Integrator> System::getIntegrator()
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
                  boost::python::object callback, double limit_hours,
                  unsigned int limit_multiple)
-    {
+    {    
     m_start_tstep = m_cur_tstep;
     m_end_tstep = m_cur_tstep + nsteps;
     
@@ -444,7 +444,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             if (updater->shouldExecute(m_cur_tstep))
                 updater->m_updater->update(m_cur_tstep);
             }
-            
+        
+        
         // execute the integrator
         if (m_integrator)
             m_integrator->update(m_cur_tstep);

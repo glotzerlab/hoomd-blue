@@ -1021,6 +1021,18 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
 
+    error = cudaBindTexture(0, rigid_data_body_imagex_tex, rigid_data.body_imagex, sizeof(int) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_body_imagey_tex, rigid_data.body_imagey, sizeof(int) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_body_imagez_tex, rigid_data.body_imagez, sizeof(int) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
     // bind the textures for particles: pos, vel, accel and image of ALL particles
     error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
