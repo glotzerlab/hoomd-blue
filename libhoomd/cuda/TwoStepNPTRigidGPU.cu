@@ -408,9 +408,14 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
         Lz = zhi - zlo;
         
         // convert rigid body COMs back to box coords
-        pos.x = Lx * pos.x;
-        pos.y = Ly * pos.y;
-        pos.z = Lz * pos.z;
+        float4 newboxlo;
+        newboxlo.x = -Lx/2.0;
+        newboxlo.y = -Ly/2.0;
+        newboxlo.z = -Lz/2.0;
+        
+        pos.x = Lx * pos.x + newboxlo.x;
+        pos.y = Ly * pos.y + newboxlo.y;
+        pos.z = Lz * pos.z + newboxlo.z;
         
         // write out results
         rdata_com[idx_body].x = pos.x;
@@ -614,8 +619,6 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
         npt_rdata_conjqm[idx_body] = conjqm2;
         npt_rdata_partial_Ksum_t[idx_body] = akin_t;
         npt_rdata_partial_Ksum_r[idx_body] = akin_r;
-        
-            
         }
     }
 
@@ -881,7 +884,8 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     unsigned int nmax = rigid_data.nmax;
     
     // bind the textures for rigid bodies:
-    // body mass, com, vel, angmom, angvel, orientation, ex_space, ey_space, ez_space, body images, particle pos, particle indices, force and torque
+    // body mass, com, vel, angmom, angvel, orientation, ex_space, ey_space, ez_space, body images, particle pos, 
+    // particle indices, force and torque
     cudaError_t error = cudaBindTexture(0, rigid_data_body_mass_tex, rigid_data.body_mass, sizeof(float) * n_bodies);
     if (error != cudaSuccess)
         return error;

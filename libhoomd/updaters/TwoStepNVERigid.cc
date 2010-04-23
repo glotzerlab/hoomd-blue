@@ -269,8 +269,6 @@ void TwoStepNVERigid::setup()
         ofs << "torque = " << torque_handle.data[body].x << "\t" << torque_handle.data[body].y << "\t" << torque_handle.data[body].z << "\n";
         ofs << "angmom = " << angmom_handle.data[body].x << "\t" << angmom_handle.data[body].y << "\t" << angmom_handle.data[body].z << "\n";
         ofs << "moment = " << moment_inertia_handle.data[body].x << "\t" << moment_inertia_handle.data[body].y << "\t" << moment_inertia_handle.data[body].z << "\n";
-        
-        
     }
     ofs.close();
     }
@@ -558,9 +556,7 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
             torque_handle.data[body].z += rx * fy - ry * fx;
             }
         }
-    
-    //m_pdata->release();
-    
+        
     if (m_prof)
         m_prof->pop();
     }
@@ -782,9 +778,7 @@ void TwoStepNVERigid::exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scala
     \param ey_space y-axis unit vector
     \param ez_space z-axis unit vector
     \param angvel Returned angular velocity
- 
- */
-
+*/
 void TwoStepNVERigid::computeAngularVelocity(Scalar4& angmom, Scalar4& moment_inertia, Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space,
                                              Scalar4& angvel)
     {

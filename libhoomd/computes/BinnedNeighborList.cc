@@ -132,7 +132,7 @@ void BinnedNeighborList::updateBins()
     // check for an invalid box size: too small a box results in duplicate neighbors
     if (m_Mx < 3 || m_My < 3 || m_Mz < 3)
         {
-        cout << m_r_cut+m_r_buff << " " << box.xhi - box.xlo << endl;
+        cout << "m_rcut+m_r_buff = " << m_r_cut+m_r_buff << " box.xhi = " << box.xhi << " box.xlo = " << box.xlo << endl;
         cerr << endl << "***Error! BinnedNeighborList doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl << endl;
         throw runtime_error("Error updating neighborlist bins");
         }

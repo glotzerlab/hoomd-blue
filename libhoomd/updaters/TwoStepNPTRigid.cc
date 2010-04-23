@@ -571,7 +571,7 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     f_epsilon /= w;
     tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
     epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
-    
+        
     }
 
 /* Set position and velocity of constituent particles in rigid bodies in the 1st half of integration
@@ -943,12 +943,15 @@ void TwoStepNPTRigid::remap()
     m_pdata->setBox(BoxDim(Lx, Ly, Lz));
     
     // convert rigid body COMs back to box coords
-
+    Scalar4 newboxlo;
+    newboxlo.x = -Lx/2.0;
+    newboxlo.y = -Ly/2.0;
+    newboxlo.z = -Lz/2.0;
     for (unsigned int body = 0; body < m_n_bodies; body++)
         {
-        com_handle.data[body].x = Lx * com_handle.data[body].x;
-        com_handle.data[body].y = Ly * com_handle.data[body].y;
-        com_handle.data[body].z = Lz * com_handle.data[body].z;
+        com_handle.data[body].x = Lx * com_handle.data[body].x + newboxlo.x;
+        com_handle.data[body].y = Ly * com_handle.data[body].y + newboxlo.y;
+        com_handle.data[body].z = Lz * com_handle.data[body].z + newboxlo.z;
         }
     
     }
