@@ -70,8 +70,9 @@ class EAMForceCompute : public ForceCompute
 	{
 	public:
 		//! Constructs the compute
-		EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename);
-		
+		EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,  char *filename, int type_of_file);
+		virtual void set_neighbor_list(boost::shared_ptr<NeighborList> nlist);
+		virtual Scalar get_r_cut();		
 		//! Destructor
 		virtual ~EAMForceCompute();
 
@@ -82,7 +83,7 @@ class EAMForceCompute : public ForceCompute
 		virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 		
 		//! Shifting modes that can be applied to the energy
-		virtual void loadFile(char *filename);
+		virtual void loadFile(char *filename, int type_of_file);
 
 		
 	protected:
@@ -95,6 +96,7 @@ class EAMForceCompute : public ForceCompute
 		Scalar rdrho; 
 		Scalar rdr; 
 		vector<Scalar> mass; 
+		vector<int> types; 
 		vector<string> names; 
 		unsigned int nr;
 		unsigned int nrho;

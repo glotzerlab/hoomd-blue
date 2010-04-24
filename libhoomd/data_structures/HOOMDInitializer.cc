@@ -67,6 +67,34 @@ using namespace boost::python;
 
 using namespace boost;
 
+std::vector<std::string> TypeMapping::m_type_mapping;
+
+TypeMapping::TypeMapping()
+	{
+	
+	}
+std::vector<std::string> TypeMapping::getTypeMapping() const
+	{
+	return m_type_mapping;
+	}
+unsigned int TypeMapping::getTypeId(const std::string& name)
+	{
+	// search for the type mapping
+	for (unsigned int i = 0; i < m_type_mapping.size(); i++)
+		{
+		if (m_type_mapping[i] == name)
+			return i;
+		}
+	// add a new one if it is not found
+	m_type_mapping.push_back(name);
+	return (unsigned int)m_type_mapping.size()-1;	
+	}
+unsigned int TypeMapping::getNumParticleTypes() const
+	{
+	assert(m_type_mapping.size() > 0);
+	return (unsigned int)m_type_mapping.size();
+	}
+
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
@@ -76,7 +104,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     m_timestep = 0;
     m_box_read = false;
     m_num_dimensions = 3;
-    
+    type_mapping = TypeMapping();
     // initialize the parser map
     m_parser_map["box"] = bind(&HOOMDInitializer::parseBoxNode, this, _1);
     m_parser_map["position"] = bind(&HOOMDInitializer::parsePositionNode, this, _1);
@@ -118,8 +146,7 @@ unsigned int HOOMDInitializer::getNumParticles() const
 */
 unsigned int HOOMDInitializer::getNumParticleTypes() const
     {
-    assert(m_type_mapping.size() > 0);
-    return (unsigned int)m_type_mapping.size();
+	return type_mapping.getNumParticleTypes();
     }
 
 /*! \returns Box dimensions parsed from the XML file
@@ -856,15 +883,7 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
 */
 unsigned int HOOMDInitializer::getTypeId(const std::string& name)
     {
-    // search for the type mapping
-    for (unsigned int i = 0; i < m_type_mapping.size(); i++)
-        {
-        if (m_type_mapping[i] == name)
-            return i;
-        }
-    // add a new one if it is not found
-    m_type_mapping.push_back(name);
-    return (unsigned int)m_type_mapping.size()-1;
+	return type_mapping.getTypeId(name);
     }
 
 /*! \param name Name to get type id of
@@ -1016,7 +1035,7 @@ void HOOMDInitializer::initImproperData(boost::shared_ptr<DihedralData> improper
 */
 std::vector<std::string> HOOMDInitializer::getTypeMapping() const
     {
-    return m_type_mapping;
+	return type_mapping.getTypeMapping();
     }
 
 void export_HOOMDInitializer()

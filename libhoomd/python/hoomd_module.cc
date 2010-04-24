@@ -78,7 +78,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CGCMMForceCompute.h"
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
-#include "AllPairPotentials.h"
+//#include "AllPairPotentials.h"
 #include "TempCompute.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
@@ -129,7 +129,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FIREEnergyMinimizerGPU.h"
 #include "EAMForceComputeGPU.h"
 #include "EAMTexInterForceComputeGPU.h"
-#include "EAMTexForceComputeGPU.h"
+//#include "EAMTexForceComputeGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -406,11 +406,11 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TablePotential();
     export_FENEBondForceCompute();
     export_CGCMMForceCompute();
-    export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
-    export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
-    export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
-    export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
-    export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
+ //   export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
+ //   export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
+ //   export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
+ //   export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
+ //   export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
 	export_EAMForceCompute();
     export_LJWallForceCompute();
     export_TempCompute();
@@ -420,14 +420,14 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();
     export_CGCMMForceComputeGPU();
-    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
-    export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
-    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
-    export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
-    export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
+//    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
+ //   export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
+  //  export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
+ //   export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
+ //   export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_TablePotentialGPU();
 	export_EAMTexInterForceComputeGPU();
-	export_EAMTexForceComputeGPU();
+//	export_EAMTexForceComputeGPU();
 	export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();

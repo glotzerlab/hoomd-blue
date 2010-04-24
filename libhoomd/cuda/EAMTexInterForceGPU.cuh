@@ -14,6 +14,7 @@ Moscow group.
 #ifndef __EAMTexInterForceGPU_CUH__
 #define __EAMTexInterForceGPU_CUH__
 struct EAMTexInterData{
+	int ntypes;
 	int nr;
 	int nrho;
 	int block_size;

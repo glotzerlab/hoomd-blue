@@ -63,7 +63,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef __HOOMD_INITIALIZER_H__
 #define __HOOMD_INITIALIZER_H__
+//! Set numeric index of type of atom.
+/*! Class TypeMapping need to storage m_type_mapping variable.
+*/
 
+class TypeMapping
+	{
+	
+	public:
+		TypeMapping();
+		std::vector<std::string> getTypeMapping() const;
+		virtual unsigned int getNumParticleTypes() const;
+		unsigned int getTypeId(const std::string& name);
+	private:
+		static std::vector<std::string> m_type_mapping;
+	};
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
     For more information on the XML file format design see \ref page_dev_info. Although, HOOMD's
@@ -250,7 +264,7 @@ class HOOMDInitializer : public ParticleDataInitializer
         std::vector<std::string> m_angle_type_mapping;    //!< The created mapping between angle types and ids
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
-        
+      	TypeMapping type_mapping;  
     };
 
 //! Exports HOOMDInitializer to python

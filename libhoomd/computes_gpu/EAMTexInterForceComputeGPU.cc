@@ -30,8 +30,8 @@ using namespace std;
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\param filename	 Name of potential`s file.
 */
-EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename) 
-	: EAMForceCompute(sysdef, nlist, r_cut, filename)
+EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file) 
+	: EAMForceCompute(sysdef, filename, type_of_file)
 	{
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
@@ -93,15 +93,15 @@ EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemD
 	d_coeffs.resize(exec_conf.gpu.size());
 	d_atomDerivativeEmbeddingFunction.resize(exec_conf.gpu.size());
 	eam_tex_data.resize(exec_conf.gpu.size());
-	loadFile(filename);
+	loadFile(filename, type_of_file);
 	eam_data.nr = nr; 
 	eam_data.nrho = nrho; 
 	eam_data.dr = dr; 
 	eam_data.rdr = 1.0/dr; 
 	eam_data.drho = drho; 
 	eam_data.rdrho = 1.0/drho; 
-	eam_data.r_cut = r_cut; 
-	eam_data.r_cutsq = r_cut * r_cut;
+	eam_data.r_cut = m_r_cut; 
+	eam_data.r_cutsq = m_r_cut * m_r_cut;
 	eam_data.block_size = m_block_size;
 	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();	
 	for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
@@ -130,9 +130,6 @@ EAMTexInterForceComputeGPU::EAMTexInterForceComputeGPU(boost::shared_ptr<SystemD
 		#undef copy_table
 		
 		}
-    
-    m_pdata->release();
-    
 	// allocate the coeff data on the CPU
 	h_coeffs = new float2[m_pdata->getNTypes()*m_pdata->getNTypes()];
 	
@@ -222,7 +219,7 @@ void EAMTexInterForceComputeGPU::computeForces(unsigned int timestep)
 void export_EAMTexInterForceComputeGPU()
 	{
 	class_<EAMTexInterForceComputeGPU, boost::shared_ptr<EAMTexInterForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
-		("EAMTexInterForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar, char* >())
+		("EAMTexInterForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
 		.def("setBlockSize", &EAMTexInterForceComputeGPU::setBlockSize)
 		;
 	}

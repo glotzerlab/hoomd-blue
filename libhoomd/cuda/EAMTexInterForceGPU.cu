@@ -70,10 +70,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	// prefetch neighbor index
 	int cur_neigh = 0;
 	int next_neigh = nlist.list[idx_global];
-	//Затычка
-	int typej = 0;
-	//Затычка \
-	
+	int typei  = __float_as_int(pos.w);
 	// loop over neighbors
 	
 	#ifdef ARCH_SM13
@@ -83,6 +80,9 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	#define neigh_for for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
 	#endif
 	float atomElectronDensity  = 0.0f;
+	int nr = eam_data.nr;
+	int nrho = eam_data.nrho;
+	int ntypes = eam_data.ntypes;
 	float m_pe = 0.0f;
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
@@ -101,7 +101,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 			float dx = pos.x - neigh_pos.x;
 			float dy = pos.y - neigh_pos.y;
 			float dz = pos.z - neigh_pos.z;
-				
+			int typej  = __float_as_int(neigh_pos.w);		
 			// apply periodic boundary conditions: (FLOPS 12)
 			dx -= box.Lx * rintf(dx * box.Lxinv);
 			dy -= box.Ly * rintf(dy * box.Lyinv);
@@ -113,15 +113,13 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 				{
 				//Определяем индекс в таблице.
 				 float position_float = sqrt(rsq) * eam_data.rdr;				 
-				 atomElectronDensity += tex1D(electronDensity_tex, position_float + eam_data.nr * typej + 0.5f ); //electronDensity[r_index + eam_data.nr * typej] + derivativeElectronDensity[r_index + eam_data.nr * typej] * position * eam_data.dr;		 
+				 atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data.nr * typej] + derivativeElectronDensity[r_index + eam_data.nr * typej] * position * eam_data.dr;		 
 				}
 			}
 				
 		}
 
-	//Затычка
-	unsigned int typei = 0;// arrays.type[i];
-	//Затычка \
+
 	//Определяем индекс в таблице.
 	float position = atomElectronDensity * eam_data.rdrho;
 	/*unsigned int r_index = (unsigned int)position;
@@ -160,11 +158,9 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
 	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+	int typei = __float_as_int(pos.w);
 	// prefetch neighbor index
 	float position;
-	//Now we can use only ony type of atom.
-	int typei = 0;
-	int typej = 0;
 	int cur_neigh = 0;
 	int next_neigh = nlist.list[idx_global];
 	//float4 force = force_data.force[idx_local];
@@ -177,6 +173,9 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	float pairForce = 0.0f;
 	float virial = 0.0f;
 	force.w = force_data.force[idx_local].w;
+	int nr = eam_data.nr;
+	int nrho = eam_data.nrho;
+	int ntypes = eam_data.ntypes;
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
 		if (neigh_idx < n_neigh)
@@ -192,7 +191,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 			float dx = pos.x - neigh_pos.x;
 			float dy = pos.y - neigh_pos.y;
 			float dz = pos.z - neigh_pos.z;
-				
+			int typej = __float_as_int(neigh_pos.w);	
 			// apply periodic boundary conditions: (FLOPS 12)
 			dx -= box.Lx * rintf(dx * box.Lxinv);
 			dy -= box.Ly * rintf(dy * box.Lyinv);
@@ -205,10 +204,11 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 			float r = sqrt(rsq);
 			float inverseR = 1.0 / r;
 			position = r * eam_data.rdr;
-	
-			float pair_eng = (tex1D(pairPotential_tex, position + (typei + typej) * eam_data.nr + 0.5f)) * inverseR;
+			int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
 
-			float derivativePhi = (tex1D(derivativePairPotential_tex, position + (typei + typej) * eam_data.nr + 0.5f) - pair_eng) * inverseR;
+			float pair_eng = (tex1D(pairPotential_tex, position + shift + 0.5f)) * inverseR;
+
+			float derivativePhi = (tex1D(derivativePairPotential_tex, position + shift + 0.5f) - pair_eng) * inverseR;
 
 			float derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data.nr + 0.5f);
 	

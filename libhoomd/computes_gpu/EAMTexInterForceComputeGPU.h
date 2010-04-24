@@ -1,3 +1,5 @@
+
+
 /**
 powered by:
 Moscow group.
@@ -23,7 +25,7 @@ class EAMTexInterForceComputeGPU : public EAMForceCompute
 	{
 	public:
 		//! Constructs the compute
-		EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut, char *filename);
+		EAMTexInterForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 		
 		//! Destructor
 		virtual ~EAMTexInterForceComputeGPU();
