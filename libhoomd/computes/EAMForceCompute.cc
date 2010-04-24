@@ -113,9 +113,10 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 		types.push_back(type_mapping.getTypeId(names[i]));
 		}
 
-	for(i = 0; i < m_ntypes; i++){
+/*	for(i = 0; i < m_ntypes; i++){
 		cout << i << " : " << types[i] << " " << names[i] << endl;
 	}
+	*/
 	//Load parameters.
 	fscanf(fp,"%d", &nrho);
 	fscanf(fp,"%lg", &tmp);
