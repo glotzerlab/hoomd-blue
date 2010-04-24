@@ -127,7 +127,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
-#include "EAMForceComputeGPU.h"
+//#include "EAMForceComputeGPU.h"
 #include "EAMTexInterForceComputeGPU.h"
 //#include "EAMTexForceComputeGPU.h"
 #endif
@@ -428,7 +428,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TablePotentialGPU();
 	export_EAMTexInterForceComputeGPU();
 //	export_EAMTexForceComputeGPU();
-	export_EAMForceComputeGPU();
+//	export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
