@@ -23,7 +23,7 @@ class pair_yukawa_tests (unittest.TestCase):
 
     # test missing coefficients
     def test_set_missing_epsilon(self):
-        yuk = pair.gauss(r_cut=3.0);
+        yuk = pair.yukawa(r_cut=3.0);
         yuk.pair_coeff.set('A', 'A', kappa=1.0);
         self.assertRaises(RuntimeError, yuk.update_coeffs);
         
@@ -34,16 +34,16 @@ class pair_yukawa_tests (unittest.TestCase):
     
     # test set params
     def test_set_params(self):
-        yuk = pair.gauss(r_cut=3.0);
+        yuk = pair.yukawa(r_cut=3.0);
         yuk.set_params(mode="no_shift");
         yuk.set_params(mode="shift");
         yuk.set_params(mode="xplor");
         self.assertRaises(RuntimeError, yuk.set_params, mode="blah");
 
     # test nlist subscribe
-    def teat_nlist_subscribe(self):
+    def test_nlist_subscribe(self):
         yuk = pair.yukawa(r_cut=2.5);
-        gauss.pair_coeff.set('A', 'A', simga=1.0, kappa=1.0)
+        yuk.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
         

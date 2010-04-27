@@ -147,6 +147,7 @@ Table of contents:
   - \link hoomd_script.group.cuboid() group.cuboid\endlink - <i>\copybrief hoomd_script::group::cuboid</i>
   - \link hoomd_script.group.nonrigid() group.nonrigid\endlink - <i>\copybrief hoomd_script::group::nonrigid</i>
   - \link hoomd_script.group.rigid() group.rigid\endlink - <i>\copybrief hoomd_script::group::rigid</i>
+  - \link hoomd_script.group.tag_list() group.tag_list\endlink - <i>\copybrief hoomd_script::group::tag_list </i>
   - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
   - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
  - Combine groups

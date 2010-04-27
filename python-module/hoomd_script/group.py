@@ -391,6 +391,47 @@ def tags(tag_min, tag_max=None, name=None):
     # return it in the wrapper class
     return group(name, cpp_group);
 
+## Groups particles by tag list
+#
+# \param tags List of particle tags to include in the group
+# \param name User-assigned name for this group.
+#
+# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
+# added to the group. 
+#
+# Creates a particle group from particles with the given tags. Can be used to implement advanced grouping not
+# available with existing group commands.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
+# 
+# \b Examples:
+# \code
+# a = group.tag_list(name="a", tags = [0, 12, 18, 205])
+# b = group.tags(name="b", tags = range(20,400))
+# \endcode
+def tag_list(name, tags):
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if not init.is_initialized():
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    # build a vector of the tags
+    cpp_list = hoomd.std_vector_uint();
+    for t in tags:
+        cpp_list.push_back(t);
+
+    # create the group
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, cpp_list);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
 ## Groups particles by type
 #
 # \param type Name of the particle type to add to the group

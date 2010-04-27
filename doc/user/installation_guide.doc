@@ -46,22 +46,114 @@ THE POSSIBILITY OF SUCH DAMAGE.
  
 <hr>
 
-\section sec_system_req System Requirements (to run on a GPU)
- - \b OS: Linux, Mac OS X, Windows Vista, or Windows XP
- - \b CPU: Any x86 or x86_64 processor
- - \b RAM: At least 1GB is recommended
- - \b GPU: Any CUDA capable card: http://www.nvidia.com/object/cuda_home.html
- 	- \b Recommended (listed here in the rough order of performance expected, see http://codeblue.umich.edu/hoomd-blue/benchmarks.html for actual performance numbers): 
-		- GTX 285/295 (fastest)
-		- GTX 280
-		- Tesla 10 series
-		- GTX 275
-		- GTX 260
-		- GTS 250
-		
- - \b Motherboard: 16x PCIe slot for the graphics card. 
- - \b Power supply: Check with the GPU manufacturer for the power supply requirements for your GPU.
- 	If you have a store-bought desktop system, its power supply is likely inadequate and will require upgrading. 
+\section sec_system_req System requirements
+ - \b OS: 
+    - Supported Linux distributions
+        - Ubuntu 9.04 - 64-bit
+        - Fedora 10 - 64-bit
+        - Gentoo - 64-bit
+        - RHEL/CentOS 5.3 - 64-bit
+    - Mac OS X
+        - 10.5.x Leopard
+    - Windows 
+        - XP
+        - Vista
+        - <i>Note:</i> Windows builds are not tested and validated for <i>long running</i> simulations, and are provided
+        only as a convenience for users to test and benchmark HOOMD-blue. Linux is the must supported and most stable
+        platform for production runs.
+ - \b CPU: Any x86_64 processor
+ - \b RAM: At least as much system RAM as there is video memory total on all GPUs. For example, a host with four 4GB
+           Tesla GPUs connected to it should have at least 16 GB of RAM.
+ - \b GPU: A <a href=" http://www.nvidia.com/object/cuda_home.html">CUDA capable GPU</a> is required to run hoomd with
+    GPU acceleration. HOOMD-blue 0.9.0 will \em execute on any CUDA capable GPU, but only the current and previous
+    generation GPUs at the time of release are fully supported by the developers. Download and run an older version of
+    hoomd if you need support for older GPUs. Continue reading for a full list of GPUs supported by HOOMD-blue 0.9.x.
+
+\section sec_gpu_options Supported GPUs
+
+A GPU is needed to take full advantage of hoomd's performance capabilities. 
+See http://codeblue.umich.edu/hoomd-blue/benchmarks.html for representative performance numbers.
+
+There are a number of ways to configure a computer system with GPUs.
+
+<h2>Workstation solutions</h2>
+
+<h3>Upgrade an existing desktop system</h3>
+If a desktop computer meets the necessary system requirements, a GPU can be added to it. Neither this document nor the
+hoomd developers can determine if your system meets those requirements. Consult an IT professional for advice, if
+needed. The manufacturer's product page should list the requirements for a particular GPU. One word of caution:
+pre-built systems from many vendors are often engineered with very little extra space or power, and fast GPUs which are
+both large and power-hungry will either not fit or fail to operate. A self-powered 
+<a href="http://www.nvidia.com/object/product_quadroplex_2200_d2_us.html">Quadro Plex 2200 D2</a> might be an option
+for a desktop with such limitations, but it may also be less expensive to simply buy a new desktop equipped with GeForce
+GPUs.
+
+For GPU-ready desktops, there are many GPUs that are supported by HOOMD-blue 0.9.x.
+
+The following are consumer level GPUs marketed for gaming.
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_480_us.html">GeForce GTX 480</a> - \b Recommended
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_470_us.html">GeForce GTX 470</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_295_us.html">GeForce GTX 295</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_285_us.html">GeForce GTX 285</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_285_for_mac_us.html">GeForce GTX 285 for Mac</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_280_us.html">GeForce GTX 280</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_275_us.html">GeForce GTX 275</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gtx_260_us.html">GeForce GTX 260</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gts_250_us.html">GeForce GTS 250</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gt_240_us.html">GeForce GT 240</a>
+- <a href="http://www.nvidia.com/object/product_geforce_gt_220_us.html">GeForce GT 220</a>
+- <a href="http://www.nvidia.com/object/product_geforce_210_us.html">GeForce GT 210</a>
+- \b Note: Factory-overclocked models are \b not supported.
+
+Tesla CXXXX GPUs are professional level compute cards with more memory than their consumer-level counterparts.
+Also, Tesla C20X0 cards are capable of four times more double precision FLOPS than GTX 480.
+- <a href="http://www.nvidia.com/object/product_tesla_C2050_C2070_us.html">Tesla C2070</a>
+- <a href="http://www.nvidia.com/object/product_tesla_C2050_C2070_us.html">Tesla C2050</a> - \b Recommended
+- <a href="http://www.nvidia.com/object/product_tesla_c1060_us.html">Tesla C1060</a>
+
+Quadro GPUs are professional level graphics workstation cards.
+- <a href="http://www.nvidia.com/object/product_quadro_fx_5800_us.html">Quadro FX 5800</a>
+- <a href="http://www.nvidia.com/object/product_quadro_fx_4800_us.html">Quadro FX 4800</a>
+- <a href="http://www.nvidia.com/object/product_quadro_fx_4800_for_mac_us.html">Quadro FX 4800 for Mac</a>
+- <a href="http://www.nvidia.com/object/product_quadro_fx_380lp_us.html">Quadro FX 380 LP</a>
+
+<h3>Purchase a new workstation</h3>
+Pre-built workstations can be purchased from a number of vendors with any of the above GeForce and Quadro GPUs. Be sure
+to check out vendors that offer custom gaming rigs. Some offer high performance configurations with up to 3 GPUs.
+
+A limited set of vendors sell workstations with Tesla GPUs pre-installed: see http://www.nvidia.com/object/tesla_wtb.html
+
+A custom-built workstation is also an option for \em expert system builders and IT professionals.
+NVIDIA has published a set of recommendations as a starting point: http://www.nvidia.com/object/tesla_build_your_own.html
+
+<h2>Data center installations</h2>
+
+Data centers demand rack mount hardware. There are several GPU computing systems supported by HOOMD. These are 1U
+rack mount enclosures containing 4 GPUs, a power supply and cooling fans. Two PCIe interface cards connect the GPU computing
+system to one or two host nodes.
+- <a href="http://www.nvidia.com/object/product_tesla_S2050_S2070_us.html">Tesla S2070</a>
+- <a href="http://www.nvidia.com/object/product_tesla_S2050_S2070_us.html">Tesla S2050</a> - \b Recommended
+- <a href="http://www.nvidia.com/object/product_tesla_s1070_us.html">Tesla S1070</a>
+
+A number of rack mount host node configurations also accept Tesla MXXX cards.
+- <a href="http://www.nvidia.com/object/product_tesla_m1060_us.html">Tesla M1060</a>
+
+Quadro GPUs also come in rack mount configurations. They are marketed and built more for high performance
+visualization systems, but are supported by HOOMD-blue.
+- <a href="http://www.nvidia.com/object/product_quadroplex_2200_d2_us.html">Quadro Plex 2200 D2</a>
+- <a href="http://www.nvidia.com/object/product_quadroplex_2200_s4_us.html">Quadro Plex 2200 S4</a>
+
+See http://www.nvidia.com/object/preconfigured_clusters.html for even more data center options.
+
+<h2>Laptops</h2>
+
+There are many laptop GPUs capable of running hoomd. Due to power, heat, and stability concerns, the hoomd developers
+will not support laptops as a platform for long running hoomd simulations.
+
+<h2>Future GPUs</h2>
+GPUs newer than this document may also be supported. HOOMD-blue 0.9.x is tested and supported on the Fermi (GF100)
+and Tesla (G200) generations. All GPUs from these generations, even ones not in existence at release time, are
+supported.
 
 <hr>
 

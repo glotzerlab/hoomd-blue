@@ -114,6 +114,11 @@ class pair_group_tests (unittest.TestCase):
         tags = [(x.tag) for x in g]
         self.assertEqual(tags, [3,4,10])
 
+    def test_tag_list(self):
+        g = group.tag_list(name='a', tags=[0, 5, 9]);
+        tags = [(x.tag) for x in g]
+        self.assertEqual(tags, [0,5,9])
+
     def test_union(self):
         A = group.type(type='A')
         B = group.type(type='B')
