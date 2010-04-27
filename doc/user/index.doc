@@ -142,6 +142,7 @@ Table of contents:
  - Create groups
   - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
   - \link hoomd_script.group.cuboid() group.cuboid\endlink - <i>\copybrief hoomd_script::group::cuboid</i>
+  - \link hoomd_script.group.tag_list() group.tag_list\endlink - <i>\copybrief hoomd_script::group::tag_list </i>
   - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
   - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
  - Combine groups
