@@ -86,7 +86,7 @@ _default_block_size_db['1.3']['pair.slj'] = 288;
 _default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihedral.harmonic': 64, 'angle.cgcmm': 96,
                                  'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'nlist': 128,
                                  'bond.harmonic': 416, 'pair.gauss': 320, 'bond.fene': 160, 'angle.harmonic': 96,
-                                 'pair.yukawa': 256}
+                                 'pair.yukawa': 256, 'pair.morse': 160}
 
 ## \internal
 # \brief Optimal block size database user can load to override the defaults
@@ -348,6 +348,7 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('pair.yukawa', 'pair_yukawa_setup', 500),
                 ('pair.cgcmm', 'pair_cgcmm_setup', 500),
                 ('pair.gauss', 'pair_gauss_setup', 500),
+                ('pair.morse', 'pair_morse_setup', 500),
                 ('bond.harmonic', 'bond.harmonic', 10000),
                 ('angle.harmonic', 'angle.harmonic', 3000),
                 ('angle.cgcmm', 'angle.cgcmm', 2000),
@@ -355,7 +356,6 @@ def find_optimal_block_sizes(save = True, only=None):
                 ('improper.harmonic', 'improper.harmonic', 1000),
                 ('bond.fene', 'bond.fene', 2000)
                 ];
-    # ('pair.morse', 'pair_morse_setup', 500),
     
     # setup the particle system to benchmark
     polymer = dict(bond_len=1.2, type=['A']*50, bond="linear", count=2000);
@@ -410,9 +410,10 @@ def find_optimal_block_sizes(save = True, only=None):
             del fc
         
         # now, benchmark the neighbor list
-        print 'Benchmarking nlist'
-        optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
-        optimal_db['nlist'] = optimal;
+        if only and (only == 'nlist'):
+            print 'Benchmarking nlist'
+            optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
+            optimal_db['nlist'] = optimal;
         
         # add it to the list
         optimal_dbs.append(optimal_db);
