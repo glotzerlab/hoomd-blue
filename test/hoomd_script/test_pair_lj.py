@@ -56,7 +56,7 @@ class pair_lj_tests (unittest.TestCase):
         self.assertAlmostEqual(2.0, lj.get_max_rcut());
     
     # test nlist subscribe
-    def teat_nlist_subscribe(self):
+    def test_nlist_subscribe(self):
         lj = pair.lj(r_cut=2.5);
         lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
         globals.neighbor_list.update_rcut();

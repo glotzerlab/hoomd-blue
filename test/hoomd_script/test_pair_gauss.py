@@ -41,7 +41,7 @@ class pair_gauss_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, gauss.set_params, mode="blah");
 
     # test nlist subscribe
-    def teat_nlist_subscribe(self):
+    def test_nlist_subscribe(self):
         gauss = pair.gauss(r_cut=2.5);
         gauss.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
         globals.neighbor_list.update_rcut();

@@ -33,7 +33,7 @@ class pair_table_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, table.update_coeffs);
 
     # test nlist subscribe
-    def teat_nlist_subscribe(self):
+    def test_nlist_subscribe(self):
         table = pair.table(width=1000);
         table.pair_coeff.set('A', 'A', rmin=0.0, rmax=1.0, func=lambda r, rmin, rmax: (r, 2*r), coeff=dict());
         table.update_coeffs();
