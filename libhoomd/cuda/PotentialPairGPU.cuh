@@ -125,10 +125,10 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
 
     // shared arrays for per type pair parameters
     extern __shared__ char s_data[];
-    float *s_rcutsq = (float *)(&s_data[0]);
-    float *s_ronsq = (float *)(&s_data[num_typ_parameters*sizeof(float)]);
     typename evaluator::param_type *s_params = 
-        (typename evaluator::param_type *)(&s_data[2*num_typ_parameters*sizeof(float)]);
+        (typename evaluator::param_type *)(&s_data[0]);
+    float *s_rcutsq = (float *)(&s_data[num_typ_parameters*sizeof(evaluator::param_type)]);
+    float *s_ronsq = (float *)(&s_data[num_typ_parameters*(sizeof(evaluator::param_type) + sizeof(float))]);
     
     // load in the per type pair parameters
     for (unsigned int cur_offset = 0; cur_offset < num_typ_parameters; cur_offset += blockDim.x)
