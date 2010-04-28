@@ -133,15 +133,6 @@ class Integrator : public Updater
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
         
-        //! helper function to compute temperature
-        virtual Scalar computeTemperature(unsigned int timestep);
-        
-        //! helper function to compute pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
-        //! helper function to compute kinetic energy
-        virtual Scalar computeKineticEnergy(unsigned int timestep);
-        
         //! helper function to compute potential energy
         virtual Scalar computePotentialEnergy(unsigned int timestep);
         
