@@ -208,7 +208,19 @@ class thermo(_compute):
         if group.name != 'all':
             suffix = '_' + group.name;
         
+        # warn user if an existing compute thermo already uses this group or name
+        for t in globals.thermos:
+            if t.group is group:
+                print "***Warning! compute.thermo already specified for this group";
+            elif t.group.name == group.name:
+                print "***Warning! compute.thermo already specified for a group with name", group.name;
+        
         # create the c++ mirror class
         self.cpp_compute = hoomd.ComputeThermo(globals.system_definition, group.cpp_group, suffix);
         globals.system.addCompute(self.cpp_compute, self.compute_name);
+
+        # save the group for later referencing
+        self.group = group;
+        # add ourselves to the list of compute thermos specified so far
+        globals.thermos.append(self);
 
