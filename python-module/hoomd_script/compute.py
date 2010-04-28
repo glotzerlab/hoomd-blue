@@ -224,3 +224,20 @@ class thermo(_compute):
         # add ourselves to the list of compute thermos specified so far
         globals.thermos.append(self);
 
+## \internal
+# \brief Returns the previosly created compute.thermo with the same group, if created. Otherwise, creates a new
+# compute.thermo
+def _get_unique_thermo(group):
+    
+    # first check the globals for an existing compute.thermo
+    for t in globals.thermos:
+        # if we find a match, return it
+        if t.group is group:
+            return t;
+    
+    # if we get here, there were no matches: create a new one
+    util._disable_status_lines = True;
+    res = thermo(group);
+    util._disable_status_lines = False;
+    return res;
+
