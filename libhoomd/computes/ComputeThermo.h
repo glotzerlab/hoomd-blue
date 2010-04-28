@@ -153,8 +153,8 @@ class ComputeThermo : public Compute
         vector<string> m_logname_list;  //!< Cache all generated logged quantities names
 
         
-        //! Does the actual computation on the CPU
-        void computePropertiesCPU();
+        //! Does the actual computation
+        virtual void computeProperties();
     };
 
 //! Exports the ComputeThermo class to python

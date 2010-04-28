@@ -96,7 +96,7 @@ void ComputeThermo::setNDOF(unsigned int ndof)
     m_ndof = ndof;
     }
 
-/*! Calls computePropertiesCPU if the properties need updating
+/*! Calls computeProperties if the properties need updating
     \param timestep Current time step of the simulation
 */
 void ComputeThermo::compute(unsigned int timestep)
@@ -104,7 +104,7 @@ void ComputeThermo::compute(unsigned int timestep)
     if (!shouldCompute(timestep))
         return;
         
-    computePropertiesCPU();
+    computeProperties();
     }
 
 std::vector< std::string > ComputeThermo::getProvidedLogQuantities()
@@ -146,10 +146,9 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
         }
     }
 
-/*! Computes the temperature by computing the kinetic energy and multiplying by the appropriate factor.
-    \note This is computed in reduced units
+/*! Computes all thermodynamic properties of the system in one fell swoop.
 */
-void ComputeThermo::computePropertiesCPU()
+void ComputeThermo::computeProperties()
     {
     if (m_prof) m_prof->push("Thermo");
     
