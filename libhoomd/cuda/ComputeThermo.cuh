@@ -48,6 +48,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cuda_runtime.h>
 
+#include "ParticleData.cuh"
+#include "HOOMDMath.h"
+
 /*! \file ComputeThermo.cuh
     \brief Data structures and kernel driver function declarations for ComputeThermo
     */
@@ -64,6 +67,27 @@ struct thermo_index
         potential_energy,    //!< Index for the potential energy in the GPUArray
         };
     };
+
+//! Holder for arguments to gpu_compute_thermo
+struct compute_thermo_args
+    {
+    float4 *d_net_force;    //!< Net force / pe array to sum
+    float *d_net_virial;    //!< Net virial array to sum
+    unsigned int ndof;      //!< Number of degrees of freedom for T calculation
+    unsigned int D;         //!< Dimensionality of the system
+    float4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
+    unsigned int block_size;    //!< Block size to execute on the GPU
+    unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
+    };
+
+//! Computes the thermodynamic properties for ComputeThermo
+cudaError_t gpu_compute_thermo(float *d_properties,
+                               const gpu_pdata_arrays &pdata,
+                               unsigned int *d_group_members,
+                               unsigned int group_size,
+                               const gpu_boxsize &box,
+                               const compute_thermo_args& args
+                               );
 
 #endif
 
