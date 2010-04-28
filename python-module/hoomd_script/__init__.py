@@ -74,6 +74,7 @@ __all__ = [ "analyze",
             "run_upto",
             "tune", 
             "hoomd",
+            "compute",
             "get_hoomd_script_version"];
             
 ## \internal
