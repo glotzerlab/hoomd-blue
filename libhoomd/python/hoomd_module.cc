@@ -81,6 +81,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AllPairPotentials.h"
 #include "TempCompute.h"
 #include "ComputeThermo.h"
+#include "ComputeThermoGPU.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
 #include "Analyzer.h"
@@ -411,6 +412,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_LJWallForceCompute();
     export_TempCompute();
     export_ComputeThermo();
+    export_ComputeThermoGPU();
     export_NeighborList();
     export_BinnedNeighborList();
 #ifdef ENABLE_CUDA

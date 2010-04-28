@@ -216,7 +216,11 @@ class thermo(_compute):
                 print "***Warning! compute.thermo already specified for a group with name", group.name;
         
         # create the c++ mirror class
-        self.cpp_compute = hoomd.ComputeThermo(globals.system_definition, group.cpp_group, suffix);
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_compute = hoomd.ComputeThermo(globals.system_definition, group.cpp_group, suffix);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_compute = hoomd.ComputeThermoGPU(globals.system_definition, group.cpp_group, suffix);
+
         globals.system.addCompute(self.cpp_compute, self.compute_name);
 
         # save the group for later referencing
