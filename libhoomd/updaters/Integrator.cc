@@ -529,6 +529,7 @@ void export_Integrator()
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("removeForceComputes", &Integrator::removeForceComputes)
     .def("setDeltaT", &Integrator::setDeltaT)
+    .def("getNDOF", &Integrator::getNDOF)
     ;
     }
 

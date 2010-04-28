@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Updater.h"
 #include "ForceCompute.h"
+#include "ParticleGroup.h"
 #include <string>
 #include <vector>
 
@@ -116,6 +117,15 @@ class Integrator : public Updater
         
         //! Return the timestep
         Scalar getDeltaT();
+        
+        //! Get the number of degrees of freedom granted to a given group
+        /*! \param group Group over which to count degrees of freedom.
+            Base class Integrator returns 0. Derived classes should override.
+        */
+        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group)
+            {
+            return 0;
+            }
         
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();

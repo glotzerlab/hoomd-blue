@@ -96,6 +96,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     methods, it should skip that step. To facilitate this, derived classes should call setValidRestart(true) if they
     have valid restart information.
     
+    <b>Thermodynamic properties</b>
+    
+    Thermodynamic properties on given groups are computed by ComputeThermo. See the documentation of ComputeThermo for
+    its design and logging capabilities. To compute temperature properly, ComputeThermo needs the number of degrees of
+    freedom. Only the Integrator can know that as it is the integrator that grants degrees of freedom to the particles.
+    hoomd_script will break the dependancy requirement. At the start of every run, hoomd_script will ask for an updated
+    NDOF for every ComputeThermo group and set it.
+    
+    For IntegratorTwoStep, each IntegrationMethodTwoStep will compute its own contribution to the degrees of freedom
+    for each particle in the group. IntegratorTwoStep will sum the contributions to get the total. At that point, 
+    D will be deducted from the total to get the COM motion constraint correct.
+    
     <b>Design requirements</b>
     Due to the nature of allowing multiple integration methods to run at once, some strict guidlines need to be laid
     down.
@@ -112,13 +124,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
     Interaction with logger: perhaps the integrator should forward log value queries on to the integration method? 
     each method could be given a user name so that they are logged in user-controlled columns. This provides a window
-    into the interally computed state variables and conserved quantity logging per method.
-    
-    Computation of state variables: for now, any needed state variables will be computed internally as they have been
-    in the past for maximum performance. With possible changes desired down the road to allow the user to control the
-    DOF in the temperature calculation, this needs to be thought about. Maybe a full-blown Compute (w/ group setting)
-    for temperature, pressure, kinetic energy, .... is needed even if it is going to mean some perf losses. Will need
-    to evaluate what those losses would be before deciding.
+    into the interally computed state variables logging per method.
     
     \ingroup updaters
 */
@@ -181,6 +187,9 @@ class IntegrationMethodTwoStep : boost::noncopyable
         
         //! Get whether this restart was valid
         bool isValidRestart() { return m_valid_restart; }
+        
+        //! Get the number of degrees of freedom granted to a given group
+        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
         
     protected:
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
