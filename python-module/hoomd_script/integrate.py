@@ -176,6 +176,14 @@ class _integrator:
                 print >> sys.stderr, "a different integrator.\n";
                 raise RuntimeError('Error initializing integrator methods');
 
+    ## \internal
+    # \brief Counts the number of degrees of freedom and updates each compute.thermo specified
+    def update_thermos(self):
+        self.check_initialization();
+        
+        for t in globals.thermos:
+            ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
+            t.cpp_compute.setNDOF(ndof);
 
 ## \internal
 # \brief Base class for integration methods
