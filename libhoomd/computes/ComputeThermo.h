@@ -96,12 +96,7 @@ class ComputeThermo : public Compute
         virtual void compute(unsigned int timestep);
         
         //! Change the number of degrees of freedom
-        /*! \param ndof Number of degrees of freedom to set
-        */
-        void setNDOF(unsigned int ndof)
-            {
-            m_ndof = ndof;
-            }
+        void setNDOF(unsigned int ndof);
             
         //! Returns the temperature last computed by compute()
         /*! \returns Instantaneous temperature of the system

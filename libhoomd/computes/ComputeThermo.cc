@@ -81,6 +81,21 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     m_logname_list.push_back(string("num_particles") + suffix);
     }
 
+
+/*! \param ndof Number of degrees of freedom to set
+*/
+void ComputeThermo::setNDOF(unsigned int ndof)
+    {
+    if (ndof == 0)
+        {
+        cout << "***Warning! compute.thermo specified for a group with 0 degrees of freedom." << endl
+             << "            overriding ndof=1 to avoid divide by 0 errors" << endl;
+        ndof = 1;
+        }
+
+    m_ndof = ndof;
+    }
+
 /*! Calls computePropertiesCPU if the properties need updating
     \param timestep Current time step of the simulation
 */
