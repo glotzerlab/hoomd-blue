@@ -87,6 +87,7 @@
 
 import hoomd;
 import globals;
+import compute;
 import sys;
 import util;
 import variant;
@@ -360,6 +361,8 @@ class nvt(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \b Examples:
     # \code
     # all = group.all()
@@ -376,6 +379,9 @@ class nvt(_integration_method):
         
         # setup the variant inputs
         T = variant._setup_variant_input(T);
+        
+        # create the compute thermo
+        compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -442,6 +448,8 @@ class npt(_integration_method):
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
     # and \f$ T_0 \f$ is the temperature set point (\a T above).
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \b Examples:
     # \code
     # integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
@@ -456,6 +464,9 @@ class npt(_integration_method):
         # setup the variant inputs
         T = variant._setup_variant_input(T);
         P = variant._setup_variant_input(P);
+        
+        # create the compute thermo
+        compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -534,6 +545,8 @@ class nve(_integration_method):
     # \param zero_force When set to true, particles in the \a group are integrated forward in time with constant
     #                   velocity and any net force on them is ignored.
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \b Examples:
     # \code
     # all = group.all()
@@ -548,6 +561,9 @@ class nve(_integration_method):
         
         # initialize base class
         _integration_method.__init__(self);
+        
+        # create the compute thermo
+        compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -636,6 +652,8 @@ class bdnvt(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \warning If starting from a restart binary file, the energy of the reservoir will be reset to zero.  
     # \b Examples:
     # \code
@@ -654,6 +672,9 @@ class bdnvt(_integration_method):
         
         # setup the variant inputs
         T = variant._setup_variant_input(T);
+        
+        # create the compute thermo
+        compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
