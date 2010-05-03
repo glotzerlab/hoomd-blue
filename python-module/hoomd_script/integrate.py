@@ -381,13 +381,13 @@ class nvt(_integration_method):
         T = variant._setup_variant_input(T);
         
         # create the compute thermo
-        compute._get_unique_thermo(group=group);
+        thermo = compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NVT integrator");
