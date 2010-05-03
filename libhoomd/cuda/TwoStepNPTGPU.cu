@@ -146,8 +146,6 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
 /*! \param pdata Particle Data to operate on
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
-    \param block_size Size of the block to execute on the GPU
-    \param num_blocks Number of blocks to execute on the GPU
     \param partial_scale Set to true to only scale those particles in the group
     \param Xi theromstat variable in Nose-Hoover barostat
     \param Eta barostat variable in Nose-Hoover barostat
@@ -158,15 +156,14 @@ void gpu_npt_step_one_kernel(gpu_pdata_arrays pdata,
 cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int block_size,
-                             unsigned int num_blocks,
                              bool partial_scale,
                              float Xi,
                              float Eta,
                              float deltaT)
     {
     // setup the grid to run the kernel
-    dim3 grid( num_blocks, 1, 1);
+    unsigned int block_size = 256;
+    dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures
@@ -272,7 +269,6 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
 
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
     \param box The new box the particles where the particles now reside
-    \param block_size Size of the block to execute on the GPU
     \param partial_scale Set to true to only scale those particles in the group
     \param Eta barostat variable in Nose-Hoover barostat
     \param deltaT Time to move forward in one whole step
@@ -281,12 +277,12 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
 */
 cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize& box,
-                             unsigned int block_size,
                              bool partial_scale,
                              float Eta,
                              float deltaT)
     {
     // setup the grid to run the kernel
+    unsigned int block_size=256;
     dim3 grid( (pdata.local_num / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
@@ -375,8 +371,6 @@ void gpu_npt_step_two_kernel(gpu_pdata_arrays pdata,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
-    \param block_size Size of the block to execute on the GPU
-    \param num_blocks Number of blocks to execute on the GPU
     \param Xi theromstat variable in Nose-Hoover barostat
     \param Eta baromstat variable in Nose-Hoover barostat
     \param deltaT Time to move forward in one whole step
@@ -387,14 +381,13 @@ cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
-                             unsigned int block_size,
-                             unsigned int num_blocks,
                              float Xi,
                              float Eta,
                              float deltaT)
     {
     // setup the grid to run the kernel
-    dim3 grid( num_blocks, 1, 1);
+    unsigned int block_size=256;
+    dim3 grid( (group_size / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // precalulate velocity scaling factor due to Nose-Hoover barostat dynamics
@@ -415,213 +408,6 @@ cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
 
     // run the kernel
     gpu_npt_step_two_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, exp_v_fac, deltaT);
-    
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-    }
-
-//! Computes the first-pass 2K sum for a particle group
-/*! \param d_partial_sum2K Stores one partial 2K sum per block run
-    \param pdata Particle data to use when computing the sum
-    \param d_group_members List of the group members on which to compute the temperature
-    \param group_size Number of members in the group
-
-    \a One thread is run per group member. That thread reads in the particles velocity and mass, then computes the
-    value 2K. These values are then reduced in a sum within each block. Thus, the block size must be a power of two.
-    The final reduction to a single value is performed in another kernel.
-*/
-extern "C" __global__ void gpu_npt_group_temperature_kernel(float *d_partial_sum2K,
-                                                            gpu_pdata_arrays pdata,
-                                                            unsigned int *d_group_members,
-                                                            unsigned int group_size)
-    {
-    // determine which particle this thread works on
-    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    float psq2;
-    if (group_idx < group_size)
-        {
-        unsigned int idx = d_group_members[group_idx];
-        
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
-        float mass = tex1Dfetch(pdata_mass_tex, idx);
-        psq2 = mass*(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-        }
-    else
-        {
-        psq2 = 0.0f;
-        }
-        
-    npt_sdata[threadIdx.x] = psq2;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            npt_sdata[threadIdx.x] += npt_sdata[threadIdx.x + offs];
-        offs >>= 1;
-        __syncthreads();
-        }
-        
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        {
-        d_partial_sum2K[blockIdx.x] = npt_sdata[0];
-        }
-    }
-
-/*! \param d_partial_sum2K Stores one partial 2K sum per block run
-    \param pdata Particle data to use when computing the sum
-    \param d_group_members List of the group members on which to compute the temperature
-    \param group_size Number of members in the group
-    \param block_size Size of the block to execute on the GPU
-    \param num_blocks Number of blocks to execute on the GPU
-    
-    This is just a driver for gpu_npt_group_temperature_kernel(). See it for more details.
-*/
-cudaError_t gpu_npt_group_temperature(float *d_partial_sum2K,
-                                      const gpu_pdata_arrays& pdata,
-                                      unsigned int *d_group_members,
-                                      unsigned int group_size,
-                                      unsigned int block_size,
-                                      unsigned int num_blocks)
-    {
-    // setup the grid to run the kernel
-    dim3 grid(num_blocks, 1, 1);
-    dim3 threads(block_size, 1, 1);
-    
-    // bind velocity to the texture
-    cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
-        
-    // run the kernel
-    gpu_npt_group_temperature_kernel<<< grid, threads, block_size*sizeof(float) >>>
-        (d_partial_sum2K, pdata, d_group_members, group_size);
-    
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-    }
-
-//! Computes the first-pass virial and 2K sum for all particles
-/*! \param d_partial_sum2K Stores one partial 2K sum per block run
-    \param d_partial_sumW Stores one partial W sum per block run
-    \param pdata Particle data to use when computing the sum
-    \param d_net_virial The per particle net virial
-
-    \a One thread is run per particle. That thread reads in the particles velocity and mass, then computes the
-    value 2K and W. These values are then reduced in a sum within each block. Thus, the block size must be a power of
-    two. The final reduction to a single value is performed in another kernel.
-*/
-extern "C" __global__ 
-void gpu_npt_pressure_kernel2(float *d_partial_sum2K,
-                              float *d_partial_sumW,
-                              gpu_pdata_arrays pdata,
-                              float *d_net_virial)
-    {
-    
-    int idx = blockIdx.x * blockDim.x + threadIdx.x; // particle's index
-    
-    // *** First sum the virial
-    float virial = 0.0f;
-    if (idx < pdata.local_num)
-        {
-        virial = d_net_virial[idx];
-        }
-    
-    npt_sdata[threadIdx.x] = virial;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            npt_sdata[threadIdx.x] += npt_sdata[threadIdx.x + offs];
-        offs >>= 1;
-        __syncthreads();
-        }
-        
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        {
-        d_partial_sumW[blockIdx.x] = npt_sdata[0];
-        }
-
-    // *** Then sum 2K
-    float psq2 = 0.0f;
-    if (idx < pdata.local_num)
-        {
-        float4 vel = pdata.vel[idx];
-        float mass = pdata.mass[idx];
-        psq2 = mass*(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-        }
-    
-    npt_sdata[threadIdx.x] = psq2;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            npt_sdata[threadIdx.x] += npt_sdata[threadIdx.x + offs];
-        offs >>= 1;
-        __syncthreads();
-        }
-        
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        {
-        d_partial_sum2K[blockIdx.x] = npt_sdata[0];
-        }
-    }
-
-/*! \param d_partial_sum2K Stores one partial 2K sum per block run
-    \param d_partial_sumW Stores one partial W sum per block run
-    \param pdata Particle data to use when computing the sum
-    \param d_net_virial The per particle net virial
-    \param block_size Size of the block to execute on the GPU
-    \param num_blocks Number of blocks to execute on the GPU
-
-    This is just a driver function for gpu_npt_pressure_kernel(). See it for more details.
-*/
-cudaError_t gpu_npt_pressure2(float *d_partial_sum2K,
-                              float *d_partial_sumW,
-                              gpu_pdata_arrays pdata,
-                              float *d_net_virial,
-                              unsigned int block_size,
-                              unsigned int num_blocks)
-    {
-    // setup the grid to run the kernel
-    dim3 grid(num_blocks, 1, 1);
-    dim3 threads(block_size, 1, 1);
-    
-    // run the kernel
-    gpu_npt_pressure_kernel2<<< grid, threads, block_size*sizeof(float) >>>(d_partial_sum2K,
-                                                                           d_partial_sumW,
-                                                                           pdata,
-                                                                           d_net_virial);
     
     if (!g_gpu_error_checking)
         {
