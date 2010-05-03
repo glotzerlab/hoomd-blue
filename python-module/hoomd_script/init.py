@@ -591,8 +591,10 @@ def _perform_common_init_tasks():
     __main__.sorter = update.sort();
     
     # create the default compute.thermo on the all group
+    util._disable_status_lines = True;
     all = group.all();
     compute._get_unique_thermo(group=all);
+    util._disable_status_lines = False;
 
 ## Parses command line options
 #
