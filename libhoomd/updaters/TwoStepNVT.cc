@@ -59,21 +59,19 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
 */
 TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
+                       boost::shared_ptr<ComputeThermo> thermo,
                        Scalar tau,
                        boost::shared_ptr<Variant> T)
-    : IntegrationMethodTwoStep(sysdef, group), m_tau(tau), m_T(T)
+    : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in NVTUpdater" << endl;
-    
-    m_curr_T = Scalar(0.0);
-    unsigned int dim = m_sysdef->getNDimensions();
-    m_dof = Scalar(dim*m_group->getNumMembers() - dim);
     
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
@@ -108,16 +106,11 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
 
     IntegratorVariables v = getIntegratorVariables();
     Scalar& xi = v.variable[0];
-    Scalar& eta = v.variable[1];
 
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     
     // precompute loop invariant quantities
     Scalar denominv = Scalar(1.0) / (Scalar(1.0) + m_deltaT/Scalar(2.0) * xi);
-    
-    // perform the first half step of nose-hoover
-    // add up a total of 2*K while we loop through the particles, as well
-    Scalar sum2K = Scalar(0.0);
     
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
@@ -131,15 +124,7 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         
         arrays.vz[j] = (arrays.vz[j] + Scalar(1.0/2.0)*arrays.az[j]*m_deltaT) * denominv;
         arrays.z[j] += m_deltaT * arrays.vz[j];
-        
-        sum2K += arrays.mass[j] * (arrays.vx[j]*arrays.vx[j] + arrays.vy[j]*arrays.vy[j] + arrays.vz[j]*arrays.vz[j]);
         }
-    
-    // next, update the state variables Xi and eta
-    Scalar xi_prev = xi;
-    m_curr_T = sum2K / m_dof;
-    xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
-    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
     
     // particles may have been moved slightly outside the box by the above steps, wrap them back into place
     const BoxDim& box = m_pdata->getBox();
@@ -188,7 +173,6 @@ void TwoStepNVT::integrateStepOne(unsigned int timestep)
         }
     
     m_pdata->release();
-    setIntegratorVariables(v);
     
     // done profiling
     if (m_prof)
@@ -204,15 +188,25 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
     if (group_size == 0)
         return;
     
+    IntegratorVariables v = getIntegratorVariables();
+    Scalar& xi = v.variable[0];
+    Scalar& eta = v.variable[1];
+    
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep+1);
+    
+    // next, update the state variables Xi and eta
+    Scalar xi_prev = xi;
+    Scalar curr_T = m_thermo->getTemperature();
+    xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
+    
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
     // profile this step
     if (m_prof)
         m_prof->push("NVT step 2");
-
-    IntegratorVariables v = getIntegratorVariables();
-    Scalar& xi = v.variable[0];
-        
+    
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
@@ -234,6 +228,8 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
         }
     
     m_pdata->release();
+    setIntegratorVariables(v);
+
     
     // done profiling
     if (m_prof)
@@ -245,6 +241,7 @@ void export_TwoStepNVT()
     class_<TwoStepNVT, boost::shared_ptr<TwoStepNVT>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNVT", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
+                       boost::shared_ptr<ComputeThermo>,
                        Scalar,
                        boost::shared_ptr<Variant> >())
         .def("setT", &TwoStepNVT::setT)
