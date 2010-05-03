@@ -47,6 +47,8 @@ from optparse import OptionParser;
 import hoomd;
 import globals;
 import update;
+import group;
+import compute;
 
 import math;
 import sys;
@@ -587,6 +589,12 @@ def _perform_common_init_tasks():
     # create the sorter, using the evil import __main__ trick to provide the user with a default variable
     import __main__;
     __main__.sorter = update.sort();
+    
+    # create the default compute.thermo on the all group
+    util._disable_status_lines = True;
+    all = group.all();
+    compute._get_unique_thermo(group=all);
+    util._disable_status_lines = False;
 
 ## Parses command line options
 #

@@ -43,56 +43,25 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include <boost/shared_ptr.hpp>
+#ifndef _COMPUTE_THERMO_TYPES_H_
+#define _COMPUTE_THERMO_TYPES_H_
 
-#include "Compute.h"
+/*! \file ComputeThermoTypes.h
+    \brief Data structures common to both CPU and GPU implementations of ComputeThermo
+    */
 
-/*! \file TempCompute.h
-    \brief Declares a class for computing temperatures
-*/
-
-#ifndef __TEMPCOMPUTE_H__
-#define __TEMPCOMPUTE_H__
-
-//! Computes the temperature of the particle system
-/*! An instantaneous temperature is computed in the standard method: AVG Kinetic energy = dof/2 * k_B * T
-    The number of degrees of freedom defaults to 3*N, but can be changed with setDOF().
-    \ingroup computes
-*/
-class TempCompute : public Compute
+//! Enum for indexing the GPUArray of computed values
+struct thermo_index
     {
-    public:
-        //! Constructs the compute
-        TempCompute(boost::shared_ptr<SystemDefinition> sysdef);
-        
-        //! Compute the temperature
-        virtual void compute(unsigned int timestep);
-        
-        //! Change the number of degrees of freedom
-        /*! \param dof Number of degrees of freedom to set
-        */
-        void setDOF(unsigned int dof)
-            {
-            m_dof = dof;
-            }
-            
-        //! Returns the temperature last computed by compute()
-        /*! \returns Instantaneous temperature of the system
-        */
-        Scalar getTemp()
-            {
-            return m_temp;
-            }
-    protected:
-        Scalar m_temp;      //!< Stores the last computed value of the temperature
-        unsigned int m_dof; //!< Stores the number of degrees of freedom in the system
-        
-        //! Does the actual computation
-        void computeTemp();
+    //! The enum
+    enum Enum
+        {
+        temperature=0,       //!< Index for the computed temperature in the GPUArray
+        pressure,            //!< Index for the computed pressure in the GPUArray
+        kinetic_energy,      //!< Index for the kinetic energy in the GPUArray
+        potential_energy,    //!< Index for the potential energy in the GPUArray
+        };
     };
-
-//! Exports the TempCompute class to python
-void export_TempCompute();
 
 #endif
 

@@ -43,72 +43,38 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "IntegrationMethodTwoStep.h"
-#include "Variant.h"
 #include "ComputeThermo.h"
 
-#ifndef __TWO_STEP_NVT_H__
-#define __TWO_STEP_NVT_H__
-
-/*! \file TwoStepNVT.h
-    \brief Declares the TwoStepNVT class
+/*! \file ComputeThermoGPU.h
+    \brief Declares a class for computing thermodynamic quantities on the GPU
 */
 
-//! Integrates part of the system forward in two steps in the NVT ensemble
-/*! Implements Nose-Hoover NVT integration through the IntegrationMethodTwoStep interface
-    
-    Integrator variables mapping:
-     - [0] -> xi
-     - [1] -> eta
-    
-    The instantaneous temperature of the system is computed with the provided ComputeThermo. Correct dynamics require
-    that the thermo computes the temperature of the assigned group and with D*N-D degrees of freedom. TwoStepNVT does
-    not check for these conditions.
-    
-    \ingroup updaters
+#ifndef __COMPUTE_THERMO_GPU_H__
+#define __COMPUTE_THERMO_GPU_H__
+
+//! Computes thermodynamic properties of a group of particles on the GPU
+/*! ComputeThermoGPU is a GPU accelerated implementation of ComputeThermo
+    \ingroup computes
 */
-class TwoStepNVT : public IntegrationMethodTwoStep
+class ComputeThermoGPU : public ComputeThermo
     {
     public:
-        //! Constructs the integration method and associates it with the system
-        TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo,
-                   Scalar tau,
-                   boost::shared_ptr<Variant> T);
-        virtual ~TwoStepNVT() {};
+        //! Constructs the compute
+        ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
+                         boost::shared_ptr<ParticleGroup> group,
+                         const std::string& suffix = std::string(""));
         
-        //! Update the temperature
-        /*! \param T New temperature to set
-        */
-        virtual void setT(boost::shared_ptr<Variant> T)
-            {
-            m_T = T;
-            }
-        
-        //! Update the tau value
-        /*! \param tau New time constant to set
-        */
-        virtual void setTau(Scalar tau)
-            {
-            m_tau = tau;
-            }
-        
-        //! Performs the first step of the integration
-        virtual void integrateStepOne(unsigned int timestep);
-        
-        //! Performs the second step of the integration
-        virtual void integrateStepTwo(unsigned int timestep);
-    
     protected:
-        boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
+        GPUArray<float4> m_scratch;  //!< Scratch space for partial sums
+        unsigned int m_num_blocks;   //!< Number of blocks participating in the reduction
+        unsigned int m_block_size;   //!< Block size executed
         
-        Scalar m_tau;                   //!< tau value for Nose-Hoover
-        boost::shared_ptr<Variant> m_T; //!< Temperature set point
+        //! Does the actual computation
+        virtual void computeProperties();
     };
 
-//! Exports the TwoStepNVT class to python
-void export_TwoStepNVT();
+//! Exports the ComputeThermoGPU class to python
+void export_ComputeThermoGPU();
 
-#endif // #ifndef __TWO_STEP_NVT_H__
+#endif
 

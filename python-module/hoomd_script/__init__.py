@@ -74,6 +74,7 @@ __all__ = [ "analyze",
             "run_upto",
             "tune", 
             "hoomd",
+            "compute",
             "get_hoomd_script_version"];
             
 ## \internal
@@ -174,6 +175,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     else:
         globals.integrator.update_forces();
         globals.integrator.update_methods();
+        globals.integrator.update_thermos();
     
     for logger in globals.loggers:
         logger.update_quantities();

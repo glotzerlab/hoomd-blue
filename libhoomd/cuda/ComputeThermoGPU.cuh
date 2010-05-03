@@ -43,32 +43,39 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-/*! \file TwoStepNVTGPU.cuh
-    \brief Declares GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
-*/
+#ifndef _COMPUTE_THERMO_GPU_CUH_
+#define _COMPUTE_THERMO_GPU_CUH_
+
+#include <cuda_runtime.h>
 
 #include "ParticleData.cuh"
+#include "ComputeThermoTypes.h"
+#include "HOOMDMath.h"
 
-#ifndef __TWO_STEP_NVT_GPU_CUH__
-#define __TWO_STEP_NVT_GPU_CUH__
+/*! \file ComputeThermoGPU.cuh
+    \brief Kernel driver function declarations for ComputeThermoGPU
+    */
 
-//! Kernel driver for the first part of the NVT update called by TwoStepNVTGPU
-cudaError_t gpu_nvt_step_one(const gpu_pdata_arrays &pdata,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             const gpu_boxsize &box,
-                             unsigned int block_size,
-                             float Xi,
-                             float deltaT);
+//! Holder for arguments to gpu_compute_thermo
+struct compute_thermo_args
+    {
+    float4 *d_net_force;    //!< Net force / pe array to sum
+    float *d_net_virial;    //!< Net virial array to sum
+    unsigned int ndof;      //!< Number of degrees of freedom for T calculation
+    unsigned int D;         //!< Dimensionality of the system
+    float4 *d_scratch;      //!< n_blocks elements of scratch space for partial sums
+    unsigned int block_size;    //!< Block size to execute on the GPU
+    unsigned int n_blocks;      //!< Number of blocks to execute / n_blocks * block_size >= group_size
+    };
 
-//! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
-cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
-                             unsigned int *d_group_members,
-                             unsigned int group_size,
-                             float4 *d_net_force,
-                             unsigned int block_size,
-                             float Xi,
-                             float deltaT);
+//! Computes the thermodynamic properties for ComputeThermo
+cudaError_t gpu_compute_thermo(float *d_properties,
+                               const gpu_pdata_arrays &pdata,
+                               unsigned int *d_group_members,
+                               unsigned int group_size,
+                               const gpu_boxsize &box,
+                               const compute_thermo_args& args
+                               );
 
-#endif //__TWO_STEP_NVT_GPU_CUH__
+#endif
 
