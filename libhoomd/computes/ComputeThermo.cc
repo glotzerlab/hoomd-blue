@@ -150,6 +150,11 @@ Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int time
 */
 void ComputeThermo::computeProperties()
     {
+    unsigned int group_size = m_group->getNumMembers();
+    // just drop out if the group is an empty group
+    if (group_size == 0)
+        return;
+
     if (m_prof) m_prof->push("Thermo");
     
     assert(m_pdata);
@@ -157,7 +162,6 @@ void ComputeThermo::computeProperties()
     
     // access the particle data
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
-    unsigned int group_size = m_group->getNumMembers();
 
     // access the net force, pe, and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();

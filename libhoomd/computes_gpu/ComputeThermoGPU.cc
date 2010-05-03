@@ -85,6 +85,11 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
 */
 void ComputeThermoGPU::computeProperties()
     {
+    unsigned int group_size = m_group->getNumMembers();
+    // just drop out if the group is an empty group
+    if (group_size == 0)
+        return;
+    
     if (m_prof) m_prof->push("Thermo");
     
     assert(m_pdata);
@@ -104,7 +109,6 @@ void ComputeThermoGPU::computeProperties()
     
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    unsigned int group_size = m_group->getNumMembers();
     
     // build up args list
     compute_thermo_args args;
