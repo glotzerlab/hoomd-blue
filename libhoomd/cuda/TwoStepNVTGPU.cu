@@ -75,17 +75,10 @@ extern __shared__ float nvt_sdata[];
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
-    \param d_partial_sum2K Stores one partial 2K sum per block run
     \param denominv Intermediate variable computed on the host and used in the NVT integration step
     \param deltaT Amount of real time to step forward in one time step
     
-    This kernel must be executed with a 1D grid of a power of 2 block size such that the number of threads is greater
-    than or equal to the number of members in the group. The kernel's implementation simply reads one particle in each
-    thread and updates that particle. It then calculates the contribution of each particle to sum2K and performs the
-    first pass of the sum reduction into \a d_partial_sum2K.
-    
-    Due to the shared memory usage, this kernel must be executed with block_size * sizeof(float) bytes of dynamic
-    shared memory.
+    Take the first half step forward in the NVT integration.
     
     See gpu_nve_step_one_kernel() for some performance notes on how to handle the group data reads efficiently.
 */
@@ -94,14 +87,12 @@ void gpu_nvt_step_one_kernel(gpu_pdata_arrays pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              gpu_boxsize box,
-                             float *d_partial_sum2K,
                              float denominv,
                              float deltaT)
     {
     // determine which particle this thread works on
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float psq2; //p^2 * 2 for use later
     if (group_idx < group_size)
         {
         unsigned int idx = d_group_members[group_idx];
@@ -152,35 +143,6 @@ void gpu_nvt_step_one_kernel(gpu_pdata_arrays pdata,
         pdata.pos[idx] = pos2;
         pdata.vel[idx] = vel;
         pdata.image[idx] = image;
-        
-        // now we need to do the partial 2K sums
-        
-        // compute our contribution to the sum
-        float mass = tex1Dfetch(pdata_mass_tex, idx);
-        psq2 = mass * (vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-        }
-    else
-        {
-        psq2 = 0.0f;
-        }
-        
-    nvt_sdata[threadIdx.x] = psq2;
-    __syncthreads();
-    
-    // reduce the sum in parallel
-    int offs = blockDim.x >> 1;
-    while (offs > 0)
-        {
-        if (threadIdx.x < offs)
-            nvt_sdata[threadIdx.x] += nvt_sdata[threadIdx.x + offs];
-        offs >>= 1;
-        __syncthreads();
-        }
-        
-    // write out our partial sum
-    if (threadIdx.x == 0)
-        {
-        d_partial_sum2K[blockIdx.x] = nvt_sdata[0];
         }
     }
 
@@ -188,9 +150,7 @@ void gpu_nvt_step_one_kernel(gpu_pdata_arrays pdata,
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
-    \param d_partial_sum2K Stores one partial 2K sum per block run
     \param block_size Size of the block to run
-    \param num_blocks Number of blocks to execute
     \param Xi Current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
@@ -198,14 +158,12 @@ cudaError_t gpu_nvt_step_one(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const gpu_boxsize &box,
-                             float *d_partial_sum2K,
                              unsigned int block_size,
-                             unsigned int num_blocks,
                              float Xi,
                              float deltaT)
     {
     // setup the grid to run the kernel
-    dim3 grid( num_blocks, 1, 1);
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures
@@ -225,16 +183,12 @@ cudaError_t gpu_nvt_step_one(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
 
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
         
     // run the kernel
     gpu_nvt_step_one_kernel<<< grid, threads, block_size * sizeof(float) >>>(pdata,
                                                                              d_group_members,
                                                                              group_size,
                                                                              box,
-                                                                             d_partial_sum2K,
                                                                              1.0f / (1.0f + deltaT/2.0f * Xi),
                                                                              deltaT);
     if (!g_gpu_error_checking)
@@ -297,7 +251,6 @@ void gpu_nvt_step_two_kernel(gpu_pdata_arrays pdata,
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param block_size Size of the block to execute on the device
-    \param num_blocks Number of blocks to execute
     \param Xi current value of the NVT degree of freedom Xi
     \param deltaT Amount of real time to step forward in one time step
 */
@@ -306,12 +259,11 @@ cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
                              unsigned int group_size,
                              float4 *d_net_force,
                              unsigned int block_size,
-                             unsigned int num_blocks,
                              float Xi,
                              float deltaT)
     {
     // setup the grid to run the kernel
-    dim3 grid( num_blocks, 1, 1);
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures
@@ -340,79 +292,6 @@ cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
         return cudaGetLastError();
         }
     }
-
-
-//! Makes the final 2K sum on the GPU
-/*! \param d_sum2K Pointer to write the final sum to
-    \param d_partial_sum2K Already computed partial sums
-    \param num_blocks Number of partial sums in \a d_partial_sum2k
-
-    nvt_step_one_kernel reduces the 2K sum per block. This kernel completes the task
-    and makes the final 2K sum on the GPU. It is up to the host to read this value to do something with the final total
-
-    This kernel is designed to be a really simple 1-block kernel for summing the total Ksum.
-    
-    \note \a num_blocks is the number of partial sums! Not the number of blocks executed in this kernel.
-*/
-extern "C" __global__ void gpu_nvt_reduce_sum2K_kernel(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks)
-    {
-    float sum2K = 0.0f;
-    
-    // sum up the values in the partial sum via a sliding window
-    for (int start = 0; start < num_blocks; start += blockDim.x)
-        {
-        __syncthreads();
-        if (start + threadIdx.x < num_blocks)
-            nvt_sdata[threadIdx.x] = d_partial_sum2K[start + threadIdx.x];
-        else
-            nvt_sdata[threadIdx.x] = 0.0f;
-        __syncthreads();
-        
-        // reduce the sum in parallel
-        int offs = blockDim.x >> 1;
-        while (offs > 0)
-            {
-            if (threadIdx.x < offs)
-                nvt_sdata[threadIdx.x] += nvt_sdata[threadIdx.x + offs];
-            offs >>= 1;
-            __syncthreads();
-            }
-            
-        // everybody sums up sum2K
-        sum2K += nvt_sdata[0];
-        }
-        
-    if (threadIdx.x == 0)
-        *d_sum2K = sum2K;
-    }
-
-/*! \param d_sum2K Pointer to write the final sum to
-    \param d_partial_sum2K Already computed partial sums
-    \param num_blocks Number of partial sums in \a d_partial_sum2k
-
-    this is just a driver for gpu_nvt_reduce_sum2K_kernel() see it for details
-*/
-cudaError_t gpu_nvt_reduce_sum2K(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks)
-    {
-    // setup the grid to run the kernel
-    int block_size = 256;
-    dim3 grid( 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-    
-    // run the kernel
-    gpu_nvt_reduce_sum2K_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum2K, d_partial_sum2K, num_blocks);
-    
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-    }
-
 
 // vim:syntax=cpp
 
