@@ -70,7 +70,7 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     : Compute(sysdef), m_group(group), m_ndof(1)
     {
     assert(m_pdata);
-    GPUArray< float > properties(4, exec_conf);
+    GPUArray< Scalar > properties(4, exec_conf);
     m_properties.swap(properties);
 
     m_logname_list.push_back(string("temperature") + suffix);
@@ -222,7 +222,7 @@ void ComputeThermo::computeProperties()
     Scalar pressure =  (Scalar(group_size) * temperature + W) / volume;
 
     // fill out the GPUArray
-    ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::overwrite);
     h_properties.data[thermo_index::temperature] = temperature;
     h_properties.data[thermo_index::pressure] = pressure;
     h_properties.data[thermo_index::kinetic_energy] = Scalar(ke_total);

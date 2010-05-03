@@ -103,7 +103,7 @@ class ComputeThermo : public Compute
         */
         Scalar getTemperature()
             {
-            ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::temperature];
             }
         
@@ -112,7 +112,7 @@ class ComputeThermo : public Compute
         */
         Scalar getPressure()
             {
-            ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::pressure];
             }
         
@@ -121,7 +121,7 @@ class ComputeThermo : public Compute
         */
         Scalar getKineticEnergy()
             {
-            ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::kinetic_energy];
             }
         
@@ -130,7 +130,7 @@ class ComputeThermo : public Compute
         */
         Scalar getPotentialEnergy()
             {
-            ArrayHandle<float> h_properties(m_properties, access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::read);
             return h_properties.data[thermo_index::potential_energy];
             }
 
