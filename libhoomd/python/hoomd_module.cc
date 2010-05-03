@@ -79,7 +79,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
-#include "TempCompute.h"
 #include "ComputeThermo.h"
 #include "ComputeThermoGPU.h"
 #include "NeighborList.h"
@@ -410,7 +409,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_LJWallForceCompute();
-    export_TempCompute();
     export_ComputeThermo();
     export_ComputeThermoGPU();
     export_NeighborList();

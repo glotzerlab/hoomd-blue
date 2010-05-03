@@ -68,7 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 
 #include "HOOMDDumpWriter.h"
-#include "TempCompute.h"
 #include "saruprng.h"
 
 #include <math.h>
