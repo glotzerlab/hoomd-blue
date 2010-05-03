@@ -511,3 +511,4 @@ cudaError_t gpu_compute_thermo(float *d_properties,
         return cudaGetLastError();
         }
     }
+
