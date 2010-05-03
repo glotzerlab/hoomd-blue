@@ -62,7 +62,7 @@ class ComputeThermoGPU : public ComputeThermo
         //! Constructs the compute
         ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                          boost::shared_ptr<ParticleGroup> group,
-                         const std::string& suffix);
+                         const std::string& suffix = std::string(""));
         
     protected:
         GPUArray<float4> m_scratch;  //!< Scratch space for partial sums

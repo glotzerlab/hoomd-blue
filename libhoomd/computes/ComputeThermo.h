@@ -90,7 +90,7 @@ class ComputeThermo : public Compute
         //! Constructs the compute
         ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<ParticleGroup> group,
-                      const std::string& suffix);
+                      const std::string& suffix = std::string(""));
         
         //! Compute the temperature
         virtual void compute(unsigned int timestep);
