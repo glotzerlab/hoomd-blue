@@ -466,13 +466,14 @@ class npt(_integration_method):
         P = variant._setup_variant_input(P);
         
         # create the compute thermo
-        compute._get_unique_thermo(group=group);
+        thermo_group = compute._get_unique_thermo(group=group);
+        thermo_all = compute._get_unique_thermo(group=globals.group_all);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NPT integrator");
