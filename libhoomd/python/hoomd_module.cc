@@ -410,7 +410,6 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_LJWallForceCompute();
     export_ComputeThermo();
-    export_ComputeThermoGPU();
     export_NeighborList();
     export_BinnedNeighborList();
 #ifdef ENABLE_CUDA
@@ -429,6 +428,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicImproperForceComputeGPU();
     export_CGCMMAngleForceComputeGPU();
     export_FENEBondForceComputeGPU();
+    export_ComputeThermoGPU();
 #endif
     
     // analyzers

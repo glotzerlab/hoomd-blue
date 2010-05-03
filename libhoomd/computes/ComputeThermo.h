@@ -47,7 +47,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Compute.h"
 #include "GPUArray.h"
-#include "ComputeThermo.cuh"
+#include "ComputeThermoTypes.h"
 #include "ParticleGroup.h"
 
 /*! \file ComputeThermo.h

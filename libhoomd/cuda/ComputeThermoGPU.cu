@@ -43,7 +43,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "ComputeThermo.cuh"
+#include "ComputeThermoGPU.cuh"
 #include "gpu_settings.h"
 
 #ifdef WIN32
@@ -446,7 +446,7 @@ cudaError_t gpu_compute_thermo(float *d_properties,
     {
     assert(d_properties);
     assert(pdata.mass);
-    assert(pdata.velocity);
+    assert(pdata.vel);
     assert(d_group_members);
     assert(args.d_net_force);
     assert(args.d_net_virial);

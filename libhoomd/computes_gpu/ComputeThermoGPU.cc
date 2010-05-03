@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "ComputeThermoGPU.h"
+#include "ComputeThermoGPU.cuh"
 
 #include <boost/python.hpp>
 using namespace boost::python;
