@@ -74,17 +74,18 @@ TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P)
-    : TwoStepNVERigid(sysdef, group), m_partial_scale(false), t_freq(tau), p_freq(tauP), m_temperature(T), m_pressure(P)
+    : TwoStepNVERigid(sysdef, group), m_partial_scale(false), m_temperature(T), m_pressure(P)
     {
     if (t_freq <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in TwoStepNPTRigid" << endl;
+        cout << "***Warning! tau set less than or equal 0.0 in TwoStepNPTRigid" << endl;
     if (p_freq <= 0.0)
-        cout << "***Warning! tauP set less than 0.0 in TwoStepNPTRigid" << endl;
+        cout << "***Warning! tauP set less than or equal to 0.0 in TwoStepNPTRigid" << endl;
+    
+    t_freq = 1.0 / tau;
+    p_freq = 1.0 / tauP;
     
     boltz = 1.0;
     chain = 5;
-    
-
     }
 
 /*! 

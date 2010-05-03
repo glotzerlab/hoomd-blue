@@ -69,10 +69,12 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<Variant> T,
                                  Scalar tau,
                                  bool skip_restart) 
-: TwoStepNVERigid(sysdef, group, skip_restart), m_temperature(T), t_freq(tau)
+: TwoStepNVERigid(sysdef, group, skip_restart), m_temperature(T)
     {
     if (t_freq <= 0.0)
-        cout << "***Warning! tau set less than 0.0 in TwoStepNVTRigid. Recommended values: 5.0-10.0" << endl;
+        cout << "***Warning! tau set less than or equal to 0.0 in TwoStepNVTRigid." << endl;
+    
+    t_freq = 1.0 / tau;
     
     boltz = 1.0;
     chain = 5;
