@@ -62,8 +62,7 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
                                      float4 *d_coeffs,
                                      int coeff_width,
                                      float r_cutsq,
-                                     int block_size,
-                                     bool ulf_workaround);
+                                     int block_size);
 
 #endif
 
