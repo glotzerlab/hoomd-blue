@@ -195,7 +195,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
     if not quiet:
         print "** starting run **"
-    globals.system.run(int(tsteps), callback_period, callback, limit_hours, limit_multiple);
+    globals.system.run(int(tsteps), callback_period, callback, limit_hours, int(limit_multiple));
     if not quiet:
         print "** run complete **"
 
