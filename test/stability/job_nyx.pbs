@@ -1,4 +1,4 @@
-#PBS -N vldtst_fix_particles
+#PBS -N hoomd_stability_test
 #PBS -l nodes=1,walltime=02:15:00,software=graphics,pmem=1gb,qos=glotzergpu
 #PBS -V
 #PBS -j oe
