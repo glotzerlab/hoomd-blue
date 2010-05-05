@@ -126,73 +126,85 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
     unsigned int next_neigh = nlist.list[idx_global];
     
     // loop over neighbors
+    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
+    // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
+    // inside the loop
+    #if (__CUDA_ARCH__ < 200)
+    for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+    #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+    #endif
         {
-        // read the current neighbor index
-        // prefetch the next value and set the current one
-        cur_neigh = next_neigh;
-        next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
-        
-        // get the neighbor's position
-        float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
-        
-        // calculate dr (with periodic boundary conditions)
-        float dx = pos.x - neigh_pos.x;
-        float dy = pos.y - neigh_pos.y;
-        float dz = pos.z - neigh_pos.z;
-        
-        // apply periodic boundary conditions
-        dx -= box.Lx * rintf(dx * box.Lxinv);
-        dy -= box.Ly * rintf(dy * box.Lyinv);
-        dz -= box.Lz * rintf(dz * box.Lzinv);
-        
-        // access needed parameters
-        unsigned int typej = __float_as_int(neigh_pos.w);
-        unsigned int cur_table_index = table_index(typei, typej);
-        float4 params = s_params[cur_table_index];
-        float rmin = params.x;
-        float rmax = params.y;
-        float delta_r = params.z;
-        
-        // calculate r
-        float rsq = dx*dx + dy*dy + dz*dz;
-        float r = sqrtf(rsq);
-        
-        if (r < rmax && r >= rmin)
+        #if (__CUDA_ARCH__ < 200)
+        if (neigh_idx < n_neigh)
+        #endif
             {
-            // precomputed term
-            float value_f = (r - rmin) / delta_r;
+            // read the current neighbor index
+            // prefetch the next value and set the current one
+            cur_neigh = next_neigh;
+            next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
             
-            // compute index into the table and read in values
-            unsigned int value_i = floor(value_f);
-            float2 VF0 = tex1Dfetch(tables_tex, table_value(value_i, cur_table_index));
-            float2 VF1 = tex1Dfetch(tables_tex, table_value(value_i+1, cur_table_index));
-            // unpack the data
-            float V0 = VF0.x;
-            float V1 = VF1.x;
-            float F0 = VF0.y;
-            float F1 = VF1.y;
+            // get the neighbor's position
+            float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
             
-            // compute the linear interpolation coefficient
-            float f = value_f - float(value_i);
+            // calculate dr (with periodic boundary conditions)
+            float dx = pos.x - neigh_pos.x;
+            float dy = pos.y - neigh_pos.y;
+            float dz = pos.z - neigh_pos.z;
             
-            // interpolate to get V and F;
-            float V = V0 + f * (V1 - V0);
-            float F = F0 + f * (F1 - F0);
+            // apply periodic boundary conditions
+            dx -= box.Lx * rintf(dx * box.Lxinv);
+            dy -= box.Ly * rintf(dy * box.Lyinv);
+            dz -= box.Lz * rintf(dz * box.Lzinv);
             
-            // convert to standard variables used by the other pair computes in HOOMD-blue
-            float forcemag_divr = 0.0f;
-            if (r > 0.0f)
-                forcemag_divr = F / r;
-            float pair_eng = V;
-            // calculate the virial
-            virial += float(1.0/6.0) * rsq * forcemag_divr;
+            // access needed parameters
+            unsigned int typej = __float_as_int(neigh_pos.w);
+            unsigned int cur_table_index = table_index(typei, typej);
+            float4 params = s_params[cur_table_index];
+            float rmin = params.x;
+            float rmax = params.y;
+            float delta_r = params.z;
             
-            // add up the force vector components (FLOPS: 7)
-            force.x += dx * forcemag_divr;
-            force.y += dy * forcemag_divr;
-            force.z += dz * forcemag_divr;
-            force.w += pair_eng;
+            // calculate r
+            float rsq = dx*dx + dy*dy + dz*dz;
+            float r = sqrtf(rsq);
+            
+            if (r < rmax && r >= rmin)
+                {
+                // precomputed term
+                float value_f = (r - rmin) / delta_r;
+                
+                // compute index into the table and read in values
+                unsigned int value_i = floor(value_f);
+                float2 VF0 = tex1Dfetch(tables_tex, table_value(value_i, cur_table_index));
+                float2 VF1 = tex1Dfetch(tables_tex, table_value(value_i+1, cur_table_index));
+                // unpack the data
+                float V0 = VF0.x;
+                float V1 = VF1.x;
+                float F0 = VF0.y;
+                float F1 = VF1.y;
+                
+                // compute the linear interpolation coefficient
+                float f = value_f - float(value_i);
+                
+                // interpolate to get V and F;
+                float V = V0 + f * (V1 - V0);
+                float F = F0 + f * (F1 - F0);
+                
+                // convert to standard variables used by the other pair computes in HOOMD-blue
+                float forcemag_divr = 0.0f;
+                if (r > 0.0f)
+                    forcemag_divr = F / r;
+                float pair_eng = V;
+                // calculate the virial
+                virial += float(1.0/6.0) * rsq * forcemag_divr;
+                
+                // add up the force vector components (FLOPS: 7)
+                force.x += dx * forcemag_divr;
+                force.y += dy * forcemag_divr;
+                force.z += dz * forcemag_divr;
+                force.w += pair_eng;
+                }
             }
         }
         
