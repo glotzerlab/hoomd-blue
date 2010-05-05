@@ -169,13 +169,15 @@ def reset():
 def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_dihedral_types=0, n_improper_types=0):
     util.print_status_line();
     
-    # parse command line
-    _parse_command_line();
-    
     # check if initialization has already occurred
     if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
+    
+    # parse command line
+    _parse_command_line();
+    
+    my_exec_conf = _create_exec_conf();
 
     # create the empty system
     boxdim = hoomd.BoxDim(float(box[0]), float(box[1]), float(box[2]));
@@ -186,7 +188,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
                                                        n_angle_types,
                                                        n_dihedral_types,
                                                        n_improper_types,
-                                                       _create_exec_conf());
+                                                       my_exec_conf);
     
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, 0);
@@ -223,17 +225,19 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 def read_xml(filename, time_step = None):
     util.print_status_line();
     
-    # parse command line
-    _parse_command_line();
-
     # check if initialization has already occurred
     if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
+    
+    # parse command line
+    _parse_command_line();
+
+    my_exec_conf = _create_exec_conf();
 
     # read in the data
     initializer = hoomd.HOOMDInitializer(filename);
-    globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
+    globals.system_definition = hoomd.SystemDefinition(initializer, my_exec_conf);
     
     # initialize the system
     if time_step is None:
@@ -272,17 +276,19 @@ def read_xml(filename, time_step = None):
 def read_bin(filename):
     util.print_status_line();
     
-    # parse command line
-    _parse_command_line();
-
     # check if initialization has already occurred
     if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
+    
+    # parse command line
+    _parse_command_line();
+
+    my_exec_conf = _create_exec_conf();
 
     # read in the data
     initializer = hoomd.HOOMDBinaryInitializer(filename);
-    globals.system_definition = hoomd.SystemDefinition(initializer, _create_exec_conf());
+    globals.system_definition = hoomd.SystemDefinition(initializer, my_exec_conf);
     
     # initialize the system
     globals.system = hoomd.System(globals.system_definition, initializer.getTimeStep());
@@ -317,14 +323,14 @@ def read_bin(filename):
 def create_random(N, phi_p, name="A", min_dist=0.7):
     util.print_status_line();
     
-    # parse command line
-    _parse_command_line();
-    my_exec_conf = _create_exec_conf();
-    
     # check if initialization has already occurred
     if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError('Error initializing');
+    
+    # parse command line
+    _parse_command_line();
+    my_exec_conf = _create_exec_conf();
 
     # abuse the polymer generator to generate single particles
     
@@ -460,15 +466,15 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 #
 def create_random_polymers(box, polymers, separation, seed=1):
     util.print_status_line();
-    
-    # parse command line
-    _parse_command_line();
-    my_exec_conf = _create_exec_conf();
         
     # check if initialization has already occured
     if is_initialized():
         print >> sys.stderr, "\n***Error! Cannot initialize more than once\n";
         raise RuntimeError("Error creating random polymers");
+    
+    # parse command line
+    _parse_command_line();
+    my_exec_conf = _create_exec_conf();
     
     if type(polymers) != type([]) or len(polymers) == 0:
         print >> sys.stderr, "\n***Error! polymers specified incorrectly. See the hoomd_script documentation\n";
