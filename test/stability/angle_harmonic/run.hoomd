@@ -89,8 +89,8 @@ groupD = group.type('D')
 analyze.msd(filename='msd.txt', groups=[groupA, groupB, groupC, groupD], period=10000)
 
 # run for a a couple hours
-run(2e6)
+run(1e9, limit_hours=2)
 
 if endurance:
 	# run for a few more hours
-	run(22e6)
+	run(1e9, limit_hours=22)
