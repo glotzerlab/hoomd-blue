@@ -105,7 +105,7 @@ int FileFormatManager::add_molfile_plugin(const unsigned int idx, MolFilePlugin 
     {
     if (idx == 0)
         {
-        int i=m_proxy_list.size();
+        int i=(int)m_proxy_list.size();
         m_proxy_list.push_back(p);
         return i;
         }

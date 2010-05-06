@@ -45,12 +45,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef WIN32
 #pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
-// remove silly warnings
-#ifdef WIN32
-#define _CRT_SECURE_NO_DEPRECATE
+#pragma warning( disable : 4103 4244 4267 )
 #endif
 
 #include "HOOMDMath.h"

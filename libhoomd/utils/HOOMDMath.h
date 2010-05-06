@@ -162,7 +162,7 @@ inline double rintf(float x)
     return floorf(x+.5f);
     }
 
-inline bool isfinite(float x)
+inline int isfinite(float x)
     {
     return _finite(x);
     }

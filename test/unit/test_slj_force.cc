@@ -97,15 +97,15 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
-    arrays.x[0] = -0.2;
+    arrays.x[0] = Scalar(-0.2);
     //arrays.x[0] = 0;
-    arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.y[0] = arrays.z[0] = Scalar(0.0);
     arrays.x[1] = Scalar(pow(2.0,1.0/6.0)); arrays.y[1] = arrays.z[1] = 0.0;
     arrays.x[2] = Scalar(2.0*pow(2.0,1.0/6.0)); arrays.y[2] = arrays.z[2] = 0.0;
-    arrays.diameter[0]=1.2;
+    arrays.diameter[0]= Scalar(1.2);
     
     Scalar maxdiam = pdata_3->getMaxDiameter();
-    Scalar r_cut = 1.3;
+    Scalar r_cut = Scalar(1.3);
     Scalar r_alpha = maxdiam/2 - 0.5;
     Scalar r_cut_wc = r_cut + 2 * r_alpha;
     pdata_3->release();
@@ -225,13 +225,13 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, Exe
     arrays.type[4] = 2;
     arrays.type[5] = 1;
     
-    arrays.diameter[0]=1.2;
-    arrays.diameter[2]=1.5;
-    arrays.diameter[4]=2.0;
+    arrays.diameter[0]=Scalar(1.2);
+    arrays.diameter[2]=Scalar(1.5);
+    arrays.diameter[4]=Scalar(2.0);
     Scalar maxdiam = pdata_6->getMaxDiameter();
-    Scalar r_cut = 1.3;
-    Scalar r_alpha = maxdiam/2 - 0.5;
-    Scalar r_cut_wc = r_cut + 2 * r_alpha;
+    Scalar r_cut = Scalar(1.3);
+    Scalar r_alpha = Scalar(maxdiam/2.0 - 0.5);
+    Scalar r_cut_wc = Scalar(r_cut + 2.0 * r_alpha);
     
     pdata_6->release();
     

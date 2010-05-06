@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
         {
         BOOST_CHECK_EQUAL_UINT(tags_all.getMemberTag(i), i);
         BOOST_CHECK_EQUAL_UINT(tags_all.getMemberIndex(i), i);
-        BOOST_CHECK_EQUAL_UINT(tags_all.isMember(i), true);
+        BOOST_CHECK(tags_all.isMember(i));
         }
         
     // copy construct it
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
         {
         BOOST_CHECK_EQUAL_UINT(copy1.getMemberTag(i), i);
         BOOST_CHECK_EQUAL_UINT(copy1.getMemberIndex(i), i);
-        BOOST_CHECK_EQUAL_UINT(copy1.isMember(i), true);
+        BOOST_CHECK(copy1.isMember(i));
         }
         
     // copy it
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_copy_test )
         {
         BOOST_CHECK_EQUAL_UINT(copy2.getMemberTag(i), i);
         BOOST_CHECK_EQUAL_UINT(copy2.getMemberIndex(i), i);
-        BOOST_CHECK_EQUAL_UINT(copy2.isMember(i), true);
+        BOOST_CHECK(copy2.isMember(i));
         }
     }
 
@@ -196,8 +196,10 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        bool value = (i <= 4);
-        BOOST_CHECK_EQUAL_UINT(tags04.isMember(i), value);
+        if (i <= 4)
+            BOOST_CHECK(tags04.isMember(i));
+        else
+            BOOST_CHECK(!tags04.isMember(i));
         }
         
     // resort the particles
@@ -242,8 +244,10 @@ BOOST_AUTO_TEST_CASE( ParticleGroup_sort_test )
     
     for (unsigned int i = 0; i < pdata->getN(); i++)
         {
-        bool value = (arrays_const.tag[i] <= 4);
-        BOOST_CHECK_EQUAL_UINT(tags04.isMember(i), value);
+        if (arrays_const.tag[i] <= 4)
+            BOOST_CHECK(tags04.isMember(i));
+        else
+            BOOST_CHECK(!tags04.isMember(i));
         }
     }
 

@@ -127,7 +127,7 @@ void randpts(vector<Scalar>& x, vector<Scalar>& y, vector<Scalar>& z, unsigned i
         }
     }
 
-Scalar x_blj [] = {
+double x_blj [] = {
 -2.93783, 2.43118, -2.11152,
 1.12526, 0.591193, 2.73596,
 1.68581, 1.3712, 2.38201,
@@ -391,7 +391,7 @@ Scalar x_blj [] = {
 };
 
 //Calculated from Matlab file.  Changes to the way FIRE works may require recalculation of these values.
-Scalar x_two_lj [] = {
+double x_two_lj [] = {
 2,2,2,2,2,1.9999,1.9999,1.9998,1.9997,1.9996,1.9994,1.9992,1.999,1.9986,1.9982,1.9977,1.9971,1.9963,1.9953,1.994,1.9925,
 1.9907,1.9883,1.9855,1.982,1.9778,1.9729,1.9676,1.9618,1.9554,1.9486,1.9411,1.9332,1.9246,1.9155,1.9057,1.8953,1.8843,
 1.8726,1.8602,1.847,1.8331,1.8183,1.8027,1.7862,1.7687,1.7502,1.7305,1.7097,1.6875,1.664,1.6389,1.6122,1.5835,1.5528,
@@ -406,16 +406,16 @@ void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration ex
 #endif
     
     const unsigned int N = 260;
-    Scalar rho(1.2);
-    Scalar L = pow((double)(N/rho), 1.0/3.0);
+    Scalar rho(Scalar(1.2));
+    Scalar L = Scalar(pow((double)(N/rho), 1.0/3.0));
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, exec_conf));    
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     const ParticleDataArrays& arrays = pdata->acquireReadWrite();
     for (unsigned int i=0; i<N; i++)
         {
-        arrays.x[i] = x_blj[i*3 + 0];
-        arrays.y[i] = x_blj[i*3 + 1];
-        arrays.z[i] = x_blj[i*3 + 2];
+        arrays.x[i] = Scalar(x_blj[i*3 + 0]);
+        arrays.y[i] = Scalar(x_blj[i*3 + 1]);
+        arrays.z[i] = Scalar(x_blj[i*3 + 2]);
         if (i<(unsigned int)N*0.8)
             arrays.type[i] = 0;
         else
@@ -473,9 +473,9 @@ void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration ex
     const ParticleDataArrays& arrays2 = pdata->acquireReadWrite();
     for (unsigned int i=0; i<N; i++)
         {
-        arrays2.x[i] = x_blj[i*3 + 0];
-        arrays2.y[i] = x_blj[i*3 + 1];
-        arrays2.z[i] = x_blj[i*3 + 2];
+        arrays2.x[i] = Scalar(x_blj[i*3 + 0]);
+        arrays2.y[i] = Scalar(x_blj[i*3 + 1]);
+        arrays2.z[i] = Scalar(x_blj[i*3 + 2]);
         }    
     pdata->release();
 
@@ -534,8 +534,8 @@ void fire_twoparticle_test(fire_creator fire_creator1, ExecutionConfiguration ex
 
     shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_one, Scalar(0.05));
     fire->addForceCompute(fc);
-    fire->setFtol(1e-7);
-    fire->setEtol(1e-7);
+    fire->setFtol(Scalar(1e-7));
+    fire->setEtol(Scalar(1e-7));
     fire->setMinSteps(10);
     
     int max_step = 100;
@@ -546,7 +546,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, ExecutionConfiguration ex
         fire->update(i);
         if (fire->hasConverged()) { break;}
         ParticleDataArraysConst arrays = pdata->acquireReadOnly();
-        diff += (arrays.x[1]- x_two_lj[i])*(arrays.x[1]- x_two_lj[i]);
+        diff += (arrays.x[1]- Scalar(x_two_lj[i]))*(arrays.x[1]- Scalar(x_two_lj[i]));
         pdata->release();
 
         //MY_BOOST_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!

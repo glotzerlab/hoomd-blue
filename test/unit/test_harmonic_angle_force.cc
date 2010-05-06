@@ -103,7 +103,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
     
     // create the angle force compute to check
     shared_ptr<HarmonicAngleForceCompute> fc_3 = af_creator(sysdef_3);
-    fc_3->setParams(0, 1.0, 0.785398); // type=0, K=1.0,theta_0=pi/4=0.785398
+    fc_3->setParams(0, Scalar(1.0), Scalar(0.785398)); // type=0, K=1.0,theta_0=pi/4=0.785398
     
     // compute the force and check the results
     fc_3->compute(0);
@@ -189,8 +189,8 @@ void angle_force_basic_tests(angleforce_creator af_creator, ExecutionConfigurati
     pdata_6->release();
     
     shared_ptr<HarmonicAngleForceCompute> fc_6 = af_creator(sysdef_6);
-    fc_6->setParams(0, 1.0, 0.785398);
-    fc_6->setParams(1, 2.0, 1.46);
+    fc_6->setParams(0, Scalar(1.0), Scalar(0.785398));
+    fc_6->setParams(1, Scalar(2.0), Scalar(1.46));
     //fc_6->setParams(2, 1.5, 1.68);
     
     sysdef_6->getAngleData()->addAngle(Angle(0, 0,1,2));

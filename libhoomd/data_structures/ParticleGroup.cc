@@ -43,6 +43,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4267 4244 )
+#endif
+
 #include "ParticleGroup.h"
 
 #include <boost/python.hpp>
@@ -444,3 +449,6 @@ void export_ParticleGroup()
         ;
     }
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

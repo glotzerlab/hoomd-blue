@@ -139,7 +139,7 @@ private:
     //! Return the number of GPUs that can be checked for availability
     unsigned int getNumTotalGPUs()
         {
-        return m_gpu_available.size();
+        return (unsigned int)m_gpu_available.size();
         }
         
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not

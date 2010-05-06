@@ -41,11 +41,11 @@ if(NOT PASSED_FIRST_CONFIGURE)
             set(SSE_OPT "/arch:SSE2")
         endif (CMAKE_CL_64)
         
-        set(CMAKE_CXX_FLAGS "/DWIN32 /D_WINDOWS /W3 /Zm1000 /EHa /GR /MP" CACHE STRING "Flags used by all build types." FORCE)
+        set(CMAKE_CXX_FLAGS "/DWIN32 /D_WINDOWS /W3 /Zm1000 /EHs /GR /MP" CACHE STRING "Flags used by all build types." FORCE)
         set(CMAKE_CXX_FLAGS_RELEASE "${SSE_OPT} /Oi /Ot /Oy /fp:fast /MD /Ox /Ob2 /D NDEBUG" CACHE STRING "Flags used by the compiler during release builds." FORCE)
         set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${SSE_OPT} /Oi /Ot /Oy /fp:fast /MD /Zi /Ox /Ob1 /D NDEBUG" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
         set(CMAKE_CXX_FLAGS_MINSIZEREL "${SSE_OPT} /Oi /Ot /Oy /fp:fast /MD /O1 /Ob1 /D NDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
-   
+        
     elseif(CMAKE_CXX_COMPILER MATCHES "icpc")
         # default flags for intel
         set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
@@ -68,3 +68,7 @@ if (ENABLE_OPENMP AND OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 endif (ENABLE_OPENMP AND OPENMP_FOUND)
 
+# disable crazy windows warnings
+if (WIN32)
+add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE)
+endif (WIN32)

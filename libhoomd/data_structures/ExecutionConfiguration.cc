@@ -302,7 +302,7 @@ void ExecutionConfiguration::initializeGPUs(const std::vector<int>& gpu_ids, boo
             }
             
         // if we get here, everything checked out and the GPU can be initialized and added
-        gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id, flags, &m_gpu_list[0], m_gpu_list.size())));
+        gpu.push_back(shared_ptr<GPUWorker>(new GPUWorker(gpu_id, flags, &m_gpu_list[0], (int)m_gpu_list.size())));
         }
         
     if (automatic_gpu_count > 1 && !m_system_compute_exclusive)
