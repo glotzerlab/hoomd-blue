@@ -69,14 +69,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class TypeMapping
 	{
-	
+
 	public:
 		TypeMapping();
+		~TypeMapping();
 		std::vector<std::string> getTypeMapping() const;
 		virtual unsigned int getNumParticleTypes() const;
 		unsigned int getTypeId(const std::string& name);
+		bool checkAllTypesIsDefined();
+		void setTypeDefined(unsigned int type);
+
 	private:
 		static std::vector<std::string> m_type_mapping;
+		static std::vector<bool> is_defined_in_potentials;
 	};
 //! Initializes particle data from a Hoomd input file
 /*! The input XML file format is identical to the output XML file format that HOOMDDumpWriter writes.
@@ -103,55 +108,55 @@ class HOOMDInitializer : public ParticleDataInitializer
 
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumDimensions() const;
-        
+
         //! Returns the number of particles to be initialized
         virtual unsigned int getNumParticles() const;
-        
+
         //! Returns the number of particle types to be initialized
         virtual unsigned int getNumParticleTypes() const;
-        
+
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
-        
+
         //! Sets the timestep of the simulation
         virtual void setTimeStep(unsigned int ts);
-        
+
         //! Returns the box the particles will sit in
         virtual BoxDim getBox() const;
-        
+
         //! Initializes the particle data arrays
         virtual void initArrays(const ParticleDataArrays &pdata) const;
-        
+
         //! Initialize the walls
         virtual void initWallData(boost::shared_ptr<WallData> wall_data) const;
-        
+
         //! Initialize the type name mapping
         std::vector<std::string> getTypeMapping() const;
-        
+
         //! Returns the number of bond types to be created
         virtual unsigned int getNumBondTypes() const;
-        
+
         //! Returns the number of angle types to be created
         virtual unsigned int getNumAngleTypes() const;
-        
+
         //! Returns the number of dihedral types to be created
         virtual unsigned int getNumDihedralTypes() const;
-        
+
         //! Returns the number of improper types to be created
         virtual unsigned int getNumImproperTypes() const;
-        
+
         //! Initialize the bond data
         virtual void initBondData(boost::shared_ptr<BondData> bond_data) const;
-        
+
         //! Initialize the angle data
         virtual void initAngleData(boost::shared_ptr<AngleData> angle_data) const;
-        
+
         //! Initialize the dihedral data
         virtual void initDihedralData(boost::shared_ptr<DihedralData> dihedral_data) const;
-        
+
         //! Initialize the improper data
         virtual void initImproperData(boost::shared_ptr<DihedralData> improper_data) const;
-        
+
         //! simple vec for storing particle data
         struct vec
             {
@@ -171,7 +176,7 @@ class HOOMDInitializer : public ParticleDataInitializer
             Scalar y;   //!< y-component
             Scalar z;   //!< z-component
             };
-            
+
         //! simple integer vec for storing particle data
         struct vec_int
             {
@@ -191,10 +196,10 @@ class HOOMDInitializer : public ParticleDataInitializer
             int y;  //!< y-component
             int z;  //!< z-component
             };
-            
+
         //! Access the read particle positions
         const std::vector< vec >& getPos() { return m_pos_array; }
-        
+
         //! Access the read images
         const std::vector< vec_int >& getImage() { return m_image_array; }
 
@@ -227,7 +232,7 @@ class HOOMDInitializer : public ParticleDataInitializer
         void parseChargeNode(const XMLNode& node);
         //! Parse wall node
         void parseWallNode(const XMLNode& node);
-        
+
         //! Helper function for identifying the particle type id
         unsigned int getTypeId(const std::string& name);
         //! Helper function for identifying the bond type id
@@ -238,12 +243,12 @@ class HOOMDInitializer : public ParticleDataInitializer
         unsigned int getDihedralTypeId(const std::string& name);
         //! Helper function for identifying the improper type id
         unsigned int getImproperTypeId(const std::string& name);
-        
+
         std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
-        
+
         BoxDim m_box;   //!< Simulation box read from the file
         bool m_box_read;    //!< Stores the box we read in
-        
+
         unsigned int m_num_dimensions;              //!< number of spatial dimensions
         std::vector< vec > m_pos_array;             //!< positions of all particles loaded
         std::vector< vec_int > m_image_array;       //!< images of all particles loaded
@@ -258,13 +263,13 @@ class HOOMDInitializer : public ParticleDataInitializer
         std::vector< Dihedral > m_dihedrals;        //!< Dihedral read in from the file
         std::vector< Dihedral > m_impropers;        //!< Improper read in from the file
         unsigned int m_timestep;                    //!< The time stamp
-        
+
         std::vector<std::string> m_type_mapping;          //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;     //!< The created mapping between bond types and ids
         std::vector<std::string> m_angle_type_mapping;    //!< The created mapping between angle types and ids
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
-      	TypeMapping type_mapping;  
+      	TypeMapping type_mapping;
     };
 
 //! Exports HOOMDInitializer to python

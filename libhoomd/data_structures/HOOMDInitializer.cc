@@ -68,10 +68,14 @@ using namespace boost::python;
 using namespace boost;
 
 std::vector<std::string> TypeMapping::m_type_mapping;
-
+std::vector<bool> TypeMapping::is_defined_in_potentials;
 TypeMapping::TypeMapping()
 	{
-	
+
+	}
+TypeMapping::~TypeMapping()
+	{
+
 	}
 std::vector<std::string> TypeMapping::getTypeMapping() const
 	{
@@ -87,14 +91,24 @@ unsigned int TypeMapping::getTypeId(const std::string& name)
 		}
 	// add a new one if it is not found
 	m_type_mapping.push_back(name);
-	return (unsigned int)m_type_mapping.size()-1;	
+	is_defined_in_potentials.push_back(false);
+	return (unsigned int)m_type_mapping.size()-1;
 	}
 unsigned int TypeMapping::getNumParticleTypes() const
 	{
 	assert(m_type_mapping.size() > 0);
 	return (unsigned int)m_type_mapping.size();
 	}
-
+bool TypeMapping::checkAllTypesIsDefined()
+    {
+    for(int i = 0; i < is_defined_in_potentials.size(); i++)
+        if(!is_defined_in_potentials[i]) return false;
+    return true;
+    }
+void TypeMapping::setTypeDefined(unsigned int type)
+    {
+    is_defined_in_potentials[type] = true;
+    }
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
@@ -119,7 +133,7 @@ HOOMDInitializer::HOOMDInitializer(const std::string &fname)
     m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
     m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
     m_parser_map["wall"] = bind(&HOOMDInitializer::parseWallNode, this, _1);
-    
+
     // read in the file
     readFile(fname);
     }
@@ -177,22 +191,22 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
 void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
     {
     assert(m_pos_array.size() > 0 && m_pos_array.size() == pdata.nparticles);
-    
+
     // loop through all the particles and set them up
     for (unsigned int i = 0; i < m_pos_array.size(); i++)
         {
         pdata.x[i] = m_pos_array[i].x;
         pdata.y[i] = m_pos_array[i].y;
         pdata.z[i] = m_pos_array[i].z;
-        
+
         pdata.tag[i] = i;
         pdata.rtag[i] = i;
         }
-        
+
     if (m_image_array.size() != 0)
         {
         assert(m_image_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             {
             pdata.ix[i] = m_image_array[i].x;
@@ -200,11 +214,11 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
             pdata.iz[i] = m_image_array[i].z;
             }
         }
-        
+
     if (m_vel_array.size() != 0)
         {
         assert(m_vel_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             {
             pdata.vx[i] = m_vel_array[i].x;
@@ -212,35 +226,35 @@ void HOOMDInitializer::initArrays(const ParticleDataArrays &pdata) const
             pdata.vz[i] = m_vel_array[i].z;
             }
         }
-        
+
     if (m_mass_array.size() != 0)
         {
         assert(m_mass_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.mass[i] = m_mass_array[i];
         }
-        
+
     if (m_diameter_array.size() != 0)
         {
         assert(m_diameter_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.diameter[i] = m_diameter_array[i];
         }
-        
+
     if (m_charge_array.size() != 0)
         {
         assert(m_charge_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.charge[i] = m_charge_array[i];
         }
-        
+
     if (m_type_array.size() != 0)
         {
         assert(m_type_array.size() == m_pos_array.size());
-        
+
         for (unsigned int i = 0; i < m_pos_array.size(); i++)
             pdata.type[i] = m_type_array[i];
         }
@@ -266,12 +280,12 @@ void HOOMDInitializer::readFile(const string &fname)
     {
     // Create a Root Node and a child node
     XMLNode root_node;
-    
+
     // Open the file and read the root element "hoomd_xml"
     cout<< "Reading " << fname << "..." << endl;
     XMLResults results;
     root_node = XMLNode::parseFile(fname.c_str(),"hoomd_xml", &results);
-    
+
     // handle errors
     if (results.error != eXMLErrorNone)
         {
@@ -281,7 +295,7 @@ void HOOMDInitializer::readFile(const string &fname)
             cerr << endl << "***Error! Root node of " << fname << " is not <hoomd_xml>" << endl << endl;
             throw runtime_error("Error reading xml file");
             }
-            
+
         ostringstream error_message;
         error_message << XMLNode::getError(results.error) << " in file "
         << fname << " at line " << results.nLine << " col "
@@ -289,7 +303,7 @@ void HOOMDInitializer::readFile(const string &fname)
         cerr << endl << "***Error! " << error_message.str() << endl << endl;
         throw runtime_error("Error reading xml file");
         }
-        
+
     string xml_version;
     if (root_node.isAttributeSet("version"))
         {
@@ -300,7 +314,7 @@ void HOOMDInitializer::readFile(const string &fname)
         cout << "Notice: No version specified in hoomd_xml root node: assuming 1.0" << endl;
         xml_version = string("1.0");
         }
-        
+
     // right now, the version tag doesn't do anything: just warn if it is not a valid version
     vector<string> valid_versions;
     valid_versions.push_back("1.0");
@@ -320,7 +334,7 @@ void HOOMDInitializer::readFile(const string &fname)
         cout << endl
              << "***Warning! hoomd_xml file with version not in the range 1.0-1.2  specified,"
              << " I don't know how to read this. Continuing anyways." << endl << endl;
-             
+
     // the file was parsed successfully by the XML reader. Extract the information now
     // start by checking the number of configurations in the file
     int num_configurations = root_node.nChildNode("configuration");
@@ -334,7 +348,7 @@ void HOOMDInitializer::readFile(const string &fname)
         cerr << endl << "***Error! Sorry, the input XML file must have only one configuration" << endl << endl;
         throw runtime_error("Error reading xml file");
         }
-        
+
     // extract the only configuration node
     XMLNode configuration_node = root_node.getChildNode("configuration");
     // extract the time step
@@ -342,7 +356,7 @@ void HOOMDInitializer::readFile(const string &fname)
         {
         m_timestep = atoi(configuration_node.getAttribute("time_step"));
         }
-    
+
     // extract the number of dimensions, or default to 3
     if (configuration_node.isAttributeSet("dimensions"))
         {
@@ -350,7 +364,7 @@ void HOOMDInitializer::readFile(const string &fname)
         }
     else
         m_num_dimensions = 3;
-        
+
     // loop through all child nodes of the configuration
     for (int cur_node=0; cur_node < configuration_node.nChildNode(); cur_node++)
         {
@@ -358,7 +372,7 @@ void HOOMDInitializer::readFile(const string &fname)
         XMLNode node = configuration_node.getChildNode(cur_node);
         string name = node.getName();
         transform(name.begin(), name.end(), name.begin(), ::tolower);
-        
+
         std::map< std::string, boost::function< void (const XMLNode&) > >::iterator parser;
         parser = m_parser_map.find(name);
         if (parser != m_parser_map.end())
@@ -366,7 +380,7 @@ void HOOMDInitializer::readFile(const string &fname)
         else
             cout << "Notice: Parser for node <" << name << "> not defined, ignoring" << endl;
         }
-        
+
     // check for required items in the file
     if (!m_box_read)
         {
@@ -385,7 +399,7 @@ void HOOMDInitializer::readFile(const string &fname)
         cerr << endl << "***Error! No particles defined in <type> node" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
-        
+
     // check for potential user errors
     if (m_vel_array.size() != 0 && m_vel_array.size() != m_pos_array.size())
         {
@@ -423,7 +437,7 @@ void HOOMDInitializer::readFile(const string &fname)
              << " positions" << endl << endl;
         throw runtime_error("Error extracting data from hoomd_xml file");
         }
-        
+
     // notify the user of what we have accomplished
     cout << "--- hoomd_xml file read summary" << endl;
     cout << getNumParticles() << " positions at timestep " << m_timestep << endl;
@@ -459,11 +473,11 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("box"));
-    
+
     // temporary values for extracting attributes as Scalars
     Scalar Lx,Ly,Lz;
     istringstream temp;
-    
+
     // use string streams to extract Lx, Ly, Lz
     // throw exceptions if these attributes are not set
     if (!node.isAttributeSet("lx"))
@@ -474,7 +488,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     temp.str(node.getAttribute("lx"));
     temp >> Lx;
     temp.clear();
-    
+
     if (!node.isAttributeSet("ly"))
         {
         cerr << endl << "***Error! ly not set in <box> node" << endl << endl;
@@ -483,7 +497,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     temp.str(node.getAttribute("ly"));
     temp >> Ly;
     temp.clear();
-    
+
     if (!node.isAttributeSet("lz"))
         {
         cerr << endl << "***Error! lz not set in <box> node" << endl << endl;
@@ -492,7 +506,7 @@ void HOOMDInitializer::parseBoxNode(const XMLNode &node)
     temp.str(node.getAttribute("lz"));
     temp >> Lz;
     temp.clear();
-    
+
     // initialize the BoxDim and set the flag telling that we read the <box> node
     m_box = BoxDim(Lx,Ly,Lz);
     m_box_read = true;
@@ -508,10 +522,10 @@ void HOOMDInitializer::parsePositionNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("position"));
-    
+
     // units is currently unused, but will be someday: warn the user if they forget it
     //if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <position> node" << endl;
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
@@ -537,12 +551,12 @@ void HOOMDInitializer::parseImageNode(const XMLNode& node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("image"));
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -564,15 +578,15 @@ void HOOMDInitializer::parseVelocityNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("velocity"));
-    
+
     // units is currently unused, but will be someday: warn the user if they forget it
     // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -594,15 +608,15 @@ void HOOMDInitializer::parseMassNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("mass"));
-    
+
     // units is currently unused, but will be someday: warn the user if they forget it
     // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -624,15 +638,15 @@ void HOOMDInitializer::parseDiameterNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("diameter"));
-    
+
     // units is currently unused, but will be someday: warn the user if they forget it
     // if (!node.isAttributeSet("units")) cout << "Warning! units not specified in <velocity> node" << endl;
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -654,12 +668,12 @@ void HOOMDInitializer::parseTypeNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("type"));
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -682,12 +696,12 @@ void HOOMDInitializer::parseBondNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("bond"));
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -706,12 +720,12 @@ void HOOMDInitializer::parseAngleNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("angle"));
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -734,12 +748,12 @@ void HOOMDInitializer::parseDihedralNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("dihedral"));
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -762,12 +776,12 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("improper"));
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -790,12 +804,12 @@ void HOOMDInitializer::parseChargeNode(const XMLNode &node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("charge"));
-    
+
     // extract the data from the node
     string all_text;
     for (int i = 0; i < node.nText(); i++)
         all_text += string(node.getText(i)) + string("\n");
-    
+
     istringstream parser;
     parser.str(all_text);
     while (parser.good())
@@ -817,7 +831,7 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
     string name = node.getName();
     transform(name.begin(), name.end(), name.begin(), ::tolower);
     assert(name == string("wall"));
-    
+
     for (int cur_node=0; cur_node < node.nChildNode(); cur_node++)
         {
         // check to make sure this is a node type we understand
@@ -836,42 +850,42 @@ void HOOMDInitializer::parseWallNode(const XMLNode& node)
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             ox = (Scalar)atof(child_node.getAttribute("ox"));
-            
+
             if (!child_node.isAttributeSet("oy"))
                 {
                 cerr << endl << "***Error! oy not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             oy = (Scalar)atof(child_node.getAttribute("oy"));
-            
+
             if (!child_node.isAttributeSet("oz"))
                 {
                 cerr << endl << "***Error! oz not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             oz = (Scalar)atof(child_node.getAttribute("oz"));
-            
+
             if (!child_node.isAttributeSet("nx"))
                 {
                 cerr << endl << "***Error! nx not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             nx = (Scalar)atof(child_node.getAttribute("nx"));
-            
+
             if (!child_node.isAttributeSet("ny"))
                 {
                 cerr << endl << "***Error! ny not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             ny = (Scalar)atof(child_node.getAttribute("ny"));
-            
+
             if (!child_node.isAttributeSet("nz"))
                 {
                 cerr << endl << "***Error! nz not set in <coord> node" << endl << endl;
                 throw runtime_error("Error extracting data from hoomd_xml file");
                 }
             nz = (Scalar)atof(child_node.getAttribute("nz"));
-            
+
             m_walls.push_back(Wall(ox,oy,oz,nx,ny,nz));
             }
         }
@@ -991,7 +1005,7 @@ void HOOMDInitializer::initBondData(boost::shared_ptr<BondData> bond_data) const
     // loop through all the bonds and add a bond for each
     for (unsigned int i = 0; i < m_bonds.size(); i++)
         bond_data->addBond(m_bonds[i]);
-        
+
     bond_data->setBondTypeMapping(m_bond_type_mapping);
     }
 
@@ -1003,7 +1017,7 @@ void HOOMDInitializer::initAngleData(boost::shared_ptr<AngleData> angle_data) co
     // loop through all the angles and add an angle for each
     for (unsigned int i = 0; i < m_angles.size(); i++)
         angle_data->addAngle(m_angles[i]);
-        
+
     angle_data->setAngleTypeMapping(m_angle_type_mapping);
     }
 
@@ -1015,7 +1029,7 @@ void HOOMDInitializer::initDihedralData(boost::shared_ptr<DihedralData> dihedral
     // loop through all the dihedrals and add an dihedral for each
     for (unsigned int i = 0; i < m_dihedrals.size(); i++)
         dihedral_data->addDihedral(m_dihedrals[i]);
-        
+
     dihedral_data->setDihedralTypeMapping(m_dihedral_type_mapping);
     }
 
@@ -1027,7 +1041,7 @@ void HOOMDInitializer::initImproperData(boost::shared_ptr<DihedralData> improper
     // loop through all the impropers and add an improper for each
     for (unsigned int i = 0; i < m_impropers.size(); i++)
         improper_data->addDihedral(m_impropers[i]);
-        
+
     improper_data->setDihedralTypeMapping(m_improper_type_mapping);
     }
 

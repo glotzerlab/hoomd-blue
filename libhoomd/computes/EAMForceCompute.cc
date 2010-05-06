@@ -24,7 +24,7 @@ Disclaimer
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND
 CONTRIBUTORS ``AS IS''  AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS  BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
@@ -51,8 +51,8 @@ using namespace boost::python;
 #include "HOOMDInitializer.h"
 #include "EAMForceCompute.h"
 #include <stdexcept>
-#define min(a, b)  (((a) < (b)) ? (a) : (b)) 
-#define max(a, b)  (((a) > (b)) ? (a) : (b)) 
+#define min(a, b)  (((a) < (b)) ? (a) : (b))
+#define max(a, b)  (((a) > (b)) ? (a) : (b))
 /*! \file EAMForceCompute.cc
 	\brief Defines the EAMForceCompute class
 */
@@ -64,21 +64,21 @@ using namespace std;
 	\param r_cut Cuttoff radius beyond which the force is 0
 	\post memory is allocated and all parameters lj1 and lj2 are set to 0.0
 */
-EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file) 
+EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
 	: ForceCompute(sysdef)
 	{
 	assert(m_pdata);
 
-	
+
 
 	loadFile(filename, type_of_file);
 	// initialize the number of types value
 	m_ntypes = m_pdata->getNTypes();
 	assert(m_ntypes > 0);
-	
+
 
 	}
-	
+
 
 EAMForceCompute::~EAMForceCompute()
 	{
@@ -87,7 +87,7 @@ EAMForceCompute::~EAMForceCompute()
 /*
 type_of_file = 0 => EAM/Alloy
 type_of_file = 1 => EAM/FS
-*/	
+*/
 void EAMForceCompute::loadFile(char *filename, int type_of_file)
 	{
 	TypeMapping type_mapping;
@@ -97,7 +97,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
   	// Open potential file
   	FILE *fp;
     fp = fopen(filename,"r");
-    if (fp == NULL) 
+    if (fp == NULL)
 		{
 		cerr << endl << "***Error! Can not load EAM file" << endl << endl;
 		throw runtime_error("Error loading file");
@@ -111,8 +111,15 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 		fscanf(fp, "%2s", tmp_str);
 		names.push_back(tmp_str);
 		types.push_back(type_mapping.getTypeId(names[i]));
+		type_mapping.setTypeDefined(types[i]);
 		}
 
+    //Check that all types of atopms in xml file have description in potential file
+    if(!type_mapping.checkAllTypesIsDefined())
+        {
+		cerr << endl << "***Error! There are not full description of types of atoms in potential file!!!" << endl << endl;
+		throw runtime_error("Error loading file");
+    	}
 /*	for(i = 0; i < m_ntypes; i++){
 		cout << i << " : " << types[i] << " " << names[i] << endl;
 	}
@@ -129,7 +136,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 	fscanf(fp,"%lg", &tmp);
 	m_r_cut = tmp;
 
-	
+
 	//Resize arrays for tables
 	embeddingFunction.resize(nrho * m_ntypes);
 	electronDensity.resize( nr * m_ntypes * m_ntypes);
@@ -137,13 +144,13 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 	derivativeEmbeddingFunction.resize(nrho * m_ntypes);
 	derivativeElectronDensity.resize(nr * m_ntypes * m_ntypes);
 	derivativePairPotential.resize((int)(0.5 * nr * (m_ntypes + 1) * m_ntypes));
-	
 	for(type = 0 ; type < m_ntypes; type++)
 		{
 		fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, &tmp_str);
 		mass.push_back(tmp_mass);
 
 		//Read F's array
+
 		for(i = 0 ; i < nrho; i++)
 			{
 			fscanf(fp, "%lg", &tmp);
@@ -163,8 +170,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 				electronDensity[types[type] * m_ntypes * nr + j * nr + i] = (Scalar)tmp;
 				}
 			}
-	
-		//Duplicate
+
 		for(j = 1; j <= m_ntypes - count; j++)
 			{
 			for(i = 0 ; i < nr; i++)
@@ -174,7 +180,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 
 
 			}
-		}		
+		}
 	//Read V(r)'s arrays
 	for (k = 0; k < m_ntypes; k++)
 		{
@@ -186,8 +192,8 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 				pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k] + types[j]) * nr + i] = (Scalar)tmp;
 
 				}
-			}				
-			
+			}
+
 		}
 	fclose(fp);
 
@@ -200,19 +206,19 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 		{
 		for(i = 0 ; i < nrho - 1; i++)
 			{
-			derivativeEmbeddingFunction[i + types[type] * nrho] = 
+			derivativeEmbeddingFunction[i + types[type] * nrho] =
 				(embeddingFunction[i + 1 + types[type] * nrho] - embeddingFunction[i + types[type] * nrho]) / drho;
 			}
 		for(j = 0; j < m_ntypes; j++)
 			{
 			for(i = 0 ; i < nr - 1; i++)
-				{	
-				derivativeElectronDensity[types[type] * m_ntypes * nr +  j * nr + i ] = 
-					(electronDensity[types[type] * m_ntypes * nr +  j * nr + i + 1] - 
+				{
+				derivativeElectronDensity[types[type] * m_ntypes * nr +  j * nr + i ] =
+					(electronDensity[types[type] * m_ntypes * nr +  j * nr + i + 1] -
 					electronDensity[types[type] * m_ntypes * nr +  j * nr + i]) / dr;
 				}
 			}
-	
+
 		}
 
 
@@ -225,12 +231,12 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 			for(i = 0 ; i < nr; i++)
 				{
 				if((i + 1)%nr == 0) continue;
-				derivativePairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k])  + types[j] * nr + i] = 
+				derivativePairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k])  + types[j] * nr + i] =
 				(pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i + 1] - pairPotential[ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i]) / dr;
-				
+
 				}
-			}				
-			
+			}
+
 		}
 
 	}
@@ -240,7 +246,7 @@ std::vector< std::string > EAMForceCompute::getProvidedLogQuantities()
 	list.push_back("pair_lj_energy");
 	return list;
 	}
-	
+
 Scalar EAMForceCompute::getLogValue(const std::string& quantity, unsigned int timestep)
 	{
 	if (quantity == string("pair_lj_energy"))
@@ -257,7 +263,7 @@ Scalar EAMForceCompute::getLogValue(const std::string& quantity, unsigned int ti
 
 /*! \post The lennard jones forces are computed for the given timestep. The neighborlist's
  	compute method is called to ensure that it is up to date.
-	
+
 	\param timestep specifies the current time step of the simulation
 */
 void EAMForceCompute::computeForces(unsigned int timestep)
@@ -267,35 +273,35 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
 	// start the profile for this compute
 	if (m_prof) m_prof->push("EAM pair");
-	
+
 	// depending on the neighborlist settings, we can take advantage of newton's third law
 	// to reduce computations at the cost of memory access complexity: set that flag now
 	bool third_law = m_nlist->getStorageMode() == NeighborList::half;
-	
+
 	// access the neighbor list
 	const vector< vector< unsigned int > >& full_list = m_nlist->getList();
 
 	// access the particle data
-	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly(); 
+	const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
 	// sanity check
 	assert(arrays.x != NULL && arrays.y != NULL && arrays.z != NULL);
-	
+
 	// get a local copy of the simulation box too
 	const BoxDim& box = m_pdata->getBox();
 	// sanity check
-	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);	
-	
+	assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+
 	// create a temporary copy of r_cut sqaured
 	Scalar r_cut_sq = m_r_cut * m_r_cut;
-	
+
 	// precalculate box lenghts for use in the periodic imaging
 	Scalar Lx = box.xhi - box.xlo;
 	Scalar Ly = box.yhi - box.ylo;
 	Scalar Lz = box.zhi - box.zlo;
-	
+
 	// tally up the number of forces calculated
 	int64_t n_calc = 0;
-	
+
 	// need to start from a zero force, energy and virial
 	// (MEM TRANSFER: 5*N scalars)
 	memset(m_fx, 0, sizeof(Scalar)*arrays.nparticles);
@@ -320,10 +326,10 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		Scalar yi = arrays.y[i];
 		Scalar zi = arrays.z[i];
 		unsigned int typei = arrays.type[i];
-		
+
 		// sanity check
 		assert(typei < m_pdata->getNTypes());
-		
+
 
 
 		// initialize current particle force, potential energy, and virial to 0
@@ -332,7 +338,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		Scalar fzi = 0.0;
 		Scalar pei = 0.0;
 		Scalar viriali = 0.0;
-		
+
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = full_list[i];
 		const unsigned int size = (unsigned int)list.size();
@@ -341,22 +347,22 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			{
 			// increment our calculation counter
 			n_calc++;
-			
+
 			// access the index of this neighbor (MEM TRANSFER: 1 scalar)
 			unsigned int k = list[j];
 			// sanity check
 			assert(k < m_pdata->getN());
-				
+
 			// calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
 			Scalar dx = xi - arrays.x[k];
 			Scalar dy = yi - arrays.y[k];
 			Scalar dz = zi - arrays.z[k];
-			
+
 			// access the type of the neighbor particle (MEM TRANSFER: 1 scalar
 			unsigned int typej = arrays.type[k];
 			// sanity check
 			assert(typej < m_pdata->getNTypes());
-			
+
 			// apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
 			if (dx >= box.xhi)
 				dx -= Lx;
@@ -369,13 +375,13 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			else
 			if (dy < box.ylo)
 				dy += Ly;
-	
+
 			if (dz >= box.zhi)
 				dz -= Lz;
 			else
 			if (dz < box.zlo)
 				dz += Lz;
-			
+
 			// start computing the force
 			// calculate r squared (FLOPS: 5)
 			Scalar rsq = dx*dx + dy*dy + dz*dz;
@@ -386,17 +392,17 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 				 Scalar position = position_float;
 				 unsigned int r_index = (unsigned int)position;
 				 r_index = min(r_index,nr);
-				 position -= r_index;				 
-				 atomElectronDensity[i] += electronDensity[r_index + nr * (typei * ntypes + typej)] + derivativeElectronDensity[r_index + nr * (typei * ntypes + typej)] * position * dr;	
+				 position -= r_index;
+				 atomElectronDensity[i] += electronDensity[r_index + nr * (typei * ntypes + typej)] + derivativeElectronDensity[r_index + nr * (typei * ntypes + typej)] * position * dr;
 				 if(third_law)
 					{
-					atomElectronDensity[k] += electronDensity[r_index + nr * (typej * ntypes + typei)] 
-						+ derivativeElectronDensity[r_index + nr * (typej * ntypes + typei)] * position * dr;	
+					atomElectronDensity[k] += electronDensity[r_index + nr * (typej * ntypes + typei)]
+						+ derivativeElectronDensity[r_index + nr * (typej * ntypes + typei)] * position * dr;
 					}
 				}
 			}
 		}
-		
+
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		unsigned int typei = arrays.type[i];
@@ -406,9 +412,10 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		r_index = min(r_index,nrho);
 		position -= (Scalar)r_index;
 		atomDerivativeEmbeddingFunction[i] = derivativeEmbeddingFunction[r_index + typei * nrho];
-		
+
 		m_pe[i] += embeddingFunction[r_index + typei * nrho] + derivativeEmbeddingFunction[r_index + typei * nrho] * position * drho;
 		}
+
 	for (unsigned int i = 0; i < arrays.nparticles; i++)
 		{
 		// access the particle's position and type (MEM TRANSFER: 4 scalars)
@@ -418,7 +425,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		unsigned int typei = arrays.type[i];
 		// sanity check
 		assert(typei < m_pdata->getNTypes());
-		
+
 
 
 		// initialize current particle force, potential energy, and virial to 0
@@ -427,7 +434,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		Scalar fzi = 0.0;
 		Scalar pei = 0.0;
 		Scalar viriali = 0.0;
-		
+
 		// loop over all of the neighbors of this particle
 		const vector< unsigned int >& list = full_list[i];
 		const unsigned int size = (unsigned int)list.size();
@@ -435,22 +442,22 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			{
 			// increment our calculation counter
 			n_calc++;
-			
+
 			// access the index of this neighbor (MEM TRANSFER: 1 scalar)
 			unsigned int k = list[j];
 			// sanity check
 			assert(k < m_pdata->getN());
-				
+
 			// calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
 			Scalar dx = xi - arrays.x[k];
 			Scalar dy = yi - arrays.y[k];
 			Scalar dz = zi - arrays.z[k];
-			
+
 			// access the type of the neighbor particle (MEM TRANSFER: 1 scalar
 			unsigned int typej = arrays.type[k];
 			// sanity check
 			assert(typej < m_pdata->getNTypes());
-			
+
 			// apply periodic boundary conditions (FLOPS: 9 (worst case: first branch is missed, the 2nd is taken and the add is done)
 			if (dx >= box.xhi)
 				dx -= Lx;
@@ -463,18 +470,18 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			else
 			if (dy < box.ylo)
 				dy += Ly;
-	
+
 			if (dz >= box.zhi)
 				dz -= Lz;
 			else
 			if (dz < box.zlo)
 				dz += Lz;
-			
+
 			// start computing the force
 			// calculate r squared (FLOPS: 5)
 			Scalar rsq = dx*dx + dy*dy + dz*dz;
-		
-		
+
+
 			if (rsq >= r_cut_sq) continue;
 			Scalar r = sqrt(rsq);
 			Scalar inverseR = 1.0 / r;
@@ -483,11 +490,11 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			position = position - (Scalar)r_index;
 			int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
 			//r_index = min(r_index,nr - 1);
-			Scalar pair_eng = (pairPotential[r_index + shift] + 
-				derivativePairPotential[r_index + shift] * position * dr) * inverseR;			
+			Scalar pair_eng = (pairPotential[r_index + shift] +
+				derivativePairPotential[r_index + shift] * position * dr) * inverseR;
 			Scalar derivativePhi = (derivativePairPotential[r_index + shift] - pair_eng) * inverseR;
-			Scalar derivativeRhoI = derivativeElectronDensity[r_index + typei * nr];			
-			Scalar derivativeRhoJ = derivativeElectronDensity[r_index + typej * nr];			
+			Scalar derivativeRhoI = derivativeElectronDensity[r_index + typei * nr];
+			Scalar derivativeRhoJ = derivativeElectronDensity[r_index + typej * nr];
 			Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ +
 				atomDerivativeEmbeddingFunction[k] * derivativeRhoI + derivativePhi;
 			Scalar pairForce = - fullDerivativePhi * inverseR;
@@ -496,7 +503,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 			fyi += dy * pairForce;
 			fzi += dz * pairForce;
 			pei += pair_eng;
-			
+
 			if (third_law)
 				{
 				m_fx[k] -= dx * pairForce;
@@ -508,8 +515,8 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 		m_fy[i] += fyi;
 		m_fz[i] += fzi;
 		m_pe[i] += pei;
-		m_virial[i] += viriali;	
-		}	
+		m_virial[i] += viriali;
+		}
 	m_pdata->release();
 	#ifdef ENABLE_CUDA
 	// the force data is now only up to date on the cpu
@@ -538,7 +545,7 @@ void export_EAMForceCompute()
 
 	.def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
 	.def("get_r_cut", &EAMForceCompute::get_r_cut)
-	;	
+	;
 	}
 
 #ifdef WIN32
