@@ -191,7 +191,7 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
 
     if ((fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
-        printf("f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+        printf("Converged: f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;
         return;
         }
