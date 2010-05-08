@@ -33,7 +33,7 @@ using namespace std;
 EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
 	: EAMForceCompute(sysdef, filename, type_of_file)
 	{
-		printf("Init Potential");
+		printf("Init Potential EAMForceComputeGPU\n");
 	// can't run on the GPU if there aren't any GPUs in the execution configuration
 	if (exec_conf.gpu.size() == 0)
 		{
