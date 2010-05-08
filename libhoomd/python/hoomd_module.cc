@@ -127,7 +127,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
-//#include "EAMForceComputeGPU.h"
+#include "EAMForceComputeGPU.h"
 #include "EAMTexInterForceComputeGPU.h"
 //#include "EAMTexForceComputeGPU.h"
 #endif
@@ -188,17 +188,17 @@ string find_hoomd_data_dir()
             return result;
             }
         }
-        
+
     // try the source directory next, to ensure that any current source is used over
     // an older installed version
     if (exists(path(HOOMD_SOURCE_DIR) / "share" / "hoomd" / "hoomd_data_dir"))
         return (path(HOOMD_SOURCE_DIR) / "share" / "hoomd").string();
-        
+
 #ifdef WIN32
     // access the registry key
     string name = string("hoomd ") + string(HOOMD_VERSION);
     string reg_path = "SOFTWARE\\University of Michigan\\" + name;
-    
+
     char *value = new char[1024];
     LONG value_size = 1024;
     LONG err_code = RegQueryValue(HKEY_LOCAL_MACHINE, reg_path.c_str(), value, &value_size);
@@ -210,8 +210,8 @@ string find_hoomd_data_dir()
             return (install_dir).string();
         }
     delete[] value;
-    
-    
+
+
     // otherwise, check the program files root
     if (getenv("PROGRAMFILES"))
         {
@@ -228,9 +228,9 @@ string find_hoomd_data_dir()
     if (exists("/opt/hoomd/share/hoomd_data_dir"))
         return "/opt/hoomd/share";
 #endif
-        
-    cerr << endl 
-         << "***Error! HOOMD data directory not found, please set the environment variable HOOMD_ROOT" 
+
+    cerr << endl
+         << "***Error! HOOMD data directory not found, please set the environment variable HOOMD_ROOT"
          << endl << endl;
     return string("");
     }
@@ -242,17 +242,17 @@ string find_hoomd_data_dir()
 string find_vmd()
     {
 #ifdef WIN32
-    
+
     // find VMD through the registry
     vector<string> reg_paths;
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.7");
     reg_paths.push_back("SOFTWARE\\University of Illinois\\VMD\\1.8.6");
-    
+
     vector<string>::iterator cur_path;
     for (cur_path = reg_paths.begin(); cur_path != reg_paths.end(); ++cur_path)
         {
         string reg_path = *cur_path;
-        
+
         char *value = new char[1024];
         DWORD value_size = 1024;
         HKEY vmd_root_key;
@@ -268,7 +268,7 @@ string find_vmd()
                     return (install_dir / "vmd.exe").string();
                 }
             }
-            
+
         err_code = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path.c_str(), 0, KEY_READ, &vmd_root_key);
         if (err_code == ERROR_SUCCESS)
             {
@@ -281,10 +281,10 @@ string find_vmd()
                     return (install_dir / "vmd.exe").string();
                 }
             }
-            
+
         delete[] value;
         }
-        
+
 #else
     // check some likely locations
     if (exists("/usr/bin/vmd"))
@@ -302,7 +302,7 @@ string find_vmd()
     if (exists(path("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD", no_check)))
         return("/Applications/VMD 1.8.6.app/Contents/Resources/VMD.app/Contents/MacOS/VMD");
 #endif
-        
+
     // return an empty string if we didn't find it
     return "";
     }
@@ -327,7 +327,7 @@ string get_hoomd_version()
         ver << "HOOMD-blue svnversion " << HOOMD_SVNVERSION;
     else
         ver << "HOOMD-blue " << HOOMD_VERSION << endl;
-        
+
     return ver.str();
     }
 
@@ -368,14 +368,14 @@ BOOST_PYTHON_MODULE(hoomd)
     // data structures
     class_<std::vector<int> >("std_vector_int")
     .def(vector_indexing_suite<std::vector<int> >());
-    
+
     InstallSIGINTHandler();
-    
+
     // utils
     export_hoomd_math_functions();
     export_ClockSource();
     export_Profiler();
-    
+
     // data structures
     export_BoxDim();
     export_ParticleDataInitializer();
@@ -385,7 +385,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_SystemDefinition();
     export_AngleData();
     export_DihedralData();
-    
+
     // initializers
     export_RandomInitializer();
     export_RandomInitializerWithWalls();
@@ -393,7 +393,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HOOMDInitializer();
     export_HOOMDBinaryInitializer();
     export_RandomGenerator();
-    
+
     // computes
     export_Compute();
     export_ForceCompute();
@@ -428,7 +428,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_TablePotentialGPU();
 	export_EAMTexInterForceComputeGPU();
 //	export_EAMTexForceComputeGPU();
-//	export_EAMForceComputeGPU();
+	export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
@@ -436,7 +436,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceComputeGPU();
     export_FENEBondForceComputeGPU();
 #endif
-    
+
     // analyzers
     export_Analyzer();
     export_IMDInterface();
@@ -448,7 +448,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Logger();
     export_MSDAnalyzer();
     export_ParticleGroup();
-    
+
     // updaters
     export_Updater();
     export_Integrator();
@@ -472,13 +472,13 @@ BOOST_PYTHON_MODULE(hoomd)
     export_Enforce2DUpdaterGPU();
     export_FIREEnergyMinimizerGPU();
 #endif
-    
+
     // system
     export_System();
-    
+
     // variant
     export_Variant();
-    
+
     }
 
 #ifdef WIN32
