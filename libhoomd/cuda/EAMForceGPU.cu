@@ -17,7 +17,14 @@ Moscow group.
 
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
-
+__constant__ float* electronDensity;
+__constant__	float* pairPotential;
+__constant__	float* embeddingFunction;
+__constant__	float* derivativeElectronDensity;
+__constant__	float* derivativePairPotential;
+__constant__	float* derivativeEmbeddingFunction;
+__constant__	float* atomDerivativeEmbeddingFunction;
+__constant__	EAMData eam_data;
 //!First kernel need to calculate a part of pair potential and to calculate
 /*!  Derivative Embedding Function for each atom.
 */
@@ -26,15 +33,7 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel(
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
 	gpu_nlist_array nlist,
-	float2 *d_coeffs,
-	float* electronDensity,
-	float* pairPotential,
-	float* embeddingFunction,
-	float* derivativeElectronDensity,
-	float* derivativePairPotential,
-	float* derivativeEmbeddingFunction,
-	float* atomDerivativeEmbeddingFunction,
-	EAMData eam_data)
+	float2 *d_coeffs)
 	{
 	// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
@@ -128,15 +127,7 @@ extern "C" __global__ void gpu_compute_eam_forces_kernel_2(
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
 	gpu_nlist_array nlist,
-	float2 *d_coeffs,
-	float* electronDensity,
-	float* pairPotential,
-	float* embeddingFunction,
-	float* derivativeElectronDensity,
-	float* derivativePairPotential,
-	float* derivativeEmbeddingFunction,
-	float* atomDerivativeEmbeddingFunction,
-	EAMData eam_data)
+	float2 *d_coeffs)
 	{
 		// read in the coefficients
 	extern __shared__ float2 s_coeffs[];
@@ -259,20 +250,20 @@ cudaError_t gpu_compute_eam_forces(
 	cudaError_t error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
 	if (error != cudaSuccess)
 		return error;
+    cudaMemcpyToSymbol("electronDensity", &eam_arrays.electronDensity[0], sizeof(float*));
+    cudaMemcpyToSymbol("pairPotential", &eam_arrays.pairPotential[0], sizeof(float*));
+    cudaMemcpyToSymbol("embeddingFunction", &eam_arrays.embeddingFunction[0], sizeof(float*));
+    cudaMemcpyToSymbol("derivativeElectronDensity", &eam_arrays.derivativeElectronDensity[0], sizeof(float*));
+    cudaMemcpyToSymbol("derivativePairPotential", &eam_arrays.derivativePairPotential[0], sizeof(float*));
+    cudaMemcpyToSymbol("derivativeEmbeddingFunction", &eam_arrays.derivativeEmbeddingFunction[0], sizeof(float*));
+    cudaMemcpyToSymbol("atomDerivativeEmbeddingFunction", &eam_arrays.atomDerivativeEmbeddingFunction[0], sizeof(float*));
+    cudaMemcpyToSymbol("eam_data", &eam_data, sizeof(eam_data));
 
     gpu_compute_eam_forces_kernel<<< grid, threads, sizeof(float2)*coeff_width*coeff_width >>>(force_data,
 	pdata,
 	box,
 	nlist,
-	d_coeffs,
-	eam_arrays.electronDensity,
-	eam_arrays.pairPotential,
-	eam_arrays.embeddingFunction,
-	eam_arrays.derivativeElectronDensity,
-	eam_arrays.derivativePairPotential,
-	eam_arrays.derivativeEmbeddingFunction,
-	eam_arrays.atomDerivativeEmbeddingFunction,
-	eam_data);
+	d_coeffs);
 
 	cudaThreadSynchronize();
 
@@ -280,15 +271,7 @@ cudaError_t gpu_compute_eam_forces(
 	pdata,
 	box,
 	nlist,
-	d_coeffs,
-	eam_arrays.electronDensity,
-	eam_arrays.pairPotential,
-	eam_arrays.embeddingFunction,
-	eam_arrays.derivativeElectronDensity,
-	eam_arrays.derivativePairPotential,
-	eam_arrays.derivativeEmbeddingFunction,
-	eam_arrays.atomDerivativeEmbeddingFunction,
-	eam_data);
+	d_coeffs);
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;
