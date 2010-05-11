@@ -67,7 +67,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct pair_args
     {
     int block_size;         //!< block size to execute on
-    bool ulf_workaround;    //!< Set to true to enable the ULF workaround
     unsigned int shift_mode;//!< Shift mode for pair energy
     };
 
@@ -101,7 +100,6 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
     \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
-    \tparam ulf_workaround Set to true to enable a workaround for the annoying ULF bug
     \tparam shift_mode 0: No energy shifting is done. 1: V(r) is shifted to be 0 at rcut. 2: XPLOR switching is enabled
                        (See PotentialPair for a discussion on what that entails)
     
@@ -110,7 +108,7 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template< class evaluator, bool ulf_workaround, unsigned int shift_mode >
+template< class evaluator, unsigned int shift_mode >
 __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
                                                gpu_pdata_arrays pdata,
                                                gpu_boxsize box,
@@ -177,18 +175,18 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
     unsigned int next_j = nlist.list[idx];
     
     // loop over neighbors
-    // on pre C1060 hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
+    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
-    int n_loop;
-    if (ulf_workaround)
-        n_loop = nlist.height;
-    else
-        n_loop = n_neigh;
-        
-    for (int neigh_idx = 0; neigh_idx < n_loop; neigh_idx++)
+    #if (__CUDA_ARCH__ < 200)
+    for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+    #else
+    for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+    #endif
         {
-        if (!ulf_workaround || neigh_idx < n_neigh)
+        #if (__CUDA_ARCH__ < 200)
+        if (neigh_idx < n_neigh)
+        #endif
             {
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             // prefetch the next value and set the current one
@@ -354,45 +352,22 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
                                 * typpair_idx.getNumElements();
     
     // run the kernel
-    if (args.ulf_workaround)
+    switch (args.shift_mode)
         {
-        switch (args.shift_mode)
-            {
-            case 0:
-                gpu_compute_pair_forces_kernel<evaluator, true, 0>
-                  <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
-                break;
-            case 1:
-                gpu_compute_pair_forces_kernel<evaluator, true, 1>
-                  <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
-                break;
-            case 2:
-                gpu_compute_pair_forces_kernel<evaluator, true, 2>
-                  <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
-                break;
-            default:
-                return cudaErrorUnknown;
-            }
-        }
-    else
-        {
-        switch (args.shift_mode)
-            {
-            case 0:
-                gpu_compute_pair_forces_kernel<evaluator, false, 0>
-                  <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
-                break;
-            case 1:
-                gpu_compute_pair_forces_kernel<evaluator, false, 1>
-                  <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
-                break;
-            case 2:
-                gpu_compute_pair_forces_kernel<evaluator, false, 2>
-                  <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
-                break;
-            default:
-                return cudaErrorUnknown;
-            }
+        case 0:
+            gpu_compute_pair_forces_kernel<evaluator, 0>
+              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
+            break;
+        case 1:
+            gpu_compute_pair_forces_kernel<evaluator, 1>
+              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
+            break;
+        case 2:
+            gpu_compute_pair_forces_kernel<evaluator, 2>
+              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
+            break;
+        default:
+            return cudaErrorUnknown;
         }
         
     if (!g_gpu_error_checking)

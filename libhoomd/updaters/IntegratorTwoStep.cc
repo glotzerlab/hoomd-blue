@@ -240,6 +240,27 @@ bool IntegratorTwoStep::isValidRestart()
     return res;
     }
 
+/*! \param group Group over which to count degrees of freedom.
+    IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the group.
+    Three degrees of freedom are subtracted from the total to account for the constrained position of the system center of
+    mass.
+*/
+unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
+    {
+    int res = 0;
+
+// loop through all methods
+    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // dd them all together
+        res += (*method)->getNDOF(group);
+        }
+    
+    return res - m_sysdef->getNDimensions();
+    }
+
+
 void export_IntegratorTwoStep()
     {
     class_<IntegratorTwoStep, boost::shared_ptr<IntegratorTwoStep>, bases<Integrator>, boost::noncopyable>

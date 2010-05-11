@@ -47,11 +47,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines the DCDDumpWriter class and related helper functions
 */
 
-// disable microsoft's security deprecation warnings
-#ifdef WIN32
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning( disable : 4244 )

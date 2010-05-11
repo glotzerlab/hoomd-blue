@@ -188,7 +188,17 @@ def all():
     if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
-
+    
+    # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
+    # return the cached version
+    if globals.group_all is not None:
+        expected_N = globals.system_definition.getParticleData().getN();
+        if len(globals.group_all) != expected_N:
+            print >> sys.stderr, "\n***Error! globals.group_all does not appear to be the group of all particles!\n";
+            raise RuntimeError('Error creating group');
+        
+        return globals.group_all;
+    
     # choose the tag range
     tag_min = 0;
     tag_max = globals.system_definition.getParticleData().getN()-1;
@@ -201,8 +211,9 @@ def all():
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-    # return it in the wrapper class
-    return group(name, cpp_group);
+    # cache it and then return it in the wrapper class
+    globals.group_all = group(name, cpp_group);
+    return globals.group_all;
 
 ## Groups particles in a cuboid
 #

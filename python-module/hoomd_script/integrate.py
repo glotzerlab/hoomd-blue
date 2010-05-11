@@ -87,6 +87,7 @@
 
 import hoomd;
 import globals;
+import compute;
 import sys;
 import util;
 import variant;
@@ -176,6 +177,14 @@ class _integrator:
                 print >> sys.stderr, "a different integrator.\n";
                 raise RuntimeError('Error initializing integrator methods');
 
+    ## \internal
+    # \brief Counts the number of degrees of freedom and updates each compute.thermo specified
+    def update_thermos(self):
+        self.check_initialization();
+        
+        for t in globals.thermos:
+            ndof = self.cpp_integrator.getNDOF(t.group.cpp_group);
+            t.cpp_compute.setNDOF(ndof);
 
 ## \internal
 # \brief Base class for integration methods
@@ -355,6 +364,8 @@ class nvt(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \b Examples:
     # \code
     # all = group.all()
@@ -372,11 +383,14 @@ class nvt(_integration_method):
         # setup the variant inputs
         T = variant._setup_variant_input(T);
         
+        # create the compute thermo
+        thermo = compute._get_unique_thermo(group=group);
+        
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NVT integrator");
@@ -437,6 +451,8 @@ class npt(_integration_method):
     # \f[ \tau = \sqrt{\frac{Q}{g k_B T_0}} \f] where \f$ g \f$ is the number of degrees of freedom,
     # and \f$ T_0 \f$ is the temperature set point (\a T above).
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \b Examples:
     # \code
     # integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0)
@@ -452,11 +468,15 @@ class npt(_integration_method):
         T = variant._setup_variant_input(T);
         P = variant._setup_variant_input(P);
         
+        # create the compute thermo
+        thermo_group = compute._get_unique_thermo(group=group);
+        thermo_all = compute._get_unique_thermo(group=globals.group_all);
+        
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPT(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, tau, tauP, T.cpp_variant, P.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNPTGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NPT integrator");
@@ -529,6 +549,8 @@ class nve(_integration_method):
     # \param zero_force When set to true, particles in the \a group are integrated forward in time with constant
     #                   velocity and any net force on them is ignored.
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \b Examples:
     # \code
     # all = group.all()
@@ -543,6 +565,9 @@ class nve(_integration_method):
         
         # initialize base class
         _integration_method.__init__(self);
+        
+        # create the compute thermo
+        compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
@@ -631,6 +656,8 @@ class bdnvt(_integration_method):
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
+    # Internally, a compute.thermo is automatically specified and associated with \a group.
+    #
     # \warning If starting from a restart binary file, the energy of the reservoir will be reset to zero.  
     # \b Examples:
     # \code
@@ -649,6 +676,9 @@ class bdnvt(_integration_method):
         
         # setup the variant inputs
         T = variant._setup_variant_input(T);
+        
+        # create the compute thermo
+        compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:

@@ -45,12 +45,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef WIN32
 #pragma warning( push )
-#pragma warning( disable : 4103 4244 )
-#endif
-
-// remove silly warnings
-#ifdef WIN32
-#define _CRT_SECURE_NO_DEPRECATE
+#pragma warning( disable : 4103 4244 4267 )
 #endif
 
 #include "HOOMDMath.h"
@@ -80,7 +75,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TablePotential.h"
 #include "LJWallForceCompute.h"
 #include "AllPairPotentials.h"
-#include "TempCompute.h"
+#include "ComputeThermo.h"
+#include "ComputeThermoGPU.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
 #include "Analyzer.h"
@@ -420,7 +416,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
     export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
     export_LJWallForceCompute();
-    export_TempCompute();
+    export_ComputeThermo();
     export_NeighborList();
     export_BinnedNeighborList();
 #ifdef ENABLE_CUDA
@@ -439,6 +435,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_HarmonicImproperForceComputeGPU();
     export_CGCMMAngleForceComputeGPU();
     export_FENEBondForceComputeGPU();
+    export_ComputeThermoGPU();
 #endif
     
     // analyzers

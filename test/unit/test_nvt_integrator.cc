@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ConstForceCompute.h"
 #include "TwoStepNVT.h"
+#include "ComputeThermo.h"
 #ifdef ENABLE_CUDA
 #include "TwoStepNVTGPU.h"
 #endif
@@ -1090,28 +1091,31 @@ double q_reference[]  = { 1.6 , 1.6000093706007106 , 1.6000373852098038 ,
 //! Typedef'd NVEUpdator class factory
 typedef boost::function<shared_ptr<TwoStepNVT> (shared_ptr<SystemDefinition> sysdef,
                                                  shared_ptr<ParticleGroup> group,
+                                                 shared_ptr<ComputeThermo> thermo,
                                                  Scalar Q,
                                                  Scalar T)> twostepnvt_creator;
 
 //! NVTUpdater creator
 shared_ptr<TwoStepNVT> base_class_nvt_creator(shared_ptr<SystemDefinition> sysdef,
                                               shared_ptr<ParticleGroup> group,
+                                              shared_ptr<ComputeThermo> thermo,
                                               Scalar Q,
                                               Scalar T)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<TwoStepNVT>(new TwoStepNVT(sysdef, group, Q, T_variant));
+    return shared_ptr<TwoStepNVT>(new TwoStepNVT(sysdef, group, thermo, Q, T_variant));
     }
 
 #ifdef ENABLE_CUDA
 //! NVTUpdaterGPU factory for the unit tests
 shared_ptr<TwoStepNVT> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef,
                                        shared_ptr<ParticleGroup> group,
+                                       shared_ptr<ComputeThermo> thermo,
                                        Scalar Q,
                                        Scalar T)
     {
     shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return shared_ptr<TwoStepNVT>(new TwoStepNVTGPU(sysdef, group, Q, T_variant));
+    return shared_ptr<TwoStepNVT>(new TwoStepNVTGPU(sysdef, group, thermo, Q, T_variant));
     }
 #endif
 
@@ -1148,9 +1152,10 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfig
     Scalar T = Scalar(1.5/3.0);
     Scalar tau = sqrt(Q / (Scalar(3.0) * T));
     shared_ptr<IntegratorTwoStep> nvt_up(new IntegratorTwoStep(sysdef, deltaT));
-    shared_ptr<TwoStepNVT> two_step_nvt = nvt_creator(sysdef, group_all, tau, T);
+    shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    shared_ptr<TwoStepNVT> two_step_nvt = nvt_creator(sysdef, group_all, thermo, tau, T);
     nvt_up->addIntegrationMethod(two_step_nvt);
-    two_step_nvt->setDOF(3.0f);
+    thermo->setNDOF(3);
     
     // see what happens with a constant force
     shared_ptr<ConstForceCompute> fc1(new ConstForceCompute(sysdef, 0.0, 0.0, 0.75));
@@ -1213,11 +1218,15 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     fc2->setParams(0,0,make_scalar2(lj1,lj2));
     
     shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.005)));
-    shared_ptr<TwoStepNVT> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, Scalar(0.5), Scalar(1.2));
+    shared_ptr<ComputeThermo> thermo1(new ComputeThermo(sysdef1, group_all1));
+    thermo1->setNDOF(3*N-3);
+    shared_ptr<TwoStepNVT> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
     nvt1->addIntegrationMethod(two_step_nvt1);
     
     shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.005)));
-    shared_ptr<TwoStepNVT> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, Scalar(0.5), Scalar(1.2));
+    shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
+    thermo2->setNDOF(3*N-3);
+    shared_ptr<TwoStepNVT> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
     nvt2->addIntegrationMethod(two_step_nvt2);
     
     nvt1->addForceCompute(fc1);
@@ -1260,7 +1269,7 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
 //! Compares the output of NVTUpdater to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( TwoStepNVT_mathematica_compare )
     {
-    nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::CPU));
+    nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4, _5), ExecutionConfiguration(ExecutionConfiguration::CPU));
     }
 
 
@@ -1268,14 +1277,14 @@ BOOST_AUTO_TEST_CASE( TwoStepNVT_mathematica_compare )
 //! Compares the output of NVTUpdaterGPU to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( TwoStepNVTGPU_mathematica_compare )
     {
-    nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4), ExecutionConfiguration(ExecutionConfiguration::GPU));
+    nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4, _5), ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters
 BOOST_AUTO_TEST_CASE( TwoStepNVTGPU_comparison_tests)
     {
-    twostepnvt_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4);
-    twostepnvt_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4);
+    twostepnvt_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4, _5);
+    twostepnvt_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4, _5);
     nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
     }
 

@@ -138,12 +138,7 @@ Scalar Integrator::getDeltaT()
 std::vector< std::string > Integrator::getProvidedLogQuantities()
     {
     vector<string> result;
-    result.push_back("num_particles");
     result.push_back("volume");
-    result.push_back("temperature");
-    result.push_back("pressure");
-    result.push_back("kinetic_energy");
-    result.push_back("potential_energy");
     result.push_back("momentum");
     result.push_back("conserved_quantity");
     return result;
@@ -169,21 +164,11 @@ std::vector< std::string > Integrator::getProvidedLogQuantities()
 */
 Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if (quantity == "num_particles")
-        return Scalar(m_pdata->getN());
-    else if (quantity == "volume")
+    if (quantity == "volume")
         {
         BoxDim box = m_pdata->getBox();
         return (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
         }
-    else if (quantity == "temperature")
-        return computeTemperature(timestep);
-    else if (quantity == "pressure")
-        return computePressure(timestep);
-    else if (quantity == "kinetic_energy")
-        return computeKineticEnergy(timestep);
-    else if (quantity == "potential_energy")
-        return computePotentialEnergy(timestep);
     else if (quantity == "momentum")
         return computeTotalMomentum(timestep);
     else if (quantity == "conserved_quantity")
@@ -234,80 +219,6 @@ void Integrator::computeAccelerations(unsigned int timestep, const std::string& 
         m_prof->pop();
         m_prof->pop();
         }
-    }
-
-/*! \param timestep Current time step of the simulation
-
-    computeTemperature() accesses the particle data on the CPU, loops through it and calculates the temperature
-*/
-Scalar Integrator::computeTemperature(unsigned int timestep)
-    {
-    unsigned int D = m_sysdef->getNDimensions();
-    Scalar g = Scalar(D*m_pdata->getN()-D);
-    return 2.0 * computeKineticEnergy(timestep) / g;
-    }
-
-/*! \param timestep Current time step of the simulation
-
-    computePressure() accesses the virial data of all attached force computes and calculates the pressure on the CPU
-*/
-Scalar Integrator::computePressure(unsigned int timestep)
-    {
-    // Number of particles
-    unsigned int N = m_pdata->getN();
-    
-    // total up virials
-    Scalar W = 0.0;
-    
-    // Aquire forces in order to get virials
-    for (unsigned int i = 0; i < m_forces.size(); i++)
-        {
-        m_forces[i]->compute(timestep);
-        ForceDataArrays force_arrays = m_forces[i]->acquire();
-        
-        for (unsigned int j = 0; j < N; j++)
-            W += force_arrays.virial[j];
-        }
-        
-    // volume/area & other 2D stuff needed
-    BoxDim box = m_pdata->getBox();
-    Scalar volume;
-    unsigned int D = m_sysdef->getNDimensions();
-    if (D == 2)
-        {
-        // "volume" is area in 2D
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
-        // W needs to be corrected since the 1/3 factor is built in
-        W *= Scalar(3.0/2.0);
-        }
-    else
-        {
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
-        }
-    
-    // pressure: P = (N * K_B * T + W)/V
-    return (N * computeTemperature(timestep) + W) / volume;
-    }
-
-/*! \param timestep Current time step of the simulation
-
-    computeKineticEnergy()  accesses the particle data on the CPU, loops through it and calculates the kinetic energy
-*/
-Scalar Integrator::computeKineticEnergy(unsigned int timestep)
-    {
-    // grab access to the particle data
-    const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    
-    // sum up the kinetic energy
-    double ke_total = 0.0;
-    for (unsigned int i=0; i < m_pdata->getN(); i++)
-        {
-        ke_total += (double)arrays.mass[i]*((double)arrays.vx[i] * (double)arrays.vx[i] + (double)arrays.vy[i] * (double)arrays.vy[i] + (double)arrays.vz[i] * (double)arrays.vz[i]);
-        }
-        
-    // done!
-    m_pdata->release();
-    return Scalar(0.5 * ke_total);
     }
 
 /*! \param timestep Current time step of the simulation
@@ -529,6 +440,7 @@ void export_Integrator()
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("removeForceComputes", &Integrator::removeForceComputes)
     .def("setDeltaT", &Integrator::setDeltaT)
+    .def("getNDOF", &Integrator::getNDOF)
     ;
     }
 

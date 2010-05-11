@@ -44,6 +44,7 @@
 
 import hoomd;
 import globals;
+import compute;
 import util;
 import variant;
 import sys;
@@ -304,12 +305,15 @@ class rescale_temp(_updater):
     #
     # \param T Temperature set point
     # \param period Velocities will be rescaled every \a period time steps
-    # 
+    #
+    # \a T can be a variant type, allowing for temperature ramps in simulation runs.
+    #
     # \b Examples:
     # \code
     # update.rescale_temp(T=1.2)
     # rescaler = update.rescale_temp(T=0.5)
     # update.rescale_temp(period=100, T=1.03)
+    # update.rescale_temp(period=100, T=variant.linear_interp([(0, 4.0), (1e6, 1.0)]))
     # \endcode
     #
     # \a period can be a function: see \ref variable_period_docs for details
@@ -319,8 +323,14 @@ class rescale_temp(_updater):
         # initialize base class
         _updater.__init__(self);
         
+        # setup the variant inputs
+        T = variant._setup_variant_input(T);
+        
+        # create the compute thermo
+        thermo = compute._get_unique_thermo(group=globals.group_all);
+        
         # create the c++ mirror class
-        self.cpp_updater = hoomd.TempRescaleUpdater(globals.system_definition, hoomd.TempCompute(globals.system_definition), T);
+        self.cpp_updater = hoomd.TempRescaleUpdater(globals.system_definition, thermo.cpp_compute, T.cpp_variant);
         self.setupUpdater(period);
 
     ## Change rescale_temp parameters
@@ -341,7 +351,8 @@ class rescale_temp(_updater):
         self.check_initialization();
             
         if T is not None:
-            self.cpp_updater.setT(T);
+            T = variant._setup_variant_input(T);
+            self.cpp_updater.setT(T.cpp_variant);
 
 ## Zeroes system momentum
 #

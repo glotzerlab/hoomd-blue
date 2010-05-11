@@ -57,14 +57,9 @@ cudaError_t gpu_nvt_step_one(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              const gpu_boxsize &box,
-                             float *d_partial_sum2K,
                              unsigned int block_size,
-                             unsigned int num_blocks,
                              float Xi,
                              float deltaT);
-
-//! Kernel driver for the Ksum reduction final pass called by NVTUpdaterGPU
-cudaError_t gpu_nvt_reduce_sum2K(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks);
 
 //! Kernel driver for the second part of the NVT update called by NVTUpdaterGPU
 cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
@@ -72,7 +67,6 @@ cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
                              unsigned int group_size,
                              float4 *d_net_force,
                              unsigned int block_size,
-                             unsigned int num_blocks,
                              float Xi,
                              float deltaT);
 

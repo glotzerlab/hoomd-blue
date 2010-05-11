@@ -79,15 +79,15 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(boost::shared_ptr<SystemDefinition> sys
     :   IntegratorTwoStep(sysdef, dt),
         m_group(group),
         m_nmin(5),
-        m_finc(1.1),
-        m_fdec(0.5),
-        m_alpha_start(0.1),
-        m_falpha(0.99),
-        m_ftol(1e-4), 
-        m_etol(1e-3),
+        m_finc(Scalar(1.1)),
+        m_fdec(Scalar(0.5)),
+        m_alpha_start(Scalar(0.1)),
+        m_falpha(Scalar(0.99)),
+        m_ftol(Scalar(1e-4)), 
+        m_etol(Scalar(1e-3)),
         m_deltaT_max(dt),
-        m_deltaT_set(dt/10),
-        m_run_minsteps(10)
+        m_deltaT_set(dt/Scalar(10.0)),
+        m_run_minsteps(Scalar(10))
     {
     // sanity check
     assert(m_sysdef);

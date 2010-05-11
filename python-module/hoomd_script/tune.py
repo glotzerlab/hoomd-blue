@@ -70,18 +70,17 @@ import sys
 # Defaults are saved per compute capability and per command
 _default_block_size_db = {};
 _default_block_size_db['1.1'] = {'improper.harmonic': 64, 'pair.lj': 64, 'dihedral.harmonic': 64, 'angle.cgcmm': 128,
-                                 'pair.cgcmm': 64, 'pair.table': 256, 'pair.slj': 128, 'pair.morse': 64, 'nlist': 64,
-                                 'bond.harmonic': 64, 'pair.yukawa': 64, 'bond.fene': 96, 'angle.harmonic': 192,
-                                 'pair.gauss': 64}
+                                 'pair.cgcmm': 64, 'pair.table': 64, 'pair.slj': 128, 'pair.morse': 320,
+                                 'bond.harmonic': 320, 'bond.fene': 96, 'pair.yukawa': 64, 'angle.harmonic': 192,
+                                 'pair.gauss': 320, 'nlist': 288}
 
 # no longer independantly tuning 1.0 devices, they are very old
 _default_block_size_db['1.0'] = _default_block_size_db['1.1'];
+
 _default_block_size_db['1.3'] = {'improper.harmonic': 64, 'pair.lj': 352, 'dihedral.harmonic': 256, 'angle.cgcmm': 320,
-                                 'pair.cgcmm': 352, 'pair.table': 192, 'pair.slj': 352, 'pair.morse': 96, 'nlist': 192,
-                                 'bond.harmonic': 352, 'pair.yukawa': 96, 'bond.fene': 224, 'angle.harmonic': 192,
-                                 'pair.gauss': 96}
-# notice!: forcing pair.slj to 288 to work around strange ULF problems
-_default_block_size_db['1.3']['pair.slj'] = 288;
+                                 'pair.cgcmm': 416, 'pair.table': 96, 'pair.slj': 352, 'pair.morse': 352,
+                                 'bond.harmonic': 352, 'bond.fene': 224, 'pair.yukawa': 352, 'angle.harmonic': 192,
+                                 'pair.gauss': 352, 'nlist': 288}
 
 _default_block_size_db['2.0'] = {'improper.harmonic': 96, 'pair.lj': 352, 'dihedral.harmonic': 64, 'angle.cgcmm': 96,
                                  'pair.cgcmm': 128, 'pair.table': 160, 'pair.slj': 128, 'nlist': 128,
@@ -410,10 +409,12 @@ def find_optimal_block_sizes(save = True, only=None):
             del fc
         
         # now, benchmark the neighbor list
-        if only and (only == 'nlist'):
+        if (only is None) or (only == 'nlist'):
             print 'Benchmarking nlist'
+            lj = pair_lj_setup();
             optimal = _find_optimal_block_size_nl(globals.neighbor_list, 100)
             optimal_db['nlist'] = optimal;
+            del lj;
         
         # add it to the list
         optimal_dbs.append(optimal_db);

@@ -45,6 +45,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "IntegrationMethodTwoStep.h"
 #include "Variant.h"
+#include "ComputeThermo.h"
 
 #ifndef __TWO_STEP_NVT_H__
 #define __TWO_STEP_NVT_H__
@@ -60,6 +61,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - [0] -> xi
      - [1] -> eta
     
+    The instantaneous temperature of the system is computed with the provided ComputeThermo. Correct dynamics require
+    that the thermo computes the temperature of the assigned group and with D*N-D degrees of freedom. TwoStepNVT does
+    not check for these conditions.
+    
     \ingroup updaters
 */
 class TwoStepNVT : public IntegrationMethodTwoStep
@@ -68,6 +73,7 @@ class TwoStepNVT : public IntegrationMethodTwoStep
         //! Constructs the integration method and associates it with the system
         TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
                    boost::shared_ptr<ParticleGroup> group,
+                   boost::shared_ptr<ComputeThermo> thermo,
                    Scalar tau,
                    boost::shared_ptr<Variant> T);
         virtual ~TwoStepNVT() {};
@@ -88,16 +94,6 @@ class TwoStepNVT : public IntegrationMethodTwoStep
             m_tau = tau;
             }
         
-        //! Sets the number of degrees of freedom
-        /*! One unit test is in a non-periodic box with a small number of particles and needs to
-            control the number of degress of freedom.
-            \param dof Number of degrees of freedom to set.
-        */
-        void setDOF(Scalar dof)
-            {
-            m_dof = dof;
-            }
-        
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
         
@@ -105,10 +101,10 @@ class TwoStepNVT : public IntegrationMethodTwoStep
         virtual void integrateStepTwo(unsigned int timestep);
     
     protected:
+        boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
+        
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
-        Scalar m_curr_T;                //!< Current calculated temperature of the system
-        Scalar m_dof;                   //!< Number of degrees of freedom
     };
 
 //! Exports the TwoStepNVT class to python

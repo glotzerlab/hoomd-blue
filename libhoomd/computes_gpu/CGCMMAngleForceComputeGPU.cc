@@ -74,20 +74,20 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
         throw std::runtime_error("Error initializing CGCMMAngleForceComputeGPU");
         }
         
-    prefact[0] = 0.0;
-    prefact[1] = 6.75;
-    prefact[2] = 2.59807621135332;
-    prefact[3] = 4.0;
+    prefact[0] = Scalar(0.0);
+    prefact[1] = Scalar(6.75);
+    prefact[2] = Scalar(2.59807621135332);
+    prefact[3] = Scalar(4.0);
     
-    cgPow1[0]  = 0.0;
-    cgPow1[1]  = 9.0;
-    cgPow1[2]  = 12.0;
-    cgPow1[3]  = 12.0;
+    cgPow1[0]  = Scalar(0.0);
+    cgPow1[1]  = Scalar(9.0);
+    cgPow1[2]  = Scalar(12.0);
+    cgPow1[3]  = Scalar(12.0);
     
-    cgPow2[0]  = 0.0;
-    cgPow2[1]  = 6.0;
-    cgPow2[2]  = 4.0;
-    cgPow2[3]  = 6.0;
+    cgPow2[0]  = Scalar(0.0);
+    cgPow2[1]  = Scalar(6.0);
+    cgPow2[2]  = Scalar(4.0);
+    cgPow2[3]  = Scalar(6.0);
     
     // allocate and zero device memory
     m_gpu_params.resize(exec_conf.gpu.size());

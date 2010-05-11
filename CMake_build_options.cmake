@@ -89,12 +89,6 @@ if (ENABLE_CUDA)
         list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
     endif (CUDA_VERSION VERSION_GREATER 2.99) 
     
-    # ULF bug workaround disable option
-    option(DISABLE_ULF_WORKAROUND "Set to ON to enable higher performace at the cost of stability on pre C1060 GPUs" off)
-    mark_as_advanced(DISABLE_ULF_WORKAROUND)
-    if (DISABLE_ULF_WORKAROUND)
-        add_definitions (-DDISABLE_ULF_WORKAROUND)
-    endif (DISABLE_ULF_WORKAROUND)
 endif (ENABLE_CUDA)
 
 #################################

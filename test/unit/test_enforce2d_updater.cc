@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDInitializer.h"
 #include "BinnedNeighborList.h"
 #include "TwoStepNVT.h"
+#include "ComputeThermo.h"
 
 #ifdef ENABLE_CUDA
 #include "Enforce2DUpdaterGPU.h"
@@ -67,7 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IntegratorTwoStep.h"
 
 #include "HOOMDDumpWriter.h"
-#include "TempCompute.h"
 #include "saruprng.h"
 
 #include <math.h>
@@ -123,7 +123,9 @@ void enforce2d_basic_test(enforce2d_creator creator, ExecutionConfiguration exec
     pdata->release();
     
     boost::shared_ptr<Variant> T(new VariantConst(1.0));
-    shared_ptr<TwoStepNVT> two_step_nvt(new TwoStepNVT(sysdef, group_all, 0.5, T));
+    shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    thermo->setNDOF(2*group_all->getNumMembers()-2);
+    shared_ptr<TwoStepNVT> two_step_nvt(new TwoStepNVT(sysdef, group_all, thermo, 0.5, T));
         
     Scalar deltaT = Scalar(0.005);
     shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));

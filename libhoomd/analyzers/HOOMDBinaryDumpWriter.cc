@@ -80,7 +80,7 @@ using namespace boost::iostreams;
 //! Helper function to write a string out to a file in binary mode
 static void write_string(ostream &f, const string& str)
     {
-    unsigned int len = str.size();
+    unsigned int len = (unsigned int)str.size();
     f.write((char*)&len, sizeof(unsigned int)); 
     if (len != 0)
         f.write(str.c_str(), len*sizeof(char));
@@ -203,7 +203,7 @@ void HOOMDBinaryDumpWriter::writeFile(std::string fname, unsigned int timestep)
         IntegratorVariables v = integrator_data->getIntegratorVariables(j);
         write_string(f, v.type);
 
-        unsigned int nv = v.variable.size();
+        unsigned int nv = (unsigned int)v.variable.size();
         f.write((char*)&nv, sizeof(unsigned int));
         for (unsigned int k=0; k<nv; k++)
             {

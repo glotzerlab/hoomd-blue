@@ -63,6 +63,8 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
+    \param thermo_all ComputeThermo to compute the pressure of the entire system
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
@@ -70,11 +72,13 @@ using namespace boost;
 */
 TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
+                             boost::shared_ptr<ComputeThermo> thermo_group,
+                             boost::shared_ptr<ComputeThermo> thermo_all,
                              Scalar tau,
                              Scalar tauP,
                              boost::shared_ptr<Variant> T,
                              boost::shared_ptr<Variant> P)
-    : TwoStepNPT(sysdef, group, tau, tauP, T, P)
+    : TwoStepNPT(sysdef, group, thermo_group, thermo_all, tau, tauP, T, P)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
@@ -82,21 +86,6 @@ TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
         cerr << endl << "***Error! Creating a TwoStepNPTGPU with 0 or more than one GPUs" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
-    
-    // allocate the total sum variables
-    GPUArray<float> sum2K(1, m_pdata->getExecConf());
-    m_sum2K.swap(sum2K);
-    GPUArray<float> sumW(1, m_pdata->getExecConf());
-    m_sumW.swap(sumW);
-    
-    // initialize the partial sum2K array
-    m_block_size = 128;
-    m_group_num_blocks = m_group->getNumMembers() / m_block_size + 1;
-    m_full_num_blocks = m_pdata->getN() / m_block_size + 1;
-    GPUArray<float> partial_sum2K(m_full_num_blocks, m_pdata->getExecConf());
-    m_partial_sum2K.swap(partial_sum2K);
-    GPUArray<float> partial_sumW(m_full_num_blocks, m_pdata->getExecConf());
-    m_partial_sumW.swap(partial_sumW);
     }
 
 /*! \param timestep Current time step
@@ -120,7 +109,6 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    ArrayHandle< float > d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
 
     // advance thermostat(m_Xi) half a time step
     xi += Scalar(1.0/2.0)/(m_tau*m_tau)*(m_curr_group_T/m_T->getValue(timestep) - Scalar(1.0))*m_deltaT;
@@ -136,8 +124,6 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
                                 d_pdata[0],
                                 d_index_array.data,
                                 group_size,
-                                m_block_size,
-                                m_group_num_blocks,
                                 m_partial_scale,
                                 xi,
                                 eta,
@@ -158,7 +144,6 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     exec_conf.tagAll(__FILE__,__LINE__);
     exec_conf.gpu[0]->call(bind(gpu_npt_boxscale, d_pdata[0],
                                                   box,
-                                                  m_block_size,
                                                   m_partial_scale,
                                                   eta,
                                                   m_deltaT));
@@ -170,7 +155,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     m_pdata->release();
     m_pdata->setBox(BoxDim(m_Lx, m_Ly, m_Lz));
     }
-        
+
 /*! \param timestep Current time step
     \post particle velocities are moved forward to timestep+1 on the GPU
 */
@@ -182,10 +167,14 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
+    // compute the current thermodynamic properties
+    m_thermo_group->compute(timestep+1);
+    m_thermo_all->compute(timestep+1);
+    
     // compute temperature for the next half time step
-    m_curr_group_T = computeGroupTemperature(timestep+1);
+    m_curr_group_T = m_thermo_group->getTemperature();
     // compute pressure for the next half time step
-    m_curr_P = computePressure(timestep+1);
+    m_curr_P = m_thermo_all->getPressure();
     
     // profile this step
     if (m_prof)
@@ -205,8 +194,6 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
                                 d_index_array.data,
                                 group_size,
                                 d_net_force.data,
-                                m_block_size,
-                                m_group_num_blocks,
                                 xi,
                                 eta,
                                 m_deltaT));
@@ -225,107 +212,13 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
 
-Scalar TwoStepNPTGPU::computePressure(unsigned int timestep)
-    {
-    // grab access to the particle data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
-    
-    // first, run kernels on the GPU to compute the sum2K and sumW values
-        {
-        ArrayHandle<float> d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
-        ArrayHandle<float> d_partial_sumW(m_partial_sumW, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
-        
-        // do the partial sum
-        exec_conf.gpu[0]->call(bind(gpu_npt_pressure2,
-                                      d_partial_sum2K.data,
-                                      d_partial_sumW.data,
-                                      d_pdata[0],
-                                      d_virial.data,
-                                      m_block_size,
-                                      m_full_num_blocks));
-        
-        ArrayHandle<float> d_sum2K(m_sum2K, access_location::device, access_mode::overwrite);
-        ArrayHandle<float> d_sumW(m_sumW, access_location::device, access_mode::overwrite);
-        // reduce the partial sums
-        exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_full_num_blocks));
-        exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sumW.data, d_partial_sumW.data, m_full_num_blocks));
-        }
-    
-    // now, access the data on the host
-    ArrayHandle<float> h_sum2K(m_sum2K, access_location::host, access_mode::read);
-    float ke_total = h_sum2K.data[0];
-    ArrayHandle<float> h_sumW(m_sumW, access_location::host, access_mode::read);
-    float W = h_sumW.data[0];
-    
-    ke_total *= 0.5;
-    Scalar T = Scalar(2.0 * ke_total / m_dof);
-
-    // volume/area & other 2D stuff needed
-    BoxDim box = m_pdata->getBox();
-    Scalar volume;
-    unsigned int D = m_sysdef->getNDimensions();
-    if (D == 2)
-        {
-        // "volume" is area in 2D
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
-        // W needs to be corrected since the 1/3 factor is built in
-        W *= Scalar(3.0/2.0);
-        }
-    else
-        {
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
-        }
-    
-    // done!
-    m_pdata->release();
-    
-    // pressure: P = (N * K_B * T + W)/V
-    Scalar N = Scalar(m_pdata->getN());
-    return (N * T + W) / volume;
-    }
-        
-Scalar TwoStepNPTGPU::computeGroupTemperature(unsigned int timestep)
-    {
-    // grab access to the particle data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
-
-    // first, run kernels on the GPU to compute the sum2K value
-        {
-        ArrayHandle<float> d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
-        ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-        unsigned int group_size = m_group->getIndexArray().getNumElements();
-        
-        // do the partial sum
-        exec_conf.gpu[0]->call(bind(gpu_npt_group_temperature,
-                                      d_partial_sum2K.data,
-                                      d_pdata[0],
-                                      d_index_array.data,
-                                      group_size,
-                                      m_block_size,
-                                      m_group_num_blocks));
-        
-        ArrayHandle<float> d_sum2K(m_sum2K, access_location::device, access_mode::overwrite);
-        // reduce the partial sums
-        exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_group_num_blocks));
-        }
-    
-    // now, access the data on the host
-    ArrayHandle<float> h_sum2K(m_sum2K, access_location::host, access_mode::read);
-    float ke_total = h_sum2K.data[0];
-    
-    ke_total *= 0.5;
-    
-    // done!
-    m_pdata->release();
-    return 2.0 * ke_total / m_group_dof;
-    }
-
 void export_TwoStepNPTGPU()
     {
     class_<TwoStepNPTGPU, boost::shared_ptr<TwoStepNPTGPU>, bases<TwoStepNPT>, boost::noncopyable>
         ("TwoStepNPTGPU", init< boost::shared_ptr<SystemDefinition>,
                           boost::shared_ptr<ParticleGroup>,
+                          boost::shared_ptr<ComputeThermo>,
+                          boost::shared_ptr<ComputeThermo>,
                           Scalar,
                           Scalar,
                           boost::shared_ptr<Variant>,
