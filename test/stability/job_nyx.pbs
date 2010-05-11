@@ -1,0 +1,31 @@
+#PBS -N hoomd_stability_test
+#PBS -l nodes=1,walltime=03:00:00,software=graphics,pmem=1gb,qos=glotzergpu
+#PBS -V
+#PBS -j oe
+#PBS -q route
+#PBS -t 1-15
+
+HOOMD_ARGS=
+
+cd ${PBS_O_WORKDIR}
+
+###################
+# Job status info
+echo "Job: ${PBS_JOBNAME}"
+echo "Array ID: ${PBS_ARRAYID}" 
+echo "Directory: ${PBS_O_WORKDIR}"
+echo "Nodes:"
+cat $PBS_NODEFILE
+echo "-----"
+echo ""
+###################
+
+###################
+# run the job
+
+directory_list=( dummy pair_lj npt nve bdnvt rescale_temp bond_fene bond_harmonic wall_lj pair_gaussian pair_cgcmm angle_harmonic pair_morse pair_table pair_slj pair_yukawa)
+echo "Running hoomd validation test ${directory_list[${PBS_ARRAYID}]} on with args ${HOOMD_ARGS}"
+cd ${directory_list[${PBS_ARRAYID}]}
+hoomd run.hoomd ${HOOMD_ARGS} --gpu_error_checking --mode=gpu
+
+echo "job done"

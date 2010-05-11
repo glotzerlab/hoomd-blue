@@ -54,9 +54,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "ComputeThermo.h"
 #include "TwoStepNPT.h"
 #ifdef ENABLE_CUDA
 #include "TwoStepNPTGPU.h"
+#include "ComputeThermoGPU.h"
 #endif
 #include "IntegratorTwoStep.h"
 
@@ -133,19 +135,28 @@ void npt_updater_test(twostepnpt_creator npt_creator, ExecutionConfiguration exe
         {
         npt->update(i);
         }
-        
+    
+    shared_ptr<ComputeThermo> compute_thermo(new ComputeThermo(sysdef, group_all, "name"));
+    compute_thermo->setNDOF(3*N-3);
+    
     // now do the averaging for next 100k steps
     Scalar avrT = 0.0;
     Scalar avrP = 0.0;
+    int count = 0;
     for (int i = 10001; i < 50000; i++)
         {
-        avrT += npt->computeTemperature(i);
-        avrP += npt->computePressure(i);
+        if (i % 100 == 0)
+            {
+            compute_thermo->compute(i);
+            avrT += compute_thermo->getTemperature();
+            avrP += compute_thermo->getPressure();
+            count++;
+            }
         npt->update(i);
         }
         
-    avrT /= 40000.0;
-    avrP /= 40000.0;
+    avrT /= Scalar(count);
+    avrP /= Scalar(count);
     Scalar rough_tol = 2.0;
     MY_BOOST_CHECK_CLOSE(T, avrT, rough_tol);
     MY_BOOST_CHECK_CLOSE(P, avrP, rough_tol);
@@ -162,7 +173,10 @@ shared_ptr<TwoStepNPT> base_class_npt_creator(shared_ptr<SystemDefinition> sysde
     {
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
-    return shared_ptr<TwoStepNPT>(new TwoStepNPT(sysdef, group,tau,tauP,T_variant,P_variant));
+    boost::shared_ptr<ComputeThermo> thermo_group(new ComputeThermo(sysdef, group));
+    thermo_group->setNDOF(3*sysdef->getParticleData()->getN() - 3);
+    // for the tests, we can assume that group is the all group
+    return shared_ptr<TwoStepNPT>(new TwoStepNPT(sysdef, group, thermo_group, thermo_group, tau,tauP,T_variant,P_variant));
     }
 
 #ifdef ENABLE_CUDA
@@ -176,7 +190,10 @@ shared_ptr<TwoStepNPT> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef,
     {
     boost::shared_ptr<Variant> T_variant(new VariantConst(T));
     boost::shared_ptr<Variant> P_variant(new VariantConst(P));
-    return shared_ptr<TwoStepNPT>(new TwoStepNPTGPU(sysdef, group, tau, tauP, T_variant, P_variant));
+    boost::shared_ptr<ComputeThermo> thermo_group(new ComputeThermoGPU(sysdef, group));
+    thermo_group->setNDOF(3*sysdef->getParticleData()->getN() - 3);
+    // for the tests, we can assume that group is the all group
+    return shared_ptr<TwoStepNPT>(new TwoStepNPTGPU(sysdef, group, thermo_group, thermo_group, tau, tauP, T_variant, P_variant));
     }
 #endif
 

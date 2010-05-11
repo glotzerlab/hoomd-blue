@@ -52,8 +52,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 
-#include "TempCompute.h"
+#include "ComputeThermo.h"
 #include "TempRescaleUpdater.h"
+
+#ifdef ENABLE_CUDA
+#include "ComputeThermoGPU.h"
+#endif
 
 #include <math.h>
 
@@ -65,12 +69,12 @@ using namespace boost;
 #include "boost_utf_configure.h"
 
 /*! \file temp_rescale_updater_test.cc
-    \brief Unit tests for the TempCompute and TempRescaleUpdater classes.
+    \brief Unit tests for the ComputeThermo and TempRescaleUpdater classes.
     \ingroup unit_tests
 */
 
-//! boost test case to verify proper operation of TempCompute
-BOOST_AUTO_TEST_CASE( TempCompute_basic )
+//! boost test case to verify proper operation of ComputeThermo
+BOOST_AUTO_TEST_CASE( ComputeThermo_basic )
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -89,13 +93,45 @@ BOOST_AUTO_TEST_CASE( TempCompute_basic )
     pdata->release();
     
     // construct a TempCompute and see that everything is set properly
-    shared_ptr<TempCompute> tc(new TempCompute(sysdef));
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
     
     // check that we can actually compute temperature
-    tc->setDOF(3*pdata->getN());
+    tc->setNDOF(3*pdata->getN());
     tc->compute(0);
-    MY_BOOST_CHECK_CLOSE(tc->getTemp(), 15.1666666666666666666667, tol);
+    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
     }
+
+#ifdef ENABLE_CUDA
+//! boost test case to verify proper operation of ComputeThermoGPU
+BOOST_AUTO_TEST_CASE( ComputeThermoGPU_basic )
+    {
+    g_gpu_error_checking = true;
+    
+    // verify that we can constructe a TempCompute properly
+    // create a simple particle data to test with
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.vx[0] = 1.0; arrays.vy[0] = 2.0; arrays.vz[0] = 3.0;
+    arrays.x[1] = arrays.y[1] = arrays.z[1] = 1.0;
+    arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
+    pdata->release();
+    
+    // construct a TempCompute and see that everything is set properly
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    shared_ptr<ComputeThermoGPU> tc(new ComputeThermoGPU(sysdef, group_all));
+    
+    // check that we can actually compute temperature
+    tc->setNDOF(3*pdata->getN());
+    tc->compute(0);
+    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
+    }
+#endif
 
 //! boost test case to verify proper operation of TempRescaleUpdater
 BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
@@ -115,22 +151,29 @@ BOOST_AUTO_TEST_CASE( TempRescaleUpdater_basic )
     arrays.vx[1] = 4.0; arrays.vy[1] = 5.0; arrays.vz[1] = 6.0;
     pdata->release();
     
-    // construct a TempCompute for the updater
-    shared_ptr<TempCompute> tc(new TempCompute(sysdef));
+    // construct a Computethermo for the updater
+    shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));
+    
+    
+    // variant T for the rescaler
+    shared_ptr<VariantConst> T_variant(new VariantConst(1.2));
     
     // construct the updater and make sure everything is set properly
-    shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, Scalar(1.2)));
+    shared_ptr<TempRescaleUpdater> rescaler(new TempRescaleUpdater(sysdef, tc, T_variant));
     
     // run the updater and check the new temperature
     rescaler->update(0);
     tc->compute(1);
-    MY_BOOST_CHECK_CLOSE(tc->getTemp(), 1.2, tol);
+    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 1.2, tol);
     
     // check that the setT method works
-    rescaler->setT(2.0);
+    shared_ptr<VariantConst> T_variant2(new VariantConst(2.0));
+    rescaler->setT(T_variant2);
     rescaler->update(1);
     tc->compute(2);
-    MY_BOOST_CHECK_CLOSE(tc->getTemp(), 2.0, tol);
+    MY_BOOST_CHECK_CLOSE(tc->getTemperature(), 2.0, tol);
     }
 
 #ifdef WIN32

@@ -59,6 +59,8 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
+    \param thermo_all ComputeThermo to compute the pressure of the entire system
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
@@ -66,11 +68,14 @@ using namespace boost::python;
 */
 TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
+                       boost::shared_ptr<ComputeThermo> thermo_group,
+                       boost::shared_ptr<ComputeThermo> thermo_all,
                        Scalar tau,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P)
-    : IntegrationMethodTwoStep(sysdef, group), m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P)
+    : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group), m_thermo_all(thermo_all), 
+      m_partial_scale(false), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P)
     {
     if (m_tau <= 0.0)
         cout << "***Warning! tau set less than 0.0 in TwoStepNPT" << endl;
@@ -86,17 +91,17 @@ TwoStepNPT::TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
     
     m_V = m_Lx*m_Ly*m_Lz;   // volume
     
-    // initialize temperature and pressure computations
-    unsigned int dim = m_sysdef->getNDimensions();
-    m_group_dof = Scalar(dim*m_group->getNumMembers() - dim);
-    m_dof = Scalar(dim*m_pdata->getN() - dim);
-    
-    // compute the current pressure and temperature on construction
-    m_curr_group_T = computeGroupTemperature(0);
-    m_curr_P = computePressure(0);
-    
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
+
+    // compute the current thermodynamic properties
+    m_thermo_group->compute(0);
+    m_thermo_all->compute(0);
+    
+    // compute temperature for the next half time step
+    m_curr_group_T = m_thermo_group->getTemperature();
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
 
     if (!restartInfoTestValid(v, "npt", 2))
         {
@@ -244,11 +249,15 @@ void TwoStepNPT::integrateStepTwo(unsigned int timestep)
         return;
     
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-   
+    
+    // compute the current thermodynamic properties
+    m_thermo_group->compute(timestep+1);
+    m_thermo_all->compute(timestep+1);
+    
     // compute temperature for the next half time step
-    m_curr_group_T = computeGroupTemperature(timestep+1);
+    m_curr_group_T = m_thermo_group->getTemperature();
     // compute pressure for the next half time step
-    m_curr_P = computePressure(timestep+1);
+    m_curr_P = m_thermo_all->getPressure();
 
     // profile this step
     if (m_prof)
@@ -296,79 +305,13 @@ void TwoStepNPT::integrateStepTwo(unsigned int timestep)
     }
 
 
-Scalar TwoStepNPT::computePressure(unsigned int timestep)
-    {
-    // grab access to the particle data
-    const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    ArrayHandle<Scalar> h_virial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
-    
-    // sum up the kinetic energy and virial of the whole system
-    double ke_total = 0.0;
-    double W = 0.0;
-    for (unsigned int i=0; i < m_pdata->getN(); i++)
-        {
-        ke_total += (double)arrays.mass[i]*((double)arrays.vx[i] * (double)arrays.vx[i] + 
-                                            (double)arrays.vy[i] * (double)arrays.vy[i] +
-                                            (double)arrays.vz[i] * (double)arrays.vz[i]);
-        
-        W += h_virial.data[i];
-        }
-        
-    ke_total *= 0.5;
-    Scalar T = Scalar(2.0 * ke_total / m_dof);
-
-    // volume/area & other 2D stuff needed
-    BoxDim box = m_pdata->getBox();
-    Scalar volume;
-    unsigned int D = m_sysdef->getNDimensions();
-    if (D == 2)
-        {
-        // "volume" is area in 2D
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
-        // W needs to be corrected since the 1/3 factor is built in
-        W *= Scalar(3.0/2.0);
-        }
-    else
-        {
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
-        }
-    
-    // done!
-    m_pdata->release();
-    
-    // pressure: P = (N * K_B * T + W)/V
-    Scalar N = Scalar(m_pdata->getN());
-    return (N * T + W) / volume;
-    }
-        
-Scalar TwoStepNPT::computeGroupTemperature(unsigned int timestep)
-    {
-    // grab access to the particle data
-    const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    
-    // sum up the kinetic energy
-    double ke_total = 0.0;
-    unsigned int group_size = m_group->getNumMembers();
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-        {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        ke_total += (double)arrays.mass[j]*((double)arrays.vx[j] * (double)arrays.vx[j] + 
-                                            (double)arrays.vy[j] * (double)arrays.vy[j] +
-                                            (double)arrays.vz[j] * (double)arrays.vz[j]);
-        }
-        
-    ke_total *= 0.5;
-    
-    // done!
-    m_pdata->release();
-    return 2.0 * ke_total / m_group_dof;
-    }
-
 void export_TwoStepNPT()
     {
     class_<TwoStepNPT, boost::shared_ptr<TwoStepNPT>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNPT", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
+                       boost::shared_ptr<ComputeThermo>,
+                       boost::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
                        boost::shared_ptr<Variant>,

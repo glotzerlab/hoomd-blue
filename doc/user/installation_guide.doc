@@ -136,9 +136,11 @@ system to one or two host nodes.
 - <a href="http://www.nvidia.com/object/product_tesla_s1070_us.html">Tesla S1070</a>
 
 A number of rack mount host node configurations also accept Tesla MXXX cards.
+- <a href="http://www.nvidia.com/object/product_tesla_M2050_M2070_us.html">Tesla M2070</a>
+- <a href="http://www.nvidia.com/object/product_tesla_M2050_M2070_us.html">Tesla M2050</a> - \b Recommended
 - <a href="http://www.nvidia.com/object/product_tesla_m1060_us.html">Tesla M1060</a>
 
-Quadro GPUs also come in rack mount configurations. They are marketed and built more for high performance
+Quadro GPUs are also available in rack mount configurations. They are marketed and built more for high performance
 visualization systems, but are supported by HOOMD-blue.
 - <a href="http://www.nvidia.com/object/product_quadroplex_2200_d2_us.html">Quadro Plex 2200 D2</a>
 - <a href="http://www.nvidia.com/object/product_quadroplex_2200_s4_us.html">Quadro Plex 2200 S4</a>

@@ -106,25 +106,6 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
     m_curNmax = 0;
     m_avgNmax = Scalar(0.0);
     
-    // ulf workaround setup
-#ifndef DISABLE_ULF_WORKAROUND
-    cudaDeviceProp deviceProp;
-    int dev;
-    exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-    exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-    
-    m_ulf_workaround = false;
-    
-    // the ULF workaround is needed on all compute 1.1 GPUs
-    if (deviceProp.major == 1 && deviceProp.minor == 1)
-        m_ulf_workaround = true;
-        
-    if (m_ulf_workaround)
-        cout << "Notice: ULF bug workaround enabled for BinnedNeighborListGPU" << endl;
-#else
-    m_ulf_workaround = false;
-#endif
-        
     // bogus values for last value
     m_last_Mx = INT_MAX;
     m_last_My = INT_MAX;
@@ -603,7 +584,7 @@ void BinnedNeighborListGPU::updateListFromBins()
         {
         m_gpu_nlist[cur_gpu].thread_mapping = d_thread_mapping.data;
         exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], d_bin_ids.data, r_max_sq, m_curNmax, m_block_size, m_ulf_workaround));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_nlist_binned, m_gpu_nlist[cur_gpu], pdata[cur_gpu], box, m_gpu_bin_data[cur_gpu], d_bin_ids.data, r_max_sq, m_curNmax, m_block_size));
         }
         
     exec_conf.syncAll();

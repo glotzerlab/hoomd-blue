@@ -91,8 +91,9 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     int n_angle_types = 1;
     int n_dihedral_types = 1;
     int n_improper_types = 1;
-    
-    shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+   
+    ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
+    shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
     
     // set recognizable values for the particle
@@ -171,7 +172,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists("test.0000000000.bin"));
 
     HOOMDBinaryInitializer init("test.0000000000.bin");
-    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(init));
+    shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(init, exec_conf));
     shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
     
     BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)0);
@@ -245,7 +246,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     BOOST_REQUIRE(exists("test.0000000010.bin"));
 
     HOOMDBinaryInitializer init3("test.0000000010.bin");
-    shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(init3));
+    shared_ptr<SystemDefinition> sysdef3(new SystemDefinition(init3, exec_conf));
     shared_ptr<ParticleData> pdata3 = sysdef3->getParticleData();
     
     BOOST_CHECK_EQUAL(init3.getTimeStep(), (unsigned int)10);

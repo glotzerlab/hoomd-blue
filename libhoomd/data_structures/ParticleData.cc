@@ -49,7 +49,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef WIN32
 #pragma warning( push )
-#pragma warning( disable : 4103 4244 )
+#pragma warning( disable : 4103 4244 4267 )
 #endif
 
 #include <iostream>

@@ -117,8 +117,6 @@ class BinnedNeighborListGPU : public NeighborList
         unsigned int *m_mem_location;                //!< Memory location of bins (Z-order curve)
         GPUArray< unsigned int> m_bin_ids;          //!< Bin ID of each particle computed on the GPU
         
-        bool m_ulf_workaround;                        //!< Stores decision made by the constructor whether to enable the ULF workaround
-        
         //! Builds the neighbor list
         virtual void buildNlist();
         

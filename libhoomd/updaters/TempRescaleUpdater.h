@@ -50,7 +50,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #include "Updater.h"
-#include "TempCompute.h"
+#include "ComputeThermo.h"
+#include "Variant.h"
 #include <vector>
 
 #ifndef __TEMPRESCALEUPDATER_H__
@@ -66,17 +67,19 @@ class TempRescaleUpdater : public Updater
     {
     public:
         //! Constructor
-        TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<TempCompute> tc, Scalar tset);
+        TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef,
+                           boost::shared_ptr<ComputeThermo> thermo,
+                           boost::shared_ptr<Variant> tset);
         
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
         
-        //! Change the timestep
-        void setT(Scalar tset);
+        //! Change the temperature set point
+        void setT(boost::shared_ptr<Variant> T);
         
     private:
-        boost::shared_ptr<TempCompute> m_tc;        //!< Computes the temperature
-        Scalar m_tset;                              //!< Temperature set point
+        boost::shared_ptr<ComputeThermo> m_thermo;  //!< Computes the temperature
+        boost::shared_ptr<Variant> m_tset;          //!< Temperature set point
     };
 
 //! Export the TempRescaleUpdater to python
