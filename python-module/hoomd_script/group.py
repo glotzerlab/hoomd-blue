@@ -186,7 +186,17 @@ def all():
     if not init.is_initialized():
         print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
         raise RuntimeError('Error creating group');
-
+    
+    # the all group is special: when the first one is created, it is cached in globals and future calls to group.all()
+    # return the cached version
+    if globals.group_all is not None:
+        expected_N = globals.system_definition.getParticleData().getN();
+        if len(globals.group_all) != expected_N:
+            print >> sys.stderr, "\n***Error! globals.group_all does not appear to be the group of all particles!\n";
+            raise RuntimeError('Error creating group');
+        
+        return globals.group_all;
+    
     # choose the tag range
     tag_min = 0;
     tag_max = globals.system_definition.getParticleData().getN()-1;
@@ -199,8 +209,9 @@ def all():
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
 
-    # return it in the wrapper class
-    return group(name, cpp_group);
+    # cache it and then return it in the wrapper class
+    globals.group_all = group(name, cpp_group);
+    return globals.group_all;
 
 ## Groups particles in a cuboid
 #
@@ -314,6 +325,47 @@ def tags(tag_min, tag_max=None, name=None):
     # create the group
     selector = hoomd.ParticleSelectorTag(globals.system_definition, tag_min, tag_max);
     cpp_group = hoomd.ParticleGroup(globals.system_definition, selector);
+
+    # notify the user of the created group
+    print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';
+
+    # return it in the wrapper class
+    return group(name, cpp_group);
+
+## Groups particles by tag list
+#
+# \param tags List of particle tags to include in the group
+# \param name User-assigned name for this group.
+#
+# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
+# added to the group. 
+#
+# Creates a particle group from particles with the given tags. Can be used to implement advanced grouping not
+# available with existing group commands.
+#
+# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
+# examples.
+# 
+# \b Examples:
+# \code
+# a = group.tag_list(name="a", tags = [0, 12, 18, 205])
+# b = group.tags(name="b", tags = range(20,400))
+# \endcode
+def tag_list(name, tags):
+    util.print_status_line();
+    
+    # check if initialization has occurred
+    if not init.is_initialized():
+        print >> sys.stderr, "\n***Error! Cannot create a group before initialization\n";
+        raise RuntimeError('Error creating group');
+    
+    # build a vector of the tags
+    cpp_list = hoomd.std_vector_uint();
+    for t in tags:
+        cpp_list.push_back(t);
+
+    # create the group
+    cpp_group = hoomd.ParticleGroup(globals.system_definition, cpp_list);
 
     # notify the user of the created group
     print 'Group "' + name + '" created containing ' + str(cpp_group.getNumMembers()) + ' particles';

@@ -45,6 +45,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "IntegrationMethodTwoStep.h"
 #include "Variant.h"
+#include "ComputeThermo.h"
 
 #ifndef __TWO_STEP_NPT_H__
 #define __TWO_STEP_NPT_H__
@@ -60,6 +61,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - [0] -> xi
      - [1] -> eta
 
+    The instantaneous temperature of the system is computed with the provided ComputeThermo. Correct dynamics require
+    that the thermo computes the temperature of the assigned group and with D*N-D degrees of freedom. TwoStepNPT does
+    not check for these conditions. In addition, TwoStepNPT needs a ComputeThermo that operates on the group of all
+    particles.
+
     \ingroup updaters
 */
 class TwoStepNPT : public IntegrationMethodTwoStep
@@ -68,6 +74,8 @@ class TwoStepNPT : public IntegrationMethodTwoStep
         //! Constructs the integration method and associates it with the system
         TwoStepNPT(boost::shared_ptr<SystemDefinition> sysdef,
                    boost::shared_ptr<ParticleGroup> group,
+                   boost::shared_ptr<ComputeThermo> thermo_group,
+                   boost::shared_ptr<ComputeThermo> thermo_all,
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
@@ -121,6 +129,9 @@ class TwoStepNPT : public IntegrationMethodTwoStep
         virtual void integrateStepTwo(unsigned int timestep);
     
     protected:
+        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
+        boost::shared_ptr<ComputeThermo> m_thermo_all;     //!< ComputeThermo operating on the group of all particles
+        
         bool m_partial_scale;           //!< True if only the particles in the group should be scaled to the new box
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
@@ -128,18 +139,10 @@ class TwoStepNPT : public IntegrationMethodTwoStep
         boost::shared_ptr<Variant> m_P; //!< Pressure set point
         Scalar m_curr_group_T;          //!< Current group temperature
         Scalar m_curr_P;                //!< Current system pressure
-        Scalar m_group_dof;             //!< Number of degrees of freedom in the integrated group
-        Scalar m_dof;                   //!< Number of degrees of freedom in the entire system
         Scalar m_V;                     //!< Current volume
         Scalar m_Lx;                    //!< Box length in x direction
         Scalar m_Ly;                    //!< Box length in y direction
         Scalar m_Lz;                    //!< Box length in z direction
-        
-        //! helper function to compute pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
-        //! helper function to compute group temperature
-        virtual Scalar computeGroupTemperature(unsigned int timestep);
     };
 
 //! Exports the TwoStepNVT class to python

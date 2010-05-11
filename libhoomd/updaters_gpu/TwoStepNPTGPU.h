@@ -63,6 +63,8 @@ class TwoStepNPTGPU : public TwoStepNPT
         //! Constructs the integration method and associates it with the system
         TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<ParticleGroup> group,
+                      boost::shared_ptr<ComputeThermo> thermo_group,
+                      boost::shared_ptr<ComputeThermo> thermo_all,
                       Scalar tau,
                       Scalar tauP,
                       boost::shared_ptr<Variant> T,
@@ -74,20 +76,6 @@ class TwoStepNPTGPU : public TwoStepNPT
         
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-    protected:
-        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
-        unsigned int m_group_num_blocks;  //!< Number of blocks of \a block_size to launch when updating the group
-        unsigned int m_full_num_blocks;   //!< Number of blocks to launch when updating all particles
-        GPUArray<float> m_partial_sum2K;  //!< Partial sums from the first pass reduction
-        GPUArray<float> m_sum2K;          //!< Total sum of 2K on the GPU
-        GPUArray<float> m_partial_sumW;   //!< Partial sums for the first pass reduction of W
-        GPUArray<float> m_sumW;           //!< Total sum of W on the GPU
-
-        //! helper function to compute pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
-        //! helper function to compute group temperature
-        virtual Scalar computeGroupTemperature(unsigned int timestep);
     };
 
 //! Exports the TwoStepNPTGPU class to python

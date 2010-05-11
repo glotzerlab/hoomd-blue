@@ -33,8 +33,8 @@ class pair_cgcmm_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, cgcmm.update_coeffs);
 
    # test nlist subscribe
-    def teat_nlist_subscribe(self):
-        gauss = pair.gauss(r_cut=2.5);
+    def test_nlist_subscribe(self):
+        cgcmm = pair.cgcmm(r_cut=2.5);
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(2.5, globals.neighbor_list.r_cut);
 

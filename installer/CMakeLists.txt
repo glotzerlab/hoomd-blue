@@ -95,7 +95,8 @@ else(CMAKE_CL_64)
 set (_cudart_search_path ${CUDA_TOOLKIT_ROOT_DIR}/bin)
 endif(CMAKE_CL_64)
 
-find_file(CUDA_CUDART_DLL cudart.dll
+find_file(CUDA_CUDART_DLL 
+        NAMES cudart.dll cudart64_30_14.dll cudart32_30_14.dll
         HINTS ${_cudart_search_path})
 
 mark_as_advanced(CUDA_CUDART_DLL)

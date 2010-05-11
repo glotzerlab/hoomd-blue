@@ -68,12 +68,11 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
   - Doxygen  >= 1.5.6
 
 <hr>
-\section sec_build_instructions Build instructions for Linux, Mac, and Windows.
+\section sec_build_instructions Build instructions for Linux and Mac.
 
 Detailed instructions are organized into separate pages below.
  - \subpage page_compile_guide_mac
  - \subpage page_compile_guide_linux_generic
- - \subpage page_compile_guide_windows
 
 <hr>
 \section sec_build_options Build options
@@ -123,10 +122,6 @@ There are a few options for controlling the CUDA compilation.
 
 The following are advanced variables, and thus will only show when CMake's advanced mode is turned on.
 You really shouldn't change these from their defaults unless you really know what you are doing.
- - \b DISABLE_ULF_WORKAROUND - Disables the compiling of several workarounds that make
- 		hoomd stable for long run times. Set this to ON if you are a developer wanting
- 		to test and tune hoomd for the highest performance. If you are building hoomd
- 		for production simulation runs, set this ON only at the risk of your own sanity.
  - \b ENABLE_STATIC - Controls the compiling and linking of static libraries
  	- When set to \b ON, \b libhoomd is compiled as a static library and all 
  		other libraries (i.e. boost) are linked statically if possible.

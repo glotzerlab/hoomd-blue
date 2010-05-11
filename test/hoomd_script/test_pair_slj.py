@@ -48,8 +48,8 @@ class pair_slj_tests (unittest.TestCase):
         lj.update_coeffs()
     
     # test nlist subscribe
-    def teat_nlist_subscribe(self):
-        lj = pair.lj(r_cut=2.5, d_max=2.0);
+    def test_nlist_subscribe(self):
+        lj = pair.slj(r_cut=2.5, d_max=2.0);
         lj.pair_coeff.set('A', 'A', simga=1.0, epsilon=1.0)
         globals.neighbor_list.update_rcut();
         self.assertAlmostEqual(3.5, globals.neighbor_list.r_cut);

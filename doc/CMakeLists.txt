@@ -5,10 +5,8 @@
 if (DOXYGEN)
 
 # policy change: always build all documentation even on platforms that don't
-# have CUDA/Python/FFT/whatever
+# have CUDA
 set(DOXYGEN_PREDEFINED ${DOXYGEN_PREDEFINED} " \"ENABLE_CUDA=1\" \\
-    \"ENABLE_FFT=1\" \\
-    \"ENABLE_FFTW=1\" \\ 
     \"NVCC=1\" \\
     \"BOOST_VERSION=103500\" ")
 
@@ -37,7 +35,6 @@ set (_dev_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_dev.in
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc
-                       ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_windows.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/dev/DeveloperInfo.doc
@@ -97,7 +94,6 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc
-                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_windows.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/DoxygenLayout.xml

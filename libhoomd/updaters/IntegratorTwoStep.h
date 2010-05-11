@@ -97,6 +97,10 @@ class IntegratorTwoStep : public Integrator
         
         //! Remove all integration methods
         virtual void removeAllIntegrationMethods();
+        
+        //! Get the number of degrees of freedom granted to a given group
+        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group);
+
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();

@@ -43,6 +43,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 4267 4244 )
+#endif
+
 #include "ParticleGroup.h"
 
 #include <boost/python.hpp>
@@ -416,6 +421,7 @@ void export_ParticleGroup()
     {
     class_<ParticleGroup, boost::shared_ptr<ParticleGroup>, boost::noncopyable>
             ("ParticleGroup", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector> >())
+            .def(init<boost::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
             .def("getNumMembers", &ParticleGroup::getNumMembers)
             .def("getMemberTag", &ParticleGroup::getMemberTag)
             .def("getTotalMass", &ParticleGroup::getTotalMass)
@@ -443,3 +449,6 @@ void export_ParticleGroup()
         ;
     }
 
+#ifdef WIN32
+#pragma warning( pop )
+#endif

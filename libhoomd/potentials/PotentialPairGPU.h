@@ -108,7 +108,6 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             }
     protected:
         unsigned int m_block_size;  //!< Block size to execute on the GPU
-        bool m_ulf_workaround;      //!< True if we should use the ULF bug workaround
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -140,32 +139,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
         std::cerr << std::endl << "***Error! PotentialPairGPU cannot handle " << this->m_pdata->getNTypes() << " types" 
                   << std::endl << std::endl;
         throw std::runtime_error("Error initializing PotentialPairGPU");
-        }
-        
-    // ulf workaround setup
-#ifndef DISABLE_ULF_WORKAROUND
-    cudaDeviceProp deviceProp;
-    int dev;
-    this->exec_conf.gpu[0]->call(boost::bind(cudaGetDevice, &dev));
-    this->exec_conf.gpu[0]->call(boost::bind(cudaGetDeviceProperties, &deviceProp, dev));
-    
-    // the ULF workaround is needed on GTX280 and older GPUS
-    // it is not needed on C1060, S1070, GTX285, GTX295, and (hopefully) newer ones
-    m_ulf_workaround = true;
-    
-    if (deviceProp.major == 1 && deviceProp.minor >= 3)
-        m_ulf_workaround = false;
-    if (std::string(deviceProp.name) == "GTX 280")
-        m_ulf_workaround = true;
-    if (std::string(deviceProp.name) == "GeForce GTX 280")
-        m_ulf_workaround = true;
-        
-    if (m_ulf_workaround)
-        std::cout << "Notice: ULF bug workaround enabled for "
-                  << evaluator::getName() << " PotentialPairGPU" << std::endl;
-#else
-    m_ulf_workaround = false;
-#endif
+        }        
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const gpu_force_data_arrays& force_data,
@@ -211,7 +185,6 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     this->exec_conf.tagAll(__FILE__, __LINE__);
     pair_args opt;
     opt.block_size = m_block_size;
-    opt.ulf_workaround = m_ulf_workaround;
     opt.shift_mode = this->m_shift_mode;
     
     this->exec_conf.gpu[0]->call(boost::bind(gpu_cgpf,

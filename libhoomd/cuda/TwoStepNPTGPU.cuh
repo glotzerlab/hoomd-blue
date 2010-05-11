@@ -58,8 +58,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
-                             unsigned int block_size,
-                             unsigned int num_blocks,
                              bool partial_scale,
                              float Xi,
                              float Eta,
@@ -68,7 +66,6 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
 //! Kernel driver to scale the particles into a new box on the GPU
 cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
                              const gpu_boxsize& box,
-                             unsigned int block_size,
                              bool partial_scale,
                              float Eta,
                              float deltaT);
@@ -78,27 +75,9 @@ cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
-                             unsigned int block_size,
-                             unsigned int num_blocks,
                              float Xi,
                              float Eta,
                              float deltaT);
-
-//! Kernel driver for calculating the iinitial pass group 2K sum on the GPU
-cudaError_t gpu_npt_group_temperature(float *d_partial_sum2K,
-                                      const gpu_pdata_arrays& pdata,
-                                      unsigned int *d_group_members,
-                                      unsigned int group_size,
-                                      unsigned int block_size,
-                                      unsigned int num_blocks);
-
-//! Kernel driver for calculating the initial pass whole system sumW/sum2K on the GPU
-cudaError_t gpu_npt_pressure2(float *d_partial_sum2K,
-                              float *d_partial_sumW,
-                              gpu_pdata_arrays pdata,
-                              float *d_net_virial,
-                              unsigned int block_size,
-                              unsigned int num_blocks);
 
 #endif
 

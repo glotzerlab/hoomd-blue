@@ -67,6 +67,7 @@ class TwoStepNVTGPU : public TwoStepNVT
         //! Constructs the integration method and associates it with the system
         TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                       boost::shared_ptr<ParticleGroup> group,
+                      boost::shared_ptr<ComputeThermo> thermo,
                       Scalar tau,
                       boost::shared_ptr<Variant> T);
         virtual ~TwoStepNVTGPU() {};
@@ -77,10 +78,7 @@ class TwoStepNVTGPU : public TwoStepNVT
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     protected:
-        unsigned int m_block_size;        //!< Block size to launch on the GPU (must be a power of two)
-        unsigned int m_num_blocks;        //!< Number of blocks of \a block_size to launch when updating particles
-        GPUArray<float> m_partial_sum2K;  //!< Partial sums from the first pass reduction
-        GPUArray<float> m_sum2K;          //!< Total sum of 2K on the GPU
+        unsigned int m_block_size;        //!< Block size to launch on the GPU
     };
 
 //! Exports the TwoStepNVTGPU class to python

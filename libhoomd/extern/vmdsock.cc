@@ -72,7 +72,7 @@ void * vmdsock_create(void) {
   if (s != NULL)
     memset(s, 0, sizeof(vmdsocket)); 
 
-  if ((s->sd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+  if ((s->sd = (int)socket(PF_INET, SOCK_STREAM, 0)) == -1) {
     printf("Failed to open socket.");
     free(s);
     return NULL;
@@ -131,7 +131,7 @@ void *vmdsock_accept(void * v) {
 #endif
 
   len = sizeof(s->addr);
-  rc = accept(s->sd, (struct sockaddr *) &s->addr, (socklen_t *)&len);
+  rc = (int)accept(s->sd, (struct sockaddr *) &s->addr, (socklen_t *)&len);
   if (rc >= 0) {
     new_s = (vmdsocket *) malloc(sizeof(vmdsocket));
     if (new_s != NULL) {

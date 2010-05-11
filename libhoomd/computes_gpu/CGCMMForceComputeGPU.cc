@@ -96,28 +96,6 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
         throw runtime_error("Error initializing CGCMMForceComputeGPU");
         }
         
-    // ulf workaround setup
-#ifndef DISABLE_ULF_WORKAROUND
-    // the ULF workaround is needed on GTX280 and older GPUS
-    // it is not needed on C1060, S1070, GTX285, GTX295, and (hopefully) newer ones
-    m_ulf_workaround = true;
-    
-    cudaDeviceProp deviceProp;
-    int dev;
-    exec_conf.gpu[0]->call(bind(cudaGetDevice, &dev));
-    exec_conf.gpu[0]->call(bind(cudaGetDeviceProperties, &deviceProp, dev));
-    
-    if (deviceProp.major == 1 && deviceProp.minor >= 3)
-        m_ulf_workaround = false;
-    if (string(deviceProp.name) == "GeForce GTX 280")
-        m_ulf_workaround = true;
-        
-    if (m_ulf_workaround)
-        cout << "Notice: ULF bug workaround enabled for CGCMMForceComputeGPU" << endl;
-#else
-    m_ulf_workaround = false;
-#endif
-        
     // allocate the coeff data on the GPU
     int nbytes = sizeof(float4)*m_pdata->getNTypes()*m_pdata->getNTypes();
     
@@ -241,7 +219,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     // run the kernel on all GPUs in parallel
     exec_conf.tagAll(__FILE__, __LINE__);
     for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_cgcmm_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size, m_ulf_workaround));
+        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_cgcmm_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_coeffs[cur_gpu], m_pdata->getNTypes(), m_r_cut * m_r_cut, m_block_size));
     exec_conf.syncAll();
     
     m_pdata->release();

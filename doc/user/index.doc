@@ -32,6 +32,7 @@ Table of contents:
  - \ref sec_index_init
  - \ref sec_index_integration
  - \ref sec_index_update
+ - \ref sec_index_compute
  - \ref sec_index_analyze
  - \ref sec_index_dump
  - Commands that specify forces
@@ -81,6 +82,10 @@ Table of contents:
  - \link hoomd_script.update.rescale_temp update.rescale_temp\endlink - <i>\copybrief hoomd_script::update::rescale_temp </i>
  - \link hoomd_script.update.sort update.sort\endlink - <i>\copybrief hoomd_script::update::sort </i>
  - \link hoomd_script.update.zero_momentum update.zero_momentum\endlink - <i>\copybrief hoomd_script::update::zero_momentum </i>
+
+\section sec_index_compute Compute system properties for analysis
+\link hoomd_script.compute compute\endlink:
+ - \link hoomd_script.compute.thermo compute.thermo\endlink - <i>\copybrief hoomd_script::compute::thermo </i>
 
 \section sec_index_analyze Analyze simulation data while it runs
 \link hoomd_script.analyze analyze\endlink:
@@ -142,6 +147,7 @@ Table of contents:
  - Create groups
   - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
   - \link hoomd_script.group.cuboid() group.cuboid\endlink - <i>\copybrief hoomd_script::group::cuboid</i>
+  - \link hoomd_script.group.tag_list() group.tag_list\endlink - <i>\copybrief hoomd_script::group::tag_list </i>
   - \link hoomd_script.group.tags() group.tags\endlink - <i>\copybrief hoomd_script::group::tags </i>
   - \link hoomd_script.group.type() group.type\endlink - <i>\copybrief hoomd_script::group::type </i>
  - Combine groups

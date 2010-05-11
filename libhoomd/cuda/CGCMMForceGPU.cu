@@ -81,7 +81,6 @@ texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
     Each thread will calculate the total force on one particle.
     The neighborlist is arranged in columns so that reads are fully coalesced when doing this.
 */
-template<bool ulf_workaround>
 __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data,
                                                gpu_pdata_arrays pdata,
                                                gpu_boxsize box,
@@ -123,18 +122,18 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
     unsigned int next_neigh = nlist.list[idx_global];
     
     // loop over neighbors
-    // on pre C1060 hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
+    // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
-    int n_loop;
-    if (ulf_workaround)
-        n_loop = nlist.height;
-    else
-        n_loop = n_neigh;
-        
-    for (int neigh_idx = 0; neigh_idx < n_loop; neigh_idx++)
+    #if (__CUDA_ARCH__ < 200)
+    for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+    #else
+    for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
+    #endif
         {
-        if (!ulf_workaround || neigh_idx < n_neigh)
+        #if (__CUDA_ARCH__ < 200)
+        if (neigh_idx < n_neigh)
+        #endif
             {
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             // prefetch the next value and set the current one
@@ -209,7 +208,6 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
     \param r_cutsq Precomputed r_cut*r_cut, where r_cut is the radius beyond which the
         force is set to 0
     \param block_size Block size to execute
-    \param ulf_workaround Set to true to enable the ULF workaround (needed on pre C1060 devices)
 
     \returns Any error code resulting from the kernel launch
 
@@ -222,8 +220,7 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
                                      float4 *d_coeffs,
                                      int coeff_width,
                                      float r_cutsq,
-                                     int block_size,
-                                     bool ulf_workaround)
+                                     int block_size)
     {
     assert(d_coeffs);
     assert(coeff_width > 0);
@@ -240,10 +237,7 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
         return error;
         
     // run the kernel
-    if (ulf_workaround)
-        gpu_compute_cgcmm_forces_kernel<true><<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
-    else
-        gpu_compute_cgcmm_forces_kernel<false><<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist,  d_coeffs, coeff_width, r_cutsq);
+    gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
         
     if (!g_gpu_error_checking)
         {

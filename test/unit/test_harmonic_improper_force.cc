@@ -217,8 +217,8 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
     pdata_8->release();
     
     shared_ptr<HarmonicImproperForceCompute> fc_8 = tf_creator(sysdef_8);
-    fc_8->setParams(0, 2.0, 1.578);
-    fc_8->setParams(1, 4.0, 1.444);
+    fc_8->setParams(0, Scalar(2.0), Scalar(1.578));
+    fc_8->setParams(1, Scalar(4.0), Scalar(1.444));
     
     sysdef_8->getImproperData()->addDihedral(Dihedral(0, 0,1,2,3));
     sysdef_8->getImproperData()->addDihedral(Dihedral(1, 4,5,6,7));
@@ -324,7 +324,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, ExecutionConfi
     
     // build the improper force compute and try it out
     shared_ptr<HarmonicImproperForceCompute> fc_5 = tf_creator(sysdef_5);
-    fc_5->setParams(0, 5.0, 1.33333);
+    fc_5->setParams(0, Scalar(5.0), Scalar(1.33333));
     
     sysdef_5->getImproperData()->addDihedral(Dihedral(0, 0,1,2,3));
     sysdef_5->getImproperData()->addDihedral(Dihedral(0, 1,2,3,4));

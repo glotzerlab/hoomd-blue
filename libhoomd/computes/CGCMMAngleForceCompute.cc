@@ -100,20 +100,20 @@ CGCMMAngleForceCompute::CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinitio
     memset(m_rcut, 0, sizeof(Scalar) * m_CGCMMAngle_data->getNAngleTypes());
     memset(m_cg_type, 0, sizeof(unsigned int) * m_CGCMMAngle_data->getNAngleTypes());
     
-    prefact[0] = 0.0;
-    prefact[1] = 6.75;
-    prefact[2] = 2.59807621135332;
-    prefact[3] = 4.0;
+    prefact[0] = Scalar(0.0);
+    prefact[1] = Scalar(6.75);
+    prefact[2] = Scalar(2.59807621135332);
+    prefact[3] = Scalar(4.0);
     
-    cgPow1[0]  = 0.0;
-    cgPow1[1]  = 9.0;
-    cgPow1[2]  = 12.0;
-    cgPow1[3]  = 12.0;
+    cgPow1[0]  = Scalar(0.0);
+    cgPow1[1]  = Scalar(9.0);
+    cgPow1[2]  = Scalar(12.0);
+    cgPow1[3]  = Scalar(12.0);
     
-    cgPow2[0]  = 0.0;
-    cgPow2[1]  = 6.0;
-    cgPow2[2]  = 4.0;
-    cgPow2[3]  = 6.0;
+    cgPow2[0]  = Scalar(0.0);
+    cgPow2[1]  = Scalar(6.0);
+    cgPow2[2]  = Scalar(4.0);
+    cgPow2[3]  = Scalar(6.0);
     }
 
 CGCMMAngleForceCompute::~CGCMMAngleForceCompute()

@@ -62,14 +62,16 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
 */
 TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
+                             boost::shared_ptr<ComputeThermo> thermo,
                              Scalar tau,
                              boost::shared_ptr<Variant> T)
-    : TwoStepNVT(sysdef, group, tau, T)
+    : TwoStepNVT(sysdef, group, thermo, tau, T)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
@@ -78,15 +80,7 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
     
-    // allocate the state variables
-    GPUArray<float> sum2K(1, m_pdata->getExecConf());
-    m_sum2K.swap(sum2K);
-    
-    // initialize the partial sum2K array
     m_block_size = 128;
-    m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
-    GPUArray<float> partial_sum2K(m_num_blocks, m_pdata->getExecConf());
-    m_partial_sum2K.swap(partial_sum2K);
     }
 
 /*! \param timestep Current time step
@@ -109,7 +103,6 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-    ArrayHandle< float > d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
     
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);
@@ -118,9 +111,7 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
                                 d_index_array.data,
                                 group_size,
                                 box,
-                                d_partial_sum2K.data,
                                 m_block_size,
-                                m_num_blocks,
                                 xi,
                                 m_deltaT));
     // done profiling
@@ -144,30 +135,14 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
     
-    // phase 1, reduce to find the final sum2K
-        {
-        if (m_prof)
-            m_prof->push(exec_conf, "NVT reducing");
-        
-        ArrayHandle<float> d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::read);
-        ArrayHandle<float> d_sum2K(m_sum2K, access_location::device, access_mode::overwrite);
-        
-        exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_num_blocks));
-        
-        if (m_prof)
-            m_prof->pop(exec_conf);
-        }
+    // compute the current thermodynamic properties
+    m_thermo->compute(timestep+1);
     
-    // phase 1.5, move the state variables forward
-        {
-        ArrayHandle<float> h_sum2K(m_sum2K, access_location::host, access_mode::read);
-            
-        // next, update the state variables Xi and eta
-        Scalar xi_prev = xi;
-        m_curr_T = h_sum2K.data[0] / m_dof;
-        xi += m_deltaT / (m_tau*m_tau) * (m_curr_T/m_T->getValue(timestep) - Scalar(1.0));
-        eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
-        }
+    // next, update the state variables Xi and eta
+    Scalar xi_prev = xi;
+    Scalar curr_T = m_thermo->getTemperature();
+    xi += m_deltaT / (m_tau*m_tau) * (curr_T/m_T->getValue(timestep) - Scalar(1.0));
+    eta += m_deltaT / Scalar(2.0) * (xi + xi_prev);
     
     // profile this step
     if (m_prof)
@@ -184,7 +159,6 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
                                 group_size,
                                 d_net_force.data,
                                 m_block_size,
-                                m_num_blocks,
                                 xi,
                                 m_deltaT));
     
@@ -201,6 +175,7 @@ void export_TwoStepNVTGPU()
     class_<TwoStepNVTGPU, boost::shared_ptr<TwoStepNVTGPU>, bases<TwoStepNVT>, boost::noncopyable>
         ("TwoStepNVTGPU", init< boost::shared_ptr<SystemDefinition>,
                           boost::shared_ptr<ParticleGroup>,
+                          boost::shared_ptr<ComputeThermo>,
                           Scalar,
                           boost::shared_ptr<Variant> >())
         ;
