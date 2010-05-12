@@ -491,19 +491,21 @@ Scalar TwoStepNPTRigidGPU::computePressure(unsigned int timestep)
     ArrayHandle<Scalar> d_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
     
     // do the partial sum
-    exec_conf.gpu[0]->call(bind(gpu_npt_pressure2,
+  // NEXT LINE BREAKS COMPILE (function no longer exists)
+   /* exec_conf.gpu[0]->call(bind(gpu_npt_pressure2,
                                   d_partial_sum2K.data,
                                   d_partial_sumW.data,
                                   d_pdata[0],
                                   d_virial.data,
                                   m_block_size,
                                   m_full_num_blocks));
-    
+    */
     ArrayHandle<float> d_sum2K(m_sum2K, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_sumW(m_sumW, access_location::device, access_mode::overwrite);
     // reduce the partial sums
-    exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_full_num_blocks));
-    exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sumW.data, d_partial_sumW.data, m_full_num_blocks));
+    // NEXT LINE BREAKS COMPILE (function doesn't exist)
+    //exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_full_num_blocks));
+    //exec_conf.gpu[0]->call(bind(gpu_nvt_reduce_sum2K, d_sumW.data, d_partial_sumW.data, m_full_num_blocks));
     }
     
     // now, access the data on the host
