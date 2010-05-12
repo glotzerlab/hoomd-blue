@@ -54,6 +54,7 @@ import globals;
 import analyze;
 import sys;
 import util;
+import group as hs_group;
 
 ## Writes simulation snapshots in the HOOMD XML format
 #
@@ -401,12 +402,13 @@ class dcd(analyze._analyzer):
     #
     # \param filename File name to write to
     # \param period Number of time steps between file dumps
+    # \param group Particle group to output to the dcd file. If left as None, all particles will be written
     # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD file \a filename will be overwritten.
     # \param wrap When True, (the defulat) wrapped particle coordinates are written. When False, particles will be unwrapped into their current box image before writing to the dcd file.
     # 
     # \b Examples:
     # \code
-    # dump.dcd(filename="trajectory.dcd", period=1000)<br>
+    # dump.dcd(filename="trajectory.dcd", period=1000)
     # dcd = dump.dcd(filename"data/dump.dcd", period=1000)
     # \endcode
     #
@@ -416,7 +418,7 @@ class dcd(analyze._analyzer):
     # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, overwrite=False, wrap=True):
+    def __init__(self, filename, period, group=None, overwrite=False, wrap=True):
         util.print_status_line();
         
         # initialize base class
@@ -427,7 +429,12 @@ class dcd(analyze._analyzer):
         if type(period) != type(1):
             reported_period = 1000;
             
-        self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), overwrite);
+        if group is None:
+            util._disable_status_lines = True;
+            group = hs_group.all();
+            util._disable_status_lines = False;
+            
+        self.cpp_analyzer = hoomd.DCDDumpWriter(globals.system_definition, filename, int(reported_period), group.cpp_group, overwrite);
         self.cpp_analyzer.setWrap(wrap);
         self.setupAnalyzer(period);
     
