@@ -140,7 +140,7 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
         m_appending = true;
         }
         
-    m_staging_buffer = new Scalar[m_pdata->getN()];
+    m_staging_buffer = new float[m_pdata->getN()];
     }
 
 DCDDumpWriter::~DCDDumpWriter()
@@ -307,9 +307,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[i] = arrays.x[arrays.rtag[i]];
+        m_staging_buffer[i] = float(arrays.x[arrays.rtag[i]]);
         if (!m_wrap)
-            m_staging_buffer[i] += Scalar(arrays.ix[arrays.rtag[i]]) * Lx;
+            m_staging_buffer[i] += float(arrays.ix[arrays.rtag[i]]) * Lx;
         }
     // write x coords
     write_int(file, nparticles * sizeof(float));
@@ -320,9 +320,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[i] = arrays.y[arrays.rtag[i]];
+        m_staging_buffer[i] = float(arrays.y[arrays.rtag[i]]);
         if (!m_wrap)
-            m_staging_buffer[i] += Scalar(arrays.iy[arrays.rtag[i]]) * Ly;
+            m_staging_buffer[i] += float(arrays.iy[arrays.rtag[i]]) * Ly;
         }
     // write y coords
     write_int(file, nparticles * sizeof(float));
@@ -333,9 +333,9 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
         unsigned int i = m_group->getMemberTag(group_idx);
-        m_staging_buffer[i] = arrays.z[arrays.rtag[i]];
+        m_staging_buffer[i] = float(arrays.z[arrays.rtag[i]]);
         if (!m_wrap)
-            m_staging_buffer[i] += Scalar(arrays.iz[arrays.rtag[i]]) * Lz;
+            m_staging_buffer[i] += float(arrays.iz[arrays.rtag[i]]) * Lz;
         }
     // write z coords
     write_int(file, nparticles * sizeof(float));

@@ -111,7 +111,7 @@ class DCDDumpWriter : public Analyzer
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
         bool m_wrap;                        //!< True if coordinates should be written out wrapped in the box
         
-        Scalar *m_staging_buffer;           //!< Buffer for staging particle positions in tag order
+        float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
         
         // helper functions
         
