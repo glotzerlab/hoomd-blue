@@ -1536,7 +1536,7 @@ class eam(force._force):
 			raise RuntimeError("Error creating eam force");
 		print "Set r_cut = ",r_cut_new, " from potential`s file '", file , "'.\n";
 
-			
+		#neighbor_list.cpp_nlist.printStats()	
 		globals.system.addCompute(self.cpp_force, self.force_name);
 		self.pair_coeff = coeff();
 		
