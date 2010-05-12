@@ -73,7 +73,8 @@ class TwoStepBDNVTGPU : public TwoStepBDNVT
                         boost::shared_ptr<ParticleGroup> group,
                         boost::shared_ptr<Variant> T,
                         unsigned int seed,
-                        bool gamma_diam);
+                        bool gamma_diam,
+                        const std::string& suffix = std::string(""));
         virtual ~TwoStepBDNVTGPU() {};
         
         //! Performs the first step of the integration

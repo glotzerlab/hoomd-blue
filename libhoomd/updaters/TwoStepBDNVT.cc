@@ -63,12 +63,14 @@ using namespace boost::python;
     \param seed Random seed to use in generating random numbers
     \param gamma_diam Set gamma to the particle diameter of each particle if true, otherwise use a per-type
                       gamma via setGamma()
+    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
                            boost::shared_ptr<ParticleGroup> group,
                            boost::shared_ptr<Variant> T,
                            unsigned int seed,
-                           bool gamma_diam)
+                           bool gamma_diam,
+                           const std::string& suffix)
     : TwoStepNVE(sysdef, group, true), m_T(T), m_seed(seed), m_gamma_diam(gamma_diam), m_reservoir_energy(0),  m_extra_energy_overdeltaT(0), m_tally(false)
     {
     // set a named, but otherwise blank set of integrator variables
@@ -91,6 +93,8 @@ TwoStepBDNVT::TwoStepBDNVT(boost::shared_ptr<SystemDefinition> sysdef,
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.getNumElements(); i++)
         h_gamma.data[i] = Scalar(1.0);
+    
+    m_log_name = string("bdnvt_reservoir_energy") + suffix;
     }
 
 /*! \param typ Particle type to set gamma for
@@ -120,7 +124,7 @@ std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
     {
     vector<string> result;
     if (m_tally)
-        result.push_back("bd_reservoir_energy");
+        result.push_back(m_log_name);
     return result;
     }
 
@@ -131,7 +135,7 @@ std::vector< std::string > TwoStepBDNVT::getProvidedLogQuantities()
 
 Scalar TwoStepBDNVT::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
     {
-    if (m_tally && quantity == "bd_reservoir_energy")  
+    if (m_tally && quantity == m_log_name)  
         {
         my_quantity_flag = true;
         return m_reservoir_energy+m_extra_energy_overdeltaT*m_deltaT;
@@ -244,7 +248,8 @@ void export_TwoStepBDNVT()
                          boost::shared_ptr<ParticleGroup>,
                          boost::shared_ptr<Variant>,
                          unsigned int,
-                         bool
+                         bool,
+                         const std::string&
                          >())
         .def("setT", &TwoStepBDNVT::setT)
         .def("setGamma", &TwoStepBDNVT::setGamma)

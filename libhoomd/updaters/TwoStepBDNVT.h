@@ -73,7 +73,8 @@ class TwoStepBDNVT : public TwoStepNVE
                      boost::shared_ptr<ParticleGroup> group,
                      boost::shared_ptr<Variant> T,
                      unsigned int seed,
-                     bool gamma_diam);
+                     bool gamma_diam,
+                     const std::string& suffix = std::string(""));
         virtual ~TwoStepBDNVT() {};
         
         //! Set a new temperature
@@ -109,6 +110,7 @@ class TwoStepBDNVT : public TwoStepNVE
         Scalar m_reservoir_energy;         //!< The energy of the reservoir the bd couples the system to.
         Scalar m_extra_energy_overdeltaT;             //!< An energy packet that isn't added until the next time step
         bool m_tally;                      //!< If true, changes to the energy of the reservoir are calculated
+        std::string m_log_name;           //!< Name of the reservior quantity that we log
         
         GPUArray<Scalar> m_gamma;         //!< List of per type gammas to use
     };

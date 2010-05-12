@@ -67,13 +67,15 @@ using namespace boost;
     \param seed Random seed to use in generating random numbers
     \param gamma_diam Set gamma to the particle diameter of each particle if true, otherwise use a per-type
                       gamma via setGamma()
+    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                  boost::shared_ptr<ParticleGroup> group,
                                  boost::shared_ptr<Variant> T,
                                  unsigned int seed,
-                                 bool gamma_diam)
-    : TwoStepBDNVT(sysdef, group, T, seed, gamma_diam)
+                                 bool gamma_diam,
+                                 const std::string& suffix)
+    : TwoStepBDNVT(sysdef, group, T, seed, gamma_diam, suffix)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
@@ -204,7 +206,8 @@ void export_TwoStepBDNVTGPU()
                          boost::shared_ptr<ParticleGroup>,
                          boost::shared_ptr<Variant>,
                          unsigned int,
-                         bool
+                         bool,
+                         const std::string&
                          >())
         ;
     }

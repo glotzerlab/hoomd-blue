@@ -382,12 +382,15 @@ class nvt(_integration_method):
         
         # create the compute thermo
         thermo = compute._get_unique_thermo(group=group);
+
+        # setup suffix
+        suffix = '_' + group.name;
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NVT integrator");
@@ -677,11 +680,14 @@ class bdnvt(_integration_method):
         # create the compute thermo
         compute._get_unique_thermo(group=group);
         
+        # setup suffix
+        suffix = '_' + group.name;
+        
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepBDNVT(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVT(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, suffix);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepBDNVTGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVTGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, suffix);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating BD NVT integrator");

@@ -62,12 +62,14 @@ using namespace boost::python;
     \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
+    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
                        boost::shared_ptr<ComputeThermo> thermo,
                        Scalar tau,
-                       boost::shared_ptr<Variant> T)
+                       boost::shared_ptr<Variant> T,
+                       const std::string& suffix)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T)
     {
     if (m_tau <= 0.0)
@@ -88,6 +90,36 @@ TwoStepNVT::TwoStepNVT(boost::shared_ptr<SystemDefinition> sysdef,
         setValidRestart(true);
 
     setIntegratorVariables(v);
+    m_log_name = string("nvt_reservoir_energy") + suffix;
+    }
+
+/*! Returns a list of log quantities this compute calculates
+*/
+std::vector< std::string > TwoStepNVT::getProvidedLogQuantities()
+    {
+    vector<string> result;
+    result.push_back(m_log_name);
+    return result;
+    }
+
+/*! \param quantity Name of the log quantity to get
+    \param timestep Current time step of the simulation
+    \param my_quantity_flag passed as false, changed to true if quanity logged here
+*/
+
+Scalar TwoStepNVT::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
+    {
+    if (quantity == m_log_name)  
+        {
+        my_quantity_flag = true;
+        Scalar g = m_thermo->getNDOF();
+        IntegratorVariables v = getIntegratorVariables();
+        Scalar& xi = v.variable[0];
+        Scalar& eta = v.variable[1];
+        return g * m_T->getValue(timestep) * (xi*xi*m_tau*m_tau / Scalar(2.0) + eta);
+        }
+    else
+        return Scalar(0);     
     }
 
 /*! \param timestep Current time step
@@ -239,11 +271,13 @@ void TwoStepNVT::integrateStepTwo(unsigned int timestep)
 void export_TwoStepNVT()
     {
     class_<TwoStepNVT, boost::shared_ptr<TwoStepNVT>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNVT", init< boost::shared_ptr<SystemDefinition>,
+            ("TwoStepNVT", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
                        boost::shared_ptr<ComputeThermo>,
                        Scalar,
-                       boost::shared_ptr<Variant> >())
+                       boost::shared_ptr<Variant>,
+                       const std::string&
+                       >())
         .def("setT", &TwoStepNVT::setT)
         .def("setTau", &TwoStepNVT::setTau)
         ;
