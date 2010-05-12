@@ -479,7 +479,28 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->pop();
     }
-
+    
+/*! \param query_group Group over which to count degrees of freedom.
+    A majority of the integration methods add D degrees of freedom per particle in \a query_group that is also in the
+    group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
+    Derived classes can ovveride if needed.
+*/
+unsigned int TwoStepNVERigid::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
+    {
+/*    // count the number of particles both in query_group and m_group
+    unsigned int intersect_size = 0;
+    for (unsigned int group_idx = 0; group_idx < query_group->getNumMembers(); group_idx++)
+        {
+        unsigned int j = query_group->getMemberIndex(group_idx);
+        if (m_group->isMember(j))
+            intersect_size++;
+        }
+    
+    return m_sysdef->getNDimensions() * intersect_size;
+*/
+    return m_rigid_data->getNumDOF(); // temporary
+    }
+    
 /* Compute the body forces and torques once all the particle forces are computed
     \param timestep Current time step
 

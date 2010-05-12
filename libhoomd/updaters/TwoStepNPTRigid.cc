@@ -63,6 +63,7 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param thermo compute for thermodynamic quantities
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
@@ -70,11 +71,12 @@ using namespace boost::python;
 */
 TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
+                       boost::shared_ptr<ComputeThermo> thermo,
                        Scalar tau,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P)
-    : TwoStepNVERigid(sysdef, group), m_partial_scale(false), m_temperature(T), m_pressure(P)
+    : TwoStepNVERigid(sysdef, group), m_thermo(thermo), m_partial_scale(false), m_temperature(T), m_pressure(P)
     {
     if (tau <= 0.0)
         cout << "***Warning! tau set less than or equal 0.0 in TwoStepNPTRigid" << endl;
@@ -1276,6 +1278,7 @@ void export_TwoStepNPTRigid()
     class_<TwoStepNPTRigid, boost::shared_ptr<TwoStepNPTRigid>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNPTRigid", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
+                       boost::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
                        boost::shared_ptr<Variant>,

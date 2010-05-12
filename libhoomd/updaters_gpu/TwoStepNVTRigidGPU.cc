@@ -62,14 +62,16 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
+    \param thermo compute for thermodynamic quantities
     \param T Controlled temperature
     \param tau Time constant
 */
 TwoStepNVTRigidGPU::TwoStepNVTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group, 
+                             boost::shared_ptr<ParticleGroup> group,
+                             boost::shared_ptr<ComputeThermo> thermo,  
                              boost::shared_ptr<Variant> T,
                              Scalar tau)
-    : TwoStepNVTRigid(sysdef, group, T, tau)
+    : TwoStepNVTRigid(sysdef, group, thermo, T, tau)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
@@ -338,7 +340,10 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
 void export_TwoStepNVTRigidGPU()
     {
     class_<TwoStepNVTRigidGPU, boost::shared_ptr<TwoStepNVTRigidGPU>, bases<TwoStepNVTRigid>, boost::noncopyable>
-        ("TwoStepNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<Variant> >())
+        ("TwoStepNVTRigidGPU", init< boost::shared_ptr<SystemDefinition>, 
+        boost::shared_ptr<ParticleGroup>, 
+        boost::shared_ptr<ComputeThermo>, 
+        boost::shared_ptr<Variant> >())
         ;
     }
 

@@ -60,16 +60,18 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
  \param group The group of particles this integration method is to work on
+ \param thermo compute for thermodynamic quantities
  \param T Controlled temperature
  \param tau Time constant
  \param skip_restart Flag indicating if restart info is skipped
 */
 TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<ParticleGroup> group, 
+                                 boost::shared_ptr<ParticleGroup> group,
+                                 boost::shared_ptr<ComputeThermo> thermo,
                                  boost::shared_ptr<Variant> T,
                                  Scalar tau,
                                  bool skip_restart) 
-: TwoStepNVERigid(sysdef, group, skip_restart), m_temperature(T)
+: TwoStepNVERigid(sysdef, group, skip_restart), m_thermo(thermo), m_temperature(T)
     {
     if (tau <= 0.0)
         cout << "***Warning! tau set less than or equal to 0.0 in TwoStepNVTRigid." << endl;
@@ -798,7 +800,10 @@ inline Scalar TwoStepNVTRigid::maclaurin_series(Scalar x)
 void export_TwoStepNVTRigid()
     {
     class_<TwoStepNVTRigid, boost::shared_ptr<TwoStepNVTRigid>, bases<TwoStepNVERigid>, boost::noncopyable>
-    ("TwoStepNVTRigid", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup>, boost::shared_ptr<Variant> >())
+    ("TwoStepNVTRigid", init< boost::shared_ptr<SystemDefinition>, 
+    boost::shared_ptr<ParticleGroup>, 
+    boost::shared_ptr<ComputeThermo>, 
+    boost::shared_ptr<Variant> >())
     .def("setT", &TwoStepNVTRigid::setT)
     .def("setTau", &TwoStepNVTRigid::setTau)
     ;

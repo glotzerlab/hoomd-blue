@@ -83,6 +83,9 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Computes the body forces and torques
         void computeForceAndTorque(unsigned int timestep);
         
+        //! Get the number of degrees of freedom granted to a given group
+        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> query_group);
+        
     protected:
         //! Integrator variables
         virtual void setRestartIntegratorVariables();

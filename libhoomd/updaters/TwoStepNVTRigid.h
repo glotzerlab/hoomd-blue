@@ -44,8 +44,10 @@ THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares an updater that implements NVT dynamics for rigid bodies
 */
 
-#include "Variant.h"
 #include "TwoStepNVERigid.h"
+#include "Variant.h"
+#include "ComputeThermo.h"
+
 #include <vector>
 #include <boost/shared_ptr.hpp>
 
@@ -73,6 +75,7 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         //! Constructor
         TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef, 
                         boost::shared_ptr<ParticleGroup> group,
+                        boost::shared_ptr<ComputeThermo> thermo,
                         boost::shared_ptr<Variant> T,
                         Scalar tau=10.0,
                         bool skip_restart=false);
@@ -126,6 +129,8 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         
         //! Maclaurin expansion
         inline Scalar maclaurin_series(Scalar x);
+        
+        boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
         
         boost::shared_ptr<Variant> m_temperature;   //!< External temperature
         Scalar boltz;                               //!< Boltzmann constant
