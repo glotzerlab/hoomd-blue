@@ -95,13 +95,20 @@ static unsigned int read_int(fstream &file)
     \param sysdef SystemDefinition containing the ParticleData to dump
     \param fname File name to write DCD data to
     \param period Period which analyze() is going to be called at
+    \param group Group of particles to include in the output
     \param overwrite If false, existing files will be appended to. If true, existing files will be overwritten.
 
     \note You must call analyze() with the same period specified in the constructor or
     the time step inforamtion in the file will be invalid. analyze() will print a warning
     if it is called out of sequence.
 */
-DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const std::string &fname, unsigned int period, unsigned int natoms, bool overwrite) : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_num_frames_written(0), m_last_written_step(0), m_appending(false), m_wrap(true)
+DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+                             const std::string &fname,
+                             unsigned int period,
+                             boost::shared_ptr<ParticleGroup> group,
+                             bool overwrite)
+    : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group), m_num_frames_written(0),
+      m_last_written_step(0), m_appending(false), m_wrap(true)
     {
     // handle appending to an existing file if it is requested
     if (!overwrite && exists(fname))
@@ -134,15 +141,6 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef, const s
         }
         
     m_staging_buffer = new Scalar[m_pdata->getN()];
-
-    if (natoms==0)
-        {
-        m_natoms=m_pdata->getN();
-        }
-    else
-        {
-        m_natoms=natoms;
-        }
     }
 
 DCDDumpWriter::~DCDDumpWriter()
@@ -248,7 +246,8 @@ void DCDDumpWriter::write_file_header(std::fstream &file)
     
     write_int(file, 164);
     write_int(file, 4);
-    write_int(file, m_natoms);
+    unsigned int nparticles = m_group->getNumMembers();
+    write_int(file, nparticles);
     write_int(file, 4);
     
     // check for errors
@@ -301,42 +300,47 @@ void DCDDumpWriter::write_frame_data(std::fstream &file)
     Scalar Lx = box.xhi - box.xlo;
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
+    
+    unsigned int nparticles = m_group->getNumMembers();
 
-    // prepare x coords for writing
-    for (unsigned int i = 0; i < m_natoms; i++)
+    // prepare x coords for writing, looping in tag order
+    for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
+        unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[i] = arrays.x[arrays.rtag[i]];
         if (!m_wrap)
             m_staging_buffer[i] += Scalar(arrays.ix[arrays.rtag[i]]) * Lx;
         }
     // write x coords
-    write_int(file, m_natoms * sizeof(float));
-    file.write((char *)m_staging_buffer, m_natoms * sizeof(float));
-    write_int(file, m_natoms * sizeof(float));
+    write_int(file, nparticles * sizeof(float));
+    file.write((char *)m_staging_buffer, nparticles * sizeof(float));
+    write_int(file, nparticles * sizeof(float));
     
     // prepare y coords for writing
-    for (unsigned int i = 0; i < m_natoms; i++)
+    for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
+        unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[i] = arrays.y[arrays.rtag[i]];
         if (!m_wrap)
             m_staging_buffer[i] += Scalar(arrays.iy[arrays.rtag[i]]) * Ly;
         }
     // write y coords
-    write_int(file, m_natoms * sizeof(float));
-    file.write((char *)m_staging_buffer, m_natoms * sizeof(float));
-    write_int(file, m_natoms * sizeof(float));
+    write_int(file, nparticles * sizeof(float));
+    file.write((char *)m_staging_buffer, nparticles * sizeof(float));
+    write_int(file, nparticles * sizeof(float));
     
     // prepare z coords for writing
-    for (unsigned int i = 0; i < m_natoms; i++)
+    for (unsigned int group_idx = 0; group_idx < nparticles; group_idx++)
         {
+        unsigned int i = m_group->getMemberTag(group_idx);
         m_staging_buffer[i] = arrays.z[arrays.rtag[i]];
         if (!m_wrap)
             m_staging_buffer[i] += Scalar(arrays.iz[arrays.rtag[i]]) * Lz;
         }
     // write z coords
-    write_int(file, m_natoms * sizeof(float));
-    file.write((char *)m_staging_buffer, m_natoms * sizeof(float));
-    write_int(file, m_natoms * sizeof(float));
+    write_int(file, nparticles * sizeof(float));
+    file.write((char *)m_staging_buffer, nparticles * sizeof(float));
+    write_int(file, nparticles * sizeof(float));
     
     m_pdata->release();
     
@@ -366,7 +370,7 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
 void export_DCDDumpWriter()
     {
     class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, unsigned int, bool>())
+    ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, boost::shared_ptr<ParticleGroup>, bool>())
     .def("setWrap", &DCDDumpWriter::setWrap)
     ;
     }
