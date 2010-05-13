@@ -1,0 +1,29 @@
+{
+    ocelot: "ocelot-refactored",
+    version: "1.0.65",
+    trace: { 
+        enabled: true,
+        database: "traces/database.trace",
+        memory: false,
+        branch: false,
+        sharedComputation: false,
+        instruction: false,
+        parallelism: false,
+        cacheSimulator: false,
+        memoryChecker: true,
+        raceDetector: false,
+        warpSynchronous: {
+            enabled: false,
+            emitHotPaths: true
+        }
+    },
+    cuda: {
+        implementation: "CudaRuntime",
+        runtimeApiTrace: "trace/CudaAPI.trace"
+    },
+    executive: {
+        devices: [ emulated ],
+        optimizationLevel: basic,
+        workerThreadLimit: 1
+    }
+}
