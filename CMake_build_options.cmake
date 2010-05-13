@@ -65,6 +65,13 @@ endif (CMAKE_CXX_COMPILER MATCHES "icpc")
 if (ENABLE_CUDA)
     add_definitions (-DENABLE_CUDA)
 
+    # optional ocelot emulation mode
+    option(ENABLE_OCELOT "Enable ocelot emulation for CUDA GPU code" off)
+    if (ENABLE_OCELOT) 
+        set(CUDA_ARCH "11")
+        add_definitions(-DCUDA_ARCH=${CUDA_ARCH})
+        list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")    
+    else (ENABLE_OCELOT)
     # CUDA ARCH settings
     set(CUDA_ARCH 11 CACHE STRING "Target architecture to compile CUDA code for. Valid options are 10, 11, 12, or 13 (currently). They correspond to compute 1.0, 1.1, 1.2, and 1.3 GPU hardware")
     # the arch is going to be passed on a command line: verify it so the user doesn't make any blunders
@@ -88,6 +95,7 @@ if (ENABLE_CUDA)
     else (CUDA_VERSION VERSION_GREATER 2.99) 
         list(APPEND CUDA_NVCC_FLAGS -arch "sm_${CUDA_ARCH}")
     endif (CUDA_VERSION VERSION_GREATER 2.99) 
+    endif (ENABLE_OCELOT)
     
 endif (ENABLE_CUDA)
 

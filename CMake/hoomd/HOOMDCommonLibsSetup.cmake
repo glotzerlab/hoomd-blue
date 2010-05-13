@@ -20,6 +20,18 @@ find_package(ZLIB REQUIRED)
 include_directories(${ZLIB_INCLUDE_DIR})
 endif (ENABLE_ZLIB)
 
+if (ENABLE_OCELOT)
+find_library(OCELOT_LIBRARY NAMES ocelot)
+# override the CUDART library
+set (CUDA_CUDART_LIBRARY ${OCELOT_LIBRARY} CACHE STRING "ENABLE_OCELOT forces replacement of CUDART with ocelot" FORCE)
+
+if (OCELOT_LIBRARY)
+    mark_as_advanced(OCELOT_LIBRARY)
+endif (OCELOT_LIBRARY)
+
+endif (ENABLE_OCELOT)
+
+
 ################################
 ## Define common libraries used by every target in HOOMD
 if (WIN32)
