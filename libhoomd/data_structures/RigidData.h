@@ -134,7 +134,11 @@ class RigidData
             {
             return m_body_mass;
             }
-        
+        //! Get m_body_dof
+        const GPUArray<unsigned int>& getBodyDOF()
+            {
+            return m_body_dof;
+            }
         //! Get the body angular momentum init flag for a rigid body
         const GPUArray<bool>& getAngMomInit()
             {
@@ -228,6 +232,7 @@ class RigidData
         unsigned int m_nmax;                        //!< Maximum number of particles in a rigid body
         unsigned int m_ndof;                        //!< Total number degrees of freedom of rigid bodies
         GPUArray<bool> m_angmom_init;               //!< True if body angular momenta are initially set
+        GPUArray<unsigned int> m_body_dof;          //!< n_bodies length 1D array of body DOF
         GPUArray<Scalar> m_body_mass;               //!< n_bodies length 1D array of body mass
         GPUArray<Scalar4> m_moment_inertia;         //!< n_bodies length 1D array of moments of inertia in the body frame
         GPUArray<unsigned int> m_body_size;         //!< n_bodies length 1D array listing the size of each rigid body

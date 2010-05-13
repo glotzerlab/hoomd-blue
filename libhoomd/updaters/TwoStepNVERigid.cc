@@ -77,7 +77,7 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         setRestartIntegratorVariables();
         }
-        
+         
     // Get the system rigid data
     m_rigid_data = sysdef->getRigidData();
     
@@ -85,6 +85,15 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     m_pdata = sysdef->getParticleData();
     
     m_first_step = true;
+    
+    // Check if m_group intersects group rigid
+    boost::shared_ptr<ParticleSelectorRigid> selector_rigid = boost::shared_ptr<ParticleSelectorRigid>(new ParticleSelectorRigid(sysdef, true)); 
+    boost::shared_ptr<ParticleGroup> group_rigid = boost::shared_ptr<ParticleGroup>(new ParticleGroup(sysdef, selector_rigid));
+    boost::shared_ptr<ParticleGroup> group_intersect = ParticleGroup::groupIntersection(m_group, group_rigid);
+    if (group_intersect->getNumMembers() == 0)
+        {
+        cout << "***Warning! Empty group for rigid body integration." << endl;
+        }
     }
 
 void TwoStepNVERigid::setRestartIntegratorVariables()
@@ -275,6 +284,7 @@ void TwoStepNVERigid::setup()
 #endif
 #undef __DEBUG
 */
+    
     if (m_prof)
         m_prof->pop();
     }
@@ -487,18 +497,37 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
 */
 unsigned int TwoStepNVERigid::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
     {
-/*    // count the number of particles both in query_group and m_group
+    const ParticleDataArraysConst &arrays = m_pdata->acquireReadOnly();
+    
+    ArrayHandle<unsigned int> body_dof_handle(m_rigid_data->getBodyDOF(), access_location::host, access_mode::read);
+    unsigned int body, last_body=-1;
+   
+    // count the number of particles both in query_group and m_group
     unsigned int intersect_size = 0;
+    unsigned int query_group_dof = 0;
+    
     for (unsigned int group_idx = 0; group_idx < query_group->getNumMembers(); group_idx++)
         {
         unsigned int j = query_group->getMemberIndex(group_idx);
         if (m_group->isMember(j))
+            {
+            // use particle tags to access the body flag as particle indices may be changed due to sorting
+            unsigned int tag = arrays.rtag[j];
+            body = arrays.body[tag];
+            if (body >= 0 && body != last_body)
+                {
+                query_group_dof += body_dof_handle.data[body];
+                last_body = body;
+                }
+            
             intersect_size++;
+            }
         }
     
-    return m_sysdef->getNDimensions() * intersect_size;
-*/
-    return m_rigid_data->getNumDOF(); // temporary
+    if (intersect_size == 0)
+        return intersect_size;
+
+    return query_group_dof;  
     }
     
 /* Compute the body forces and torques once all the particle forces are computed

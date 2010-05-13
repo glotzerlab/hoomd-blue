@@ -179,6 +179,7 @@ void RigidData::initializeData()
         }
         
     // allocate nbodies-size arrays
+    GPUArray<unsigned int> body_dof(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar> body_mass(m_n_bodies, m_pdata->getExecConf());
     GPUArray<unsigned int> body_size(m_n_bodies, m_pdata->getExecConf());
     GPUArray<Scalar4> moment_inertia(m_n_bodies, m_pdata->getExecConf());
@@ -199,6 +200,7 @@ void RigidData::initializeData()
     
     GPUArray<bool> angmom_init(m_n_bodies, m_pdata->getExecConf());
     
+    m_body_dof.swap(body_dof);
     m_body_mass.swap(body_mass);
     m_body_size.swap(body_size);
     m_moment_inertia.swap(moment_inertia);
@@ -243,6 +245,7 @@ void RigidData::initializeData()
         ArrayHandle<Scalar> inertia_handle(inertia, access_location::host, access_mode::readwrite);
         unsigned int inertia_pitch = inertia.getPitch();
         
+        ArrayHandle<unsigned int> body_dof_handle(m_body_dof, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> body_mass_handle(m_body_mass, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> moment_inertia_handle(m_moment_inertia, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> orientation_handle(m_orientation, access_location::host, access_mode::readwrite);
@@ -389,7 +392,7 @@ void RigidData::initializeData()
                         dof_one--;
                 }
             
-                
+            body_dof_handle.data[body] = dof_one;    
             m_ndof += dof_one;
             
             // obtain the principle axes from eigen vectors
