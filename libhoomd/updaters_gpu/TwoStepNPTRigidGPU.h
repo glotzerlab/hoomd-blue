@@ -63,7 +63,8 @@ class TwoStepNPTRigidGPU : public TwoStepNPTRigid
         //! Constructs the integration method and associates it with the system
         TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef, 
                             boost::shared_ptr<ParticleGroup> group,
-                            boost::shared_ptr<ComputeThermo> thermo,
+                            boost::shared_ptr<ComputeThermo> thermo_group,
+                            boost::shared_ptr<ComputeThermo> thermo_all,
                             Scalar tau,
                             Scalar tauP,
                             boost::shared_ptr<Variant> T,

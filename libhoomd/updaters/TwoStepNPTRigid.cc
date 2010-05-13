@@ -63,7 +63,8 @@ using namespace boost::python;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param thermo compute for thermodynamic quantities
+    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
+    \param thermo_all ComputeThermo to compute the pressure of the entire system
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
@@ -71,12 +72,13 @@ using namespace boost::python;
 */
 TwoStepNPTRigid::TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                        boost::shared_ptr<ParticleGroup> group,
-                       boost::shared_ptr<ComputeThermo> thermo,
+                       boost::shared_ptr<ComputeThermo> thermo_group,
+                       boost::shared_ptr<ComputeThermo> thermo_all,
                        Scalar tau,
                        Scalar tauP,
                        boost::shared_ptr<Variant> T,
                        boost::shared_ptr<Variant> P)
-    : TwoStepNVERigid(sysdef, group), m_thermo(thermo), m_partial_scale(false), m_temperature(T), m_pressure(P)
+    : TwoStepNVERigid(sysdef, group), m_thermo_group(thermo_group), m_thermo_all(thermo_all), m_partial_scale(false), m_temperature(T), m_pressure(P)
     {
     if (tau <= 0.0)
         cout << "***Warning! tau set less than or equal 0.0 in TwoStepNPTRigid" << endl;
@@ -471,7 +473,6 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
         m_prof->push("NPT rigid step 2");
     
     Scalar onednft, onednfr;
-    Scalar t_current, p_current;
     Scalar tmp, scale_t, scale_r, akin_t, akin_r;
     Scalar4 mbody, tbody, fquat;
     Scalar dt_half;
@@ -566,11 +567,18 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     else 
         vol = Lx * Ly * Lz;
 
-    t_current = (akin_t + akin_r) / (nf_t + nf_r);
-    p_current = computePressure(timestep);
-
+    // compute the current thermodynamic properties
+    m_thermo_group->compute(timestep+1);
+    m_thermo_all->compute(timestep+1);
+    
+    // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
+    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+    
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
+    
     Scalar p_target = m_pressure->getValue(timestep);
-    f_epsilon = dimension * (vol * (p_current - p_target) + t_current);
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
     f_epsilon /= w;
     tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
     epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
@@ -1278,6 +1286,7 @@ void export_TwoStepNPTRigid()
     class_<TwoStepNPTRigid, boost::shared_ptr<TwoStepNPTRigid>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
         ("TwoStepNPTRigid", init< boost::shared_ptr<SystemDefinition>,
                        boost::shared_ptr<ParticleGroup>,
+                       boost::shared_ptr<ComputeThermo>,
                        boost::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,

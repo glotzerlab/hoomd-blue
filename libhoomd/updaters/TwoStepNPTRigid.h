@@ -67,7 +67,8 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         //! Constructs the integration method and associates it with the system
         TwoStepNPTRigid(boost::shared_ptr<SystemDefinition> sysdef,
                    boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo,
+                   boost::shared_ptr<ComputeThermo> thermo_group,
+                   boost::shared_ptr<ComputeThermo> thermo_all,
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
@@ -130,12 +131,16 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         virtual Scalar computeTemperature(unsigned int timestep);
         
     protected:
-        boost::shared_ptr<ComputeThermo> m_thermo;  //!< compute for thermodynamic quantities
+        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
+        boost::shared_ptr<ComputeThermo> m_thermo_all;     //!< ComputeThermo operating on the group of all particles
+        
         bool m_partial_scale;                       //!< True if only the particles in the group should be scaled to the new box
         Scalar t_freq;                              //!< tau value for Nose-Hoover
         Scalar p_freq;                              //!< tauP value for the barostat
         boost::shared_ptr<Variant> m_temperature;   //!< Temperature set point
         boost::shared_ptr<Variant> m_pressure;      //!< Pressure set point
+        Scalar m_curr_group_T;                      //!< Current group temperature
+        Scalar m_curr_P;                            //!< Current system pressure
     protected:
         //! Set positions and velocities for particles in rigid bodies at the first step
         void set_xv(unsigned int timestep);

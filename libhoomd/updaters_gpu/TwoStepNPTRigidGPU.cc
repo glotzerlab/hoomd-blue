@@ -64,7 +64,8 @@ using namespace boost;
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
-    \param thermo compute for thermodynamic quantities
+    \param thermo_group ComputeThermo to compute thermo properties of the integrated \a group
+    \param thermo_all ComputeThermo to compute the pressure of the entire system
     \param tau Time constant for thermostat
     \param tauP Time constant for barostat
     \param T Controlled temperature
@@ -72,12 +73,13 @@ using namespace boost;
 */
 TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ParticleGroup> group,
-                                   boost::shared_ptr<ComputeThermo> thermo,
+                                   boost::shared_ptr<ComputeThermo> thermo_group,
+                                   boost::shared_ptr<ComputeThermo> thermo_all,
                                    Scalar tau,
                                    Scalar tauP, 
                                    boost::shared_ptr<Variant> T,
                                    boost::shared_ptr<Variant> P)
-    : TwoStepNPTRigid(sysdef, group, thermo, tau, tauP, T, P)
+    : TwoStepNPTRigid(sysdef, group, thermo_group, thermo_all, tau, tauP, T, P)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
@@ -420,7 +422,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     }
     
     // calculate current temperature and pressure
-    Scalar t_current, p_current;
     {
     if (m_prof)
         m_prof->push(exec_conf, "NPT kinetic energy reduction");
@@ -449,9 +450,16 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     
     akin_t = Ksum_t_handle.data[0];
     akin_r = Ksum_r_handle.data[0];
-    t_current = (akin_t + akin_r) / (nf_t + nf_r);
     
-    p_current = computePressure(timestep);
+    // compute the current thermodynamic properties
+    m_thermo_group->compute(timestep+1);
+    m_thermo_all->compute(timestep+1);
+    
+    // compute temperature for the next half time step; currently, I'm still using the internal temperature calculation
+    m_curr_group_T = (akin_t + akin_r) / (nf_t + nf_r);
+    
+    // compute pressure for the next half time step
+    m_curr_P = m_thermo_all->getPressure();
     }
     
     // update barostat
@@ -470,7 +478,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     Scalar p_target = m_pressure->getValue(timestep);
     
-    f_epsilon = dimension * (vol * (p_current - p_target) + t_current);
+    f_epsilon = dimension * (vol * (m_curr_P - p_target) + m_curr_group_T);
     f_epsilon /= w;
     Scalar tmp = exp(-1.0 * dt_half * eta_dot_b_handle.data[0]);
     epsilon_dot = tmp * epsilon_dot + dt_half * f_epsilon;
@@ -575,6 +583,7 @@ void export_TwoStepNPTRigidGPU()
     class_<TwoStepNPTRigidGPU, boost::shared_ptr<TwoStepNPTRigidGPU>, bases<TwoStepNPTRigid>, boost::noncopyable>
         ("TwoStepNPTRigidGPU", init< boost::shared_ptr<SystemDefinition>, 
         boost::shared_ptr<ParticleGroup>, 
+        boost::shared_ptr<ComputeThermo>,
         boost::shared_ptr<ComputeThermo>,
         Scalar,
         Scalar,
