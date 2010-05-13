@@ -328,16 +328,22 @@ class imd(_analyzer):
 #
 #
 # Quantities that can be logged at any time:
-# - \b num_particles - Number of particles in the system
 # - \b volume - Volume of the simulation box
-# - \b temperature - Temperature of the system
-# - \b pressure - Pressure of the system
-# - \b kinetic_energy - Total kinetic energy of the system
-# - \b potential_energy - Total potential energy of the system
 # - \b momentum - Magnitude of the average momentum of all particles
-# - \b conserved_quantity - Conserved quantity for the current integrator (the actual definition of this value
-# depends on which integrator is being used in the current run()
 # - \b time - Wall-clock running time from the start of the log in seconds
+#
+# Thermodynamic properties
+# - The following quantities are always available and computed over all particles in the system
+#   (see compute.thermo for detailed definitions):
+#   - num_particles
+#   - ndof
+#   - potential_energy
+#   - kinetic_energy
+#   - temperature
+#   - pressure
+# - The above quantities, tagged with a <i>_groupname</i> suffix are automatically available for any group passed to
+#   an integrate command 
+# - Use compute.thermo directly to enable additional quantites for user-specified groups.
 #
 # The following quantities are only available only if the command is parentheses has been specified and is active
 # for logging. 
@@ -352,6 +358,9 @@ class imd(_analyzer):
 # - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
 #
+# - <b>bdnvt_reservoir_energy<i>_groupname</i></b> (integrate.bdnvt) - Energy reservior for the BD thermostat
+# - <b>nvt_reservoir_energy<i>_groupname</i></b> (integrate.nvt) - Energy reservior for the NVT thermostat
+# 
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).
 # - pair.gauss
