@@ -339,6 +339,8 @@ void GPUWorker::performWorkLoop()
                 }
             }
         }
+    
+    cudaThreadExit();
     }
 
 #endif
