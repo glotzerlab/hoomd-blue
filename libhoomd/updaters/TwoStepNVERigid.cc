@@ -524,6 +524,7 @@ unsigned int TwoStepNVERigid::getNDOF(boost::shared_ptr<ParticleGroup> query_gro
             }
         }
     
+    m_pdata->release();
     if (intersect_size == 0)
         return intersect_size;
 
