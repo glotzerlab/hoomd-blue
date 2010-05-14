@@ -397,7 +397,7 @@ f.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 forces = f.forces;
 
 ###########################################
-## Start a run with the 2 paritlces, moving particle 1 a bit each time
+## Start a run with the 2 particles, moving particle 1 a bit each time
 ## and plot the potential to a file after each step
 # setup the particles for the run
 p0 = sysdef.particles[0];
