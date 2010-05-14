@@ -79,11 +79,11 @@ __all__ = [ "analyze",
             
 ## \internal
 # \brief Major version of hoomd_script
-version_major = 0;
+version_major = 1;
 
 ## \internal
 # \brief Minor version of hoomd_script
-version_minor = 2;
+version_minor = 0;
 
 ## \brief Get the version information of hoomd_script
 # \returns a tuple (major, minor)
