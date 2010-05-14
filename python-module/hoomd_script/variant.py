@@ -64,7 +64,7 @@ class _variant:
     ## Does common initialization for all variants
     #
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create a variant before initialization\n";
             raise RuntimeError('Error creating variant');
@@ -112,7 +112,7 @@ class _constant(_variant):
 # \endcode
 # A value specified at time 0 in the shown linear_interp is set at the actual \b absolute time step
 # 1000. To say it another way, time for validate.linear_interp starts counting from 0 right
-# at the time of creation. The point where 0 is defined can be changed by setting the \z zero paramter in the 
+# at the time of creation. The point where 0 is defined can be changed by setting the \z zero parameter in the 
 # command that specifies the linear_interp.
 #
 # See __init__() for the syntax which the set values can be specified.

@@ -420,7 +420,7 @@ class dcd(analyze._analyzer):
     # When you use dump.dcd to append to an existing dcd file
     # - The period must be the same or the time data in the file will not be consistent.
     # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
-        consistent timeline
+    #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename, period, group=None, overwrite=False, wrap=True):
