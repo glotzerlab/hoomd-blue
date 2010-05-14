@@ -71,7 +71,7 @@ class _updater:
     # Initializes the cpp_updater to None.
     # Assigns a name to the updater in updater_name;
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create updater before initialization\n";
             raise RuntimeError('Error creating updater');
@@ -122,7 +122,7 @@ class _updater:
 
     ## \var prev_period
     # \internal
-    # \brief Saved period retrived when an updater is disabled: used to set the period when re-enabled
+    # \brief Saved period retrieved when an updater is disabled: used to set the period when re-enabled
 
     ## \internal
     # \brief Checks that proper initialization has completed
@@ -228,12 +228,11 @@ class _updater:
 # a Hilbert curve. This operation is very efficient, and the reordered particles
 # significantly improve performance of all other algorithmic steps in HOOMD. 
 # 
-# The reordering is accomplished by placing particles in spatial bins
-# distance units wide. A Hilbert curve is generated that traverses
+# The reordering is accomplished by placing particles in spatial bins. A Hilbert curve is generated that traverses
 # these bins and particles are reordered in memory in the same order in which 
 # they fall on the curve. The grid dimension used over the course of the simulation is held constant, and the default
-# is chosen to be as fine as possible without utilizing too much memory. It can be changed with set_params(), just be
-# aware that the value chosen will be rounded up to the next power of 2 and that the amount of memory usage for
+# is chosen to be as fine as possible without utilizing too much memory. The dimension can be changed with set_params(),
+# just be aware that the value chosen will be rounded up to the next power of 2 and that the amount of memory usage for
 # 3D simulations grows very quickly:
 # - \a grid=128 uses 8 MB
 # - \a grid=256 uses 64 MB
@@ -361,7 +360,8 @@ class rescale_temp(_updater):
 #
 # update.zero_momentum is intended to be used when the \ref integrate.nve "NVE" integrator has the
 # \a limit option specified, where Newton's third law is broken and systems could gain momentum.
-# However, nothing prevents update.zero_momentum from being used in any HOOMD script.
+# Of course, it can be used in any script.
+#
 class zero_momentum(_updater):
     ## Initialize the momentum zeroer
     #
@@ -387,7 +387,7 @@ class zero_momentum(_updater):
 ## Enforces 2D simulation
 #
 # Every time step, particle velocities and accelerations are modified so that their z components are 0: forcing
-# 2D simulations when other calculations cause particles to drift out of the plane.
+# 2D simulations when other calculations may cause particles to drift out of the plane.
 #
 # Using enforce2d is only allowed when the system is specified as having only 2 dimensions. This specification can
 # be made in the xml file read by init.read_xml() or set dynamically via the particle data access routines. Setting

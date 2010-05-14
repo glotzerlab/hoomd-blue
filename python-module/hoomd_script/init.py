@@ -72,7 +72,7 @@ _options = {};
 
 ## Tests if the system has been initialized
 #
-# Returns True if a previous init.create* or init.read* command has completed sucessfully and initialized the system.
+# Returns True if a previous init.create* or init.read* command has completed successfully and initialized the system.
 # Returns False otherwise.
 def is_initialized():
     if globals.system is None:
@@ -266,7 +266,7 @@ def read_xml(filename, time_step = None):
 #
 # After this command completes, the system is initialized allowing other commands in hoomd_script to be run.
 #
-# The precense or lack of a .gz extension determines whether init.read_bin will attempt to decompress the %data
+# The presence or lack of a .gz extension determines whether init.read_bin will attempt to decompress the %data
 # before reading it.
 #
 # The result of init.read_bin can be saved in a variable and later used to read and/or change particle properties

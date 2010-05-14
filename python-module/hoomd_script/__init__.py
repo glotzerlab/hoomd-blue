@@ -150,7 +150,7 @@ def get_hoomd_script_version():
 # always ends on a multiple of 200,000 so that when the next run begins, dump.dcd can continue writing right where it
 # left off instead of at some random time (e.g. 234,187) that just happened to be when the time limit was reached in
 # the previous run. Set this multiple with the \a limit_multiple argument. Keep in mind that a large multiple may
-# require a long buffer time betweeh \a limit_hours and the job wall clock limit as submitted to the queue.
+# require a long buffer time between \a limit_hours and the job %wall clock limit as submitted to the queue.
 #
 # If \a callback is set to a Python function then this function will be called regularly
 # at \a callback_period intervals. The callback function must receive one integer as argument
@@ -205,7 +205,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 # \param keywords (see below) Catch for all keyword arguments to pass on to run()
 #
 # run_upto() runs the simulation, but only until it reaches the given time step, \a step. If the simulation has already
-# reached the speicfied step, a warning is printed and no simulation steps are run.
+# reached the specified step, a warning is printed and no simulation steps are run.
 #
 # It accepts all keyword options that run() does.
 #
