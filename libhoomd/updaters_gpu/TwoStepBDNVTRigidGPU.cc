@@ -188,7 +188,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();

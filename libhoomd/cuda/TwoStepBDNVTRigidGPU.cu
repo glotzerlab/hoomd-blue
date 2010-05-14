@@ -170,10 +170,10 @@ void gpu_bdnvt_bdforce_kernel(gpu_pdata_arrays pdata,
         float4 fi = tex1Dfetch(net_force_tex, idx);
         
         // write out data (MEM TRANSFER: 32 bytes)
-        d_net_force[idx].x = fi.x + bd_force.x;
-        d_net_force[idx].y = fi.y + bd_force.y;
-        d_net_force[idx].z = fi.z + bd_force.z;
-        d_net_force[idx].w = 0.0f;
+        fi.x += bd_force.x;
+        fi.y += bd_force.y;
+        fi.z += bd_force.z;
+        d_net_force[idx] = fi;
         }
     }
 
