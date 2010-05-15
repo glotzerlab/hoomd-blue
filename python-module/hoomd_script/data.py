@@ -48,7 +48,7 @@ import globals
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
 #
-# Code in the data package provide high-level access to all of the particle, bond and other %data that define the
+# Code in the data package provides high-level access to all of the particle, bond and other %data that define the
 # current state of the system. By writing python code that modifies this %data, any conceivable initialization of the
 # system can be achieved without needing to invoke external tools or generate xml files. Data can be read and additional
 # analysis performed during or after simulation runs as well. Basically, the user's imagination is the limit to what can

@@ -323,7 +323,7 @@ def _choose_optimal_block_sizes(optimal_dbs):
 #
 # You might be able to boost the performance of your simulations over the default by a small amount
 # if you run the tuning benchmark on your own machine. find_optimal_block_sizes() is the command
-# that does this. In order to use it, run the following hooomd script:
+# that does this. In order to use it, run the following hoomd script:
 #\code
 #from hoomd_script import *
 #tune.find_optimal_block_sizes()

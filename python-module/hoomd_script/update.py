@@ -245,7 +245,7 @@ class _updater:
 # default. If you have reason to disable it or modify parameters, you
 # can use the built-in variable \c sorter to do so after initialization. The
 # following code example disables the sorter. The init.create_random command
-# is just an example, sorter can be modified after any command that initializes 
+# is just an example; sorter can be modified after any command that initializes 
 # the system.
 # \code
 # init.create_random(N=1000, phi_p=0.2)

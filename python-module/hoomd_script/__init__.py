@@ -136,7 +136,7 @@ def get_hoomd_script_version():
 #
 # When \a profile is \em True, a detailed breakdown of how much time was spent in each
 # portion of the calculation is printed at the end of the run. Collecting this timing information
-# can slow the simulation on the GPU significantly, so only enable profiling for testing
+# can slow the simulation on the GPU significantly; so only enable profiling for testing
 # and troubleshooting purposes.
 #
 # If \a limit_hours is changed from the default of None, the run will continue until either
@@ -145,7 +145,7 @@ def get_hoomd_script_version():
 # job run times. A fractional value can be given to limit a run to only a few minutes,
 # if needed.
 #
-# When running restartable jobs, it may be advantageous to enforce that run() ends on a timestep that is a multiple
+# When running restartable jobs, it may be advantageous to enforce that run() ends on a time step that is a multiple
 # of some value. For example, when dumping dcd trajectories with a period of 200,000 you may want to ensure that a job
 # always ends on a multiple of 200,000 so that when the next run begins, dump.dcd can continue writing right where it
 # left off instead of at some random time (e.g. 234,187) that just happened to be when the time limit was reached in
@@ -156,7 +156,7 @@ def get_hoomd_script_version():
 # at \a callback_period intervals. The callback function must receive one integer as argument
 # and can return an integer. The argument is the current time step number,
 # and if the callback function returns a negative number then the run is immediately aborted.
-# all other return values are currently ignored.
+# All other return values are currently ignored.
 #
 # If \a callback_period is set to 0 (the default) then the callback is only called
 # once at the end of the run. Otherwise the callback is executed whenever the current
@@ -201,7 +201,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 
 ## \brief Runs the simulation up to a given time step number
 #
-# \param step Final timestep of the simulation which to run
+# \param step Final time step of the simulation which to run
 # \param keywords (see below) Catch for all keyword arguments to pass on to run()
 #
 # run_upto() runs the simulation, but only until it reaches the given time step, \a step. If the simulation has already

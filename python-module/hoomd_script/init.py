@@ -215,7 +215,7 @@ def create_empty(N, box, n_particle_types=1, n_bond_types=0, n_angle_types=0, n_
 # other commands in hoomd_script to be run. For more details
 # on the file format read by this command, see \ref page_xml_file_format.
 #
-# If \a time_step is specified, it's value will be used as the initial time 
+# If \a time_step is specified, its value will be used as the initial time 
 # step of the simulation instead of the one read from the XML file.
 #
 # The result of init.read_xml can be saved in a variable and later used to read and/or change particle properties
@@ -375,7 +375,7 @@ def create_random(N, phi_p, name="A", min_dist=0.7):
 # \param seed Random seed to use
 #
 # Any number of polymers can be generated, of the same or different types, as 
-# specified in the argument \a polymers. Parameters for each polymer, include
+# specified in the argument \a polymers. Parameters for each polymer include
 # bond length, particle type list, bond list, and count.
 #
 # The syntax is best shown by example. The below line specifies that 600 block copolymers

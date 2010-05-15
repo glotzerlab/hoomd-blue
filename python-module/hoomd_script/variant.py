@@ -123,8 +123,8 @@ class linear_interp(_variant):
     # \param zero Specify absolute time step number location for 0 in \a points. Use 'now' to indicate the current step.
     #
     # \a points is a list of (time, set value) tuples. For example, to specify
-    # a series of points that goes from 10 at timestep 0 to 20 at timestep 100 and then
-    # back down to 5 at timestep 200:
+    # a series of points that goes from 10 at time step 0 to 20 at time step 100 and then
+    # back down to 5 at time step 200:
     # \code 
     # points = [(0, 10), (100, 20), (200, 5)]
     # \endcode

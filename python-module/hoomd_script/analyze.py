@@ -501,7 +501,7 @@ class log(_analyzer):
     #
     # \b Examples:
     # \code
-    # logdata = logger.query('timestep')
+    # logdata = logger.query('time step')
     # \endcode
     def query(self, quantity):
         # retrieve data from internal cache.
@@ -555,7 +555,7 @@ class msd(_analyzer):
     # \endcode
     #
     # A group variable (\c groupN above) can be created by any number of group creation functions.
-    # see group for a list.
+    # See group for a list.
     #
     # By default, columns in the file are separated by tabs, suitable for importing as a 
     # tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()

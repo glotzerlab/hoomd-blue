@@ -97,7 +97,7 @@ version 2.2 or newer.
 
 <h3>Preventing HOOMD-blue from running on the display GPU</h3>
 
-While running hoomd on the display GPU works just fine, it does moderately slow the simulation and cause the display 
+While running hoomd on the display GPU works just fine, it does moderately slow the simulation and causes the display 
 to lag. If you wish to prevent hoomd from running on the display, add the \c --ignore-display-gpu command line:
 \code
 hoomd some_script.hoomd --ignore-display-gpu
