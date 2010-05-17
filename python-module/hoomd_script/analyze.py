@@ -501,7 +501,7 @@ class log(_analyzer):
     #
     # \b Examples:
     # \code
-    # logdata = logger.query('time step')
+    # logdata = logger.query('timestep')
     # \endcode
     def query(self, quantity):
         # retrieve data from internal cache.

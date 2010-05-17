@@ -804,7 +804,7 @@ class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
     # \param group Group of particles on which to apply this method.
-    # \param dt This is the maximum time step the minimizer is permitted to use.  Consider the stability of the system when setting.
+    # \param dt This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting.
     # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
     #   - <i>optional</i>: defaults to 5
     # \param finc Factor to increase \f$ \Delta t \f$ by 
