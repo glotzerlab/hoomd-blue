@@ -54,3 +54,23 @@ cd ../angle_harmonic
 echo "****************"
 echo "Running angle_harmonic"
 hoomd run.hoomd "$@" --gpu_error_checking 2>&1
+
+cd ../pair_slj
+echo "****************"
+echo "Running pair_slj"
+hoomd run.hoomd "$@" --gpu_error_checking 2>&1
+
+cd ../pair_table
+echo "****************"
+echo "Running pair_table"
+hoomd run.hoomd "$@" --gpu_error_checking 2>&1
+
+cd ../pair_yukawa
+echo "****************"
+echo "Running pair_yukawa"
+hoomd run.hoomd "$@" --gpu_error_checking 2>&1
+
+cd ../pair_morse
+echo "****************"
+echo "Running pair_morse"
+hoomd run.hoomd "$@" --gpu_error_checking 2>&1

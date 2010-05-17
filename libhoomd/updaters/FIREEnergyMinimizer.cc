@@ -218,14 +218,28 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     Scalar fnorm(0.0);
 
     // Calculate the per-particle potential energy over particles in the group
-    Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
+    Scalar energy(0.0);
+
+    {
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+
+    // total potential energy 
+    double pe_total = 0.0;
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        pe_total += (double)h_net_force.data[j].w;
+        }
+    energy = pe_total/Scalar(group_size);    
+    }
+    
 
     if (m_was_reset)
         {
         m_was_reset = false;
         m_old_energy = energy + Scalar(100000)*m_etol;
         }
-
 
     const ParticleDataArrays& arrays = m_pdata->acquireReadWrite();
 

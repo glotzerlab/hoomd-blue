@@ -86,7 +86,7 @@ in the future.
 \endcode
 
 This conversion can also be done into all other formats that have write support in VMD, e.g. psf, pdb, dcd.
-Since pymol also uses the VMD molfile library, it will eventually also have native support for HOOMD-blue XML files added.
+Since pymol also uses the VMD molfile library, it eventually will also have native support for HOOMD-blue XML files added.
 
 \subsection sec_hoomd_vmd_inverse The inverse of hoomd2lammps_input.py in VMD using Tcl
 

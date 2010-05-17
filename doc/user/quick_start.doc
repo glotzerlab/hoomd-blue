@@ -121,7 +121,7 @@ used in HOOMD-blue.
 The simulation output starts at: 
 \code test.hoomd:004  |  init.create_random(N=100, phi_p=0.01, name='A') \endcode
 Each hoomd_script command prints the file and line where it was run along with the entire text of the command.
-This can be potentially very useful in debugging problems as it will allow you to hone in on the command in the 
+This can be potentially very useful in debugging problems, as it will allow you to hone in on the command in the 
 script that is producing the error message.
 
 When a \link hoomd_script.run() run()\endlink command is executed, hoomd steps the simulation forward that many time
@@ -188,11 +188,11 @@ lj = pair.lj(r_cut=3.0)
  Documentation for \link hoomd_script.pair.lj pair.lj\endlink<br><br>
  -# The parameters of the force must also be specified before the simulation is \link hoomd_script.run() run()\endlink (you will get 
      an error if you forget). The next line sets the parameters \a epsilon and \a sigma for the Lennard-Jones force
-     betwen particles of types A and A.
+     between particles of types A and A.
 \code
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 \endcode
-    The example script only has a single particle type in the simulation, so one line is sufficient. In more complicated 
+    The example script only has a single particle type in the simulation so one line is sufficient. In more complicated 
     simulations with more than one particle type every unique pair must be specified (i.e. 'A'-'A', 'A'-'B', and 'B'-B').
     Use one line like that above for each pair.<br><br>
  -# After that, we choose the integrator to move particles forward in time. As with forces, more than one integration
@@ -249,8 +249,8 @@ init.create_random(phi_p = 0.01, N = 100, name = 'A')
 init.create_random(phi_p=0.01, name='A', N=100)
 \endcode
 
-Check the documentation for a specific command to see what the arguments are and what they mean (
-i.e. see \link hoomd_script.init.create_random init.create_random\endlink). Here 
+Check the documentation for a specific command to see what the arguments are and what they mean (i.e.
+see \link hoomd_script.init.create_random init.create_random\endlink). Here 
 is a copy of the documentation for init.create_random:
 \code
 init.create_random      

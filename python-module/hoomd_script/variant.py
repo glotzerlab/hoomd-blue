@@ -64,7 +64,7 @@ class _variant:
     ## Does common initialization for all variants
     #
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not init.is_initialized():
             print >> sys.stderr, "\n***Error! Cannot create a variant before initialization\n";
             raise RuntimeError('Error creating variant');
@@ -112,7 +112,7 @@ class _constant(_variant):
 # \endcode
 # A value specified at time 0 in the shown linear_interp is set at the actual \b absolute time step
 # 1000. To say it another way, time for validate.linear_interp starts counting from 0 right
-# at the time of creation. The point where 0 is defined can be changed by setting the \z zero paramter in the 
+# at the time of creation. The point where 0 is defined can be changed by setting the \z zero parameter in the 
 # command that specifies the linear_interp.
 #
 # See __init__() for the syntax which the set values can be specified.
@@ -123,8 +123,8 @@ class linear_interp(_variant):
     # \param zero Specify absolute time step number location for 0 in \a points. Use 'now' to indicate the current step.
     #
     # \a points is a list of (time, set value) tuples. For example, to specify
-    # a series of points that goes from 10 at timestep 0 to 20 at timestep 100 and then
-    # back down to 5 at timestep 200:
+    # a series of points that goes from 10 at time step 0 to 20 at time step 100 and then
+    # back down to 5 at time step 200:
     # \code 
     # points = [(0, 10), (100, 20), (200, 5)]
     # \endcode

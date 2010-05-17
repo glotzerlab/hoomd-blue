@@ -58,9 +58,9 @@
 # \endcode
 # Then the coefficients can be set using the saved variable.
 # \code
-# my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
-# my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
-# my_force.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+# my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
+# my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
 # \endcode
 # This example set the parameters \a epsilon, \a sigma, and \a alpha 
 # (which are used in pair.lj). Different %pair forces require that different
@@ -100,9 +100,9 @@ import sys;
 # \code
 # from hoomd_script import *
 # my_coeffs = pair.coeff();
-# my_coeffs.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=0.0)
-# my_coeffs.set('A', 'B', epsilon=1.0, sigma=1.0, alpha=0.0)
-# my_coeffs.set('B', 'B', epsilon=1.0, sigma=1.0, alpha=1.0)
+# my_force.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+# my_force.pair_coeff.set('A', 'B', epsilon=1.0, sigma=2.0)
+# my_force.pair_coeff.set('B', 'B', epsilon=2.0, sigma=1.0)
 # \endcode
 # Example job script:
 # \code
@@ -135,7 +135,7 @@ class coeff:
     ## \internal
     # \brief Sets a default value for a given coefficient
     # \details 
-    # \param name Name of the coeffienct to for which to set the default
+    # \param name Name of the coefficient to for which to set the default
     # \param value Default value to set
     #
     # Some coefficients have reasonable default values and the user should not be burdened with typing them in
@@ -174,7 +174,7 @@ class coeff:
     # the value of epsilon and leave sigma as it was previously set.
     #
     # Some %pair potentials assign default values to certain parameters. If the default setting for a given coefficient
-    # (as documented in the repsective %pair command), it does not need to be listed on the coeff.set() line at all
+    # (as documented in the respective %pair command), it does not need to be listed on the coeff.set() line at all
     # and the default value will automatically be set.
     #
     def set(self, a, b, **coeffs):
@@ -278,15 +278,15 @@ class coeff:
         
 ## Interface for controlling neighbor list parameters
 #
-# A neighbor list should not be directly created by you. One will be automatically
-# created whenever a %pair %force is specified. The cutoff radius is set to the
+# A neighbor list should not be directly created by the user. One will be automatically
+# created when the first %pair %force is specified. The cutoff radius is set to the
 # maximum of that set for all defined %pair forces.
 #
 # Any bonds defined in the simulation are automatically used to exclude bonded particle
-# pairs from appearing in the neighbor list.
+# pairs from appearing in the neighbor list. Use the command reset_exclusions() to change this behavior.
 #
 # Neighborlists are properly and efficiently calculated in 2D simulations if the z dimension of the box is small,
-# but non-zero and the dimnesionality of the system is set \b before the first pair force is specified.
+# but non-zero and the dimensionally of the system is set \b before the first pair force is specified.
 #
 class nlist:
     ## \internal
@@ -449,7 +449,7 @@ class nlist:
     # - \b %dihedral - Exclude the two outside particles in all defined dihedrals.
     # - \b %body - Exclude particles that would be neighbors with others in the same rigid body
     #
-    # The following types are determined soley by the bond topology. Every chain of particles in the simulation 
+    # The following types are determined solely by the bond topology. Every chain of particles in the simulation 
     # connected by bonds (1-2-3-4) will be subject to the following exclusions, if enabled, whether or not explicit 
     # angles or dihedrals are defined.
     # - \b 1-2  - Same as bond
@@ -617,7 +617,7 @@ def _update_global_nlist(r_cut):
 # \f$ r_{\mathrm{on}} = 2 \cdot \sigma\f$
 #
 # The split smoothing / shifting of the potential when the mode is \c xplor is designed for use in mixed WCA / LJ
-# systems. The WCA potential and it's first derivative already go smoothly to 0 at the cuttoff, so there is no need
+# systems. The WCA potential and it's first derivative already go smoothly to 0 at the cutoff, so there is no need
 # to apply the smoothing function. In such mixed systems, set \f$ r_{\mathrm{on}} \f$ to a value greater than
 # \f$ r_{\mathrm{cut}} \f$ for those pairs that interact via WCA in order to enable shifting of the WCA potential
 # to 0 at the cuttoff.
@@ -700,7 +700,7 @@ class pair(force._force):
         
         for i in xrange(0,ntypes):
             for j in xrange(i,ntypes):
-                # build a dict of the coeffs to pass to prcess_coeff
+                # build a dict of the coeffs to pass to process_coeff
                 coeff_dict = {};
                 for name in coeff_list:
                     coeff_dict[name] = self.pair_coeff.get(type_list[i], type_list[j], name);
@@ -748,7 +748,7 @@ class pair(force._force):
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 #
-# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -843,7 +843,7 @@ class lj(pair):
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 #
-# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -931,7 +931,7 @@ class gauss(pair):
 #    \f}
 #    where \f$ \Delta = (d_i + d_j)/2 - 1 \f$ and \f$ d_i \f$ is the diameter of particle \f$ i \f$.
 #
-# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -943,7 +943,7 @@ class gauss(pair):
 #
 # pair.slj is a standard %pair potential and supports a number of energy shift / smoothing modes. See pair for a full
 # description of the various options.
-#\note Due to the way that pair.slj modifies the cutoff crieteria, a shift_mode of xplor is not supported.
+#\note Due to the way that pair.slj modifies the cutoff criteria, a shift_mode of xplor is not supported.
 #
 # \b Example:
 # \code
@@ -967,7 +967,7 @@ class slj(pair):
     #
     # The specified value of \a d_max will be used to properly determine the neighbor lists during the following
     # run() commands. If not specified, slj will set d_max to the largest diameter in particle data at the time it is initialized
-    # If particle diameters change after initialization, it is \b imperitive that \a d_max be the largest
+    # If particle diameters change after initialization, it is \b imperative that \a d_max be the largest
     # diameter that any particle will attain at any time during the following run() command. If \a d_max is smaller
     # than it should be, some particles will effectively have a smaller value of \a r_cut then was set and the
     # simulation will be incorrect. \a d_max can be changed between runs by calling set_params().
@@ -1067,7 +1067,7 @@ class slj(pair):
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 #
-# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.
@@ -1423,7 +1423,7 @@ class table(force._force):
 #                     = & 0 & r \ge r_{\mathrm{cut}} \\
 # \f}
 #
-# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair.
+# For an exact definition of the %force and potential calculation and how cutoff radii are handled, see pair.
 #
 # The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
 # the \ref page_quick_start for information on how to set coefficients.

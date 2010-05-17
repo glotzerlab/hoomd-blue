@@ -63,6 +63,7 @@ import init;
 # - group.nonrigid()
 # - group.rigid()
 # - group.tags()
+# - group.tag_list()
 # - group.type()
 #
 # The above methods assign a descriptive name based on the criteria chosen. That name can be easily changed if desired:

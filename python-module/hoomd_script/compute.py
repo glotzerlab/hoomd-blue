@@ -167,7 +167,7 @@ _compute.cur_id = 0;
 # If thermodynamic properties are needed on additional groups, a user can specify additional compute.thermo commands.
 #
 # Whether they are automatically created or created by a user, all specified thermos are available for logging via
-# the analyze.log command. Each one provides a set of quantities for logging, suffixed with _groupname so that
+# the analyze.log command. Each one provides a set of quantities for logging, suffixed with _groupname, so that
 # values for different groups are differentiated in the log file. The default compute.thermo specified on the group
 # of all particles has no suffix placed on its quantity names.
 #
@@ -229,7 +229,7 @@ class thermo(_compute):
         globals.thermos.append(self);
 
 ## \internal
-# \brief Returns the previosly created compute.thermo with the same group, if created. Otherwise, creates a new
+# \brief Returns the previously created compute.thermo with the same group, if created. Otherwise, creates a new
 # compute.thermo
 def _get_unique_thermo(group):
     

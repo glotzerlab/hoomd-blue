@@ -221,7 +221,8 @@ class xml(analyze._analyzer):
 # Every \a period time steps, a new file will be created. The state of the 
 # particles at that time step is written to the file in a binary format.
 #
-# \sa \ref page_xml_file_format
+# \sa init.read_bin
+#
 class bin(analyze._analyzer):
     ## Initialize the hoomd_bin writer
     #
@@ -245,7 +246,7 @@ class bin(analyze._analyzer):
     # \c particles.0000000000.bin (.gz if \a compress = True)
     #
     # If \a compress is True (the default), output will be gzip compressed for a significant savings. init.read_bin()
-    # will autodetect whether or not the %data needs to be decompressed by the ".gz" file extension.
+    # will auto-detect whether or not the %data needs to be decompressed by the ".gz" file extension.
     #
     # If \a file1 and \a file2 are specified, then the output is written every \a period time steps alternating
     # between those two files. This use-case is useful when only the most recent state of the system is needed
@@ -260,17 +261,18 @@ class bin(analyze._analyzer):
     # \b exactly, bit for bit, as they would have if they had never stopped are possible under certain circumstances.
     #
     # For the integration state information to be read and properly associated with the correct integrator, there must
-    # the same number of integrator modes and methods <b>and in the same order</b> in the continuation script as are in
-    # the initial job script. One way to ensure this is to copy the initial script and comment out all of the run()
-    # commands up until the point that the restart file was written.
+    # be the same number of integrator modes and methods <b>and in the same order</b> in the continuation script as are
+    # in the initial job script. One way to ensure this is to copy the initial script and comment out all of the run()
+    # commands up until the point that the restart file was written. Another method is to utilize run_upto() in your
+    # job script.
     #
     # If \a period is not specified, then no periodic updates will occur. Instead, the write()
     # command must be executed to write an output file.
     #
     # \note The binary file format may change from one hoomd release to the next. Efforts will be made so that
-    # newer versions of hoomd can read previous version's binary format, but support is not guarunteed. The intended
-    # use case for dump.bin() is for saving data to restart and/or continue jobs that fail or reach a wall clock time
-    # limit. If you need to store data in a system and version independant manner, use dump.xml().
+    # newer versions of hoomd can read previous version's binary format, but support is not guaranteed. The intended
+    # use case for dump.bin() is for saving data to restart and/or continue jobs that fail or reach a %wall clock time
+    # limit. If you need to store data in a system and version independent manner, use dump.xml().
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename="dump", period=None, file1=None, file2=None, compress=True):
@@ -405,11 +407,13 @@ class mol2(analyze._analyzer):
 class dcd(analyze._analyzer):
     ## Initialize the dcd writer
     #
-    # \param filename File name to write to
+    # \param filename File name to write
     # \param period Number of time steps between file dumps
     # \param group Particle group to output to the dcd file. If left as None, all particles will be written
-    # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD file \a filename will be overwritten.
-    # \param wrap When True, (the defulat) wrapped particle coordinates are written. When False, particles will be unwrapped into their current box image before writing to the dcd file.
+    # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
+    #        file \a filename will be overwritten.
+    # \param wrap When True, (the default) wrapped particle coordinates are written. When False, particles will be
+    #        unwrapped into their current box image before writing to the dcd file.
     # 
     # \b Examples:
     # \code
@@ -420,7 +424,8 @@ class dcd(analyze._analyzer):
     # \warning 
     # When you use dump.dcd to append to an existing dcd file
     # - The period must be the same or the time data in the file will not be consistent.
-    # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a consistent timeline
+    # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
+    #   consistent timeline
     #
     # \a period can be a function: see \ref variable_period_docs for details
     def __init__(self, filename, period, group=None, overwrite=False, wrap=True):
@@ -501,7 +506,7 @@ class pdb(analyze._analyzer):
             self.enabled = False;
             self.prev_period = 1;
             
-    ## Change mol2 write parameters
+    ## Change pdb write parameters
     #
     # \param bond (if set) Set to True/False to enable/disable the output of bonds in the mol2 file
     #
@@ -523,7 +528,7 @@ class pdb(analyze._analyzer):
     
     ## Write a file at the current time step
     #
-    # \param filename File name to write to
+    # \param filename File name to write
     #
     # The periodic file writes can be temporarily overridden and a file with any file name
     # written at the current time step.
