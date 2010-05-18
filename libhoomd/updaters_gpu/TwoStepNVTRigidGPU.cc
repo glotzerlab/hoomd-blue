@@ -121,7 +121,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
     
     // get the rigid data from SystemDefinition
@@ -147,9 +148,11 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
+    d_rdata.n_group_bodies = m_n_bodies;
     d_rdata.nmax = rigid_data->getNmax();
     d_rdata.local_beg = 0;
-    d_rdata.local_num = d_rdata.n_bodies;
+    d_rdata.local_num = m_n_bodies;
+    
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
     d_rdata.com = com_handle.data;
@@ -252,7 +255,8 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
     
     // get the rigid data from SystemDefinition
@@ -275,9 +279,11 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
 
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
+    d_rdata.n_group_bodies = m_n_bodies;
     d_rdata.nmax = rigid_data->getNmax();
     d_rdata.local_beg = 0;
-    d_rdata.local_num = d_rdata.n_bodies;
+    d_rdata.local_num = m_n_bodies;
+    
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
     d_rdata.com = com_handle.data;

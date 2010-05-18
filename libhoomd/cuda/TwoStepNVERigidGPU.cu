@@ -418,7 +418,6 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
         
     __syncthreads();
         
-    // ri, body_mass and moment_inertia is used throughout the kernel
     if (idx_body >= 0 && idx_body < n_bodies)
         {
         unsigned int idx_particle = idx_body * blockDim.x + threadIdx.x;
@@ -583,7 +582,6 @@ extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pd
                 }
             }
         }
-        
     }
 
 // Takes the first 1/2 step forward in the NVE integration step
@@ -757,12 +755,13 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (nmax <= 32)
         {
         block_size = nmax; // maximum number of particles in a rigid body: each thread in a block takes care of a particle in a rigid body
-        dim3 particle_grid(n_bodies, 1, 1);
+        dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);
         
         gpu_rigid_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
+                                                                     n_group_bodies,
                                                                      n_bodies, 
                                                                      local_beg,
                                                                      box);
@@ -770,12 +769,13 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     else
         {
         block_size = 32; 	// chosen to be divisible by nmax
-        dim3 particle_grid(n_bodies, 1, 1);
+        dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);
         
         gpu_rigid_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
+                                                                     n_group_bodies,
                                                                      n_bodies, 
                                                                      local_beg,
                                                                      nmax,
@@ -1301,7 +1301,7 @@ extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel,
 /*!
     \param pdata_vel Particle velocity
     \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies Number of rigid bodies
+    \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param block_size Block size
@@ -1491,6 +1491,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
         gpu_rigid_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+                                                        n_group_bodies,
                                                         n_bodies, 
                                                         local_beg,
                                                         nmax, 
@@ -1502,6 +1503,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
         gpu_rigid_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+                                                        n_group_bodies,
                                                         n_bodies, 
                                                         local_beg,
                                                         nmax,
