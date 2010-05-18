@@ -153,6 +153,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.local_beg = 0;
     d_rdata.local_num = m_n_bodies;
     
+    d_rdata.body_indices = d_body_index_array.data;
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
     d_rdata.com = com_handle.data;
@@ -284,6 +285,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.local_beg = 0;
     d_rdata.local_num = m_n_bodies;
     
+    d_rdata.body_indices = d_body_index_array.data;
     d_rdata.body_mass = body_mass_handle.data;
     d_rdata.moment_inertia = moment_inertia_handle.data;
     d_rdata.com = com_handle.data;

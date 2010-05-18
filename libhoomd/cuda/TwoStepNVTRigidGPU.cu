@@ -523,7 +523,6 @@ extern "C" __global__ void gpu_rigid_nvt_step_one_particle_kernel(float4* pdata_
                                                         unsigned int local_beg,
                                                         gpu_boxsize box)
     {
-    unsigned int idx_particle = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int group_idx = blockIdx.x + local_beg;
     
     __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
@@ -633,9 +632,12 @@ extern "C" __global__ void gpu_rigid_nvt_step_one_particle_sliding_kernel(float4
     __shared__ float4 com, vel, angvel, ex_space, ey_space, ez_space;
     __shared__ int body_imagex, body_imagey, body_imagez;
     
+    int idx_body = -1;
+    
     if (group_idx < n_group_bodies)
         {
         idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
+        
         if (idx_body < n_bodies && threadIdx.x == 0)
             {
             com = tex1Dfetch(rigid_data_com_tex, idx_body);
@@ -1144,7 +1146,6 @@ extern "C" __global__ void gpu_rigid_nvt_step_two_particle_sliding_kernel(float4
         {
         if (idx_body >= 0 && idx_body < n_bodies)
             {
-            int idx_particle = idx_body * nmax + start * block_size + threadIdx.x;
             int idx_particle = idx_body * nmax + start * block_size + threadIdx.x;
             if (idx_particle < nmax * n_bodies && start * block_size + threadIdx.x < nmax)
                 {
