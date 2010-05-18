@@ -230,8 +230,10 @@ void TwoStepNVTRigid::setup()
         nf_r = 3 * m_n_bodies;
         
         //! Subtract from nf_r one for each singular moment inertia of a rigid body
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
             if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
             if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
             if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
@@ -239,8 +241,10 @@ void TwoStepNVTRigid::setup()
             
                     
         Scalar4 mbody;
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
             matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angmom_handle.data[body], mbody);
             quat_multiply(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
             
@@ -340,8 +344,10 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
         scale_r = exp(tmp);
         
         // for each body
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             dtfm = dt_half / body_mass_handle.data[body];
             vel_handle.data[body].x += dtfm * force_handle.data[body].x;
             vel_handle.data[body].y += dtfm * force_handle.data[body].y;
@@ -497,8 +503,10 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
         
         
         // 2nd step: final integration
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             Scalar dtfm = dt_half / body_mass_handle.data[body];
             vel_handle.data[body].x = scale_t * vel_handle.data[body].x + dtfm * force_handle.data[body].x;
             vel_handle.data[body].y = scale_t * vel_handle.data[body].y + dtfm * force_handle.data[body].y;

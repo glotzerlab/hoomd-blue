@@ -120,8 +120,8 @@ void TwoStepNVERigid::setup()
         m_prof->push("Rigid setup");
         
      // Get the number of rigid bodies for frequent use
-    m_n_bodies = m_rigid_data->getNumBodies();
-    
+    m_n_bodies = m_body_group->getNumMembers();
+     
     // sanity check
     if (m_n_bodies <= 0)
         return;
@@ -153,8 +153,10 @@ void TwoStepNVERigid::setup()
         ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
         
         // Reset all forces and torques
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             bool angmom_init = angmom_init_handle.data[body];
             
             vel_handle.data[body].x = 0.0;
@@ -181,8 +183,10 @@ void TwoStepNVERigid::setup()
         ParticleDataArrays arrays = m_pdata->acquireReadWrite();
         
         // for each body
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             bool angmom_init = angmom_init_handle.data[body];
             
             // for each particle
@@ -235,8 +239,10 @@ void TwoStepNVERigid::setup()
             
             }
             
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             vel_handle.data[body].x /= body_mass_handle.data[body];
             vel_handle.data[body].y /= body_mass_handle.data[body];
             vel_handle.data[body].z /= body_mass_handle.data[body];
@@ -340,8 +346,10 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
         ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
         
         // for each body
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             dtfm = dt_half / body_mass_handle.data[body];
             vel_handle.data[body].x += dtfm * force_handle.data[body].x;
             vel_handle.data[body].y += dtfm * force_handle.data[body].y;
@@ -464,8 +472,10 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         Scalar dt_half = 0.5 * m_deltaT;
         
         // 2nd step: final integration
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             Scalar dtfm = dt_half / body_mass_handle.data[body];
             vel_handle.data[body].x += dtfm * force_handle.data[body].x;
             vel_handle.data[body].y += dtfm * force_handle.data[body].y;
@@ -539,8 +549,10 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
     
     // reset all forces and torques
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         force_handle.data[body].x = 0.0;
         force_handle.data[body].y = 0.0;
         force_handle.data[body].z = 0.0;
@@ -551,8 +563,10 @@ void TwoStepNVERigid::computeForceAndTorque(unsigned int timestep)
         }
             
     // for each body
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
         // for each particle
         unsigned int len = body_size_handle.data[body];
         for (unsigned int j = 0; j < len; j++)
@@ -631,8 +645,10 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
     
     // for each body
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
         unsigned int len = body_size_handle.data[body];
         // for each particle
         for (unsigned int j = 0; j < len; j++)
@@ -733,8 +749,10 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
     assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
     
     // for each body
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
         unsigned int len = body_size_handle.data[body];
         // for each particle
         for (unsigned int j = 0; j < len; j++)

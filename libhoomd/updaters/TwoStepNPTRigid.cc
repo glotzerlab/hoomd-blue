@@ -154,16 +154,20 @@ void TwoStepNPTRigid::setup()
     nf_r = 3 * m_n_bodies;
     
     //! Subtract from nf_r one for each singular moment inertia of a rigid body
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
         if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
         if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
         }
         
     Scalar4 mbody;
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angmom_handle.data[body], mbody);
         quat_multiply(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
         
@@ -336,8 +340,10 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     
     akin_t = akin_r = 0.0;
 
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         // step 1.1 - update vcm by 1/2 step
         dtfm = dt_half / body_mass_handle.data[body];
         vel_handle.data[body].x += dtfm * force_handle.data[body].x;
@@ -353,8 +359,10 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
         akin_t += body_mass_handle.data[body] * tmp;    
         }
 
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         // step 1.2 - update xcm by full step
         com_handle.data[body].x += scale_v * vel_handle.data[body].x;
         com_handle.data[body].y += scale_v * vel_handle.data[body].y;
@@ -395,8 +403,10 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
             }
         }
 
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         // step 1.3 - apply torque (body coords) to quaternion momentum
 
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
@@ -511,8 +521,10 @@ void TwoStepNPTRigid::integrateStepTwo(unsigned int timestep)
     akin_t = akin_r = 0.0;
     
     // 2nd step: final integration
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         Scalar dtfm = dt_half / body_mass_handle.data[body];
         vel_handle.data[body].x = scale_t * vel_handle.data[body].x + dtfm * force_handle.data[body].x;
         vel_handle.data[body].y = scale_t * vel_handle.data[body].y + dtfm * force_handle.data[body].y;
@@ -634,8 +646,10 @@ void TwoStepNPTRigid::set_xv(unsigned int timestep)
     assert(arrays.ix != NULL && arrays.iy != NULL && arrays.iz != NULL);
     
     // for each body
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         unsigned int len = body_size_handle.data[body];
         // for each particle
         for (unsigned int j = 0; j < len; j++)
@@ -762,8 +776,10 @@ void TwoStepNPTRigid::set_v(unsigned int timestep)
     assert(arrays.vx != NULL && arrays.vy != NULL && arrays.vz != NULL);
     
     // for each body
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         unsigned int len = body_size_handle.data[body];
         // for each particle
         for (unsigned int j = 0; j < len; j++)
@@ -918,8 +934,10 @@ void TwoStepNPTRigid::remap()
     invLz = 1.0 / Lz;
     
     Scalar4 delta;
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         delta.x = com_handle.data[body].x - xlo;
         delta.y = com_handle.data[body].y - ylo;
         delta.z = com_handle.data[body].z - zlo;
@@ -958,8 +976,10 @@ void TwoStepNPTRigid::remap()
     newboxlo.x = -Lx/2.0;
     newboxlo.y = -Ly/2.0;
     newboxlo.z = -Lz/2.0;
-    for (unsigned int body = 0; body < m_n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         com_handle.data[body].x = Lx * com_handle.data[body].x + newboxlo.x;
         com_handle.data[body].y = Ly * com_handle.data[body].y + newboxlo.y;
         com_handle.data[body].z = Lz * com_handle.data[body].z + newboxlo.z;

@@ -192,13 +192,14 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-        
-        
+               
         Scalar dt_half = 0.5 * m_deltaT;
         
         // 2nd step: final integration
-        for (unsigned int body = 0; body < m_n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             Scalar dtfm = dt_half / body_mass_handle.data[body];
             vel_handle.data[body].x += dtfm * force_handle.data[body].x;
             vel_handle.data[body].y += dtfm * force_handle.data[body].y;
