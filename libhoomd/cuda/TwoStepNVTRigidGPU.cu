@@ -50,7 +50,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /*! \file TwoStepNVTRigidGPU.cu
-    \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
+    \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTRigidGPU.
 */
 
 //! Absolute threshold for zero moment of inertia
@@ -338,7 +338,7 @@ __device__ float taylor_exp(float x)
     \param rdata_body_imagey Body image in y-direction
     \param rdata_body_imagez Body image in z-direction
     \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies Number of rigid bodies
+    \param n_bodies Total umber of rigid bodies
     \param local_beg Starting body index in this card
     \param nvt_rdata_eta_dot_t0 Thermostat translational part 
     \param nvt_rdata_eta_dot_r0 Thermostat rotational part
@@ -391,7 +391,6 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
         scale_r = __expf(tmp);
         
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
-        // ri, body_mass and moment_inertia is used throughout the kernel
         if (idx_body < n_bodies)
             {
             body_mass = tex1Dfetch(rigid_data_body_mass_tex, idx_body);
@@ -515,7 +514,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_body_kernel(float4* rdata_com,
     \param local_beg Starting body index in this card
     \param box Box dimensions for periodic boundary condition handling
 */
-extern "C" __global__ void gpu_rigid_nvt_step_one_particle_kernel(float4* pdata_pos,
+extern "C" __global__ void gpu_nvt_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
                                                         unsigned int n_group_bodies,
@@ -611,13 +610,13 @@ extern "C" __global__ void gpu_rigid_nvt_step_one_particle_kernel(float4* pdata_
     \param pdata_vel Particle velocity
     \param pdata_image Particle image
     \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies Number of rigid bodies
+    \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
     \param nmax Maximum number of particles in a rigid body
     \param block_size Block size
     \param box Box dimensions for periodic boundary condition handling
 */
-extern "C" __global__ void gpu_rigid_nvt_step_one_particle_sliding_kernel(float4* pdata_pos,
+extern "C" __global__ void gpu_nvt_rigid_step_one_particle_sliding_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
                                                         unsigned int n_group_bodies,
@@ -887,7 +886,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);
         
-        gpu_rigid_nvt_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
+        gpu_nvt_rigid_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
                                                                      n_group_bodies,
@@ -901,7 +900,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);
         
-        gpu_rigid_nvt_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
+        gpu_nvt_rigid_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
                                                                      n_group_bodies,
@@ -933,7 +932,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
     \param n_group_bodies Number of rigid bodies in my group
-    \param n_bodies total number of rigid bodies
+    \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
     \param nvt_rdata_eta_dot_t0 Thermostat translational part 
     \param nvt_rdata_eta_dot_r0 Thermostat rotational part
@@ -1128,6 +1127,7 @@ extern "C" __global__ void gpu_rigid_nvt_step_two_particle_sliding_kernel(float4
     if (group_idx < n_group_bodies)
         {
         idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
+        
         if (idx_body < n_bodies && threadIdx.x == 0)
             {
             vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
@@ -1151,7 +1151,7 @@ extern "C" __global__ void gpu_rigid_nvt_step_two_particle_sliding_kernel(float4
                 {
                 unsigned int idx_particle_index = tex1Dfetch(rigid_data_particle_indices_tex, idx_particle);
             
-                if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
+                if (idx_particle_index != INVALID_INDEX)
                     {
                     float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
                     
