@@ -506,7 +506,7 @@ unsigned int TwoStepNVERigid::getNDOF(boost::shared_ptr<ParticleGroup> query_gro
         if (m_body_group->isMember(body))
             query_group_dof += body_dof_handle.data[body];
         }
-       
+    
     return query_group_dof;  
     }
     
