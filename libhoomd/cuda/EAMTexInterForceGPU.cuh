@@ -29,25 +29,23 @@ struct EAMTexInterArrays{
 	float* atomDerivativeEmbeddingFunction;
 };
 struct EAMtex{
-	cudaArray* electronDensity; 
-	cudaArray* pairPotential; 
-	cudaArray* embeddingFunction; 
-	cudaArray* derivativeElectronDensity; 
-	cudaArray* derivativePairPotential; 
-	cudaArray* derivativeEmbeddingFunction; 
+	cudaArray* electronDensity;
+	cudaArray* pairPotential;
+	cudaArray* embeddingFunction;
+	cudaArray* derivativeElectronDensity;
+	cudaArray* derivativePairPotential;
+	cudaArray* derivativeEmbeddingFunction;
 
 };
 
 //! Kernel driver that computes lj forces on the GPU for EAMForceComputeGPU
 cudaError_t gpu_compute_eam_tex_inter_forces(
-	const gpu_force_data_arrays& force_data, 
-	const gpu_pdata_arrays &pdata, 
-	const gpu_boxsize &box, 
-	const gpu_nlist_array &nlist, 
-	float2 *d_coeffs, 
-	int coeff_width, 
-	const EAMtex& eam_tex, 
-	const EAMTexInterArrays& eam_arrays, 
+	const gpu_force_data_arrays& force_data,
+	const gpu_pdata_arrays &pdata,
+	const gpu_boxsize &box,
+	const gpu_nlist_array &nlist,
+	const EAMtex& eam_tex,
+	const EAMTexInterArrays& eam_arrays,
 	const EAMTexInterData& eam_data);
 
 #endif

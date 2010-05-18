@@ -27,10 +27,10 @@ Moscow group.
 	*/
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
 texture<float, 1, cudaReadModeElementType> electronDensity_tex;
-texture<float, 1, cudaReadModeElementType> pairPotential_tex;
+texture<float2, 1, cudaReadModeElementType> pairPotential_tex;
 texture<float, 1, cudaReadModeElementType> embeddingFunction_tex;
 texture<float, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
-texture<float, 1, cudaReadModeElementType> derivativePairPotential_tex;
+//texture<float, 1, cudaReadModeElementType> derivativePairPotential_tex;
 texture<float, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
 texture<float, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
 __constant__ EAMTexInterData eam_data;
@@ -40,8 +40,6 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
 	gpu_nlist_array nlist,
-	float2 *d_coeffs,
-	int coeff_width,
 	float* atomDerivativeEmbeddingFunction)
 	{
 	// start by identifying which particle we are to handle
@@ -131,8 +129,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	gpu_pdata_arrays pdata,
 	gpu_boxsize box,
 	gpu_nlist_array nlist,
-	float2 *d_coeffs,
-	int coeff_width)
+	float* atomDerivativeEmbeddingFunction)
 	{
 	// start by identifying which particle we are to handle
 	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
@@ -166,7 +163,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	int nr = eam_data.nr;
 	int nrho = eam_data.nrho;
 	int ntypes = eam_data.ntypes;
-	float adef = tex1Dfetch(atomDerivativeEmbeddingFunction_tex,idx_global);
+	float adef = atomDerivativeEmbeddingFunction[idx_global];
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
 		if (neigh_idx < n_neigh)
@@ -197,17 +194,17 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
             float r = 1.0f / inverseR;
 			position = r * eam_data.rdr;
 			int shift = (typei>=typej)?(int)(0.5f * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5f * (2 * ntypes - typei -1)*typei + typej) * nr;
+            float2 pair_potential = tex1D(pairPotential_tex, position + shift + 0.5f);
+			float pair_eng =  pair_potential.x * inverseR;
 
-			float pair_eng = (tex1D(pairPotential_tex, position + shift + 0.5f)) * inverseR;
-
-			float derivativePhi = (tex1D(derivativePairPotential_tex, position + shift + 0.5f) - pair_eng) * inverseR;
+			float derivativePhi = (pair_potential.y - pair_eng) * inverseR;
 
 			float derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data.nr + 0.5f);
 
 			float derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data.nr + 0.5f);
 
 			float fullDerivativePhi = adef * derivativeRhoJ +
-				tex1Dfetch(atomDerivativeEmbeddingFunction_tex,cur_neigh) * derivativeRhoI + derivativePhi;
+				atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
 			 pairForce = - fullDerivativePhi * inverseR;
 			virial += float(1.0f/6.0f) * rsq * pairForce;
 
@@ -247,15 +244,10 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 	const gpu_pdata_arrays &pdata,
 	const gpu_boxsize &box,
 	const gpu_nlist_array &nlist,
-	float2 *d_coeffs,
-	int coeff_width,
 	const EAMtex& eam_tex,
 	const EAMTexInterArrays& eam_arrays,
 	const EAMTexInterData& eam_data)
 	{
-	assert(d_coeffs);
-	assert(coeff_width > 0);
-
     // setup the grid to run the kernel
     dim3 grid( (int)ceil((double)pdata.local_num / (double)eam_data.block_size), 1, 1);
     dim3 threads(eam_data.block_size, 1, 1);
@@ -290,13 +282,13 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 	error = cudaBindTextureToArray(derivativeElectronDensity_tex, eam_tex.derivativeElectronDensity);
 	if (error != cudaSuccess)
 		return error;
-
+/*
 	derivativePairPotential_tex.normalized = false;
 	derivativePairPotential_tex.filterMode = cudaFilterModeLinear ;
 	error = cudaBindTextureToArray(derivativePairPotential_tex, eam_tex.derivativePairPotential);
 	if (error != cudaSuccess)
 		return error;
-
+*/
 	derivativeEmbeddingFunction_tex.normalized = false;
 	derivativeEmbeddingFunction_tex.filterMode = cudaFilterModeLinear ;
 	error = cudaBindTextureToArray(derivativeEmbeddingFunction_tex, eam_tex.derivativeEmbeddingFunction);
@@ -309,24 +301,15 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 	pdata,
 	box,
 	nlist,
-	d_coeffs,
-	coeff_width,
 	eam_arrays.atomDerivativeEmbeddingFunction);
 
 	cudaThreadSynchronize();
-
-	pdata_pos_tex.normalized = false;
-	pdata_pos_tex.filterMode = cudaFilterModePoint;
-	error = cudaBindTexture(0, atomDerivativeEmbeddingFunction_tex, eam_arrays.atomDerivativeEmbeddingFunction, sizeof(float) * pdata.N);
-	if (error != cudaSuccess)
-		return error;
 
 	gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(force_data,
 	pdata,
 	box,
 	nlist,
-	d_coeffs,
-	coeff_width);
+	eam_arrays.atomDerivativeEmbeddingFunction);
 	if (!g_gpu_error_checking)
 		{
 		return cudaSuccess;
