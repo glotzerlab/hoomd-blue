@@ -423,8 +423,8 @@ def type(type, name=None):
 # \param a First group
 # \param b Second group
 #
-# The set differnce of a set of particles \emph{a} with respect to group \emph{b} is defined to be the set of particles in \emph{b} but not in \emph{a}. 
-# A new group called \emph{name} is created that contains the complement particles. This can be
+# The set differnce of a set of particles \a a with respect to group \a b is defined to be the set of particles in \a b but not in \a a. 
+# A new group called \a name is created that contains the complement particles. This can be
 # useful for inverting the sense of a group (see below).
 #
 # \b Examples:
