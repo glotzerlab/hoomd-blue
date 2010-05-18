@@ -53,6 +53,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "RigidData.h"
 #include "GPUArray.h"
+#include "RigidBodyGroup.h"
 
 /*! \file TwoStepNVERigid.h
  \brief Declares the TwoStepNVERigid class
@@ -114,6 +115,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         unsigned int m_n_bodies;                    //!< Number of rigid bodies
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to rigid data
         boost::shared_ptr<ParticleData> m_pdata;    //!< Pointer to particle data
+        boost::shared_ptr<RigidBodyGroup> m_body_group; //!< Group of rigid bodies to work with
         
         bool m_first_step;  //!< True if first step
     };
