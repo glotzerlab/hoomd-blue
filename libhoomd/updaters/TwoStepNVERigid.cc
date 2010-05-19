@@ -507,12 +507,14 @@ unsigned int TwoStepNVERigid::getNDOF(boost::shared_ptr<ParticleGroup> query_gro
     ArrayHandle<unsigned int> body_dof_handle(m_rigid_data->getBodyDOF(), access_location::host, access_mode::read);
        
     // count the number of particles both in query_group and m_group
-    RigidBodyGroup body_group(m_sysdef, query_group);
+    boost::shared_ptr<ParticleGroup> intersect_particles = ParticleGroup::groupIntersection(m_group, query_group);
+    
+    RigidBodyGroup intersect_bodies(m_sysdef, intersect_particles);
     
     unsigned int query_group_dof = 0;
-    for (unsigned int group_idx = 0; group_idx < body_group.getNumMembers(); group_idx++)
+    for (unsigned int group_idx = 0; group_idx < intersect_bodies.getNumMembers(); group_idx++)
         {
-        unsigned int body = body_group.getMemberIndex(group_idx);
+        unsigned int body = intersect_bodies.getMemberIndex(group_idx);
         if (m_body_group->isMember(body))
             query_group_dof += body_dof_handle.data[body];
         }
