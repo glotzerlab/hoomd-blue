@@ -109,5 +109,16 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                     const gpu_npt_rigid_data &npt_rdata,
                                     float deltaT);
 
+//! Kernel driver for calculating the initial pass whole system sumW/sum2K on the GPU
+cudaError_t gpu_npt_rigid_pressure2(float *d_partial_sum2K,
+                              float *d_partial_sumW,
+                              gpu_pdata_arrays pdata,
+                              float *d_net_virial,
+                              unsigned int block_size,
+                              unsigned int num_blocks);
+
+//! Kernel driver for the Ksum reduction final pass called by TwoStepNPTRigidGPU
+cudaError_t gpu_npt_rigid_reduce_sum2K(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks);
+                              
 #endif // __TWO_STEP_NPT_RIGID_CUH__
 

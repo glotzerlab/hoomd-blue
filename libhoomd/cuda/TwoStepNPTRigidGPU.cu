@@ -1875,3 +1875,188 @@ cudaError_t gpu_npt_rigid_reduce_virial(float *d_partial_sum_virial_rigid,
         return cudaGetLastError();
         }
     }
+
+#pragma mark RIGID_PRESSUREL_KERNEL
+
+//! Computes the first-pass virial and 2K sum for all particles
+/*! \param d_partial_sum2K Stores one partial 2K sum per block run
+    \param d_partial_sumW Stores one partial W sum per block run
+    \param pdata Particle data to use when computing the sum
+    \param d_net_virial The per particle net virial
+
+    \a One thread is run per particle. That thread reads in the particles velocity and mass, then computes the
+    value 2K and W. These values are then reduced in a sum within each block. Thus, the block size must be a power of
+    two. The final reduction to a single value is performed in another kernel.
+*/
+extern "C" __global__ void gpu_npt_rigid_pressure_kernel2(float *d_partial_sum2K,
+                              float *d_partial_sumW,
+                              gpu_pdata_arrays pdata,
+                              float *d_net_virial)
+    {
+    
+    int idx = blockIdx.x * blockDim.x + threadIdx.x; // particle's index
+    
+    // *** First sum the virial
+    float virial = 0.0f;
+    if (idx < pdata.local_num)
+        {
+        virial = d_net_virial[idx];
+        }
+    
+    npt_rigid_sdata[threadIdx.x] = virial;
+    __syncthreads();
+    
+    // reduce the sum in parallel
+    int offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            npt_rigid_sdata[threadIdx.x] += npt_rigid_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
+        }
+        
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_partial_sumW[blockIdx.x] = npt_rigid_sdata[0];
+        }
+
+    // *** Then sum 2K
+    float psq2 = 0.0f;
+    if (idx < pdata.local_num)
+        {
+        float4 vel = pdata.vel[idx];
+        float mass = pdata.mass[idx];
+        psq2 = mass*(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
+        }
+    
+    npt_rigid_sdata[threadIdx.x] = psq2;
+    __syncthreads();
+    
+    // reduce the sum in parallel
+    offs = blockDim.x >> 1;
+    while (offs > 0)
+        {
+        if (threadIdx.x < offs)
+            npt_rigid_sdata[threadIdx.x] += npt_rigid_sdata[threadIdx.x + offs];
+        offs >>= 1;
+        __syncthreads();
+        }
+        
+    // write out our partial sum
+    if (threadIdx.x == 0)
+        {
+        d_partial_sum2K[blockIdx.x] = npt_rigid_sdata[0];
+        }
+    }
+
+/*! \param d_partial_sum2K Stores one partial 2K sum per block run
+    \param d_partial_sumW Stores one partial W sum per block run
+    \param pdata Particle data to use when computing the sum
+    \param d_net_virial The per particle net virial
+    \param block_size Size of the block to execute on the GPU
+    \param num_blocks Number of blocks to execute on the GPU
+
+    This is just a driver function for gpu_npt_pressure_kernel(). See it for more details.
+*/
+cudaError_t gpu_npt_rigid_pressure2(float *d_partial_sum2K,
+                              float *d_partial_sumW,
+                              gpu_pdata_arrays pdata,
+                              float *d_net_virial,
+                              unsigned int block_size,
+                              unsigned int num_blocks)
+    {
+    // setup the grid to run the kernel
+    dim3 grid(num_blocks, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    
+    // run the kernel
+    gpu_npt_rigid_pressure_kernel2<<< grid, threads, block_size*sizeof(float) >>>(d_partial_sum2K,
+                                                                           d_partial_sumW,
+                                                                           pdata,
+                                                                           d_net_virial);
+    
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+    }
+
+#pragma mark RIGID_REDUCE_KINETIC_KERNEL
+    
+//! Makes the final 2K sum on the GPU
+/*! \param d_sum2K Pointer to write the final sum to
+    \param d_partial_sum2K Already computed partial sums
+    \param num_blocks Number of partial sums in \a d_partial_sum2k
+
+    nvt_step_one_kernel reduces the 2K sum per block. This kernel completes the task
+    and makes the final 2K sum on the GPU. It is up to the host to read this value to do something with the final total
+
+    This kernel is designed to be a really simple 1-block kernel for summing the total Ksum.
+    
+    \note \a num_blocks is the number of partial sums! Not the number of blocks executed in this kernel.
+*/
+extern "C" __global__ void gpu_npt_rigid_reduce_sum2K_kernel(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks)
+    {
+    float sum2K = 0.0f;
+    
+    // sum up the values in the partial sum via a sliding window
+    for (int start = 0; start < num_blocks; start += blockDim.x)
+        {
+        __syncthreads();
+        if (start + threadIdx.x < num_blocks)
+            npt_rigid_sdata[threadIdx.x] = d_partial_sum2K[start + threadIdx.x];
+        else
+            npt_rigid_sdata[threadIdx.x] = 0.0f;
+        __syncthreads();
+        
+        // reduce the sum in parallel
+        int offs = blockDim.x >> 1;
+        while (offs > 0)
+            {
+            if (threadIdx.x < offs)
+                npt_rigid_sdata[threadIdx.x] += npt_rigid_sdata[threadIdx.x + offs];
+            offs >>= 1;
+            __syncthreads();
+            }
+            
+        // everybody sums up sum2K
+        sum2K += npt_rigid_sdata[0];
+        }
+        
+    if (threadIdx.x == 0)
+        *d_sum2K = sum2K;
+    }
+
+/*! \param d_sum2K Pointer to write the final sum to
+    \param d_partial_sum2K Already computed partial sums
+    \param num_blocks Number of partial sums in \a d_partial_sum2k
+
+    this is just a driver for gpu_nvt_reduce_sum2K_kernel() see it for details
+*/
+cudaError_t gpu_npt_rigid_reduce_sum2K(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks)
+    {
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+    
+    // run the kernel
+    gpu_npt_rigid_reduce_sum2K_kernel<<< grid, threads, block_size*sizeof(float) >>>(d_sum2K, d_partial_sum2K, num_blocks);
+    
+    if (!g_gpu_error_checking)
+        {
+        return cudaSuccess;
+        }
+    else
+        {
+        cudaThreadSynchronize();
+        return cudaGetLastError();
+        }
+    }
