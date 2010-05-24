@@ -423,8 +423,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
     export_TablePotentialGPU();
 	export_EAMTexInterForceComputeGPU();
-	export_EAMTexForceComputeGPU();
-	export_EAMForceComputeGPU();
+	//export_EAMTexForceComputeGPU();
+	//export_EAMForceComputeGPU();
     export_HarmonicBondForceComputeGPU();
     export_HarmonicAngleForceComputeGPU();
     export_HarmonicDihedralForceComputeGPU();
