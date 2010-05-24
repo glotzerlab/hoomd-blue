@@ -134,7 +134,7 @@ class _force:
     #
     # By setting \a log to True, the values of the force can be logged even though the forces are not applied 
     # in the simulation.  For forces that use cutoff radii, setting \a log=True will cause the correct r_cut values 
-    # to be used throughought the simulation, and therefore possibly drive the neighbor list size larger than it
+    # to be used throughout the simulation, and therefore possibly drive the neighbor list size larger than it
     # otherwise would be. If \a log is left False, the potential energy associated with this force will not be
     # available for logging.
     #

@@ -75,7 +75,8 @@ class TwoStepNVT : public IntegrationMethodTwoStep
                    boost::shared_ptr<ParticleGroup> group,
                    boost::shared_ptr<ComputeThermo> thermo,
                    Scalar tau,
-                   boost::shared_ptr<Variant> T);
+                   boost::shared_ptr<Variant> T,
+                   const std::string& suffix = std::string(""));
         virtual ~TwoStepNVT() {};
         
         //! Update the temperature
@@ -93,6 +94,12 @@ class TwoStepNVT : public IntegrationMethodTwoStep
             {
             m_tau = tau;
             }
+
+        //! Returns a list of log quantities this integrator calculates
+        virtual std::vector< std::string > getProvidedLogQuantities();
+        
+        //! Returns logged values
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
         
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
@@ -105,6 +112,8 @@ class TwoStepNVT : public IntegrationMethodTwoStep
         
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         boost::shared_ptr<Variant> m_T; //!< Temperature set point
+        std::string m_log_name;         //!< Name of the reservior quantity that we log
+
     };
 
 //! Exports the TwoStepNVT class to python

@@ -42,6 +42,8 @@ endif (ENABLE_VALGRIND)
 
 enable_testing()
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/configure.ocelot ${CMAKE_CURRENT_BINARY_DIR}/configure.ocelot COPYONLY)
+
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST

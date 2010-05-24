@@ -62,7 +62,7 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
   - C++ Compiler (must be compatible with CUDA)
   - CUDA Toolkit
     - Version 2.0 or newer on Linux and Windows
-    - Version 3.0beta or newer on Mac
+    - Version 3.0 or newer on Mac
 - Useful developer tools
   - Subversion >= 1.5.4
   - Doxygen  >= 1.5.6
@@ -72,6 +72,9 @@ on the various platforms that hoomd supports are included below: \ref sec_build_
 
 Detailed instructions are organized into separate pages below.
  - \subpage page_compile_guide_mac
+ - \subpage page_compile_guide_linux_centos
+ - \subpage page_compile_guide_linux_fedora
+ - \subpage page_compile_guide_linux_ubuntu
  - \subpage page_compile_guide_linux_generic
 
 <hr>
@@ -98,6 +101,7 @@ generate. The makefile/IDE project is now updated with the newly selected option
  	- Requires doxygen to be installed
 	- Defaults to off if doxygen is older than 1.5.6. You can manually turn it on, but expect doxygen errors
 		and possible missing output from the generated documentation.
+ - \b ENABLE_OCELOT - compiles hoomd against ocelot instead of the CUDA runtime
  - \b ENABLE_OPENMP - enables the generation of a multi-core capable hoomd using OpenMP. Can only be enabled if your
         compiler supports OpenMP.
  - \b ENABLE_VALGRIND - (Linux only) Runs every unit test through valgrind for hardcore testing/debugging. If used with CUDA, device emulation mode is recommended.

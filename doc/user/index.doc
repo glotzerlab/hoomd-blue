@@ -35,7 +35,7 @@ Table of contents:
  - \ref sec_index_compute
  - \ref sec_index_analyze
  - \ref sec_index_dump
- - Commands that specify forces
+ - Potentials
    - \ref sec_index_pair
    - \ref sec_index_bond
    - \ref sec_index_angle
@@ -43,17 +43,17 @@ Table of contents:
    - \ref sec_index_improper
    - \ref sec_index_wall
    - \ref sec_index_other
- - Commands used to pass data to other commands
+ - Helpers
    - \ref sec_index_group
    - \ref sec_index_variant
- - Miscellaneous commands
+ - Miscellaneous
   - \ref sec_index_tuning
 
-\section sec_index_run Control the running of simulations
+\section sec_index_run Run
  - \link hoomd_script.run() run\endlink - <i>\copybrief hoomd_script::run() </i>
  - \link hoomd_script.run_upto() run_upto\endlink - <i>\copybrief hoomd_script::run_upto() </i>
 
-\section sec_index_init Initialization commands 
+\section sec_index_init Initialize
 \link hoomd_script.init init\endlink:
  - \link hoomd_script.init.create_empty() init.create_empty\endlink - <i>\copybrief hoomd_script::init::create_empty() </i>
  - \link hoomd_script.init.create_random() init.create_random\endlink - <i>\copybrief hoomd_script::init::create_random() </i>
@@ -66,7 +66,7 @@ Table of contents:
 
  - \link hoomd_script.data data access\endlink - <i>\copybrief hoomd_script::data </i>
 
-\section sec_index_integration Integration methods
+\section sec_index_integration Integrate
 \link hoomd_script.integrate integrate\endlink: 
  - \link hoomd_script.integrate.mode_minimize_fire integrate.mode_minimize_fire\endlink - <i>\copybrief hoomd_script::integrate::mode_minimize_fire </i>
  - \link hoomd_script.integrate.mode_standard integrate.mode_standard\endlink - <i>\copybrief hoomd_script::integrate::mode_standard </i>
@@ -75,7 +75,7 @@ Table of contents:
    - \link hoomd_script.integrate.nve integrate.nve\endlink - <i>\copybrief hoomd_script::integrate::nve </i>
    - \link hoomd_script.integrate.nvt integrate.nvt\endlink - <i>\copybrief hoomd_script::integrate::nvt </i>
  
-\section sec_index_update Update particle properties during the simulation
+\section sec_index_update Update
 \link hoomd_script.update update\endlink:
  - \link hoomd_script.update.box_resize update.box_resize\endlink - <i>\copybrief hoomd_script::update::box_resize </i>
  - \link hoomd_script.update.enforce2d update.enforce2d\endlink - <i>\copybrief hoomd_script::update::enforce2d </i>
@@ -83,17 +83,17 @@ Table of contents:
  - \link hoomd_script.update.sort update.sort\endlink - <i>\copybrief hoomd_script::update::sort </i>
  - \link hoomd_script.update.zero_momentum update.zero_momentum\endlink - <i>\copybrief hoomd_script::update::zero_momentum </i>
 
-\section sec_index_compute Compute system properties for analysis
+\section sec_index_compute Compute
 \link hoomd_script.compute compute\endlink:
  - \link hoomd_script.compute.thermo compute.thermo\endlink - <i>\copybrief hoomd_script::compute::thermo </i>
 
-\section sec_index_analyze Analyze simulation data while it runs
+\section sec_index_analyze Analyze
 \link hoomd_script.analyze analyze\endlink:
  - \link hoomd_script.analyze.imd analyze.imd\endlink - <i>\copybrief hoomd_script::analyze::imd </i>
  - \link hoomd_script.analyze.log analyze.log\endlink - <i>\copybrief hoomd_script::analyze::log </i>
  - \link hoomd_script.analyze.msd analyze.msd\endlink - <i>\copybrief hoomd_script::analyze::msd </i>
 
-\section sec_index_dump File output for offline analysis
+\section sec_index_dump Dump
 \link hoomd_script.dump dump\endlink:
  - \link hoomd_script.dump.dcd dump.dcd\endlink - <i>\copybrief hoomd_script::dump::dcd </i>
  - \link hoomd_script.dump.mol2 dump.mol2\endlink - <i>\copybrief hoomd_script::dump::mol2 </i>
@@ -101,9 +101,9 @@ Table of contents:
  - \link hoomd_script.dump.bin dump.bin\endlink - <i>\copybrief hoomd_script::dump::bin </i>
  - \link hoomd_script.dump.xml dump.xml\endlink - <i>\copybrief hoomd_script::dump::xml </i>
 
-<h2>Commands that specify forces</h2>
+<h2>Potentials</h2>
 
-\section sec_index_pair Pair forces
+\section sec_index_pair Pair potentials
 \link hoomd_script.pair pair\endlink:
  - \link hoomd_script.pair.cgcmm pair.cgcmm\endlink - <i>\copybrief hoomd_script::pair::cgcmm </i>
  - \link hoomd_script.pair.gauss pair.gauss\endlink - <i>\copybrief hoomd_script::pair::gauss </i>
@@ -114,25 +114,25 @@ Table of contents:
  - \link hoomd_script.pair.yukawa pair.yukawa\endlink - <i>\copybrief hoomd_script::pair::yukawa </i>
  - \link hoomd_script.pair.nlist nlist\endlink - <i>\copybrief hoomd_script::pair::nlist </i>
 
-\section sec_index_bond Bond forces
+\section sec_index_bond Bond potentials
 \link hoomd_script.bond bond\endlink:
  - \link hoomd_script.bond.harmonic bond.harmonic\endlink - <i>\copybrief hoomd_script::bond::harmonic </i>
  - \link hoomd_script.bond.fene bond.fene\endlink - <i>\copybrief hoomd_script::bond::fene </i>
 
-\section sec_index_angle Angle forces
+\section sec_index_angle Angle potentials
 \link hoomd_script.angle angle\endlink:
  - \link hoomd_script.angle.harmonic angle.harmonic\endlink - <i>\copybrief hoomd_script::angle::harmonic </i>
  - \link hoomd_script.angle.cgcmm angle.cgcmm\endlink - <i>\copybrief hoomd_script::angle::cgcmm </i>
 
-\section sec_index_dihedral Dihedral forces
+\section sec_index_dihedral Dihedral potentials
 \link hoomd_script.dihedral dihedral\endlink:
  - \link hoomd_script.dihedral.harmonic dihedral.harmonic\endlink - <i>\copybrief hoomd_script::dihedral::harmonic </i>
 
-\section sec_index_improper Improper forces
+\section sec_index_improper Improper potentials
 \link hoomd_script.improper improper\endlink:
  - \link hoomd_script.improper.harmonic improper.harmonic\endlink - <i>\copybrief hoomd_script::improper::harmonic </i>
 
-\section sec_index_wall Wall forces
+\section sec_index_wall Wall potentials
 \link hoomd_script.wall wall\endlink:
  - \link hoomd_script.wall.lj wall.lj\endlink - <i>\copybrief hoomd_script::wall::lj </i>
 
@@ -140,9 +140,9 @@ Table of contents:
 \link hoomd_script.force force\endlink:
  - \link hoomd_script.force.constant force.constant\endlink - <i>\copybrief hoomd_script::force::constant </i>
 
-<h2>Commands used to pass data to other commands</h2>
+<h2>Helpers</h2>
 
-\section sec_index_group Define groups of particles
+\section sec_index_group Group
 \link hoomd_script.group group\endlink:
  - Create groups
   - \link hoomd_script.group.all() group.all\endlink - <i>\copybrief hoomd_script::group::all </i>
@@ -155,12 +155,12 @@ Table of contents:
   - \link hoomd_script.group.intersection() group.intersection\endlink - <i>\copybrief hoomd_script::group::intersection </i>
   - \link hoomd_script.group.union() group.union\endlink - <i>\copybrief hoomd_script::group::union </i>
 
-\section sec_index_variant Define quantities that vary over time
+\section sec_index_variant Variants
 \link hoomd_script.variant variant\endlink:
  - \link hoomd_script.variant.linear_interp variant.linear_interp\endlink - <i>\copybrief hoomd_script::variant::linear_interp</i>
 
 <h2>Miscellaneous commands</h2>
-\section sec_index_tuning Commands for tuning HOOMD-blue's performance
+\section sec_index_tuning Tune
  - \link hoomd_script.tune.find_optimal_block_sizes() tune.find_optimal_block_sizes\endlink - <i>\copybrief hoomd_script::tune::find_optimal_block_sizes </i>
 
 */

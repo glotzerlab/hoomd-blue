@@ -97,6 +97,12 @@ class ComputeThermo : public Compute
         
         //! Change the number of degrees of freedom
         void setNDOF(unsigned int ndof);
+        
+        //! Get the number of degrees of freedom
+        unsigned int getNDOF()
+            {
+            return m_ndof;
+            }
             
         //! Returns the temperature last computed by compute()
         /*! \returns Instantaneous temperature of the system

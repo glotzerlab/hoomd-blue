@@ -319,7 +319,7 @@ class imd(_analyzer):
         self.setupAnalyzer(period);
 
 
-## Logs a number of calculated quanties to a file
+## Logs a number of calculated quantities to a file
 #
 # analyze.log can read a variety of calculated values, like energy and temperature, from 
 # specified forces, integrators, and updaters. It writes a single line to the specified
@@ -328,16 +328,22 @@ class imd(_analyzer):
 #
 #
 # Quantities that can be logged at any time:
-# - \b num_particles - Number of particles in the system
 # - \b volume - Volume of the simulation box
-# - \b temperature - Temperature of the system
-# - \b pressure - Pressure of the system
-# - \b kinetic_energy - Total kinetic energy of the system
-# - \b potential_energy - Total potential energy of the system
 # - \b momentum - Magnitude of the average momentum of all particles
-# - \b conserved_quantity - Conserved quantity for the current integrator (the actual definition of this value
-# depends on which integrator is being used in the current run()
 # - \b time - Wall-clock running time from the start of the log in seconds
+#
+# Thermodynamic properties
+# - The following quantities are always available and computed over all particles in the system
+#   (see compute.thermo for detailed definitions):
+#   - \b num_particles
+#   - \b ndof
+#   - \b potential_energy
+#   - \b kinetic_energy
+#   - \b temperature
+#   - \b pressure
+# - The above quantities, tagged with a <i>_groupname</i> suffix are automatically available for any group passed to
+#   an integrate command 
+# - Specify a compute.thermo directly to enable additional quantities for user-specified groups.
 #
 # The following quantities are only available only if the command is parentheses has been specified and is active
 # for logging. 
@@ -352,6 +358,9 @@ class imd(_analyzer):
 # - \b bond_harmonic_energy (bond.harmonic) - Total harmonic bond potential energy
 # - \b wall_lj_energy (wall.lj) - Total Lennard-Jones wall energy
 #
+# - <b>bdnvt_reservoir_energy<i>_groupname</i></b> (integrate.bdnvt) - Energy reservoir for the BD thermostat
+# - <b>nvt_reservoir_energy<i>_groupname</i></b> (integrate.nvt) - Energy reservoir for the NVT thermostat
+# 
 # Additionally, the following commands can be provided user-defined names that are appended as suffixes to the 
 # logged quantitiy (e.g. with \c pair.lj(r_cut=2.5, \c name="alpha"), the logged quantity would be pair_lj_energy_alpha).
 # - pair.gauss
@@ -364,11 +373,11 @@ class imd(_analyzer):
 # - bond.fene
 # - bond.harmonic
 #
-# By specifying a force, disabling it with the \a log=True options, and then logging it, different energy terms can
+# By specifying a force, disabling it with the \a log=True option, and then logging it, different energy terms can
 # be computed while only a subset of them actually drive the simulation. Common use-cases of this capability
 # include separating out pair energy of given types (shown below) and free energy calculations. Be aware that the
 # globally chosen \a r_cut value is the largest of all active pair potentials and those with \a log=True, so you will
-# observe performance degredation if you \a disable(log=True) a potential with a large \a r_cut.
+# observe performance degradation if you \a disable(log=True) a potential with a large \a r_cut.
 #
 # \b Examples:
 # \code
@@ -456,7 +465,7 @@ class log(_analyzer):
     # i.e. 
     # \code
     # logger = analyze.log(quantities=['pair_lj_energy', 
-    #                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
+    #                      'bond_harmonic_energy', 'kinetic_energy'], 
     #                      period=1000, filename="'full.log')
     # \endcode
     #
@@ -486,7 +495,7 @@ class log(_analyzer):
     # i.e. 
     # \code
     # logger = analyze.log(quantities=['pair_lj_energy', 
-    #                      'bond_harmonic_energy', 'nve_kinetic_energy'], 
+    #                      'bond_harmonic_energy', 'kinetic_energy'], 
     #                      period=1000, filename="'full.log')
     # \endcode
     #
@@ -504,7 +513,7 @@ class log(_analyzer):
         # remove all registered quantities
         self.cpp_analyzer.removeAll();
         
-        # re-register all computes and updatesr
+        # re-register all computes and updater
         globals.system.registerLogger(self.cpp_analyzer);
 
 
@@ -526,12 +535,12 @@ class log(_analyzer):
 class msd(_analyzer):
     ## Initialize the msd calculator
     #
-    # \param filename File to write the data to
+    # \param filename File to write the %data to
     # \param groups List of groups to calculate the MSDs of
     # \param period Quantities are logged every \a period time steps
     # \param header_prefix (optional) Specify a string to print before the header
     # \param r0_file hoomd_xml file specifying the positions (and images) to use for \f$ \vec{r}_0 \f$
-    # \param overwrite set to True to overwrite a the file \a filename if it exists
+    # \param overwrite set to True to overwrite the file \a filename if it exists
     #
     # \b Examples:
     # \code
@@ -546,7 +555,7 @@ class msd(_analyzer):
     # \endcode
     #
     # A group variable (\c groupN above) can be created by any number of group creation functions.
-    # see group for a list.
+    # See group for a list.
     #
     # By default, columns in the file are separated by tabs, suitable for importing as a 
     # tab-delimited spreadsheet. The delimiter can be changed to any string using set_params()

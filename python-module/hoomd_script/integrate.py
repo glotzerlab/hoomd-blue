@@ -382,12 +382,15 @@ class nvt(_integration_method):
         
         # create the compute thermo
         thermo = compute._get_unique_thermo(group=group);
+
+        # setup suffix
+        suffix = '_' + group.name;
         
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVT(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant);
+            self.cpp_method = hoomd.TwoStepNVTGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, tau, T.cpp_variant, suffix);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating NVT integrator");
@@ -422,7 +425,7 @@ class nvt(_integration_method):
 ## NPT Integration via the Nos&eacute;-Hoover thermostat, Anderson barostat
 #
 # integrate.npt performs constant pressure, constant temperature simulations using the standard
-# Nos&eacute;-Hoover thermosta/Anderson barostat.
+# Nos&eacute;-Hoover thermostat and Anderson barostat.
 #
 # integrate.npt is an integration method. It must be used in concert with an integration mode. It can be used while
 # the following modes are active:
@@ -647,9 +650,9 @@ class bdnvt(_integration_method):
     # \param gamma_diam If True, then then gamma for each particle will be assigned to its diameter. If False (the
     #                   default), gammas are assigned per particle type via set_gamma().
     # \param limit (optional) Enforce that no particle moves more than a distance of \a limit in a single time step
-    # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is tracked.
-    #                         Total energy conservation can then be monitored by adding bd_reservoir_energy to the logged 
-    #                         values
+    # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is
+    #                         tracked. Total energy conservation can then be monitored by adding
+    #                         \b bdnvt_reservoir_energy_<i>groupname</i> to the logged quantities.
     #
     # \a T can be a variant type, allowing for temperature ramps in simulation runs.
     #
@@ -677,11 +680,14 @@ class bdnvt(_integration_method):
         # create the compute thermo
         compute._get_unique_thermo(group=group);
         
+        # setup suffix
+        suffix = '_' + group.name;
+        
         # initialize the reflected c++ class
         if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
-            self.cpp_method = hoomd.TwoStepBDNVT(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVT(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, suffix);
         elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepBDNVTGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
+            self.cpp_method = hoomd.TwoStepBDNVTGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam, suffix);
         else:
             print >> sys.stderr, "\n***Error! Invalid execution mode\n";
             raise RuntimeError("Error creating BD NVT integrator");
@@ -694,9 +700,9 @@ class bdnvt(_integration_method):
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
-    # \param tally boolean If True, the energy exchange between the bd thermal reservoir and the particles is tracked.
-    #                         Total energy conservation can then be monitored by adding bd_reservoir_energy to the logged 
-    #                         values
+    # \param tally (optional) If true, the energy exchange between the bd thermal reservoir and the particles is
+    #                         tracked. Total energy conservation can then be monitored by adding
+    #                         \b bdnvt_reservoir_energy_<i>groupname</i> to the logged quantities.
     #
     # To change the parameters of an existing integrator, you must save it in a variable when it is
     # specified, like so:
@@ -760,44 +766,45 @@ class bdnvt(_integration_method):
                 
 ## Energy Minimizer (FIRE)
 #
-# integrate.energyminimizer_FIRE uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
-# for a group of particles while keeping all other particles fixed.  This method is published in Bitzek, et al, PRL, 2006.
+# integrate.mode_minimize_fire uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
+# for a group of particles while keeping all other particles fixed.  This method is published in
+# Bitzek, et al, PRL, 2006.
 #
-# At each time step,\f$\Delta t \f$, the algorithm uses the NVE Integrator to generate a x, v, and F, and then adjusts v according to
-# \f[ \vec{v} = (1-\alpha)\vec{v} + \alpha \hat{F}|\vec{v}|)  \f]
-# where \f$ \alpha \f$ and \f$\Delta t \f$ are dynamically adaptive quantities.  While a current search has been lowering 
-# the energy of system for more than \f$N_{min}\f$ steps, \f$ \alpha \f$  is decreased by \f$ \alpha \rightarrow \alpha f_{alpha} \f$ and
+# At each time step,\f$\Delta t \f$, the algorithm uses the NVE Integrator to generate a x, v, and F, and then adjusts
+# v according to \f[ \vec{v} = (1-\alpha)\vec{v} + \alpha \hat{F}|\vec{v}|  \f] where \f$ \alpha \f$ and \f$\Delta t \f$
+# are dynamically adaptive quantities.  While a current search has been lowering the energy of system for more than 
+# \f$N_{min}\f$ steps, \f$ \alpha \f$  is decreased by \f$ \alpha \rightarrow \alpha f_{alpha} \f$ and
 # \f$\Delta t \f$ is increased by \f$ \Delta t \rightarrow max(\Delta t * f_{inc}, \Delta t_{max}) \f$.
-# If the energy of the system increases (or stays the same), the velocity of the particles is set to 0,  \f$ \alpha \rightarrow \alpha_{start}\f$ and
+# If the energy of the system increases (or stays the same), the velocity of the particles is set to 0,
+# \f$ \alpha \rightarrow \alpha_{start}\f$ and
 # \f$ \Delta t \rightarrow \Delta t * f_{dec} \f$.  Convergence is determined by either the force per particle or the 
 # change in energy per particle dropping below \a ftol or \a Etol, respectively or,
 # 
-# \f[ \frac{\sum |F|}{N*\sqrt{DOF}} <ftol \;\; or \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
+# \f[ \frac{\sum |F|}{N*\sqrt{N_{dof}}} <ftol \;\; or \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
 # where N is the number of particles the minimization is acting over (i.e. the group size).
 #
-# If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept frozen
-# but will still interact as a static force and energy interacton with the particles being moved.
-#
+# If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept
+# frozen but will still interact with the particles being moved.
 #
 # \b Example:
 # \code
 # fire=integrate.mode_minimize_fire( group=group.all(), dt=0.05, ftol=1e-7, Etol=1e-7)
 # while not(fire.has_converged()):
 #    xml = dump.xml(filename="dump",period=1)
-#    run(1)
+#    run(100)
 # \endcode
 #
-# \note As a default setting, the algorithm will start with a \f$ \Delta t = \frac{1}{10} \Delta t_{max} \f$ and attempt
-# at least 10 search steps.  In practice, it was found that this prevents the simulation from making too aggressive a 
-# first step, but also from quitting before having found a good search direction. The minimum number of attempts can be 
-# set by the user. 
+# \note As a default setting, the algorithm will start with a \f$ \Delta t = \frac{1}{10} \Delta t_{max} \f$ and
+# attempts at least 10 search steps.  In practice, it was found that this prevents the simulation from making too
+# aggressive a first step, but also from quitting before having found a good search direction. The minimum number of
+# attempts can be set by the user. 
 #
-# \warning All other integration methods should be disabled before using the FIRE energy minimizer
+# \warning All other integration methods must be disabled before using the FIRE energy minimizer.
 class mode_minimize_fire(_integrator):
     ## Specifies the FIRE energy minimizer.
     #
     # \param group Group of particles on which to apply this method.
-    # \param dt This is the maximum timestep the minimizer is permitted to use.  Consider the stability of the system when setting.
+    # \param dt This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting.
     # \param Nmin Number of steps energy change is negative before allowing \f$ \alpha \f$ and \f$ \Delta t \f$ to adapt. 
     #   - <i>optional</i>: defaults to 5
     # \param finc Factor to increase \f$ \Delta t \f$ by 

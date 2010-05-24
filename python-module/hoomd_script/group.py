@@ -61,6 +61,7 @@ import init;
 # - group.all()
 # - group.cuboid()
 # - group.tags()
+# - group.tag_list()
 # - group.type()
 #
 # The above methods assign a descriptive name based on the criteria chosen. That name can be easily changed if desired:
@@ -416,13 +417,14 @@ def type(type, name=None):
 
 # {@
 
-## Create a new group from the set difference of two existing groups
+## Create a new group from the set difference or complement of two existing groups
 #
 # \param name User-assigned name for this group
 # \param a First group
 # \param b Second group
 #
-# A new group is created that contains particles that are present in group \a and \b not in \a group b. This can be
+# The set differnce of a set of particles \a a with respect to group \a b is defined to be the set of particles in \a b but not in \a a. 
+# A new group called \a name is created that contains the complement particles. This can be
 # useful for inverting the sense of a group (see below).
 #
 # \b Examples:
@@ -443,7 +445,7 @@ def difference(name, a, b):
 # \param a First group
 # \param b Second group
 #
-# A new group is created that contains only those particles present in both groups \a a and \a b, and is given name
+# A new group is created that contains all particles of \a b that also belong to \a a, and is given rhe name
 # \a name.
 #
 # \b Examples:
@@ -464,7 +466,7 @@ def intersection(name, a, b):
 # \param a First group
 # \param b Second group
 #
-# A new group is created that contains all particles present in either of the two groups \a a and \a b, and is given 
+# A new group is created that contains all particles present in the two groups \a a and \a b, and is given the 
 # name \a name.
 #
 # \b Examples:

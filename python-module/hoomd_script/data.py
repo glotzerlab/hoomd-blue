@@ -48,7 +48,7 @@ import globals
 ## \package hoomd_script.data
 # \brief Access particles, bonds, and other state information inside scripts
 #
-# Code in the data package provide high-level access to all of the particle, bond and other %data that define the
+# Code in the data package provides high-level access to all of the particle, bond and other %data that define the
 # current state of the system. By writing python code that modifies this %data, any conceivable initialization of the
 # system can be achieved without needing to invoke external tools or generate xml files. Data can be read and additional
 # analysis performed during or after simulation runs as well. Basically, the user's imagination is the limit to what can
@@ -70,17 +70,17 @@ import globals
 # <h3>Getting/setting the number of dimensions</h3>
 # You can get the number of dimensions of the system like so:
 # \code
-# >>> print s.dimensions
+# >>> print system.dimensions
 # 2
 # \endcode
 # and can change it like so:
 # \code
-# >>> s.dimensions = 3
-# >>> print s.dimensions
+# >>> system.dimensions = 3
+# >>> print system.dimensions
 # 3
 # \endcode
 #
-# \b Note: To properly initialize a 2D system, you must set dimensions=2 <b>PRIOR TO</b> any other hoomd call (such
+# \b Note: To properly initialize a 2D system, you must set dimensions=2 <b>___PRIOR TO___</b> any other hoomd call (such
 # as pair, integrate, et cetera. Otherwise, the setting may not take effect.
 # <hr>
 # <h3>Particle properties</h3>
@@ -166,7 +166,7 @@ import globals
 # \endcode
 #
 # In this manner, forces due to the lj %pair %force, bonds, and any other %force commands in hoomd can be accessed
-# independantly from one another. See force_data_proxy for a definition of each parameter accessed.
+# independently from one another. See force_data_proxy for a definition of each parameter accessed.
 #
 # <hr>
 # <h3>Proxy references</h3>

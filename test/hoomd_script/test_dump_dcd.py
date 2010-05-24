@@ -26,6 +26,13 @@ class dmp_dcd_tests (unittest.TestCase):
         dump.dcd(filename="dump_dcd", period=100, wrap=False);
         run(100)
         os.remove('dump_dcd')
+        
+    # tests group option
+    def test_group(self):
+        typeA = group.type('A');
+        dump.dcd(filename="dump_dcd", group=typeA, period=100, wrap=False);
+        run(100)
+        os.remove('dump_dcd')
             
     # tests variable periods
     def test_variable(self):

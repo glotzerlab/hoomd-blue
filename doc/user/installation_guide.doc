@@ -48,19 +48,18 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 \section sec_system_req System requirements
  - \b OS: 
-    - Supported Linux distributions
+    - Supported Linux distributions - \b Recommended
         - Ubuntu 9.04 - 64-bit
         - Fedora 10 - 64-bit
         - Gentoo - 64-bit
-        - RHEL/CentOS 5.3 - 64-bit
+        - RHEL/CentOS 5.4 - 64-bit
     - Mac OS X
         - 10.5.x Leopard
-    - Windows 
+    - Windows
         - XP
         - Vista
         - <i>Note:</i> Windows builds are not tested and validated for <i>long running</i> simulations, and are provided
-        only as a convenience for users to test and benchmark HOOMD-blue. Linux is the must supported and most stable
-        platform for production runs.
+        only as a convenience for users to test and benchmark HOOMD-blue. Linux is the primary platform for hoomd.
  - \b CPU: Any x86_64 processor
  - \b RAM: At least as much system RAM as there is video memory total on all GPUs. For example, a host with four 4GB
            Tesla GPUs connected to it should have at least 16 GB of RAM.
@@ -121,7 +120,7 @@ Quadro GPUs are professional level graphics workstation cards.
 Pre-built workstations can be purchased from a number of vendors with any of the above GeForce and Quadro GPUs. Be sure
 to check out vendors that offer custom gaming rigs. Some offer high performance configurations with up to 3 GPUs.
 
-A limited set of vendors sell workstations with Tesla GPUs pre-installed: see http://www.nvidia.com/object/tesla_wtb.html
+A limited set of vendors sells workstations with Tesla GPUs pre-installed: see http://www.nvidia.com/object/tesla_wtb.html
 
 A custom-built workstation is also an option for \em expert system builders and IT professionals.
 NVIDIA has published a set of recommendations as a starting point: http://www.nvidia.com/object/tesla_build_your_own.html
@@ -209,15 +208,15 @@ sudo bash NVIDIA-Linux-*.run
     <br><b>To install</b> to your <i>home directory</i>, open a terminal, cd to the directory where you downloaded the file
     and then run
  	\code
- tar -xvjpf hoomd-0.8.2-*.tar.bz2 -C ~/
+ tar -xvjpf hoomd-0.9.0-*.tar.bz2 -C ~/
  	\endcode
  	in a terminal. To <i>instead</i> install in a system directory for all users to access, extract into /opt by running
   	\code
- sudo tar -xvjpf hoomd-0.8.2-*.tar.bz2 -C /opt
+ sudo tar -xvjpf hoomd-0.9.0-*.tar.bz2 -C /opt
     \endcode
     <b>Open</b> your ~/.bashrc file and add this line to the end:
     \code
- export PATH=${PATH}:${HOME}/hoomd-0.8.2-Linux-x86_64-Python2.5/bin
+ export PATH=${PATH}:${HOME}/hoomd-0.9.0-Linux-x86_64-Python2.5/bin
     \endcode
     <i>Adjust</i> the name of the directory to <b>match the one you installed</b>.
     You will probably need to log out and back in for the path setting to take effect.
@@ -228,7 +227,7 @@ instead of adding new ones.
 The standard benchmark scripts serve as a <b>good test</b> of your installation. To <b>run one of them</b>, open a
 terminal and run:
 \code
- cd ~/hoomd-0.8.2-Linux-x86_64-Python2.5/share/hoomd/benchmarks
+ cd ~/hoomd-0.9.0-Linux-x86_64-Python2.5/share/hoomd/benchmarks
  hoomd lj_liquid_bmark.hoomd
  # ... watch the simulation run ...
 \endcode
@@ -253,11 +252,11 @@ Check out the \ref page_quick_start to start learning how to use hoomd.
     <br><b>To install</b> to your <i>home directory</i>, open a terminal, cd to the directory where you downloaded the file
     and then run
  	\code
- tar -xvjpf hoomd-0.8.2-*.tar.bz2 -C ~/
+ tar -xvjpf hoomd-0.9.0-*.tar.bz2 -C ~/
  	\endcode
  	in a terminal. To <i>instead</i> install in a system directory for all users to access, extract into /opt by running
   	\code
- sudo tar -xvjpf hoomd-0.8.2-*.tar.bz2 -C /opt
+ sudo tar -xvjpf hoomd-0.9.0-*.tar.bz2 -C /opt
     \endcode
     Then run
     \code
@@ -265,7 +264,7 @@ Check out the \ref page_quick_start to start learning how to use hoomd.
     \endcode
     <b>To open</b> your ~/.bash_profile file.  Add this line to the end:
     \code
- export PATH=${PATH}:${HOME}/hoomd-0.8.2-Darwin-i386-Python2.5/bin
+ export PATH=${PATH}:${HOME}/hoomd-0.9.0-Darwin-i386-Python2.5/bin
     \endcode
     <i>Adjust</i> the name of the directory to <b>match the one you installed</b>.
     The path setting will only take effect in newly opened terminal windows.
@@ -276,7 +275,7 @@ instead of adding new ones.
 The standard benchmark scripts serve as a <b>good test</b> of your installation. To <b>run one of them</b>, open a
 terminal and run:
 \code
- cd ~/hoomd-0.8.2-Darwin-i386-Python2.5/share/hoomd/benchmarks
+ cd ~/hoomd-0.9.0-Darwin-i386-Python2.5/share/hoomd/benchmarks
  hoomd lj_liquid_bmark.hoomd
  # ... watch the simulation run ...
 \endcode

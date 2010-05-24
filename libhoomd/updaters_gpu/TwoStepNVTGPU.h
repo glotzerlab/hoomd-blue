@@ -69,7 +69,8 @@ class TwoStepNVTGPU : public TwoStepNVT
                       boost::shared_ptr<ParticleGroup> group,
                       boost::shared_ptr<ComputeThermo> thermo,
                       Scalar tau,
-                      boost::shared_ptr<Variant> T);
+                      boost::shared_ptr<Variant> T,
+                      const std::string& suffix = std::string(""));
         virtual ~TwoStepNVTGPU() {};
         
         //! Performs the first step of the integration

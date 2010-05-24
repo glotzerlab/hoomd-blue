@@ -65,13 +65,15 @@ using namespace boost;
     \param thermo compute for thermodynamic quantities
     \param tau NVT period
     \param T Temperature set point
+    \param suffix Suffix to attach to the end of log quantity names
 */
 TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
                              boost::shared_ptr<ParticleGroup> group,
                              boost::shared_ptr<ComputeThermo> thermo,
                              Scalar tau,
-                             boost::shared_ptr<Variant> T)
-    : TwoStepNVT(sysdef, group, thermo, tau, T)
+                             boost::shared_ptr<Variant> T,
+                             const std::string& suffix)
+    : TwoStepNVT(sysdef, group, thermo, tau, T, suffix)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
@@ -177,7 +179,9 @@ void export_TwoStepNVTGPU()
                           boost::shared_ptr<ParticleGroup>,
                           boost::shared_ptr<ComputeThermo>,
                           Scalar,
-                          boost::shared_ptr<Variant> >())
+                          boost::shared_ptr<Variant>,
+                          const std::string&
+                          >())
         ;
     }
 
