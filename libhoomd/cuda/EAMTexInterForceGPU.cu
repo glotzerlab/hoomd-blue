@@ -303,8 +303,6 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
 	nlist,
 	eam_arrays.atomDerivativeEmbeddingFunction);
 
-	cudaThreadSynchronize();
-
 	gpu_compute_eam_tex_inter_forces_kernel_2<<< grid, threads>>>(force_data,
 	pdata,
 	box,
