@@ -67,12 +67,6 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	int typei  = __float_as_int(pos.w);
 	// loop over neighbors
 
-	#ifdef ARCH_SM13
-	// sm13 offers warp voting which makes this hardware bug workaround less of a performance penalty
-	#define neigh_for for (int neigh_idx = 0; __any(neigh_idx < n_neigh); neigh_idx++)
-	#else
-	#define neigh_for for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
-	#endif
 	float atomElectronDensity  = 0.0f;
 	int nr = eam_data.nr;
 	int nrho = eam_data.nrho;
@@ -80,39 +74,34 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	float m_pe = 0.0f;
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
-		if (neigh_idx < n_neigh)
+		// read the current neighbor index (MEM TRANSFER: 4 bytes)
+		// prefetch the next value and set the current one
+		cur_neigh = next_neigh;
+		if (neigh_idx+1 < nlist.height)
+			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+
+		// get the neighbor's position (MEM TRANSFER: 16 bytes)
+		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+
+		// calculate dr (with periodic boundary conditions) (FLOPS: 3)
+		float dx = pos.x - neigh_pos.x;
+		float dy = pos.y - neigh_pos.y;
+		float dz = pos.z - neigh_pos.z;
+		int typej  = __float_as_int(neigh_pos.w);
+		// apply periodic boundary conditions: (FLOPS 12)
+		dx -= box.Lx * rintf(dx * box.Lxinv);
+		dy -= box.Ly * rintf(dy * box.Lyinv);
+		dz -= box.Lz * rintf(dz * box.Lzinv);
+
+		// calculate r squard (FLOPS: 5)
+		float rsq = dx*dx + dy*dy + dz*dz;
+		if (rsq < eam_data.r_cutsq)
 			{
-			// read the current neighbor index (MEM TRANSFER: 4 bytes)
-			// prefetch the next value and set the current one
-			cur_neigh = next_neigh;
-			if (neigh_idx+1 < nlist.height)
-				next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
-
-			// get the neighbor's position (MEM TRANSFER: 16 bytes)
-			float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
-
-			// calculate dr (with periodic boundary conditions) (FLOPS: 3)
-			float dx = pos.x - neigh_pos.x;
-			float dy = pos.y - neigh_pos.y;
-			float dz = pos.z - neigh_pos.z;
-			int typej  = __float_as_int(neigh_pos.w);
-			// apply periodic boundary conditions: (FLOPS 12)
-			dx -= box.Lx * rintf(dx * box.Lxinv);
-			dy -= box.Ly * rintf(dy * box.Lyinv);
-			dz -= box.Lz * rintf(dz * box.Lzinv);
-
-			// calculate r squard (FLOPS: 5)
-			float rsq = dx*dx + dy*dy + dz*dz;
-			if (rsq < eam_data.r_cutsq)
-				{
-				//Определяем индекс в таблице.
-				 float position_float = sqrtf(rsq) * eam_data.rdr;
-				 atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data.nr * typej] + derivativeElectronDensity[r_index + eam_data.nr * typej] * position * eam_data.dr;
-				}
+			//Определяем индекс в таблице.
+			 float position_float = sqrtf(rsq) * eam_data.rdr;
+			 atomElectronDensity += tex1D(electronDensity_tex, position_float + nr * (typei * ntypes + typej) + 0.5f ); //electronDensity[r_index + eam_data.nr * typej] + derivativeElectronDensity[r_index + eam_data.nr * typej] * position * eam_data.dr;
 			}
-
 		}
-
 
 	//Определяем индекс в таблице.
 	float position = atomElectronDensity * eam_data.rdrho;
@@ -166,62 +155,59 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	float adef = atomDerivativeEmbeddingFunction[idx_global];
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
-		if (neigh_idx < n_neigh)
-			{
-			cur_neigh = next_neigh;
-			if (neigh_idx+1 < nlist.height)
-				next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+		cur_neigh = next_neigh;
+		if (neigh_idx+1 < nlist.height)
+			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
 
-			// get the neighbor's position (MEM TRANSFER: 16 bytes)
-			float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
+		// get the neighbor's position (MEM TRANSFER: 16 bytes)
+		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
 
-			// calculate dr (with periodic boundary conditions) (FLOPS: 3)
-			float dx = pos.x - neigh_pos.x;
-			float dy = pos.y - neigh_pos.y;
-			float dz = pos.z - neigh_pos.z;
-			int typej = __float_as_int(neigh_pos.w);
-			// apply periodic boundary conditions: (FLOPS 12)
-			dx -= box.Lx * rintf(dx * box.Lxinv);
-			dy -= box.Ly * rintf(dy * box.Lyinv);
-			dz -= box.Lz * rintf(dz * box.Lzinv);
+		// calculate dr (with periodic boundary conditions) (FLOPS: 3)
+		float dx = pos.x - neigh_pos.x;
+		float dy = pos.y - neigh_pos.y;
+		float dz = pos.z - neigh_pos.z;
+		int typej = __float_as_int(neigh_pos.w);
+		// apply periodic boundary conditions: (FLOPS 12)
+		dx -= box.Lx * rintf(dx * box.Lxinv);
+		dy -= box.Ly * rintf(dy * box.Lyinv);
+		dz -= box.Lz * rintf(dz * box.Lzinv);
 
-			// calculate r squard (FLOPS: 5)
-			float rsq = dx*dx + dy*dy + dz*dz;
+		// calculate r squard (FLOPS: 5)
+		float rsq = dx*dx + dy*dy + dz*dz;
 
-			if (rsq > eam_data.r_cutsq) continue;
+		if (rsq > eam_data.r_cutsq) continue;
 
-			float inverseR = rsqrtf(rsq);
-            float r = 1.0f / inverseR;
-			position = r * eam_data.rdr;
-			int shift = (typei>=typej)?(int)(0.5f * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5f * (2 * ntypes - typei -1)*typei + typej) * nr;
-            float2 pair_potential = tex1D(pairPotential_tex, position + shift + 0.5f);
-			float pair_eng =  pair_potential.x * inverseR;
+		float inverseR = rsqrtf(rsq);
+        float r = 1.0f / inverseR;
+		position = r * eam_data.rdr;
+		int shift = (typei>=typej)?(int)(0.5f * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5f * (2 * ntypes - typei -1)*typei + typej) * nr;
+        float2 pair_potential = tex1D(pairPotential_tex, position + shift + 0.5f);
+		float pair_eng =  pair_potential.x * inverseR;
 
-			float derivativePhi = (pair_potential.y - pair_eng) * inverseR;
+		float derivativePhi = (pair_potential.y - pair_eng) * inverseR;
 
-			float derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data.nr + 0.5f);
+		float derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data.nr + 0.5f);
 
-			float derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data.nr + 0.5f);
+		float derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data.nr + 0.5f);
 
-			float fullDerivativePhi = adef * derivativeRhoJ +
+		float fullDerivativePhi = adef * derivativeRhoJ +
 				atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
-			 pairForce = - fullDerivativePhi * inverseR;
-			virial += float(1.0f/6.0f) * rsq * pairForce;
+		pairForce = - fullDerivativePhi * inverseR;
+		virial += float(1.0f/6.0f) * rsq * pairForce;
 
-			fxi += dx * pairForce ;
-			fyi += dy * pairForce ;
-			fzi += dz * pairForce ;
-			m_pe += pair_eng * 0.5f;
-			}
+		fxi += dx * pairForce ;
+		fyi += dy * pairForce ;
+		fzi += dz * pairForce ;
+		m_pe += pair_eng * 0.5f;
 		}
-		force.x = fxi;
-		force.y = fyi;
-		force.z = fzi;
-		force.w += m_pe;
-		// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-		force_data.force[idx_local] = force;
-		force_data.virial[idx_local] = virial;
-
+		
+	force.x = fxi;
+	force.y = fyi;
+	force.z = fzi;
+	force.w += m_pe;
+	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+	force_data.force[idx_local] = force;
+	force_data.virial[idx_local] = virial;
 	}
 
 /*! \param force_data Force data on GPU to write forces to
