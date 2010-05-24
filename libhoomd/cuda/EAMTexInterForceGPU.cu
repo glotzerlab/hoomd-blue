@@ -77,8 +77,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
 		// prefetch the next value and set the current one
 		cur_neigh = next_neigh;
-		if (neigh_idx+1 < nlist.height)
-			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
 
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -156,8 +155,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
 		cur_neigh = next_neigh;
-		if (neigh_idx+1 < nlist.height)
-			next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
 
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
