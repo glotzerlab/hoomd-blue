@@ -46,6 +46,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/python.hpp>
+#include <boost/dynamic_bitset.hpp>
+using namespace boost;
 using namespace boost::python;
 
 #include "HOOMDInitializer.h"
@@ -90,7 +92,6 @@ type_of_file = 1 => EAM/FS
 */
 void EAMForceCompute::loadFile(char *filename, int type_of_file)
 	{
-	TypeMapping type_mapping;
 	unsigned int tmp_int, type, i, j, k;
 	double  tmp_mass, tmp;
 	char tmp_str[5];
@@ -105,17 +106,20 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
 	for(i = 0; i < 3; i++) while(fgetc(fp) != '\n');
 	fscanf(fp, "%d", &m_ntypes);
 
+    // temporary array to count used types
+    boost::dynamic_bitset<> types_set(m_pdata->getNTypes()); 
 	//Load names of types.
 	for(i = 0; i < m_ntypes; i++)
 		{
 		fscanf(fp, "%2s", tmp_str);
 		names.push_back(tmp_str);
-		types.push_back(type_mapping.getTypeId(names[i]));
-		type_mapping.setTypeDefined(types[i]);
+        unsigned int tid = m_pdata->getTypeByName(tmp_str);
+		types.push_back(tid);
+        types_set[tid] = true;
 		}
 
     //Check that all types of atopms in xml file have description in potential file
-    if(!type_mapping.checkAllTypesIsDefined())
+    if(m_pdata->getNTypes() != types_set.count())
         {
 		cerr << endl << "***Error! There are not full description of types of atoms in potential file!!!" << endl << endl;
 		throw runtime_error("Error loading file");
