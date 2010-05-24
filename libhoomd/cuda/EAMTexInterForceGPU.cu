@@ -43,19 +43,17 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	float* atomDerivativeEmbeddingFunction)
 	{
 	// start by identifying which particle we are to handle
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	volatile int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (idx_local >= pdata.local_num)
+	if (idx >= pdata.local_num)
 		return;
 
-	int idx_global = idx_local + pdata.local_beg;
-
 	// load in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[idx_global];
+	int n_neigh = nlist.n_neigh[idx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+	float4 pos = tex1Dfetch(pdata_pos_tex, idx);
 
 	// initialize the force to 0
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -63,7 +61,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 
 	// prefetch neighbor index
 	int cur_neigh = 0;
-	int next_neigh = nlist.list[idx_global];
+	int next_neigh = nlist.list[idx];
 	int typei  = __float_as_int(pos.w);
 	// loop over neighbors
 
@@ -77,7 +75,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
 		// prefetch the next value and set the current one
 		cur_neigh = next_neigh;
-		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
 
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -107,10 +105,10 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel(
 	/*unsigned int r_index = (unsigned int)position;
 	position -= (float)r_index;*/
 	//Извлекаем элементы.Производим интерполяцию.
-	atomDerivativeEmbeddingFunction[idx_global] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data.nrho + 0.5f);//derivativeEmbeddingFunction[r_index + typei * eam_data.nrho];
+	atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data.nrho + 0.5f);//derivativeEmbeddingFunction[r_index + typei * eam_data.nrho];
 
 	force.w += tex1D(embeddingFunction_tex, position + typei * eam_data.nrho + 0.5f);//embeddingFunction[r_index + typei * eam_data.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data.nrho] * position * eam_data.drho;
-	force_data.force[idx_local] = force;
+	force_data.force[idx] = force;
 	}
 extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	gpu_force_data_arrays force_data,
@@ -120,42 +118,40 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	float* atomDerivativeEmbeddingFunction)
 	{
 	// start by identifying which particle we are to handle
-	int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+	volatile  int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (idx_local >= pdata.local_num)
+	if (idx >= pdata.local_num)
 		return;
 
-	int idx_global = idx_local + pdata.local_beg;
-
 	// loadj in the length of the list (MEM_TRANSFER: 4 bytes)
-	int n_neigh = nlist.n_neigh[idx_global];
+	int n_neigh = nlist.n_neigh[idx];
 
 	// read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
 	// (MEM TRANSFER: 16 bytes)
-	float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+	float4 pos = tex1Dfetch(pdata_pos_tex, idx);
 	int typei = __float_as_int(pos.w);
 	// prefetch neighbor index
 	float position;
 	int cur_neigh = 0;
-	int next_neigh = nlist.list[idx_global];
-	//float4 force = force_data.force[idx_local];
+	int next_neigh = nlist.list[idx];
+	//float4 force = force_data.force[idx];
 	float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	//force.w = force_data.force[idx_local].w;
+	//force.w = force_data.force[idx].w;
 	float fxi = 0.0f;
 	float fyi = 0.0f;
 	float fzi = 0.0f;
 	float m_pe = 0.0f;
 	float pairForce = 0.0f;
 	float virial = 0.0f;
-	force.w = force_data.force[idx_local].w;
+	force.w = force_data.force[idx].w;
 	int nr = eam_data.nr;
 	int nrho = eam_data.nrho;
 	int ntypes = eam_data.ntypes;
-	float adef = atomDerivativeEmbeddingFunction[idx_global];
+	float adef = atomDerivativeEmbeddingFunction[idx];
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 		{
 		cur_neigh = next_neigh;
-		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+		next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
 
 		// get the neighbor's position (MEM TRANSFER: 16 bytes)
 		float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -178,7 +174,7 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 		float inverseR = rsqrtf(rsq);
         float r = 1.0f / inverseR;
 		position = r * eam_data.rdr;
-		int shift = (typei>=typej)?(int)(0.5f * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5f * (2 * ntypes - typei -1)*typei + typej) * nr;
+		int shift = (typei>=typej)?(int)((2 * ntypes - typej -1)*typej/2 + typei) * nr:(int)((2 * ntypes - typei -1)*typei/2 + typej) * nr;
         float2 pair_potential = tex1D(pairPotential_tex, position + shift + 0.5f);
 		float pair_eng =  pair_potential.x * inverseR;
 
@@ -204,8 +200,8 @@ extern "C" __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
 	force.z = fzi;
 	force.w += m_pe;
 	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-	force_data.force[idx_local] = force;
-	force_data.virial[idx_local] = virial;
+	force_data.force[idx] = force;
+	force_data.virial[idx] = virial;
 	}
 
 /*! \param force_data Force data on GPU to write forces to
