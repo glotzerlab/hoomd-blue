@@ -63,6 +63,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "ForceCompute.h"
+#include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "HarmonicBondForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
@@ -389,6 +390,7 @@ BOOST_PYTHON_MODULE(hoomd)
     // computes
     export_Compute();
     export_ForceCompute();
+    export_ForceConstraint();
     export_ConstForceCompute();
     export_HarmonicBondForceCompute();
     export_HarmonicAngleForceCompute();
