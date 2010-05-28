@@ -50,6 +50,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FIREEnergyMinimizer.h"
 #include "RigidData.h"
+#include "RigidBodyGroup.h"
 
 /*! \file FIREEnergyMinimizerRigid.h
     \brief Declares a class for energy minimization for rigid bodies 
@@ -90,7 +91,9 @@ class FIREEnergyMinimizerRigid : public FIREEnergyMinimizer
             }
             
     protected:        
-        boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to the rigid data 
+        boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to the rigid data
+        boost::shared_ptr<RigidBodyGroup> m_body_group; //!< Group of rigid bodies to work with
+        unsigned int m_n_bodies;                    //!< Number of rigid bodies
         unsigned int m_nparticles;                  //!< Total number of particles 
         unsigned int m_nevery;                      //!< Period of minimization
     private:

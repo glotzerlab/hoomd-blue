@@ -86,6 +86,7 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
     
     m_first_step = true;
     
+    // Create my rigid body group from the particle group
     m_body_group = boost::shared_ptr<RigidBodyGroup>(new RigidBodyGroup(sysdef, m_group));
     if (m_body_group->getNumMembers() == 0)
         {
@@ -119,7 +120,7 @@ void TwoStepNVERigid::setup()
     if (m_prof)
         m_prof->push("Rigid setup");
         
-     // Get the number of rigid bodies for frequent use
+    // Get the number of rigid bodies for frequent use
     m_n_bodies = m_body_group->getNumMembers();
      
     // sanity check

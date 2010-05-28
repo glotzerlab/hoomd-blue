@@ -75,11 +75,24 @@ FIREEnergyMinimizerRigid::FIREEnergyMinimizerRigid(boost::shared_ptr<SystemDefin
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
     m_nparticles = arrays.nparticles;
     m_pdata->release();
-
+    
+    // Get the system rigid data
     m_rigid_data = sysdef->getRigidData();
     
-    m_nevery = 1;
+    // Create my rigid body group from the particle group
+    m_body_group = boost::shared_ptr<RigidBodyGroup>(new RigidBodyGroup(sysdef, m_group));
     
+    // Get the number of rigid bodies for frequent use
+    m_n_bodies = m_body_group->getNumMembers();
+    
+    if (m_n_bodies == 0)
+        {
+        cout << "***Warning! Empty group of rigid bodies." << endl;
+        }
+    
+    // Time steps to run NVE between minimizer moves    
+    m_nevery = 1;
+        
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
@@ -102,11 +115,12 @@ void FIREEnergyMinimizerRigid::reset()
     m_alpha = m_alpha_start;
     m_was_reset = true;
     
-    unsigned int n_bodies = m_rigid_data->getNumBodies();
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-    for (unsigned int body = 0; body < n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         // scales translational velocity
         vel_handle.data[body].x = 0.0;
         vel_handle.data[body].y = 0.0;
@@ -133,8 +147,7 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     if (timestep % m_nevery != 0)
         return;
         
-    unsigned int n_bodies = m_rigid_data->getNumBodies();
-    if (n_bodies <= 0)
+    if (m_n_bodies <= 0)
         {
         cerr << endl << "***Error! FIREENergyMinimizerRigid: There is no rigid body for this integrator" << endl << endl;
         throw runtime_error("Error update for FIREEnergyMinimizerRigid (no rigid body)");
@@ -162,8 +175,10 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
     
     // Calculates the powers
-    for (unsigned int body = 0; body < n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         // translational power = force * vel
         Pt += force_handle.data[body].x * vel_handle.data[body].x + force_handle.data[body].y * vel_handle.data[body].y 
                 + force_handle.data[body].z * vel_handle.data[body].z;
@@ -187,11 +202,11 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     tnorm = sqrt(tnorm);
     wnorm = sqrt(wnorm);
     
-//   printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+//  printf("f = %g (%g); e = %g (%g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
 
-    if ((fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
-        printf("Converged: f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+        printf("Converged: f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;
         return;
         }
@@ -208,8 +223,10 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
     else 
         factor_r = 1.0; 
         
-    for (unsigned int body = 0; body < n_bodies; body++)
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
         // scales translational velocity
         vel_handle.data[body].x = vel_handle.data[body].x * (1.0 - m_alpha) + force_handle.data[body].x * factor_t;
         vel_handle.data[body].y = vel_handle.data[body].y * (1.0 - m_alpha) + force_handle.data[body].y * factor_t;
@@ -238,8 +255,10 @@ void FIREEnergyMinimizerRigid::update(unsigned int timestep)
         IntegratorTwoStep::setDeltaT(m_deltaT * m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
-        for (unsigned int body = 0; body < n_bodies; body++)
+        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
             {
+            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            
             vel_handle.data[body].x = Scalar(0.0);
             vel_handle.data[body].y = Scalar(0.0);
             vel_handle.data[body].z = Scalar(0.0);
