@@ -120,11 +120,15 @@ void FIREEnergyMinimizerRigidGPU::reset()
     shared_ptr<RigidData> rigid_data = m_sysdef->getRigidData();
     ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
-
+    ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
+    
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
+    d_rdata.n_group_bodies = m_n_bodies;
     d_rdata.local_beg = 0;
-    d_rdata.local_num = d_rdata.n_bodies;
+    d_rdata.local_num = m_n_bodies;
+    
+    d_rdata.body_indices = d_body_index_array.data;
     d_rdata.vel = vel_handle.data;
     d_rdata.angmom = angmom_handle.data;
     
@@ -145,8 +149,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     if (timestep % m_nevery != 0)
         return;
         
-    unsigned int n_bodies = m_rigid_data->getNumBodies();
-    if (n_bodies <= 0)
+    if (m_n_bodies <= 0)
         {
         cerr << endl << "***Error! FIREENergyMinimizerRigid: There is no rigid body for this integrator" << endl << endl;
         throw runtime_error("Error update for FIREEnergyMinimizerRigid (no rigid body)");
@@ -186,14 +189,11 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     
     if (m_prof)
         m_prof->pop(exec_conf);
-
     }
 
     {
-    
     ArrayHandle<float> h_sum_pe(m_sum_pe, access_location::host, access_mode::read);
     energy = h_sum_pe.data[0] / Scalar(m_nparticles);    
-    
     }
 
     if (m_was_reset)
@@ -207,15 +207,20 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "FIRE rigid P, vnorm, fnorm");
     
+    ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
+    
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::device, access_mode::read);
-
+    
     gpu_rigid_data_arrays d_rdata;
-    d_rdata.n_bodies = n_bodies;
+    d_rdata.n_bodies = m_rigid_data->getNumBodies();
+    d_rdata.n_group_bodies = m_n_bodies;
     d_rdata.local_beg = 0;
-    d_rdata.local_num = n_bodies;
+    d_rdata.local_num = m_n_bodies;
+    
+    d_rdata.body_indices = d_body_index_array.data;
     d_rdata.vel = vel_handle.data;
     d_rdata.angvel = angvel_handle.data;
     d_rdata.force = force_handle.data;
@@ -248,9 +253,9 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     }
     
     // Check if convergent
-    if ((fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    if ((fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies) < m_ftol || fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
-        printf("Converged: f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
+        printf("Converged: f = %g (ftol = %g); e = %g (etol = %g)\n", fnorm/sqrt(m_sysdef->getNDimensions() * m_n_bodies), m_ftol, fabs(energy-m_old_energy), m_etol);
         m_converged = true;
         return;
         }
@@ -261,15 +266,20 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "FIRE rigid update velocities and angular momenta");
 
+    ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
+    
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::device, access_mode::read);
-
+    
     gpu_rigid_data_arrays d_rdata;
-    d_rdata.n_bodies = n_bodies;
+    d_rdata.n_bodies = m_rigid_data->getNumBodies();
+    d_rdata.n_group_bodies = m_n_bodies;
     d_rdata.local_beg = 0;
-    d_rdata.local_num = n_bodies;
+    d_rdata.local_num = m_n_bodies;
+    
+    d_rdata.body_indices = d_body_index_array.data;
     d_rdata.vel = vel_handle.data;
     d_rdata.angmom = angmom_handle.data;
     d_rdata.force = force_handle.data;
@@ -317,13 +327,18 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         if (m_prof)
             m_prof->push(exec_conf, "FIRE rigid zero velocities");
         
+        ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
+
         ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
-
+        
         gpu_rigid_data_arrays d_rdata;
-        d_rdata.n_bodies = n_bodies;
+        d_rdata.n_bodies = m_rigid_data->getNumBodies();
+        d_rdata.n_group_bodies = m_n_bodies;
         d_rdata.local_beg = 0;
-        d_rdata.local_num = n_bodies;
+        d_rdata.local_num = m_n_bodies;
+        
+        d_rdata.body_indices = d_body_index_array.data;
         d_rdata.vel = vel_handle.data;
         d_rdata.angmom = angmom_handle.data;
         

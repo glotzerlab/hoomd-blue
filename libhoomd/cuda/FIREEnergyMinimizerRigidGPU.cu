@@ -59,6 +59,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     minimization iteration on the GPU. Used by FIREEnergyMinimizerRigidGPU.
 */
 
+//! The texture for reading the rigid data body indices array
+texture<unsigned int, 1, cudaReadModeElementType> rigid_data_body_indices_tex;
 //! The texture for reading the rigid data vel array
 texture<float4, 1, cudaReadModeElementType> rigid_data_vel_tex;
 //! The texture for reading the rigid data angvel array
@@ -81,23 +83,27 @@ extern __shared__ float fire_sdata[];
 //! The kernel function to zeros velocities, called by gpu_fire_rigid_zero_v()
 /*! \param rdata_vel Body velocities
     \param rdata_angmom Angular momenta
+    \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
-    \param local_beg Starting body index in this card
 */
 extern "C" __global__ void gpu_fire_rigid_zero_v_kernel(float4* rdata_vel, 
                                                 float4* rdata_angmom,
-                                                unsigned int n_bodies, 
-                                                unsigned int local_beg)
+                                                unsigned int n_group_bodies,
+                                                unsigned int n_bodies)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + local_beg;
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    float4 vel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 angmom = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-    if (idx_local < n_bodies)
-        {        
-        rdata_vel[idx_global] = vel;
-        rdata_angmom[idx_global] = angmom;
+    if (group_idx < n_group_bodies)
+        {
+        unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
+        float4 vel = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        float4 angmom = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+        
+        if (idx_body < n_bodies)
+            {
+            rdata_vel[idx_body] = vel;
+            rdata_angmom[idx_body] = angmom;
+            }
         }
     }
 
@@ -109,17 +115,21 @@ for details.
 */
 cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata)
     {
+    unsigned int n_group_bodies = rdata.n_group_bodies;
     unsigned int n_bodies = rdata.n_bodies;
-    unsigned int local_beg = rdata.local_beg;
     
     // setup the grid to run the kernel
     unsigned int block_size = 256;
-    unsigned int num_blocks = n_bodies / block_size + 1;
+    unsigned int num_blocks = n_group_bodies / block_size + 1;
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
+    
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(float) * n_group_bodies);
+    if (error != cudaSuccess)
+        return error;
         
     // run the kernel
-    gpu_fire_rigid_zero_v_kernel<<< grid, threads >>>(rdata.vel, rdata.angmom, n_bodies, local_beg);
+    gpu_fire_rigid_zero_v_kernel<<< grid, threads >>>(rdata.vel, rdata.angmom, n_group_bodies, n_bodies);
     
     if (!g_gpu_error_checking)
         {
@@ -136,12 +146,14 @@ cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata)
 
 /*! Kernel function to simultaneously compute the partial sum over Pt, vsq and fsq for the FIRE algorithm
     \param d_sum_Pt Array to hold the sum over Pt (f*v), v2 and f2
+    \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
-    \param local_beg Starting body index in this card
 */
-extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(float* d_sum_Pt, unsigned int n_bodies, unsigned int local_beg)
+extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(float* d_sum_Pt, 
+                                                            unsigned int n_group_bodies, 
+                                                            unsigned int n_bodies)
     {
-    unsigned int idx_global = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned int idx_global = blockIdx.x * blockDim.x + threadIdx.x;
     
     float* body_Pt = fire_sdata;
     float* body_vsq = &fire_sdata[blockDim.x];
@@ -153,17 +165,24 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(float* d_sum_Pt, unsi
     float fsq = 0.0f;
     
     // sum up the values via a sliding window
-    for (int start = 0; start < n_bodies; start += blockDim.x)
+    for (int start = 0; start < n_group_bodies; start += blockDim.x)
         {
-        if (start + threadIdx.x < n_bodies)
+        if (start + threadIdx.x < n_group_bodies)
             {
-            unsigned int idx_body = start + threadIdx.x;
-            force = tex1Dfetch(rigid_data_force_tex, idx_body);
-            vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-            float Ptrans = force.x * vel.x + force.y * vel.y + force.z * vel.z;
-            float v2 = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
-            float f2 = force.x * force.x + force.y * force.y + force.z * force.z;
-        
+            unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, start + threadIdx.x);
+            float Ptrans = 0.0f;
+            float v2 = 0.0f;
+            float f2 = 0.0;
+            
+            if (idx_body < n_bodies)
+                {
+                force = tex1Dfetch(rigid_data_force_tex, idx_body);
+                vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
+                Ptrans = force.x * vel.x + force.y * vel.y + force.z * vel.z;
+                v2 = vel.x * vel.x + vel.y * vel.y + vel.z * vel.z;
+                f2 = force.x * force.x + force.y * force.y + force.z * force.z;
+                }
+            
             body_Pt[threadIdx.x] = Ptrans;
             body_vsq[threadIdx.x] = v2;
             body_fsq[threadIdx.x] = f2;
@@ -210,10 +229,12 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pt_kernel(float* d_sum_Pt, unsi
     
 /*! Kernel function to simultaneously compute the partial sum over Pr, wsq and tsq for the FIRE algorithm
     \param d_sum_Pr Array to hold the sum over Pr (t*w), w2 and t2
+    \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
-    \param local_beg Starting body index in this card
 */
-extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(float* d_sum_Pr, unsigned int n_bodies, unsigned int local_beg)
+extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(float* d_sum_Pr, 
+                                                            unsigned int n_group_bodies, 
+                                                            unsigned int n_bodies)
     {
     unsigned int idx_global = blockDim.x * blockIdx.x + threadIdx.x;
     
@@ -227,17 +248,24 @@ extern "C" __global__ void gpu_fire_rigid_reduce_Pr_kernel(float* d_sum_Pr, unsi
     float tsq = 0.0f;
     
     // sum up the values via a sliding window
-    for (unsigned int start = 0; start < n_bodies; start += blockDim.x)
+    for (unsigned int start = 0; start < n_group_bodies; start += blockDim.x)
         {
-        if (start + threadIdx.x < n_bodies)
+        if (start + threadIdx.x < n_group_bodies)
             {
-            unsigned int idx_body = local_beg + start + threadIdx.x;
-            torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
-            angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
-            float Prot = torque.x * angvel.x + torque.y * angvel.y + torque.z * angvel.z;
-            float w2 = angvel.x * angvel.x + angvel.y * angvel.y + angvel.z * angvel.z;
-            float t2 = torque.x * torque.x + torque.y * torque.y + torque.z * torque.z;
-        
+            unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, start + threadIdx.x);
+            float Prot = 0.0f;
+            float w2 = 0.0f;
+            float t2 = 0.0;
+            
+            if (idx_body < n_bodies)
+                {
+                torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
+                angvel = tex1Dfetch(rigid_data_angvel_tex, idx_body);
+                Prot = torque.x * angvel.x + torque.y * angvel.y + torque.z * angvel.z;
+                w2 = angvel.x * angvel.x + angvel.y * angvel.y + angvel.z * angvel.z;
+                t2 = torque.x * torque.x + torque.y * torque.y + torque.z * torque.z;
+                }
+            
             body_Pr[threadIdx.x] = Prot;
             body_wsq[threadIdx.x] = w2;
             body_tsq[threadIdx.x] = t2;
@@ -293,9 +321,13 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
                                         float* d_sum_Pr)
     {
     unsigned int n_bodies = rdata.n_bodies;
-    unsigned int local_beg = rdata.local_beg;
-
-    cudaError_t error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(float4) * n_bodies);
+    unsigned int n_group_bodies = rdata.n_group_bodies;
+    
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(float) * n_group_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
 
@@ -312,14 +344,14 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
         return error;
 
     // setup the grid to run the kernel
-    unsigned int block_size = 64;
+    unsigned int block_size = 128;
     dim3 grid( 1, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // run the kernels
-    gpu_fire_rigid_reduce_Pt_kernel<<< grid, threads, 3 * block_size * sizeof(float) >>>(d_sum_Pt, n_bodies, local_beg);
+    gpu_fire_rigid_reduce_Pt_kernel<<< grid, threads, 3 * block_size * sizeof(float) >>>(d_sum_Pt, n_group_bodies, n_bodies);
    
-    gpu_fire_rigid_reduce_Pr_kernel<<< grid, threads, 3 * block_size * sizeof(float) >>>(d_sum_Pr, n_bodies, local_beg);
+    gpu_fire_rigid_reduce_Pr_kernel<<< grid, threads, 3 * block_size * sizeof(float) >>>(d_sum_Pr, n_group_bodies, n_bodies);
 
     
     if (!g_gpu_error_checking)
@@ -342,6 +374,7 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     \param alpha Alpha coupling parameter used by the FIRE algorithm
     \param factor_t factor equal to alpha*vnorm/fnorm
     \param factor_r factor equal to alpha*wnorm/tnorm
+    \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Number of rigid bodies
     \param local_beg Starting body index in this card
 */
@@ -350,36 +383,39 @@ extern "C" __global__ void gpu_fire_rigid_update_v_kernel(float4* rdata_vel,
                                                         float alpha, 
                                                         float factor_t,
                                                         float factor_r,
+                                                        unsigned int n_group_bodies,
                                                         unsigned int n_bodies,
                                                         unsigned int local_beg)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_body = idx_local + local_beg;
+    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x + local_beg;
     
-    if (idx_body < n_bodies)
-        {        
-        // read the body data (MEM TRANSFER: 32 bytes)
-        float4 vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
-        float4 angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
-        float4 force = tex1Dfetch(rigid_data_force_tex, idx_body);
-        float4 torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
-        
-        float4 vel2;
-        vel2.x = vel.x * (1.0 - alpha) + force.x * factor_t;
-        vel2.y = vel.y * (1.0 - alpha) + force.y * factor_t;
-        vel2.z = vel.z * (1.0 - alpha) + force.z * factor_t;
-        
-        float4 angmom2;
-        angmom2.x = angmom.x * (1.0 - alpha) + torque.x * factor_r;
-        angmom2.y = angmom.y * (1.0 - alpha) + torque.y * factor_r;
-        angmom2.z = angmom.z * (1.0 - alpha) + torque.z * factor_r;                
-        
-        // write out the results (MEM_TRANSFER: 32 bytes)
-        rdata_vel[idx_body] = vel2;
-        rdata_angmom[idx_body] = angmom2;
+    if (group_idx < n_group_bodies)
+        {
+        unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
+        if (idx_body < n_bodies)
+            {        
+            // read the body data (MEM TRANSFER: 32 bytes)
+            float4 vel = tex1Dfetch(rigid_data_vel_tex, idx_body);
+            float4 angmom = tex1Dfetch(rigid_data_angmom_tex, idx_body);
+            float4 force = tex1Dfetch(rigid_data_force_tex, idx_body);
+            float4 torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
+            
+            float4 vel2;
+            vel2.x = vel.x * (1.0 - alpha) + force.x * factor_t;
+            vel2.y = vel.y * (1.0 - alpha) + force.y * factor_t;
+            vel2.z = vel.z * (1.0 - alpha) + force.z * factor_t;
+            
+            float4 angmom2;
+            angmom2.x = angmom.x * (1.0 - alpha) + torque.x * factor_r;
+            angmom2.y = angmom.y * (1.0 - alpha) + torque.y * factor_r;
+            angmom2.z = angmom.z * (1.0 - alpha) + torque.z * factor_r;                
+            
+            // write out the results (MEM_TRANSFER: 32 bytes)
+            rdata_vel[idx_body] = vel2;
+            rdata_angmom[idx_body] = angmom2;
+            }
         }
     }
-
 
 /*! \param rdata Rigid data to update the velocities for
     \param alpha Alpha coupling parameter used by the FIRE algorithm
@@ -393,15 +429,20 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
                                                     float factor_r)
     {
     unsigned int n_bodies = rdata.n_bodies;
+    unsigned int n_group_bodies = rdata.n_group_bodies;
     unsigned int local_beg = rdata.local_beg;
     
     // setup the grid to run the kernel
     unsigned int block_size = 256;
-    unsigned int num_blocks = n_bodies / block_size + 1;
+    unsigned int num_blocks = n_group_bodies / block_size + 1;
     dim3 grid(num_blocks, 1, 1);
     dim3 threads(block_size, 1, 1);
     
-    cudaError_t error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(float4) * n_bodies);
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rdata.body_indices, sizeof(float) * n_group_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_vel_tex, rdata.vel, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
 
@@ -423,6 +464,7 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
                                                     alpha, 
                                                     factor_t,
                                                     factor_r,
+                                                    n_group_bodies,
                                                     n_bodies,
                                                     local_beg);
     
