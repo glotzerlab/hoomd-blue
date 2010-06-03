@@ -160,6 +160,12 @@ class ForceCompute : public Compute
         //! Access the computed force data on the GPU
         vector<ForceDataArraysGPU>& acquireGPU();
 #endif
+
+        //! Store the timestep size
+        virtual void setDeltaT(Scalar dt)
+            {
+            m_dt = dt;
+            }
         
         //! Computes the forces
         virtual void compute(unsigned int timestep);
@@ -217,6 +223,8 @@ class ForceCompute : public Compute
 
         //! Allocates the force and virial partial data
         void allocateThreadPartial();
+        
+        Scalar m_dt;  //!< timestep size (required for some types of non-conservative forces)
             
         Scalar * __restrict__ m_fx;     //!< x-component of the force
         Scalar * __restrict__ m_fy;     //!< y-component of the force
