@@ -94,8 +94,10 @@ unsigned int *gd_bin_size;  // number of particles in each bin
 unsigned int *gh_bin_size;  // number of particles in each bin
 
 unsigned int *gh_bin_adj;   // 27 x nbins adjacency array
+unsigned int *gd_bin_adj;   // 27 x nbins adjacency array
 cudaArray *gd_bin_adj_array;    // 27 x nbins adjancency array
 unsigned int *gh_bin_adj_trans; // nbins x 27 adjacency array
+unsigned int *gd_bin_adj_trans; // nbins x 27 adjacency array
 cudaArray *gd_bin_adj_trans_array;  // nbins x 27 adjancency array
 
 uint4 *gd_bin_coords;   // pre-calculated bin coordinates for each bin
@@ -144,6 +146,8 @@ void allocate_data()
     cudaChannelFormatDesc channelDescUint = cudaCreateChannelDesc<unsigned int>();
     CUDA_SAFE_CALL(cudaMallocArray(&gd_bin_adj_array, &channelDescUint,  27, Nbins));
     CUDA_SAFE_CALL(cudaMallocArray(&gd_bin_adj_trans_array, &channelDescUint, Nbins, 27));
+    CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_adj, Nbins * 27 * sizeof(unsigned int)));
+    CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_adj_trans, Nbins * 27 * sizeof(unsigned int)));
     
     gh_bin_coords = (uint4*)malloc(Nbins*sizeof(uint4));
     CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_coords, Nbins*sizeof(uint4)));
@@ -175,6 +179,8 @@ void free_data()
     
     // free GPU memory
     CUDA_SAFE_CALL(cudaFree(gd_pos));
+    CUDA_SAFE_CALL(cudaFree(gd_bin_adj));
+    CUDA_SAFE_CALL(cudaFree(gd_bin_adj_trans));
     CUDA_SAFE_CALL(cudaFree(gd_idxlist_coord));
     CUDA_SAFE_CALL(cudaFree(gd_idxlist_coord_trans));
     CUDA_SAFE_CALL(cudaFreeArray(gd_idxlist_coord_array));
@@ -286,7 +292,9 @@ void initialize_data()
         
     CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_array, 0, 0, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_trans_array, 0, 0, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
-    
+    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_adj, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_adj_trans, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
+
     memset(gh_nlist, 0, sizeof(unsigned int)*g_nlist_pitch*g_neigh_max);
     memset(gh_n_neigh, 0, sizeof(unsigned int)*g_N);
     memset(gh_nlist_ref, 0, sizeof(unsigned int)*g_nlist_pitch*g_neigh_max);
@@ -711,7 +719,7 @@ texture<unsigned int, 1, cudaReadModeElementType> bin_size_tex;
 
 #define EMPTY_BIN 0xffffffff
 
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist, unsigned int *d_n_neigh, unsigned int nlist_pitch, unsigned int neigh_max, float4 *d_pos, float4 *d_idxlist_coord, unsigned int Nmax, unsigned int local_num, float Lx, float Ly, float Lz, float Lxinv, float Lyinv, float Lzinv, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez, unsigned int Mx, unsigned int My, unsigned int Mz)
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist, unsigned int *d_n_neigh, unsigned int nlist_pitch, unsigned int neigh_max, float4 *d_pos, float4 *d_idxlist_coord, unsigned int Nmax, unsigned int local_num, float Lx, float Ly, float Lz, float Lxinv, float Lyinv, float Lzinv, float r_maxsq, unsigned int actual_Nmax, float scalex, float scaley, float scalez, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int *d_bin_size, unsigned int *d_bin_adj)
     {
     // each thread is going to compute the neighbor list for a single particle
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -725,7 +733,13 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
     if (transpose_idxlist_coord)
         idxlist_coord_width = Mx*My*Mz;
     else
-        idxlist_coord_width = Nmax; 
+        idxlist_coord_width = Nmax;
+
+    unsigned int bin_adj_width = 0;
+    if (transpose_bin_adj)
+        bin_adj_width = Mx*My*Mz;
+    else
+        bin_adj_width = 27;
 
     // first, determine which bin this particle belongs to
     // MEM TRANSFER: 32 bytes
@@ -755,12 +769,17 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
         {
         // MEM TRANSFER: 4 bytes
         int neigh_bin;
-        if (transpose_bin_adj)
+        /*if (transpose_bin_adj)
             neigh_bin = tex2D(bin_adj_tex, my_bin, cur_adj);
         else
-            neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);
+            neigh_bin = tex2D(bin_adj_tex, cur_adj, my_bin);*/
+        if (transpose_bin_adj)
+            neigh_bin = d_bin_adj[my_bin + cur_adj*bin_adj_width];
+        else
+            neigh_bin = d_bin_adj[cur_adj + my_bin*bin_adj_width];
             
-        unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
+        //unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
+        unsigned int size = d_bin_size[neigh_bin];
         
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
@@ -810,7 +829,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
     d_n_neigh[my_pidx] = n_neigh;
     }
 
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_nlist_binned(unsigned int *nlist, unsigned int *n_neigh, unsigned int nlist_pitch, float r_cut_sq, unsigned int neigh_max, cudaArray *idxlist_coord, unsigned int *bin_size, uint4 *bin_coords, cudaArray *bin_adj, float4 *pos, float4 *d_idxlist_coord, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_nlist_binned(unsigned int *nlist, unsigned int *n_neigh, unsigned int nlist_pitch, float r_cut_sq, unsigned int neigh_max, cudaArray *idxlist_coord, unsigned int *bin_size, uint4 *bin_coords, cudaArray *bin_adj, float4 *pos, float4 *d_idxlist_coord, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, unsigned int *d_bin_adj)
     {
     const int block_size = 64;
     
@@ -844,7 +863,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_
     float scalez = 1.0f / binz;
     
     // run the kernel
-    gpu_compute_nlist_binned_kernel<transpose_idxlist_coord, transpose_bin_adj><<<grid,threads>>>(nlist, n_neigh, nlist_pitch, neigh_max, pos, d_idxlist_coord, Nmax, N, Lx, Ly, Lz, 1.0f/Lx, 1.0f/Ly, 1.0f/Lz, r_cut_sq, g_actual_Nmax, scalex, scaley, scalez, Mx, My, Mz);
+    gpu_compute_nlist_binned_kernel<transpose_idxlist_coord, transpose_bin_adj><<<grid,threads>>>(nlist, n_neigh, nlist_pitch, neigh_max, pos, d_idxlist_coord, Nmax, N, Lx, Ly, Lz, 1.0f/Lx, 1.0f/Ly, 1.0f/Lz, r_cut_sq, g_actual_Nmax, scalex, scaley, scalez, Mx, My, Mz, bin_size, d_bin_adj);
     }
 
 // benchmark the device neighborlist
@@ -864,14 +883,21 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_device
         }
         
     cudaArray *bin_adj_array;
+    unsigned int *d_bin_adj;
     if (transpose_bin_adj)
+        {
         bin_adj_array = gd_bin_adj_trans_array;
+        d_bin_adj = gd_bin_adj_trans;
+        }
     else
+        {
         bin_adj_array = gd_bin_adj_array;
+        d_bin_adj = gd_bin_adj;
+        }
         
     // warm up
     CUDA_SAFE_CALL(cudaFuncSetCacheConfig(gpu_compute_nlist_binned_kernel<transpose_idxlist_coord, transpose_bin_adj>, cudaFuncCachePreferL1));
-    gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+    gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj);
     CUT_CHECK_ERROR("kernel failed");
     
     // copy results back
@@ -892,7 +918,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_device
     unsigned int iters = 100;
     for (unsigned int i = 0; i < iters; i++)
         {
-        gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+        gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj);
         }
         
     cudaThreadSynchronize();
