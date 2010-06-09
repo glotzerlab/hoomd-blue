@@ -84,6 +84,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
     {
     assert(fc);
     m_forces.push_back(fc);
+    m_forces[m_forces.size()-1]->setDeltaT(m_deltaT);      
     }
 
 /*! Call removeForceComputes() to completely wipe out the list of force computes
@@ -100,7 +101,11 @@ void Integrator::setDeltaT(Scalar deltaT)
     {
     if (m_deltaT <= 0.0)
         cout << "***Warning! A timestep of less than 0.0 was specified to an integrator" << endl;
-    m_deltaT = deltaT;
+        
+    for (unsigned int i=0; i < m_forces.size(); i++)
+        m_forces[i]->setDeltaT(deltaT);    
+   
+     m_deltaT = deltaT;
     }
 
 /*! \return the timestep deltaT
