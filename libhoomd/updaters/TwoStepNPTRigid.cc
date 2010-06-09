@@ -662,9 +662,9 @@ void TwoStepNPTRigid::set_xv(unsigned int timestep)
                         
             // x_particle = x_com + xr
             Scalar4 old_pos;
-            old_pos.x = arrays.x[pidx];
-            old_pos.y = arrays.y[pidx];
-            old_pos.z = arrays.z[pidx];
+            old_pos.x = arrays.x[pidx] + Lx * arrays.ix[pidx];
+            old_pos.y = arrays.y[pidx] + Ly * arrays.iy[pidx];
+            old_pos.z = arrays.z[pidx] + Lz * arrays.iz[pidx];
             
             arrays.x[pidx] = com.data[body].x + xr;
             arrays.y[pidx] = com.data[body].y + yr;
@@ -739,6 +739,15 @@ void TwoStepNPTRigid::set_xv(unsigned int timestep)
 */
 void TwoStepNPTRigid::set_v(unsigned int timestep)
     {
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
+    
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
@@ -793,9 +802,9 @@ void TwoStepNPTRigid::set_v(unsigned int timestep)
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
             Scalar4 old_pos;
-            old_pos.x = arrays.x[pidx];
-            old_pos.y = arrays.y[pidx];
-            old_pos.z = arrays.z[pidx];
+            old_pos.x = arrays.x[pidx] + Lx * arrays.ix[pidx];
+            old_pos.y = arrays.y[pidx] + Ly * arrays.iy[pidx];
+            old_pos.z = arrays.z[pidx] + Lz * arrays.iz[pidx];
             
             Scalar4 old_vel;
             old_vel.x = arrays.vx[pidx];

@@ -684,9 +684,9 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                         
             // x_particle = x_com + xr           
             Scalar4 old_pos;
-            old_pos.x = arrays.x[pidx];
-            old_pos.y = arrays.y[pidx];
-            old_pos.z = arrays.z[pidx];
+            old_pos.x = arrays.x[pidx] + Lx * arrays.ix[pidx];
+            old_pos.y = arrays.y[pidx] + Ly * arrays.iy[pidx];
+            old_pos.z = arrays.z[pidx] + Lz * arrays.iz[pidx];
             
             arrays.x[pidx] = com.data[body].x + xr;
             arrays.y[pidx] = com.data[body].y + yr;
@@ -761,6 +761,14 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
 
 void TwoStepNVERigid::set_v(unsigned int timestep)
     {
+    // get box
+    const BoxDim& box = m_pdata->getBox();
+    // sanity check
+    assert(box.xhi > box.xlo && box.yhi > box.ylo && box.zhi > box.zlo);
+    
+    Scalar Lx = box.xhi - box.xlo;
+    Scalar Ly = box.yhi - box.ylo;
+    Scalar Lz = box.zhi - box.zlo;
     
     Scalar dt_half = 0.5 * m_deltaT;
     
@@ -815,9 +823,9 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
             
             Scalar4 old_pos;
-            old_pos.x = arrays.x[pidx];
-            old_pos.y = arrays.y[pidx];
-            old_pos.z = arrays.z[pidx];
+            old_pos.x = arrays.x[pidx] + Lx * arrays.ix[pidx];
+            old_pos.y = arrays.y[pidx] + Ly * arrays.iy[pidx];
+            old_pos.z = arrays.z[pidx] + Lz * arrays.iz[pidx];
             
             Scalar4 old_vel;
             old_vel.x = arrays.vx[pidx];

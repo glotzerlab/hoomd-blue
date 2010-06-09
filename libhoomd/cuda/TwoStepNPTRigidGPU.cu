@@ -705,6 +705,11 @@ extern "C" __global__ void gpu_npt_rigid_step_one_particle_kernel(float4* pdata_
             float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
             float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
             
+            // unwrap position
+            old_pos.x += image.x * boxsize.x;
+            old_pos.y += image.y * boxsize.y;
+            old_pos.z += image.z * boxsize.z;
+            
             // compute ri with new orientation
             float4 ri;
             ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
@@ -761,7 +766,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_particle_kernel(float4* pdata_
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
     \param pdata_image Particle image
-    \param d_virial_rigid Virial contribution from rigid bodies
+    \param d_net_virial Particle virial
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
@@ -837,6 +842,11 @@ extern "C" __global__ void gpu_npt_rigid_step_one_particle_sliding_kernel(float4
                     float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
                     float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
                     
+                    // unwrap position
+                    old_pos.x += image.x * boxsize.x;
+                    old_pos.y += image.y * boxsize.y;
+                    old_pos.z += image.z * boxsize.z;
+                    
                     // compute ri with new orientation
                     float4 ri;
                     ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
@@ -896,6 +906,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_particle_sliding_kernel(float4
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
+    \param d_net_virial Particle net virial
     \param box Box dimensions for periodic boundary condition handling
     \param npt_rdata Thermostat/barostat data
     \param deltaT Amount of real time to step forward in one time step
@@ -1276,7 +1287,7 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(float4* rdata_vel,
 
 /*!
     \param pdata_vel Particle velocity
-    \param d_virial_rigid Virial contribution from rigid bodies
+    \param d_net_virial Particle virial
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
@@ -1325,9 +1336,15 @@ extern "C" __global__ void gpu_npt_rigid_step_two_particle_kernel(float4* pdata_
             float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
             float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
+            int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
             float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
             float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
             float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
+            
+            // unwrap position
+            old_pos.x += image.x * box.Lx;
+            old_pos.y += image.y * box.Ly;
+            old_pos.z += image.z * box.Lz;
             
             float4 ri;
             ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
@@ -1415,9 +1432,15 @@ extern "C" __global__ void gpu_npt_rigid_step_two_particle_sliding_kernel(float4
                     float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
                     float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
                     float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
+                    int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
                     float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
                     float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
                     float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
+                    
+                    // unwrap position
+                    old_pos.x += image.x * box.Lx;
+                    old_pos.y += image.y * box.Ly;
+                    old_pos.z += image.z * box.Lz;
                     
                     float4 ri;
                     ri.x = ex_space.x * particle_pos.x + ey_space.x * particle_pos.y + ez_space.x * particle_pos.z;
@@ -1453,6 +1476,7 @@ extern "C" __global__ void gpu_npt_rigid_step_two_particle_sliding_kernel(float4
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
+    \param d_net_virial Particle net virial
     \param box Box dimensions for periodic boundary condition handling
     \param npt_rdata Thermostat/barostat data
     \param deltaT Amount of real time to step forward in one time step
@@ -1580,6 +1604,10 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
     
+    error = cudaBindTexture(0, pdata_image_tex, pdata.image, sizeof(int4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+        
     error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
         return error;

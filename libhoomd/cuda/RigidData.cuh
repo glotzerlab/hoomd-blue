@@ -62,7 +62,7 @@ struct gpu_rigid_data_arrays
     unsigned int local_beg; //!< Index of the first body local to this GPU
     unsigned int local_num; //!< Number of particles local to this GPU
     
-    unsigned int *body_indices; //! Body indices
+    unsigned int *body_indices; //!< Body indices
     float  *body_mass;      //!< Body mass
     float4 *moment_inertia; //!< Body principle moments in \c x, \c y, \c z, nothing in \c w
     float4 *com;            //!< Body position in \c x,\c y,\c z, particle type as an int in \c w
