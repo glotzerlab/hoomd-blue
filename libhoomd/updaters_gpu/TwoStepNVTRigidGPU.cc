@@ -113,7 +113,11 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     // sanity check
     if (m_n_bodies <= 0)
         return;
-        
+    
+    // access to the force and virial
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    
     // profile this step
     if (m_prof)
         m_prof->push(exec_conf, "NVT rigid step 1");
@@ -121,6 +125,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     // access all the needed data
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
+    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -193,6 +199,8 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
                                 d_rdata, 
                                 d_index_array.data,
                                 group_size,
+                                d_net_force.data,
+                                d_net_virial.data,
                                 box,
                                 d_nvt_rdata,
                                 m_deltaT));
@@ -214,7 +222,9 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_n_bodies <= 0)
         return;
         
+    // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     
     // phase 1, reduce to find the final Ksum_t and Ksum_r
         {
@@ -256,6 +266,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -333,6 +344,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 d_index_array.data,
                                 group_size,
                                 d_net_force.data,
+                                d_net_virial.data,
                                 box,
                                 d_nvt_rdata, 
                                 m_deltaT)); 

@@ -107,6 +107,12 @@ texture<float4, 1, cudaReadModeElementType> rigid_data_force_tex;
 //! The texture for reading the rigid data torque array
 texture<float4, 1, cudaReadModeElementType> rigid_data_torque_tex;
 
+//! The texture for reading the net virial array
+texture<float, 1, cudaReadModeElementType> net_virial_tex;
+
+//! The texture for reading the net force array
+texture<float4, 1, cudaReadModeElementType> net_force_tex;
+
 #pragma mark HELPER
 //! Helper functions for rigid body quaternion update
 
@@ -202,7 +208,12 @@ __device__ void normalize(float4 &q)
     \param deltaT Time step
     
  */
-__device__ void advanceQuaternion(float4& angmom, float4& moment_inertia, float4& angvel, float4& ex_space, float4& ey_space, float4& ez_space, float4& quat, float deltaT)
+__device__ void advanceQuaternion(float4& angmom, 
+                                    float4& moment_inertia, 
+                                    float4& angvel, float4& ex_space, 
+                                    float4& ey_space, float4& ez_space, 
+                                    float4& quat, 
+                                    float deltaT)
     {
     float4 qhalf, qfull, omegaq;
     float dtq = 0.5 * deltaT;
@@ -385,6 +396,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
 extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
+                                                        float *d_net_virial,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
@@ -489,6 +501,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
 extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
+                                                        float *d_net_virial,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
@@ -596,6 +609,8 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                    const gpu_rigid_data_arrays& rigid_data, 
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
+                                   float4 *d_net_force,
+                                   float *d_net_virial,
                                    const gpu_boxsize &box, 
                                    float deltaT)
     {
@@ -752,6 +767,14 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
 
+    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error; 
+        
+    error = cudaBindTexture(0, net_virial_tex, d_net_virial, sizeof(float) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+
     if (nmax <= 32)
         {
         block_size = nmax; // maximum number of particles in a rigid body: each thread in a block takes care of a particle in a rigid body
@@ -761,6 +784,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         gpu_nve_rigid_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
+                                                                     d_net_virial,
                                                                      n_group_bodies,
                                                                      n_bodies, 
                                                                      local_beg,
@@ -775,6 +799,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         gpu_nve_rigid_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
+                                                                     d_net_virial,
                                                                      n_group_bodies,
                                                                      n_bodies, 
                                                                      local_beg,
@@ -797,9 +822,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
 
     
 #pragma mark RIGID_FORCE_KERNEL
-
-//! The texture for reading the net force array
-texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
 //! Shared memory for body force and torque reduction, required allocation when the kernel is called
 extern __shared__ float4 sum[];
@@ -1244,6 +1266,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
     \param box Box dimensions for periodic boundary condition handling
 */
 extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_vel,
+                                                         float *d_net_virial,
                                                          unsigned int n_group_bodies,
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
@@ -1308,6 +1331,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
     \param box Box dimensions for periodic boundary condition handling
 */
 extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4* pdata_vel,
+                                                         float *d_net_virial,
                                                          unsigned int n_group_bodies,   
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
@@ -1386,8 +1410,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
 cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata, 
                                    const gpu_rigid_data_arrays& rigid_data,
                                    unsigned int *d_group_members,
-                                   unsigned int group_size, 
+                                   unsigned int group_size,
                                    float4 *d_net_force,
+                                   float *d_net_virial, 
                                    const gpu_boxsize &box,
                                    float deltaT)
     {
@@ -1484,13 +1509,22 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     error = cudaBindTexture(0, rigid_data_angvel_tex, rigid_data.angvel, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
- 
+    
+    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error; 
+        
+    error = cudaBindTexture(0, net_virial_tex, d_net_virial, sizeof(float) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+
     if (nmax <= 32)
         {                                                                                                                                    
         block_size = nmax; // each thread in a block takes care of a particle in a rigid body
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
-        gpu_nve_rigid_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+        gpu_nve_rigid_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
+                                                        d_net_virial,
                                                         n_group_bodies,
                                                         n_bodies, 
                                                         local_beg,
@@ -1502,7 +1536,8 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
         block_size = 32; 
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
-        gpu_nve_rigid_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel, 
+        gpu_nve_rigid_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
+                                                        d_net_virial, 
                                                         n_group_bodies,
                                                         n_bodies, 
                                                         local_beg,

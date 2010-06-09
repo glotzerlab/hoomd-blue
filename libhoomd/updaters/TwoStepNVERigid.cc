@@ -129,132 +129,132 @@ void TwoStepNVERigid::setup()
 
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     
+    {
+    // rigid data handles
+    ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
+    unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
+    ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
+    unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
+    
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
+            
+    ArrayHandle<bool> angmom_init_handle(m_rigid_data->getAngMomInit(), access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    
+    // Reset all forces and torques
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
-        // rigid data handles
-        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> particle_indices_handle(m_rigid_data->getParticleIndices(), access_location::host, access_mode::read);
-        unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
-        ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
-        unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
         
-        ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::readwrite);
-                
-        ArrayHandle<bool> angmom_init_handle(m_rigid_data->getAngMomInit(), access_location::host, access_mode::read);
+        bool angmom_init = angmom_init_handle.data[body];
         
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+        vel_handle.data[body].x = 0.0;
+        vel_handle.data[body].y = 0.0;
+        vel_handle.data[body].z = 0.0;
         
-        // Reset all forces and torques
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        force_handle.data[body].x = 0.0;
+        force_handle.data[body].y = 0.0;
+        force_handle.data[body].z = 0.0;
+        
+        torque_handle.data[body].x = 0.0;
+        torque_handle.data[body].y = 0.0;
+        torque_handle.data[body].z = 0.0;
+        
+        if (angmom_init == false) // needs to initialize
             {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
+            angmom_handle.data[body].x = 0.0;
+            angmom_handle.data[body].y = 0.0;
+            angmom_handle.data[body].z = 0.0;
+            }
+        }
+        
+    // Access the particle data arrays
+    ParticleDataArrays arrays = m_pdata->acquireReadWrite();
+    
+    // for each body
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
+        bool angmom_init = angmom_init_handle.data[body];
+        
+        // for each particle
+        unsigned int len = body_size_handle.data[body];
+        for (unsigned int j = 0; j < len; j++)
+            {
+            // get the index of particle in the particle arrays
+            unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
             
-            bool angmom_init = angmom_init_handle.data[body];
+            // get the particle mass
+            Scalar mass_one = arrays.mass[pidx];
             
-            vel_handle.data[body].x = 0.0;
-            vel_handle.data[body].y = 0.0;
-            vel_handle.data[body].z = 0.0;
+            vel_handle.data[body].x += mass_one * arrays.vx[pidx];
+            vel_handle.data[body].y += mass_one * arrays.vy[pidx];
+            vel_handle.data[body].z += mass_one * arrays.vz[pidx];
             
-            force_handle.data[body].x = 0.0;
-            force_handle.data[body].y = 0.0;
-            force_handle.data[body].z = 0.0;
+            Scalar fx, fy, fz;
+            fx = h_net_force.data[pidx].x;
+            fy = h_net_force.data[pidx].y;
+            fz = h_net_force.data[pidx].z;
             
-            torque_handle.data[body].x = 0.0;
-            torque_handle.data[body].y = 0.0;
-            torque_handle.data[body].z = 0.0;
+            force_handle.data[body].x += fx;
+            force_handle.data[body].y += fy;
+            force_handle.data[body].z += fz;
             
-            if (angmom_init == false) // needs to initialize
+            // Torque = r x f (all are in the space frame)
+            unsigned int localidx = body * particle_pos_pitch + j;
+            Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
+                    + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
+                    + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
+            Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
+                    + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
+                    + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
+            Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
+                    + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
+                    + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
+            
+            torque_handle.data[body].x += ry * fz - rz * fy;
+            torque_handle.data[body].y += rz * fx - rx * fz;
+            torque_handle.data[body].z += rx * fy - ry * fx;
+          
+            // Angular momentum = r x (m * v) is calculated for setup
+            if (angmom_init == false) // if angmom is not yet set for this body
                 {
-                angmom_handle.data[body].x = 0.0;
-                angmom_handle.data[body].y = 0.0;
-                angmom_handle.data[body].z = 0.0;
+                angmom_handle.data[body].x += ry * (mass_one * arrays.vz[pidx]) - rz * (mass_one * arrays.vy[pidx]);
+                angmom_handle.data[body].y += rz * (mass_one * arrays.vx[pidx]) - rx * (mass_one * arrays.vz[pidx]);
+                angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
                 }
             }
-            
-        // Access the particle data arrays
-        ParticleDataArrays arrays = m_pdata->acquireReadWrite();
         
-        // for each body
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-            {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-            bool angmom_init = angmom_init_handle.data[body];
-            
-            // for each particle
-            unsigned int len = body_size_handle.data[body];
-            for (unsigned int j = 0; j < len; j++)
-                {
-                // get the index of particle in the particle arrays
-                unsigned int pidx = particle_indices_handle.data[body * indices_pitch + j];
-                
-                // get the particle mass
-                Scalar mass_one = arrays.mass[pidx];
-                
-                vel_handle.data[body].x += mass_one * arrays.vx[pidx];
-                vel_handle.data[body].y += mass_one * arrays.vy[pidx];
-                vel_handle.data[body].z += mass_one * arrays.vz[pidx];
-                
-                Scalar fx, fy, fz;
-                fx = h_net_force.data[pidx].x;
-                fy = h_net_force.data[pidx].y;
-                fz = h_net_force.data[pidx].z;
-                
-                force_handle.data[body].x += fx;
-                force_handle.data[body].y += fy;
-                force_handle.data[body].z += fz;
-                
-                // Torque = r x f (all are in the space frame)
-                unsigned int localidx = body * particle_pos_pitch + j;
-                Scalar rx = ex_space_handle.data[body].x * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].x * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].x * particle_pos_handle.data[localidx].z;
-                Scalar ry = ex_space_handle.data[body].y * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].y * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].y * particle_pos_handle.data[localidx].z;
-                Scalar rz = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
-                        + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
-                        + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
-                
-                torque_handle.data[body].x += ry * fz - rz * fy;
-                torque_handle.data[body].y += rz * fx - rx * fz;
-                torque_handle.data[body].z += rx * fy - ry * fx;
-              
-                // Angular momentum = r x (m * v) is calculated for setup
-                if (angmom_init == false) // if angmom is not yet set for this body
-                    {
-                    angmom_handle.data[body].x += ry * (mass_one * arrays.vz[pidx]) - rz * (mass_one * arrays.vy[pidx]);
-                    angmom_handle.data[body].y += rz * (mass_one * arrays.vx[pidx]) - rx * (mass_one * arrays.vz[pidx]);
-                    angmom_handle.data[body].z += rx * (mass_one * arrays.vy[pidx]) - ry * (mass_one * arrays.vx[pidx]);
-                    }
-                }
-            
-            }
-            
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-            {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-            vel_handle.data[body].x /= body_mass_handle.data[body];
-            vel_handle.data[body].y /= body_mass_handle.data[body];
-            vel_handle.data[body].z /= body_mass_handle.data[body];
-            
-            computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
-                                   ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
-            }
-            
-        m_pdata->release();
+        }
+        
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+        
+        vel_handle.data[body].x /= body_mass_handle.data[body];
+        vel_handle.data[body].y /= body_mass_handle.data[body];
+        vel_handle.data[body].z /= body_mass_handle.data[body];
+        
+        computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
+                               ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
+        }
+    
+    m_pdata->release();
 
-        } // out of scope for handles   
+    } // out of scope for handles   
     
     // Set the velocities of particles in rigid bodies
     set_v(0);
@@ -326,82 +326,82 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
     Scalar dt_half = 0.5 * m_deltaT;
     Scalar dtfm;
     
+    {
+    // rigid data handles
+    ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    
+    ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
+    
+    // for each body
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
-        // rigid data handles
-        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
         
-        ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+        dtfm = dt_half / body_mass_handle.data[body];
+        vel_handle.data[body].x += dtfm * force_handle.data[body].x;
+        vel_handle.data[body].y += dtfm * force_handle.data[body].y;
+        vel_handle.data[body].z += dtfm * force_handle.data[body].z;
         
-        ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
+        com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
+        com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
+        com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
         
-        // for each body
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        // map the center of mass to the periodic box, update the com image info
+        if (com_handle.data[body].x >= box.xhi)
             {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-            dtfm = dt_half / body_mass_handle.data[body];
-            vel_handle.data[body].x += dtfm * force_handle.data[body].x;
-            vel_handle.data[body].y += dtfm * force_handle.data[body].y;
-            vel_handle.data[body].z += dtfm * force_handle.data[body].z;
-            
-            com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
-            com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
-            com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
-            
-            // map the center of mass to the periodic box, update the com image info
-            if (com_handle.data[body].x >= box.xhi)
-                {
-                com_handle.data[body].x -= Lx;
-                body_imagex_handle.data[body]++;
-                }
-            else if (com_handle.data[body].x < box.xlo)
-                {
-                com_handle.data[body].x += Lx;
-                body_imagex_handle.data[body]--;
-                }
-                
-            if (com_handle.data[body].y >= box.yhi)
-                {
-                com_handle.data[body].y -= Ly;
-                body_imagey_handle.data[body]++;
-                }
-            else if (com_handle.data[body].y < box.ylo)
-                {
-                com_handle.data[body].y += Ly;
-                body_imagey_handle.data[body]--;
-                }
-                
-            if (com_handle.data[body].z >= box.zhi)
-                {
-                com_handle.data[body].z -= Lz;
-                body_imagez_handle.data[body]++;
-                }
-            else if (com_handle.data[body].z < box.zlo)
-                {
-                com_handle.data[body].z += Lz;
-                body_imagez_handle.data[body]--;
-                }
-                
-            angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
-            angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
-            angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
-            
-            advanceQuaternion(angmom_handle.data[body], moment_inertia_handle.data[body], angvel_handle.data[body],
-                              ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], orientation_handle.data[body]);
+            com_handle.data[body].x -= Lx;
+            body_imagex_handle.data[body]++;
             }
-        } // out of scope for handles
+        else if (com_handle.data[body].x < box.xlo)
+            {
+            com_handle.data[body].x += Lx;
+            body_imagex_handle.data[body]--;
+            }
+            
+        if (com_handle.data[body].y >= box.yhi)
+            {
+            com_handle.data[body].y -= Ly;
+            body_imagey_handle.data[body]++;
+            }
+        else if (com_handle.data[body].y < box.ylo)
+            {
+            com_handle.data[body].y += Ly;
+            body_imagey_handle.data[body]--;
+            }
+            
+        if (com_handle.data[body].z >= box.zhi)
+            {
+            com_handle.data[body].z -= Lz;
+            body_imagez_handle.data[body]++;
+            }
+        else if (com_handle.data[body].z < box.zlo)
+            {
+            com_handle.data[body].z += Lz;
+            body_imagez_handle.data[body]--;
+            }
+            
+        angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
+        angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
+        angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+        
+        advanceQuaternion(angmom_handle.data[body], moment_inertia_handle.data[body], angvel_handle.data[body],
+                          ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], orientation_handle.data[body]);
+        }
+    } // out of scope for handles
         
     // set positions and velocities of particles in rigid bodies
     set_xv(timestep);
@@ -624,6 +624,8 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
+    Scalar dt_half = 0.5 * m_deltaT;
+    
     // handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);
@@ -640,6 +642,14 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
+    
+    // access to the force
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    
+    // access to the virial
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
     
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
@@ -673,6 +683,11 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
                         
             // x_particle = x_com + xr           
+            Scalar4 old_pos;
+            old_pos.x = arrays.x[pidx];
+            old_pos.y = arrays.y[pidx];
+            old_pos.z = arrays.z[pidx];
+            
             arrays.x[pidx] = com.data[body].x + xr;
             arrays.y[pidx] = com.data[body].y + yr;
             arrays.z[pidx] = com.data[body].z + zr;
@@ -714,12 +729,24 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
                 arrays.z[pidx] += Lz;
                 arrays.iz[pidx]--;
                 }
-                
+            
+            Scalar4 old_vel;
+            old_vel.x = arrays.vx[pidx];
+            old_vel.y = arrays.vy[pidx];
+            old_vel.z = arrays.vz[pidx];
+            
             // v_particle = v_com + angvel x xr
             arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
             arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
             arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
             
+            Scalar massone = arrays.mass[pidx];
+            Scalar4 fc;
+            fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
+            fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
+            fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
+            
+            h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }
         
@@ -734,6 +761,17 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
 
 void TwoStepNVERigid::set_v(unsigned int timestep)
     {
+    
+    Scalar dt_half = 0.5 * m_deltaT;
+    
+    // access to the force
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    
+    // access to the virial
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
+    
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
@@ -775,11 +813,29 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
             Scalar zr = ex_space_handle.data[body].z * particle_pos_handle.data[localidx].x
                         + ey_space_handle.data[body].z * particle_pos_handle.data[localidx].y
                         + ez_space_handle.data[body].z * particle_pos_handle.data[localidx].z;
-                        
+            
+            Scalar4 old_pos;
+            old_pos.x = arrays.x[pidx];
+            old_pos.y = arrays.y[pidx];
+            old_pos.z = arrays.z[pidx];
+            
+            Scalar4 old_vel;
+            old_vel.x = arrays.vx[pidx];
+            old_vel.y = arrays.vy[pidx];
+            old_vel.z = arrays.vz[pidx];
+
             // v_particle = v_com + angvel x xr
             arrays.vx[pidx] = vel_handle.data[body].x + angvel_handle.data[body].y * zr - angvel_handle.data[body].z * yr;
             arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
             arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
+            
+            Scalar massone = arrays.mass[pidx];
+            Scalar4 fc;
+            fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
+            fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
+            fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
+
+            h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }
         

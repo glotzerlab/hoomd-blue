@@ -204,8 +204,6 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         GPUArray<Scalar>    f_eta_b;                //!< Barostat rotational force
         
         GPUArray<Scalar4>   conjqm;                 //!< Thermostat conjugate quaternion momentum
-        
-        GPUArray<Scalar>    virial_rigid;          //!< Virial contribution from rigid bodies
     };
 
 //! Exports the TwoStepNVTRigid class to python

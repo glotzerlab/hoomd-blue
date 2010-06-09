@@ -229,11 +229,7 @@ void TwoStepNPTRigid::setup()
 
     unsigned int rigid_dof = m_sysdef->getRigidData()->getNumDOF();
     m_dof = dimension * non_rigid_count + rigid_dof; 
-    
-    // setup virial
-    GPUArray<Scalar> viriral_rigid_alloc(m_pdata->getN(), m_pdata->getExecConf());
-    virial_rigid.swap(viriral_rigid_alloc);
-    
+        
     m_pdata->release();
     }
     
@@ -295,13 +291,6 @@ void TwoStepNPTRigid::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
     
     ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
-    
-    // refresh the virial
-    {
-    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::overwrite);
-    for (unsigned int i = 0; i<m_pdata->getN(); i++)
-        virial_rigid_handle.data[i] = 0.0;
-    }
             
     // update barostat variables a half step
     {
@@ -632,12 +621,13 @@ void TwoStepNPTRigid::set_xv(unsigned int timestep)
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
     
+    // access to the force
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
-    Scalar massone;
-    Scalar4 fc;
-    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::readwrite);
+    // access to the virial
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
     
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
@@ -728,12 +718,13 @@ void TwoStepNPTRigid::set_xv(unsigned int timestep)
             arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
             arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
             
-            massone = arrays.mass[pidx];
+            Scalar massone = arrays.mass[pidx];
+            Scalar4 fc;
             fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
             fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
             
-            virial_rigid_handle.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }
         
@@ -761,13 +752,14 @@ void TwoStepNPTRigid::set_v(unsigned int timestep)
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
     
+    // access to the force
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     
-    Scalar massone;
-    Scalar4 fc;
-    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::readwrite);
-    
+    // access to the virial
+    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
+        
     Scalar dt_half = 0.5 * m_deltaT;
     
     // access the particle data arrays
@@ -815,12 +807,13 @@ void TwoStepNPTRigid::set_v(unsigned int timestep)
             arrays.vy[pidx] = vel_handle.data[body].y + angvel_handle.data[body].z * xr - angvel_handle.data[body].x * zr;
             arrays.vz[pidx] = vel_handle.data[body].z + angvel_handle.data[body].x * yr - angvel_handle.data[body].y * xr;
             
-            massone = arrays.mass[pidx];
+            Scalar massone = arrays.mass[pidx];
+            Scalar4 fc;
             fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
             fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
 
-            virial_rigid_handle.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }
         
@@ -836,7 +829,6 @@ Scalar TwoStepNPTRigid::computePressure(unsigned int timestep)
     // grab access to the particle data
     const ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
     ArrayHandle<Scalar> h_virial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> virial_rigid_handle(virial_rigid, access_location::host, access_mode::read);
     
     // sum up the kinetic energy and virial of the whole system
     double ke_total = 0.0;
@@ -849,7 +841,6 @@ Scalar TwoStepNPTRigid::computePressure(unsigned int timestep)
                                             (double)arrays.vz[i] * (double)arrays.vz[i]);
         
         W += h_virial.data[i];
-        W += virial_rigid_handle.data[i];
         }
     
     // compute the system temperature for computing pressure

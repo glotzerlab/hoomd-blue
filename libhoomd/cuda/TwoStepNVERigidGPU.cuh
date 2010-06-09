@@ -58,6 +58,8 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays &pdata,
                              const gpu_rigid_data_arrays& rigid_data, 
                              unsigned int *d_group_members,
                              unsigned int group_size,
+                             float4 *d_net_force,
+                             float *d_net_virial,
                              const gpu_boxsize &box,
                              float deltaT);
 
@@ -67,6 +69,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                              unsigned int *d_group_members,
                              unsigned int group_size,
                              float4 *d_net_force,
+                             float *d_net_virial,
                              const gpu_boxsize &box, 
                              float deltaT);
 
@@ -86,6 +89,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
 extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
+                                                        float *d_net_virial,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
                                                         gpu_boxsize box);
@@ -94,6 +98,7 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
 extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
+                                                        float *d_net_virial,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
                                                         unsigned int nmax,
@@ -102,14 +107,16 @@ extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pd
                                                         
                                                  
 //! Kernel for the second step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
-extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel, 
+extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel,
+                                                         float *d_net_virial,
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
                                                          unsigned int nmax,
                                                          gpu_boxsize box);
 
 //! Kernel for the second step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU for large bodies
-extern "C" __global__ void gpu_rigid_step_two_particle_sliding_kernel(float4* pdata_vel, 
+extern "C" __global__ void gpu_rigid_step_two_particle_sliding_kernel(float4* pdata_vel,
+                                                         float *d_net_virial,
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
                                                          unsigned int nmax,
