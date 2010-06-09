@@ -92,7 +92,8 @@ extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         float *d_net_virial,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
-                                                        gpu_boxsize box);
+                                                        gpu_boxsize box,
+                                                        float deltaT);
 
 //! Kernel for the first step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU for large bodies
 extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pdata_pos,
@@ -103,7 +104,8 @@ extern "C" __global__ void gpu_rigid_step_one_particle_sliding_kernel(float4* pd
                                                         unsigned int local_beg,
                                                         unsigned int nmax,
                                                         unsigned int block_size,
-                                                        gpu_boxsize box);
+                                                        gpu_boxsize box,
+                                                        float deltaT);
                                                         
                                                  
 //! Kernel for the second step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
@@ -112,7 +114,8 @@ extern "C" __global__ void gpu_rigid_step_two_particle_kernel(float4* pdata_vel,
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
                                                          unsigned int nmax,
-                                                         gpu_boxsize box);
+                                                         gpu_boxsize box,
+                                                         float deltaT);
 
 //! Kernel for the second step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU for large bodies
 extern "C" __global__ void gpu_rigid_step_two_particle_sliding_kernel(float4* pdata_vel,
@@ -121,7 +124,8 @@ extern "C" __global__ void gpu_rigid_step_two_particle_sliding_kernel(float4* pd
                                                          unsigned int local_beg,
                                                          unsigned int nmax,
                                                          unsigned int block_size,
-                                                         gpu_boxsize box);
+                                                         gpu_boxsize box,
+                                                         float deltaT);
                                                          
 
 #endif //__TWO_STEP_NVE_RIGID_GPU_CUH__
