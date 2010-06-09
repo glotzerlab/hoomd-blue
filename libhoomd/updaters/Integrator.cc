@@ -84,7 +84,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
     {
     assert(fc);
     m_forces.push_back(fc);
-    m_forces[m_forces.size()-1]->setDeltaT(m_deltaT);      
+    fc->setDeltaT(m_deltaT);      
     }
 
 /*! Call removeForceComputes() to completely wipe out the list of force computes
