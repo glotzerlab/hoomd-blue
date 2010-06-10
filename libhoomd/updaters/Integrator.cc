@@ -93,6 +93,7 @@ void Integrator::addForceConstraint(boost::shared_ptr<ForceConstraint> fc)
     {
     assert(fc);
     m_constraint_forces.push_back(fc);
+    fc->setDeltaT(m_deltaT);
     }
 
 /*! Call removeForceComputes() to completely wipe out the list of force computes
@@ -113,6 +114,9 @@ void Integrator::setDeltaT(Scalar deltaT)
         
     for (unsigned int i=0; i < m_forces.size(); i++)
         m_forces[i]->setDeltaT(deltaT);    
+
+    for (unsigned int i=0; i < m_constraint_forces.size(); i++)
+        m_constraint_forces[i]->setDeltaT(deltaT);
    
      m_deltaT = deltaT;
     }
