@@ -251,7 +251,7 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
     {
     int res = 0;
 
-// loop through all methods
+    // loop through all methods
     std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -259,7 +259,7 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
         res += (*method)->getNDOF(group);
         }
     
-    return res - m_sysdef->getNDimensions();
+    return res - m_sysdef->getNDimensions() - getNDOFRemoved();
     }
 
 
