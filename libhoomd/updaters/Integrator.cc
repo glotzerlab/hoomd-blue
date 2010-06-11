@@ -608,6 +608,7 @@ void export_Integrator()
     class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
     ("Integrator", init< boost::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
+    .def("addForceConstraint", &Integrator::addForceConstraint)
     .def("removeForceComputes", &Integrator::removeForceComputes)
     .def("setDeltaT", &Integrator::setDeltaT)
     .def("getNDOF", &Integrator::getNDOF)
