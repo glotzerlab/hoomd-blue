@@ -104,6 +104,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdater.h"
 #include "System.h"
 #include "Variant.h"
+#include "ConstraintSphere.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -409,6 +410,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermo();
     export_NeighborList();
     export_BinnedNeighborList();
+    export_ConstraintSphere();
 #ifdef ENABLE_CUDA
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();

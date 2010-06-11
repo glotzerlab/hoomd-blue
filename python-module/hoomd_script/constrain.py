@@ -209,3 +209,33 @@ class _constraint_force:
         
 # set default counter
 _constraint_force.cur_id = 0;
+
+
+## Sphere constraint
+#
+# The command constrain.sphere specifies that forces will be applied to all particles in the given group to constrain
+# them to a sphere.
+#
+class sphere(_constraint_force):
+    ## Specify the %sphere constraint %force
+    #
+    # \param group Group on which to apply the constraint
+    # \param P (x,y,z) tuple indicating the position of the sphere
+    # \param r Radius of the sphere
+    #
+    # \b Examples:
+    # \code
+    # constrain.sphere(groupA, (0,10,2), 10)
+    # \endcode
+    def __init__(self, group, P, r):
+        util.print_status_line();
+        
+        # initialize the base class
+        _constraint_force.__init__(self);
+        
+        # create the c++ mirror class
+        P = hoomd.make_scalar3(P[0], P[1], P[2]);
+        self.cpp_force = hoomd.ConstraintSphere(globals.system_definition, group.cpp_group, P, r);
+            
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
