@@ -223,7 +223,7 @@ __global__ void gpu_compute_thermo_final_sums(float *d_properties,
             }
 
         // pressure: P = (N * K_B * T + W)/V
-        Scalar pressure =  (Scalar(group_size) * temperature + W) / volume;
+        Scalar pressure =  (2.0 * ke_total / Scalar(D) + W) / volume;
 
         // fill out the GPUArray
         d_properties[thermo_index::temperature] = temperature;
