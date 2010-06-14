@@ -1093,14 +1093,14 @@ class slj(pair):
 # %pair parameters among all %pair potentials.
 #
 class yukawa(pair):
-    ## Specify the Gaussian %pair %force
+    ## Specify the Yukawa %pair %force
     #
     # \param r_cut Default cutoff radius
     # \param name Name of the force instance
     #
     # \b Example:
     # \code
-    # gauss = pair.lj(r_cut=3.0)
+    # yukawa = pair.lj(r_cut=3.0)
     # yukawa.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
     # yukawa.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
     # \endcode

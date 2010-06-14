@@ -219,7 +219,7 @@ void ComputeThermo::computeProperties()
         }
 
     // pressure: P = (N * K_B * T + W)/V
-    Scalar pressure =  (Scalar(group_size) * temperature + W) / volume;
+    Scalar pressure =  (2.0 * ke_total / Scalar(D) + W) / volume;
 
     // fill out the GPUArray
     ArrayHandle<Scalar> h_properties(m_properties, access_location::host, access_mode::overwrite);

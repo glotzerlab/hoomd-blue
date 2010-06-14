@@ -555,6 +555,9 @@ WARN_LOGFILE           =
 INPUT                  = "${HOOMD_SOURCE_DIR}/libhoomd" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_centos.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox" \
+                         "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc" \
                          "${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc" \

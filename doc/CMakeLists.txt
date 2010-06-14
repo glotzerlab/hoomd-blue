@@ -34,6 +34,9 @@ file(GLOB_RECURSE _source_files
 set (_dev_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_dev.in
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc
+                       ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox
+                       ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_centos.dox
+                       ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
                        ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
@@ -50,6 +53,7 @@ add_custom_command (OUTPUT ${DOXYGEN_DEV_DOC_HTML_DIR}/index.html
                     COMMAND ${DOXYGEN} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_dev
                     DEPENDS ${_source_files}
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.doc
+                    ${CMAKE_CURRENT_SOURCE_DIR}/user/*.dox
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/*.doc
                     ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_dev.in
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/DoxygenLayout.xml)
@@ -93,6 +97,9 @@ set (_user_doc_sources  ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile_user.in
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/conversion_scripts.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_mac.doc
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_ubuntu.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_centos.dox
+                        ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_fedora.dox
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/compile_guide_linux_generic.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/license.doc
                         ${CMAKE_CURRENT_SOURCE_DIR}/user/credits.doc
@@ -106,6 +113,7 @@ add_custom_command (OUTPUT ${DOXYGEN_USER_DOC_HTML_DIR}/index.html
                     COMMAND ${DOXYGEN} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_user
                     DEPENDS ${_module_files}
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.doc
+                    ${CMAKE_CURRENT_SOURCE_DIR}/user/*.dox
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.html
                     ${CMAKE_CURRENT_SOURCE_DIR}/user/*.css
                     ${CMAKE_CURRENT_SOURCE_DIR}/dev/*.doc

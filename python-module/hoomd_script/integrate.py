@@ -1097,7 +1097,7 @@ class npt_rigid(_integration_method):
 # \f$ \Delta t \rightarrow \Delta t * f_{dec} \f$.  Convergence is determined by either the force per particle or the 
 # change in energy per particle dropping below \a ftol or \a Etol, respectively or,
 # 
-# \f[ \frac{\sum |F|}{N*\sqrt{DOF}} <ftol \;\; or \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
+# \f[ \frac{\sum |F|}{N*\sqrt{N_{dof}}} <ftol \;\; or \;\; \Delta \frac{\sum |E|}{N} < Etol  \f]
 # where N is the number of particles the minimization is acting over (i.e. the group size).
 #
 # If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept

@@ -81,8 +81,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 \endverbatim
 
 <hr>
-<b>Sockets code</b> from VMD is used for the IMDInterface to VMD (http://www.ks.uiuc.edu/Research/vmd/) - Used under the UIUC Open Source License<br>
-<b>Molfile plugin code</b> from VMD is used for generic file format reading and writing) - Used under the UIUC Open Source License<br>
+<b>Sockets code</b> from VMD is used for the IMDInterface to VMD (http://www.ks.uiuc.edu/Research/vmd/) - Used under the UIUC Open Source License.<br>
+<b>Molfile plugin code</b> from VMD is used for generic file format reading and writing - Used under the UIUC Open Source License<br>
 \verbatim
 University of Illinois Open Source License
 Copyright 2006 Theoretical and Computational Biophysics Group, 
