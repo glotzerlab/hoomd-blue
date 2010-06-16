@@ -73,7 +73,6 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                         unsigned int *d_group_members,
                                         unsigned int group_size,
                                         float4 *d_net_force,
-                                        float *d_net_virial,
                                         const gpu_boxsize &box, 
                                         const gpu_nvt_rigid_data &nvt_rdata,
                                         float deltaT);

@@ -93,7 +93,6 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     
     // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     
     // profile this step
     if (m_prof)

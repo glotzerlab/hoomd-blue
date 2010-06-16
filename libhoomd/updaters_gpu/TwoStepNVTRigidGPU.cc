@@ -116,7 +116,6 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     
     // access to the force and virial
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     
     // profile this step
     if (m_prof)
@@ -126,7 +125,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -177,6 +176,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
+    d_rdata.virial = d_virial.data;
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
@@ -200,7 +200,6 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
                                 d_index_array.data,
                                 group_size,
                                 d_net_force.data,
-                                d_net_virial.data,
                                 box,
                                 d_nvt_rdata,
                                 m_deltaT));
@@ -227,37 +226,37 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     
     // phase 1, reduce to find the final Ksum_t and Ksum_r
-        {
-        if (m_prof)
-            m_prof->push(exec_conf, "NVT reducing");
-        
-        ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
+    {
+    if (m_prof)
+        m_prof->push(exec_conf, "NVT reducing");
     
-        gpu_nvt_rigid_data d_nvt_rdata;
-        d_nvt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
-        d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
-        d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
-        d_nvt_rdata.Ksum_t = Ksum_t_handle.data;
-        d_nvt_rdata.Ksum_r = Ksum_r_handle.data;
+    ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::device, access_mode::readwrite);
 
-        exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rdata));
-        
-        if (m_prof)
-            m_prof->pop(exec_conf);
-        }
+    gpu_nvt_rigid_data d_nvt_rdata;
+    d_nvt_rdata.n_bodies = m_sysdef->getRigidData()->getNumBodies();
+    d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
+    d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
+    d_nvt_rdata.Ksum_t = Ksum_t_handle.data;
+    d_nvt_rdata.Ksum_r = Ksum_r_handle.data;
+
+    exec_conf.gpu[0]->call(bind(gpu_nvt_rigid_reduce_ksum, d_nvt_rdata));
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
     
     // phase 1.5, move the thermostat variables forward
-        {
-        ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
-            
-        Scalar Ksum_t = Ksum_t_handle.data[0];
-        Scalar Ksum_r = Ksum_r_handle.data[0];
-        update_nhcp(Ksum_t, Ksum_r, m_deltaT);
-        }
+    {
+    ArrayHandle<Scalar> Ksum_t_handle(m_Ksum_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> Ksum_r_handle(m_Ksum_r, access_location::host, access_mode::read);
+        
+    Scalar Ksum_t = Ksum_t_handle.data[0];
+    Scalar Ksum_r = Ksum_r_handle.data[0];
+    update_nhcp(Ksum_t, Ksum_r, m_deltaT);
+    }
 
     // profile this step
     if (m_prof)
@@ -288,7 +287,8 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
-
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::readwrite);
+    
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -311,7 +311,8 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
-
+    d_rdata.virial = d_virial.data;
+    
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);

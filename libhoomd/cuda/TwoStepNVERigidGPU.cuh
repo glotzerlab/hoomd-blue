@@ -80,9 +80,6 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                              float4 *d_net_force,
                              const gpu_boxsize &box, 
                              float deltaT);
-                             
-/*! Shared kernels for rigid body integrators
-*/
                                                           
 //! Kernel for the first step integration setting particle velocities called by TwoStepNVERigidGPU and TwoStepNVTRigidGPU
 extern "C" __global__ void gpu_rigid_step_one_particle_kernel(float4* pdata_pos,

@@ -311,137 +311,135 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     
     // now we can get on with the velocity verlet: initial integration
     
+    // rigid data handles
+    ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    
+    ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
+    ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
+    
+    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
+    
+    // intialize velocity scale for translation and rotation
+    
+    tmp = -1.0 * dt_half * eta_dot_t_handle.data[0];
+    scale_t = exp(tmp);
+    tmp = -1.0 * dt_half * eta_dot_r_handle.data[0];
+    scale_r = exp(tmp);
+    
+    // for each body
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
         
-        // rigid data handles
-        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+        dtfm = dt_half / body_mass_handle.data[body];
+        vel_handle.data[body].x += dtfm * force_handle.data[body].x;
+        vel_handle.data[body].y += dtfm * force_handle.data[body].y;
+        vel_handle.data[body].z += dtfm * force_handle.data[body].z;
         
-        ArrayHandle<Scalar4> com_handle(m_rigid_data->getCOM(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+        vel_handle.data[body].x *= scale_t;
+        vel_handle.data[body].y *= scale_t;
+        vel_handle.data[body].z *= scale_t;
         
-        ArrayHandle<int> body_imagex_handle(m_rigid_data->getBodyImagex(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int> body_imagey_handle(m_rigid_data->getBodyImagey(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int> body_imagez_handle(m_rigid_data->getBodyImagez(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::readwrite);
+        tmp = vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y +
+              vel_handle.data[body].z * vel_handle.data[body].z;
+        akin_t += body_mass_handle.data[body] * tmp;
         
-        ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
+        com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
+        com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
+        com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
         
-        // intialize velocity scale for translation and rotation
-        
-        tmp = -1.0 * dt_half * eta_dot_t_handle.data[0];
-        scale_t = exp(tmp);
-        tmp = -1.0 * dt_half * eta_dot_r_handle.data[0];
-        scale_r = exp(tmp);
-        
-        // for each body
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
+        // map the center of mass to the periodic box, update the com image info
+        if (com_handle.data[body].x >= box.xhi)
             {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-            dtfm = dt_half / body_mass_handle.data[body];
-            vel_handle.data[body].x += dtfm * force_handle.data[body].x;
-            vel_handle.data[body].y += dtfm * force_handle.data[body].y;
-            vel_handle.data[body].z += dtfm * force_handle.data[body].z;
-            
-            vel_handle.data[body].x *= scale_t;
-            vel_handle.data[body].y *= scale_t;
-            vel_handle.data[body].z *= scale_t;
-            
-            tmp = vel_handle.data[body].x * vel_handle.data[body].x + vel_handle.data[body].y * vel_handle.data[body].y +
-                  vel_handle.data[body].z * vel_handle.data[body].z;
-            akin_t += body_mass_handle.data[body] * tmp;
-            
-            com_handle.data[body].x += vel_handle.data[body].x * m_deltaT;
-            com_handle.data[body].y += vel_handle.data[body].y * m_deltaT;
-            com_handle.data[body].z += vel_handle.data[body].z * m_deltaT;
-            
-            // map the center of mass to the periodic box, update the com image info
-            if (com_handle.data[body].x >= box.xhi)
-                {
-                com_handle.data[body].x -= Lx;
-                body_imagex_handle.data[body]++;
-                }
-            else if (com_handle.data[body].x < box.xlo)
-                {
-                com_handle.data[body].x += Lx;
-                body_imagex_handle.data[body]--;
-                }
-                
-            if (com_handle.data[body].y >= box.yhi)
-                {
-                com_handle.data[body].y -= Ly;
-                body_imagey_handle.data[body]++;
-                }
-            else if (com_handle.data[body].y < box.ylo)
-                {
-                com_handle.data[body].y += Ly;
-                body_imagey_handle.data[body]--;
-                }
-                
-            if (com_handle.data[body].z >= box.zhi)
-                {
-                com_handle.data[body].z -= Lz;
-                body_imagez_handle.data[body]++;
-                }
-            else if (com_handle.data[body].z < box.zlo)
-                {
-                com_handle.data[body].z += Lz;
-                body_imagez_handle.data[body]--;
-                }
-                
-            matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
-            quat_multiply(orientation_handle.data[body], tbody, fquat);
-            
-            conjqm_handle.data[body].x += m_deltaT * fquat.x;
-            conjqm_handle.data[body].y += m_deltaT * fquat.y;
-            conjqm_handle.data[body].z += m_deltaT * fquat.z;
-            conjqm_handle.data[body].w += m_deltaT * fquat.w;
-            
-            conjqm_handle.data[body].x *= scale_r;
-            conjqm_handle.data[body].y *= scale_r;
-            conjqm_handle.data[body].z *= scale_r;
-            conjqm_handle.data[body].w *= scale_r;
-            
-            // step 1.4 to 1.13 - use no_squish rotate to update p and q
-            
-            no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-            no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-            no_squish_rotate(1, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], m_deltaT);
-            no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-            no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
-            
-            // update the exyz_space
-            // transform p back to angmom
-            // update angular velocity
-            
-            exyzFromQuaternion(orientation_handle.data[body], ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body]);
-            inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
-            transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
-            
-            angmom_handle.data[body].x *= 0.5;
-            angmom_handle.data[body].y *= 0.5;
-            angmom_handle.data[body].z *= 0.5;
-            
-            computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
-                                   ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
-                                   
-            akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x
-                      + angmom_handle.data[body].y * angvel_handle.data[body].y
-                      + angmom_handle.data[body].z * angvel_handle.data[body].z;
-                      
+            com_handle.data[body].x -= Lx;
+            body_imagex_handle.data[body]++;
+            }
+        else if (com_handle.data[body].x < box.xlo)
+            {
+            com_handle.data[body].x += Lx;
+            body_imagex_handle.data[body]--;
             }
             
-        } // out of scope for handles
+        if (com_handle.data[body].y >= box.yhi)
+            {
+            com_handle.data[body].y -= Ly;
+            body_imagey_handle.data[body]++;
+            }
+        else if (com_handle.data[body].y < box.ylo)
+            {
+            com_handle.data[body].y += Ly;
+            body_imagey_handle.data[body]--;
+            }
+            
+        if (com_handle.data[body].z >= box.zhi)
+            {
+            com_handle.data[body].z -= Lz;
+            body_imagez_handle.data[body]++;
+            }
+        else if (com_handle.data[body].z < box.zlo)
+            {
+            com_handle.data[body].z += Lz;
+            body_imagez_handle.data[body]--;
+            }
+            
+        matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
+        quat_multiply(orientation_handle.data[body], tbody, fquat);
+        
+        conjqm_handle.data[body].x += m_deltaT * fquat.x;
+        conjqm_handle.data[body].y += m_deltaT * fquat.y;
+        conjqm_handle.data[body].z += m_deltaT * fquat.z;
+        conjqm_handle.data[body].w += m_deltaT * fquat.w;
+        
+        conjqm_handle.data[body].x *= scale_r;
+        conjqm_handle.data[body].y *= scale_r;
+        conjqm_handle.data[body].z *= scale_r;
+        conjqm_handle.data[body].w *= scale_r;
+        
+        // step 1.4 to 1.13 - use no_squish rotate to update p and q
+        
+        no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
+        no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
+        no_squish_rotate(1, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], m_deltaT);
+        no_squish_rotate(2, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
+        no_squish_rotate(3, conjqm_handle.data[body], orientation_handle.data[body], moment_inertia_handle.data[body], dt_half);
+        
+        // update the exyz_space
+        // transform p back to angmom
+        // update angular velocity
+        
+        exyzFromQuaternion(orientation_handle.data[body], ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body]);
+        inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
+        transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
+        
+        angmom_handle.data[body].x *= 0.5;
+        angmom_handle.data[body].y *= 0.5;
+        angmom_handle.data[body].z *= 0.5;
+        
+        computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
+                               ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
+                               
+        akin_r += angmom_handle.data[body].x * angvel_handle.data[body].x
+                  + angmom_handle.data[body].y * angvel_handle.data[body].y
+                  + angmom_handle.data[body].z * angvel_handle.data[body].z;
+                  
+        }
+            
+        
         
     // update thermostat chain
     update_nhcp(akin_t, akin_r, timestep);
@@ -473,67 +471,64 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
     
     dt_half = 0.5 * m_deltaT;
     
+    // rigid data handes
+    ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+    
+    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
+    
+    // intialize velocity scale for translation and rotation
+    
+    tmp = -1.0 * dt_half * eta_dot_t_handle.data[0];
+    scale_t = exp(tmp);
+    tmp = -1.0 * dt_half * eta_dot_r_handle.data[0];
+    scale_r = exp(tmp);
+    
+    
+    // 2nd step: final integration
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
         
-        // rigid data handes
-        ArrayHandle<Scalar> body_mass_handle(m_rigid_data->getBodyMass(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+        Scalar dtfm = dt_half / body_mass_handle.data[body];
+        vel_handle.data[body].x = scale_t * vel_handle.data[body].x + dtfm * force_handle.data[body].x;
+        vel_handle.data[body].y = scale_t * vel_handle.data[body].y + dtfm * force_handle.data[body].y;
+        vel_handle.data[body].z = scale_t * vel_handle.data[body].z + dtfm * force_handle.data[body].z;
         
-        ArrayHandle<Scalar4> force_handle(m_rigid_data->getForce(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> torque_handle(m_rigid_data->getTorque(), access_location::host, access_mode::read);
+        // update conjqm, then transform to angmom, set velocity again
+        // virial is already setup from initial_integrate
         
-        ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> angvel_handle(m_rigid_data->getAngVel(), access_location::host, access_mode::readwrite);
+        matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
+        quat_multiply(orientation_handle.data[body], tbody, fquat);
         
-        ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
+        conjqm_handle.data[body].x = scale_r * conjqm_handle.data[body].x + m_deltaT * fquat.x;
+        conjqm_handle.data[body].y = scale_r * conjqm_handle.data[body].y + m_deltaT * fquat.y;
+        conjqm_handle.data[body].z = scale_r * conjqm_handle.data[body].z + m_deltaT * fquat.z;
+        conjqm_handle.data[body].w = scale_r * conjqm_handle.data[body].w + m_deltaT * fquat.w;
         
-        // intialize velocity scale for translation and rotation
+        inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
+        transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
         
-        tmp = -1.0 * dt_half * eta_dot_t_handle.data[0];
-        scale_t = exp(tmp);
-        tmp = -1.0 * dt_half * eta_dot_r_handle.data[0];
-        scale_r = exp(tmp);
+        angmom_handle.data[body].x *= 0.5;
+        angmom_handle.data[body].y *= 0.5;
+        angmom_handle.data[body].z *= 0.5;
         
-        
-        // 2nd step: final integration
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-            {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
-            
-            Scalar dtfm = dt_half / body_mass_handle.data[body];
-            vel_handle.data[body].x = scale_t * vel_handle.data[body].x + dtfm * force_handle.data[body].x;
-            vel_handle.data[body].y = scale_t * vel_handle.data[body].y + dtfm * force_handle.data[body].y;
-            vel_handle.data[body].z = scale_t * vel_handle.data[body].z + dtfm * force_handle.data[body].z;
-            
-            // update conjqm, then transform to angmom, set velocity again
-            // virial is already setup from initial_integrate
-            
-            matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
-            quat_multiply(orientation_handle.data[body], tbody, fquat);
-            
-            conjqm_handle.data[body].x = scale_r * conjqm_handle.data[body].x + m_deltaT * fquat.x;
-            conjqm_handle.data[body].y = scale_r * conjqm_handle.data[body].y + m_deltaT * fquat.y;
-            conjqm_handle.data[body].z = scale_r * conjqm_handle.data[body].z + m_deltaT * fquat.z;
-            conjqm_handle.data[body].w = scale_r * conjqm_handle.data[body].w + m_deltaT * fquat.w;
-            
-            inv_quat_multiply(orientation_handle.data[body], conjqm_handle.data[body], mbody);
-            transpose_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], mbody, angmom_handle.data[body]);
-            
-            angmom_handle.data[body].x *= 0.5;
-            angmom_handle.data[body].y *= 0.5;
-            angmom_handle.data[body].z *= 0.5;
-            
-            computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body], ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
-            }
-        } // out of scope for handles
-        
+        computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body], ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
+        }
+               
     // set velocities of particles in rigid bodies
     set_v(timestep);
     
