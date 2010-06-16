@@ -88,7 +88,7 @@ group_all = None;
 # \brief Clears all global variables to default values
 # \details called by hoomd_script.reset()
 def clear():
-    global system_definition, system, forces, integration_methods, integrator, neighbor_list, loggers, thermos;
+    global system_definition, system, forces, constraint_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
     global group_all;
     
     system_definition = None;
