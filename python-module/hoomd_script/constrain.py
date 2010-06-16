@@ -247,4 +247,5 @@ class sphere(_constraint_force):
             raise RuntimeError("Error creating constraint force");
 
         globals.system.addCompute(self.cpp_force, self.force_name);
-        
+
+
