@@ -235,7 +235,13 @@ class sphere(_constraint_force):
         
         # create the c++ mirror class
         P = hoomd.make_scalar3(P[0], P[1], P[2]);
-        self.cpp_force = hoomd.ConstraintSphere(globals.system_definition, group.cpp_group, P, r);
-            
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.ConstraintSphere(globals.system_definition, group.cpp_group, P, r);
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            self.cpp_force = hoomd.ConstraintSphereGPU(globals.system_definition, group.cpp_group, P, r);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating constraint force");
+
         globals.system.addCompute(self.cpp_force, self.force_name);
         
