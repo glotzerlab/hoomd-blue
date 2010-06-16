@@ -64,6 +64,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RandomGenerator.h"
 #include "Compute.h"
 #include "ForceCompute.h"
+#include "ForceConstraint.h"
 #include "ConstForceCompute.h"
 #include "HarmonicBondForceCompute.h"
 #include "HarmonicAngleForceCompute.h"
@@ -109,6 +110,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdater.h"
 #include "System.h"
 #include "Variant.h"
+#include "ConstraintSphere.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -133,6 +135,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerRigidGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
+#include "ConstraintSphereGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -401,6 +404,7 @@ BOOST_PYTHON_MODULE(hoomd)
     // computes
     export_Compute();
     export_ForceCompute();
+    export_ForceConstraint();
     export_ConstForceCompute();
     export_HarmonicBondForceCompute();
     export_HarmonicAngleForceCompute();
@@ -419,6 +423,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ComputeThermo();
     export_NeighborList();
     export_BinnedNeighborList();
+    export_ConstraintSphere();
 #ifdef ENABLE_CUDA
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();
@@ -436,6 +441,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceComputeGPU();
     export_FENEBondForceComputeGPU();
     export_ComputeThermoGPU();
+    export_ConstraintSphereGPU();
 #endif
     
     // analyzers

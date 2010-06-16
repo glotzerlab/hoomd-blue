@@ -87,12 +87,22 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
     fc->setDeltaT(m_deltaT);      
     }
 
+/*! \param fc ForceConstraint to add
+*/
+void Integrator::addForceConstraint(boost::shared_ptr<ForceConstraint> fc)
+    {
+    assert(fc);
+    m_constraint_forces.push_back(fc);
+    fc->setDeltaT(m_deltaT);
+    }
+
 /*! Call removeForceComputes() to completely wipe out the list of force computes
     that the integrator uses to sum forces.
 */
 void Integrator::removeForceComputes()
     {
     m_forces.clear();
+    m_constraint_forces.clear();
     }
 
 /*! \param deltaT New time step to set
@@ -104,6 +114,9 @@ void Integrator::setDeltaT(Scalar deltaT)
         
     for (unsigned int i=0; i < m_forces.size(); i++)
         m_forces[i]->setDeltaT(deltaT);    
+
+    for (unsigned int i=0; i < m_constraint_forces.size(); i++)
+        m_constraint_forces[i]->setDeltaT(deltaT);
    
      m_deltaT = deltaT;
     }
@@ -113,6 +126,21 @@ void Integrator::setDeltaT(Scalar deltaT)
 Scalar Integrator::getDeltaT()
     {
     return m_deltaT;
+    }
+
+/*! Loops over all constraint forces in the Integrator and sums up the number of DOF removed
+*/
+unsigned int Integrator::getNDOFRemoved()
+    {
+    // start counting at 0
+    unsigned int n = 0;
+    
+    // loop through all constraint forces
+    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_compute;
+    for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
+        n += (*force_compute)->getNDOFRemoved();
+
+    return n;
     }
 
 /*! The base class Integrator provides all of the common logged quantities. This is the most convenient and
@@ -290,31 +318,80 @@ void Integrator::computeNetForce(unsigned int timestep, const std::string& profi
         m_prof->push("Net force");
         }
     
-    // access the net force and virial arrays
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
-    
-    // start by zeroing the net force and virial arrays
-    memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
-    memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
-    
-    // now, add up the net forces
-    unsigned int nparticles = m_pdata->getN();
-    assert(nparticles == net_force.getNumElements());
-    assert(nparticles == net_virial.getNumElements());
-    for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         {
-        ForceDataArrays force_arrays = (*force_compute)->acquire();
-    
-        for (unsigned int j = 0; j < nparticles; j++)
+        // access the net force and virial arrays
+        const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+        const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
+        
+        // start by zeroing the net force and virial arrays
+        memset((void *)h_net_force.data, 0, sizeof(Scalar4)*net_force.getNumElements());
+        memset((void *)h_net_virial.data, 0, sizeof(Scalar)*net_virial.getNumElements());
+        
+        // now, add up the net forces
+        unsigned int nparticles = m_pdata->getN();
+        assert(nparticles == net_force.getNumElements());
+        assert(nparticles == net_virial.getNumElements());
+        for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
             {
-            h_net_force.data[j].x += force_arrays.fx[j];
-            h_net_force.data[j].y += force_arrays.fy[j];
-            h_net_force.data[j].z += force_arrays.fz[j];
-            h_net_force.data[j].w += force_arrays.pe[j];
-            h_net_virial.data[j] += force_arrays.virial[j];
+            ForceDataArrays force_arrays = (*force_compute)->acquire();
+        
+            for (unsigned int j = 0; j < nparticles; j++)
+                {
+                h_net_force.data[j].x += force_arrays.fx[j];
+                h_net_force.data[j].y += force_arrays.fy[j];
+                h_net_force.data[j].z += force_arrays.fz[j];
+                h_net_force.data[j].w += force_arrays.pe[j];
+                h_net_virial.data[j] += force_arrays.virial[j];
+                }
+            }
+        }
+    
+    if (m_prof)
+        {
+        m_prof->pop();
+        m_prof->pop();
+        }
+
+    // return early if there are no constraint forces
+    if (m_constraint_forces.size() == 0)
+        return;
+
+    // compute all the constraint forces next
+    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        (*force_constraint)->compute(timestep);
+    
+    if (m_prof)
+        {
+        m_prof->push(profile_name);
+        m_prof->push("Net force");
+        }
+    
+        {
+        // access the net force and virial arrays
+        const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+        const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
+
+        // now, add up the net forces
+        unsigned int nparticles = m_pdata->getN();
+        assert(nparticles == net_force.getNumElements());
+        assert(nparticles == net_virial.getNumElements());
+        for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+            {
+            ForceDataArrays force_arrays = (*force_constraint)->acquire();
+        
+            for (unsigned int j = 0; j < nparticles; j++)
+                {
+                h_net_force.data[j].x += force_arrays.fx[j];
+                h_net_force.data[j].y += force_arrays.fy[j];
+                h_net_force.data[j].z += force_arrays.fz[j];
+                h_net_force.data[j].w += force_arrays.pe[j];
+                h_net_virial.data[j] += force_arrays.virial[j];
+                }
             }
         }
     
@@ -339,7 +416,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
         throw runtime_error("Error computing accelerations");
         }
     
-    // compute all the forces first
+    // compute all the normal forces first
     std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
@@ -350,77 +427,165 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
         m_prof->push(exec_conf, "Net force");
         }
     
-    // access the net force and virial arrays
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
-
-    unsigned int nparticles = m_pdata->getN();
-    assert(nparticles == net_force.getNumElements());
-    assert(nparticles == net_virial.getNumElements());
-    
-    // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
-    // will do that
-    // ahh!, but we do need to zer out the net force and virial if there are 0 forces!
-    if (m_forces.size() == 0)
         {
-        // start by zeroing the net force and virial arrays
-        exec_conf.gpu[0]->call(bind(cudaMemset, d_net_force.data, 0, sizeof(Scalar4)*nparticles));
-        exec_conf.gpu[0]->call(bind(cudaMemset, d_net_virial.data, 0, sizeof(Scalar)*nparticles));
+        // access the net force and virial arrays
+        const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+        const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
+
+        unsigned int nparticles = m_pdata->getN();
+        assert(nparticles == net_force.getNumElements());
+        assert(nparticles == net_virial.getNumElements());
+        
+        // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
+        // will do that
+        // ahh!, but we do need to zer out the net force and virial if there are 0 forces!
+        if (m_forces.size() == 0)
+            {
+            // start by zeroing the net force and virial arrays
+            exec_conf.gpu[0]->call(bind(cudaMemset, d_net_force.data, 0, sizeof(Scalar4)*nparticles));
+            exec_conf.gpu[0]->call(bind(cudaMemset, d_net_virial.data, 0, sizeof(Scalar)*nparticles));
+            }
+        
+        // now, add up the accelerations
+        // sum all the forces into the net force
+        // perform the sum in groups of 6 to avoid kernel launch and memory access overheads
+        for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
+            {
+            // grab the device pointers for the current set
+            gpu_force_list force_list;
+            const vector<ForceDataArraysGPU>& force0 = m_forces[cur_force]->acquireGPU();
+            force_list.f0 = force0[0].d_data.force;
+            force_list.v0 = force0[0].d_data.virial;
+            
+            if (cur_force+1 < m_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force1 = m_forces[cur_force+1]->acquireGPU();
+                force_list.f1 = force1[0].d_data.force;
+                force_list.v1 = force1[0].d_data.virial;
+                }
+            if (cur_force+2 < m_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force2 = m_forces[cur_force+2]->acquireGPU();
+                force_list.f2 = force2[0].d_data.force;
+                force_list.v2 = force2[0].d_data.virial;
+                }
+            if (cur_force+3 < m_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force3 = m_forces[cur_force+3]->acquireGPU();
+                force_list.f3 = force3[0].d_data.force;
+                force_list.v3 = force3[0].d_data.virial;
+                }
+            if (cur_force+4 < m_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force4 = m_forces[cur_force+4]->acquireGPU();
+                force_list.f4 = force4[0].d_data.force;
+                force_list.v4 = force4[0].d_data.virial;
+                }
+            if (cur_force+5 < m_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force5 = m_forces[cur_force+5]->acquireGPU();
+                force_list.f5 = force5[0].d_data.force;
+                force_list.v5 = force5[0].d_data.virial;
+                }
+            
+            // clear on the first iteration only
+            bool clear = (cur_force == 0);
+            
+            exec_conf.gpu[0]->call(bind(gpu_integrator_sum_net_force, 
+                                             d_net_force.data,
+                                             d_net_virial.data,
+                                             force_list,
+                                             nparticles,
+                                             clear));
+            }
         }
     
-    // now, add up the accelerations
-    // sum all the forces into the net force
-    // perform the sum in groups of 6 to avoid kernel launch and memory access overheads
-    for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force += 6)
+    if (m_prof)
         {
-        // grab the device pointers for the current set
-        gpu_force_list force_list;
-        const vector<ForceDataArraysGPU>& force0 = m_forces[cur_force]->acquireGPU();
-        force_list.f0 = force0[0].d_data.force;
-        force_list.v0 = force0[0].d_data.virial;
+        m_prof->pop(exec_conf);
+        m_prof->pop(exec_conf);
+        }
+    
+    // return early if there are no constraint forces
+    if (m_constraint_forces.size() == 0)
+        return;
+    
+    // compute all the constraint forces next
+    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
+        (*force_constraint)->compute(timestep);
+    
+    if (m_prof)
+        {
+        m_prof->push(profile_name);
+        m_prof->push(exec_conf, "Net force");
+        }
+    
+        {
+        // access the net force and virial arrays
+        const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+        const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
+
+        unsigned int nparticles = m_pdata->getN();
+        assert(nparticles == net_force.getNumElements());
+        assert(nparticles == net_virial.getNumElements());
         
-        if (cur_force+1 < m_forces.size())
+        // now, add up the accelerations
+        // sum all the forces into the net force
+        // perform the sum in groups of 6 to avoid kernel launch and memory access overheads
+        for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force += 6)
             {
-            const vector<ForceDataArraysGPU>& force1 = m_forces[cur_force+1]->acquireGPU();
-            force_list.f1 = force1[0].d_data.force;
-            force_list.v1 = force1[0].d_data.virial;
+            // grab the device pointers for the current set
+            gpu_force_list force_list;
+            const vector<ForceDataArraysGPU>& force0 = m_constraint_forces[cur_force]->acquireGPU();
+            force_list.f0 = force0[0].d_data.force;
+            force_list.v0 = force0[0].d_data.virial;
+            
+            if (cur_force+1 < m_constraint_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force1 = m_constraint_forces[cur_force+1]->acquireGPU();
+                force_list.f1 = force1[0].d_data.force;
+                force_list.v1 = force1[0].d_data.virial;
+                }
+            if (cur_force+2 < m_constraint_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force2 = m_constraint_forces[cur_force+2]->acquireGPU();
+                force_list.f2 = force2[0].d_data.force;
+                force_list.v2 = force2[0].d_data.virial;
+                }
+            if (cur_force+3 < m_constraint_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force3 = m_constraint_forces[cur_force+3]->acquireGPU();
+                force_list.f3 = force3[0].d_data.force;
+                force_list.v3 = force3[0].d_data.virial;
+                }
+            if (cur_force+4 < m_constraint_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force4 = m_constraint_forces[cur_force+4]->acquireGPU();
+                force_list.f4 = force4[0].d_data.force;
+                force_list.v4 = force4[0].d_data.virial;
+                }
+            if (cur_force+5 < m_constraint_forces.size())
+                {
+                const vector<ForceDataArraysGPU>& force5 = m_constraint_forces[cur_force+5]->acquireGPU();
+                force_list.f5 = force5[0].d_data.force;
+                force_list.v5 = force5[0].d_data.virial;
+                }
+            
+            // clear only on the first iteration AND if there are zero forces
+            bool clear = (cur_force == 0) && (m_forces.size() == 0);
+            
+            exec_conf.gpu[0]->call(bind(gpu_integrator_sum_net_force, 
+                                             d_net_force.data,
+                                             d_net_virial.data,
+                                             force_list,
+                                             nparticles,
+                                             clear));
             }
-        if (cur_force+2 < m_forces.size())
-            {
-            const vector<ForceDataArraysGPU>& force2 = m_forces[cur_force+2]->acquireGPU();
-            force_list.f2 = force2[0].d_data.force;
-            force_list.v2 = force2[0].d_data.virial;
-            }
-        if (cur_force+3 < m_forces.size())
-            {
-            const vector<ForceDataArraysGPU>& force3 = m_forces[cur_force+3]->acquireGPU();
-            force_list.f3 = force3[0].d_data.force;
-            force_list.v3 = force3[0].d_data.virial;
-            }
-        if (cur_force+4 < m_forces.size())
-            {
-            const vector<ForceDataArraysGPU>& force4 = m_forces[cur_force+4]->acquireGPU();
-            force_list.f4 = force4[0].d_data.force;
-            force_list.v4 = force4[0].d_data.virial;
-            }
-        if (cur_force+5 < m_forces.size())
-            {
-            const vector<ForceDataArraysGPU>& force5 = m_forces[cur_force+5]->acquireGPU();
-            force_list.f5 = force5[0].d_data.force;
-            force_list.v5 = force5[0].d_data.virial;
-            }
-        
-        // clear on the first iteration only
-        bool clear = (cur_force == 0);
-        
-        exec_conf.gpu[0]->call(bind(gpu_integrator_sum_net_force, 
-                                         d_net_force.data,
-                                         d_net_virial.data,
-                                         force_list,
-                                         nparticles,
-                                         clear));
         }
     
     if (m_prof)
@@ -443,6 +608,7 @@ void export_Integrator()
     class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
     ("Integrator", init< boost::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
+    .def("addForceConstraint", &Integrator::addForceConstraint)
     .def("removeForceComputes", &Integrator::removeForceComputes)
     .def("setDeltaT", &Integrator::setDeltaT)
     .def("getNDOF", &Integrator::getNDOF)

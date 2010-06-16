@@ -74,7 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
 
     The per particle virial is defined such that 
-    \f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
+    \f$ \sum_i^N \mathrm{virial}_i = \frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
 
     \ingroup data_structs
 */

@@ -52,6 +52,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Updater.h"
 #include "ForceCompute.h"
+#include "ForceConstraint.h"
 #include "ParticleGroup.h"
 #include <string>
 #include <vector>
@@ -66,20 +67,22 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     Prior to calling update(timestep), the system is at time step \a timestep.
     After the call to update completes, the system is at \a timestep + 1.
 
-    Many integrators have the common property that they add up many forces to
+    All integrators have the common property that they add up many forces to
     get the net force on each particle. This task is performed by the
     base class Integrator. Similarly, all integrators share the
     property that they have a time step, \a deltaT.
 
-    Derived integrators can of course add additional parameters and
-    properties.
-
     Any number of ForceComputes can be used to specify the net force
     for use with this integrator. They are added via calling
-    addForceCompute(). Although there is a current, a maximum of 32 ForceComputes
-    supported on the GPU. If there is ever a need for this to be increased, it can
-    be done without too much trouble, but 32 should be much more than sufficient
-    for any simulation.
+    addForceCompute(). Any number of forces can be added in this way. 
+    
+    All forces added via addForceCompute() are computed independantly and then totaled up to calculate the net force
+    and enrgy on each particle. Constraint forces (ForceConstraint) are unique in that they need to be computed 
+    \b after the net forces is already available. To implement this behavior, call addForceConstraint() to add any
+    number of constraint forces. All constraint forces will be computed independantly and will be able to read the
+    current unconstrained net force. Separate constraint forces should not overlap. Degrees of freedom removed
+    via the constraint forces can be totaled up with a call to getNDOFRemoved for convenience in derived classes
+    implementing correct counting in getNDOF().
 
     Integrators take "ownership" of the particle's accellerations. Any other updater
     that modifies the particles accelerations will produce undefined results. If
@@ -108,6 +111,9 @@ class Integrator : public Updater
         
         //! Add a ForceCompute to the list
         virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+
+        //! Add a ForceConstraint to the list
+        virtual void addForceConstraint(boost::shared_ptr<ForceConstraint> fc);
         
         //! Removes all ForceComputes from the list
         virtual void removeForceComputes();
@@ -127,6 +133,9 @@ class Integrator : public Updater
             return 0;
             }
         
+        //! Count the total number of degrees of freedom removed by all constraint forces
+        unsigned int getNDOFRemoved();
+        
         //! Returns a list of log quantities this compute calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
         
@@ -142,6 +151,8 @@ class Integrator : public Updater
     protected:
         Scalar m_deltaT;                                            //!< The time step
         std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
+
+        std::vector< boost::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
         
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep, const std::string& profile_name);
