@@ -80,6 +80,10 @@ class ConstraintSphere : public ForceConstraint
         
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+    
+    private:
+        //! Validate that the sphere is in the box and all particles are very near the constraint
+        void validate();
     };
 
 //! Exports the ConstraintSphere class to python

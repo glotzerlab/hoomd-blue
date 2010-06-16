@@ -72,6 +72,7 @@ ConstraintSphere::ConstraintSphere(boost::shared_ptr<SystemDefinition> sysdef,
                                    Scalar r)
         : ForceConstraint(sysdef), m_group(group), m_P(P), m_r(r)
     {
+    validate();
     }
 
 /*!
@@ -82,6 +83,7 @@ void ConstraintSphere::setSphere(Scalar3 P, Scalar r)
     {
     m_P = P;
     m_r = r;
+    validate();
     }
 
 /*! ConstraintSphere removes 1 degree of freedom per particle in the group
@@ -156,6 +158,62 @@ void ConstraintSphere::computeForces(unsigned int timestep)
         m_prof->pop();
     }
 
+/*! Print warning messages if the sphere is outside the box.
+    Generate an error if any particle in the group is not near the sphere.
+*/
+void ConstraintSphere::validate()
+    {
+    BoxDim box = m_pdata->getBox();
+    
+    if (m_P.x + m_r > box.xhi || m_P.x - m_r < box.xlo ||
+        m_P.y + m_r > box.yhi || m_P.y - m_r < box.ylo ||
+        m_P.z + m_r > box.zhi || m_P.z - m_r < box.zlo)
+        {
+        cout << "***Warning! Sphere constraint is outside of the box. Constrained particle positions may be incorrect"
+             << endl;
+        }
+    
+    unsigned int group_size = m_group->getNumMembers();
+    if (group_size == 0)
+        return;
+
+    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+
+    // for each of the particles in the group
+    bool errors = false;
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        // get the current particle properties
+        unsigned int j = m_group->getMemberIndex(group_idx);
+        Scalar3 X = make_scalar3(arrays.x[j], arrays.y[j], arrays.z[j]);
+        
+        // evaluate the constraint position
+        EvaluatorConstraintSphere sphere(m_P, m_r);
+        Scalar3 C = sphere.evalClosest(X);
+        Scalar3 V;
+        V.x = C.x - X.x;
+        V.y = C.y - X.y;
+        V.z = C.z - X.z;
+        Scalar dist = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
+        
+        if (dist > 1.0f)
+            {
+            cerr << endl
+                 << "**Error! Particle " << arrays.tag[j] << " is more than 1 unit of distance away from the closest"
+                 << " point on the sphere constraint" << endl;
+            errors = true;
+            }
+        }
+        
+    m_pdata->release();
+    
+    if (errors)
+        {
+        cout << endl;
+        throw std::runtime_error("Invalid constraint specified");
+        }
+    }
+        
 
 void export_ConstraintSphere()
     {
