@@ -42,7 +42,9 @@ Table of contents:
    - \ref sec_index_dihedral
    - \ref sec_index_improper
    - \ref sec_index_wall
+   - \ref sec_index_constraint
    - \ref sec_index_other
+
  - Helpers
    - \ref sec_index_group
    - \ref sec_index_variant
@@ -136,9 +138,14 @@ Table of contents:
 \link hoomd_script.wall wall\endlink:
  - \link hoomd_script.wall.lj wall.lj\endlink - <i>\copybrief hoomd_script::wall::lj </i>
 
+\section sec_index_constraint Constraint forces
+\link hoomd_script.constrain constrain\endlink:
+ - \link hoomd_script.constrain.sphere constrain.sphere\endlink - <i>\copybrief hoomd_script::constrain::sphere </i>
+
 \section sec_index_other Other forces
 \link hoomd_script.force force\endlink:
  - \link hoomd_script.force.constant force.constant\endlink - <i>\copybrief hoomd_script::force::constant </i>
+
 
 <h2>Helpers</h2>
 
