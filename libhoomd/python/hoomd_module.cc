@@ -124,6 +124,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FENEBondForceComputeGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
+#include "ConstraintSphereGPU.h"
 #endif
 
 #include "SignalHandler.h"
@@ -428,6 +429,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_CGCMMAngleForceComputeGPU();
     export_FENEBondForceComputeGPU();
     export_ComputeThermoGPU();
+    export_ConstraintSphereGPU();
 #endif
     
     // analyzers
