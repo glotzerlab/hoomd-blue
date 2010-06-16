@@ -1100,7 +1100,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
     
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float4) * pdata.N);
+    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
         return error;
     
@@ -1608,7 +1608,7 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
         
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float4) * pdata.N);
+    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
         return error;
     

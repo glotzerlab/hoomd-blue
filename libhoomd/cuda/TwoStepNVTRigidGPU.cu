@@ -939,7 +939,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
     
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float4) * pdata.N);
+    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
         return error;
 
@@ -1119,7 +1119,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_body_kernel(float4* rdata_vel,
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
 */
-extern "C" __global__ void gpu_rigid_nvt_step_two_particle_kernel(float4* pdata_vel,
+extern "C" __global__ void gpu_nvt_rigid_step_two_particle_kernel(float4* pdata_vel,
                                                          float *d_net_virial,
                                                          unsigned int n_group_bodies, 
                                                          unsigned int n_bodies, 
@@ -1213,7 +1213,7 @@ extern "C" __global__ void gpu_rigid_nvt_step_two_particle_kernel(float4* pdata_
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Time step
 */
-extern "C" __global__ void gpu_rigid_nvt_step_two_particle_sliding_kernel(float4* pdata_vel,
+extern "C" __global__ void gpu_nvt_rigid_step_two_particle_sliding_kernel(float4* pdata_vel,
                                                          float *d_net_virial,
                                                          unsigned int n_group_bodies,   
                                                          unsigned int n_bodies, 
@@ -1445,7 +1445,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
         
-    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float4) * pdata.N);
+    error = cudaBindTexture(0, pdata_mass_tex, pdata.mass, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
         return error;
 
@@ -1465,7 +1465,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
         block_size = nmax; // each thread in a block takes care of a particle in a rigid body
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
-        gpu_rigid_nvt_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
+        gpu_nvt_rigid_step_two_particle_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
                                                         d_net_virial,
                                                         n_group_bodies,
                                                         n_bodies, 
@@ -1479,7 +1479,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
         block_size = 32; 
         dim3 particle_grid(n_group_bodies, 1, 1);
         dim3 particle_threads(block_size, 1, 1);                                                
-        gpu_rigid_nvt_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
+        gpu_nvt_rigid_step_two_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.vel,
                                                         d_net_virial,
                                                         n_group_bodies,
                                                         n_bodies, 
