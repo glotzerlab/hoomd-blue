@@ -45,13 +45,16 @@
 ## \package hoomd_script.constrain
 # \brief Commands that create constraint forces on particles
 #
-# Constraint forces constrain a given set of particle to a given surface, to have some relative orientation,
-# or impose some other type of constraint. As with other force commands in hoomd_script, multiple constraint forces
-# can be additively applied. Note, however, that not all constraints will be validated if they operate on the same
-# particles. Only constraints that operate on mutually exclusive sets of particles are guarunteed to be correct.
+# Constraint forces %constrain a given set of particle to a given surface, to have some relative orientation,
+# or impose some other type of constraint. For example, a group of particles can be constrained to the surface of a
+# sphere with constrain.sphere.
+#
+# As with other force commands in hoomd_script, multiple constrain commands can be issued to specify multiple
+# constraints, which are additively applied. Note, however, that not all constraints specified in this manner will
+# be valid if two separate constrain commands operate on the same particles.
 #
 # The degrees of freedom removed from the system by constraints are correctly taken into account when computing the
-# temperature for thermostatting and/or logging.
+# temperature for thermostatting and logging.
 #
 
 import globals;
@@ -64,7 +67,7 @@ import data;
 ## \internal
 # \brief Base class for constraint forces
 #
-# A constraint_force in hoomd_script reflects a ForceConstrain in c++. It is responsible
+# A constraint_force in hoomd_script reflects a ForceConstraint in c++. It is responsible
 # for all high-level management that happens behind the scenes for hoomd_script
 # writers. 1) The instance of the c++ constraint force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
@@ -220,12 +223,12 @@ class sphere(_constraint_force):
     ## Specify the %sphere constraint %force
     #
     # \param group Group on which to apply the constraint
-    # \param P (x,y,z) tuple indicating the position of the sphere
+    # \param P (x,y,z) tuple indicating the position of the center of the sphere
     # \param r Radius of the sphere
     #
     # \b Examples:
     # \code
-    # constrain.sphere(groupA, (0,10,2), 10)
+    # constrain.sphere(group=groupA, P=(0,10,2), r=10)
     # \endcode
     def __init__(self, group, P, r):
         util.print_status_line();
