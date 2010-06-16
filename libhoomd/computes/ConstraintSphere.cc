@@ -109,9 +109,6 @@ void ConstraintSphere::computeForces(unsigned int timestep)
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::read);
-    
     // need to start from a zero force
     // MEM TRANSFER: 5*N Scalars
     memset((void*)m_fx, 0, sizeof(Scalar) * m_pdata->getN());
