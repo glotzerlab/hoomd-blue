@@ -92,6 +92,9 @@ TwoStepNVERigid::TwoStepNVERigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         cout << "***Warning! Empty group for rigid body integration." << endl;
         }
+        
+    GPUArray<Scalar> virial(m_pdata->getN(), m_pdata->getExecConf());
+    m_virial.swap(virial);
     }
 
 void TwoStepNVERigid::setRestartIntegratorVariables()
@@ -626,7 +629,14 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     
     Scalar dt_half = 0.5 * m_deltaT;
     
-    // handles
+    // access to the force
+    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
+    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
+    
+    // access to the virial from rigid bodies
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
+    
+    // rigid body handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> com(m_rigid_data->getCOM(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> vel_handle(m_rigid_data->getVel(), access_location::host, access_mode::read);
@@ -642,14 +652,6 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
     unsigned int indices_pitch = m_rigid_data->getParticleIndices().getPitch();
     ArrayHandle<Scalar4> particle_pos_handle(m_rigid_data->getParticlePos(), access_location::host, access_mode::read);
     unsigned int particle_pos_pitch = m_rigid_data->getParticlePos().getPitch();
-    
-    // access to the force
-    const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
-    
-    // access to the virial
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
-    ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
     
     // access the particle data arrays
     ParticleDataArrays arrays = m_pdata->acquireReadWrite();
@@ -746,7 +748,7 @@ void TwoStepNVERigid::set_xv(unsigned int timestep)
             fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
             
-            h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            h_virial.data[pidx] = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }
         
@@ -779,6 +781,9 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
     // access to the virial
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
+    
+    // access to the virial from rigid bodies
+    ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::readwrite);
     
     // rigid data handles
     ArrayHandle<unsigned int> body_size_handle(m_rigid_data->getBodySize(), access_location::host, access_mode::read);
@@ -842,7 +847,10 @@ void TwoStepNVERigid::set_v(unsigned int timestep)
             fc.x = massone * (arrays.vx[pidx] - old_vel.x) / dt_half - h_net_force.data[pidx].x;
             fc.y = massone * (arrays.vy[pidx] - old_vel.y) / dt_half - h_net_force.data[pidx].y;
             fc.z = massone * (arrays.vz[pidx] - old_vel.z) / dt_half - h_net_force.data[pidx].z; 
-
+            
+            // accumulate the virial from the first part
+            h_net_virial.data[pidx] += h_virial.data[pidx];
+            // and this part
             h_net_virial.data[pidx] += (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
             }
         }

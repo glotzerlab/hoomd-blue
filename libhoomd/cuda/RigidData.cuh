@@ -78,6 +78,7 @@ struct gpu_rigid_data_arrays
     int    *body_imagez;    //!< Body box image location in \c z.
     float4 *force;          //!< Body force in \c x, \c y, \c z, nothing in \c w
     float4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
+    float *virial;          //!< Virial contribution from the first integration part
     
     float4 *particle_pos;           //!< Particle relative position to the body frame
     unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays

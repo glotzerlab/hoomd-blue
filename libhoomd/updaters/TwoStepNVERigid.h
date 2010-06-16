@@ -117,7 +117,9 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         boost::shared_ptr<ParticleData> m_pdata;    //!< Pointer to particle data
         boost::shared_ptr<RigidBodyGroup> m_body_group; //!< Group of rigid bodies to work with
         
-        bool m_first_step;  //!< True if first step
+        bool m_first_step;                  //!< True if first step
+        
+        GPUArray<Scalar> m_virial;         //!< virial contribution from rigid bodies
     };
 
 //! Exports the TwoStepNVERigid class to python

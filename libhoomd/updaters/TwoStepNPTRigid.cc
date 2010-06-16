@@ -877,7 +877,7 @@ Scalar TwoStepNPTRigid::computePressure(unsigned int timestep)
     m_pdata->release();
     
     // pressure: P = (N * K_B * T + W)/V
-    return (m_dof * boltz * T + W) / vol;
+    return (2.0 * ke_total / (Scalar)dimension + W) / vol;
     }
 
 /*!

@@ -113,6 +113,9 @@ texture<float, 1, cudaReadModeElementType> net_virial_tex;
 //! The texture for reading the net force array
 texture<float4, 1, cudaReadModeElementType> net_force_tex;
 
+//! The texture for reading the rigid virial array
+texture<float, 1, cudaReadModeElementType> virial_tex;
+
 #pragma mark HELPER
 //! Helper functions for rigid body quaternion update
 
@@ -388,7 +391,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
     \param pdata_image Particle image
-    \param d_net_virial Particle virial
+    \param d_virial Virial contribution from the first part
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
@@ -398,7 +401,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
 extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
-                                                        float *d_net_virial,
+                                                        float *d_virial,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
@@ -450,7 +453,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
             float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
             float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
-            float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
             
             // unwrap position
             old_pos.x += image.x * box.Lx;
@@ -498,13 +500,13 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
             fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
             fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
             
-            float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
             
             // write out the results (MEM_TRANSFER: ? bytes)
             pdata_pos[idx_particle_index] = ppos;
             pdata_vel[idx_particle_index] = pvel;
             pdata_image[idx_particle_index] = image;
-            d_net_virial[idx_particle_index] = pvirial;
+            d_virial[idx_particle_index] = pvirial;
             }
         }
     
@@ -514,7 +516,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
     \param pdata_pos Particle position
     \param pdata_vel Particle velocity
     \param pdata_image Particle image
-    \param d_net_virial Particle virial
+    \param d_virial Virial contribution from the first part
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
@@ -526,7 +528,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_kernel(float4* pdata_
 extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4* pdata_pos,
                                                         float4* pdata_vel,
                                                         int4* pdata_image,
-                                                        float *d_net_virial,
+                                                        float *d_virial,
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
@@ -581,7 +583,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
                     int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
                     float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
                     float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
-                    float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
                     
                     // unwrap position
                     old_pos.x += image.x * box.Lx;
@@ -629,13 +630,13 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
                     fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
                     fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
                     
-                    float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                    float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
                     
                     // write out the results (MEM_TRANSFER: ? bytes)
                     pdata_pos[idx_particle_index] = ppos;
                     pdata_vel[idx_particle_index] = pvel;
                     pdata_image[idx_particle_index] = image;
-                    d_net_virial[idx_particle_index] = pvirial;
+                    d_virial[idx_particle_index] = pvirial;
                     }
                 }
             }
@@ -648,7 +649,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
-    \param d_net_virial Particle net virial
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT Amount of real time to step forward in one time step
 */
@@ -657,7 +657,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
-                                   float *d_net_virial,
                                    const gpu_boxsize &box, 
                                    float deltaT)
     {
@@ -821,10 +820,6 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
         return error; 
-        
-    error = cudaBindTexture(0, net_virial_tex, d_net_virial, sizeof(float) * pdata.N);
-    if (error != cudaSuccess)
-        return error;
 
     if (nmax <= 32)
         {
@@ -835,7 +830,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         gpu_nve_rigid_step_one_particle_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
-                                                                     d_net_virial,
+                                                                     rigid_data.virial,
                                                                      n_group_bodies,
                                                                      n_bodies, 
                                                                      local_beg,
@@ -851,7 +846,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
         gpu_nve_rigid_step_one_particle_sliding_kernel<<< particle_grid, particle_threads >>>(pdata.pos, 
                                                                      pdata.vel, 
                                                                      pdata.image,
-                                                                     d_net_virial,
+                                                                     rigid_data.virial,
                                                                      n_group_bodies,
                                                                      n_bodies, 
                                                                      local_beg,
@@ -1365,7 +1360,8 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
             float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
             float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
-            float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
+            float net_virial = tex1Dfetch(net_virial_tex, idx_particle_index);
+            float virial = tex1Dfetch(virial_tex, idx_particle_index);
             
             // unwrap position
             old_pos.x += image.x * box.Lx;
@@ -1389,7 +1385,11 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
             fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
             fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
             
-            float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            float pvirial = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+            
+            // accumulate the virial contribution from the first part into the net particle virial
+            pvirial += virial;
+            pvirial += net_virial;
             
             // write out the results
             pdata_vel[idx_particle_index] = pvel;
@@ -1462,7 +1462,8 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
                     int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
                     float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
                     float4 pforce = tex1Dfetch(net_force_tex, idx_particle_index);
-                    float virial = tex1Dfetch(net_virial_tex, idx_particle_index);
+                    float net_virial = tex1Dfetch(net_virial_tex, idx_particle_index);
+                    float virial = tex1Dfetch(virial_tex, idx_particle_index);
                     
                     // unwrap position
                     old_pos.x += image.x * box.Lx;
@@ -1486,7 +1487,11 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
                     fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
                     fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
                     
-                    float pvirial = virial + (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                    float pvirial = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                
+                    // accumulate the virial contribution from the first part into the net particle virial
+                    pvirial += virial;
+                    pvirial += net_virial;
                     
                     // write out the results
                     pdata_vel[idx_particle_index] = pvel;
@@ -1514,7 +1519,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                    unsigned int *d_group_members,
                                    unsigned int group_size,
                                    float4 *d_net_force,
-                                   float *d_net_virial, 
+                                   float *d_net_virial,
                                    const gpu_boxsize &box,
                                    float deltaT)
     {
@@ -1636,7 +1641,11 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     error = cudaBindTexture(0, net_virial_tex, d_net_virial, sizeof(float) * pdata.N);
     if (error != cudaSuccess)
         return error;
-
+    
+    error = cudaBindTexture(0, virial_tex, rigid_data.virial, sizeof(float) * pdata.N);
+    if (error != cudaSuccess)
+        return error;
+        
     if (nmax <= 32)
         {                                                                                                                                    
         block_size = nmax; // each thread in a block takes care of a particle in a rigid body

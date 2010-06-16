@@ -103,7 +103,6 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -128,6 +127,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -154,6 +154,7 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
+    d_rdata.virial = d_virial.data;
     
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);    
@@ -163,7 +164,6 @@ void TwoStepNVERigidGPU::integrateStepOne(unsigned int timestep)
                                 d_index_array.data,
                                 group_size,
                                 d_net_force.data,
-                                d_net_virial.data,
                                 box,
                                 m_deltaT));
 
@@ -216,6 +216,7 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::readwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -238,7 +239,8 @@ void TwoStepNVERigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
-  
+    d_rdata.virial = d_virial.data;
+    
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_rigid_force, 
                                 d_pdata[0], 
