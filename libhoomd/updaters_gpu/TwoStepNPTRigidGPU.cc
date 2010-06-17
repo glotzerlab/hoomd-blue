@@ -104,8 +104,6 @@ TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
     m_partial_sum2K.swap(partial_sum2K);
     GPUArray<float> partial_sumW(m_full_num_blocks, m_pdata->getExecConf());
     m_partial_sumW.swap(partial_sumW);
-    GPUArray<float> partial_sum_virial_rigid(m_full_num_blocks, m_pdata->getExecConf());
-    m_partial_sum_virial_rigid.swap(partial_sum_virial_rigid);
     }
 
 /*! \param timestep Current time step
@@ -177,9 +175,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
-    const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_index_array(m_body_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
@@ -204,6 +200,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -230,6 +227,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
+    d_rdata.virial = d_virial.data;
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
@@ -260,7 +258,6 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
                                 d_index_array.data,
                                 group_size,
                                 d_net_force.data,
-                                d_net_virial.data,
                                 box,
                                 d_npt_rdata,
                                 m_deltaT));
@@ -362,7 +359,8 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<unsigned int> particle_indices_handle(rigid_data->getParticleIndices(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
-
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::readwrite);
+    
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
     d_rdata.n_group_bodies = m_n_bodies;
@@ -385,7 +383,8 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.particle_indices = particle_indices_handle.data;
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
-
+    d_rdata.virial = d_virial.data;
+    
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
@@ -497,67 +496,6 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
-    }
-
-Scalar TwoStepNPTRigidGPU::computePressure(unsigned int timestep)
-    {
-    // grab access to the particle data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
-    
-    // first, run kernels on the GPU to compute the sum2K and sumW values
-    {
-    ArrayHandle<float> d_partial_sum2K(m_partial_sum2K, access_location::device, access_mode::overwrite);
-    ArrayHandle<float> d_partial_sumW(m_partial_sumW, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_virial(m_pdata->getNetVirial(), access_location::device, access_mode::read);
-    
-    // do the partial sum
-    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_pressure2,
-                                  d_partial_sum2K.data,
-                                  d_partial_sumW.data,
-                                  d_pdata[0],
-                                  d_virial.data,
-                                  m_block_size,
-                                  m_full_num_blocks));
-    
-    ArrayHandle<float> d_sum2K(m_sum2K, access_location::device, access_mode::overwrite);
-    ArrayHandle<float> d_sumW(m_sumW, access_location::device, access_mode::overwrite);
-    
-    // reduce the partial sums
-    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_sum2K, d_sum2K.data, d_partial_sum2K.data, m_full_num_blocks));
-    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_sum2K, d_sumW.data, d_partial_sumW.data, m_full_num_blocks));
-    }
-    
-    // now, access the data on the host
-    ArrayHandle<float> h_sum2K(m_sum2K, access_location::host, access_mode::read);
-    float ke_total = h_sum2K.data[0];
-    ArrayHandle<float> h_sumW(m_sumW, access_location::host, access_mode::read);
-    float W = h_sumW.data[0];
-    
-    ke_total *= 0.5;
-    Scalar T = Scalar(2.0 * ke_total / m_dof);
-
-    // volume/area & other 2D stuff needed
-    BoxDim box = m_pdata->getBox();
-    Scalar volume;
-    unsigned int D = m_sysdef->getNDimensions();
-    if (D == 2)
-        {
-        // "volume" is area in 2D
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo);
-        // W needs to be corrected since the 1/3 factor is built in
-        W *= Scalar(3.0/2.0);
-        }
-    else
-        {
-        volume = (box.xhi - box.xlo)*(box.yhi - box.ylo)*(box.zhi-box.zlo);
-        }
-    
-    // done!
-    m_pdata->release();
-    
-    // pressure: P = (N * K_B * T + W)/V
-    Scalar N = Scalar(m_pdata->getN());
-    return (N * T + W) / volume;
     }
 
 void export_TwoStepNPTRigidGPU()

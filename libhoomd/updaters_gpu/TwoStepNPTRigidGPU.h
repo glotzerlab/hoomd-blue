@@ -77,10 +77,7 @@ class TwoStepNPTRigidGPU : public TwoStepNPTRigid
         
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
-        
-        //! Compute pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
+       
     protected:
         GPUArray<Scalar> m_partial_Ksum_t;  //!< Translational kinetic energy per body
         GPUArray<Scalar> m_partial_Ksum_r;  //!< Rotational kinetic energy per body

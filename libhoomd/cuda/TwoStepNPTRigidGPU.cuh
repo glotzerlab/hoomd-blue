@@ -79,15 +79,11 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                         unsigned int *d_group_members,
                                         unsigned int group_size,
                                         float4 *d_net_force,
-                                        float *d_net_virial,
                                         const gpu_boxsize &box, 
                                         const gpu_npt_rigid_data &npt_rdata,
                                         float deltaT);
 
-//! Kernel driver for the Ksum reduction final pass called by TwoStepNPTRigidGPU
-cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
-
-//! Kernel driver for the second part of the NVT update called by TwoStepNVTRigidGPU
+//! Kernel driver for the second part of the NPT update called by TwoStepNPTRigidGPU
 cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata, 
                                     const gpu_rigid_data_arrays& rigid_data,
                                     unsigned int *d_group_members,
@@ -98,16 +94,8 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                     const gpu_npt_rigid_data &npt_rdata,
                                     float deltaT);
 
-//! Kernel driver for calculating the initial pass whole system sumW/sum2K on the GPU
-cudaError_t gpu_npt_rigid_pressure2(float *d_partial_sum2K,
-                              float *d_partial_sumW,
-                              gpu_pdata_arrays pdata,
-                              float *d_net_virial,
-                              unsigned int block_size,
-                              unsigned int num_blocks);
-
 //! Kernel driver for the Ksum reduction final pass called by TwoStepNPTRigidGPU
-cudaError_t gpu_npt_rigid_reduce_sum2K(float *d_sum2K, float *d_partial_sum2K, unsigned int num_blocks);
-                              
+cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data &npt_rdata);
+
 #endif // __TWO_STEP_NPT_RIGID_CUH__
 
