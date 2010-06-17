@@ -578,6 +578,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_particle_sliding_kernel(float4
                 if (idx_particle_index != INVALID_INDEX)
                     {
                     float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+                    
                     float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
                     float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
                     int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
@@ -668,7 +669,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     // bind the textures for rigid bodies:
     // body mass, com, vel, angmom, angvel, orientation, ex_space, ey_space, ez_space, body images, particle pos, particle indices, force and torque
     
-    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(float) * n_group_bodies);
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(unsigned int) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
         
@@ -1355,6 +1356,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
         if (idx_particle_index != INVALID_INDEX)
             {
             float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+            
             float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
@@ -1384,8 +1386,8 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_kernel(float4* pdata_
             fc.x = massone * (pvel.x - old_vel.x) / dt_half - pforce.x;
             fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
             fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
-            
-            float pvirial = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+        
+            float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
             
             // accumulate the virial contribution from the first part into the net particle virial
             pvirial += virial;
@@ -1457,6 +1459,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
                 if (idx_particle_index != INVALID_INDEX)
                     {
                     float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+                    
                     float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
                     float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
                     int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
@@ -1487,7 +1490,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_particle_sliding_kernel(float4
                     fc.y = massone * (pvel.y - old_vel.y) / dt_half - pforce.y;
                     fc.z = massone * (pvel.z - old_vel.z) / dt_half - pforce.z; 
                     
-                    float pvirial = (0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0);
+                    float pvirial = 0.5 * (old_pos.x * fc.x + old_pos.y * fc.y + old_pos.z * fc.z) / 3.0;
                 
                     // accumulate the virial contribution from the first part into the net particle virial
                     pvirial += virial;
@@ -1529,7 +1532,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     unsigned int nmax = rigid_data.nmax;
     
     // bind the textures for ALL rigid bodies
-    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(float) * n_group_bodies);
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(unsigned int) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
         
@@ -1577,15 +1580,6 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
     
-    // bind the textures for particles
-    error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;        
-   
-    error = cudaBindTexture(0, net_force_tex, d_net_force, sizeof(float4) * pdata.N);
-    if (error != cudaSuccess)
-        return error;   
-            
     error = cudaBindTexture(0, rigid_data_force_tex, rigid_data.force, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
@@ -1594,7 +1588,12 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
         
-    unsigned int block_size = 64;
+    // bind the textures for particles
+    error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
+    if (error != cudaSuccess)
+        return error;        
+   
+     unsigned int block_size = 64;
     unsigned int n_blocks = n_group_bodies / block_size + 1;                                
     dim3 body_grid(n_blocks, 1, 1);
     dim3 body_threads(block_size, 1, 1);                                                 

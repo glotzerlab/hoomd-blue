@@ -577,6 +577,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_particle_kernel(float4* pdata_
         if (idx_particle_index != INVALID_INDEX)
             {
             float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+            
             float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
             float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
@@ -707,6 +708,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_one_particle_sliding_kernel(float4
                 if (idx_body < n_bodies && idx_particle_index != INVALID_INDEX)
                     {
                     float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+                    
                     float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
                     float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
                     float massone = tex1Dfetch(pdata_mass_tex, idx_particle_index);
@@ -798,7 +800,7 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     
     // bind the textures for rigid bodies:
     // body mass, com, vel, angmom, angvel, orientation, ex_space, ey_space, ez_space, body images, particle pos, particle indices, force and torque
-    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(float) * n_group_bodies);
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(unsigned int) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
     
@@ -925,7 +927,19 @@ cudaError_t gpu_nvt_rigid_step_one(const gpu_pdata_arrays& pdata,
     error = cudaBindTexture(0, rigid_data_ezspace_tex, rigid_data.ez_space, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
-
+    
+    error = cudaBindTexture(0, rigid_data_body_imagex_tex, rigid_data.body_imagex, sizeof(int) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_body_imagey_tex, rigid_data.body_imagey, sizeof(int) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
+    error = cudaBindTexture(0, rigid_data_body_imagez_tex, rigid_data.body_imagez, sizeof(int) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
+        
     // bind the textures for particles: pos, vel, accel and image of ALL particles
     error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
     if (error != cudaSuccess)
@@ -1159,6 +1173,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_particle_kernel(float4* pdata_
         if (idx_particle_index != INVALID_INDEX)
             {
             float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+            
             float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
             float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
             int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
@@ -1261,6 +1276,7 @@ extern "C" __global__ void gpu_nvt_rigid_step_two_particle_sliding_kernel(float4
                 if (idx_particle_index != INVALID_INDEX)
                     {
                     float4 particle_pos = tex1Dfetch(rigid_data_particle_pos_tex, idx_particle);
+                    
                     float4 old_pos = tex1Dfetch(pdata_pos_tex, idx_particle_index);
                     float4 old_vel = tex1Dfetch(pdata_vel_tex, idx_particle_index);
                     int4 image = tex1Dfetch(pdata_image_tex, idx_particle_index);
@@ -1334,7 +1350,7 @@ cudaError_t gpu_nvt_rigid_step_two(const gpu_pdata_arrays &pdata,
     unsigned int nmax = rigid_data.nmax;
     
     // bind the textures for ALL rigid bodies
-    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(float) * n_group_bodies);
+    cudaError_t error = cudaBindTexture(0, rigid_data_body_indices_tex, rigid_data.body_indices, sizeof(unsigned int) * n_group_bodies);
     if (error != cudaSuccess)
         return error;
         
