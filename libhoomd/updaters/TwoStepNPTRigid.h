@@ -124,12 +124,6 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         //! Performs the second step of the integration
         virtual void integrateStepTwo(unsigned int timestep);
     
-        //! Computes pressure
-        virtual Scalar computePressure(unsigned int timestep);
-        
-        //! Computes temperature
-        virtual Scalar computeTemperature(unsigned int timestep);
-        
     protected:
         boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group
         boost::shared_ptr<ComputeThermo> m_thermo_all;     //!< ComputeThermo operating on the group of all particles
@@ -142,12 +136,6 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         Scalar m_curr_group_T;                      //!< Current group temperature
         Scalar m_curr_P;                            //!< Current system pressure
     protected:
-        //! Set positions and velocities for particles in rigid bodies at the first step
-        void set_xv(unsigned int timestep);
-        
-        //! Set velocities for particles in rigid bodies at the second step
-        void set_v(unsigned int timestep);
-        
         //! Update thermostats
         void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
         
