@@ -198,6 +198,9 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "BD NVT rigid step 2");
     
+    // get the dimensionality of the system
+    const Scalar D = Scalar(m_sysdef->getNDimensions());
+    
     vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
@@ -264,7 +267,8 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
                                 group_size,
                                 d_net_force.data,
                                 args,
-                                m_deltaT)); 
+                                m_deltaT,
+                                D)); 
     
     exec_conf.tagAll(__FILE__, __LINE__);
     exec_conf.gpu[0]->call(bind(gpu_rigid_force, 

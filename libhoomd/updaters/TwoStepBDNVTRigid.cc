@@ -137,7 +137,8 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
 
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
-
+    const Scalar D = Scalar(m_sysdef->getNDimensions());
+    
     // initialize the RNG
     Saru saru(m_seed, timestep);
 
@@ -166,6 +167,9 @@ void TwoStepBDNVTRigid::integrateStepTwo(unsigned int timestep)
         Scalar bd_fy = ry*coeff - gamma*arrays.vy[j];
         Scalar bd_fz = rz*coeff - gamma*arrays.vz[j];
         
+        if (D < 3.0)
+            bd_fz = Scalar(0.0);
+
         h_net_force.data[j].x += bd_fx;
         h_net_force.data[j].y += bd_fy;
         h_net_force.data[j].z += bd_fz;
