@@ -103,12 +103,21 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Compute angular velocity from angular momentum and rotation matrix
         void computeAngularVelocity(Scalar4 &angmom, Scalar4 &moment_inertia, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space,Scalar4 &angvel);
         
-        //! Advance quaternion using Richarson's correction
-        void advanceQuaternion(Scalar4 &angmom, Scalar4 &moment_inertia, Scalar4 &angvel, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space, Scalar4 &quat);
+        //! Update thermostat momenta and positions
+        void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt);
         
-        //! Quaternion multiply: c = a times b
-        void multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c);
+        //! Quaternion multiply
+        void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
         
+        //! Inverse quaternion multiply
+        void inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
+        
+        //! Matrix multiply
+        void matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
+        
+        //! Transposed matrix multiply
+        void transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
+         
         //! Quaternion normalize
         void normalize(Scalar4 &q);
         
@@ -119,6 +128,7 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         
         bool m_first_step;                  //!< True if first step
         
+        GPUArray<Scalar4>   m_conjqm;      //!< Thermostat conjugate momentum
         GPUArray<Scalar> m_virial;         //!< virial contribution from rigid bodies
     };
 

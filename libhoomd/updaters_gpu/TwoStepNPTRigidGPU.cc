@@ -70,6 +70,7 @@ using namespace boost;
     \param tauP Time constant for barostat
     \param T Controlled temperature
     \param P Controlled pressure
+    \param skip_restart Flag indicating if restart info is skipped
 */
 TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    boost::shared_ptr<ParticleGroup> group,
@@ -78,8 +79,9 @@ TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
                                    Scalar tau,
                                    Scalar tauP, 
                                    boost::shared_ptr<Variant> T,
-                                   boost::shared_ptr<Variant> P)
-    : TwoStepNPTRigid(sysdef, group, thermo_group, thermo_all, tau, tauP, T, P)
+                                   boost::shared_ptr<Variant> P,
+                                   bool skip_restart)
+    : TwoStepNPTRigid(sysdef, group, thermo_group, thermo_all, tau, tauP, T, P, skip_restart)
     {
     // only one GPU is supported
     if (exec_conf.gpu.size() != 1)
@@ -231,7 +233,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> new_box_handle(m_new_box, access_location::device, access_mode::readwrite);
@@ -387,7 +389,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     

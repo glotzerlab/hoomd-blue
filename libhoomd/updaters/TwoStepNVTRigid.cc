@@ -112,8 +112,6 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
     wdti4.swap(wdti4_alloc);
     
     {
-    ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
@@ -145,6 +143,7 @@ TwoStepNVTRigid::TwoStepNVTRigid(boost::shared_ptr<SystemDefinition> sysdef,
         {
         eta_t_handle.data[i] = eta_r_handle.data[i] = 0.0;
         eta_dot_t_handle.data[i] = eta_dot_r_handle.data[i] = 0.0;
+        f_eta_t_handle.data[i] = f_eta_r_handle.data[i] = 0.0;
         }
     }
     
@@ -163,15 +162,17 @@ void TwoStepNVTRigid::setRestartIntegratorVariables()
     // set initial state
     IntegratorVariables v = getIntegratorVariables();
 
-    if (!restartInfoTestValid(v, "nvt_rigid", 4))   // since NVT derives from NVE, this is true
+    if (!restartInfoTestValid(v, "nvt_rigid", 6))   // since NVT derives from NVE, this is true
         {
         // reset the integrator variable
         v.type = "nvt_rigid";
-        v.variable.resize(4);
+        v.variable.resize(6);
         v.variable[0] = Scalar(0.0);
         v.variable[1] = Scalar(0.0);
         v.variable[2] = Scalar(0.0);
         v.variable[3] = Scalar(0.0);
+        v.variable[4] = Scalar(0.0);
+        v.variable[5] = Scalar(0.0);
         setValidRestart(false);
         }
     else
@@ -189,86 +190,65 @@ void TwoStepNVTRigid::setup()
     
     if (m_n_bodies <= 0)
         return;
-    
-    
-    GPUArray<Scalar4> conjqm_alloc(m_n_bodies, m_pdata->getExecConf());
-    conjqm.swap(conjqm_alloc);
-    
+      
     // initialize thermostats
     // set timesteps, constants
     // store Yoshida-Suzuki integrator parameters
     
+    ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+    
+    ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> w_handle(w, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::host, access_mode::readwrite);
+    
+    // retrieve integrator variables from restart files
+    IntegratorVariables v = getIntegratorVariables();
+    eta_t_handle.data[0] = v.variable[0];
+    eta_r_handle.data[0] = v.variable[1];
+    eta_dot_r_handle.data[0] = v.variable[2];
+    eta_dot_t_handle.data[0] = v.variable[3];
+    f_eta_r_handle.data[0] = v.variable[4];
+    f_eta_t_handle.data[0] = v.variable[5];
+    
+    //! Total translational and rotational degrees of freedom of rigid bodies
+    nf_t = 3 * m_n_bodies;
+    nf_r = 3 * m_n_bodies;
+    
+    //! Subtract from nf_r one for each singular moment inertia of a rigid body
+    for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
         {
+        unsigned int body = m_body_group->getMemberIndex(group_idx);
+    
+        if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
+        if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
+        if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
+        }
         
-        ArrayHandle<Scalar4> moment_inertia_handle(m_rigid_data->getMomentInertia(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> angmom_handle(m_rigid_data->getAngMom(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> orientation_handle(m_rigid_data->getOrientation(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ex_space_handle(m_rigid_data->getExSpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ey_space_handle(m_rigid_data->getEySpace(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> ez_space_handle(m_rigid_data->getEzSpace(), access_location::host, access_mode::read);
+    Scalar kt = boltz * m_temperature->getValue(0);
+    Scalar t_mass = kt / (t_freq * t_freq);
+    q_t_handle.data[0] = nf_t * t_mass;
+    q_r_handle.data[0] = nf_r * t_mass;
+    for (unsigned int i = 1; i < chain; i++)
+        q_t_handle.data[i] = q_r_handle.data[i] = t_mass;
         
-        ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> w_handle(w, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
-        
-        // retrieve integrator variables from restart files
-        IntegratorVariables v = getIntegratorVariables();
-        eta_t_handle.data[0] = v.variable[0];
-        eta_r_handle.data[0] = v.variable[1];
-        eta_dot_r_handle.data[0] = v.variable[2];
-        eta_dot_t_handle.data[0] = v.variable[3];
-        
-        //! Total translational and rotational degrees of freedom of rigid bodies
-        nf_t = 3 * m_n_bodies;
-        nf_r = 3 * m_n_bodies;
-        
-        //! Subtract from nf_r one for each singular moment inertia of a rigid body
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-            {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
-        
-            if (fabs(moment_inertia_handle.data[body].x) < EPSILON) nf_r -= 1.0;
-            if (fabs(moment_inertia_handle.data[body].y) < EPSILON) nf_r -= 1.0;
-            if (fabs(moment_inertia_handle.data[body].z) < EPSILON) nf_r -= 1.0;
-            }
-            
-                    
-        Scalar4 mbody;
-        for (unsigned int group_idx = 0; group_idx < m_n_bodies; group_idx++)
-            {
-            unsigned int body = m_body_group->getMemberIndex(group_idx);
-        
-            matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angmom_handle.data[body], mbody);
-            quat_multiply(orientation_handle.data[body], mbody, conjqm_handle.data[body]);
-            
-            conjqm_handle.data[body].x *= 2.0;
-            conjqm_handle.data[body].y *= 2.0;
-            conjqm_handle.data[body].z *= 2.0;
-            conjqm_handle.data[body].w *= 2.0;
-            }
-            
-        Scalar kt = boltz * m_temperature->getValue(0);
-        Scalar t_mass = kt / (t_freq * t_freq);
-        q_t_handle.data[0] = nf_t * t_mass;
-        q_r_handle.data[0] = nf_r * t_mass;
-        for (unsigned int i = 1; i < chain; i++)
-            q_t_handle.data[i] = q_r_handle.data[i] = t_mass;
-            
-        // initialize thermostat chain positions, velocites, forces
-        
-        for (unsigned int i = 1; i < chain; i++)
-            {
-            f_eta_t_handle.data[i] = q_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] - kt;
-            f_eta_r_handle.data[i] = q_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] - kt;
-            }
-            
+    // initialize thermostat chain positions, velocites, forces
+    
+    for (unsigned int i = 1; i < chain; i++)
+        {
+        f_eta_t_handle.data[i] = q_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] * eta_dot_t_handle.data[i-1] - kt;
+        f_eta_r_handle.data[i] = q_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] * eta_dot_r_handle.data[i-1] - kt;
         }
         
     }
@@ -332,7 +312,7 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::host, access_mode::readwrite);
     
     // intialize velocity scale for translation and rotation
     
@@ -438,12 +418,9 @@ void TwoStepNVTRigid::integrateStepOne(unsigned int timestep)
                   + angmom_handle.data[body].z * angvel_handle.data[body].z;
                   
         }
-            
-        
-        
+
     // update thermostat chain
-    update_nhcp(akin_t, akin_r, timestep);
-    
+    update_nhcp(akin_t, akin_r, timestep);    
     
     // set positions and velocities of particles in rigid bodies
     set_xv(timestep);
@@ -488,7 +465,7 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::host, access_mode::readwrite);
     
     // intialize velocity scale for translation and rotation
     
@@ -509,7 +486,6 @@ void TwoStepNVTRigid::integrateStepTwo(unsigned int timestep)
         vel_handle.data[body].z = scale_t * vel_handle.data[body].z + dtfm * force_handle.data[body].z;
         
         // update conjqm, then transform to angmom, set velocity again
-        // virial is already setup from initial_integrate
         
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
         quat_multiply(orientation_handle.data[body], tbody, fquat);
@@ -546,246 +522,122 @@ void TwoStepNVTRigid::update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int tim
     gfkt_t = nf_t * kt;
     gfkt_r = nf_r * kt;
     
+    {
+    
+    ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> w_handle(w, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> wdti1_handle(wdti1, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> wdti2_handle(wdti2, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> wdti4_handle(wdti4, access_location::host, access_mode::readwrite);
+    
+    // update thermostat masses
+    
+    Scalar t_mass = boltz * m_temperature->getValue(timestep) / (t_freq * t_freq);
+    q_t_handle.data[0] = nf_t * t_mass;
+    q_r_handle.data[0] = nf_r * t_mass;
+    for (unsigned int i = 1; i < chain; i++)
+        q_t_handle.data[i] = q_r_handle.data[i] = t_mass;
+        
+    // update order/timestep-dependent coefficients
+    
+    for (unsigned int i = 0; i < order; i++)
         {
+        wdti1_handle.data[i] = w_handle.data[i] * dtv / iter;
+        wdti2_handle.data[i] = wdti1_handle.data[i] / 2.0;
+        wdti4_handle.data[i] = wdti1_handle.data[i] / 4.0;
+        }
         
-        ArrayHandle<Scalar> q_t_handle(q_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> q_r_handle(q_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_t_handle(eta_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_r_handle(eta_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> f_eta_t_handle(f_eta_t, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> f_eta_r_handle(f_eta_r, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> w_handle(w, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> wdti1_handle(wdti1, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> wdti2_handle(wdti2, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> wdti4_handle(wdti4, access_location::host, access_mode::readwrite);
-        
-        // update thermostat masses
-        
-        Scalar t_mass = boltz * m_temperature->getValue(timestep) / (t_freq * t_freq);
-        q_t_handle.data[0] = nf_t * t_mass;
-        q_r_handle.data[0] = nf_r * t_mass;
-        for (unsigned int i = 1; i < chain; i++)
-            q_t_handle.data[i] = q_r_handle.data[i] = t_mass;
-            
-        // update order/timestep-dependent coefficients
-        
-        for (unsigned int i = 0; i < order; i++)
+    // update force of thermostats coupled to particles
+    
+    f_eta_t_handle.data[0] = (akin_t - gfkt_t) / q_t_handle.data[0];
+    f_eta_r_handle.data[0] = (akin_r - gfkt_r) / q_r_handle.data[0];
+    
+    // multiple timestep iteration
+    
+    for (unsigned int i = 0; i < iter; i++)
+        {
+        for (unsigned int j = 0; j < order; j++)
             {
-            wdti1_handle.data[i] = w_handle.data[i] * dtv / iter;
-            wdti2_handle.data[i] = wdti1_handle.data[i] / 2.0;
-            wdti4_handle.data[i] = wdti1_handle.data[i] / 4.0;
-            }
             
-        // update force of thermostats coupled to particles
-        
-        f_eta_t_handle.data[0] = (akin_t - gfkt_t) / q_t_handle.data[0];
-        f_eta_r_handle.data[0] = (akin_r - gfkt_r) / q_r_handle.data[0];
-        
-        // multiple timestep iteration
-        
-        for (unsigned int i = 0; i < iter; i++)
-            {
-            for (unsigned int j = 0; j < order; j++)
+            // update thermostat velocities half step
+            
+            eta_dot_t_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_t_handle.data[chain-1];
+            eta_dot_r_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_r_handle.data[chain-1];
+            
+            for (unsigned int k = 1; k < chain; k++)
                 {
+                tmp = wdti4_handle.data[j] * eta_dot_t_handle.data[chain-k];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_t_handle.data[chain-k-1] = eta_dot_t_handle.data[chain-k-1] * s2 + wdti2_handle.data[j] * f_eta_t_handle.data[chain-k-1] * s * ms;
                 
-                // update thermostat velocities half step
-                
-                eta_dot_t_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_t_handle.data[chain-1];
-                eta_dot_r_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_r_handle.data[chain-1];
-                
-                for (unsigned int k = 1; k < chain; k++)
-                    {
-                    tmp = wdti4_handle.data[j] * eta_dot_t_handle.data[chain-k];
-                    ms = maclaurin_series(tmp);
-                    s = exp(-1.0 * tmp);
-                    s2 = s * s;
-                    eta_dot_t_handle.data[chain-k-1] = eta_dot_t_handle.data[chain-k-1] * s2 + wdti2_handle.data[j] * f_eta_t_handle.data[chain-k-1] * s * ms;
-                    
-                    tmp = wdti4_handle.data[j] * eta_dot_r_handle.data[chain-k];
-                    ms = maclaurin_series(tmp);
-                    s = exp(-1.0 * tmp);
-                    s2 = s * s;
-                    eta_dot_r_handle.data[chain-k-1] = eta_dot_r_handle.data[chain-k-1] * s2 + wdti2_handle.data[j] * f_eta_r_handle.data[chain-k-1] * s * ms;
-                    }
-                    
-                // update thermostat positions a full step
-                
-                for (unsigned int k = 0; k < chain; k++)
-                    {
-                    eta_t_handle.data[k] += wdti1_handle.data[j] * eta_dot_t_handle.data[k];
-                    eta_r_handle.data[k] += wdti1_handle.data[j] * eta_dot_r_handle.data[k];
-                    }
-                    
-                // update thermostat forces
-                
-                for (unsigned int k = 1; k < chain; k++)
-                    {
-                    f_eta_t_handle.data[k] = q_t_handle.data[k-1] * eta_dot_t_handle.data[k-1] * eta_dot_t_handle.data[k-1] - kt;
-                    f_eta_t_handle.data[k] /= q_t_handle.data[k];
-                    f_eta_r_handle.data[k] = q_r_handle.data[k-1] * eta_dot_r_handle.data[k-1] * eta_dot_r_handle.data[k-1] - kt;
-                    f_eta_r_handle.data[k] /= q_r_handle.data[k];
-                    }
-                    
-                // update thermostat velocities a full step
-                
-                for (unsigned int k = 0; k < chain-1; k++)
-                    {
-                    tmp = wdti4_handle.data[j] * eta_dot_t_handle.data[k+1];
-                    ms = maclaurin_series(tmp);
-                    s = exp(-1.0 * tmp);
-                    s2 = s * s;
-                    eta_dot_t_handle.data[k] = eta_dot_t_handle.data[k] * s2 + wdti2_handle.data[j] * f_eta_t_handle.data[k] * s * ms;
-                    tmp = q_t_handle.data[k] * eta_dot_t_handle.data[k] * eta_dot_t_handle.data[k] - kt;
-                    f_eta_t_handle.data[k+1] = tmp / q_t_handle.data[k+1];
-                    
-                    tmp = wdti4_handle.data[j] * eta_dot_r_handle.data[k+1];
-                    ms = maclaurin_series(tmp);
-                    s = exp(-1.0 * tmp);
-                    s2 = s * s;
-                    eta_dot_r_handle.data[k] = eta_dot_r_handle.data[k] * s2 + wdti2_handle.data[j] * f_eta_r_handle.data[k] * s * ms;
-                    tmp = q_r_handle.data[k] * eta_dot_r_handle.data[k] * eta_dot_r_handle.data[k] - kt;
-                    f_eta_r_handle.data[k+1] = tmp / q_r_handle.data[k+1];
-                    }
-                    
-                eta_dot_t_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_t_handle.data[chain-1];
-                eta_dot_r_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_r_handle.data[chain-1];
+                tmp = wdti4_handle.data[j] * eta_dot_r_handle.data[chain-k];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_r_handle.data[chain-k-1] = eta_dot_r_handle.data[chain-k-1] * s2 + wdti2_handle.data[j] * f_eta_r_handle.data[chain-k-1] * s * ms;
                 }
+                
+            // update thermostat positions a full step
+            
+            for (unsigned int k = 0; k < chain; k++)
+                {
+                eta_t_handle.data[k] += wdti1_handle.data[j] * eta_dot_t_handle.data[k];
+                eta_r_handle.data[k] += wdti1_handle.data[j] * eta_dot_r_handle.data[k];
+                }
+                
+            // update thermostat forces
+            
+            for (unsigned int k = 1; k < chain; k++)
+                {
+                f_eta_t_handle.data[k] = q_t_handle.data[k-1] * eta_dot_t_handle.data[k-1] * eta_dot_t_handle.data[k-1] - kt;
+                f_eta_t_handle.data[k] /= q_t_handle.data[k];
+                f_eta_r_handle.data[k] = q_r_handle.data[k-1] * eta_dot_r_handle.data[k-1] * eta_dot_r_handle.data[k-1] - kt;
+                f_eta_r_handle.data[k] /= q_r_handle.data[k];
+                }
+                
+            // update thermostat velocities a full step
+            
+            for (unsigned int k = 0; k < chain-1; k++)
+                {
+                tmp = wdti4_handle.data[j] * eta_dot_t_handle.data[k+1];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_t_handle.data[k] = eta_dot_t_handle.data[k] * s2 + wdti2_handle.data[j] * f_eta_t_handle.data[k] * s * ms;
+                tmp = q_t_handle.data[k] * eta_dot_t_handle.data[k] * eta_dot_t_handle.data[k] - kt;
+                f_eta_t_handle.data[k+1] = tmp / q_t_handle.data[k+1];
+                
+                tmp = wdti4_handle.data[j] * eta_dot_r_handle.data[k+1];
+                ms = maclaurin_series(tmp);
+                s = exp(-1.0 * tmp);
+                s2 = s * s;
+                eta_dot_r_handle.data[k] = eta_dot_r_handle.data[k] * s2 + wdti2_handle.data[j] * f_eta_r_handle.data[k] * s * ms;
+                tmp = q_r_handle.data[k] * eta_dot_r_handle.data[k] * eta_dot_r_handle.data[k] - kt;
+                f_eta_r_handle.data[k+1] = tmp / q_r_handle.data[k+1];
+                }
+                
+            eta_dot_t_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_t_handle.data[chain-1];
+            eta_dot_r_handle.data[chain-1] += wdti2_handle.data[j] * f_eta_r_handle.data[chain-1];
             }
-            
-            IntegratorVariables v = getIntegratorVariables();
-            v.variable[0] = eta_t_handle.data[0];
-            v.variable[1] = eta_r_handle.data[0];
-            v.variable[2] = eta_dot_r_handle.data[0];
-            v.variable[3] = eta_dot_t_handle.data[0];
-            setIntegratorVariables(v);
-        } // end of scope for handles
+        }
         
-    }
-
-/*! Apply evolution operators to quat, quat momentum (see ref. Miller)
-    \param k Direction
-    \param p Thermostat angular momentum conjqm
-    \param q Quaternion
-    \param inertia Moment of inertia
-    \param dt Time step
-*/
-void TwoStepNVTRigid::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt)
-    {
-    Scalar phi, c_phi, s_phi;
-    Scalar4 kp, kq;
-    
-    // apply permuation operator on p and q, get kp and kq
-    if (k == 1)
-        {
-        kq.x = -q.y;  kp.x = -p.y;
-        kq.y =  q.x;  kp.y =  p.x;
-        kq.z =  q.w;  kp.z =  p.w;
-        kq.w = -q.z;  kp.w = -p.z;
-        }
-    else if (k == 2)
-        {
-        kq.x = -q.z;  kp.x = -p.z;
-        kq.y = -q.w;  kp.y = -p.w;
-        kq.z =  q.x;  kp.z =  p.x;
-        kq.w =  q.y;  kp.w =  p.y;
-        }
-    else if (k == 3)
-        {
-        kq.x = -q.w;  kp.x = -p.w;
-        kq.y =  q.z;  kp.y =  p.z;
-        kq.z = -q.y;  kp.z = -p.y;
-        kq.w =  q.x;  kp.w =  p.x;
-        }
-    else
-        {
-        kq.x = 0.0;  kp.x = 0.0;
-        kq.y = 0.0;  kp.y = 0.0;
-        kq.z = 0.0;  kp.z = 0.0;
-        kq.w = 0.0;  kp.w = 0.0;
-        }
-            
-    // obtain phi, cosines and sines
-    
-    phi = p.x * kq.x + p.y * kq.y + p.z * kq.z + p.w * kq.w;
-    
-    Scalar inertia_t;
-    if (k == 1) inertia_t = inertia.x;
-    else if (k == 2) inertia_t = inertia.y;
-    else if (k == 3) inertia_t = inertia.z;
-    else inertia_t = Scalar(0.0);
-    if (fabs(inertia_t) < EPSILON) phi *= 0.0;
-    else phi /= 4.0 * inertia_t;
-    
-    c_phi = cos(dt * phi);
-    s_phi = sin(dt * phi);
-    
-    // advance p and q
-    
-    p.x = c_phi * p.x + s_phi * kp.x;
-    p.y = c_phi * p.y + s_phi * kp.y;
-    p.z = c_phi * p.z + s_phi * kp.z;
-    p.w = c_phi * p.w + s_phi * kp.w;
-    
-    q.x = c_phi * q.x + s_phi * kq.x;
-    q.y = c_phi * q.y + s_phi * kq.y;
-    q.z = c_phi * q.z + s_phi * kq.z;
-    q.w = c_phi * q.w + s_phi * kq.w;
-    normalize(q);
-    }
-
-/*! Quaternion multiply: c = a * b 
-    \param a Quaternion
-    \param b A three component vector
-    \param c Returned quaternion
-*/
-void TwoStepNVTRigid::quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
-    {
-    c.x = -a.y * b.x - a.z * b.y - a.w * b.z;
-    c.y =  a.x * b.x - a.w * b.y + a.z * b.z;
-    c.z =  a.w * b.x + a.x * b.y - a.y * b.z;
-    c.w = -a.z * b.x + a.y * b.y + a.x * b.z;
-    }
-
-/*! Inverse quaternion multiply: c = inv(a) * b 
-    \param a Quaternion
-    \param b A four component vector
-    \param c A three component vector
-*/
-void TwoStepNVTRigid::inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c)
-    {
-    c.x = -a.y * b.x + a.x * b.y + a.w * b.z - a.z * b.w;
-    c.y = -a.z * b.x - a.w * b.y + a.x * b.z + a.y * b.w;
-    c.z = -a.w * b.x + a.z * b.y - a.y * b.z + a.x * b.w;
-    }
-
-/*! Matrix dot: c = dot(A, b) 
-    \param ax The first row of A
-    \param ay The second row of A
-    \param az The third row of A
-    \param b A three component vector
-    \param c A three component vector    
-*/
-void TwoStepNVTRigid::matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c)
-    {
-    c.x = ax.x * b.x + ax.y * b.y + ax.z * b.z;
-    c.y = ay.x * b.x + ay.y * b.y + ay.z * b.z;
-    c.z = az.x * b.x + az.y * b.y + az.z * b.z;
-    }
-
-/*! Matrix transpose dot: c = dot(trans(A), b) 
-    \param ax The first row of A
-    \param ay The second row of A
-    \param az The third row of A
-    \param b A three component vector
-    \param c A three component vector
-*/
-void TwoStepNVTRigid::transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c)
-    {
-    c.x = ax.x * b.x + ay.x * b.y + az.x * b.z;
-    c.y = ax.y * b.x + ay.y * b.y + az.y * b.z;
-    c.z = ax.z * b.x + ay.z * b.y + az.z * b.z;
+        IntegratorVariables v = getIntegratorVariables();
+        v.variable[0] = eta_t_handle.data[0];
+        v.variable[1] = eta_r_handle.data[0];
+        v.variable[2] = eta_dot_r_handle.data[0];
+        v.variable[3] = eta_dot_t_handle.data[0];
+        setIntegratorVariables(v);
+    } // end of scope for handles
+        
     }
 
 /*! Taylor expansion

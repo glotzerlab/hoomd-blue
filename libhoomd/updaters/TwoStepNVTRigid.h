@@ -111,22 +111,7 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         
         //! Update thermostats
         void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
-        
-        //! Update thermostat momenta and positions
-        void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt);
-        
-        //! Quaternion multiply
-        void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
-        
-        //! Inverse quaternion multiply
-        void inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
-        
-        //! Matrix multiply
-        void matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
-        
-        //! Transposed matrix multiply
-        void transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
-        
+    
         //! Maclaurin expansion
         inline Scalar maclaurin_series(Scalar x);
         
@@ -154,8 +139,6 @@ class TwoStepNVTRigid : public TwoStepNVERigid
         GPUArray<Scalar>    wdti1;                  //!< Thermostat chain coefficients
         GPUArray<Scalar>    wdti2;                  //!< Thermostat chain coefficients
         GPUArray<Scalar>    wdti4;                  //!< Thermostat chain coefficients
-        GPUArray<Scalar4>   conjqm;                 //!< Thermostat conjugate momentum
-
     };
 
 //! Exports the TwoStepNVTRigid class to python

@@ -180,7 +180,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
@@ -315,7 +315,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(conjqm, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     

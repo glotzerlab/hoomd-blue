@@ -68,7 +68,8 @@ class TwoStepNPTRigidGPU : public TwoStepNPTRigid
                             Scalar tau,
                             Scalar tauP,
                             boost::shared_ptr<Variant> T,
-                            boost::shared_ptr<Variant> P);
+                            boost::shared_ptr<Variant> P,
+                            bool skip_restart=false);
                             
         virtual ~TwoStepNPTRigidGPU() {};
         

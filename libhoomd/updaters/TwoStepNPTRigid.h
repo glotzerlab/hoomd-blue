@@ -72,7 +72,8 @@ class TwoStepNPTRigid : public TwoStepNVERigid
                    Scalar tau,
                    Scalar tauP,
                    boost::shared_ptr<Variant> T,
-                   boost::shared_ptr<Variant> P);
+                   boost::shared_ptr<Variant> P,
+                   bool skip_restart=false);
         virtual ~TwoStepNPTRigid() {};
         
         //! Update the temperature
@@ -136,32 +137,20 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         Scalar m_curr_group_T;                      //!< Current group temperature
         Scalar m_curr_P;                            //!< Current system pressure
     protected:
+        //! Integrator variables
+        virtual void setRestartIntegratorVariables();
+        
         //! Update thermostats
         void update_nhcp(Scalar akin_t, Scalar akin_r, unsigned int timestep);
         
         //! Update barostats
         void update_nhcb(unsigned int timestep);
 
-        //! Update thermostat momenta and positions
-        void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt);
-        
         //! Remap the particles from the old box to the new one
         void remap();
         
         //! Adjust rigid body center of mass with deformed box
         void deform(unsigned int flag);
-        
-        //! Quaternion multiply
-        void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
-        
-        //! Inverse quaternion multiply
-        void inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
-        
-        //! Matrix multiply
-        void matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
-        
-        //! Transposed matrix multiply
-        void transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
         
         //! Maclaurin expansion
         inline Scalar maclaurin_series(Scalar x);
@@ -190,8 +179,6 @@ class TwoStepNPTRigid : public TwoStepNVERigid
         GPUArray<Scalar>    f_eta_t;                //!< Thermostat translational force
         GPUArray<Scalar>    f_eta_r;                //!< Thermostat rotational force
         GPUArray<Scalar>    f_eta_b;                //!< Barostat rotational force
-        
-        GPUArray<Scalar4>   conjqm;                 //!< Thermostat conjugate quaternion momentum
     };
 
 //! Exports the TwoStepNVTRigid class to python
