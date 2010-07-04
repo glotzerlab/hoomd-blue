@@ -107,6 +107,9 @@ texture<float4, 1, cudaReadModeElementType> rigid_data_force_tex;
 //! The texture for reading the rigid data torque array
 texture<float4, 1, cudaReadModeElementType> rigid_data_torque_tex;
 
+//! The texture for reading the rigid data conjugate qm array
+texture<float4, 1, cudaReadModeElementType> rigid_data_conjqm_tex;
+
 //! The texture for reading the net virial array
 texture<float, 1, cudaReadModeElementType> net_virial_tex;
 
@@ -173,20 +176,6 @@ __device__ void computeAngularVelocity(float4& angmom, float4& moment_inertia, f
     angvel.z = angbody.x * ex_space.z + angbody.y * ey_space.z + angbody.z * ez_space.z;
     }
 
-/*! Quaternion multiply: c = a * b where a = (0, a)
-    \param a A three component vector
-    \param b A quaternion
-    \param c Resulted quaternion
- */
-
-__device__ void multiply(float4& a, float4& b, float4& c)
-    {
-    c.x = -(a.x * b.y + a.y * b.z + a.z * b.w);
-    c.y =   b.x * a.x + a.y * b.w - a.z * b.z;
-    c.z =   b.x * a.y + a.z * b.y - a.x * b.w;
-    c.w =   b.x * a.z + a.x * b.z - a.y * b.y;
-    }
-
 /*! Normalize a quaternion
     \param q Quaternion to be normalized
  */
@@ -198,6 +187,75 @@ __device__ void normalize(float4 &q)
     q.y *= norm;
     q.z *= norm;
     q.w *= norm;
+    }
+
+/*! Vector-quaternion multiply: c = a * b where a = (0, a)
+    \param a A three component vector
+    \param b A quaternion
+    \param c Resulted quaternion
+ */
+
+__device__ void vec_multiply(float4& a, float4& b, float4& c)
+    {
+    c.x = -(a.x * b.y + a.y * b.z + a.z * b.w);
+    c.y =   b.x * a.x + a.y * b.w - a.z * b.z;
+    c.z =   b.x * a.y + a.z * b.y - a.x * b.w;
+    c.w =   b.x * a.z + a.x * b.z - a.y * b.y;
+    }
+    
+/*! Quaternion-vector multiply: c = a * b 
+    \param a Quaternion
+    \param b A three component vector
+    \param c Returned quaternion
+*/
+__device__ void quat_multiply(float4& a, float4& b, float4& c)
+    {
+    c.x = -a.y * b.x - a.z * b.y - a.w * b.z;
+    c.y =  a.x * b.x - a.w * b.y + a.z * b.z;
+    c.z =  a.w * b.x + a.x * b.y - a.y * b.z;
+    c.w = -a.z * b.x + a.y * b.y + a.x * b.z;
+    }
+
+/*! Inverse quaternion multiply: c = inv(a) * b 
+    \param a Quaternion
+    \param b A four component vector
+    \param c A three component vector
+*/
+
+__device__ void inv_quat_multiply(float4& a, float4& b, float4& c)
+    {
+    c.x = -a.y * b.x + a.x * b.y + a.w * b.z - a.z * b.w;
+    c.y = -a.z * b.x - a.w * b.y + a.x * b.z + a.y * b.w;
+    c.z = -a.w * b.x + a.z * b.y - a.y * b.z + a.x * b.w;
+    }
+
+/*! Matrix dot: c = dot(A, b) 
+    \param ax The first row of A
+    \param ay The second row of A
+    \param az The third row of A
+    \param b A three component vector
+    \param c A three component vector    
+*/
+
+__device__ void matrix_dot(float4& ax, float4& ay, float4& az, float4& b, float4& c)
+    {
+    c.x = ax.x * b.x + ax.y * b.y + ax.z * b.z;
+    c.y = ay.x * b.x + ay.y * b.y + ay.z * b.z;
+    c.z = az.x * b.x + az.y * b.y + az.z * b.z;
+    }
+
+/*! Matrix transpose dot: c = dot(trans(A), b) 
+    \param ax The first row of A
+    \param ay The second row of A
+    \param az The third row of A
+    \param b A three component vector
+    \param c A three component vector
+*/
+__device__ void transpose_dot(float4& ax, float4& ay, float4& az, float4& b, float4& c)
+    {
+    c.x = ax.x * b.x + ay.x * b.y + az.x * b.z;
+    c.y = ax.y * b.x + ay.y * b.y + az.y * b.z;
+    c.z = ax.z * b.x + ay.z * b.y + az.z * b.z;
     }
 
 /*! Advance the quaternion using angular momentum and angular velocity
@@ -224,7 +282,7 @@ __device__ void advanceQuaternion(float4& angmom,
     computeAngularVelocity(angmom, moment_inertia, ex_space, ey_space, ez_space, angvel);
     
     // Compute (w q)
-    multiply(angvel, quat, omegaq);
+    vec_multiply(angvel, quat, omegaq);
     
     // Full update q from dq/dt = 1/2 w q
     qfull.x = quat.x + dtq * omegaq.x;
@@ -247,7 +305,7 @@ __device__ void advanceQuaternion(float4& angmom,
     computeAngularVelocity(angmom, moment_inertia, ex_space, ey_space, ez_space, angvel);
     
     // Compute (w qhalf)
-    multiply(angvel, qhalf, omegaq);
+    vec_multiply(angvel, qhalf, omegaq);
     
     // 2nd half update from dq/dt = 1/2 w q
     qhalf.x += 0.5 * dtq * omegaq.x;
@@ -266,6 +324,79 @@ __device__ void advanceQuaternion(float4& angmom,
     exyzFromQuaternion(quat, ex_space, ey_space, ez_space);
     }
 
+/*! Apply evolution operators to quat, quat momentum (see ref. Miller)
+    \param k Direction
+    \param p Thermostat angular momentum conjqm
+    \param q Quaternion
+    \param inertia Moment of inertia
+    \param dt Time step
+*/
+
+__device__ void no_squish_rotate(unsigned int k, float4& p, float4& q, float4& inertia, float dt)
+    {
+    float phi, c_phi, s_phi;
+    float4 kp, kq;
+    
+    // apply permuation operator on p and q, get kp and kq
+    if (k == 1)
+        {
+        kq.x = -q.y;  kp.x = -p.y;
+        kq.y =  q.x;  kp.y =  p.x;
+        kq.z =  q.w;  kp.z =  p.w;
+        kq.w = -q.z;  kp.w = -p.z;
+        }
+    else if (k == 2)
+        {
+        kq.x = -q.z;  kp.x = -p.z;
+        kq.y = -q.w;  kp.y = -p.w;
+        kq.z =  q.x;  kp.z =  p.x;
+        kq.w =  q.y;  kp.w =  p.y;
+        }
+    else if (k == 3)
+        {
+        kq.x = -q.w;  kp.x = -p.w;
+        kq.y =  q.z;  kp.y =  p.z;
+        kq.z = -q.y;  kp.z = -p.y;
+        kq.w =  q.x;  kp.w =  p.x;
+        }
+    else
+        {
+        kq.x = 0.0f;  kp.x = 0.0f;
+        kq.y = 0.0f;  kp.y = 0.0f;
+        kq.z = 0.0f;  kp.z = 0.0f;
+        kq.w = 0.0f;  kp.w = 0.0f;
+        }
+            
+    // obtain phi, cosines and sines
+    
+    phi = p.x * kq.x + p.y * kq.y + p.z * kq.z + p.w * kq.w;
+    
+    float inertia_t;
+    if (k == 1) inertia_t = inertia.x;
+    else if (k == 2) inertia_t = inertia.y;
+    else if (k == 3) inertia_t = inertia.z;
+    else inertia_t = 0.0f;
+    if (inertia_t < 1e-7) phi *= 0.0;
+    else phi /= (4.0 * inertia_t);
+    
+    c_phi = __cosf(dt * phi);
+    s_phi = __sinf(dt * phi);
+    
+    // advance p and q
+    
+    p.x = c_phi * p.x + s_phi * kp.x;
+    p.y = c_phi * p.y + s_phi * kp.y;
+    p.z = c_phi * p.z + s_phi * kp.z;
+    p.w = c_phi * p.w + s_phi * kp.w;
+    
+    q.x = c_phi * q.x + s_phi * kq.x;
+    q.y = c_phi * q.y + s_phi * kq.y;
+    q.z = c_phi * q.z + s_phi * kq.z;
+    q.w = c_phi * q.w + s_phi * kq.w;
+    normalize(q);
+    }
+
+
 #pragma mark RIGID_STEP_ONE_KERNEL
 
 /*! Takes the first half-step forward for rigid bodies in the velocity-verlet NVE integration
@@ -280,6 +411,7 @@ __device__ void advanceQuaternion(float4& angmom,
     \param rdata_body_imagex Body image in x-direction
     \param rdata_body_imagey Body image in y-direction
     \param rdata_body_imagez Body image in z-direction
+    \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
@@ -296,7 +428,8 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
                                                         float4* rdata_ez_space, 
                                                         int* rdata_body_imagex, 
                                                         int* rdata_body_imagey, 
-                                                        int* rdata_body_imagez, 
+                                                        int* rdata_body_imagez,
+                                                        float4* rdata_conjqm,  
                                                         unsigned int n_group_bodies,
                                                         unsigned int n_bodies, 
                                                         unsigned int local_beg,
@@ -311,9 +444,12 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
     if (group_idx < n_group_bodies)
         {
         float body_mass;
-        float4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque;
+        float4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
         int body_imagex, body_imagey, body_imagez;
-    
+        
+        float4 mbody, tbody, fquat;
+        float dt_half = 0.5 * deltaT;
+        
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
         if (idx_body < n_bodies)
             {
@@ -331,6 +467,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
             force = tex1Dfetch(rigid_data_force_tex, idx_body);
             torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
+            conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
             
             // update velocity
             float dtfm = (1.0f/2.0f) * deltaT / body_mass;
@@ -361,7 +498,41 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             float z_shift = rintf(pos2.z * box.Lzinv);
             pos2.z -= box.Lz * z_shift;
             body_imagez += (int)z_shift;
+       
+       /*   Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU
+       
+            matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
+            quat_multiply(orientation, tbody, fquat);
             
+            float4 conjqm2;
+            conjqm2.x = conjqm.x + deltaT * fquat.x;
+            conjqm2.y = conjqm.y + deltaT * fquat.y;
+            conjqm2.z = conjqm.z + deltaT * fquat.z;
+            conjqm2.w = conjqm.w + deltaT * fquat.w;
+            
+            // use no_squish rotate to update p and q
+            
+            no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
+            no_squish_rotate(2, conjqm2, orientation, moment_inertia, dt_half);
+            no_squish_rotate(1, conjqm2, orientation, moment_inertia, deltaT);
+            no_squish_rotate(2, conjqm2, orientation, moment_inertia, dt_half);
+            no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
+            
+            // update the exyz_space
+            // transform p back to angmom
+            // update angular velocity
+            float4 angmom2;
+            exyzFromQuaternion(orientation, ex_space, ey_space, ez_space);
+            inv_quat_multiply(orientation, conjqm2, mbody);
+            transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
+            
+            angmom2.x *= 0.5;
+            angmom2.y *= 0.5;
+            angmom2.z *= 0.5;
+            
+            float4 angvel2;
+            computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
+       */
             // update the angular momentum
             float4 angmom2;
             angmom2.x = angmom.x + (1.0f/2.0f) * deltaT * torque.x;
@@ -383,6 +554,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             rdata_body_imagex[idx_body] = body_imagex;
             rdata_body_imagey[idx_body] = body_imagey;
             rdata_body_imagez[idx_body] = body_imagez;
+        //  rdata_conjqm[idx_body] = conjqm2;
             }
         }
     }
@@ -740,6 +912,10 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
     error = cudaBindTexture(0, rigid_data_torque_tex, rigid_data.torque, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
+    
+    error = cudaBindTexture(0, rigid_data_conjqm_tex, rigid_data.conjqm, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
         
     // setup the grid to run the kernel for rigid bodies
     int block_size = 64;
@@ -758,6 +934,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                            rigid_data.body_imagex, 
                                                            rigid_data.body_imagey, 
                                                            rigid_data.body_imagez,
+                                                           rigid_data.conjqm,
                                                            n_group_bodies, 
                                                            n_bodies, 
                                                            local_beg,
@@ -1241,6 +1418,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
     \param rdata_vel Body translational velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
+    \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
@@ -1251,6 +1429,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
 extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel, 
                                                          float4* rdata_angmom, 
                                                          float4* rdata_angvel,
+                                                         float4* rdata_conjqm, 
                                                          unsigned int n_group_bodies,
                                                          unsigned int n_bodies, 
                                                          unsigned int local_beg,
@@ -1263,8 +1442,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
     if (group_idx < n_group_bodies)
         {
         float body_mass;
-        float4 moment_inertia, vel, angmom, ex_space, ey_space, ez_space, force, torque;
-            
+        float4 moment_inertia, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
+        float4 mbody, tbody, fquat;
+        
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
             
         // Update body velocity and angmom
@@ -1277,9 +1457,12 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
             force = tex1Dfetch(rigid_data_force_tex, idx_body);
             torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
             moment_inertia = tex1Dfetch(rigid_data_moment_inertia_tex, idx_body);
+            orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
             ex_space = tex1Dfetch(rigid_data_exspace_tex, idx_body);
             ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
             ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
+            orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
+            conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
             
             float dtfm = (1.0f/2.0f) * deltaT / body_mass;
             float4 vel2;
@@ -1288,6 +1471,26 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
             vel2.z = vel.z + dtfm * force.z;
             vel2.w = 0.0;
             
+         /* Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU  
+            
+            // update angular momentum
+            matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
+            quat_multiply(orientation, tbody, fquat);
+            
+            float4  conjqm2, angmom2;
+            conjqm2.x = conjqm.x + deltaT * fquat.x;
+            conjqm2.y = conjqm.y + deltaT * fquat.y;
+            conjqm2.z = conjqm.z + deltaT * fquat.z;
+            conjqm2.w = conjqm.w + deltaT * fquat.w;
+            
+            inv_quat_multiply(orientation, conjqm2, mbody);
+            transpose_dot(ex_space, ey_space, ez_space, mbody, angmom2);
+            
+            angmom2.x *= 0.5;
+            angmom2.y *= 0.5;
+            angmom2.z *= 0.5;
+            angmom2.w = 0.0;
+        */
             // update angular momentum
             float4 angmom2;
             angmom2.x = angmom.x + (1.0f/2.0f) * deltaT * torque.x;
@@ -1299,9 +1502,11 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
             float4 angvel2;
             computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
             
+            // write out results
             rdata_vel[idx_body] = vel2;
             rdata_angmom[idx_body] = angmom2;
             rdata_angvel[idx_body] = angvel2;
+        //  rdata_conjqm[idx_body] = conjqm2;
             }
         }
     }
@@ -1559,6 +1764,10 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     error = cudaBindTexture(0, rigid_data_angmom_tex, rigid_data.angmom, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
+    
+    error = cudaBindTexture(0, rigid_data_orientation_tex, rigid_data.orientation, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
         
     error = cudaBindTexture(0, rigid_data_exspace_tex, rigid_data.ex_space, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
@@ -1587,6 +1796,10 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     error = cudaBindTexture(0, rigid_data_torque_tex, rigid_data.torque, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
+    
+    error = cudaBindTexture(0, rigid_data_conjqm_tex, rigid_data.conjqm, sizeof(float4) * n_bodies);
+    if (error != cudaSuccess)
+        return error;
         
     // bind the textures for particles
     error = cudaBindTexture(0, pdata_pos_tex, pdata.pos, sizeof(float4) * pdata.N);
@@ -1600,6 +1813,7 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
     gpu_nve_rigid_step_two_body_kernel<<< body_grid, body_threads >>>(rigid_data.vel, 
                                                                       rigid_data.angmom, 
                                                                       rigid_data.angvel,
+                                                                      rigid_data.conjqm,
                                                                       n_group_bodies,
                                                                       n_bodies, 
                                                                       local_beg,

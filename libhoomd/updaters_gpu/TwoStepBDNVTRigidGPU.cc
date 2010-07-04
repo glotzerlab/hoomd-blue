@@ -135,6 +135,7 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -162,6 +163,7 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
     d_rdata.virial = d_virial.data;
+    d_rdata.conjqm = conjqm_handle.data;
     
     // perform the update on the GPU
     exec_conf.tagAll(__FILE__, __LINE__);    
@@ -219,6 +221,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> vel_handle(rigid_data->getVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angvel_handle(rigid_data->getAngVel(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> angmom_handle(rigid_data->getAngMom(), access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> orientation_handle(rigid_data->getOrientation(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> ex_space_handle(rigid_data->getExSpace(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> ey_space_handle(rigid_data->getEySpace(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> ez_space_handle(rigid_data->getEzSpace(), access_location::device, access_mode::read);
@@ -227,6 +230,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -242,6 +246,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.vel = vel_handle.data;
     d_rdata.angvel = angvel_handle.data;
     d_rdata.angmom = angmom_handle.data;
+    d_rdata.orientation = orientation_handle.data;
     d_rdata.ex_space = ex_space_handle.data;
     d_rdata.ey_space = ey_space_handle.data;
     d_rdata.ez_space = ez_space_handle.data;
@@ -250,6 +255,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
     d_rdata.virial = d_virial.data;
+    d_rdata.conjqm = conjqm_handle.data;
     
     // compute the Langevin forces on the GPU
     bdnvt_step_two_args args;

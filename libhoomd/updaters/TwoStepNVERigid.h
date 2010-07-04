@@ -128,8 +128,8 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         
         bool m_first_step;                  //!< True if first step
         
-        GPUArray<Scalar4>   m_conjqm;      //!< Thermostat conjugate momentum
-        GPUArray<Scalar> m_virial;         //!< virial contribution from rigid bodies
+        GPUArray<Scalar4>   m_conjqm;      //!< Conjugate quaternion momentum
+        GPUArray<Scalar> m_virial;         //!< Virial contribution from rigid bodies
     };
 
 //! Exports the TwoStepNVERigid class to python

@@ -79,38 +79,11 @@ struct gpu_rigid_data_arrays
     float4 *force;          //!< Body force in \c x, \c y, \c z, nothing in \c w
     float4 *torque;         //!< Body torque in \c x, \c y, \c z, nothing in \c w
     float *virial;          //!< Virial contribution from the first integration part
+    float4 *conjqm;         //!< Conjugate quaternion momentum 
     
     float4 *particle_pos;           //!< Particle relative position to the body frame
     unsigned int *particle_indices; //!< Particle indices: actual particle index in the particle data arrays
     unsigned int *particle_tags;    //!< Particle tags
-    };
-
-/*! Arrays for the thermostat data used by NVT integrator
-    
-    All the pointers in this structure are allocated on the device.
-
-    \ingroup gpu_data_structs
-*/
-struct gpu_nvt_rigid_data_arrays
-    {
-    unsigned int n_bodies;  //!< Number of rigid bodies in the arrays
-    
-    float  *q_t;            //!< Thermostat translational mass
-    float  *q_r;            //!< Thermostat rotational mass
-    float  *eta_t;          //!< Thermostat translational position
-    float  *eta_r;          //!< Thermostat rotational position
-    float  *eta_dot_t;      //!< Thermostat translational velocity
-    float  *eta_dot_r;      //!< Thermostat rotational velocity
-    float  *f_eta_t;        //!< Thermostat translational force
-    float  *f_eta_r;        //!< Thermostat rotational force
-    float  *w;              //!< Thermostat chain coefficients 
-    float  *wdti1;          //!< Thermostat chain coefficients 
-    float  *wdti2;          //!< Thermostat chain coefficients 
-    float  *wdti4;          //!< Thermostat chain coefficients 
-    float4 *conjqm;         //!< Thermostat angular momentum 
-    
-    float   *partial_ke;    //!< Body kinetic energy
-    float   *ke;            //!< All body kinetic energy
     };
 
 #endif

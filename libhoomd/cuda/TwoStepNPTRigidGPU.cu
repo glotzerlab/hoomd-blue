@@ -107,8 +107,8 @@ texture<float4, 1, cudaReadModeElementType> rigid_data_force_tex;
 //! The texture for reading the rigid data torque array
 texture<float4, 1, cudaReadModeElementType> rigid_data_torque_tex;
 
-//! The texture for reading the rigid data conjugate qm array
-texture<float4, 1, cudaReadModeElementType> npt_rdata_conjqm_tex;
+//! The texture for reading the rigid data conjugate quaternion momentum array
+texture<float4, 1, cudaReadModeElementType> rigid_data_conjqm_tex;
 
 //! The texture for reading the net virial array
 texture<float, 1, cudaReadModeElementType> net_virial_tex;
@@ -454,13 +454,13 @@ extern "C" __global__ void gpu_npt_rigid_remap_kernel(float4* rdata_com,
     \param rdata_body_imagex Body image in x-direction
     \param rdata_body_imagey Body image in y-direction
     \param rdata_body_imagez Body image in z-direction
+    \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total umber of rigid bodies
     \param local_beg Starting body index in this card
     \param npt_rdata_eta_dot_t0 Thermostat translational velocity 
     \param npt_rdata_eta_dot_r0 Thermostat rotational velocity
     \param npt_rdata_epsilon_dot Barostat velocity
-    \param npt_rdata_conjqm Thermostat angular momentum
     \param npt_rdata_partial_Ksum_t Body translational kinetic energy 
     \param npt_rdata_partial_Ksum_r Body rotation kinetic energy
     \param npt_rdata_nf_t Translational degrees of freedom
@@ -482,13 +482,13 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
                                                             int* rdata_body_imagex, 
                                                             int* rdata_body_imagey, 
                                                             int* rdata_body_imagez,
+                                                            float4* rdata_conjqm, 
                                                             unsigned int n_group_bodies,  
                                                             unsigned int n_bodies, 
                                                             unsigned int local_beg,
                                                             float npt_rdata_eta_dot_t0, 
                                                             float npt_rdata_eta_dot_r0,
                                                             float npt_rdata_epsilon_dot, 
-                                                            float4* npt_rdata_conjqm, 
                                                             float* npt_rdata_partial_Ksum_t, 
                                                             float* npt_rdata_partial_Ksum_r,
                                                             unsigned int npt_rdata_nf_t,
@@ -540,8 +540,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
             body_imagez = tex1Dfetch(rigid_data_body_imagez_tex, idx_body);
             force = tex1Dfetch(rigid_data_force_tex, idx_body);
             torque = tex1Dfetch(rigid_data_torque_tex, idx_body);
-            
-            conjqm = tex1Dfetch(npt_rdata_conjqm_tex, idx_body);
+            conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
             
             // update velocity
             float dtfm = dt_half / body_mass;
@@ -591,7 +590,7 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
             conjqm2.z *= scale_r;
             conjqm2.w *= scale_r;
             
-            // step 1.4 to 1.13 - use no_squish rotate to update p and q
+            // use no_squish rotate to update p and q
             
             no_squish_rotate(3, conjqm2, orientation, moment_inertia, dt_half);
             no_squish_rotate(2, conjqm2, orientation, moment_inertia, dt_half);
@@ -629,8 +628,8 @@ extern "C" __global__ void gpu_npt_rigid_step_one_body_kernel(float4* rdata_com,
             rdata_body_imagex[idx_body] = body_imagex;
             rdata_body_imagey[idx_body] = body_imagey;
             rdata_body_imagez[idx_body] = body_imagez;
+            rdata_conjqm[idx_body] = conjqm2;
             
-            npt_rdata_conjqm[idx_body] = conjqm2;
             npt_rdata_partial_Ksum_t[idx_body] = akin_t;
             npt_rdata_partial_Ksum_r[idx_body] = akin_r;
             }
@@ -907,7 +906,6 @@ extern "C" __global__ void gpu_npt_rigid_step_one_particle_sliding_kernel(float4
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Particle net forces
-    \param d_net_virial Particle net virial
     \param box Box dimensions for periodic boundary condition handling
     \param npt_rdata Thermostat/barostat data
     \param deltaT Amount of real time to step forward in one time step
@@ -1002,7 +1000,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     if (error != cudaSuccess)
         return error;
         
-    error = cudaBindTexture(0, npt_rdata_conjqm_tex, npt_rdata.conjqm, sizeof(float4) * n_bodies);
+    error = cudaBindTexture(0, rigid_data_conjqm_tex, rigid_data.conjqm, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
     
@@ -1022,13 +1020,13 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                         rigid_data.body_imagex, 
                                                                         rigid_data.body_imagey, 
                                                                         rigid_data.body_imagez,
+                                                                        rigid_data.conjqm,
                                                                         n_group_bodies,
                                                                         n_bodies, 
                                                                         local_beg, 
                                                                         npt_rdata.eta_dot_t0, 
                                                                         npt_rdata.eta_dot_r0,
                                                                         npt_rdata.epsilon_dot, 
-                                                                        npt_rdata.conjqm,
                                                                         npt_rdata.partial_Ksum_t,
                                                                         npt_rdata.partial_Ksum_r,
                                                                         npt_rdata.nf_t,
@@ -1167,13 +1165,13 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
     \param rdata_vel Body velocity
     \param rdata_angmom Angular momentum
     \param rdata_angvel Angular velocity
+    \param rdata_conjqm Conjugate quaternion momentum
     \param n_group_bodies Number of rigid bodies in my group
     \param n_bodies Total number of rigid bodies
     \param local_beg Starting body index in this card
     \param npt_rdata_eta_dot_t0 Thermostat translational part 
     \param npt_rdata_eta_dot_r0 Thermostat rotational part
     \param npt_rdata_epsilon_dot Barostat velocity
-    \param npt_rdata_conjqm Thermostat angular momentum
     \param npt_rdata_partial_Ksum_t Body translational kinetic energy 
     \param npt_rdata_partial_Ksum_r Body rotation kinetic energy
     \param npt_rdata_nf_t Translational degrees of freedom
@@ -1186,13 +1184,13 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
 extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(float4* rdata_vel, 
                                                           float4* rdata_angmom, 
                                                           float4* rdata_angvel,
+                                                          float4* rdata_conjqm,
                                                           unsigned int n_group_bodies,
                                                           unsigned int n_bodies, 
                                                           unsigned int local_beg, 
                                                           float npt_rdata_eta_dot_t0, 
                                                           float npt_rdata_eta_dot_r0,
                                                           float npt_rdata_epsilon_dot, 
-                                                          float4* npt_rdata_conjqm,
                                                           float* npt_rdata_partial_Ksum_t,
                                                           float* npt_rdata_partial_Ksum_r,
                                                           unsigned int npt_rdata_nf_t,
@@ -1235,8 +1233,7 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(float4* rdata_vel,
             ey_space = tex1Dfetch(rigid_data_eyspace_tex, idx_body);
             ez_space = tex1Dfetch(rigid_data_ezspace_tex, idx_body);
             orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
-            
-            conjqm = tex1Dfetch(npt_rdata_conjqm_tex, idx_body);
+            conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
             
             float dtfm = dt_half / body_mass;
             
@@ -1277,8 +1274,8 @@ extern "C" __global__ void gpu_npt_rigid_step_two_body_kernel(float4* rdata_vel,
             rdata_vel[idx_body] = vel2;
             rdata_angmom[idx_body] = angmom2;
             rdata_angvel[idx_body] = angvel2;
+            rdata_conjqm[idx_body] = conjqm2;
             
-            npt_rdata_conjqm[idx_body] = conjqm2;
             npt_rdata_partial_Ksum_t[idx_body] = akin_t;
             npt_rdata_partial_Ksum_r[idx_body] = akin_r;
             }
@@ -1568,7 +1565,7 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     if (error != cudaSuccess)
         return error;
 
-    error = cudaBindTexture(0, npt_rdata_conjqm_tex, npt_rdata.conjqm, sizeof(float4) * n_bodies);
+    error = cudaBindTexture(0, rigid_data_conjqm_tex, rigid_data.conjqm, sizeof(float4) * n_bodies);
     if (error != cudaSuccess)
         return error;
         
@@ -1580,13 +1577,13 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
     gpu_npt_rigid_step_two_body_kernel<<< body_grid, body_threads >>>(rigid_data.vel, 
                                                                     rigid_data.angmom, 
                                                                     rigid_data.angvel,
+                                                                    rigid_data.conjqm,
                                                                     n_group_bodies,
                                                                     n_bodies, 
                                                                     local_beg,
                                                                     npt_rdata.eta_dot_t0, 
                                                                     npt_rdata.eta_dot_r0,
                                                                     npt_rdata.epsilon_dot, 
-                                                                    npt_rdata.conjqm,
                                                                     npt_rdata.partial_Ksum_t,
                                                                     npt_rdata.partial_Ksum_r,
                                                                     npt_rdata.nf_t,

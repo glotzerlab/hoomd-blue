@@ -1058,7 +1058,7 @@ void TwoStepNVERigid::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, S
     else if (k == 3) inertia_t = inertia.z;
     else inertia_t = Scalar(0.0);
     if (fabs(inertia_t) < EPSILON) phi *= 0.0;
-    else phi /= 4.0 * inertia_t;
+    else phi /= (4.0 * inertia_t);
     
     c_phi = cos(dt * phi);
     s_phi = sin(dt * phi);

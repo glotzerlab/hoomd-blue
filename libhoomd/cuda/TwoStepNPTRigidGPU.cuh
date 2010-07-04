@@ -65,7 +65,6 @@ struct gpu_npt_rigid_data
     float  eta_dot_t0;      //!< Thermostat translational velocity
     float  eta_dot_r0;      //!< Thermostat rotational velocity
     float  epsilon_dot;     //!< Barostat velocity
-    float4 *conjqm;         //!< Thermostat angular momentum
         
     float *partial_Ksum_t;  //!< NBlocks elements, each is a partial sum of m*v^2
     float *partial_Ksum_r;  //!< NBlocks elements, each is a partial sum of L*w^2

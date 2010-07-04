@@ -150,6 +150,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -177,10 +178,10 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
     d_rdata.virial = d_virial.data;
+    d_rdata.conjqm = conjqm_handle.data;
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
@@ -188,7 +189,7 @@ void TwoStepNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_nvt_rdata.n_bodies = d_rdata.n_bodies;
     d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
     d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
-    d_nvt_rdata.conjqm = conjqm_handle.data;
+    
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
@@ -288,6 +289,7 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar4> force_handle(rigid_data->getForce(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> torque_handle(rigid_data->getTorque(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     
     gpu_rigid_data_arrays d_rdata;
     d_rdata.n_bodies = rigid_data->getNumBodies();
@@ -312,10 +314,10 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_rdata.force = force_handle.data;
     d_rdata.torque = torque_handle.data;
     d_rdata.virial = d_virial.data;
+    d_rdata.conjqm = conjqm_handle.data;
     
     ArrayHandle<Scalar> eta_dot_t_handle(eta_dot_t, access_location::host, access_mode::read);
     ArrayHandle<Scalar> eta_dot_r_handle(eta_dot_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> conjqm_handle(m_conjqm, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_t_handle(m_partial_Ksum_t, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> partial_Ksum_r_handle(m_partial_Ksum_r, access_location::device, access_mode::readwrite);
     
@@ -323,7 +325,6 @@ void TwoStepNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_nvt_rdata.n_bodies = d_rdata.n_bodies;
     d_nvt_rdata.eta_dot_t0 = eta_dot_t_handle.data[0];
     d_nvt_rdata.eta_dot_r0 = eta_dot_r_handle.data[0];
-    d_nvt_rdata.conjqm = conjqm_handle.data;
     d_nvt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_nvt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
