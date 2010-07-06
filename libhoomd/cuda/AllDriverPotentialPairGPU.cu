@@ -52,6 +52,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairMorse.h"
+#include "PotentialPairDPDThermoGPU.cuh"
+#include "EvaluatorPairDPDThermo.h"
 #include "AllDriverPotentialPairGPU.cuh"
 
 /*! This is just a driver function for gpu_compute_pair_forces<EvaluatorPairLJ>(). See it for details.
@@ -219,3 +221,43 @@ cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
                                                         args);
     }
 
+cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_data,
+                                      const gpu_pdata_arrays &pdata,
+                                      const gpu_boxsize &box,
+                                      const gpu_nlist_array &nlist,
+                                      float2 *d_params,
+                                      float *d_rcutsq,
+                                      int ntypes,
+                                      const dpd_pair_args& args)
+    {
+    return gpu_compute_dpd_forces<EvaluatorPairDPDThermo>(force_data,
+                                                    pdata,
+                                                    box,
+                                                    nlist,
+                                                    d_params,
+                                                    d_rcutsq,
+                                                    ntypes,
+                                                    args);
+    }                                          
+
+
+cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data,
+                                      const gpu_pdata_arrays &pdata,
+                                      const gpu_boxsize &box,
+                                      const gpu_nlist_array &nlist,
+                                      float2 *d_params,
+                                      float *d_rcutsq,
+                                      float *d_ronsq,
+                                      int ntypes,
+                                      const pair_args& args)
+    {
+    return gpu_compute_pair_forces<EvaluatorPairDPDThermo>(force_data,
+                                                    pdata,
+                                                    box,
+                                                    nlist,
+                                                    d_params,
+                                                    d_rcutsq,
+                                                    d_ronsq,
+                                                    ntypes,
+                                                    args);
+    }   

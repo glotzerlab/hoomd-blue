@@ -1494,3 +1494,170 @@ class morse(pair):
 
         return hoomd.make_scalar4(D0, alpha, r0, 0.0);
 
+## DPD %pair %force
+#
+# The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
+# non-bonded particle %pair in the simulation.
+#
+# \f{eqnarray*}
+# V_{\mathrm{DPD-C}}(r) = & V_{\mathrm{DPD-C}}(r) = A \cdot \left( r_{\mathrm{cut}} - r \right) 
+#						- \frac{1}{2} \cdot \frac{a}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
+#                               & r < r_{\mathrm{cut}} \\
+#                     = & 0 & r \ge r_{\mathrm{cut}} \\
+# \f}
+#
+# For an exact definition of the %force and potential calculation and how cuttoff radii are handled, see pair in the
+# main hoomd documentation.
+#
+# The following coefficients must be set per unique %pair of particle types. See hoomd_script.pair or 
+# the \ref page_quick_start for information on how to set coefficients.
+# - \f$ \varepsilon \f$ - \a epsilon
+# - \f$ A \f$ - \a A
+# - \f$ r_{\mathrm{cut}} \f$ - \c r_cut
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+# - \f$ r_{\mathrm{on}} \f$ - \c r_on
+#   - <i>optional</i>: defaults to the global r_cut specified in the %pair command
+#
+# pair.dpd_conservative is a standard %pair potential and supports a number of energy shift / smoothing modes.
+# See pair for a full description of the various options.
+#
+# \b Example:
+# \code
+# dpd.pair_coeff.set('A', 'A', A=1.0)
+# dpd.pair_coeff.set('A', 'B', A=2.0)
+# dpd.pair_coeff.set('B', 'B', A=1.0)
+# \endcode
+#
+# The cutoff radius \a r_cut passed into the initial pair.dpd_conservative command sets the default \a r_cut for all
+# %pair interactions. Smaller (or larger) cutoffs can be set individually per each type %pair. The cutoff distances used
+# for the neighbor list will by dynamically determined from the maximum of all \a r_cut values specified among all type
+# %pair parameters among all %pair potentials.
+#
+class dpd(pair):
+    ## Specify the DPD conservative %pair %force
+    #
+    # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # dpd = pair.dpd_conservative(r_cut=3.0)
+    # dpd.pair_coeff.set('A', 'A', A=1.0)
+    # dpd.pair_coeff.set('A', 'B', A=2.0)
+    # dpd.pair_coeff.set('B', 'B', A=1.0)
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, seed=1, name=None):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDThermoDPD;
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDThermoDPDGPU;
+            self.cpp_force.setBlockSize(64);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating dpdthermo pair force");
+                
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['A', 'gamma'];
+        
+        # set the seed for dpd thermostat
+        self.cpp_force.setSeed(seed);
+
+    ## Changes parameters of an existing integrator
+    # \param T New temperature (if set)
+    #
+    # To change the parameters of an existing integrator, you must save it in a variable when it is
+    # specified, like so:
+    # \code
+    # integrator = integrate.dpd(group=all, T=1.0)
+    # \endcode
+    #
+    # \b Examples:
+    # \code
+    # integrator.set_params(T=2.0)
+    # \endcode
+    def set_params(self, T=None):
+        util.print_status_line();
+        self.check_initialization();
+        
+        # change the parameters
+        if T is not None:
+            # setup the variant inputs
+            T = variant._setup_variant_input(T);
+            self.cpp_force.setT(T.cpp_variant);
+        
+    def process_coeff(self, coeff):
+        a = coeff['A'];
+        gamma = coeff['gamma'];
+        return hoomd.make_scalar2(a, gamma);     
+
+class dpd_conservative(pair):
+    ## Specify the DPD conservative %pair %force
+    #
+    # \param r_cut Default cutoff radius
+    # \param name Name of the force instance
+    #
+    # \b Example:
+    # \code
+    # dpd = pair.dpd_conservative(r_cut=3.0)
+    # dpd.pair_coeff.set('A', 'A', A=1.0)
+    # dpd.pair_coeff.set('A', 'B', A=2.0)
+    # dpd.pair_coeff.set('B', 'B', A=1.0)
+    # \endcode
+    #
+    # \note %Pair coefficients for all type pairs in the simulation must be
+    # set before it can be started with run()
+    def __init__(self, r_cut, seed=1, name=None):
+        util.print_status_line();
+        
+        # tell the base class how we operate
+        
+        # initialize the base class
+        pair.__init__(self, r_cut, name);
+        
+        # update the neighbor list
+        neighbor_list = _update_global_nlist(r_cut);
+        neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
+        
+        # create the c++ mirror class
+        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+            self.cpp_force = hoomd.PotentialPairDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDT;
+        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+            neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
+            self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
+            self.cpp_class = hoomd.PotentialPairDPDGPU;
+            self.cpp_force.setBlockSize(64);
+        else:
+            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
+            raise RuntimeError("Error creating dpdthermo pair force");
+                
+        globals.system.addCompute(self.cpp_force, self.force_name);
+        
+        # setup the coefficent options
+        self.required_coeffs = ['A'];
+
+        
+    def process_coeff(self, coeff):
+        a = coeff['A'];
+        gamma = 0;
+        return hoomd.make_scalar2(a, gamma);     

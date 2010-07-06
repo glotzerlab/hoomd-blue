@@ -52,9 +52,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EvaluatorPairYukawa.h"
 #include "EvaluatorPairSLJ.h"
 #include "EvaluatorPairMorse.h"
+#include "EvaluatorPairDPDThermo.h"
+#include "PotentialPairDPDThermo.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
+#include "PotentialPairDPDThermoGPU.h"
+#include "PotentialPairDPDThermoGPU.cuh"
 #include "AllDriverPotentialPairGPU.cuh"
 #endif
 
@@ -76,6 +80,9 @@ typedef PotentialPair<EvaluatorPairSLJ> PotentialPairSLJ;
 typedef PotentialPair<EvaluatorPairYukawa> PotentialPairYukawa;
 //! Pair potential force compute for morse forces
 typedef PotentialPair<EvaluatorPairMorse> PotentialPairMorse;
+//! Pair potential force compute for dpd conservative forces
+typedef PotentialPair<EvaluatorPairDPDThermo> PotentialPairDPD;
+typedef PotentialPairDPDThermo<EvaluatorPairDPDThermo> PotentialPairDPDThermoDPD;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
@@ -88,6 +95,9 @@ typedef PotentialPairGPU< EvaluatorPairSLJ, gpu_compute_slj_forces > PotentialPa
 typedef PotentialPairGPU< EvaluatorPairYukawa, gpu_compute_yukawa_forces > PotentialPairYukawaGPU;
 //! Pair potential force compute for morse forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairMorse, gpu_compute_morse_forces > PotentialPairMorseGPU;
+//! Pair potential force compute for dpd conservative forces on the GPU
+typedef PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > PotentialPairDPDGPU;
+typedef PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > PotentialPairDPDThermoDPDGPU;
 #endif
 
 #endif // __PAIR_POTENTIALS_H__
