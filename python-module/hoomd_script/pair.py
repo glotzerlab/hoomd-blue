@@ -76,6 +76,7 @@ import util;
 import tune;
 import init;
 import data;
+import variant;
 
 import math;
 import sys;
