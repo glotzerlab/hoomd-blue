@@ -280,7 +280,7 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
             virial += float(1.0/6.0) * rsq * force_divr;
             
             // add up the force vector components (FLOPS: 7)
-            #if (__CUDA_ARCH__ < 200)
+            #if (__CUDA_ARCH__ >= 200)
             force.x += dx * force_divr;
             force.y += dy * force_divr;
             force.z += dz * force_divr;
