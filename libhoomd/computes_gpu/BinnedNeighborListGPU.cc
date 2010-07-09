@@ -163,11 +163,19 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
         exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_bin_data[cur_gpu].bin_size), Mx*My*Mz*sizeof(unsigned int)));
         
         cudaChannelFormatDesc idxlist_desc = cudaCreateChannelDesc< unsigned int >();
+        #if (CUDA_VERSION >= 3010)
+        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz, 0));
+        #else
         exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].idxlist_array, &idxlist_desc, Nmax, Mx*My*Mz));
+        #endif
         
         // allocate the bin adjacent list array
         cudaChannelFormatDesc bin_adj_desc = cudaCreateChannelDesc< int >();
+        #if (CUDA_VERSION >= 3010)
+        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].bin_adj_array, &bin_adj_desc, Mx*My*Mz, 27, 0));
+        #else
         exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].bin_adj_array, &bin_adj_desc, Mx*My*Mz, 27));
+        #endif
         }
         
     // allocate and zero host memory
@@ -261,7 +269,12 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
         
         exec_conf.gpu[cur_gpu]->setTag(__FILE__, __LINE__);
         cudaChannelFormatDesc coord_idxlist_desc = cudaCreateChannelDesc< float4 >();
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].coord_idxlist_array, &coord_idxlist_desc, m_gpu_bin_data[cur_gpu].coord_idxlist_width, Nmax));
+
+        #if (CUDA_VERSION >= 3010)
+        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].coord_idxlist_array, &coord_idxlist_desc, m_gpu_bin_data[cur_gpu].coord_idxlist_width, Nmax, 0));
+        #else
+        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocArray, &m_gpu_bin_data[cur_gpu].coord_idxlist_array, &coord_idxlist_desc, m_gpu_bin_data[cur_gpu].coord_idxlist_width, Nmax));        
+        #endif
         
         // assign allocated pitch
         m_gpu_bin_data[cur_gpu].Nmax = Nmax;

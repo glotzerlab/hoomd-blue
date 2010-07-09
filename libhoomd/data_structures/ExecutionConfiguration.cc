@@ -522,6 +522,10 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             // calculate a simple priority: multiprocessors * clock = speed, then subtract a bit if the device is
             // attached to a display
             float priority = float(dev_prop.clockRate * dev_prop.multiProcessorCount) / float(1e7);
+            // if the GPU is compute 2.x, multiply that by 4 as there are 4x more SPs in each MP
+            if (dev_prop.major == 2)
+                priority *= 4.0f;
+
 #if CUDART_VERSION > 2010
             if (dev_prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;
