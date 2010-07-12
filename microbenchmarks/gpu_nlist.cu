@@ -77,9 +77,9 @@ float g_Lx;
 float g_Ly;
 float g_Lz;
 float g_rcut;
-const unsigned int g_Nmax = 128;    // Maximum number of particles each cell can hold
+const unsigned int g_Nmax = 256;    // Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
-const unsigned int g_neigh_max = 256;
+const unsigned int g_neigh_max = 512;
 
 //*************** data structures
 float4 *gh_pos, *gd_pos;            // particle positions
@@ -128,6 +128,9 @@ void allocate_data()
     g_Mx = int((g_Lx) / (g_rcut));
     g_My = int((g_Ly) / (g_rcut));
     g_Mz = int((g_Lz) / (g_rcut));
+    g_Mx = std::min(g_Mx, (unsigned)30);
+    g_My = std::min(g_My, (unsigned)30);
+    g_Mz = std::min(g_Mz, (unsigned)30);
     
     // allocate bins
     unsigned int Nbins = g_Mx * g_My * g_Mz;
@@ -222,6 +225,7 @@ int my_float_as_int(float b)
 void initialize_data()
     {
     // initialize particles randomly
+    srand(100);
     for (unsigned int i = 0; i < g_N; i++)
         {
         gh_pos[i].x = float((rand())/float(RAND_MAX) - 0.5)*g_Lx;
@@ -855,7 +859,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_
     }
 
 // benchmark the device neighborlist
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_device_nlist()
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_device_nlist()
     {
     cudaArray *idxlist_coord_array;
     float4 *d_idxlist_coord;
@@ -895,7 +899,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_device
     if (!verify())
         {
         printf("Invalid results in device bmark!\n");
-        return;
+        return 0.0f;
         }
         
     // benchmarks
@@ -915,35 +919,112 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_device
     float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
     float avg_t = t/float(iters);
     
-    printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
-    printf("%f ms\n", avg_t);
+//    printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
+//    printf("%f ms\n", avg_t);
+    return avg_t;
     }
 
+void bmark_grid()
+    {
+    g_N = 64000;
+
+    std::vector<float> rcut_list;
+    std::vector<float> phi_list;
+
+    std::cout << "rcut = [";
+    for (float rcut = 1.0f; rcut < 4.0f; rcut += 0.1f)
+        {
+        rcut_list.push_back(rcut);
+        std::cout << rcut << " ";
+        }
+    std::cout << "];" << std::endl;
+    
+    std::cout << "phi = [";
+    for (float phi = 0.01f; phi < 1.5f; phi += 0.1f)
+        {
+        phi_list.push_back(phi);
+        std::cout << phi << " ";
+        }
+    std::cout << "];" << std::endl;
+
+    std::cout << "ntim = [";
+    for (unsigned int i = 0; i < rcut_list.size(); i++)
+        {
+        g_rcut = rcut_list[i];
+
+        for (unsigned int j = 0; j < phi_list.size(); j++)
+            {
+            float phi = phi_list[j];
+            float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
+            g_Lx = g_Ly = g_Lz = L;
+    
+            // setup
+            allocate_data();
+            initialize_data();
+            sort_data();
+    
+            // normally, data in HOOMD is not perfectly sorted:
+            for (unsigned int k = 0; k < 100; k++)
+                tweak_data();
+    
+            // prepare the binned data
+            rebin_particles_host(gh_idxlist_coord, gh_idxlist_coord_trans, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+            // copy it to the device
+            CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_array, 0, 0, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_trans_array, 0, 0, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord_trans, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaMemcpy(gd_bin_size, gh_bin_size, g_Mx*g_My*g_Mz*sizeof(unsigned int), cudaMemcpyHostToDevice));
+    
+            // generate the reference data
+            neighbor_particles_host<false, false>(gh_nlist_ref, gh_n_neigh_ref, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, gh_idxlist_coord, gh_bin_size, gh_bin_coords, gh_bin_adj, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+        
+            float time =  bmark_device_nlist<false, false>();
+            std::cout << time << " ";
+
+            free_data();
+            }
+        std::cout << ";" << std::endl;
+        }
+    std::cout << "];" << std::endl;
+    }
 
 int main(int argc, char **argv)
     {
-    // choose defaults if no args specified
+    bmark_grid();
+
+    #if 0
+    float phi;
     if (argc == 1)
         {
         g_N = 64000;
         g_rcut = 3.8f;
+        phi = 0.20f;
         }
     if (argc == 2)
         {
         g_N = atoi(argv[1]);
         g_rcut = 3.8f;
+        phi = 0.20f;
         }
     if (argc == 3)
         {
         g_N = atoi(argv[1]);
         g_rcut = atof(argv[2]);
+        phi = 0.20f;
+        }
+    if (argc == 4)
+        {
+        g_N = atoi(argv[1]);
+        g_rcut = atof(argv[2]);
+        phi = atof(argv[3]);
         }
         
-    float L = pow(float(M_PI/6.0)*float(g_N) / 0.20f, 1.0f/3.0f);
+    float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
     g_Lx = g_Ly = g_Lz = L;
     
     // setup
-    printf("Running gpu_nlist microbenchmark: %d %f\n", g_N, g_rcut);
+    printf("Running gpu_nlist microbenchmark: %d %f %f\n", g_N, g_rcut, phi);
     allocate_data();
     initialize_data();
     sort_data();
@@ -989,7 +1070,8 @@ int main(int argc, char **argv)
     bmark_device_nlist<true, true>();
     
     free_data();
-    
+    #endif
+
     return 0;
     }
 
