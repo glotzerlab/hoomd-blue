@@ -45,6 +45,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <sys/time.h>
+#include <algorithm>
+#include <vector>
 
 // safe call macros
 #define CUDA_SAFE_CALL( call) do {                                         \
@@ -221,8 +223,7 @@ void tweak_data()
 // sorts the data to mimic HOOMD's standard data pattern (sort of)
 void sort_data()
     {
-    printf("sorting....\n");
-    unsigned int * bin_list = (unsigned int*)malloc(sizeof(unsigned int) *g_N);
+    std::vector< std::pair<unsigned int, unsigned int> > bin_list(g_N);
     // make even bin dimensions
     float binx = g_Lx / float(g_Mx);
     float biny = g_Ly / float(g_My);
@@ -254,35 +255,22 @@ void sort_data()
             
         // update the bin
         unsigned int bin = ib*(g_Mz*g_My) + jb * g_Mz + kb;
-        bin_list[i] = bin;
+        bin_list[i] = std::pair<unsigned int, unsigned int>(bin, i);
         }
-        
-    bool swapped = false;
-    do
+    
+    std::sort(bin_list.begin(), bin_list.end());
+    float4 *tmp_pos = (float4*)malloc(sizeof(float4)*g_N);
+    memcpy(tmp_pos, gh_pos, sizeof(float4)*g_N);
+    
+    for (unsigned int i = 0; i < g_N; i++)
         {
-        swapped = false;
-        for (unsigned int i = 0; i < g_N-1; i++)
-            {
-            if (bin_list[i] > bin_list[i+1])
-                {
-                unsigned int tmp = bin_list[i+1];
-                bin_list[i+1] = bin_list[i];
-                bin_list[i] = tmp;
-                
-                float4 tmpf = gh_pos[i+1];
-                gh_pos[i+1] = gh_pos[i];
-                gh_pos[i] = tmpf;
-                swapped = true;
-                }
-            }
+        unsigned int j = bin_list[i].second;
+        gh_pos[i] = tmp_pos[j];
         }
-    while (swapped);
     
-    
-    free(bin_list);
+    free(tmp_pos);
     // update the data on the device
     cudaMemcpy(gd_pos, gh_pos, sizeof(float4)*g_N, cudaMemcpyHostToDevice);
-    printf("    done.\n");
     }
 
 __global__ void fast_memclear_kernal(unsigned int *d_data, unsigned int N)
