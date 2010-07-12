@@ -894,13 +894,13 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
     
     // copy results back
     CUDA_SAFE_CALL(cudaMemcpy(gh_n_neigh, gd_n_neigh, g_N*sizeof(unsigned int), cudaMemcpyDeviceToHost));
-    
+   
     // verify results
-    if (!verify())
+    /*if (!verify())
         {
         printf("Invalid results in device bmark!\n");
         return 0.0f;
-        }
+        }*/
         
     // benchmarks
     timeval start;
@@ -989,9 +989,80 @@ void bmark_grid()
     std::cout << "];" << std::endl;
     }
 
+void bmark_line()
+    {
+    g_N = 64000;
+
+    std::vector<float> rcut_list;
+    std::vector<float> n_neigh_list;
+    float phi = 1.57f;
+
+    std::cout << "rcut = [";
+    for (float rcut = 1.0f; rcut < 3.0f; rcut += 0.02f)
+        {
+        rcut_list.push_back(rcut);
+        std::cout << rcut << " ";
+        }
+    std::cout << "];" << std::endl;
+    
+    std::cout << "phi = " << phi << ";" << std::endl;
+
+    std::cout << "ntim = [";
+    for (unsigned int i = 0; i < rcut_list.size(); i++)
+        {
+        g_rcut = rcut_list[i];
+
+        float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
+        g_Lx = g_Ly = g_Lz = L;
+    
+        // setup
+        allocate_data();
+        initialize_data();
+        sort_data();
+    
+        // normally, data in HOOMD is not perfectly sorted:
+        //for (unsigned int k = 0; k < 100; k++)
+        //    tweak_data();
+    
+        // prepare the binned data
+        rebin_particles_host(gh_idxlist_coord, gh_idxlist_coord_trans, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+        // copy it to the device
+        CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_array, 0, 0, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_trans_array, 0, 0, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord_trans, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpy(gd_bin_size, gh_bin_size, g_Mx*g_My*g_Mz*sizeof(unsigned int), cudaMemcpyHostToDevice));
+    
+        // generate the reference data
+        neighbor_particles_host<false, false>(gh_nlist_ref, gh_n_neigh_ref, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, gh_idxlist_coord, gh_bin_size, gh_bin_coords, gh_bin_adj, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+        
+        float time =  bmark_device_nlist<false, false>();
+        std::cout << time << "; " << std::endl;
+            
+        // get the average number of neighbors
+        float avg_n_neigh = 0.0f;
+        for (unsigned int k = 0; k < g_N; k++)
+            {
+            avg_n_neigh += float(gh_n_neigh_ref[k]);
+            }
+        avg_n_neigh /= float(g_N);
+        n_neigh_list.push_back(avg_n_neigh);    
+
+        free_data();
+        }
+    std::cout << "];" << std::endl;
+    
+    std::cout << "avg_n_neigh = [";
+    for (unsigned int i = 0; i < n_neigh_list.size(); i++)
+        {
+        std::cout << n_neigh_list[i] << " ";
+        }
+    std::cout << "];" << std::endl;
+    }
+
 int main(int argc, char **argv)
     {
-    bmark_grid();
+    bmark_line();
 
     #if 0
     float phi;
