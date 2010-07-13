@@ -534,8 +534,8 @@ float bmark_simple_rebinning()
         return 0.0f;
         }
         
-    //printf("GPU/simple          : ");
-    //printf("%f ms\n", avg_t);
+    printf("GPU/simple          : ");
+    printf("%f ms\n", avg_t);
     return avg_t;
     }
 
@@ -1086,10 +1086,10 @@ void bmark_grid()
 
 int main(int argc, char **argv)
     {
-    bmark_grid();
+    //bmark_grid();
 
     // choose defaults if no args specified
-    /*float phi;
+    float phi;
     if (argc == 1)
         {
         g_N = 64000;
@@ -1129,19 +1129,19 @@ int main(int argc, char **argv)
         tweak_data();
         
     // run the various benchmarks
-    //bmark_host_rebinning(false);
+    bmark_host_rebinning(false);
     //bmark_host_rebinning(true);
 #if CUDA_ARCH >= 11
     bmark_simple_rebinning();
-    bmark_simple_sort_rebinning(32);
+    /*bmark_simple_sort_rebinning(32);
     bmark_simple_sort_rebinning(64);
     bmark_simple_sort_rebinning(128);
     bmark_simple_sort_rebinning(256);
     bmark_simple_sort_rebinning(512);
-    bmark_simple_updating();
+    bmark_simple_updating();*/
 #endif
     
-    free_data();*/
+    free_data();
     
     return 0;
     }

@@ -77,7 +77,7 @@ float g_Lx;
 float g_Ly;
 float g_Lz;
 float g_rcut;
-const unsigned int g_Nmax = 256;    // Maximum number of particles each cell can hold
+const unsigned int g_Nmax = 64;    // Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
 const unsigned int g_neigh_max = 512;
 
@@ -131,9 +131,10 @@ void allocate_data()
     g_Mx = std::min(g_Mx, (unsigned)30);
     g_My = std::min(g_My, (unsigned)30);
     g_Mz = std::min(g_Mz, (unsigned)30);
-    
+
     // allocate bins
     unsigned int Nbins = g_Mx * g_My * g_Mz;
+    std::cout << "Allocating " << g_Mx << "x" << g_My << "x" << g_Mz << " = " << Nbins << " bins" << std::endl;
     gh_idxlist_coord = (float4 *)malloc(Nbins * g_Nmax * sizeof(float4));
     gh_idxlist_coord_trans = (float4 *)malloc(Nbins * g_Nmax * sizeof(float4));
     cudaChannelFormatDesc channelDescFloat4 = cudaCreateChannelDesc<float4>();
@@ -919,8 +920,8 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
     float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
     float avg_t = t/float(iters);
     
-//    printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
-//    printf("%f ms\n", avg_t);
+    printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
+    printf("%f ms\n", avg_t);
     return avg_t;
     }
 
@@ -1062,9 +1063,8 @@ void bmark_line()
 
 int main(int argc, char **argv)
     {
-    bmark_line();
+//    bmark_line();
 
-    #if 0
     float phi;
     if (argc == 1)
         {
@@ -1141,7 +1141,6 @@ int main(int argc, char **argv)
     bmark_device_nlist<true, true>();
     
     free_data();
-    #endif
 
     return 0;
     }
