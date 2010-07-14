@@ -251,16 +251,17 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
             dz = dz - box.Lz * rintf(dz * box.Lzinv);
             
             // test for same rigid body exclusion
+            int not_excluded = 1;
             if (exclude_same_body && my_body != NO_BODY)
                 {
                 unsigned int bodyj = tex1Dfetch(pdata_body_tex, cur_neigh);
                 if (my_body == bodyj)
-                    continue;
+                    not_excluded = 0;
                 }
 
             // FLOPS: 5
             float dr = dx*dx + dy*dy + dz*dz;
-            int not_excluded = (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
+            not_excluded = not_excluded & (exclude.x != cur_neigh) & (exclude.y != cur_neigh) & (exclude.z != cur_neigh) & (exclude.w != cur_neigh);
 #if defined(LARGE_EXCLUSION_LIST)
             not_excluded &= (exclude2.x != cur_neigh) & (exclude2.y != cur_neigh) & (exclude2.z != cur_neigh) & (exclude2.w != cur_neigh);
             not_excluded &= (exclude3.x != cur_neigh) & (exclude3.y != cur_neigh) & (exclude3.z != cur_neigh) & (exclude3.w != cur_neigh);
