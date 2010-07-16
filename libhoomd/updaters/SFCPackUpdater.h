@@ -121,6 +121,9 @@ class SFCPackUpdater : public Updater
         
         //! Apply the sorted order to the particle data
         void applySortOrder();
+
+        //! Write traversal order out for visualization
+        void writeTraversalOrder(const std::string& fname, const vector< unsigned int >& reverse_order);
         
     };
 
