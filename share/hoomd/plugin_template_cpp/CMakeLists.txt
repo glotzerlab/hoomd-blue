@@ -18,11 +18,11 @@ add_subdirectory(doc)
 
 # overide the CMAKE_INSTALL_PREFIX on the first run to the env HOOMD_PLUGINS_DIR if defined or ${HOOMD_ROOT}
 # ${HOOMD_ROOT} will likely be the most common installation directory, but users may want to override
-if(ENV{HOOMD_PLUGINS_DIR})
-    set(_default_install_path ENV{HOOMD_PLUGINS_DIR})
-else(ENV{HOOMD_PLUGINS_DIR})
+if(DEFINED HOOMD_PLUGINS_DIR)
+    set(_default_install_path ${HOOMD_PLUGINS_DIR})
+else(DEFINED HOOMD_PLUGINS_DIR)
     set(_default_install_path ${HOOMD_ROOT}/lib/hoomd/python-module)
-endif(ENV{HOOMD_PLUGINS_DIR})
+endif(DEFINED HOOMD_PLUGINS_DIR)
 
 if (NOT _first_run)
     if (HOOMD_FOUND)
