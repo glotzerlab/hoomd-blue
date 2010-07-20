@@ -446,8 +446,6 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
         float body_mass;
         float4 moment_inertia, com, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
         int body_imagex, body_imagey, body_imagez;
-        
-        float4 mbody, tbody, fquat;
         float dt_half = 0.5 * deltaT;
         
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
@@ -470,7 +468,7 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
             
             // update velocity
-            float dtfm = (1.0f/2.0f) * deltaT / body_mass;
+            float dtfm = dt_half / body_mass;
             
             float4 vel2;
             vel2.x = vel.x + dtfm * force.x;
@@ -498,12 +496,24 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             float z_shift = rintf(pos2.z * box.Lzinv);
             pos2.z -= box.Lz * z_shift;
             body_imagez += (int)z_shift;
-       
-       /*   Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU
-       
+
+            // update the angular momentum
+            float4 angmom2;
+            angmom2.x = angmom.x + dt_half * torque.x;
+            angmom2.y = angmom.y + dt_half * torque.y;
+            angmom2.z = angmom.z + dt_half * torque.z;
+            angmom2.w = 0.0;
+            
+            float4 angvel2;
+            advanceQuaternion(angmom2, moment_inertia, angvel2, ex_space, ey_space, ez_space, orientation, deltaT);
+            
+       //   Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU
+       /*
+            float4 mbody, tbody, fquat;
+            
             matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
             quat_multiply(orientation, tbody, fquat);
-            
+
             float4 conjqm2;
             conjqm2.x = conjqm.x + deltaT * fquat.x;
             conjqm2.y = conjqm.y + deltaT * fquat.y;
@@ -529,18 +539,11 @@ extern "C" __global__ void gpu_nve_rigid_step_one_body_kernel(float4* rdata_com,
             angmom2.x *= 0.5;
             angmom2.y *= 0.5;
             angmom2.z *= 0.5;
+            angmom2.w = 0.0;
             
             float4 angvel2;
             computeAngularVelocity(angmom2, moment_inertia, ex_space, ey_space, ez_space, angvel2);
-       */
-            // update the angular momentum
-            float4 angmom2;
-            angmom2.x = angmom.x + (1.0f/2.0f) * deltaT * torque.x;
-            angmom2.y = angmom.y + (1.0f/2.0f) * deltaT * torque.y;
-            angmom2.z = angmom.z + (1.0f/2.0f) * deltaT * torque.z;
-            
-            float4 angvel2;
-            advanceQuaternion(angmom2, moment_inertia, angvel2, ex_space, ey_space, ez_space, orientation, deltaT);
+        */
             
             // write out the results (MEM_TRANSFER: ? bytes)
             rdata_com[idx_body] = pos2;
@@ -1443,7 +1446,7 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
         {
         float body_mass;
         float4 moment_inertia, vel, angmom, orientation, ex_space, ey_space, ez_space, force, torque, conjqm;
-        float4 mbody, tbody, fquat;
+        float dt_half = 0.5 * deltaT;
         
         unsigned int idx_body = tex1Dfetch(rigid_data_body_indices_tex, group_idx);
             
@@ -1464,14 +1467,16 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
             orientation = tex1Dfetch(rigid_data_orientation_tex, idx_body);
             conjqm = tex1Dfetch(rigid_data_conjqm_tex, idx_body);
             
-            float dtfm = (1.0f/2.0f) * deltaT / body_mass;
+            float dtfm = dt_half / body_mass;
             float4 vel2;
             vel2.x = vel.x + dtfm * force.x;
             vel2.y = vel.y + dtfm * force.y;
             vel2.z = vel.z + dtfm * force.z;
             vel2.w = 0.0;
-            
-         /* Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU  
+
+         // Unresolved issue: Sympletic quaternion scheme shows energy dissipation on GPU  
+         /*
+            float4 mbody, tbody, fquat;
             
             // update angular momentum
             matrix_dot(ex_space, ey_space, ez_space, torque, tbody);
@@ -1493,9 +1498,9 @@ extern "C" __global__ void gpu_nve_rigid_step_two_body_kernel(float4* rdata_vel,
         */
             // update angular momentum
             float4 angmom2;
-            angmom2.x = angmom.x + (1.0f/2.0f) * deltaT * torque.x;
-            angmom2.y = angmom.y + (1.0f/2.0f) * deltaT * torque.y;
-            angmom2.z = angmom.z + (1.0f/2.0f) * deltaT * torque.z;
+            angmom2.x = angmom.x + dt_half * torque.x;
+            angmom2.y = angmom.y + dt_half * torque.y;
+            angmom2.z = angmom.z + dt_half * torque.z;
             angmom2.w = 0.0;
             
             // update angular velocity        

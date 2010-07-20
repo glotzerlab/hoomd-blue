@@ -435,7 +435,16 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
             com_handle.data[body].z += Lz;
             body_imagez_handle.data[body]--;
             }
-            
+           
+        // update the angular momentum
+        angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
+        angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
+        angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+        
+        // update quaternion and angular velocity
+        advanceQuaternion(angmom_handle.data[body], moment_inertia_handle.data[body], angvel_handle.data[body],
+                          ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], orientation_handle.data[body]);
+/*
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
         quat_multiply(orientation_handle.data[body], tbody, fquat);
         
@@ -466,6 +475,7 @@ void TwoStepNVERigid::integrateStepOne(unsigned int timestep)
         
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                                ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
+*/
         }
     } // out of scope for handles
         
@@ -552,7 +562,12 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         vel_handle.data[body].y += dtfm * force_handle.data[body].y;
         vel_handle.data[body].z += dtfm * force_handle.data[body].z;
         
+        angmom_handle.data[body].x += dt_half * torque_handle.data[body].x;
+        angmom_handle.data[body].y += dt_half * torque_handle.data[body].y;
+        angmom_handle.data[body].z += dt_half * torque_handle.data[body].z;
+            
         // update conjqm, then transform to angmom, set velocity
+   /* 
         matrix_dot(ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], torque_handle.data[body], tbody);
         quat_multiply(orientation_handle.data[body], tbody, fquat);
         
@@ -567,7 +582,7 @@ void TwoStepNVERigid::integrateStepTwo(unsigned int timestep)
         angmom_handle.data[body].x *= 0.5;
         angmom_handle.data[body].y *= 0.5;
         angmom_handle.data[body].z *= 0.5;
-        
+   */     
         computeAngularVelocity(angmom_handle.data[body], moment_inertia_handle.data[body],
                                ex_space_handle.data[body], ey_space_handle.data[body], ez_space_handle.data[body], angvel_handle.data[body]);
         }
@@ -1006,6 +1021,67 @@ void TwoStepNVERigid::computeAngularVelocity(Scalar4& angmom, Scalar4& moment_in
     angvel.z = angbody[0] * ex_space.z + angbody[1] * ey_space.z + angbody[2] * ez_space.z;
     }
 
+// Advance the quaternion using angular momentum and angular velocity
+/*  \param angmom Angular momentum
+    \param moment_inerta Moment of inertia
+    \param angvel Returned angular velocity
+    \param ex_space x-axis unit vector
+    \param ey_space y-axis unit vector
+    \param ez_space z-axis unit vector
+    \param quat Returned quaternion
+
+*/
+void TwoStepNVERigid::advanceQuaternion(Scalar4& angmom, Scalar4 &moment_inertia, Scalar4 &angvel,
+                                        Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space, Scalar4 &quat)
+    {
+    Scalar4 qhalf, qfull, omegaq;
+    Scalar dtq = 0.5 * m_deltaT;
+    
+    computeAngularVelocity(angmom, moment_inertia, ex_space, ey_space, ez_space, angvel);
+    
+    // Compute (w q)
+    vec_multiply(angvel, quat, omegaq);
+    
+    // Full update q from dq/dt = 1/2 w q
+    qfull.x = quat.x + dtq * omegaq.x;
+    qfull.y = quat.y + dtq * omegaq.y;
+    qfull.z = quat.z + dtq * omegaq.z;
+    qfull.w = quat.w + dtq * omegaq.w;
+    normalize(qfull);
+    
+    // 1st half update from dq/dt = 1/2 w q
+    qhalf.x = quat.x + 0.5 * dtq * omegaq.x;
+    qhalf.y = quat.y + 0.5 * dtq * omegaq.y;
+    qhalf.z = quat.z + 0.5 * dtq * omegaq.z;
+    qhalf.w = quat.w + 0.5 * dtq * omegaq.w;
+    normalize(qhalf);
+    
+    // Udpate ex, ey, ez from qhalf = update A
+    exyzFromQuaternion(qhalf, ex_space, ey_space, ez_space);
+    
+    // Compute angular velocity from new ex_space, ey_space and ex_space
+    computeAngularVelocity(angmom, moment_inertia, ex_space, ey_space, ez_space, angvel);
+    
+    // Compute (w qhalf)
+    vec_multiply(angvel, qhalf, omegaq);
+    
+    // 2nd half update from dq/dt = 1/2 w q
+    qhalf.x += 0.5 * dtq * omegaq.x;
+    qhalf.y += 0.5 * dtq * omegaq.y;
+    qhalf.z += 0.5 * dtq * omegaq.z;
+    qhalf.w += 0.5 * dtq * omegaq.w;
+    normalize(qhalf);
+    
+    // Corrected Richardson update
+    quat.x = 2.0 * qhalf.x - qfull.x;
+    quat.y = 2.0 * qhalf.y - qfull.y;
+    quat.z = 2.0 * qhalf.z - qfull.z;
+    quat.w = 2.0 * qhalf.w - qfull.w;
+    normalize(quat);
+    
+    exyzFromQuaternion(quat, ex_space, ey_space, ez_space);
+    }
+    
 /*! Apply evolution operators to quat, quat momentum (see ref. Miller)
     \param k Direction
     \param p Thermostat angular momentum conjqm
@@ -1077,6 +1153,20 @@ void TwoStepNVERigid::no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, S
     normalize(q);
     }
 
+// Quaternion multiply: c = a * b where a = (0, a)
+/*  \param a Quaternion
+    \param b Quaternion
+    \param c Returned quaternion
+*/
+
+void TwoStepNVERigid::vec_multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c)
+    {
+    c.x = -(a.x * b.y + a.y * b.z + a.z * b.w);
+    c.y =   b.x * a.x + a.y * b.w - a.z * b.z;
+    c.z =   b.x * a.y + a.z * b.y - a.x * b.w;
+    c.w =   b.x * a.z + a.x * b.z - a.y * b.y;
+    }
+    
 /*! Quaternion multiply: c = a * b 
     \param a Quaternion
     \param b A three component vector

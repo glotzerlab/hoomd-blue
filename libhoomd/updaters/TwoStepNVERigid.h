@@ -103,8 +103,14 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Compute angular velocity from angular momentum and rotation matrix
         void computeAngularVelocity(Scalar4 &angmom, Scalar4 &moment_inertia, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space,Scalar4 &angvel);
         
-        //! Update thermostat momenta and positions
+        //! Update quaternion using the Richardson iteration
+        void advanceQuaternion(Scalar4& angmom, Scalar4 &moment_inertia, Scalar4 &angvel, Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space, Scalar4 &quat);
+                                        
+        //! Update quaternion momenta
         void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt);
+    
+        //! Vector-quaternion multiply
+        void vec_multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c);
         
         //! Quaternion multiply
         void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
