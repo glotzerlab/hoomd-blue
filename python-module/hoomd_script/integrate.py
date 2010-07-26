@@ -154,6 +154,16 @@ class _integrator:
                 
             if f.enabled:
                 self.cpp_integrator.addForceCompute(f.cpp_force);
+        
+        # set the constraint forces
+        for f in globals.constraint_forces:
+            if f.cpp_force is None:
+                print >> sys.stderr, "\nBug in hoomd_script: cpp_force not set, please report\n";
+                raise RuntimeError('Error updating forces');
+
+            if f.enabled:
+                self.cpp_integrator.addForceConstraint(f.cpp_force);
+            
     
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class

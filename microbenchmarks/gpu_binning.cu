@@ -45,6 +45,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <sys/time.h>
+#include <algorithm>
+#include <vector>
+#include <iostream>
 
 // safe call macros
 #define CUDA_SAFE_CALL( call) do {                                         \
@@ -71,7 +74,7 @@ float g_Lx;
 float g_Ly;
 float g_Lz;
 float g_rcut;
-const unsigned int g_Nmax = 128;    // Maximum number of particles each cell can hold
+const unsigned int g_Nmax = 256;    // Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
 
 //*************** data structures
@@ -104,7 +107,10 @@ void allocate_data()
     g_Mx = int((g_Lx) / (g_rcut));
     g_My = int((g_Ly) / (g_rcut));
     g_Mz = int((g_Lz) / (g_rcut));
-    
+    g_Mx = std::min(g_Mx, (unsigned)30);
+    g_My = std::min(g_My, (unsigned)30);
+    g_Mz = std::min(g_Mz, (unsigned)30);
+
     // allocate bins
     unsigned int Nbins = g_Mx * g_My * g_Mz;
     gh_idxlist = (unsigned int *)malloc(Nbins * g_Nmax * sizeof(unsigned int));
@@ -221,8 +227,7 @@ void tweak_data()
 // sorts the data to mimic HOOMD's standard data pattern (sort of)
 void sort_data()
     {
-    printf("sorting....\n");
-    unsigned int * bin_list = (unsigned int*)malloc(sizeof(unsigned int) *g_N);
+    std::vector< std::pair<unsigned int, unsigned int> > bin_list(g_N);
     // make even bin dimensions
     float binx = g_Lx / float(g_Mx);
     float biny = g_Ly / float(g_My);
@@ -254,35 +259,22 @@ void sort_data()
             
         // update the bin
         unsigned int bin = ib*(g_Mz*g_My) + jb * g_Mz + kb;
-        bin_list[i] = bin;
+        bin_list[i] = std::pair<unsigned int, unsigned int>(bin, i);
         }
-        
-    bool swapped = false;
-    do
+    
+    std::sort(bin_list.begin(), bin_list.end());
+    float4 *tmp_pos = (float4*)malloc(sizeof(float4)*g_N);
+    memcpy(tmp_pos, gh_pos, sizeof(float4)*g_N);
+    
+    for (unsigned int i = 0; i < g_N; i++)
         {
-        swapped = false;
-        for (unsigned int i = 0; i < g_N-1; i++)
-            {
-            if (bin_list[i] > bin_list[i+1])
-                {
-                unsigned int tmp = bin_list[i+1];
-                bin_list[i+1] = bin_list[i];
-                bin_list[i] = tmp;
-                
-                float4 tmpf = gh_pos[i+1];
-                gh_pos[i+1] = gh_pos[i];
-                gh_pos[i] = tmpf;
-                swapped = true;
-                }
-            }
+        unsigned int j = bin_list[i].second;
+        gh_pos[i] = tmp_pos[j];
         }
-    while (swapped);
     
-    
-    free(bin_list);
+    free(tmp_pos);
     // update the data on the device
     cudaMemcpy(gd_pos, gh_pos, sizeof(float4)*g_N, cudaMemcpyHostToDevice);
-    printf("    done.\n");
     }
 
 __global__ void fast_memclear_kernal(unsigned int *d_data, unsigned int N)
@@ -493,7 +485,7 @@ void rebin_particles_simple(unsigned int *idxlist, unsigned int *bin_size, float
     }
 
 // benchmark the device rebinning
-void bmark_simple_rebinning()
+float bmark_simple_rebinning()
     {
     // warm up
     rebin_particles_simple(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
@@ -506,7 +498,7 @@ void bmark_simple_rebinning()
     if (!verify())
         {
         printf("Invalid results in GPU/simple bmark!\n");
-        return;
+        return 0.0f;
         }
         
     // benchmarks
@@ -539,11 +531,12 @@ void bmark_simple_rebinning()
     if (!verify())
         {
         printf("Invalid results at end of GPU/simple bmark!\n");
-        return;
+        return 0.0f;
         }
         
     printf("GPU/simple          : ");
     printf("%f ms\n", avg_t);
+    return avg_t;
     }
 
 
@@ -1037,8 +1030,64 @@ void bmark_simple_updating()
 
 #endif
 
+void bmark_grid()
+    {
+    g_N = 64000;
+
+    std::vector<float> rcut_list;
+    std::vector<float> phi_list;
+
+    std::cout << "rcut = [";
+    for (float rcut = 1.0f; rcut < 4.0f; rcut += 0.1f)
+        {
+        rcut_list.push_back(rcut);
+        std::cout << rcut << " ";
+        }
+    std::cout << "];" << std::endl;
+    
+    std::cout << "phi = [";
+    for (float phi = 0.01f; phi < 1.5f; phi += 0.1f)
+        {
+        phi_list.push_back(phi);
+        std::cout << phi << " ";
+        }
+    std::cout << "];" << std::endl;
+
+    std::cout << "btim = [";
+    for (unsigned int i = 0; i < rcut_list.size(); i++)
+        {
+        g_rcut = rcut_list[i];
+
+        for (unsigned int j = 0; j < phi_list.size(); j++)
+            {
+            float phi = phi_list[j];;
+            float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
+            g_Lx = g_Ly = g_Lz = L;
+    
+            // setup
+            allocate_data();
+            initialize_data();
+            sort_data();
+    
+            // normally, data in HOOMD is not perfectly sorted:
+            for (unsigned int k = 0; k < 100; k++)
+                tweak_data();
+        
+            float time = bmark_simple_rebinning();
+            std::cout << time << " ";
+
+            free_data();
+            }
+        std::cout << ";" << std::endl;
+        }
+    std::cout << "];" << std::endl;
+    }
+
+
 int main(int argc, char **argv)
     {
+    //bmark_grid();
+
     // choose defaults if no args specified
     float phi;
     if (argc == 1)
@@ -1081,15 +1130,15 @@ int main(int argc, char **argv)
         
     // run the various benchmarks
     bmark_host_rebinning(false);
-    bmark_host_rebinning(true);
+    //bmark_host_rebinning(true);
 #if CUDA_ARCH >= 11
     bmark_simple_rebinning();
-    bmark_simple_sort_rebinning(32);
+    /*bmark_simple_sort_rebinning(32);
     bmark_simple_sort_rebinning(64);
     bmark_simple_sort_rebinning(128);
     bmark_simple_sort_rebinning(256);
     bmark_simple_sort_rebinning(512);
-    bmark_simple_updating();
+    bmark_simple_updating();*/
 #endif
     
     free_data();

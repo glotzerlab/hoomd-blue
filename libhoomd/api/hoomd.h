@@ -44,7 +44,6 @@
 #include "ForceCompute.h"
 #include "NeighborList.h"
 #include "BinnedNeighborList.h"
-#include "TempCompute.h"
 #include "ConstForceCompute.h"
 
 #ifdef ENABLE_CUDA
@@ -127,7 +126,6 @@
 #include "FileFormatProxy.h"
 #include "GPUWorker.h"
 #include "Index1D.h"
-#include "IndexTransform.h"
 #include "MolFilePlugin.h"
 #include "Profiler.h"
 #include "SignalHandler.h"

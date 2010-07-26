@@ -74,7 +74,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     The per particle potential energy is defined such that \f$ \sum_i^N \mathrm{pe}_i = V_{\mathrm{total}} \f$
 
     The per particle virial is defined such that 
-    \f$ \sum_i^N \mathrm{virial}_i = -\frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
+    \f$ \sum_i^N \mathrm{virial}_i = \frac{1}{3} \sum_i^N \sum_{j>i} \vec{r}_{ij} \cdot \vec{f}_{ij} \f$
 
     \ingroup data_structs
 */
@@ -160,6 +160,12 @@ class ForceCompute : public Compute
         //! Access the computed force data on the GPU
         vector<ForceDataArraysGPU>& acquireGPU();
 #endif
+
+        //! Store the timestep size
+        virtual void setDeltaT(Scalar dt)
+            {
+            m_deltaT = dt;
+            }
         
         //! Computes the forces
         virtual void compute(unsigned int timestep);
@@ -217,6 +223,8 @@ class ForceCompute : public Compute
 
         //! Allocates the force and virial partial data
         void allocateThreadPartial();
+        
+        Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
             
         Scalar * __restrict__ m_fx;     //!< x-component of the force
         Scalar * __restrict__ m_fy;     //!< y-component of the force
