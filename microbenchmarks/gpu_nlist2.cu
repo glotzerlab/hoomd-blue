@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id$
-// $URL$
+// $Id: gpu_nlist.cu 3212 2010-07-13 15:39:48Z joaander $
+// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/microbenchmarks/gpu_nlist.cu $
 // Maintainer: joaander
 
 #include <stdio.h>
@@ -77,7 +77,7 @@ float g_Lx;
 float g_Ly;
 float g_Lz;
 float g_rcut;
-const unsigned int g_Nmax = 64;    // Maximum number of particles each cell can hold
+const unsigned int g_Nmax = 16;    // Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
 const unsigned int g_neigh_max = 512;
 
@@ -125,9 +125,9 @@ void allocate_data()
     CUDA_SAFE_CALL(cudaMalloc((void**)&gd_pos, sizeof(float4) * g_N));
     
     // determine grid dimensions
-    g_Mx = int((g_Lx) / (g_rcut));
-    g_My = int((g_Ly) / (g_rcut));
-    g_Mz = int((g_Lz) / (g_rcut));
+    g_Mx = int((g_Lx) / (g_rcut/2.0f));
+    g_My = int((g_Ly) / (g_rcut/2.0f));
+    g_Mz = int((g_Lz) / (g_rcut/2.0f));
     g_Mx = std::min(g_Mx, (unsigned)30);
     g_My = std::min(g_My, (unsigned)30);
     g_Mz = std::min(g_Mz, (unsigned)30);
@@ -147,13 +147,13 @@ void allocate_data()
     CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_size, Nbins * g_Nmax * sizeof(unsigned int)));
     
     // allocate adjancency arrays
-    gh_bin_adj = (unsigned int *)malloc(Nbins * 27 * sizeof(unsigned int));
-    gh_bin_adj_trans = (unsigned int *)malloc(Nbins * 27 * sizeof(unsigned int));
+    gh_bin_adj = (unsigned int *)malloc(Nbins * 125 * sizeof(unsigned int));
+    gh_bin_adj_trans = (unsigned int *)malloc(Nbins * 125 * sizeof(unsigned int));
     cudaChannelFormatDesc channelDescUint = cudaCreateChannelDesc<unsigned int>();
-    CUDA_SAFE_CALL(cudaMallocArray(&gd_bin_adj_array, &channelDescUint,  27, Nbins));
-    CUDA_SAFE_CALL(cudaMallocArray(&gd_bin_adj_trans_array, &channelDescUint, Nbins, 27));
-    CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_adj, Nbins * 27 * sizeof(unsigned int)));
-    CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_adj_trans, Nbins * 27 * sizeof(unsigned int)));
+    CUDA_SAFE_CALL(cudaMallocArray(&gd_bin_adj_array, &channelDescUint,  125, Nbins));
+    CUDA_SAFE_CALL(cudaMallocArray(&gd_bin_adj_trans_array, &channelDescUint, Nbins, 125));
+    CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_adj, Nbins * 125 * sizeof(unsigned int)));
+    CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_adj_trans, Nbins * 125 * sizeof(unsigned int)));
     
     gh_bin_coords = (uint4*)malloc(Nbins*sizeof(uint4));
     CUDA_SAFE_CALL(cudaMalloc((void**)&gd_bin_coords, Nbins*sizeof(uint4)));
@@ -245,8 +245,8 @@ void initialize_data()
     
     CUDA_SAFE_CALL(cudaMemset(gd_bin_size, 0, sizeof(unsigned int)*g_Mx*g_My*g_Mz));
     
-    memset(gh_bin_adj, 0, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27);
-    memset(gh_bin_adj_trans, 0, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27);
+    memset(gh_bin_adj, 0, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125);
+    memset(gh_bin_adj_trans, 0, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125);
     
     // initialize the bin coords
     for (unsigned int i = 0; i < g_Mx; i++)
@@ -264,7 +264,7 @@ void initialize_data()
         int cntr_k = (int)gh_bin_coords[bin].z;
         
         unsigned int count = 0;
-        for (int i = cntr_i-1; i <= cntr_i+1; i++)
+        for (int i = cntr_i-2; i <= cntr_i+2; i++)
             {
             int cur_i = i;
             if (cur_i < 0)
@@ -272,7 +272,7 @@ void initialize_data()
             if (cur_i >= (int)g_Mx)
                 cur_i -= g_Mx;
                 
-            for (int j = cntr_j-1; j <= cntr_j+1; j++)
+            for (int j = cntr_j-2; j <= cntr_j+2; j++)
                 {
                 int cur_j = j;
                 if (cur_j < 0)
@@ -280,7 +280,7 @@ void initialize_data()
                 if (cur_j >= (int)g_My)
                     cur_j -= g_My;
                     
-                for (int k = cntr_k-1; k <= cntr_k+1; k++)
+                for (int k = cntr_k-2; k <= cntr_k+2; k++)
                     {
                     int cur_k = k;
                     if (cur_k < 0)
@@ -289,7 +289,7 @@ void initialize_data()
                         cur_k -= g_Mz;
                         
                     unsigned int neigh_bin = cur_i*(g_Mz*g_My) + cur_j * g_Mz + cur_k;
-                    gh_bin_adj[27*bin + count] = neigh_bin;
+                    gh_bin_adj[125*bin + count] = neigh_bin;
                     gh_bin_adj_trans[g_Mx*g_My*g_Mz*count + bin] = neigh_bin;
                     count++;
                     }
@@ -297,10 +297,10 @@ void initialize_data()
             }
         }
         
-    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_array, 0, 0, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_trans_array, 0, 0, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_adj, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_adj_trans, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_array, 0, 0, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_trans_array, 0, 0, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_adj, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_adj_trans, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125, cudaMemcpyHostToDevice));
 
     memset(gh_nlist, 0, sizeof(unsigned int)*g_nlist_pitch*g_neigh_max);
     memset(gh_n_neigh, 0, sizeof(unsigned int)*g_N);
@@ -412,10 +412,10 @@ void sort_bin_adj()
     /*// print out some bins
     unsigned int start_bin = 200;
     unsigned int end_bin = start_bin+32;
-    for (int i = 0; i < 27; i++)
+    for (int i = 0; i < 125; i++)
         {
         for (int cur_bin = start_bin; cur_bin < end_bin; cur_bin++)
-            cout << setw(4) << gh_bin_adj[27*cur_bin + i] << " ";
+            cout << setw(4) << gh_bin_adj[125*cur_bin + i] << " ";
         cout << endl;
         }
     cout << endl;*/
@@ -427,13 +427,13 @@ void sort_bin_adj()
         do
             {
             swapped = false;
-            for (unsigned int i = 0; i < 27-1; i++)
+            for (unsigned int i = 0; i < 125-1; i++)
                 {
-                if (gh_bin_adj[27*cur_bin + i] > gh_bin_adj[27*cur_bin + i+1])
+                if (gh_bin_adj[125*cur_bin + i] > gh_bin_adj[125*cur_bin + i+1])
                     {
-                    unsigned int tmp = gh_bin_adj[27*cur_bin + i+1];
-                    gh_bin_adj[27*cur_bin + i+1] = gh_bin_adj[27*cur_bin + i];
-                    gh_bin_adj[27*cur_bin + i] = tmp;
+                    unsigned int tmp = gh_bin_adj[125*cur_bin + i+1];
+                    gh_bin_adj[125*cur_bin + i+1] = gh_bin_adj[125*cur_bin + i];
+                    gh_bin_adj[125*cur_bin + i] = tmp;
                     swapped = true;
                     }
                 }
@@ -442,10 +442,10 @@ void sort_bin_adj()
         
         }
         
-    /*for (int i = 0; i < 27; i++)
+    /*for (int i = 0; i < 125; i++)
         {
         for (int cur_bin = start_bin; cur_bin < end_bin; cur_bin++)
-            cout << setw(4) << gh_bin_adj[27*cur_bin + i] << " ";
+            cout << setw(4) << gh_bin_adj[125*cur_bin + i] << " ";
         cout << endl;
         }*/
         
@@ -456,7 +456,7 @@ void sort_bin_adj()
         do
             {
             swapped = false;
-            for (unsigned int i = 0; i < 27-1; i++)
+            for (unsigned int i = 0; i < 125-1; i++)
                 {
                 if (gh_bin_adj_trans[nbins*i + cur_bin] > gh_bin_adj_trans[nbins*(i+1) + cur_bin])
                     {
@@ -473,8 +473,8 @@ void sort_bin_adj()
         
         
         
-    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_array, 0, 0, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_trans_array, 0, 0, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*27, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_array, 0, 0, gh_bin_adj, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpyToArray(gd_bin_adj_trans_array, 0, 0, gh_bin_adj_trans, sizeof(unsigned int)*g_Mx*g_My*g_Mz*125, cudaMemcpyHostToDevice));
     }
 
 __global__ void fast_memclear_kernal(unsigned int *d_data, unsigned int N)
@@ -598,13 +598,13 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void neighbor_par
         unsigned int bin = ib*(Mz*My) + jb * Mz + kb;
         
         // loop through all neighboring bins
-        for (unsigned int cur_bin_idx = 0; cur_bin_idx < 27; cur_bin_idx++)
+        for (unsigned int cur_bin_idx = 0; cur_bin_idx < 125; cur_bin_idx++)
             {
             unsigned int neigh_bin;
             if (transpose_bin_adj)
                 neigh_bin = bin_adj[Mx*My*Mz*cur_bin_idx + bin];
             else
-                neigh_bin = bin_adj[27*bin + cur_bin_idx];
+                neigh_bin = bin_adj[125*bin + cur_bin_idx];
                 
             // check against all the particles in that neighboring bin to see if it is a neighbor
             unsigned int cur_bin_size = bin_size[neigh_bin];
@@ -638,6 +638,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void neighbor_par
                 
                 if (dr_sq <= r_cut_sq && i != my_float_as_int(neigh.w))
                     {
+                    //std::cout << "neigh " << i << ", " << my_float_as_int(neigh.w) << std::endl;
                     if (cur_n_neigh == neigh_max)
                         {
                         printf("Error, nlist overflowed!\n");
@@ -732,7 +733,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
     if (transpose_bin_adj)
         bin_adj_width = Mx*My*Mz;
     else
-        bin_adj_width = 27;
+        bin_adj_width = 125;
 
     // first, determine which bin this particle belongs to
     // MEM TRANSFER: 32 bytes
@@ -758,7 +759,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
     int n_neigh = 0;    // count number of neighbors found so far
     
     // loop over all adjacent bins
-    for (unsigned int cur_adj = 0; cur_adj < 27; cur_adj++)
+    for (unsigned int cur_adj = 0; cur_adj < 125; cur_adj++)
         {
         // MEM TRANSFER: 4 bytes
         int neigh_bin;

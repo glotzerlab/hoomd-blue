@@ -46,6 +46,12 @@ if [ "$#" -eq 0 ]; then
 fi
 
 export PYTHONPATH="${HOOMD_ROOT}/lib/hoomd/python-module:${PYTHONPATH}"
+
+if [ -n "$HOOMD_PLUGINS_DIR" ]
+then
+    export PYTHONPATH="${HOOMD_PLUGINS_DIR}:${PYTHONPATH}"
+fi
+
 export DYLD_LIBRARY_PATH="${HOOMD_ROOT}/lib/hoomd/python-module:${DYLD_LIBRARY_PATH}"
 export LD_LIBRARY_PATH="${HOOMD_ROOT}/lib/hoomd/python-module:${LD_LIBRARY_PATH}"
 export HOOMD_ROOT

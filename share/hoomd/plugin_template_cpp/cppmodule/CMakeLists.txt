@@ -21,5 +21,5 @@ fix_cudart_rpath(${LIB_TARGET})
 
 # install the library to the hoomd_plugins directory
 install(TARGETS ${LIB_TARGET}
-        LIBRARY DESTINATION lib/hoomd/python-module/hoomd_plugins/${PROJECT_NAME}
+        LIBRARY DESTINATION hoomd_plugins/${PROJECT_NAME}
         )
