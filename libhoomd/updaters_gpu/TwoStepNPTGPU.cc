@@ -81,9 +81,9 @@ TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNPT(sysdef, group, thermo_group, thermo_all, tau, tauP, T, P)
     {
     // only one GPU is supported
-    if (exec_conf.gpu.size() != 1)
+    if (!exec_conf.isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNPTGPU with 0 or more than one GPUs" << endl << endl;
+        cerr << endl << "***Error! Creating a TwoStepNPTGPU with CUDA disabled" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
     }
@@ -119,15 +119,16 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
             *(m_curr_P - m_P->getValue(timestep))*m_deltaT; 
 
     // perform the particle update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_npt_step_one,
-                                d_pdata[0],
-                                d_index_array.data,
-                                group_size,
-                                m_partial_scale,
-                                xi,
-                                eta,
-                                m_deltaT));
+    gpu_npt_step_one(d_pdata[0],
+                     d_index_array.data,
+                     group_size,
+                     m_partial_scale,
+                     xi,
+                     eta,
+                     m_deltaT);
+
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     // advance volume
     m_V *= exp(Scalar(3.0)*eta*m_deltaT);
@@ -141,12 +142,14 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     // two things are done here
     // 1. particles may have been moved slightly outside the box by the above steps, wrap them back into place
     // 2. all particles in the box are rescaled to fit in the new box 
-    exec_conf.tagAll(__FILE__,__LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_npt_boxscale, d_pdata[0],
-                                                  box,
-                                                  m_partial_scale,
-                                                  eta,
-                                                  m_deltaT));
+    gpu_npt_boxscale(d_pdata[0],
+                     box,
+                     m_partial_scale,
+                     eta,
+                     m_deltaT);
+
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     // done profiling
     if (m_prof)
@@ -189,15 +192,17 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // perform the update on the GPU
-    exec_conf.gpu[0]->call(bind(gpu_npt_step_two,
-                                d_pdata[0],
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                xi,
-                                eta,
-                                m_deltaT));
+    gpu_npt_step_two(d_pdata[0],
+                     d_index_array.data,
+                     group_size,
+                     d_net_force.data,
+                     xi,
+                     eta,
+                     m_deltaT);
 
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    
     // Update state variables
     Scalar N = Scalar(m_group->getNumMembers());
     eta += Scalar(1.0/2.0)/(m_tauP*m_tauP)*m_V/(N*m_T->getValue(timestep))
