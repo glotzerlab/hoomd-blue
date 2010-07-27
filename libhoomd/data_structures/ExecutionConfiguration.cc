@@ -174,7 +174,7 @@ void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line)
 	handleCUDAError(err, file, line);
 	}
 
-/*! \param gpu_idd Index for the GPU to initialize, set to -1 for automatic selection
+/*! \param gpu_id Index for the GPU to initialize, set to -1 for automatic selection
     \param min_cpu If set to true, the cudaDeviceBlockingSync device flag is set
 
     \pre scanGPUs has been called
