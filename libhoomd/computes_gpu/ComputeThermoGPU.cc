@@ -72,6 +72,12 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    const std::string& suffix)
     : ComputeThermo(sysdef, group, suffix)
     {
+    if (!exec_conf.isCUDAEnabled())
+        {
+        cerr << endl << "***Error! Creating a ComputeThermoGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing ComputeThermoGPU");
+        }
+
     m_block_size = 512;
     m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     
