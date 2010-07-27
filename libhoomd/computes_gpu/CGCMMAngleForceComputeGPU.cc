@@ -68,7 +68,7 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
         : CGCMMAngleForceCompute(sysdef), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (exec_conf.gpu.size() == 0)
+    if (!exec_conf.isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a CGCMMAngleForceComputeGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing CGCMMAngleForceComputeGPU");
@@ -90,22 +90,15 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
     cgPow2[3]  = Scalar(6.0);
     
     // allocate and zero device memory
-    m_gpu_params.resize(exec_conf.gpu.size());
-    m_gpu_CGCMMsr.resize(exec_conf.gpu.size());
-    m_gpu_CGCMMepow.resize(exec_conf.gpu.size());
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_params[cur_gpu]), m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
+    cudaMalloc(&m_gpu_params, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
+    cudaMemset(m_gpu_params, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
         
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_CGCMMsr[cur_gpu]), m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_CGCMMsr[cur_gpu], 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2)));
+    cudaMalloc(&m_gpu_CGCMMsr, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
+    cudaMemset(m_gpu_CGCMMsr, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
         
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_CGCMMepow[cur_gpu]), m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_CGCMMepow[cur_gpu], 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4)));
-        
-        }
+    cudaMalloc(&m_gpu_CGCMMepow, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
+    cudaMemset(m_gpu_CGCMMepow, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4));
+    CHECK_CUDA_ERROR();
         
     m_host_params = new float2[m_CGCMMAngle_data->getNAngleTypes()];
     memset(m_host_params, 0, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2));
@@ -120,20 +113,16 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
 CGCMMAngleForceComputeGPU::~CGCMMAngleForceComputeGPU()
     {
     // free memory on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
-        m_gpu_params[cur_gpu] = NULL;
+    cudaFree(m_gpu_params);
+    m_gpu_params = NULL;
         
+    cudaFree(m_gpu_CGCMMsr);
+    m_gpu_CGCMMsr = NULL;
         
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_CGCMMsr[cur_gpu]));
-        m_gpu_CGCMMsr[cur_gpu] = NULL;
-        
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_CGCMMepow[cur_gpu]));
-        m_gpu_CGCMMepow[cur_gpu] = NULL;
-        }
-        
+    cudaFree(m_gpu_CGCMMepow);
+    m_gpu_CGCMMepow = NULL;
+    CHECK_CUDA_ERROR();
+    
     // free memory on the CPU
     delete[] m_host_params;
     delete[] m_host_CGCMMsr;
@@ -169,17 +158,12 @@ void CGCMMAngleForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar t_
     m_host_CGCMMepow[type] = make_float4(eps, myPow1, myPow2, myPref);
     
     // copy the parameters to the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+    cudaMemcpy(m_gpu_params, m_host_params, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice);
         
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMsr[cur_gpu], m_host_CGCMMsr, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice));
+    cudaMemcpy(m_gpu_CGCMMsr, m_host_CGCMMsr, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float2), cudaMemcpyHostToDevice);
         
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_CGCMMepow[cur_gpu], m_host_CGCMMepow, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4), cudaMemcpyHostToDevice));
-        
-        }
-        
+    cudaMemcpy(m_gpu_CGCMMepow, m_host_CGCMMepow, m_CGCMMAngle_data->getNAngleTypes()*sizeof(float4), cudaMemcpyHostToDevice);
+    CHECK_CUDA_ERROR();
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -200,14 +184,19 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
-    // run the kernel in parallel on all GPUs
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_CGCMM_angle_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_angletable[cur_gpu], m_gpu_params[cur_gpu], m_gpu_CGCMMsr[cur_gpu], m_gpu_CGCMMepow[cur_gpu], m_CGCMMAngle_data->getNAngleTypes(), m_block_size));
-        }
-        
-    exec_conf.syncAll();
+    // run the kernel
+    gpu_compute_CGCMM_angle_forces(m_gpu_forces.d_data,
+                                   pdata[0],
+                                   box,
+                                   gpu_angletable[0],
+                                   m_gpu_params,
+                                   m_gpu_CGCMMsr,
+                                   m_gpu_CGCMMepow,
+                                   m_CGCMMAngle_data->getNAngleTypes(),
+                                   m_block_size);
+    
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     // the force data is now only up to date on the gpu
     m_data_location = gpu;
