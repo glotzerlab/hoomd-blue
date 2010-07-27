@@ -100,7 +100,11 @@ struct ExecutionConfiguration
 	//! Returns true if CUDA error checking is enabled
 	bool isCUDAErrorCheckingEnabled() const
 		{
+        #ifdef NDEBUG
+        return true;
+        #else
 		return m_cuda_error_checking;
+        #endif
 		}
 	
 	//! Sets the cuda error checking mode
@@ -152,14 +156,6 @@ private:
 
 //! Macro for easy checking of CUDA errors - enabled all the time
 #define CHECK_CUDA_ERROR() ExecutionConfiguration::checkCUDAError(__FILE__, __LINE__);
-
-//! Check CUDA errors in debug mode only
-#ifdef NDEBUG
-#define CHECK_CUDA_ERROR_DEBUG()
-#else
-#define CHECK_CUDA_ERROR_DEBUG() ExecutionConfiguration::checkCUDAError(__FILE__, __LINE__);
-#endif
-
 
 //! Exports ExecutionConfiguration to python
 void export_ExecutionConfiguration();

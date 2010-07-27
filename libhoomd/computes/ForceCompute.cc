@@ -430,7 +430,8 @@ void ForceCompute::hostToDeviceCopy()
     // if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
     
     m_gpu_forces.hostToDeviceCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    CHECK_CUDA_ERROR_DEBUG();
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
 
     //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
     }
@@ -443,7 +444,8 @@ void ForceCompute::deviceToHostCopy()
     // if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
     
     m_gpu_forces.deviceToHostCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    CHECK_CUDA_ERROR_DEBUG();
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
     }
