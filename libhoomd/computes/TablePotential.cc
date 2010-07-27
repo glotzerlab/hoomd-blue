@@ -93,9 +93,9 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     
     // allocate storage for the tables and parameters
     Index2DUpperTriangular table_index(m_ntypes);
-    GPUArray<float2> tables(m_table_width, table_index.getNumElements(), m_pdata->getExecConf());
+    GPUArray<float2> tables(m_table_width, table_index.getNumElements(), exec_conf.isCUDAEnabled());
     m_tables.swap(tables);
-    GPUArray<Scalar4> params(table_index.getNumElements(), m_pdata->getExecConf());
+    GPUArray<Scalar4> params(table_index.getNumElements(), exec_conf.isCUDAEnabled());
     m_params.swap(params);
     
     assert(!m_tables.isNull());
