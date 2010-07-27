@@ -78,21 +78,21 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepBDNVT(sysdef, group, T, seed, gamma_diam, suffix)
     {
     // only one GPU is supported
-    if (exec_conf.gpu.size() != 1)
+    if (!exec_conf.isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNVEGPU with 0 or more than one GPUs" << endl << endl;
+        cerr << endl << "***Error! Creating a TwoStepNVEGPU what CUDA is disabled" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
         
     // allocate the sum arrays
-    GPUArray<float> sum(1, m_pdata->getExecConf());
+    GPUArray<float> sum(1, exec_conf.isCUDAEnabled());
     m_sum.swap(sum);
     
     // initialize the partial sum array
     m_block_size = 256; 
     unsigned int group_size = m_group->getIndexArray().getNumElements();    
     m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<float> partial_sum1(m_num_blocks, m_pdata->getExecConf());
+    GPUArray<float> partial_sum1(m_num_blocks, exec_conf.isCUDAEnabled());
     m_partial_sum1.swap(partial_sum1);          
     }
 
@@ -116,16 +116,17 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
     unsigned int group_size = m_group->getIndexArray().getNumElements();
     
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_nve_step_one,
-                                d_pdata[0],
-                                d_index_array.data,
-                                group_size,
-                                box,
-                                m_deltaT,
-                                m_limit,
-                                m_limit_val,
-                                m_zero_force));
+    gpu_nve_step_one(d_pdata[0],
+                     d_index_array.data,
+                     group_size,
+                     box,
+                     m_deltaT,
+                     m_limit,
+                     m_limit_val,
+                     m_zero_force);
+
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
     
@@ -153,7 +154,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar> d_gamma(m_gamma, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
  
-    {
+        {
         ArrayHandle<float> d_partial_sumBD(m_partial_sum1, access_location::device, access_mode::overwrite);
         ArrayHandle<float> d_sumBD(m_sum, access_location::device, access_mode::overwrite);
         
@@ -173,19 +174,20 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
         
         unsigned int group_size = m_group->getIndexArray().getNumElements();
    
+        gpu_bdnvt_step_two(d_pdata[0],
+                           d_index_array.data,
+                           group_size,
+                           d_net_force.data,
+                           args,
+                           m_deltaT,
+                           D,
+                           m_limit,
+                           m_limit_val);
 
-        exec_conf.gpu[0]->call(bind(gpu_bdnvt_step_two,
-                                    d_pdata[0],
-                                    d_index_array.data,
-                                    group_size,
-                                    d_net_force.data,
-                                    args,
-                                    m_deltaT,
-                                    D,
-                                    m_limit,
-                                    m_limit_val));
+        if (exec_conf.isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         
-    }
+        }
     m_pdata->release();
  
     if (m_tally)
