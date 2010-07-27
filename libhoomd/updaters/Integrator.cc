@@ -410,9 +410,9 @@ void Integrator::computeNetForce(unsigned int timestep, const std::string& profi
 */
 void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& profile_name)
     {
-    if (exec_conf.gpu.size() != 1)
+    if (!exec_conf.isCUDAEnabled())
         {
-        cerr << endl << "***Error! Only 1 GPU is supported" << endl << endl;
+        cerr << endl << "***Error! Cannot compute net force on the GPU if CUDA is disabled" << endl << endl;
         throw runtime_error("Error computing accelerations");
         }
     
@@ -444,8 +444,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
         if (m_forces.size() == 0)
             {
             // start by zeroing the net force and virial arrays
-            exec_conf.gpu[0]->call(bind(cudaMemset, d_net_force.data, 0, sizeof(Scalar4)*nparticles));
-            exec_conf.gpu[0]->call(bind(cudaMemset, d_net_virial.data, 0, sizeof(Scalar)*nparticles));
+            cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*nparticles);
+            cudaMemset(d_net_virial.data, 0, sizeof(Scalar)*nparticles);
+            if (exec_conf.isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
         
         // now, add up the accelerations
@@ -455,50 +457,52 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
             {
             // grab the device pointers for the current set
             gpu_force_list force_list;
-            const vector<ForceDataArraysGPU>& force0 = m_forces[cur_force]->acquireGPU();
-            force_list.f0 = force0[0].d_data.force;
-            force_list.v0 = force0[0].d_data.virial;
+            const ForceDataArraysGPU& force0 = m_forces[cur_force]->acquireGPU();
+            force_list.f0 = force0.d_data.force;
+            force_list.v0 = force0.d_data.virial;
             
             if (cur_force+1 < m_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force1 = m_forces[cur_force+1]->acquireGPU();
-                force_list.f1 = force1[0].d_data.force;
-                force_list.v1 = force1[0].d_data.virial;
+                const ForceDataArraysGPU& force1 = m_forces[cur_force+1]->acquireGPU();
+                force_list.f1 = force1.d_data.force;
+                force_list.v1 = force1.d_data.virial;
                 }
             if (cur_force+2 < m_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force2 = m_forces[cur_force+2]->acquireGPU();
-                force_list.f2 = force2[0].d_data.force;
-                force_list.v2 = force2[0].d_data.virial;
+                ForceDataArraysGPU& force2 = m_forces[cur_force+2]->acquireGPU();
+                force_list.f2 = force2.d_data.force;
+                force_list.v2 = force2.d_data.virial;
                 }
             if (cur_force+3 < m_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force3 = m_forces[cur_force+3]->acquireGPU();
-                force_list.f3 = force3[0].d_data.force;
-                force_list.v3 = force3[0].d_data.virial;
+                const ForceDataArraysGPU& force3 = m_forces[cur_force+3]->acquireGPU();
+                force_list.f3 = force3.d_data.force;
+                force_list.v3 = force3.d_data.virial;
                 }
             if (cur_force+4 < m_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force4 = m_forces[cur_force+4]->acquireGPU();
-                force_list.f4 = force4[0].d_data.force;
-                force_list.v4 = force4[0].d_data.virial;
+                const ForceDataArraysGPU& force4 = m_forces[cur_force+4]->acquireGPU();
+                force_list.f4 = force4.d_data.force;
+                force_list.v4 = force4.d_data.virial;
                 }
             if (cur_force+5 < m_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force5 = m_forces[cur_force+5]->acquireGPU();
-                force_list.f5 = force5[0].d_data.force;
-                force_list.v5 = force5[0].d_data.virial;
+                const ForceDataArraysGPU& force5 = m_forces[cur_force+5]->acquireGPU();
+                force_list.f5 = force5.d_data.force;
+                force_list.v5 = force5.d_data.virial;
                 }
             
             // clear on the first iteration only
             bool clear = (cur_force == 0);
             
-            exec_conf.gpu[0]->call(bind(gpu_integrator_sum_net_force, 
-                                             d_net_force.data,
-                                             d_net_virial.data,
-                                             force_list,
-                                             nparticles,
-                                             clear));
+            gpu_integrator_sum_net_force(d_net_force.data,
+                                         d_net_virial.data,
+                                         force_list,
+                                         nparticles,
+                                         clear);
+
+            if (exec_conf.isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
         }
     
@@ -541,50 +545,52 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
             {
             // grab the device pointers for the current set
             gpu_force_list force_list;
-            const vector<ForceDataArraysGPU>& force0 = m_constraint_forces[cur_force]->acquireGPU();
-            force_list.f0 = force0[0].d_data.force;
-            force_list.v0 = force0[0].d_data.virial;
+            const ForceDataArraysGPU& force0 = m_constraint_forces[cur_force]->acquireGPU();
+            force_list.f0 = force0.d_data.force;
+            force_list.v0 = force0.d_data.virial;
             
             if (cur_force+1 < m_constraint_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force1 = m_constraint_forces[cur_force+1]->acquireGPU();
-                force_list.f1 = force1[0].d_data.force;
-                force_list.v1 = force1[0].d_data.virial;
+                const ForceDataArraysGPU& force1 = m_constraint_forces[cur_force+1]->acquireGPU();
+                force_list.f1 = force1.d_data.force;
+                force_list.v1 = force1.d_data.virial;
                 }
             if (cur_force+2 < m_constraint_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force2 = m_constraint_forces[cur_force+2]->acquireGPU();
-                force_list.f2 = force2[0].d_data.force;
-                force_list.v2 = force2[0].d_data.virial;
+                const ForceDataArraysGPU& force2 = m_constraint_forces[cur_force+2]->acquireGPU();
+                force_list.f2 = force2.d_data.force;
+                force_list.v2 = force2.d_data.virial;
                 }
             if (cur_force+3 < m_constraint_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force3 = m_constraint_forces[cur_force+3]->acquireGPU();
-                force_list.f3 = force3[0].d_data.force;
-                force_list.v3 = force3[0].d_data.virial;
+                const ForceDataArraysGPU& force3 = m_constraint_forces[cur_force+3]->acquireGPU();
+                force_list.f3 = force3.d_data.force;
+                force_list.v3 = force3.d_data.virial;
                 }
             if (cur_force+4 < m_constraint_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force4 = m_constraint_forces[cur_force+4]->acquireGPU();
-                force_list.f4 = force4[0].d_data.force;
-                force_list.v4 = force4[0].d_data.virial;
+                const ForceDataArraysGPU& force4 = m_constraint_forces[cur_force+4]->acquireGPU();
+                force_list.f4 = force4.d_data.force;
+                force_list.v4 = force4.d_data.virial;
                 }
             if (cur_force+5 < m_constraint_forces.size())
                 {
-                const vector<ForceDataArraysGPU>& force5 = m_constraint_forces[cur_force+5]->acquireGPU();
-                force_list.f5 = force5[0].d_data.force;
-                force_list.v5 = force5[0].d_data.virial;
+                const ForceDataArraysGPU& force5 = m_constraint_forces[cur_force+5]->acquireGPU();
+                force_list.f5 = force5.d_data.force;
+                force_list.v5 = force5.d_data.virial;
                 }
             
             // clear only on the first iteration AND if there are zero forces
             bool clear = (cur_force == 0) && (m_forces.size() == 0);
             
-            exec_conf.gpu[0]->call(bind(gpu_integrator_sum_net_force, 
-                                             d_net_force.data,
-                                             d_net_virial.data,
-                                             force_list,
-                                             nparticles,
-                                             clear));
+            gpu_integrator_sum_net_force(d_net_force.data,
+                                         d_net_virial.data,
+                                         force_list,
+                                         nparticles,
+                                         clear);
+            
+            if (exec_conf.isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
             }
         }
     
