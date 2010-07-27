@@ -68,20 +68,16 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_p
     : HarmonicDihedralForceCompute(sysdef), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (exec_conf.gpu.size() == 0)
+    if (!exec_conf.isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a DihedralForceComputeGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing DihedralForceComputeGPU");
         }
         
     // allocate and zero device memory
-    m_gpu_params.resize(exec_conf.gpu.size());
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_params[cur_gpu]), m_dihedral_data->getNDihedralTypes()*sizeof(float4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_dihedral_data->getNDihedralTypes()*sizeof(float4)));
-        }
+    cudaMalloc(&m_gpu_params, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
+    cudaMemset(m_gpu_params, 0, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
+    CHECK_CUDA_ERROR();
         
     m_host_params = new float4[m_dihedral_data->getNDihedralTypes()];
     memset(m_host_params, 0, m_dihedral_data->getNDihedralTypes()*sizeof(float4));
@@ -90,12 +86,9 @@ HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_p
 HarmonicDihedralForceComputeGPU::~HarmonicDihedralForceComputeGPU()
     {
     // free memory on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
-        m_gpu_params[cur_gpu] = NULL;
-        }
+    cudaFree(m_gpu_params);
+    m_gpu_params = NULL;
+    CHECK_CUDA_ERROR();
         
     // free memory on the CPU
     delete[] m_host_params;
@@ -118,9 +111,8 @@ void HarmonicDihedralForceComputeGPU::setParams(unsigned int type, Scalar K, int
     m_host_params[type] = make_float4(float(K), float(sign), float(multiplicity), 0.0f);
     
     // copy the parameters to the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_dihedral_data->getNDihedralTypes()*sizeof(float4), cudaMemcpyHostToDevice));
+    cudaMemcpy(m_gpu_params, m_host_params, m_dihedral_data->getNDihedralTypes()*sizeof(float4), cudaMemcpyHostToDevice);
+    CHECK_CUDA_ERROR();
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -142,10 +134,14 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // run the kernel in parallel on all GPUs
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_harmonic_dihedral_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_dihedraltable[cur_gpu], m_gpu_params[cur_gpu], m_dihedral_data->getNDihedralTypes(), m_block_size));
-    exec_conf.syncAll();
+    gpu_compute_harmonic_dihedral_forces(m_gpu_forces.d_data,
+                                         pdata[0],
+                                         box,
+                                         gpu_dihedraltable[0],
+                                         m_gpu_params,
+                                         m_dihedral_data->getNDihedralTypes(),
+                                         m_block_size);
+    CHECK_CUDA_ERROR();
     
     // the force data is now only up to date on the gpu
     m_data_location = gpu;
