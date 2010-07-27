@@ -178,7 +178,8 @@ std::ostream& operator<<(std::ostream &o, Profiler& prof);
 inline void Profiler::push(const ExecutionConfiguration& exec_conf, const std::string& name)
     {
 #ifdef ENABLE_CUDA
-    exec_conf.callAll(boost::bind(cudaThreadSynchronize));
+	if (exec_conf.isCUDAEnabled())
+		cudaThreadSynchronize();
 #endif
     push(name);
     }
@@ -186,7 +187,8 @@ inline void Profiler::push(const ExecutionConfiguration& exec_conf, const std::s
 inline void Profiler::pop(const ExecutionConfiguration& exec_conf, uint64_t flop_count, uint64_t byte_count)
     {
 #ifdef ENABLE_CUDA
-    exec_conf.callAll(boost::bind(cudaThreadSynchronize));
+	if (exec_conf.isCUDAEnabled())
+		cudaThreadSynchronize();
 #endif
     pop(flop_count, byte_count);
     }
