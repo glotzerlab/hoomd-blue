@@ -97,6 +97,18 @@ struct ExecutionConfiguration
 		return (exec_mode == GPU);
 		}
 	
+	//! Returns true if CUDA error checking is enabled
+	bool isCUDAErrorCheckingEnabled() const
+		{
+		return m_cuda_error_checking;
+		}
+	
+	//! Sets the cuda error checking mode
+	void setCUDAErrorChecking(bool cuda_error_checking)
+		{
+		m_cuda_error_checking = cuda_error_checking;
+		}
+	
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapability();
 	
@@ -131,6 +143,7 @@ private:
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
+	bool m_cuda_error_checking;				//!< Set to true if GPU error checking is enabled
 #endif
     
     //! Setup and print out stats on the chosen CPUs/GPUs

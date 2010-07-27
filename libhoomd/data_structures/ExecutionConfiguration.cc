@@ -83,7 +83,7 @@ using namespace boost;
     cudaSetDevice is not called, so systems with compute-exclusive GPUs will see automatic choice of free GPUs.
     If there are no capable GPUs present in the system, then the execution mode will revert run on the CPU.
 */
-ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display)
+ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display) : m_cuda_error_checking(false)
     {
 #ifdef ENABLE_CUDA
     // scan the available GPUs
@@ -117,6 +117,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     is made by not calling cudaSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu, bool ignore_display)
+	: m_cuda_error_checking(false)
     {
     exec_mode = mode;
     
