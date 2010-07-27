@@ -75,7 +75,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     m_block_size = 512;
     m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     
-    GPUArray< float4 > scratch(m_num_blocks, exec_conf);
+    GPUArray< float4 > scratch(m_num_blocks, exec_conf.isCUDAEnabled());
     m_scratch.swap(scratch);
     }
 
@@ -121,12 +121,15 @@ void ComputeThermoGPU::computeProperties()
     args.n_blocks = m_num_blocks;
     
     // perform the computation on the GPU
-    exec_conf.gpu[0]->call(bind(gpu_compute_thermo, d_properties.data,
-                                                    d_pdata[0],
-                                                    d_index_array.data,
-                                                    group_size,
-                                                    box,
-                                                    args));
+    gpu_compute_thermo( d_properties.data,
+						d_pdata[0],
+						d_index_array.data,
+						group_size,
+						box,
+						args);
+	
+	if (exec_conf.isCUDAErrorCheckingEnabled())
+		CHECK_CUDA_ERROR();
     
     m_pdata->release();
 

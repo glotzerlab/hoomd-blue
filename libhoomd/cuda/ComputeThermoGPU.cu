@@ -296,14 +296,6 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                    group_size,
                                                                    args.n_blocks);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
