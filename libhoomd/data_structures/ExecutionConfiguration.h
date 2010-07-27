@@ -48,6 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <cuda_runtime.h>
 
 /*! \file ExecutionConfiguration.h
     \brief Declares ExecutionConfiguration and related classes
@@ -90,14 +91,20 @@ struct ExecutionConfiguration
 #ifdef ENABLE_CUDA
 	cudaDeviceProp dev_prop;	//!< Cached device properties
     
+	//! Returns true if CUDA is enabled
+	bool isCUDAEnabled() const
+		{
+		return (exec_mode == GPU);
+		}
+	
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapability();
 	
 	//! Handle cuda error message
-	static void handleCUDAError(cudaError_t err, unsigned char *file, unsigned int line);
+	static void handleCUDAError(cudaError_t err, const char *file, unsigned int line);
 	
 	//! Check for cuda errors
-	static void checkCUDAError(unsigned char *file, unsigned int line);
+	static void checkCUDAError(const char *file, unsigned int line);
     
 private:
     //! Initialize the GPU with the given id

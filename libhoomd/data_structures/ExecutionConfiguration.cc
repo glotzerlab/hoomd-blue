@@ -44,6 +44,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "ExecutionConfiguration.h"
+#include "HOOMDVersion.h"
 
 #ifdef WIN32
 #pragma warning( push )
@@ -108,13 +109,14 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     }
 
 /*! \param mode Execution mode to set (cpu or gpu)
+	\param gpu_id ID of the GPU on which to run, or -1 for automatic selection
     \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
 
     Explicitly force the use of either CPU or GPU execution. If GPU exeuction is selected, then a default GPU choice
     is made by not calling cudaSetDevice.
 */
-ExecutionConfiguration::ExecutionConfiguration(executionMode mode, bool min_cpu, bool ignore_display)
+ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu, bool ignore_display)
     {
     exec_mode = mode;
     
@@ -124,7 +126,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, bool min_cpu,
     
     // initialize the GPU if that mode was requested
     if (exec_mode == GPU)
-        initializeGPUs(-1, min_cpu);
+        initializeGPU(gpu_id, min_cpu);
 #endif
 
     setupStats();
@@ -146,7 +148,7 @@ std::string ExecutionConfiguration::getComputeCapability()
     return s.str();
     }
 	
-static void ExecutionConfiguration::handleCUDAError(cudaError_t err, unsigned char *file, unsigned int line)
+void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line)
 	{
     // if there was an error
     if (err != cudaSuccess)
@@ -156,19 +158,19 @@ static void ExecutionConfiguration::handleCUDAError(cudaError_t err, unsigned ch
 			file += strlen(HOOMD_SOURCE_DIR);
 		
 		// print an error message
-		cerr << endl << "***Error! " << string(cudaGetErrorString(m_last_error)) << " before " 
+		cerr << endl << "***Error! " << string(cudaGetErrorString(err)) << " before " 
 			 << file << ":" << line << endl << endl;
 
         // throw an error exception
-        throw(runtime_error error("CUDA Error");
+        throw(runtime_error("CUDA Error"));
         }
 	}
 	
-static void ExecutionConfiguration::checkCUDAError(unsigned char *file, unsigned int line)
+void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line)
 	{
 	cudaThreadSynchronize();
 	cudaError_t err = cudaGetLastError();
-	handleCUDAError(file, line);
+	handleCUDAError(err, file, line);
 	}
 
 /*! \param gpu_idd Index for the GPU to initialize, set to -1 for automatic selection
@@ -222,7 +224,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
 	
 	#if (CUDA_VERSION >= 2020)
 	cudaSetDeviceFlags(flags);
-	cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size()));
+	cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
 	#endif
    
 	if (gpu_id != -1)
@@ -247,6 +249,8 @@ void ExecutionConfiguration::printGPUStats()
 	ostringstream s;
 	
 	// start with the device ID and name
+	int dev;
+	cudaGetDevice(&dev);
 	s << " [" << dev << "]";
 	s << setw(22) << dev_prop.name;
 	
@@ -510,9 +514,9 @@ void ExecutionConfiguration::setupStats()
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
-		unsigned int dev;
+		int dev;
 		cudaGetDevice(&dev);
-		cudaGetDeviceFlags(&dev_prop, dev);
+		cudaGetDeviceProperties(&dev_prop, dev);
         printGPUStats();
         }
     #endif
