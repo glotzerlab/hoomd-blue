@@ -209,7 +209,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
 		throw runtime_error("Error initializing execution configuration");
 		}
 		
-	if ((unsigned int)gpu_id >= getNumTotalGPUs())
+	if (gpu_id >= (int)getNumTotalGPUs())
 		{
 		cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is not present in the system." << endl
 			 << "CUDA reports only " << getNumTotalGPUs() << endl << endl;
