@@ -128,7 +128,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Angle");
     
-    vector<gpu_angletable_array>& gpu_angletable = m_angle_data->acquireGPU();
+    gpu_angletable_array& gpu_angletable = m_angle_data->acquireGPU();
     
     // the angle table is up to date: we are good to go. Call the kernel
     vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
@@ -138,7 +138,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_harmonic_angle_forces(m_gpu_forces.d_data,
                                       pdata[0],
                                       box,
-                                      gpu_angletable[0],
+                                      gpu_angletable,
                                       m_gpu_params,
                                       m_angle_data->getNAngleTypes(),
                                       m_block_size);

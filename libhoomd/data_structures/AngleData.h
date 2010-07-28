@@ -144,7 +144,7 @@ class AngleData : boost::noncopyable
         
 # ifdef ENABLE_CUDA
         //! Access the angles on the GPU
-        std::vector<gpu_angletable_array>& acquireGPU();
+        gpu_angletable_array& acquireGPU();
         
 #endif
         
@@ -168,9 +168,9 @@ class AngleData : boost::noncopyable
             }
             
 #ifdef ENABLE_CUDA
-        std::vector<gpu_angletable_array> m_gpu_angledata;  //!< List of angles on the GPU
-        uint4 *m_host_angles;               //!< Host copy of the angle list
-        unsigned int *m_host_n_angles;      //!< Host copy of the number of angles
+        gpu_angletable_array m_gpu_angledata;  //!< List of angles on the GPU
+        uint4 *m_host_angles;                  //!< Host copy of the angle list
+        unsigned int *m_host_n_angles;         //!< Host copy of the number of angles
         
         /*! \enum angleABC tells if the Angle is on the a,b,or c atom
         */
