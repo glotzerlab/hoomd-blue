@@ -75,7 +75,7 @@ using namespace boost;
 //! boost test case for testing the basic operation of GPUArray
 BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
     {
-    ExecutionConfiguration exec_conf;
+    ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
     GPUArray<int> gpu_array(100, exec_conf.isCUDAEnabled());
     
     // basic check: ensure that the number of elements is set correctly
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
 //! boost test case for testing device to/from host transfers
 BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
     {
-    ExecutionConfiguration exec_conf;
+    ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
     BOOST_REQUIRE(exec_conf.isCUDAEnabled());
     
     GPUArray<int> gpu_array(100, exec_conf.isCUDAEnabled());
@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
     BOOST_CHECK_EQUAL(b.getNumElements(), (unsigned)0);
     
     // check assignment of a NULL GPUArray
-    ExecutionConfiguration exec_conf;
+    ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
     GPUArray<int> c(1000, exec_conf.isCUDAEnabled());
     c = a;
     

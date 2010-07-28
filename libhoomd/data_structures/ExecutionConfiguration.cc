@@ -133,6 +133,11 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, b
     setupStats();
     }
 
+ExecutionConfiguration::~ExecutionConfiguration()
+    {
+    cudaThreadExit();
+    }
+
 #ifdef ENABLE_CUDA
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an emtpy string if no GPUs are specified

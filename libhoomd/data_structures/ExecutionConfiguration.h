@@ -85,6 +85,8 @@ struct ExecutionConfiguration
     //! Force a mode selection
     ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false);
     
+    ~ExecutionConfiguration();
+    
 	executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     
