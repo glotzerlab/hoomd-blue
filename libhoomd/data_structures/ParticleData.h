@@ -437,13 +437,6 @@ class ParticleData : boost::noncopyable
             return m_gpu_box;
             }
             
-        //! Get the beginning index of the local particles on a particular GPU
-        unsigned int getLocalBeg(unsigned int gpu);
-        //! Get the number of local particles on a particular GPU
-        unsigned int getLocalNum(unsigned int gpu);
-        //! Communicate position between all GPUs
-        void communicatePosition();
-        
 #endif
         
         //! Release the acquired data
