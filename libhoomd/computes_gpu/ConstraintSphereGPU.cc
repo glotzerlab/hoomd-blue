@@ -101,13 +101,13 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
     const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
     ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     
     // run the kernel in parallel on all GPUs
     gpu_compute_constraint_sphere_forces(m_gpu_forces.d_data,
                                          d_group_members.data,
                                          m_group->getNumMembers(),
-                                         pdata[0],
+                                         pdata,
                                          d_net_force.data,
                                          m_P,
                                          m_r,

@@ -102,7 +102,7 @@ void ComputeThermoGPU::computeProperties()
     assert(m_ndof != 0);
     
     // access the particle data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // access the net force, pe, and virial
@@ -128,7 +128,7 @@ void ComputeThermoGPU::computeProperties()
     
     // perform the computation on the GPU
     gpu_compute_thermo( d_properties.data,
-						d_pdata[0],
+						d_pdata,
 						d_index_array.data,
 						group_size,
 						box,

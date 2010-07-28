@@ -425,9 +425,9 @@ class ParticleData : boost::noncopyable
                 
 #ifdef ENABLE_CUDA
         //! Acquire read access to the particle data on the GPU
-        std::vector<gpu_pdata_arrays>& acquireReadOnlyGPU();
+        gpu_pdata_arrays& acquireReadOnlyGPU();
         //! Acquire read/write access to the particle data on the GPU
-        std::vector<gpu_pdata_arrays>& acquireReadWriteGPU();
+        gpu_pdata_arrays& acquireReadWriteGPU();
         
         //! Get the box for the GPU
         /*! \returns Box dimensions suitable for passing to the GPU code
@@ -685,9 +685,9 @@ class ParticleData : boost::noncopyable
             
         DataLocation m_data_location;       //!< Where the most recently modified particle data lives
         bool m_readwrite_gpu;               //!< Flag to indicate the last acquire was readwriteGPU
-        std::vector<gpu_pdata_arrays> m_gpu_pdata;  //!< Stores the pointers to memory on the GPU
+        gpu_pdata_arrays m_gpu_pdata;       //!< Stores the pointers to memory on the GPU
         gpu_boxsize m_gpu_box;              //!< Mirror structure of m_box for the GPU
-        std::vector<float *> m_d_staging;   //!< Staging array (device memory) where uninterleaved data is copied to/from.
+        float * m_d_staging;                //!< Staging array (device memory) where uninterleaved data is copied to/from.
         float4 *m_h_staging;                //!< Staging array (host memory) to copy interleaved data to
         unsigned int m_uninterleave_pitch;  //!< Remember the pitch between x,y,z,type in the uninterleaved data
         unsigned int m_single_xarray_bytes; //!< Remember the number of bytes allocated for a single float array

@@ -106,7 +106,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     Scalar& eta = v.variable[1];
 
     // access all the needed data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -119,7 +119,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
             *(m_curr_P - m_P->getValue(timestep))*m_deltaT; 
 
     // perform the particle update on the GPU
-    gpu_npt_step_one(d_pdata[0],
+    gpu_npt_step_one(d_pdata,
                      d_index_array.data,
                      group_size,
                      m_partial_scale,
@@ -142,7 +142,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
     // two things are done here
     // 1. particles may have been moved slightly outside the box by the above steps, wrap them back into place
     // 2. all particles in the box are rescaled to fit in the new box 
-    gpu_npt_boxscale(d_pdata[0],
+    gpu_npt_boxscale(d_pdata,
                      box,
                      m_partial_scale,
                      eta,
@@ -187,12 +187,12 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
     Scalar& xi = v.variable[0];
     Scalar& eta = v.variable[1];
 
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // perform the update on the GPU
-    gpu_npt_step_two(d_pdata[0],
+    gpu_npt_step_two(d_pdata,
                      d_index_array.data,
                      group_size,
                      d_net_force.data,

@@ -102,12 +102,12 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     Scalar& xi = v.variable[0];
 
     // access all the needed data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // perform the update on the GPU
-    gpu_nvt_step_one(d_pdata[0],
+    gpu_nvt_step_one(d_pdata,
                      d_index_array.data,
                      group_size,
                      box,
@@ -152,12 +152,12 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NVT step 2");
     
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // perform the update on the GPU
-    gpu_nvt_step_two(d_pdata[0],
+    gpu_nvt_step_two(d_pdata,
                      d_index_array.data,
                      group_size,
                      d_net_force.data,

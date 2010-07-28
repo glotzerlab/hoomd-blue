@@ -305,8 +305,8 @@ void BinnedNeighborListGPU::buildNlist()
     // transpose the bins for a better memory access pattern on the GPU
     
     if (m_prof) m_prof->push(exec_conf, "Transpose");
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
-    gpu_nlist_idxlist2coord(&pdata[0], &m_gpu_bin_data, m_curNmax, 256);
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_nlist_idxlist2coord(&pdata, &m_gpu_bin_data, m_curNmax, 256);
     cudaMemcpyToArray(m_gpu_bin_data.coord_idxlist_array, 0, 0, m_gpu_bin_data.coord_idxlist, m_gpu_bin_data.coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice);
 
     if (exec_conf.isCUDAErrorCheckingEnabled())
@@ -407,12 +407,12 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
     // use the GPU to determine which bin in which each particle resides
     // acquire the particle data
         {
-        vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+        gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
         ArrayHandle<unsigned int> d_bin_ids(m_bin_ids, access_location::device, access_mode::overwrite);
         
         // call the kernel to compute the bin ids
         gpu_compute_bin_ids(d_bin_ids.data,
-                            pdata[0],
+                            pdata,
                             m_pdata->getBoxGPU(),
                             m_Mx,
                             m_My,
@@ -542,7 +542,7 @@ void BinnedNeighborListGPU::updateListFromBins()
     if (m_prof) m_prof->push(exec_conf, "Build list");
     
     // access the particle data
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     Scalar r_max_sq = (m_r_cut + m_r_buff) * (m_r_cut + m_r_buff);
@@ -550,7 +550,7 @@ void BinnedNeighborListGPU::updateListFromBins()
     ArrayHandle<unsigned int> d_thread_mapping(m_thread_mapping, access_location::device, access_mode::read);
 
     m_gpu_nlist.thread_mapping = d_thread_mapping.data;
-    gpu_compute_nlist_binned(m_gpu_nlist, pdata[0], box, m_gpu_bin_data, d_bin_ids.data, r_max_sq, m_curNmax, m_block_size);
+    gpu_compute_nlist_binned(m_gpu_nlist, pdata, box, m_gpu_bin_data, d_bin_ids.data, r_max_sq, m_curNmax, m_block_size);
         
     if (exec_conf.isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -574,14 +574,14 @@ bool BinnedNeighborListGPU::distanceCheck()
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(exec_conf, "Dist check");
     
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // create a temporary copy of r_max sqaured
     Scalar r_buffsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));
     
     int result = 0;
-    gpu_nlist_needs_update_check(&pdata[0], &box, &m_gpu_nlist, r_buffsq, &result);
+    gpu_nlist_needs_update_check(&pdata, &box, &m_gpu_nlist, r_buffsq, &result);
 
     if (exec_conf.isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

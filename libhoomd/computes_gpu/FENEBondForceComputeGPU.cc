@@ -143,7 +143,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
     gpu_bondtable_array& gpu_bondtable = m_bond_data->acquireGPU();
     
     // the bond table is up to date: we are good to go. Call the kernel
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // hackish method for tracking exceedsR0 over multiple GPUs
@@ -152,7 +152,7 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
     // run the kernel
     exceedsR0 = 0;
     gpu_compute_fene_bond_forces(m_gpu_forces.d_data,
-                                 pdata[0],
+                                 pdata,
                                  box,
                                  gpu_bondtable,
                                  m_gpu_params,

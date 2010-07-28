@@ -206,12 +206,12 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     gpu_nlist_array& nlist = m_nlist->getListGPU();
     
     // access the particle data
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // run the kernel on all GPUs in parallel
     gpu_compute_cgcmm_forces(m_gpu_forces.d_data,
-                             pdata[0],
+                             pdata,
                              box,
                              nlist,
                              d_coeffs,

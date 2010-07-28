@@ -131,7 +131,7 @@ void NeighborListNsqGPU::buildNlistAttempt()
         }
         
     // access the particle data
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     if (box.Lx <= (m_r_cut+m_r_buff) * 2.0 || box.Ly <= (m_r_cut+m_r_buff) * 2.0 || box.Lz <= (m_r_cut+m_r_buff) * 2.0)
@@ -146,7 +146,7 @@ void NeighborListNsqGPU::buildNlistAttempt()
     if (m_prof) m_prof->push(exec_conf, "Build list");
     
     // calculate the nlist
-    gpu_compute_nlist_nsq(m_gpu_nlist, pdata[0], box, r_max_sq);
+    gpu_compute_nlist_nsq(m_gpu_nlist, pdata, box, r_max_sq);
 
     if (exec_conf.isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

@@ -121,10 +121,10 @@ void FIREEnergyMinimizerGPU::reset()
     m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();    
-    gpu_fire_zero_v(d_pdata[0],
+    gpu_fire_zero_v(d_pdata,
                     d_index_array.data,
                     group_size);
 
@@ -156,7 +156,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     if (m_prof)
         m_prof->push(exec_conf, "FIRE compute total energy");
     
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     unsigned int group_size = m_group->getIndexArray().getNumElements();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
@@ -166,7 +166,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         ArrayHandle<float> d_sumE(m_sum, access_location::device, access_mode::overwrite);
     
     
-        gpu_fire_compute_sum_pe(d_pdata[0], 
+        gpu_fire_compute_sum_pe(d_pdata, 
                                 d_index_array.data,
                                 group_size,
                                 d_net_force.data, 
@@ -204,7 +204,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         ArrayHandle<float> d_partial_sum_fsq(m_partial_sum3, access_location::device, access_mode::overwrite);
         ArrayHandle<float> d_sum(m_sum3, access_location::device, access_mode::overwrite);
         
-        gpu_fire_compute_sum_all(d_pdata[0], 
+        gpu_fire_compute_sum_all(d_pdata, 
                                  d_index_array.data,
                                  group_size,
                                  d_sum.data, 
@@ -241,7 +241,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
     Scalar invfnorm = 1.0/fnorm;        
 
-    gpu_fire_update_v(d_pdata[0], 
+    gpu_fire_update_v(d_pdata, 
                       d_index_array.data,
                       group_size,
                       m_alpha, 
@@ -272,7 +272,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         if (m_prof)
             m_prof->push(exec_conf, "FIRE zero velocities");
 
-        gpu_fire_zero_v(d_pdata[0],
+        gpu_fire_zero_v(d_pdata,
                         d_index_array.data,
                         group_size);
 

@@ -88,10 +88,10 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
         m_prof->push(exec_conf, "Enforce2D");
         
     // access the particle data arrays
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     
     // call the enforce 2d kernel
-    gpu_enforce2d(d_pdata[0]);
+    gpu_enforce2d(d_pdata);
 
     if (exec_conf.isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
