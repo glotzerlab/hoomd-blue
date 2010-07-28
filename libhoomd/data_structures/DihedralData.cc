@@ -104,18 +104,14 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
     m_host_dihedrals = NULL;
     m_host_n_dihedrals = NULL;
     m_host_dihedralsABCD = NULL;
-    m_gpu_dihedraldata.resize(exec_conf.gpu.size());
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        m_gpu_dihedraldata[cur_gpu].dihedrals = NULL;
-        m_gpu_dihedraldata[cur_gpu].dihedralABCD = NULL;
-        m_gpu_dihedraldata[cur_gpu].n_dihedrals = NULL;
-        m_gpu_dihedraldata[cur_gpu].height = 0;
-        m_gpu_dihedraldata[cur_gpu].pitch = 0;
-        }
+    m_gpu_dihedraldata.dihedrals = NULL;
+    m_gpu_dihedraldata.dihedralABCD = NULL;
+    m_gpu_dihedraldata.n_dihedrals = NULL;
+    m_gpu_dihedraldata.height = 0;
+    m_gpu_dihedraldata.pitch = 0;
         
     // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf.gpu.size() >= 1)
+    if (exec_conf.isCUDAEnabled())
         {
         allocateDihedralTable(1);
         }
@@ -128,7 +124,7 @@ DihedralData::~DihedralData()
     
 #ifdef ENABLE_CUDA
     const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    if (!exec_conf.gpu.empty())
+    if (exec_conf.isCUDAEnabled())
         {
         freeDihedralTable();
         }
@@ -221,7 +217,7 @@ std::string DihedralData::getNameByType(unsigned int type)
 
 /*! Updates the dihedral data on the GPU if needed and returns the data structure needed to access it.
 */
-std::vector<gpu_dihedraltable_array>& DihedralData::acquireGPU()
+gpu_dihedraltable_array& DihedralData::acquireGPU()
     {
     if (m_dihedrals_dirty)
         {
@@ -276,7 +272,7 @@ void DihedralData::updateDihedralTable()
         }
         
     // re allocate memory if needed
-    if (num_dihedrals_max > m_gpu_dihedraldata[0].height)
+    if (num_dihedrals_max > m_gpu_dihedraldata.height)
         {
         reallocateDihedralTable(num_dihedrals_max);
         }
@@ -363,45 +359,37 @@ void DihedralData::allocateDihedralTable(int height)
     
     unsigned int N = m_pdata->getN();
     
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // allocate device memory
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(&gpu_dihedraltable_array::allocate, &m_gpu_dihedraldata[cur_gpu], m_pdata->getLocalNum(cur_gpu), height));
-        
+    m_gpu_dihedraldata.allocate(m_pdata->getN(), height);
+    CHECK_CUDA_ERROR();        
         
     // allocate and zero host memory
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_dihedrals), N*sizeof(int), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_n_dihedrals, N*sizeof(int), cudaHostAllocPortable);
     memset((void*)m_host_n_dihedrals, 0, N*sizeof(int));
     
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_dihedrals), N * height * sizeof(uint4), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_dihedrals, N * height * sizeof(uint4), cudaHostAllocPortable);
     memset((void*)m_host_dihedrals, 0, N*height*sizeof(uint4));
     
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_dihedralsABCD), N * height * sizeof(uint1), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_dihedralsABCD, N * height * sizeof(uint1), cudaHostAllocPortable);
     memset((void*)m_host_dihedralsABCD, 0, N*height*sizeof(uint1));
-    
+    CHECK_CUDA_ERROR();    
     }
 
 void DihedralData::freeDihedralTable()
     {
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // free device memory
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(&gpu_dihedraltable_array::deallocate, &m_gpu_dihedraldata[cur_gpu]));
+    m_gpu_dihedraldata.deallocate();
+    CHECK_CUDA_ERROR();
         
     // free host memory
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_dihedrals));
+    cudaFreeHost(m_host_dihedrals);
     m_host_dihedrals = NULL;
     // free host memory
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_dihedralsABCD));
+    cudaFreeHost( m_host_dihedralsABCD);
     m_host_dihedralsABCD = NULL;
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_n_dihedrals));
+    cudaFreeHost(m_host_n_dihedrals);
     m_host_n_dihedrals = NULL;
+    CHECK_CUDA_ERROR();
     }
 
 //! Copies the dihedral table to the device
@@ -410,28 +398,27 @@ void DihedralData::copyDihedralTable()
     // get the execution configuration
     const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+    // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
+    for (unsigned int row = 0; row < m_gpu_dihedraldata.height; row++)
         {
-        // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
-        for (unsigned int row = 0; row < m_gpu_dihedraldata[0].height; row++)
-            {
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_dihedraldata[cur_gpu].dihedrals + m_gpu_dihedraldata[cur_gpu].pitch*row,
-                                              m_host_dihedrals + row * m_pdata->getN() + m_pdata->getLocalBeg(cur_gpu),
-                                              sizeof(uint4) * m_pdata->getLocalNum(cur_gpu),
-                                              cudaMemcpyHostToDevice));
-                                              
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_dihedraldata[cur_gpu].dihedralABCD + m_gpu_dihedraldata[cur_gpu].pitch*row,
-                                              m_host_dihedralsABCD + row * m_pdata->getN() + m_pdata->getLocalBeg(cur_gpu),
-                                              sizeof(uint1) * m_pdata->getLocalNum(cur_gpu),
-                                              cudaMemcpyHostToDevice));
-            }
-            
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_dihedraldata[cur_gpu].n_dihedrals,
-                                          m_host_n_dihedrals + m_pdata->getLocalBeg(cur_gpu),
-                                          sizeof(unsigned int) * m_pdata->getLocalNum(cur_gpu),
-                                          cudaMemcpyHostToDevice));
+        cudaMemcpy(m_gpu_dihedraldata.dihedrals + m_gpu_dihedraldata.pitch*row,
+                   m_host_dihedrals + row * m_pdata->getN(),
+                   sizeof(uint4) * m_pdata->getN(),
+                   cudaMemcpyHostToDevice);
+                                          
+        cudaMemcpy(m_gpu_dihedraldata.dihedralABCD + m_gpu_dihedraldata.pitch*row,
+                   m_host_dihedralsABCD + row * m_pdata->getN(),
+                   sizeof(uint1) * m_pdata->getN(),
+                   cudaMemcpyHostToDevice);
         }
+            
+    cudaMemcpy(m_gpu_dihedraldata.n_dihedrals,
+               m_host_n_dihedrals,
+               sizeof(unsigned int) * m_pdata->getN(),
+               cudaMemcpyHostToDevice);
+    
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     }
 #endif
 

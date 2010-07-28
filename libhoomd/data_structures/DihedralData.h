@@ -146,7 +146,7 @@ class DihedralData : boost::noncopyable
         
 # ifdef ENABLE_CUDA
         //! Access the dihedrals on the GPU
-        std::vector<gpu_dihedraltable_array>& acquireGPU();
+        gpu_dihedraltable_array& acquireGPU();
         
 #endif
         
@@ -170,7 +170,7 @@ class DihedralData : boost::noncopyable
             }
             
 #ifdef ENABLE_CUDA
-        std::vector<gpu_dihedraltable_array> m_gpu_dihedraldata;    //!< List of dihedrals on the GPU
+        gpu_dihedraltable_array m_gpu_dihedraldata;    //!< List of dihedrals on the GPU
         uint4 *m_host_dihedrals;             //!< Host copy of the dihedral list (3atoms of a,b,c, or d, plus the type)
         uint1 *m_host_dihedralsABCD;         //!< Host copy of the dihedralABCD list
         unsigned int *m_host_n_dihedrals;    //!< Host copy of the number of dihedrals

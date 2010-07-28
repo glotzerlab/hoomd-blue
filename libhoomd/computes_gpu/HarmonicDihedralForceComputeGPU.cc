@@ -127,7 +127,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic Dihedral");
     
-    vector<gpu_dihedraltable_array>& gpu_dihedraltable = m_dihedral_data->acquireGPU();
+    gpu_dihedraltable_array& gpu_dihedraltable = m_dihedral_data->acquireGPU();
     
     // the dihedral table is up to date: we are good to go. Call the kernel
     vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
@@ -137,7 +137,7 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_harmonic_dihedral_forces(m_gpu_forces.d_data,
                                          pdata[0],
                                          box,
-                                         gpu_dihedraltable[0],
+                                         gpu_dihedraltable,
                                          m_gpu_params,
                                          m_dihedral_data->getNDihedralTypes(),
                                          m_block_size);
