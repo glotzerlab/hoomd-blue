@@ -139,7 +139,7 @@ class BondData : boost::noncopyable
         
 # ifdef ENABLE_CUDA
         //! Access the bonds on the GPU
-        std::vector<gpu_bondtable_array>& acquireGPU();
+        gpu_bondtable_array& acquireGPU();
 #endif
         
     private:
@@ -161,7 +161,7 @@ class BondData : boost::noncopyable
             }
             
 #ifdef ENABLE_CUDA
-        std::vector<gpu_bondtable_array> m_gpu_bonddata;    //!< List of bonds on the GPU
+        gpu_bondtable_array m_gpu_bonddata; //!< List of bonds on the GPU
         uint2 *m_host_bonds;                //!< Host copy of the bond list
         unsigned int *m_host_n_bonds;       //!< Host copy of the number of bonds
         

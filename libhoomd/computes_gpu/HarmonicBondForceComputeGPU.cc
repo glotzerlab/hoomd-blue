@@ -132,7 +132,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "Harmonic");
     
-    vector<gpu_bondtable_array>& gpu_bondtable = m_bond_data->acquireGPU();
+    gpu_bondtable_array& gpu_bondtable = m_bond_data->acquireGPU();
     
     // the bond table is up to date: we are good to go. Call the kernel
     vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
@@ -142,7 +142,7 @@ void HarmonicBondForceComputeGPU::computeForces(unsigned int timestep)
     gpu_compute_harmonic_bond_forces(m_gpu_forces.d_data,
                                      pdata[0],
                                      box,
-                                     gpu_bondtable[0],
+                                     gpu_bondtable,
                                      m_gpu_params,
                                      m_bond_data->getNBondTypes(),
                                      m_block_size);
