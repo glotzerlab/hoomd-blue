@@ -75,18 +75,12 @@ NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysde
         : NeighborList(sysdef, r_cut, r_buff)
     {
     // only one GPU is currently supported
-    if (exec_conf.gpu.size() == 0)
+    if (!exec_conf.isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a BondForceComputeGPU with no GPU in the execution configuration"
+        cerr << endl << "***Error! Creating a NeighborListNsqGPU with no GPU in the execution configuration"
              << endl << endl;
         throw std::runtime_error("Error initializing NeighborListNsqGPU");
         }
-    if (exec_conf.gpu.size() != 1)
-        {
-        cerr << endl << "***Error! More than one GPU is not currently supported" << endl << endl;
-        throw std::runtime_error("Error initializing NeighborListNsqGPU");
-        }
-        
     m_storage_mode = full;
     }
 
@@ -104,21 +98,22 @@ void NeighborListNsqGPU::buildNlist()
     
     // handle when the neighbor list overflows
     int overflow = 0;
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+    cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
     while (overflow)
         {
-        int new_height = m_gpu_nlist[0].height * 2;
+        int new_height = m_gpu_nlist.height * 2;
         // cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
         freeGPUData();
         allocateGPUData(new_height);
         updateExclusionData();
         
         buildNlist();
-        exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-        exec_conf.gpu[0]->call(bind(cudaMemcpy, &overflow, m_gpu_nlist[0].overflow, sizeof(int), cudaMemcpyDeviceToHost));
+        cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
         }
-        
+    
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    
     m_data_location = gpu;
     }
 
@@ -151,8 +146,10 @@ void NeighborListNsqGPU::buildNlistAttempt()
     if (m_prof) m_prof->push(exec_conf, "Build list");
     
     // calculate the nlist
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_compute_nlist_nsq, m_gpu_nlist[0], pdata[0], box, r_max_sq));
+    gpu_compute_nlist_nsq(m_gpu_nlist, pdata[0], box, r_max_sq);
+
+    if (exec_conf.isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     // amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now
     int64_t mem_transfer = int64_t(m_pdata->getN())*16 + int64_t(m_pdata->getN())*int64_t(m_pdata->getN())*16 / 128;
