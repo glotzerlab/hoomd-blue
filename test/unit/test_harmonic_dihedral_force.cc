@@ -443,11 +443,6 @@ BOOST_AUTO_TEST_CASE( HarmonicDihedralForceComputeGPU_compare )
 //! boost test case for comparing calculation on the CPU to multi-gpu ones
 BOOST_AUTO_TEST_CASE( HarmonicDihedralForce_MultiGPU_compare)
     {
-    vector<int> gpu_list;
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
-    gpu_list.push_back(ExecutionConfiguration::getDefaultGPU());
     ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
     
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);

@@ -308,13 +308,11 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
         }
     pdata.release();
     // try accessing the data on the GPU
-    gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU()[0];
-    BOOST_REQUIRE_EQUAL(exec_conf.gpu.size(), (unsigned int)1);
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_pdata_texread_test, d_pdata));
+    gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU();
+    gpu_pdata_texread_test(d_pdata);
+    CHECK_CUDA_ERROR();
     pdata.release();
     
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
     pdata.acquireReadOnly();
     for (unsigned int i = 0; i < (unsigned int)N; i++)
         {
