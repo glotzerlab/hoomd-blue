@@ -192,11 +192,11 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     assert(ntypes > 0);
     m_typpair_idx = Index2D(ntypes);
     
-    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_pdata->getExecConf());
+    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf.isCUDAEnabled());
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_pdata->getExecConf());
+    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), exec_conf.isCUDAEnabled());
     m_ronsq.swap(ronsq);
-    GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_pdata->getExecConf());
+    GPUArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf.isCUDAEnabled());
     m_params.swap(params);
     
     // initialize name
