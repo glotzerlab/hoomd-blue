@@ -157,7 +157,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 
     Type mappings assign particle types "A", "B", "C", ....
 */
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf)
         : m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
     {
     // check the input for errors
@@ -237,7 +237,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     \param init Initializer to use
     \param exec_conf Execution configuration to run on
 */
-ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<const ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
+ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
     {
     m_ntypes = init.getNumParticleTypes();
     // check the input for errors
@@ -1152,8 +1152,8 @@ string print_ParticleData(ParticleData *pdata)
 
 void export_ParticleData()
     {
-    class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<const ExecutionConfiguration> >())
-    .def(init<const ParticleDataInitializer&, boost::shared_ptr<const ExecutionConfiguration> >())
+    class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setBox", &ParticleData::setBox)
     .def("getN", &ParticleData::getN)

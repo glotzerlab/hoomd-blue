@@ -110,11 +110,11 @@ class SystemDefinition
                          unsigned int n_angle_types=0,
                          unsigned int n_dihedral_types=0,
                          unsigned int n_improper_types=0,
-                         boost::shared_ptr<const ExecutionConfiguration> exec_conf=boost::shared_ptr<const ExecutionConfiguration>(new ExecutionConfiguration()));
+                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()));
                          
         //! Construct from an initializer (temporary measure until the initializer setup is rewritten)
         SystemDefinition(const ParticleDataInitializer& init,
-                        boost::shared_ptr<const ExecutionConfiguration> exec_conf=boost::shared_ptr<const ExecutionConfiguration>(new ExecutionConfiguration()));
+                        boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()));
                         
         //! Set the dimensionality of the system
         void setNDimensions(unsigned int);

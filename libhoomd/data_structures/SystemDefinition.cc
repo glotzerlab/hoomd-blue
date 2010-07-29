@@ -80,7 +80,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    unsigned int n_angle_types,
                                    unsigned int n_dihedral_types,
                                    unsigned int n_improper_types,
-                                   boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     m_n_dimensions = 3;
     m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf));
@@ -100,7 +100,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
 
     \b TEMPORARY!!!!! Initializers are planned to be rewritten
 */
-SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     m_n_dimensions = init.getNumDimensions();
     
@@ -145,9 +145,8 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
 void export_SystemDefinition()
     {
     class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<const ExecutionConfiguration> >())
-    .def(init<unsigned int, const BoxDim&, unsigned int>())
-    .def(init<const ParticleDataInitializer&, boost::shared_ptr<const ExecutionConfiguration> >())
+    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
+    .def(init<const ParticleDataInitializer&, boost::shared_ptr<ExecutionConfiguration> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)
     .def("getNDimensions", &SystemDefinition::getNDimensions)
     .def("getParticleData", &SystemDefinition::getParticleData)
