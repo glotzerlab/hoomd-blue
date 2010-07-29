@@ -131,7 +131,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // there really should be a better way to determine the initial height, but we will just
     // choose a given value for now (choose it initially small to test the auto-expansion
     // code
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         allocateGPUData(32);
         m_data_location = cpugpu;
@@ -153,7 +153,7 @@ NeighborList::~NeighborList()
     delete[] m_last_z;
     
 #ifdef ENABLE_CUDA
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         freeGPUData();
 #endif
         
@@ -323,7 +323,7 @@ double NeighborList::benchmark(unsigned int num_iters)
     buildNlist();;
     
 #ifdef ENABLE_CUDA
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     
@@ -333,7 +333,7 @@ double NeighborList::benchmark(unsigned int num_iters)
         buildNlist();
         
 #ifdef ENABLE_CUDA
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
@@ -481,8 +481,7 @@ void NeighborList::hostToDeviceCopy()
     // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
     // if (m_prof) m_prof->push("NLIST C2G");
     
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    assert(exec_conf.isCUDAEnabled());
+    assert(exec_conf->isCUDAEnabled());
     
     // start by determining if we need to make the device list larger or not
     // find the maximum neighborlist height
@@ -525,7 +524,7 @@ void NeighborList::hostToDeviceCopy()
                sizeof(unsigned int) * m_pdata->getN(),
                cudaMemcpyHostToDevice);
     
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     // if (m_prof) m_prof->pop();
@@ -551,7 +550,7 @@ void NeighborList::deviceToHostCopy()
                sizeof(unsigned int) * m_pdata->getN(),
                cudaMemcpyDeviceToHost);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
                                           
     // fill out host version of the list
@@ -572,7 +571,7 @@ void NeighborList::deviceToHostCopy()
 void NeighborList::updateExclusionData()
     {
     // cannot update unless we are running on a GPU
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         return;
         
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
@@ -678,7 +677,7 @@ void NeighborList::updateExclusionData()
                sizeof(uint4) * m_pdata->getN(),
                cudaMemcpyHostToDevice));
 #endif
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
         
     m_pdata->release();

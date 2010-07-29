@@ -68,7 +68,7 @@ TwoStepNVEGPU::TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNVE(sysdef, group)
     {
     // only one GPU is supported
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a TwoStepNVEGPU when CUDA is disabled" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
@@ -104,7 +104,7 @@ void TwoStepNVEGPU::integrateStepOne(unsigned int timestep)
                      m_limit_val,
                      m_zero_force);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
@@ -143,7 +143,7 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
                      m_limit_val,
                      m_zero_force);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_pdata->release();

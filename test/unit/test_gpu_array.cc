@@ -76,7 +76,7 @@ using namespace boost;
 BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
     {
     ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
-    GPUArray<int> gpu_array(100, exec_conf.isCUDAEnabled());
+    GPUArray<int> gpu_array(100, exec_conf->isCUDAEnabled());
     
     // basic check: ensure that the number of elements is set correctly
     BOOST_CHECK_EQUAL((int)gpu_array.getNumElements(), 100);
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
         }
         
     // basic check 3.5: test the construction of a 2-D GPUArray
-    GPUArray<int> gpu_array_2d(63, 120, exec_conf.isCUDAEnabled());
+    GPUArray<int> gpu_array_2d(63, 120, exec_conf->isCUDAEnabled());
     BOOST_CHECK_EQUAL((int)gpu_array_2d.getPitch(), 64);
     BOOST_CHECK_EQUAL((int)gpu_array_2d.getHeight(), 120);
     BOOST_CHECK_EQUAL((int)gpu_array_2d.getNumElements(), 7680);
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
         }
         
     // basic check 5: verify the = operator
-    GPUArray<int> array_c(1, exec_conf.isCUDAEnabled());
+    GPUArray<int> array_c(1, exec_conf->isCUDAEnabled());
     array_c = gpu_array;
     
     BOOST_CHECK_EQUAL((int)array_c.getNumElements(), 100);
@@ -138,9 +138,9 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
 BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
     {
     ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
-    BOOST_REQUIRE(exec_conf.isCUDAEnabled());
+    BOOST_REQUIRE(exec_conf->isCUDAEnabled());
     
-    GPUArray<int> gpu_array(100, exec_conf.isCUDAEnabled());
+    GPUArray<int> gpu_array(100, exec_conf->isCUDAEnabled());
     
     // initialize the data on the device
         {
@@ -260,14 +260,14 @@ BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
     
     // check assignment of a NULL GPUArray
     ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
-    GPUArray<int> c(1000, exec_conf.isCUDAEnabled());
+    GPUArray<int> c(1000, exec_conf->isCUDAEnabled());
     c = a;
     
     BOOST_CHECK(c.isNull());
     BOOST_CHECK_EQUAL(c.getNumElements(), (unsigned)0);
     
     // check swapping of a NULL GPUArray
-    GPUArray<int> d(1000, exec_conf.isCUDAEnabled());
+    GPUArray<int> d(1000, exec_conf->isCUDAEnabled());
     
     d.swap(a);
     BOOST_CHECK(d.isNull());

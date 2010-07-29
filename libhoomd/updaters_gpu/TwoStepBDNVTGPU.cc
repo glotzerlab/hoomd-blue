@@ -78,21 +78,21 @@ TwoStepBDNVTGPU::TwoStepBDNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepBDNVT(sysdef, group, T, seed, gamma_diam, suffix)
     {
     // only one GPU is supported
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a TwoStepNVEGPU what CUDA is disabled" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
         
     // allocate the sum arrays
-    GPUArray<float> sum(1, exec_conf.isCUDAEnabled());
+    GPUArray<float> sum(1, exec_conf);
     m_sum.swap(sum);
     
     // initialize the partial sum array
     m_block_size = 256; 
     unsigned int group_size = m_group->getIndexArray().getNumElements();    
     m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<float> partial_sum1(m_num_blocks, exec_conf.isCUDAEnabled());
+    GPUArray<float> partial_sum1(m_num_blocks, exec_conf);
     m_partial_sum1.swap(partial_sum1);          
     }
 
@@ -125,7 +125,7 @@ void TwoStepBDNVTGPU::integrateStepOne(unsigned int timestep)
                      m_limit_val,
                      m_zero_force);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
@@ -184,7 +184,7 @@ void TwoStepBDNVTGPU::integrateStepTwo(unsigned int timestep)
                            m_limit,
                            m_limit_val);
 
-        if (exec_conf.isCUDAErrorCheckingEnabled())
+        if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         
         }

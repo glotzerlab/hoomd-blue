@@ -81,7 +81,7 @@ TwoStepNPTGPU::TwoStepNPTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNPT(sysdef, group, thermo_group, thermo_all, tau, tauP, T, P)
     {
     // only one GPU is supported
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a TwoStepNPTGPU with CUDA disabled" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
@@ -127,7 +127,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
                      eta,
                      m_deltaT);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     // advance volume
@@ -148,7 +148,7 @@ void TwoStepNPTGPU::integrateStepOne(unsigned int timestep)
                      eta,
                      m_deltaT);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     // done profiling
@@ -200,7 +200,7 @@ void TwoStepNPTGPU::integrateStepTwo(unsigned int timestep)
                      eta,
                      m_deltaT);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     // Update state variables

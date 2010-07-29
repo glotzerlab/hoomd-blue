@@ -157,7 +157,7 @@ ParticleDataArraysConst::ParticleDataArraysConst() : nparticles(0), x(NULL), y(N
 
     Type mappings assign particle types "A", "B", "C", ....
 */
-ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, const ExecutionConfiguration& exec_conf)
+ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
         : m_box(box), m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(n_types), m_acquired(false)
     {
     // check the input for errors
@@ -210,7 +210,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
         
     // if this is a GPU build, initialize the graphics card mirror data structures
 #ifdef ENABLE_CUDA
-    if (m_exec_conf.isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         {
         hostToDeviceCopy();
         // now the data is copied to both the cpu and gpu and is unmodified, set the initial state
@@ -237,7 +237,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &box, unsigned int n_typ
     \param init Initializer to use
     \param exec_conf Execution configuration to run on
 */
-ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration& exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
+ParticleData::ParticleData(const ParticleDataInitializer& init, boost::shared_ptr<const ExecutionConfiguration> exec_conf) : m_exec_conf(exec_conf), m_data(NULL), m_nbytes(0), m_ntypes(0), m_acquired(false)
     {
     m_ntypes = init.getNumParticleTypes();
     // check the input for errors
@@ -299,7 +299,7 @@ ParticleData::ParticleData(const ParticleDataInitializer& init, const ExecutionC
     
     // if this is a GPU build, initialize the graphics card mirror data structure
 #ifdef ENABLE_CUDA
-    if (m_exec_conf.isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         {
         hostToDeviceCopy();
         // now the data is copied to both the cpu and gpu and is unmodified, set the initial state
@@ -485,7 +485,7 @@ gpu_pdata_arrays& ParticleData::acquireReadOnlyGPU()
     assert(!m_acquired);
     m_acquired = true;
     
-    if (!m_exec_conf.isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Reqesting GPU pdata, but no GPU in the Execution Configuration" << endl << endl;
         throw runtime_error("Error acquiring GPU data");
@@ -531,7 +531,7 @@ gpu_pdata_arrays& ParticleData::acquireReadWriteGPU()
     assert(!m_acquired);
     m_acquired = true;
     
-    if (!m_exec_conf.isCUDAEnabled())
+    if (!m_exec_conf->isCUDAEnabled())
         {
         cerr << endl << "Reqesting GPU pdata, but no GPU in the Execution Configuration" << endl << endl;
         throw runtime_error("Error acquiring GPU data");
@@ -723,7 +723,7 @@ void ParticleData::allocate(unsigned int N)
     //////////////////////////////////////////////////////
     // allocate the memory on the CPU, use pinned memory if compiling for the GPU
 #ifdef ENABLE_CUDA
-    if (m_exec_conf.isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         {
         cudaHostAlloc(&m_data, m_nbytes, cudaHostAllocPortable);
         }
@@ -771,7 +771,7 @@ void ParticleData::allocate(unsigned int N)
     m_single_xarray_bytes = single_xarray_bytes;
     
     // setup staging array
-    if (m_exec_conf.isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         {
         m_gpu_pdata.N = N;
         
@@ -797,9 +797,9 @@ void ParticleData::allocate(unsigned int N)
         }
         
 #endif
-    GPUArray< Scalar4 > net_force(getN(), m_exec_conf.isCUDAEnabled());
+    GPUArray< Scalar4 > net_force(getN(), m_exec_conf);
     m_net_force.swap(net_force);
-    GPUArray< Scalar > net_virial(getN(), m_exec_conf.isCUDAEnabled());
+    GPUArray< Scalar > net_virial(getN(), m_exec_conf);
     m_net_virial.swap(net_virial);
     }
 
@@ -812,7 +812,7 @@ void ParticleData::deallocate()
     
     // free the data
 #ifdef ENABLE_CUDA
-    if (m_exec_conf.isCUDAEnabled())
+    if (m_exec_conf->isCUDAEnabled())
         {
         cudaFreeHost(m_data);
         cudaFreeHost(m_h_staging);
@@ -918,7 +918,7 @@ bool ParticleData::inBox(bool need_aquire)
 void ParticleData::hostToDeviceCopy()
     {
     // we should never be called unless 1 or more gpus is in the exec conf... verify
-    assert(m_exec_conf.isCUDAEnabled());
+    assert(m_exec_conf->isCUDAEnabled());
     
     // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
     if (m_prof) m_prof->push(m_exec_conf, "PDATA C2G");
@@ -963,7 +963,7 @@ void ParticleData::hostToDeviceCopy()
     cudaMemcpy(m_gpu_pdata.rtag, m_arrays.rtag, sizeof(unsigned int)*N, cudaMemcpyHostToDevice);
     cudaMemcpy(m_gpu_pdata.body, m_arrays.body, sizeof(unsigned int)*N, cudaMemcpyHostToDevice);
     
-    if (m_exec_conf.isCUDAErrorCheckingEnabled())
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
         
     if (m_prof) m_prof->pop(m_exec_conf, 0, m_single_xarray_bytes*4 + m_single_xarray_bytes*3*2 + sizeof(unsigned int)*N * 3);
@@ -985,7 +985,7 @@ void ParticleData::deviceToHostCopy()
     const int N = m_arrays.nparticles;
     
     // we should never be called unless 1 or more gpus is in the exec conf... verify
-    assert(m_exec_conf.isCUDAEnabled());
+    assert(m_exec_conf->isCUDAEnabled());
     
     // because of the way memory was allocated, we can copy lots of pieces in huge chunks
     // the number of bytes copied and where depend highly on the order of allocation
@@ -1152,10 +1152,8 @@ string print_ParticleData(ParticleData *pdata)
 
 void export_ParticleData()
     {
-    class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int>())
-    .def(init<const ParticleDataInitializer&>())
-    .def(init<const ParticleDataInitializer&, const ExecutionConfiguration&>())
-    .def(init<unsigned int, const BoxDim&, unsigned int, const ExecutionConfiguration&>())
+    class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<const ExecutionConfiguration> >())
+    .def(init<const ParticleDataInitializer&, boost::shared_ptr<const ExecutionConfiguration> >())
     .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
     .def("setBox", &ParticleData::setBox)
     .def("getN", &ParticleData::getN)
@@ -1167,7 +1165,7 @@ void export_ParticleData()
     .def("acquireReadWrite", &ParticleData::acquireReadWrite, return_value_policy<copy_const_reference>())
     .def("release", &ParticleData::release)
     .def("setProfiler", &ParticleData::setProfiler)
-    .def("getExecConf", &ParticleData::getExecConf, return_internal_reference<>())
+    .def("getExecConf", &ParticleData::getExecConf)
     .def("__str__", &print_ParticleData)
     .def("getPosition", &ParticleData::getPosition)
     .def("getVelocity", &ParticleData::getVelocity)

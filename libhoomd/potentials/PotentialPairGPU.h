@@ -127,7 +127,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!this->exec_conf.isCUDAEnabled())
+    if (!this->exec_conf->isCUDAEnabled())
         {
         std::cerr << std::endl << "***Error! Creating a PotentialPairGPU with no GPU in the execution configuration" 
                   << std::endl << std::endl;
@@ -196,7 +196,7 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
              this->m_pdata->getNTypes(),
              opt);
     
-    if (this->exec_conf.isCUDAErrorCheckingEnabled())
+    if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     this->m_pdata->release();

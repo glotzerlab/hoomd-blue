@@ -60,6 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondData.cuh"
 #endif
 
+#include "ExecutionConfiguration.h"
+
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
 
@@ -150,6 +152,8 @@ class BondData : boost::noncopyable
         std::vector<std::string> m_bond_type_mapping;   //!< Mapping between bond type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_bonds_dirty flag when partciles are sorted or a bond is added.

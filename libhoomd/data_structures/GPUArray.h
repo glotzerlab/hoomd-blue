@@ -192,9 +192,9 @@ template<class T> class GPUArray
         //! Constructs a NULL GPUArray
         GPUArray();
         //! Constructs a 1-D GPUArray
-        GPUArray(unsigned int num_elements, bool cuda_enabled=false);
+        GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Constructs a 2-D GPUArray
-        GPUArray(unsigned int width, unsigned int height, bool cuda_enabled=false);
+        GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
         ~GPUArray();
         
@@ -248,7 +248,7 @@ template<class T> class GPUArray
         
         mutable bool m_acquired;                //!< Tracks whether the data has been aquired
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
-		bool m_cuda_enabled;					//!< true if CUDA is enabled
+		boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
 		
 #ifdef ENABLE_CUDA
         mutable T* d_data;      //!< Pointer to allocated device memory
@@ -300,7 +300,7 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 // *****************************************
 
 template<class T> GPUArray<T>::GPUArray() :
-        m_num_elements(0), m_acquired(false), m_data_location(data_location::host), m_cuda_enabled(false),
+        m_num_elements(0), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -309,10 +309,10 @@ template<class T> GPUArray<T>::GPUArray() :
     }
 
 /*! \param num_elements Number of elements to allocate in the array
-    \param cuda_enabled Set to true if CUDA is enabled and GPUArray will allocate CUDA device memory
+    \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
-template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, bool cuda_enabled) :
-        m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host), m_cuda_enabled(cuda_enabled),
+template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
+        m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -325,10 +325,10 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, bool cuda_ena
 
 /*! \param width Width of the 2-D array to allocate (in elements)
     \param height Number of rows to allocate in the 2D array
-    \param cuda_enabled Set to true if CUDA is enabled and GPUArray will allocate CUDA device memory
+    \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
-template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, bool cuda_enabled) :
-        m_height(height), m_acquired(false), m_data_location(data_location::host), m_cuda_enabled(cuda_enabled),
+template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
+        m_height(height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(exec_conf),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -351,7 +351,7 @@ template<class T> GPUArray<T>::~GPUArray()
     }
 
 template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(from.m_num_elements), m_pitch(from.m_pitch),
-        m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), m_cuda_enabled(from.m_cuda_enabled),
+        m_height(from.m_height), m_acquired(false), m_data_location(data_location::host), m_exec_conf(from.m_exec_conf),
 #ifdef ENABLE_CUDA
         d_data(NULL),
 #endif
@@ -383,7 +383,7 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
         m_num_elements = rhs.m_num_elements;
         m_pitch = rhs.m_pitch;
         m_height = rhs.m_height;
-        m_cuda_enabled = rhs.m_cuda_enabled;
+        m_exec_conf = rhs.m_exec_conf;
         
         // initialize state variables
         m_data_location = data_location::host;
@@ -425,7 +425,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(m_height, from.m_height);
     std::swap(m_acquired, from.m_acquired);
     std::swap(m_data_location, from.m_data_location);
-    std::swap(m_cuda_enabled, from.m_cuda_enabled);
+    std::swap(m_exec_conf, from.m_exec_conf);
 #ifdef ENABLE_CUDA
     std::swap(d_data, from.d_data);
 #endif
@@ -449,7 +449,7 @@ template<class T> void GPUArray<T>::allocate()
     // allocate memory
 #ifdef ENABLE_CUDA
     assert(d_data == NULL);
-    if (m_cuda_enabled)
+    if (m_exec_conf->isCUDAEnabled())
         {
         cudaHostAlloc(&h_data, m_num_elements*sizeof(T), cudaHostAllocDefault);
         cudaMalloc(&d_data, m_num_elements*sizeof(T));
@@ -479,7 +479,7 @@ template<class T> void GPUArray<T>::deallocate()
     
     // free memory
 #ifdef ENABLE_CUDA
-    if (m_cuda_enabled)
+    if (m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
         cudaFreeHost(h_data);
@@ -515,7 +515,7 @@ template<class T> void GPUArray<T>::memclear()
     // clear memory
     memset(h_data, 0, sizeof(T)*m_num_elements);
 #ifdef ENABLE_CUDA
-    if (m_cuda_enabled)
+    if (m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
         cudaMemset(d_data, 0, m_num_elements*sizeof(T));
@@ -637,7 +637,7 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
     else if (location == access_location::device)
         {
         // check that a GPU is actually specified
-        if (!m_cuda_enabled)
+        if (!m_exec_conf->isCUDAEnabled())
             {
             std::cerr << std::endl << "Reqesting device aquire, but no GPU in the Execution Configuration" << std::endl << std::endl;
             throw std::runtime_error("Error acquiring data");

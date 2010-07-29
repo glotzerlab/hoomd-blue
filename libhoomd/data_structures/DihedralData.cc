@@ -78,7 +78,7 @@ using namespace std;
     hanging around.
 */
 DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n_dihedral_types) 
-    : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata)
+    : m_n_dihedral_types(n_dihedral_types), m_dihedrals_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
     {
     assert(pdata);
     
@@ -97,9 +97,6 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
         }
         
 #ifdef ENABLE_CUDA
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // init pointers
     m_host_dihedrals = NULL;
     m_host_n_dihedrals = NULL;
@@ -111,7 +108,7 @@ DihedralData::DihedralData(boost::shared_ptr<ParticleData> pdata, unsigned int n
     m_gpu_dihedraldata.pitch = 0;
         
     // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         allocateDihedralTable(1);
         }
@@ -123,8 +120,7 @@ DihedralData::~DihedralData()
     m_sort_connection.disconnect();
     
 #ifdef ENABLE_CUDA
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         freeDihedralTable();
         }
@@ -395,9 +391,6 @@ void DihedralData::freeDihedralTable()
 //! Copies the dihedral table to the device
 void DihedralData::copyDihedralTable()
     {
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
     for (unsigned int row = 0; row < m_gpu_dihedraldata.height; row++)
         {
@@ -417,7 +410,7 @@ void DihedralData::copyDihedralTable()
                sizeof(unsigned int) * m_pdata->getN(),
                cudaMemcpyHostToDevice);
     
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
 #endif

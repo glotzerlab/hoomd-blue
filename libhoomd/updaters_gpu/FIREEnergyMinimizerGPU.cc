@@ -78,27 +78,27 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(boost::shared_ptr<SystemDefinitio
     {
 
     // only one GPU is supported
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a FIREEnergyMinimizer with CUDA disabled" << endl << endl;
         throw std::runtime_error("Error initializing FIREEnergyMinimizer");
         }
     
     // allocate the sum arrays
-    GPUArray<float> sum(1, exec_conf.isCUDAEnabled());
+    GPUArray<float> sum(1, exec_conf);
     m_sum.swap(sum);
-    GPUArray<float> sum3(3, exec_conf.isCUDAEnabled());
+    GPUArray<float> sum3(3, exec_conf);
     m_sum3.swap(sum3);
     
     // initialize the partial sum arrays
     m_block_size = 256; //128;
     unsigned int group_size = m_group->getIndexArray().getNumElements();    
     m_num_blocks = group_size / m_block_size + 1;
-    GPUArray<float> partial_sum1(m_num_blocks, exec_conf.isCUDAEnabled());
+    GPUArray<float> partial_sum1(m_num_blocks, exec_conf);
     m_partial_sum1.swap(partial_sum1);
-    GPUArray<float> partial_sum2(m_num_blocks, exec_conf.isCUDAEnabled());
+    GPUArray<float> partial_sum2(m_num_blocks, exec_conf);
     m_partial_sum2.swap(partial_sum2);
-    GPUArray<float> partial_sum3(m_num_blocks, exec_conf.isCUDAEnabled());
+    GPUArray<float> partial_sum3(m_num_blocks, exec_conf);
     m_partial_sum3.swap(partial_sum3);
     
     reset();
@@ -128,7 +128,7 @@ void FIREEnergyMinimizerGPU::reset()
                     d_index_array.data,
                     group_size);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
@@ -175,7 +175,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                                 m_block_size, 
                                 m_num_blocks);
         
-        if (exec_conf.isCUDAErrorCheckingEnabled())
+        if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
     
@@ -214,7 +214,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                                  m_block_size,
                                  m_num_blocks);
         
-        if (exec_conf.isCUDAErrorCheckingEnabled())
+        if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
     
@@ -248,7 +248,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                       vnorm, 
                       invfnorm);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     if (m_prof)
@@ -276,7 +276,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                         d_index_array.data,
                         group_size);
 
-        if (exec_conf.isCUDAErrorCheckingEnabled())
+        if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         
         if (m_prof)

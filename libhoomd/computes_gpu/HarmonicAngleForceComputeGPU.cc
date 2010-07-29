@@ -68,7 +68,7 @@ HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<Sys
         : HarmonicAngleForceCompute(sysdef), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl 
              << "***Error! Creating a AngleForceComputeGPU with no GPU in the execution configuration" 
@@ -143,7 +143,7 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
                                       m_angle_data->getNAngleTypes(),
                                       m_block_size);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     // the force data is now only up to date on the gpu

@@ -158,7 +158,7 @@ class Compute : boost::noncopyable
         const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
-        const ExecutionConfiguration& exec_conf;            //!< Cached reference to the execution configuration
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
         
         //! Simple method for testing if the computation should be run or not
         virtual bool shouldCompute(unsigned int timestep);

@@ -67,9 +67,8 @@ using namespace std;
 */
 Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
     {
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
     // at least one GPU is needed
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a Enforce2DUpdaterGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing Enforce2DUpdaterGPU");
@@ -93,7 +92,7 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
     // call the enforce 2d kernel
     gpu_enforce2d(d_pdata);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_pdata->release();

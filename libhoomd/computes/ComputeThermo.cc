@@ -70,7 +70,7 @@ ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
     : Compute(sysdef), m_group(group), m_ndof(1)
     {
     assert(m_pdata);
-    GPUArray< Scalar > properties(4, exec_conf.isCUDAEnabled());
+    GPUArray< Scalar > properties(4, exec_conf);
     m_properties.swap(properties);
 
     m_logname_list.push_back(string("temperature") + suffix);

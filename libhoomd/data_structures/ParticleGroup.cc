@@ -217,7 +217,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::
             m_member_tags.push_back(tag);
         }
     
-    GPUArray<unsigned int> member_idx(m_member_tags.size(), m_pdata->getExecConf().isCUDAEnabled());
+    GPUArray<unsigned int> member_idx(m_member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
     
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list
@@ -241,7 +241,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     // let's make absolutely sure that the tag order given from outside is sorted
     sort(m_member_tags.begin(), m_member_tags.end());
     
-    GPUArray<unsigned int> member_idx(m_member_tags.size(), m_pdata->getExecConf().isCUDAEnabled());
+    GPUArray<unsigned int> member_idx(m_member_tags.size(), m_pdata->getExecConf());
     m_member_idx.swap(member_idx);
     
     // now that the tag list is completely set up and all memory is allocated, rebuild the index list

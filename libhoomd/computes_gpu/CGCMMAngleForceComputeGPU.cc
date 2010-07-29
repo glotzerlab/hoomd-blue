@@ -68,7 +68,7 @@ CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDef
         : CGCMMAngleForceCompute(sysdef), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a CGCMMAngleForceComputeGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing CGCMMAngleForceComputeGPU");
@@ -195,7 +195,7 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
                                    m_CGCMMAngle_data->getNAngleTypes(),
                                    m_block_size);
     
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     // the force data is now only up to date on the gpu

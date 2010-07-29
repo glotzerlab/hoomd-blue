@@ -72,7 +72,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
                                    const std::string& suffix)
     : ComputeThermo(sysdef, group, suffix)
     {
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a ComputeThermoGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing ComputeThermoGPU");
@@ -81,7 +81,7 @@ ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
     m_block_size = 512;
     m_num_blocks = m_group->getNumMembers() / m_block_size + 1;
     
-    GPUArray< float4 > scratch(m_num_blocks, exec_conf.isCUDAEnabled());
+    GPUArray< float4 > scratch(m_num_blocks, exec_conf);
     m_scratch.swap(scratch);
     }
 
@@ -134,7 +134,7 @@ void ComputeThermoGPU::computeProperties()
 						box,
 						args);
 	
-	if (exec_conf.isCUDAErrorCheckingEnabled())
+	if (exec_conf->isCUDAErrorCheckingEnabled())
 		CHECK_CUDA_ERROR();
     
     m_pdata->release();

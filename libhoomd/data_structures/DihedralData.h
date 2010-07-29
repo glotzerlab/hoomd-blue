@@ -60,6 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "DihedralData.cuh"
 #endif
 
+#include "ExecutionConfiguration.h"
+
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
 
@@ -159,6 +161,9 @@ class DihedralData : boost::noncopyable
         std::vector<std::string> m_dihedral_type_mapping;   //!< Mapping between dihedral type indices and names
         
         boost::signals::connection m_sort_connection;       //!< Connection to the resort signal from ParticleData
+        
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
+
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_dihedrals_dirty flag when partciles are sorted or an dihedral is added.

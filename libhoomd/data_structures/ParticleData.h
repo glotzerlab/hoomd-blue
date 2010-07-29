@@ -373,10 +373,15 @@ class ParticleData : boost::noncopyable
     {
     public:
         //! Construct with N particles in the given box
-        ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+        ParticleData(unsigned int N,
+                     const BoxDim &box,
+                     unsigned int n_types,
+                     boost::shared_ptr<const ExecutionConfiguration> exec_conf);
         
         //! Construct from an initializer
-        ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
+        ParticleData(const ParticleDataInitializer& init,
+                     boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+        
         //! Destructor
         virtual ~ParticleData();
         
@@ -386,7 +391,7 @@ class ParticleData : boost::noncopyable
         void setBox(const BoxDim &box);
 
         //! Access the execution configuration
-        const ExecutionConfiguration& getExecConf()
+        boost::shared_ptr<const ExecutionConfiguration> getExecConf()
             {
             return m_exec_conf;
             }
@@ -648,7 +653,7 @@ class ParticleData : boost::noncopyable
 
     private:
         BoxDim m_box;                               //!< The simulation box
-        const ExecutionConfiguration m_exec_conf;   //!< The execution configuration
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         void *m_data;                               //!< Raw data allocated
         size_t m_nbytes;                            //!< Number of bytes allocated
         unsigned int m_ntypes;                      //!< Number of particle types

@@ -410,7 +410,7 @@ void Integrator::computeNetForce(unsigned int timestep, const std::string& profi
 */
 void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& profile_name)
     {
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Cannot compute net force on the GPU if CUDA is disabled" << endl << endl;
         throw runtime_error("Error computing accelerations");
@@ -446,7 +446,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
             // start by zeroing the net force and virial arrays
             cudaMemset(d_net_force.data, 0, sizeof(Scalar4)*nparticles);
             cudaMemset(d_net_virial.data, 0, sizeof(Scalar)*nparticles);
-            if (exec_conf.isCUDAErrorCheckingEnabled())
+            if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
         
@@ -501,7 +501,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
                                          nparticles,
                                          clear);
 
-            if (exec_conf.isCUDAErrorCheckingEnabled())
+            if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
         }
@@ -589,7 +589,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep, const std::string& pr
                                          nparticles,
                                          clear);
             
-            if (exec_conf.isCUDAErrorCheckingEnabled())
+            if (exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
         }

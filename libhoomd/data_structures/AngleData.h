@@ -60,6 +60,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AngleData.cuh"
 #endif
 
+#include "ExecutionConfiguration.h"
+
 // forward declaration of ParticleData to avoid circular references
 class ParticleData;
 
@@ -157,6 +159,8 @@ class AngleData : boost::noncopyable
         std::vector<std::string> m_angle_type_mapping;  //!< Mapping between angle type indices and names
         
         boost::signals::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
+        
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf;  //!< Execution configuration for CUDA context
         
         //! Helper function to set the dirty flag when particles are resorted
         /*! setDirty() just sets the \c m_angles_dirty flag when partciles are sorted or an angle is added.

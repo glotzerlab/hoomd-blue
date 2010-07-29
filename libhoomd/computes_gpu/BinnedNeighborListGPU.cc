@@ -87,7 +87,7 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
     : NeighborList(sysdef, r_cut, r_buff), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a BinnedNeighborListGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing BinnedNeighborListGPU");
@@ -113,11 +113,11 @@ BinnedNeighborListGPU::BinnedNeighborListGPU(boost::shared_ptr<SystemDefinition>
     m_Mz = 0;
     
     // allocate the array of bin ids
-    GPUArray< unsigned int > bin_ids(m_pdata->getN(), exec_conf.isCUDAEnabled());
+    GPUArray< unsigned int > bin_ids(m_pdata->getN(), exec_conf);
     m_bin_ids.swap(bin_ids);
     
     // allocate the thread mapping array
-    GPUArray< unsigned int > thread_mapping(m_pdata->getN(), exec_conf.isCUDAEnabled());
+    GPUArray< unsigned int > thread_mapping(m_pdata->getN(), exec_conf);
     m_thread_mapping.swap(thread_mapping);
     }
 
@@ -136,7 +136,7 @@ BinnedNeighborListGPU::~BinnedNeighborListGPU()
 */
 void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax)
     {
-    assert(exec_conf.isCUDAEnabled());
+    assert(exec_conf->isCUDAEnabled());
     
     // use mallocPitch to make sure that memory accesses are coalesced
     size_t pitch;
@@ -259,7 +259,7 @@ void BinnedNeighborListGPU::allocateGPUBinData(unsigned int Mx, unsigned int My,
 */
 void BinnedNeighborListGPU::freeGPUBinData()
     {
-    assert(exec_conf.isCUDAEnabled());
+    assert(exec_conf->isCUDAEnabled());
     
     // free the device memory
     cudaFree(m_gpu_bin_data.idxlist);
@@ -285,7 +285,7 @@ void BinnedNeighborListGPU::freeGPUBinData()
 */
 void BinnedNeighborListGPU::buildNlist()
     {
-    assert(exec_conf.isCUDAEnabled());
+    assert(exec_conf->isCUDAEnabled());
     
     // bin the particles
     updateBinsUnsorted();
@@ -298,7 +298,7 @@ void BinnedNeighborListGPU::buildNlist()
     cudaMemcpyToArray(m_gpu_bin_data.idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice);
     cudaMemcpy(m_gpu_bin_data.bin_size, &m_bin_sizes, sizeof(unsigned int)*m_gpu_bin_data.Mx*m_gpu_bin_data.My*m_gpu_bin_data.Mz, cudaMemcpyHostToDevice);
     
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     if (m_prof) m_prof->pop(exec_conf, 0, nbytes);
@@ -309,7 +309,7 @@ void BinnedNeighborListGPU::buildNlist()
     gpu_nlist_idxlist2coord(&pdata, &m_gpu_bin_data, m_curNmax, 256);
     cudaMemcpyToArray(m_gpu_bin_data.coord_idxlist_array, 0, 0, m_gpu_bin_data.coord_idxlist, m_gpu_bin_data.coord_idxlist_width*m_curNmax*sizeof(float4), cudaMemcpyDeviceToDevice);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
@@ -335,7 +335,7 @@ void BinnedNeighborListGPU::buildNlist()
         cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
         }
     
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_data_location = gpu;
@@ -421,7 +421,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
                             scaley,
                             scalez);
         
-        if (exec_conf.isCUDAErrorCheckingEnabled())
+        if (exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         
         m_pdata->release();
@@ -527,7 +527,7 @@ void BinnedNeighborListGPU::updateBinsUnsorted()
 */
 void BinnedNeighborListGPU::updateListFromBins()
     {
-    assert(exec_conf.isCUDAEnabled());
+    assert(exec_conf->isCUDAEnabled());
     
     if (m_storage_mode != full)
         {
@@ -552,7 +552,7 @@ void BinnedNeighborListGPU::updateListFromBins()
     m_gpu_nlist.thread_mapping = d_thread_mapping.data;
     gpu_compute_nlist_binned(m_gpu_nlist, pdata, box, m_gpu_bin_data, d_bin_ids.data, r_max_sq, m_curNmax, m_block_size);
         
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_pdata->release();
@@ -569,7 +569,7 @@ void BinnedNeighborListGPU::updateListFromBins()
 */
 bool BinnedNeighborListGPU::distanceCheck()
     {
-    assert(exec_conf.isCUDAEnabled());
+    assert(exec_conf->isCUDAEnabled());
     
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(exec_conf, "Dist check");
@@ -583,7 +583,7 @@ bool BinnedNeighborListGPU::distanceCheck()
     int result = 0;
     gpu_nlist_needs_update_check(&pdata, &box, &m_gpu_nlist, r_buffsq, &result);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
         
     m_pdata->release();

@@ -78,7 +78,7 @@ using namespace std;
     around.
 */
 AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types)
-        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata)
+        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
     {
     assert(pdata);
     
@@ -97,9 +97,6 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
         }
         
 #ifdef ENABLE_CUDA
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // init pointers
     m_host_angles = NULL;
     m_host_n_angles = NULL;
@@ -109,7 +106,7 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
     m_gpu_angledata.pitch = 0;
         
     // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         allocateAngleTable(1);
         }
@@ -121,8 +118,7 @@ AngleData::~AngleData()
     m_sort_connection.disconnect();
     
 #ifdef ENABLE_CUDA
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         freeAngleTable();
         }
@@ -377,9 +373,6 @@ void AngleData::freeAngleTable()
 //! Copies the angle table to the device
 void AngleData::copyAngleTable()
     {
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
     for (unsigned int row = 0; row < m_gpu_angledata.height; row++)
         {
@@ -394,7 +387,7 @@ void AngleData::copyAngleTable()
                sizeof(unsigned int) * m_pdata->getN(),
                cudaMemcpyHostToDevice);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
 #endif

@@ -84,7 +84,7 @@ CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> s
     : CGCMMForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a CGCMMForceComputeGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing CGCMMForceComputeGPU");
@@ -218,7 +218,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
                              m_pdata->getNTypes(),
                              m_r_cut * m_r_cut,
                              m_block_size);
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_pdata->release();

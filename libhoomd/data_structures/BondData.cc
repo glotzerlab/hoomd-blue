@@ -70,7 +70,7 @@ using namespace std;
     \param n_bond_types Number of bond types in the list
 */
 BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_types) 
-    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata)
+    : m_n_bond_types(n_bond_types), m_bonds_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
     {
     assert(pdata);
     
@@ -90,7 +90,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
         
 #ifdef ENABLE_CUDA
     // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
+    boost::shared_ptr<const ExecutionConfiguration> exec_conf = m_pdata->getExecConf();
     
     // init pointers
     m_host_bonds = NULL;
@@ -101,7 +101,7 @@ BondData::BondData(boost::shared_ptr<ParticleData> pdata, unsigned int n_bond_ty
     m_gpu_bonddata.pitch = 0;
         
     // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         allocateBondTable(1);
         }
@@ -113,8 +113,7 @@ BondData::~BondData()
     m_sort_connection.disconnect();
     
 #ifdef ENABLE_CUDA
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         freeBondTable();
         }
@@ -347,9 +346,6 @@ void BondData::freeBondTable()
 //! Copies the bond table to the device
 void BondData::copyBondTable()
     {
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
     for (unsigned int row = 0; row < m_gpu_bonddata.height; row++)
         {
@@ -365,7 +361,7 @@ void BondData::copyBondTable()
                sizeof(unsigned int) * m_pdata->getN(),
                cudaMemcpyHostToDevice);
     
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     }
 #endif

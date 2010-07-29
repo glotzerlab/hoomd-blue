@@ -75,7 +75,7 @@ NeighborListNsqGPU::NeighborListNsqGPU(boost::shared_ptr<SystemDefinition> sysde
         : NeighborList(sysdef, r_cut, r_buff)
     {
     // only one GPU is currently supported
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a NeighborListNsqGPU with no GPU in the execution configuration"
              << endl << endl;
@@ -111,7 +111,7 @@ void NeighborListNsqGPU::buildNlist()
         cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
         }
     
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     m_data_location = gpu;
@@ -148,7 +148,7 @@ void NeighborListNsqGPU::buildNlistAttempt()
     // calculate the nlist
     gpu_compute_nlist_nsq(m_gpu_nlist, pdata, box, r_max_sq);
 
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     // amount of memory transferred is N * 16 + N*N*16 of particle data / number of threads in a block. We'll ignore the nlist data for now

@@ -246,7 +246,7 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
         
 #ifdef ENABLE_CUDA
     // setup ForceDataArrays the GPU
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         m_gpu_forces.allocate(m_pdata->getN());
         CHECK_CUDA_ERROR();
@@ -266,8 +266,8 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
 */
 void ForceCompute::allocateThreadPartial()
     {
-    assert(exec_conf.n_cpu >= 1);
-    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf.n_cpu);
+    assert(exec_conf->n_cpu >= 1);
+    m_index_thread_partial = Index2D(m_pdata->getN(), exec_conf->n_cpu);
     m_fdata_partial = new Scalar4[m_index_thread_partial.getNumElements()];
     m_virial_partial = new Scalar[m_index_thread_partial.getNumElements()];
     }
@@ -289,7 +289,7 @@ ForceCompute::~ForceCompute()
     m_arrays.virial = m_virial = NULL;
     
 #ifdef ENABLE_CUDA
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         {
         m_gpu_forces.deallocate();
         CHECK_CUDA_ERROR();
@@ -387,7 +387,7 @@ const ForceDataArrays& ForceCompute::acquire()
 */
 ForceDataArraysGPU& ForceCompute::acquireGPU()
     {
-    if (!exec_conf.isCUDAEnabled())
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Acquiring forces on GPU, but hoomd is running on the CPU" << endl << endl;
         throw runtime_error("Error acquiring GPU forces");
@@ -430,7 +430,7 @@ void ForceCompute::hostToDeviceCopy()
     // if (m_prof) m_prof->push("ForceCompute - CPU->GPU");
     
     m_gpu_forces.hostToDeviceCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
@@ -444,7 +444,7 @@ void ForceCompute::deviceToHostCopy()
     // if (m_prof) m_prof->push("ForceCompute - GPU->CPU");
     
     m_gpu_forces.deviceToHostCopy(m_fx, m_fy, m_fz, m_pe, m_virial);
-    if (exec_conf.isCUDAErrorCheckingEnabled())
+    if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
     //if (m_prof) m_prof->pop(exec_conf, 0, m_single_xarray_bytes*4);
@@ -480,7 +480,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
     computeForces(0);
     
 #ifdef ENABLE_CUDA
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     
@@ -490,7 +490,7 @@ double ForceCompute::benchmark(unsigned int num_iters)
         computeForces(0);
         
 #ifdef ENABLE_CUDA
-    if (exec_conf.isCUDAEnabled())
+    if (exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
