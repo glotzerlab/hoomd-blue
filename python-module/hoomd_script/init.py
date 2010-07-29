@@ -675,17 +675,16 @@ def _create_exec_conf():
         exec_conf = hoomd.ExecutionConfiguration(_options.min_cpu, _options.ignore_display);
     else:
         # determine the GPU on which to execute
-        gpu_ids = hoomd.std_vector_int();
         if _options.gpu is not None:
-            gpu_ids.append(_options.gpu);
+            gpu_id = int(_options.gpu);
         else:
-            gpu_ids.append(-1);
+            gpu_id = -1;
         
         # create the specified configuration
         if _options.mode == "cpu":
-            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, _options.min_cpu, _options.ignore_display);
+            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.CPU, gpu_id, _options.min_cpu, _options.ignore_display);
         elif _options.mode == "gpu":
-            exec_conf = hoomd.ExecutionConfiguration(gpu_ids, _options.min_cpu, _options.ignore_display);
+            exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, _options.min_cpu, _options.ignore_display);
         else:
             raise RuntimeError("Error initializing");
         
