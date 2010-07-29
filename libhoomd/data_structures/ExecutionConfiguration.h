@@ -48,6 +48,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
 #include <cuda_runtime.h>
 
 /*! \file ExecutionConfiguration.h
@@ -76,7 +77,7 @@ struct ExecutionConfiguration
     enum executionMode
         {
         GPU,    //!< Execute on the GPU
-        CPU //!< Execute on the CPU
+        CPU,    //!< Execute on the CPU
         };
         
     //! Default constructor

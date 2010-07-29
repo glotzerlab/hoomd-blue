@@ -135,7 +135,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, b
 
 ExecutionConfiguration::~ExecutionConfiguration()
     {
-    cudaThreadExit();
+    if (exec_mode == GPU)
+        cudaThreadExit();
     }
 
 #ifdef ENABLE_CUDA
