@@ -296,7 +296,7 @@ void BinnedNeighborListGPU::buildNlist()
     unsigned int nbytes = m_gpu_bin_data.Mx * m_gpu_bin_data.My * m_gpu_bin_data.Mz * m_gpu_bin_data.Nmax * sizeof(unsigned int);
     
     cudaMemcpyToArray(m_gpu_bin_data.idxlist_array, 0, 0, m_host_idxlist, nbytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(m_gpu_bin_data.bin_size, &m_bin_sizes, sizeof(unsigned int)*m_gpu_bin_data.Mx*m_gpu_bin_data.My*m_gpu_bin_data.Mz, cudaMemcpyHostToDevice);
+    cudaMemcpy(m_gpu_bin_data.bin_size, &m_bin_sizes[0], sizeof(unsigned int)*m_gpu_bin_data.Mx*m_gpu_bin_data.My*m_gpu_bin_data.Mz, cudaMemcpyHostToDevice);
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
