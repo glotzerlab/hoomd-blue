@@ -1120,7 +1120,7 @@ shared_ptr<TwoStepNVT> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef,
 #endif
 
 //! Integrate 1 particle through time and compare to a mathematical solution
-void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfiguration exec_conf)
+void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -1174,7 +1174,7 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, ExecutionConfig
     }
 
 //! Compares the output from one NVEUpdater to another
-void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, ExecutionConfiguration exec_conf)
+void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -1269,7 +1269,7 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
 //! Compares the output of NVTUpdater to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( TwoStepNVT_mathematica_compare )
     {
-    nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4, _5), ExecutionConfiguration(ExecutionConfiguration::CPU));
+    nvt_updater_integrate_tests(bind(base_class_nvt_creator, _1, _2, _3, _4, _5), boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 
@@ -1277,7 +1277,7 @@ BOOST_AUTO_TEST_CASE( TwoStepNVT_mathematica_compare )
 //! Compares the output of NVTUpdaterGPU to a mathematica solution of a 1D problem
 BOOST_AUTO_TEST_CASE( TwoStepNVTGPU_mathematica_compare )
     {
-    nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4, _5), ExecutionConfiguration(ExecutionConfiguration::GPU));
+    nvt_updater_integrate_tests(bind(gpu_nvt_creator, _1, _2, _3, _4, _5), boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing the GPU and CPU NVTUpdaters
@@ -1285,7 +1285,7 @@ BOOST_AUTO_TEST_CASE( TwoStepNVTGPU_comparison_tests)
     {
     twostepnvt_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4, _5);
     twostepnvt_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4, _5);
-    nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

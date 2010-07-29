@@ -85,7 +85,7 @@ typedef boost::function<shared_ptr<TwoStepNVE> (shared_ptr<SystemDefinition> sys
                                                 shared_ptr<ParticleGroup> group)> twostepnve_creator;
 
 //! Integrate 1 particle through time and compare to an analytical solution
-void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -161,7 +161,7 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, ExecutionConfig
     }
 
 //! Check that the particle movement limit works
-void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -230,7 +230,7 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, ExecutionConfigurat
 
 
 //! Make a few particles jump across the boundary and verify that the updater works
-void nve_updater_boundary_tests(twostepnve_creator nve_creator, ExecutionConfiguration exec_conf)
+void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -294,7 +294,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, ExecutionConfigu
 //! Compares the output from one TwoStepNVE to another
 void nve_updater_compare_test(twostepnve_creator nve_creator1,
                               twostepnve_creator nve_creator2,
-                              ExecutionConfiguration exec_conf)
+                              boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -401,21 +401,21 @@ shared_ptr<TwoStepNVE> gpu_nve_creator(shared_ptr<SystemDefinition> sysdef, shar
 BOOST_AUTO_TEST_CASE( TwoStepNVE_integrate_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-    nve_updater_integrate_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    nve_updater_integrate_tests(nve_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for base class limit tests
 BOOST_AUTO_TEST_CASE( TwoStepNVE_limit_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-    nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    nve_updater_limit_tests(nve_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for base class boundary tests
 BOOST_AUTO_TEST_CASE( TwoStepNVE_boundary_tests )
     {
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-    nve_updater_boundary_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    nve_updater_boundary_tests(nve_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 //! Need work on NVEUpdaterGPU with rigid bodies to test these cases
 #ifdef ENABLE_CUDA
@@ -423,21 +423,21 @@ BOOST_AUTO_TEST_CASE( TwoStepNVE_boundary_tests )
 BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_integrate_tests )
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-    nve_updater_integrate_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    nve_updater_integrate_tests(nve_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for base class limit tests
 BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_limit_tests )
     {
     twostepnve_creator nve_creator = bind(gpu_nve_creator, _1, _2);
-    nve_updater_limit_tests(nve_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    nve_updater_limit_tests(nve_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for base class boundary tests
 BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_boundary_tests )
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
-    nve_updater_boundary_tests(nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    nve_updater_boundary_tests(nve_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing the GPU and CPU NVEUpdaters
@@ -445,7 +445,7 @@ BOOST_AUTO_TEST_CASE( TwoStepNVEGPU_comparison_tests)
     {
     twostepnve_creator nve_creator_gpu = bind(gpu_nve_creator, _1, _2);
     twostepnve_creator nve_creator = bind(base_class_nve_creator, _1, _2);
-    nve_updater_compare_test(nve_creator, nve_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    nve_updater_compare_test(nve_creator, nve_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

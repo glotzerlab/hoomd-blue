@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     int n_dihedral_types = 1;
     int n_improper_types = 1;
    
-    ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
     

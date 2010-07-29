@@ -78,7 +78,7 @@ typedef boost::function<shared_ptr<PotentialPairSLJ> (shared_ptr<SystemDefinitio
                                                       shared_ptr<NeighborList> nlist)> shiftedljforce_creator;
 
 //! Test the ability of the shiftedlj force compute to actually calucate forces
-void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, ExecutionConfiguration exec_conf)
+void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -194,7 +194,7 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, Exe
     }
 
 //! Tests the ability of a ShiftedLJForceCompute to handle periodic boundary conditions.  Also intentionally place a particle outside the cutoff of normally size particle but in the cutoff of a large particle
-void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, ExecutionConfiguration exec_conf)
+void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -302,7 +302,7 @@ void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, Exe
 //! Unit test a comparison between 2 ShiftedLJForceComputes on a "real" system
 void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
                                      shiftedljforce_creator shiftedlj_creator2,
-                                     ExecutionConfiguration exec_conf)
+                                     boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -393,14 +393,14 @@ shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(shared_ptr<SystemDefinition> 
 BOOST_AUTO_TEST_CASE( SLJForce_particle )
     {
     shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
-    shiftedlj_force_particle_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    shiftedlj_force_particle_test(shiftedlj_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( SLJForce_periodic )
     {
     shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
-    shiftedlj_force_periodic_test(shiftedlj_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    shiftedlj_force_periodic_test(shiftedlj_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 
@@ -409,7 +409,7 @@ BOOST_AUTO_TEST_CASE( SLJForce_periodic )
 BOOST_AUTO_TEST_CASE( SLJForceGPU_particle )
     {
     shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
-    shiftedlj_force_particle_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    shiftedlj_force_particle_test(shiftedlj_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 
@@ -417,7 +417,7 @@ BOOST_AUTO_TEST_CASE( SLJForceGPU_particle )
 BOOST_AUTO_TEST_CASE( SLJForceGPU_periodic )
     {
     shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
-    shiftedlj_force_periodic_test(shiftedlj_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    shiftedlj_force_periodic_test(shiftedlj_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -427,7 +427,7 @@ BOOST_AUTO_TEST_CASE( SLJForceGPU_compare )
     shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
     shiftedlj_force_comparison_test(shiftedlj_creator_base,
                                     shiftedlj_creator_gpu,
-                                    ExecutionConfiguration(ExecutionConfiguration::GPU));
+                                    boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

@@ -90,7 +90,7 @@ typedef boost::function<shared_ptr<TwoStepNPT> (shared_ptr<SystemDefinition> sys
 
 
 //! Basic functionality test of a generic TwoStepNPT
-void npt_updater_test(twostepnpt_creator npt_creator, ExecutionConfiguration exec_conf)
+void npt_updater_test(twostepnpt_creator npt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -202,7 +202,7 @@ shared_ptr<TwoStepNPT> gpu_npt_creator(shared_ptr<SystemDefinition> sysdef,
 BOOST_AUTO_TEST_CASE( TwoStepNPT_tests )
     {
     twostepnpt_creator npt_creator = bind(base_class_npt_creator, _1, _2,_3,_4,_5,_6);
-    npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    npt_updater_test(npt_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 
@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE( TwoStepNPT_tests )
 BOOST_AUTO_TEST_CASE( TwoStepNPTGPU_tests )
     {
     twostepnpt_creator npt_creator = bind(gpu_npt_creator, _1, _2,_3,_4,_5,_6);
-    npt_updater_test(npt_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    npt_updater_test(npt_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

@@ -86,7 +86,7 @@ typedef boost::function<shared_ptr<TwoStepBDNVT> (shared_ptr<SystemDefinition> s
                                                   bool gamma_diam)> twostepbdnvt_creator;
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
-void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration exec_conf)
+void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -268,7 +268,7 @@ void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration
     }
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas with gamma set by diameters
-void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration exec_conf)
+void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     
     cout << endl << "Test 2" << endl;
@@ -394,7 +394,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, ExecutionConfigura
     }
 
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
-void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration exec_conf)
+void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -485,7 +485,7 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, Execution
     }
 
 //! Apply the Stochastic BD Bath to 1000 LJ Particles
-void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, ExecutionConfiguration exec_conf)
+void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -623,28 +623,28 @@ shared_ptr<TwoStepBDNVT> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sysdef,
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
     {
     twostepbdnvt_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    bd_updater_tests(bdnvt_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Diameter test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_diamtests )
     {
     twostepbdnvt_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_updater_diamtests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU, 0));
+    bd_updater_diamtests(bdnvt_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! two particle test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_twoparticles_tests )
     {
     twostepbdnvt_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_twoparticles_updater_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    bd_twoparticles_updater_tests(bdnvt_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! extended LJ-liquid test for the base class
 BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
     {
     twostepbdnvt_creator bdnvt_creator = bind(base_class_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_updater_lj_tests(bdnvt_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    bd_updater_lj_tests(bdnvt_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -652,28 +652,28 @@ BOOST_AUTO_TEST_CASE( BDUpdater_LJ_tests )
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
     {
     twostepbdnvt_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bd_updater_tests(bdnvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Diameter Setting test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_diamtests )
     {
     twostepbdnvt_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_updater_diamtests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bd_updater_diamtests(bdnvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! two particle test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_twoparticles_tests )
     {
     twostepbdnvt_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_twoparticles_updater_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bd_twoparticles_updater_tests(bdnvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! extended LJ-liquid test for the GPU class
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_LJ_tests )
     {
     twostepbdnvt_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4, _5);
-    bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bd_updater_lj_tests(bdnvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 

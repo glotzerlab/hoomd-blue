@@ -399,7 +399,7 @@ double x_two_lj [] = {
 1.1227};
 
 //! Compares the output from one NVEUpdater to another
-void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration exec_conf)
+void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -488,7 +488,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, ExecutionConfiguration ex
     
     }
     
-void fire_twoparticle_test(fire_creator fire_creator1, ExecutionConfiguration exec_conf)
+void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -559,26 +559,26 @@ void fire_twoparticle_test(fire_creator fire_creator1, ExecutionConfiguration ex
 //! Sees if a single particle's trajectory is being calculated correctly
 BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_twoparticle_test )
     {
-    fire_twoparticle_test(base_class_fire_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    fire_twoparticle_test(base_class_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizer to the conjugate gradient method from LAMMPS
 BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_smallsystem_test )
     {
-    fire_smallsystem_test(base_class_fire_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    fire_smallsystem_test(base_class_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! Sees if a single particle's trajectory is being calculated correctly
 BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_twoparticle_test )
     {
-    fire_twoparticle_test(gpu_fire_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    fire_twoparticle_test(gpu_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizerGPU to the conjugate gradient method from LAMMPS
 BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_smallsystem_test )
     {
-    fire_smallsystem_test(gpu_fire_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    fire_smallsystem_test(gpu_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 

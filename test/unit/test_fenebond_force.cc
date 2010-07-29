@@ -77,7 +77,7 @@ using namespace boost;
 typedef boost::function<shared_ptr<FENEBondForceCompute>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration exec_conf)
+void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -277,7 +277,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
 //! Compares the output of two FENEBondForceComputes
 void bond_force_comparison_tests(bondforce_creator bf_creator1,
                                  bondforce_creator bf_creator2,
-                                 ExecutionConfiguration exec_conf)
+                                 boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -386,7 +386,7 @@ shared_ptr<FENEBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition> sys
 BOOST_AUTO_TEST_CASE( FENEBondForceCompute_basic )
     {
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-    bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_CASE( FENEBondForceCompute_basic )
 BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_basic )
     {
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
-    bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -402,7 +402,7 @@ BOOST_AUTO_TEST_CASE( FENEBondForceComputeGPU_compare )
     {
     bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-    bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bond_force_comparison_tests(bf_creator, bf_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

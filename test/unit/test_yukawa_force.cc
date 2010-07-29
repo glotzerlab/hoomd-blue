@@ -79,7 +79,7 @@ typedef boost::function<shared_ptr<PotentialPairYukawa> (shared_ptr<SystemDefini
                                                          shared_ptr<NeighborList> nlist)> yukawaforce_creator;
 
 //! Test the ability of the yukawa force compute to actually calucate forces
-void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, ExecutionConfiguration exec_conf)
+void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -156,7 +156,7 @@ void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, ExecutionCon
 //! Unit test a comparison between 2 PotentialPairYukawa's on a "real" system
 void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
                                   yukawaforce_creator yukawa_creator2,
-                                  ExecutionConfiguration exec_conf)
+                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -244,7 +244,7 @@ shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(shared_ptr<SystemDefinitio
 BOOST_AUTO_TEST_CASE( YukawaForce_particle )
     {
     yukawaforce_creator yukawa_creator_base = bind(base_class_yukawa_creator, _1, _2);
-    yukawa_force_particle_test(yukawa_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    yukawa_force_particle_test(yukawa_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE( YukawaForce_particle )
 BOOST_AUTO_TEST_CASE( YukawaForceGPU_particle )
     {
     yukawaforce_creator yukawa_creator_gpu = bind(gpu_yukawa_creator, _1, _2);
-    yukawa_force_particle_test(yukawa_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    yukawa_force_particle_test(yukawa_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -262,7 +262,7 @@ BOOST_AUTO_TEST_CASE( YukawaForceGPU_compare )
     yukawaforce_creator yukawa_creator_base = bind(base_class_yukawa_creator, _1, _2);
     yukawa_force_comparison_test(yukawa_creator_base,
                                  yukawa_creator_gpu,
-                                 ExecutionConfiguration(ExecutionConfiguration::GPU));
+                                 boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

@@ -80,7 +80,7 @@ using namespace boost;
 typedef boost::function<shared_ptr<CGCMMForceCompute> (shared_ptr<SystemDefinition> sysdef, shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;
 
 //! Test the ability of the cgcmm LJ12-4 force compute to actually calucate forces
-void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
+void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -195,7 +195,7 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, ExecutionCon
     }
 
 //! Test the ability of the cgcmm LJ9-6 force compute to actually calucate forces
-void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
+void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -306,7 +306,7 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, ExecutionConf
     }
 
 //! Tests the ability of a CGCMMForceCompute to handle periodic boundary conditions
-void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, ExecutionConfiguration exec_conf)
+void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -399,7 +399,7 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, ExecutionConfig
     }
 
 //! Unit test a comparison between 2 CGCMMForceComputes on a "real" system
-void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_creator cgcmm_creator2, ExecutionConfiguration exec_conf)
+void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_creator cgcmm_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
 #ifdef ENABLE_CUDA
     g_gpu_error_checking = true;
@@ -486,21 +486,21 @@ shared_ptr<CGCMMForceCompute> gpu_cgcmm_creator(shared_ptr<SystemDefinition> sys
 BOOST_AUTO_TEST_CASE( CGCMMForce_particle124 )
     {
     cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_particle124_test(cgcmm_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    cgcmm_force_particle124_test(cgcmm_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for particle test on CPU
 BOOST_AUTO_TEST_CASE( CGCMMForce_particle96 )
     {
     cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_particle96_test(cgcmm_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    cgcmm_force_particle96_test(cgcmm_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for periodic test on CPU
 BOOST_AUTO_TEST_CASE( CGCMMForce_periodic )
     {
     cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_periodic_test(cgcmm_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    cgcmm_force_periodic_test(cgcmm_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -508,21 +508,21 @@ BOOST_AUTO_TEST_CASE( CGCMMForce_periodic )
 BOOST_AUTO_TEST_CASE( CGCMMForceGPU_particle124 )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_particle124_test(cgcmm_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    cgcmm_force_particle124_test(cgcmm_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for particle test on GPU - threaded
 BOOST_AUTO_TEST_CASE( CGCMMForceGPU_particle96 )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_particle96_test(cgcmm_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    cgcmm_force_particle96_test(cgcmm_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for periodic test on the GPU
 BOOST_AUTO_TEST_CASE( CGCMMForceGPU_periodic )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_periodic_test(cgcmm_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    cgcmm_force_periodic_test(cgcmm_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -530,7 +530,7 @@ BOOST_AUTO_TEST_CASE( CGCMMForceGPU_compare )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
     cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
-    cgcmm_force_comparison_test(cgcmm_creator_base, cgcmm_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    cgcmm_force_comparison_test(cgcmm_creator_base, cgcmm_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif
