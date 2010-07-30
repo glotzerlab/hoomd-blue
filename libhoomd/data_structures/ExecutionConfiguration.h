@@ -49,7 +49,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
+
+#ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
+#endif
 
 /*! \file ExecutionConfiguration.h
     \brief Declares ExecutionConfiguration and related classes
