@@ -74,10 +74,6 @@ typedef boost::function<shared_ptr<HarmonicImproperForceCompute>  (shared_ptr<Sy
 //! Perform some simple functionality tests of any BondForceCompute
 void improper_force_basic_tests(improperforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 4 particles in a huge box with only one improper type !!!! NO IMPROPERS
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 0, 1, exec_conf));
@@ -385,10 +381,6 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
                                      improperforce_creator tf_creator2,
                                      boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // INTERESTING NOTE: the code will depending on the number of ramdom particles
     // even 1000 will make the code blow up, 500 is used for safety... hope it works!
     const unsigned int N = 500;

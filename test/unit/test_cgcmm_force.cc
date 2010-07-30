@@ -82,10 +82,6 @@ typedef boost::function<shared_ptr<CGCMMForceCompute> (shared_ptr<SystemDefiniti
 //! Test the ability of the cgcmm LJ12-4 force compute to actually calucate forces
 void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -197,10 +193,6 @@ void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, boost::share
 //! Test the ability of the cgcmm LJ9-6 force compute to actually calucate forces
 void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -308,10 +300,6 @@ void cgcmm_force_particle96_test(cgcmmforce_creator cgcmm_creator, boost::shared
 //! Tests the ability of a CGCMMForceCompute to handle periodic boundary conditions
 void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -401,10 +389,6 @@ void cgcmm_force_periodic_test(cgcmmforce_creator cgcmm_creator, boost::shared_p
 //! Unit test a comparison between 2 CGCMMForceComputes on a "real" system
 void cgcmm_force_comparison_test(cgcmmforce_creator cgcmm_creator1, cgcmmforce_creator cgcmm_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on

@@ -81,10 +81,6 @@ typedef boost::function<shared_ptr<PotentialPairGauss> (shared_ptr<SystemDefinit
 //! Test the ability of the gauss force compute to actually calucate forces
 void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -156,10 +152,6 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
 //! Tests the ability of a PotentialPairGauss to handle periodic boundary conditions
 void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -251,10 +243,6 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
                                  gaussforce_creator gauss_creator2,
                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on
@@ -316,10 +304,6 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
 //! Test the ability of the gauss force compute to compute forces with different shift modes
 void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 2-particle test is just to get a plot of the potential and force vs r cut
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();

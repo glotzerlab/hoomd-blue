@@ -60,7 +60,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
-#include "gpu_settings.h"
 #endif
 
 #include "ExecutionConfiguration.h"

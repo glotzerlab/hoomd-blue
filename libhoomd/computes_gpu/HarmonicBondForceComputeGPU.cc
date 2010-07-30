@@ -62,10 +62,6 @@ using namespace boost;
 
 using namespace std;
 
-#ifdef ENABLE_CUDA
-#include "gpu_settings.h"
-#endif
-
 /*! \param sysdef System to compute bond forces on
     \param log_suffix Name given to this instance of the harmonic bond
 

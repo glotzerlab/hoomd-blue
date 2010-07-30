@@ -79,10 +79,6 @@ typedef boost::function<shared_ptr<FENEBondForceCompute>  (shared_ptr<SystemDefi
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0,  exec_conf));
@@ -279,10 +275,6 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1,
                                  bondforce_creator bf_creator2,
                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int M = 10;
     const unsigned int N = M*M*M;
     

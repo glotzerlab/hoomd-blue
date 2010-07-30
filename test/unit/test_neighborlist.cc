@@ -62,7 +62,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 #include "NeighborListNsqGPU.h"
 #include "BinnedNeighborListGPU.h"
-#include "gpu_settings.h"
 #endif
 
 using namespace std;
@@ -80,10 +79,6 @@ typedef boost::function<shared_ptr<NeighborList> (shared_ptr<SystemDefinition> s
 //! Performs basic functionality tests on a neighbor list
 void neighborlist_basic_tests(nlist_creator_typ nlist_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(25.0), 1, 0, 0, 0, 0, exec_conf));
@@ -199,10 +194,6 @@ void neighborlist_basic_tests(nlist_creator_typ nlist_creator, boost::shared_ptr
 //! Tests the ability of the neighbor list to exclude particle pairs
 void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     
@@ -266,10 +257,6 @@ void neighborlist_comparison_test(nlist_creator_typ nlist_creator1,
                                   nlist_creator_typ nlist_creator2,
                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // construct the particle system
     RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
     

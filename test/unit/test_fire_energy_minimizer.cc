@@ -401,10 +401,6 @@ double x_two_lj [] = {
 //! Compares the output from one NVEUpdater to another
 void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 260;
     Scalar rho(Scalar(1.2));
     Scalar L = Scalar(pow((double)(N/rho), 1.0/3.0));
@@ -490,10 +486,6 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     
 void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 2;
     //Scalar rho(1.2);
     Scalar L = Scalar(20);

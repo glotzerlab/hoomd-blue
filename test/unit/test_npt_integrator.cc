@@ -92,10 +92,6 @@ typedef boost::function<shared_ptr<TwoStepNPT> (shared_ptr<SystemDefinition> sys
 //! Basic functionality test of a generic TwoStepNPT
 void npt_updater_test(twostepnpt_creator npt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     Scalar T = 2.0;
     Scalar P = 1.0;

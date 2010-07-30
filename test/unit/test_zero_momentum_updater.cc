@@ -71,10 +71,6 @@ using namespace boost;
 //! boost test case to verify proper operation of ZeroMomentumUpdater
 BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // create a simple particle data to test with
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();

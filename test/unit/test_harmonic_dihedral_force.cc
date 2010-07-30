@@ -74,10 +74,6 @@ typedef boost::function<shared_ptr<HarmonicDihedralForceCompute>  (shared_ptr<Sy
 //! Perform some simple functionality tests of any BondForceCompute
 void dihedral_force_basic_tests(dihedralforce_creator tf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 4 particles in a huge box with only one dihedral type !!!! NO DIHEDRALS
     shared_ptr<SystemDefinition> sysdef_4(new SystemDefinition(4, BoxDim(1000.0), 1, 0, 0, 1, 0, exec_conf));
@@ -353,10 +349,6 @@ void dihedral_force_comparison_tests(dihedralforce_creator tf_creator1,
                                      dihedralforce_creator tf_creator2,
                                      boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     
     // create a particle system to sum forces on

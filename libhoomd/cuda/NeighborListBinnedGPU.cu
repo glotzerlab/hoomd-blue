@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "NeighborListBinnedGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -134,15 +133,7 @@ cudaError_t gpu_nlist_idxlist2coord(gpu_pdata_arrays *pdata, gpu_bin_array *bins
     // run the kernel
     gpu_nlist_idxlist2coord_kernel<<< grid, threads>>>(*pdata, *bins);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 //! Texture for reading coord_idxlist from the binned particle data
@@ -324,15 +315,7 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     // run the kernel
     gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, d_bin_ids);
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 /*! Kernel that computes the bin ids of all particles in the simulation.
@@ -425,15 +408,7 @@ cudaError_t gpu_compute_bin_ids(unsigned int *d_bin_ids,
                                                    scaley,
                                                    scalez);
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 // vim:syntax=cpp

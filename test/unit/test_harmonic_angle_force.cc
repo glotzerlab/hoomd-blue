@@ -74,10 +74,6 @@ typedef boost::function<shared_ptr<HarmonicAngleForceCompute>  (shared_ptr<Syste
 //! Perform some simple functionality tests of any BondForceCompute
 void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box with only one bond type !!!! NO ANGLES
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0, exec_conf));
@@ -324,10 +320,6 @@ void angle_force_basic_tests(angleforce_creator af_creator, boost::shared_ptr<Ex
 //! Compares the output of two HarmonicAngleForceComputes
 void angle_force_comparison_tests(angleforce_creator af_creator1, angleforce_creator af_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     
     // create a particle system to sum forces on

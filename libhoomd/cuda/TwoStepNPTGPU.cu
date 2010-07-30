@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepNPTGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -192,15 +191,7 @@ cudaError_t gpu_npt_step_one(const gpu_pdata_arrays &pdata,
                                                  exp_r_fac,
                                                  deltaT);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
     
 /*! \param pdata Particle data arrays to integrate forward 1/2 step
@@ -309,15 +300,7 @@ cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
     // run the kernel
     gpu_npt_boxscale_kernel<<< grid, threads >>>(pdata, scaled_box, partial_scale, box_len_scale);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 //! The texture for reading the net force
@@ -409,15 +392,7 @@ cudaError_t gpu_npt_step_two(const gpu_pdata_arrays &pdata,
     // run the kernel
     gpu_npt_step_two_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, exp_v_fac, deltaT);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 // vim:syntax=cpp

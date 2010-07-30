@@ -61,10 +61,6 @@ using namespace boost;
 #include <stdexcept>
 using namespace std;
 
-#ifdef ENABLE_CUDA
-#include "gpu_settings.h"
-#endif
-
 /*! \file DihedralData.cc
     \brief Defines DihedralData.
  */

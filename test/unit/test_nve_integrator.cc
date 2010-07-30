@@ -87,10 +87,6 @@ typedef boost::function<shared_ptr<TwoStepNVE> (shared_ptr<SystemDefinition> sys
 //! Integrate 1 particle through time and compare to an analytical solution
 void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // check that the nve updater can actually integrate particle positions and velocities correctly
     // start with a 2 particle system to keep things simple: also put everything in a huge box so boundary conditions
     // don't come into play
@@ -163,10 +159,6 @@ void nve_updater_integrate_tests(twostepnve_creator nve_creator, boost::shared_p
 //! Check that the particle movement limit works
 void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // create a simple 1 particle system
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -232,10 +224,6 @@ void nve_updater_limit_tests(twostepnve_creator nve_creator, boost::shared_ptr<E
 //! Make a few particles jump across the boundary and verify that the updater works
 void nve_updater_boundary_tests(twostepnve_creator nve_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -296,10 +284,6 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
                               twostepnve_creator nve_creator2,
                               boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     
     // create two identical random particle systems to simulate

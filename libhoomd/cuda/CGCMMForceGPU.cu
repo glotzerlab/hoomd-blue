@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: akohlmey
 
-#include "gpu_settings.h"
 #include "CGCMMForceGPU.cuh"
 
 #ifdef WIN32
@@ -239,15 +238,7 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 // vim:syntax=cpp

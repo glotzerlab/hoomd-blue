@@ -90,10 +90,6 @@ typedef boost::function<shared_ptr<Enforce2DUpdater> (shared_ptr<SystemDefinitio
 //! boost test case to verify proper operation of Enforce2DUpdater
 void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-
     BoxDim box(20.0, 20.0, 1.0);
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
 

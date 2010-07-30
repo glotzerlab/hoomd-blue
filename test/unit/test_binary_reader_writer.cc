@@ -77,10 +77,6 @@ using namespace std;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // start by creating a single particle system: see it the correct file is written
     Scalar Lx(2.5), Ly(4.5), Lz(12.1);
     

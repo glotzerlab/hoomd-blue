@@ -74,10 +74,6 @@ typedef boost::function<shared_ptr<CGCMMAngleForceCompute>  (shared_ptr<SystemDe
 //! Perform some simple functionality tests of any AngleForceCompute
 void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 3 particles in a huge box with only one angle type !!!! NO ANGLES
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 1, 1, 0, 0,  exec_conf));
@@ -297,10 +293,6 @@ void angle_force_basic_tests(cgcmm_angleforce_creator af_creator, boost::shared_
 //! Compares the output of two CGCMMAngleForceComputes
 void angle_force_comparison_tests(cgcmm_angleforce_creator af_creator1, cgcmm_angleforce_creator af_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     
     // create a particle system to sum forces on

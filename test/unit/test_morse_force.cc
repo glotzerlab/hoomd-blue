@@ -77,10 +77,6 @@ typedef boost::function<shared_ptr<PotentialPairMorse> (shared_ptr<SystemDefinit
 //! Test the ability of the morse force compute to actually calucate forces
 void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -152,10 +148,6 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
                                   morseforce_creator morse_creator2,
                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on

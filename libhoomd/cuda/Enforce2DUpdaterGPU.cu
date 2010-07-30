@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "Enforce2DUpdaterGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -109,14 +108,6 @@ cudaError_t gpu_enforce2d(const gpu_pdata_arrays &pdata)
     // run the kernel
     gpu_enforce2d_kernel<<< grid, threads >>>(pdata);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

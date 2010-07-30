@@ -53,7 +53,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // for vector types
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
-#include "gpu_settings.h"
 #endif
 
 #include "ExecutionConfiguration.h"

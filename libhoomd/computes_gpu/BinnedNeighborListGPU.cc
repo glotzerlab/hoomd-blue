@@ -68,10 +68,6 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-#ifdef ENABLE_CUDA
-#include "gpu_settings.h"
-#endif
-
 /*! \param sysdef System the neighborlist is to compute neighbors for
     \param r_cut Cuttoff radius under which particles are considered neighbors
     \param r_buff Buffer distance to include around the cutoff

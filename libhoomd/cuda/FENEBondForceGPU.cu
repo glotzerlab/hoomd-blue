@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: phillicl
 
 #include "FENEBondForceGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -257,14 +256,6 @@ cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data
     if (error != cudaSuccess)
         return error;
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

@@ -81,10 +81,6 @@ typedef boost::function<shared_ptr<PotentialPairYukawa> (shared_ptr<SystemDefini
 //! Test the ability of the yukawa force compute to actually calucate forces
 void yukawa_force_particle_test(yukawaforce_creator yukawa_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -158,10 +154,6 @@ void yukawa_force_comparison_test(yukawaforce_creator yukawa_creator1,
                                   yukawaforce_creator yukawa_creator2,
                                   boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on

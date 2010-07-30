@@ -84,10 +84,6 @@ typedef boost::function<shared_ptr<ConstraintSphere> (shared_ptr<SystemDefinitio
 //! Run a BD simulation on 6 particles and validate the constraints
 void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     Scalar3 P = make_scalar3(1.0f, 2.0f, 3.0f);
     Scalar r = 10.0f;
     

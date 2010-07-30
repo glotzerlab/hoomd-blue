@@ -1122,10 +1122,6 @@ shared_ptr<TwoStepNVT> gpu_nvt_creator(shared_ptr<SystemDefinition> sysdef,
 //! Integrate 1 particle through time and compare to a mathematical solution
 void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // check that the nvt updater can actually integrate particle positions and velocities correctly
     // start with a 1 particle system to keep things simple: also put everything in a huge box so boundary conditions
     // don't come into play
@@ -1176,10 +1172,6 @@ void nvt_updater_integrate_tests(twostepnvt_creator nvt_creator, boost::shared_p
 //! Compares the output from one NVEUpdater to another
 void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     
     // create two identical random particle systems to simulate

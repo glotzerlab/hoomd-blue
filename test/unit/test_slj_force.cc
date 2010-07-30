@@ -80,10 +80,6 @@ typedef boost::function<shared_ptr<PotentialPairSLJ> (shared_ptr<SystemDefinitio
 //! Test the ability of the shiftedlj force compute to actually calucate forces
 void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -196,10 +192,6 @@ void shiftedlj_force_particle_test(shiftedljforce_creator shiftedlj_creator, boo
 //! Tests the ability of a ShiftedLJForceCompute to handle periodic boundary conditions.  Also intentionally place a particle outside the cutoff of normally size particle but in the cutoff of a large particle
 void shiftedlj_force_periodic_test(shiftedljforce_creator shiftedlj_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
@@ -304,10 +296,6 @@ void shiftedlj_force_comparison_test(shiftedljforce_creator shiftedlj_creator1,
                                      shiftedljforce_creator shiftedlj_creator2,
                                      boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on

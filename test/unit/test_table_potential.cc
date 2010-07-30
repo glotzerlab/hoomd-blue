@@ -76,10 +76,6 @@ typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition>
 //! performs some really basic checks on the TablePotential class
 void table_potential_basic_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
@@ -197,10 +193,6 @@ void table_potential_basic_test(table_potential_creator table_creator, boost::sh
 //! checks to see if TablePotential correctly handles multiple types
 void table_potential_type_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();

@@ -67,10 +67,6 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-#ifdef ENABLE_CUDA
-#include "gpu_settings.h"
-#endif
-
 /*! \file NeighborList.cc
     \brief Defines the NeighborList class
 */

@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "gpu_settings.h"
 #include "HOOMDMath.h"
 #include "ForceCompute.cuh"
 #include "NeighborList.cuh"
@@ -378,15 +377,7 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
             return cudaErrorUnknown;
         }
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 #endif
 

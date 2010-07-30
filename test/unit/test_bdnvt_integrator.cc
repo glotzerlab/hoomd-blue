@@ -88,10 +88,6 @@ typedef boost::function<shared_ptr<TwoStepBDNVT> (shared_ptr<SystemDefinition> s
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // check that a Brownian Dynamics integrator results in a correct diffusion coefficient
     // and correct average temperature.  Change the temperature and gamma and show this produces
     // a correct temperature and diffuction coefficent
@@ -273,10 +269,7 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
     
     cout << endl << "Test 2" << endl;
     cout << "Test setting diameter" << endl;
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
+
     // check that a Brownian Dynamics integrator results in a correct diffusion coefficient
     // and correct average temperature.  Change the temperature and diameters and show this produces
     // a correct temperature and diffuction coefficent
@@ -396,10 +389,6 @@ void bd_updater_diamtests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<
 //! Apply the Stochastic BD Bath to 1000 particles ideal gas
 void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // check that a Brownian Dynamics integrator results in a correct diffusion coefficients
     // and correct average temperature when applied to a population of two different particle types
     // Build a 1000 particle system with all the particles started at the origin, but with no interaction:
@@ -487,10 +476,6 @@ void bd_twoparticles_updater_tests(twostepbdnvt_creator bdnvt_creator, boost::sh
 //! Apply the Stochastic BD Bath to 1000 LJ Particles
 void bd_updater_lj_tests(twostepbdnvt_creator bdnvt_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // check that a stochastic force applied on top of NVE integrator for a 1000 LJ particles stilll produces the correct average temperature
     // Build a 1000 particle system with particles scattered on the x, y, and z axes.
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(1000000.0), 4, 0, 0, 0, 0, exec_conf));
