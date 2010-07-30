@@ -320,7 +320,10 @@ double NeighborList::benchmark(unsigned int num_iters)
     
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
+        {
         cudaThreadSynchronize();
+        CHECK_CUDA_ERROR();
+        }
 #endif
     
     // benchmark
