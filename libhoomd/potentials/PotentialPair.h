@@ -182,15 +182,10 @@ template < class evaluator >
 PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
                                                 boost::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
-    : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(1)
+    : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
     assert(m_pdata);
     assert(m_nlist);
-    
-    // initialize the per type pair memory
-    unsigned int ntypes = m_pdata->getNTypes();
-    assert(ntypes > 0);
-    m_typpair_idx = Index2D(ntypes);
     
     GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), exec_conf);
     m_rcutsq.swap(rcutsq);
