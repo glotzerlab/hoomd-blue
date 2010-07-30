@@ -550,6 +550,7 @@ void export_ExecutionConfiguration()
                          ("ExecutionConfiguration", init< bool, bool >())
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool>())
                          .def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
+                         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
 #endif

@@ -90,10 +90,8 @@ struct ExecutionConfiguration : boost::noncopyable
     
 	executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
-    
-#ifdef ENABLE_CUDA
-	cudaDeviceProp dev_prop;	//!< Cached device properties
-    
+	bool m_cuda_error_checking;				//!< Set to true if GPU error checking is enabled
+
 	//! Returns true if CUDA is enabled
 	bool isCUDAEnabled() const
 		{
@@ -115,7 +113,10 @@ struct ExecutionConfiguration : boost::noncopyable
 		{
 		m_cuda_error_checking = cuda_error_checking;
 		}
-	
+
+#ifdef ENABLE_CUDA
+	cudaDeviceProp dev_prop;	//!< Cached device properties
+    
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapability();
 	
@@ -150,7 +151,6 @@ private:
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
-	bool m_cuda_error_checking;				//!< Set to true if GPU error checking is enabled
 #endif
     
     //! Setup and print out stats on the chosen CPUs/GPUs

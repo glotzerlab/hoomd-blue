@@ -639,10 +639,6 @@ def _parse_command_line():
     if _options.ncpu is not None and _options.mode is None:
         _options.mode = "cpu"
     
-    # if gpu_error_checking is set, enable it on the GPU
-    if _options.gpu_error_checking:
-        hoomd.set_gpu_error_checking(True);
-    
     # convert ncpu to an integer
     if _options.ncpu is not None:
         try:
@@ -687,6 +683,12 @@ def _create_exec_conf():
             exec_conf = hoomd.ExecutionConfiguration(hoomd.ExecutionConfiguration.executionMode.GPU, gpu_id, _options.min_cpu, _options.ignore_display);
         else:
             raise RuntimeError("Error initializing");
-        
+    
+    # if gpu_error_checking is set, enable it on the GPU
+    if _options.gpu_error_checking:
+       exec_conf.setCUDAErrorChecking(True);
+    
+    globals.exec_conf = exec_conf;
+    
     return exec_conf;
 
