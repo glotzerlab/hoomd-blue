@@ -1,4 +1,22 @@
+# Suppressions for OpenMP
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.2.5
+   obj:/usr/lib64/libgomp.so.1.0.0
+}
+
+
 # Supressions for cudart
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Param
+   ioctl(generic)
+   fun:ioctl
+}
+
 {
    latest ld-2.9 supression for cudart loading
    Memcheck:Cond
