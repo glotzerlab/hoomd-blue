@@ -110,10 +110,16 @@ class EvaluatorConstraintSphere
             
             // compute resulting constrained point
             Scalar3 C;
+#if(NVCC && __CUDA_ARCH__ < 200)
+            C.x = P.x + __fmul_rn(Vhat.x,r);
+            C.y = P.y + __fmul_rn(Vhat.y,r);
+            C.z = P.z + __fmul_rn(Vhat.z,r);
+#else
             C.x = P.x + Vhat.x * r;
             C.y = P.y + Vhat.y * r;
             C.z = P.z + Vhat.z * r;
-            
+#endif
+
             return C;
             }
         
