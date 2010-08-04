@@ -75,12 +75,8 @@ typedef boost::function<shared_ptr<PotentialPairMorse> (shared_ptr<SystemDefinit
                                                          shared_ptr<NeighborList> nlist)> morseforce_creator;
 
 //! Test the ability of the morse force compute to actually calucate forces
-void morse_force_particle_test(morseforce_creator morse_creator, ExecutionConfiguration exec_conf)
+void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
@@ -150,12 +146,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, ExecutionConfig
 //! Unit test a comparison between 2 PotentialPairMorse's on a "real" system
 void morse_force_comparison_test(morseforce_creator morse_creator1,
                                   morseforce_creator morse_creator2,
-                                  ExecutionConfiguration exec_conf)
+                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 5000;
     
     // create a random particle system to sum forces on
@@ -239,7 +231,7 @@ shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(shared_ptr<SystemDefinition>
 BOOST_AUTO_TEST_CASE( MorseForce_particle )
     {
     morseforce_creator morse_creator_base = bind(base_class_morse_creator, _1, _2);
-    morse_force_particle_test(morse_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    morse_force_particle_test(morse_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
@@ -247,7 +239,7 @@ BOOST_AUTO_TEST_CASE( MorseForce_particle )
 BOOST_AUTO_TEST_CASE( MorseForceGPU_particle )
     {
     morseforce_creator morse_creator_gpu = bind(gpu_morse_creator, _1, _2);
-    morse_force_particle_test(morse_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    morse_force_particle_test(morse_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing GPU output to base class output
@@ -257,7 +249,7 @@ BOOST_AUTO_TEST_CASE( MorseForceGPU_compare )
     morseforce_creator morse_creator_base = bind(base_class_morse_creator, _1, _2);
     morse_force_comparison_test(morse_creator_base,
                                  morse_creator_gpu,
-                                 ExecutionConfiguration(ExecutionConfiguration::GPU));
+                                 boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

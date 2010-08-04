@@ -78,7 +78,7 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
         void setBlockSize(int block_size);
         
     protected:
-        vector<float4 *> d_coeffs;      //!< Pointer to the coefficients on the GPU
+        float4 * d_coeffs;              //!< Pointer to the coefficients on the GPU
         float4 * h_coeffs;              //!< Pointer to the coefficients on the host
         int m_block_size;               //!< The block size to run on the GPU
         

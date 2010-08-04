@@ -111,7 +111,7 @@ struct ForceDataArraysGPU
     
 private:
     //! Allocates memory
-    cudaError_t allocate(unsigned int num_local, unsigned int local_start);
+    cudaError_t allocate(unsigned int num);
     //! Frees memory
     cudaError_t deallocate();
     //! Copies from the host to the device
@@ -119,8 +119,7 @@ private:
     //! Copies from the device to the host
     cudaError_t deviceToHostCopy(Scalar *fx, Scalar *fy, Scalar *fz, Scalar *pe, Scalar *virial);
     
-    unsigned int m_num_local;           //!< Number of particles local to this GPU
-    unsigned int m_local_start;         //!< Starting index of local data in global array
+    unsigned int m_num;                 //!< Number of particles in the simulation
     float4 *h_staging;                  //!< Host memory array for staging interleaved data
     
     friend class ForceCompute;
@@ -158,7 +157,7 @@ class ForceCompute : public Compute
         
 #ifdef ENABLE_CUDA
         //! Access the computed force data on the GPU
-        vector<ForceDataArraysGPU>& acquireGPU();
+        ForceDataArraysGPU& acquireGPU();
 #endif
 
         //! Store the timestep size
@@ -253,7 +252,7 @@ class ForceCompute : public Compute
 #ifdef ENABLE_CUDA
         DataLocation m_data_location;               //!< Where the neighborlist data currently lives
 
-        vector<ForceDataArraysGPU> m_gpu_forces;    //!< Storage location for forces on the device
+        ForceDataArraysGPU m_gpu_forces;            //!< Storage location for forces on the device
         
         //! Helper function to move data from the host to the device
         void hostToDeviceCopy();

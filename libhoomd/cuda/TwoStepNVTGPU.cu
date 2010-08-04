@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepNVTGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -191,15 +190,7 @@ cudaError_t gpu_nvt_step_one(const gpu_pdata_arrays &pdata,
                                                                              box,
                                                                              1.0f / (1.0f + deltaT/2.0f * Xi),
                                                                              deltaT);
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 //! The texture for reading the net force
@@ -282,15 +273,7 @@ cudaError_t gpu_nvt_step_two(const gpu_pdata_arrays &pdata,
     // run the kernel
     gpu_nvt_step_two_kernel<<< grid, threads >>>(pdata, d_group_members, group_size, Xi, deltaT);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 // vim:syntax=cpp

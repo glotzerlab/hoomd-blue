@@ -94,13 +94,13 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
         
     protected:
         int m_block_size;               //!< Block size to run calculation on
-        vector<float2 *> m_gpu_params;  //!< k, t0 Parameters stored on the GPU
+        float2 * m_gpu_params;          //!< k, t0 Parameters stored on the GPU
         float2 *m_host_params;          //!<  k, t0 parameters stored on the host
         
         // below are just for the CG-CMM angle potential
-        vector<float2 *> m_gpu_CGCMMsr;     //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
+        float2 * m_gpu_CGCMMsr;             //!< GPU copy of the angle's epsilon/sigma/rcut (esr)
         float2 *m_host_CGCMMsr;             //!< Host copy of the angle's epsilon/sigma/rcut (esr)
-        vector<float4 *> m_gpu_CGCMMepow;   //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
+        float4 * m_gpu_CGCMMepow;           //!< GPU copy of the angle's powers (pow1,pow2) and prefactor
         float4 *m_host_CGCMMepow;           //!< Host copy of the angle's powers (pow1,pow2) and prefactor
         
         //! Actually compute the forces

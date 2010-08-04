@@ -76,9 +76,9 @@ TwoStepNVTGPU::TwoStepNVTGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TwoStepNVT(sysdef, group, thermo, tau, T, suffix)
     {
     // only one GPU is supported
-    if (exec_conf.gpu.size() != 1)
+    if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNVEGPU with 0 or more than one GPUs" << endl << endl;
+        cerr << endl << "***Error! Creating a TwoStepNVEGPU when CUDA is disabled" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNVEGPU");
         }
     
@@ -102,20 +102,22 @@ void TwoStepNVTGPU::integrateStepOne(unsigned int timestep)
     Scalar& xi = v.variable[0];
 
     // access all the needed data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_nvt_step_one,
-                                d_pdata[0],
-                                d_index_array.data,
-                                group_size,
-                                box,
-                                m_block_size,
-                                xi,
-                                m_deltaT));
+    gpu_nvt_step_one(d_pdata,
+                     d_index_array.data,
+                     group_size,
+                     box,
+                     m_block_size,
+                     xi,
+                     m_deltaT);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    
     // done profiling
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -150,19 +152,21 @@ void TwoStepNVTGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NVT step 2");
     
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     
     // perform the update on the GPU
-    exec_conf.gpu[0]->call(bind(gpu_nvt_step_two,
-                                d_pdata[0],
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                m_block_size,
-                                xi,
-                                m_deltaT));
+    gpu_nvt_step_two(d_pdata,
+                     d_index_array.data,
+                     group_size,
+                     d_net_force.data,
+                     m_block_size,
+                     xi,
+                     m_deltaT);
+    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
     setIntegratorVariables(v);

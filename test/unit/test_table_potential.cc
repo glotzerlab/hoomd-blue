@@ -74,12 +74,8 @@ typedef boost::function<shared_ptr<TablePotential> (shared_ptr<SystemDefinition>
                                                     unsigned int width)> table_potential_creator;
 
 //! performs some really basic checks on the TablePotential class
-void table_potential_basic_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
+void table_potential_basic_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
@@ -195,12 +191,8 @@ void table_potential_basic_test(table_potential_creator table_creator, Execution
     }
 
 //! checks to see if TablePotential correctly handles multiple types
-void table_potential_type_test(table_potential_creator table_creator, ExecutionConfiguration exec_conf)
+void table_potential_type_test(table_potential_creator table_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // perform a basic test to see of the potential and force can be interpolated between two particles
     shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, BoxDim(1000.0), 2, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata = sysdef->getParticleData();
@@ -292,14 +284,14 @@ shared_ptr<TablePotential> gpu_table_creator(shared_ptr<SystemDefinition> sysdef
 BOOST_AUTO_TEST_CASE( TablePotential_basic )
     {
     table_potential_creator table_creator_base = bind(base_class_table_creator, _1, _2, _3);
-    table_potential_basic_test(table_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    table_potential_basic_test(table_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for type test on CPU
 BOOST_AUTO_TEST_CASE( TablePotential_type )
     {
     table_potential_creator table_creator_base = bind(base_class_table_creator, _1, _2, _3);
-    table_potential_type_test(table_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    table_potential_type_test(table_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -307,14 +299,14 @@ BOOST_AUTO_TEST_CASE( TablePotential_type )
 BOOST_AUTO_TEST_CASE( TablePotentialGPU_basic )
     {
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
-    table_potential_basic_test(table_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    table_potential_basic_test(table_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for type test on GPU
 BOOST_AUTO_TEST_CASE( TablePotentialGPU_type )
     {
     table_potential_creator table_creator_gpu = bind(gpu_table_creator, _1, _2, _3);
-    table_potential_type_test(table_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    table_potential_type_test(table_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 

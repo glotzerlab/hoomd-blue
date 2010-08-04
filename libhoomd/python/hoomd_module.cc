@@ -152,14 +152,6 @@ using namespace std;
 #include <omp.h>
 #endif
 
-// include gpu_settings.h for g_gpu_error_checking
-#ifdef ENABLE_CUDA
-#include "gpu_settings.h"
-#else
-// otherwise, we need a dummy variable that will do nothing
-bool g_gpu_error_checking = false;
-#endif
-
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
@@ -307,15 +299,6 @@ string find_vmd()
     return "";
     }
 
-//! Method for setting g_gpu_error_checking
-/*! \param value Value to set
-    Sets the value of g_gpu_error_checking to enable or disable error checking on the GPU
-*/
-void set_gpu_error_checking(bool value)
-    {
-    g_gpu_error_checking = value;
-    }
-
 //! Method for getting the current version of HOOMD
 /*! \returns Current HOOMD version identification string
 */
@@ -359,7 +342,6 @@ BOOST_PYTHON_MODULE(hoomd)
     output_version_info(false);
     def("find_hoomd_data_dir", &find_hoomd_data_dir);
     def("find_vmd", &find_vmd);
-    def("set_gpu_error_checking", &set_gpu_error_checking);
     def("get_hoomd_version", &get_hoomd_version);
 
     def("set_num_threads", &set_num_threads);

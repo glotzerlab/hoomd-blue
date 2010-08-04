@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: akohlmey
 
-#include "gpu_settings.h"
 #include "CGCMMForceGPU.cuh"
 
 #ifdef WIN32
@@ -99,19 +98,17 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
     __syncthreads();
     
     // start by identifying which particle we are to handle
-    unsigned int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx_local >= pdata.local_num)
+    if (idx >= pdata.N)
         return;
-        
-    unsigned int idx_global = idx_local + pdata.local_beg;
-    
+	
     // load in the length of the list (MEM_TRANSFER: 4 bytes)
-    unsigned int n_neigh = nlist.n_neigh[idx_global];
+    unsigned int n_neigh = nlist.n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
-    float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
     
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -119,7 +116,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
     
     // prefetch neighbor index
     unsigned int cur_neigh = 0;
-    unsigned int next_neigh = nlist.list[idx_global];
+    unsigned int next_neigh = nlist.list[idx];
     
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
@@ -139,7 +136,7 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
             // prefetch the next value and set the current one
             cur_neigh = next_neigh;
             if (neigh_idx+1 < nlist.height)
-                next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx_global];
+                next_neigh = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
                 
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             float4 neigh_pos = tex1Dfetch(pdata_pos_tex, cur_neigh);
@@ -192,8 +189,8 @@ __global__ void gpu_compute_cgcmm_forces_kernel(gpu_force_data_arrays force_data
     // potential energy per particle must be halved
     force.w *= 0.5f;
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    force_data.force[idx_local] = force;
-    force_data.virial[idx_local] = virial;
+    force_data.force[idx] = force;
+    force_data.virial[idx] = virial;
     }
 
 
@@ -226,7 +223,7 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
     assert(coeff_width > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the texture
@@ -239,15 +236,7 @@ cudaError_t gpu_compute_cgcmm_forces(const gpu_force_data_arrays& force_data,
     // run the kernel
     gpu_compute_cgcmm_forces_kernel<<< grid, threads, sizeof(float4)*coeff_width*coeff_width >>>(force_data, pdata, box, nlist, d_coeffs, coeff_width, r_cutsq);
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 // vim:syntax=cpp

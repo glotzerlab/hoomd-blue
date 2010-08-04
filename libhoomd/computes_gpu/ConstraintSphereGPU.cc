@@ -74,6 +74,11 @@ ConstraintSphereGPU::ConstraintSphereGPU(boost::shared_ptr<SystemDefinition> sys
                                          Scalar r)
         : ConstraintSphere(sysdef, group, P, r), m_block_size(256)
     {
+    if (!exec_conf->isCUDAEnabled())
+        {
+        cerr << endl << "***Error! Creating a ConstraintSphereGPU with no GPU in the execution configuration" << endl << endl;
+        throw std::runtime_error("Error initializing ConstraintSphereGPU");
+        }
     }
 
 /*! Computes the specified constraint forces
@@ -96,20 +101,21 @@ void ConstraintSphereGPU::computeForces(unsigned int timestep)
     const GPUArray< unsigned int >& group_members = m_group->getIndexArray();
     ArrayHandle<unsigned int> d_group_members(group_members, access_location::device, access_mode::read);
 
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     
     // run the kernel in parallel on all GPUs
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_compute_constraint_sphere_forces,
-                                m_gpu_forces[0].d_data,
-                                d_group_members.data,
-                                m_group->getNumMembers(),
-                                pdata[0],
-                                d_net_force.data,
-                                m_P,
-                                m_r,
-                                m_deltaT,
-                                m_block_size));
+    gpu_compute_constraint_sphere_forces(m_gpu_forces.d_data,
+                                         d_group_members.data,
+                                         m_group->getNumMembers(),
+                                         pdata,
+                                         d_net_force.data,
+                                         m_P,
+                                         m_r,
+                                         m_deltaT,
+                                         m_block_size);
+    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     // the force data is now only up to date on the gpu
     m_data_location = gpu;

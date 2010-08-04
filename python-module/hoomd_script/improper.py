@@ -94,14 +94,11 @@ class harmonic(force._force):
         force._force.__init__(self);
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.HarmonicImproperForceCompute(globals.system_definition);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             self.cpp_force = hoomd.HarmonicImproperForceComputeGPU(globals.system_definition);
             self.cpp_force.setBlockSize(tune._get_optimal_block_size('improper.harmonic'));
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating improper forces");
 
         globals.system.addCompute(self.cpp_force, self.force_name);
         

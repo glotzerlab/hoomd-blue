@@ -148,10 +148,6 @@ class DummyCompute : public Compute
 //! Tests the add, get, and set routines in System
 BOOST_AUTO_TEST_CASE( getter_setter_tests )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     boost::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
     
     cout << "Running getter_setter_tests, expect error messages to be printed to the screen as this tests error checking in System" << endl;

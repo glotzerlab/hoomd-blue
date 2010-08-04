@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "Integrator.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -129,7 +128,6 @@ __global__ void gpu_integrator_sum_net_force_kernel(float4 *d_net_force,
     \param clear When true, initializes the sums to 0 before adding. When false, reads in the current \a d_net_force
            and \a d_net_virial and adds to that
 
-    \returns Any error code from the kernel call retrieved via cudaGetLastError() (if g_gpu_error_checking is true)
 */
 cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
                                          float *d_net_virial,
@@ -146,14 +144,6 @@ cudaError_t gpu_integrator_sum_net_force(float4 *d_net_force,
     gpu_integrator_sum_net_force_kernel<<< nparticles/block_size+1, block_size >>>
         (d_net_force, d_net_virial, force_list, nparticles, clear);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

@@ -8,7 +8,12 @@ if (SINGLE_PRECISION)
     # If CUDA is enabled, set it up
     if (ENABLE_CUDA)
         # the package is needed
-        find_package(CUDA REQUIRED)
+        find_package(CUDA REQUIRED REQUIRED)
+        
+        if (${CUDA_VERSION} VERSION_LESS 2.3)
+            message(SEND_ERROR "CUDA 2.2 and older are not supported")
+        endif (${CUDA_VERSION} VERSION_LESS 2.3)
+
         include_directories(${CUDA_INCLUDE_DIRS})
 
         # hide some variables users don't need to see

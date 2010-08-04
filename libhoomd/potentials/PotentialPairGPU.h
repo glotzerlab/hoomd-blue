@@ -127,7 +127,7 @@ PotentialPairGPU< evaluator, gpu_cgpf >::PotentialPairGPU(boost::shared_ptr<Syst
     : PotentialPair<evaluator>(sysdef, nlist, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (this->exec_conf.gpu.size() == 0)
+    if (!this->exec_conf->isCUDAEnabled())
         {
         std::cerr << std::endl << "***Error! Creating a PotentialPairGPU with no GPU in the execution configuration" 
                   << std::endl << std::endl;
@@ -170,10 +170,10 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
         
     // access the neighbor list, which just selects the neighborlist into the device's memory, copying
     // it there if needed
-    vector<gpu_nlist_array>& nlist = this->m_nlist->getListGPU();
+    gpu_nlist_array& nlist = this->m_nlist->getListGPU();
     
     // access the particle data
-    vector<gpu_pdata_arrays>& pdata = this->m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = this->m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = this->m_pdata->getBoxGPU();
     
     // access parameters
@@ -182,21 +182,22 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     ArrayHandle<typename evaluator::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     
     // run the kernel on all GPUs in parallel
-    this->exec_conf.tagAll(__FILE__, __LINE__);
     pair_args opt;
     opt.block_size = m_block_size;
     opt.shift_mode = this->m_shift_mode;
     
-    this->exec_conf.gpu[0]->call(boost::bind(gpu_cgpf,
-                                             this->m_gpu_forces[0].d_data,
-                                             pdata[0],
-                                             box,
-                                             nlist[0],
-                                             d_params.data,
-                                             d_rcutsq.data,
-                                             d_ronsq.data,
-                                             this->m_pdata->getNTypes(),
-                                             opt));
+    gpu_cgpf(this->m_gpu_forces.d_data,
+             pdata,
+             box,
+             nlist,
+             d_params.data,
+             d_rcutsq.data,
+             d_ronsq.data,
+             this->m_pdata->getNTypes(),
+             opt);
+    
+    if (this->exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     this->m_pdata->release();
     

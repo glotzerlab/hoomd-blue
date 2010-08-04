@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "gpu_settings.h"
 #include "HOOMDMath.h"
 #include "ForceCompute.cuh"
 #include "NeighborList.cuh"
@@ -144,7 +143,7 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= pdata.local_num)
+    if (idx >= pdata.N)
         return;
         
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
@@ -332,7 +331,7 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
     assert(ntypes > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( pdata.local_num / args.block_size + 1, 1, 1);
+    dim3 grid( pdata.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
     
     // bind the position texture
@@ -378,15 +377,7 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
             return cudaErrorUnknown;
         }
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 #endif
 
