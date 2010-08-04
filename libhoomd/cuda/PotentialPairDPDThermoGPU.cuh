@@ -182,10 +182,18 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
             // calculate the virial (FLOPS: 3)
             virial += float(1.0/6.0) * rsq * force_divr;
             
-            // add up the force vector components (FLOPS: 6)
+            // add up the force vector components (FLOPS: 7)
+            #if (__CUDA_ARCH__ >= 200)
+            force.x += dx * force_divr;
+            force.y += dy * force_divr;
+            force.z += dz * force_divr;
+            #else
+            // fmad causes momentum drift here, prevent it from being used
             force.x += __fmul_rn(dx, force_divr);
             force.y += __fmul_rn(dy, force_divr);
             force.z += __fmul_rn(dz, force_divr);
+            #endif
+			
             force.w += pair_eng;
             }
         }
