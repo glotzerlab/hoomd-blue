@@ -1258,10 +1258,6 @@ void NeighborList::setLastUpdatedPos()
 */
 bool NeighborList::needsUpdating(unsigned int timestep)
     {
-    // perform an early check: specifiying m_r_buff = 0.0 will result in the neighbor list being
-    // updated every single time.
-    if (m_r_buff < 1e-6)
-        return true;
     if (timestep < (m_last_updated_tstep + m_every) && !m_force_update)
         return false;
         
@@ -1290,8 +1286,11 @@ bool NeighborList::needsUpdating(unsigned int timestep)
     else
         {
         // not a forced update, perform the distance check to determine
-        // if the list needs to be updated
-        result = distanceCheck();
+        // if the list needs to be updated - no dist check needed if r_buff is tiny
+        if (m_r_buff < 1e-6)
+            result = true;
+        else
+            result = distanceCheck();
         
         if (result)
             {
