@@ -226,7 +226,6 @@ def _get_optimal_block_size(name):
 #
 def _find_optimal_block_size_fc(fc, n):
     timings = [];
-    hoomd.set_gpu_error_checking(True)
     
     # run the benchmark
     try:

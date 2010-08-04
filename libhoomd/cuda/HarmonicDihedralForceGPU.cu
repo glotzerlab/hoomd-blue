@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: akohlmey
 
-#include "gpu_settings.h"
 #include "HarmonicDihedralForceGPU.cuh"
 #include "DihedralData.cuh" // SERIOUSLY, DO I NEED THIS HERE??
 
@@ -370,14 +369,6 @@ cudaError_t gpu_compute_harmonic_dihedral_forces(const gpu_force_data_arrays& fo
     // run the kernel
     gpu_compute_harmonic_dihedral_forces_kernel<<< grid, threads>>>(force_data, pdata, box, ttable);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

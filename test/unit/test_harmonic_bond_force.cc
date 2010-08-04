@@ -77,12 +77,8 @@ using namespace boost;
 typedef boost::function<shared_ptr<HarmonicBondForceCompute>  (shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
-void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration exec_conf)
+void bond_force_basic_tests(bondforce_creator bf_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     /////////////////////////////////////////////////////////
     // start with the simplest possible test: 2 particles in a huge box with only one bond type
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 1, 0, 0, 0, exec_conf));
@@ -288,12 +284,8 @@ void bond_force_basic_tests(bondforce_creator bf_creator, ExecutionConfiguration
     }
 
 //! Compares the output of two HarmonicBondForceComputes
-void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, ExecutionConfiguration exec_conf)
+void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creator bf_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     const unsigned int N = 1000;
     
     // create a particle system to sum forces on
@@ -350,12 +342,8 @@ void bond_force_comparison_tests(bondforce_creator bf_creator1, bondforce_creato
     }
 
 //! Check ConstForceCompute to see that it operates properly
-void const_force_test(ExecutionConfiguration exec_conf)
+void const_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // Generate a simple test particle data
     shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
@@ -415,7 +403,7 @@ shared_ptr<HarmonicBondForceCompute> gpu_bf_creator(shared_ptr<SystemDefinition>
 BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
     {
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-    bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -423,7 +411,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceCompute_basic )
 BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_basic )
     {
     bondforce_creator bf_creator = bind(gpu_bf_creator, _1);
-    bond_force_basic_tests(bf_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bond_force_basic_tests(bf_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for comparing bond GPU and CPU BondForceComputes
@@ -431,7 +419,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
     {
     bondforce_creator bf_creator_gpu = bind(gpu_bf_creator, _1);
     bondforce_creator bf_creator = bind(base_class_bf_creator, _1);
-    bond_force_comparison_tests(bf_creator, bf_creator_gpu, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    bond_force_comparison_tests(bf_creator, bf_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif
@@ -439,7 +427,7 @@ BOOST_AUTO_TEST_CASE( HarmonicBondForceComputeGPU_compare )
 //! boost test case for constant forces
 BOOST_AUTO_TEST_CASE( ConstForceCompute_basic )
     {
-    const_force_test(ExecutionConfiguration(ExecutionConfiguration::CPU));
+    const_force_test(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef WIN32

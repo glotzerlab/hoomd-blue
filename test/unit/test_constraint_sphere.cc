@@ -82,12 +82,8 @@ typedef boost::function<shared_ptr<ConstraintSphere> (shared_ptr<SystemDefinitio
                                                       Scalar r)> cs_creator_t;
 
 //! Run a BD simulation on 6 particles and validate the constraints
-void constraint_sphere_tests(cs_creator_t cs_creator, ExecutionConfiguration exec_conf)
+void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     Scalar3 P = make_scalar3(1.0f, 2.0f, 3.0f);
     Scalar r = 10.0f;
     
@@ -168,7 +164,7 @@ shared_ptr<ConstraintSphere> gpu_cs_creator(shared_ptr<SystemDefinition> sysdef,
 BOOST_AUTO_TEST_CASE( BDUpdater_tests )
     {
     cs_creator_t cs_creator = bind(base_class_cs_creator, _1, _2, _3, _4);
-    constraint_sphere_tests(cs_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -176,7 +172,7 @@ BOOST_AUTO_TEST_CASE( BDUpdater_tests )
 BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
     {
     cs_creator_t cs_creator = bind(gpu_cs_creator, _1, _2, _3, _4);
-    constraint_sphere_tests(cs_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 

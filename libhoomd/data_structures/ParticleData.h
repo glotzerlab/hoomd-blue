@@ -60,7 +60,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
-#include "gpu_settings.h"
 #endif
 
 #include "ExecutionConfiguration.h"
@@ -373,10 +372,15 @@ class ParticleData : boost::noncopyable
     {
     public:
         //! Construct with N particles in the given box
-        ParticleData(unsigned int N, const BoxDim &box, unsigned int n_types=1, const ExecutionConfiguration& exec_conf=ExecutionConfiguration());
+        ParticleData(unsigned int N,
+                     const BoxDim &box,
+                     unsigned int n_types,
+                     boost::shared_ptr<ExecutionConfiguration> exec_conf);
         
         //! Construct from an initializer
-        ParticleData(const ParticleDataInitializer& init, const ExecutionConfiguration&  exec_conf=ExecutionConfiguration());
+        ParticleData(const ParticleDataInitializer& init,
+                     boost::shared_ptr<ExecutionConfiguration> exec_conf);
+        
         //! Destructor
         virtual ~ParticleData();
         
@@ -386,7 +390,7 @@ class ParticleData : boost::noncopyable
         void setBox(const BoxDim &box);
 
         //! Access the execution configuration
-        const ExecutionConfiguration& getExecConf()
+        boost::shared_ptr<const ExecutionConfiguration> getExecConf()
             {
             return m_exec_conf;
             }
@@ -425,9 +429,9 @@ class ParticleData : boost::noncopyable
                 
 #ifdef ENABLE_CUDA
         //! Acquire read access to the particle data on the GPU
-        std::vector<gpu_pdata_arrays>& acquireReadOnlyGPU();
+        gpu_pdata_arrays& acquireReadOnlyGPU();
         //! Acquire read/write access to the particle data on the GPU
-        std::vector<gpu_pdata_arrays>& acquireReadWriteGPU();
+        gpu_pdata_arrays& acquireReadWriteGPU();
         
         //! Get the box for the GPU
         /*! \returns Box dimensions suitable for passing to the GPU code
@@ -437,13 +441,6 @@ class ParticleData : boost::noncopyable
             return m_gpu_box;
             }
             
-        //! Get the beginning index of the local particles on a particular GPU
-        unsigned int getLocalBeg(unsigned int gpu);
-        //! Get the number of local particles on a particular GPU
-        unsigned int getLocalNum(unsigned int gpu);
-        //! Communicate position between all GPUs
-        void communicatePosition();
-        
 #endif
         
         //! Release the acquired data
@@ -655,7 +652,7 @@ class ParticleData : boost::noncopyable
 
     private:
         BoxDim m_box;                               //!< The simulation box
-        const ExecutionConfiguration m_exec_conf;   //!< The execution configuration
+        boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         void *m_data;                               //!< Raw data allocated
         size_t m_nbytes;                            //!< Number of bytes allocated
         unsigned int m_ntypes;                      //!< Number of particle types
@@ -685,9 +682,9 @@ class ParticleData : boost::noncopyable
             
         DataLocation m_data_location;       //!< Where the most recently modified particle data lives
         bool m_readwrite_gpu;               //!< Flag to indicate the last acquire was readwriteGPU
-        std::vector<gpu_pdata_arrays> m_gpu_pdata;  //!< Stores the pointers to memory on the GPU
+        gpu_pdata_arrays m_gpu_pdata;       //!< Stores the pointers to memory on the GPU
         gpu_boxsize m_gpu_box;              //!< Mirror structure of m_box for the GPU
-        std::vector<float *> m_d_staging;   //!< Staging array (device memory) where uninterleaved data is copied to/from.
+        float * m_d_staging;                //!< Staging array (device memory) where uninterleaved data is copied to/from.
         float4 *m_h_staging;                //!< Staging array (host memory) to copy interleaved data to
         unsigned int m_uninterleave_pitch;  //!< Remember the pitch between x,y,z,type in the uninterleaved data
         unsigned int m_single_xarray_bytes; //!< Remember the number of bytes allocated for a single float array

@@ -75,7 +75,7 @@ using namespace boost;
 //! boost test case for testing the basic operation of GPUArray
 BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
     {
-    ExecutionConfiguration exec_conf;
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     GPUArray<int> gpu_array(100, exec_conf);
     
     // basic check: ensure that the number of elements is set correctly
@@ -137,8 +137,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_basic_tests )
 //! boost test case for testing device to/from host transfers
 BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
     {
-    ExecutionConfiguration exec_conf;
-    BOOST_REQUIRE(exec_conf.gpu.size() == 1);
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+    BOOST_REQUIRE(exec_conf->isCUDAEnabled());
     
     GPUArray<int> gpu_array(100, exec_conf);
     
@@ -147,7 +147,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         BOOST_REQUIRE(d_handle.data != NULL);
         
-        exec_conf.gpu[0]->call(bind(gpu_fill_test_pattern, d_handle.data, gpu_array.getNumElements()));
+        gpu_fill_test_pattern(d_handle.data, gpu_array.getNumElements());
+        CHECK_CUDA_ERROR();
         }
         
     // copy it to the host and verify
@@ -168,7 +169,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::overwrite);
         BOOST_REQUIRE(d_handle.data != NULL);
         
-        exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+        gpu_add_one(d_handle.data, gpu_array.getNumElements());
+        CHECK_CUDA_ERROR();
         }
         
     // copy it back to the host and verify
@@ -190,7 +192,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::read);
         BOOST_REQUIRE(d_handle.data != NULL);
         
-        exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+        gpu_add_one(d_handle.data, gpu_array.getNumElements());
+        CHECK_CUDA_ERROR();
         }
         
         {
@@ -207,7 +210,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         BOOST_REQUIRE(d_handle.data != NULL);
         
-        exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+        gpu_add_one(d_handle.data, gpu_array.getNumElements());
+        CHECK_CUDA_ERROR();
         }
         
     // via the read access mode
@@ -224,7 +228,8 @@ BOOST_AUTO_TEST_CASE( GPUArray_transfer_tests )
         ArrayHandle<int> d_handle(gpu_array, access_location::device, access_mode::readwrite);
         BOOST_REQUIRE(d_handle.data != NULL);
         
-        exec_conf.gpu[0]->call(bind(gpu_add_one, d_handle.data, gpu_array.getNumElements()));
+        gpu_add_one(d_handle.data, gpu_array.getNumElements());
+        CHECK_CUDA_ERROR();
         }
         
     // and via the readwrite access mode
@@ -254,7 +259,7 @@ BOOST_AUTO_TEST_CASE( GPUArray_null_tests )
     BOOST_CHECK_EQUAL(b.getNumElements(), (unsigned)0);
     
     // check assignment of a NULL GPUArray
-    ExecutionConfiguration exec_conf;
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     GPUArray<int> c(1000, exec_conf);
     c = a;
     

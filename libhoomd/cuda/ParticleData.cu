@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "ParticleData.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -115,15 +114,7 @@ cudaError_t gpu_uninterleave_float4(float *d_out, float4 *d_in, int N, int pitch
     const int M = 64;
     uninterleave_float4_kernel<<< N/M+1, M >>>(d_out, d_in, N, pitch);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 //! Kernel for interleaving float input into float4 output
@@ -173,15 +164,7 @@ cudaError_t gpu_interleave_float4(float4 *d_out, float *d_in, int N, int pitch)
     const int M = 64;
     interleave_float4_kernel<<< N/M+1, M >>>(d_out, d_in, N, pitch);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 ////////////////////////////////////////////////////////////////////

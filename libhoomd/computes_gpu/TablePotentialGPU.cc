@@ -74,7 +74,7 @@ TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
     : TablePotential(sysdef, nlist, table_width, log_suffix), m_block_size(64)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
-    if (exec_conf.gpu.size() == 0)
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl << "***Error! Creating a LJForceComputeGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing LJForceComputeGPU");
@@ -113,10 +113,10 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
         
     // access the neighbor list, which just selects the neighborlist into the device's memory, copying
     // it there if needed
-    vector<gpu_nlist_array>& nlist = m_nlist->getListGPU();
+    gpu_nlist_array& nlist = m_nlist->getListGPU();
     
     // access the particle data
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // access the table data
@@ -124,11 +124,18 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_params(m_params, access_location::device, access_mode::read);
     
     // run the kernel on all GPUs in parallel
-    exec_conf.tagAll(__FILE__, __LINE__);
+    gpu_compute_table_forces(m_gpu_forces.d_data,
+                             pdata,
+                             box,
+                             nlist,
+                             d_tables.data,
+                             d_params.data,
+                             m_ntypes,
+                             m_table_width,
+                             m_block_size);
     
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_table_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, nlist[cur_gpu], d_tables.data, d_params.data, m_ntypes, m_table_width, m_block_size));
-    exec_conf.syncAll();
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
     

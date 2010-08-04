@@ -69,7 +69,7 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
         : FENEBondForceCompute(sysdef, log_suffix), m_block_size(64)
     {
     // only one GPU is currently supported
-    if (exec_conf.gpu.size() == 0)
+    if (!exec_conf->isCUDAEnabled())
         {
         cerr << endl 
              << "***Error! Creating a FENEBondForceComputeGPU with no GPU in the execution configuration" 
@@ -78,41 +78,30 @@ FENEBondForceComputeGPU::FENEBondForceComputeGPU(boost::shared_ptr<SystemDefinit
         }
         
     // allocate and zero device memory for K, R0 parameters
-    m_gpu_params.resize(exec_conf.gpu.size());
+    cudaMalloc(&m_gpu_params, m_bond_data->getNBondTypes()*sizeof(float4));
+    cudaMemset(m_gpu_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
+    CHECK_CUDA_ERROR();
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_params[cur_gpu]), m_bond_data->getNBondTypes()*sizeof(float4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_params[cur_gpu], 0, m_bond_data->getNBondTypes()*sizeof(float4)));
-        }
-        
     // allocate host memory for GPU parameters
     m_host_params = new float4[m_bond_data->getNBondTypes()];
     memset(m_host_params, 0, m_bond_data->getNBondTypes()*sizeof(float4));
     
     // allocate device memory for the radius error check parameters
-    m_checkr.resize(exec_conf.gpu.size());
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_checkr[cur_gpu]), sizeof(int)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_checkr[cur_gpu], 0, sizeof(int)));
-        }
+    cudaMalloc(&m_checkr, sizeof(int));
+    cudaMemset(m_checkr, 0, sizeof(int));
+    CHECK_CUDA_ERROR();
     }
 
 FENEBondForceComputeGPU::~FENEBondForceComputeGPU()
     {
     // free memory on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_gpu_params[cur_gpu]));
-        m_gpu_params[cur_gpu] = NULL;
+    cudaFree(m_gpu_params);
+    m_gpu_params = NULL;
         
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, (void*)m_checkr[cur_gpu]));
-        m_checkr[cur_gpu] = NULL;
-        }
-        
+    cudaFree(m_checkr);
+    m_checkr = NULL;
+    CHECK_CUDA_ERROR();
+    
     // free memory on the CPU
     delete[] m_host_params;
     m_host_params = NULL;
@@ -135,9 +124,8 @@ void FENEBondForceComputeGPU::setParams(unsigned int type, Scalar K, Scalar r_0,
     m_host_params[type] = make_float4(K, r_0, sigma, epsilon);
     
     // copy the parameters to the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_params[cur_gpu], m_host_params, m_bond_data->getNBondTypes()*sizeof(float4), cudaMemcpyHostToDevice));
+    cudaMemcpy(m_gpu_params, m_host_params, m_bond_data->getNBondTypes()*sizeof(float4), cudaMemcpyHostToDevice);
+    CHECK_CUDA_ERROR();
     }
 
 /*! Internal method for computing the forces on the GPU.
@@ -152,37 +140,33 @@ void FENEBondForceComputeGPU::computeForces(unsigned int timestep)
     // start the profile
     if (m_prof) m_prof->push(exec_conf, "FENE");
     
-    vector<gpu_bondtable_array>& gpu_bondtable = m_bond_data->acquireGPU();
+    gpu_bondtable_array& gpu_bondtable = m_bond_data->acquireGPU();
     
     // the bond table is up to date: we are good to go. Call the kernel
-    vector<gpu_pdata_arrays>& pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     
     // hackish method for tracking exceedsR0 over multiple GPUs
-    unsigned int exceedsR0[8];
-    if (exec_conf.gpu.size() > 8)
-        {
-        cerr << endl << "***Error! FENEBondForceGPU cannot run on more than 8 GPUs... sorry" << endl << endl;
-        throw std::runtime_error("Error running FENEBondForceComputeGPU");
-        }
+    unsigned int exceedsR0;
         
-    // run the kernel on each GPU in parallel
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exceedsR0[cur_gpu] = 0;
-        exec_conf.gpu[cur_gpu]->callAsync(bind(gpu_compute_fene_bond_forces, m_gpu_forces[cur_gpu].d_data, pdata[cur_gpu], box, gpu_bondtable[cur_gpu], m_gpu_params[cur_gpu], m_checkr[cur_gpu], m_bond_data->getNBondTypes(), m_block_size, exceedsR0[cur_gpu]));
-        }
-    exec_conf.syncAll();
+    // run the kernel
+    exceedsR0 = 0;
+    gpu_compute_fene_bond_forces(m_gpu_forces.d_data,
+                                 pdata,
+                                 box,
+                                 gpu_bondtable,
+                                 m_gpu_params,
+                                 m_checkr,
+                                 m_bond_data->getNBondTypes(),
+                                 m_block_size,
+                                 exceedsR0);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
-    //check the fene bondlength violation condition
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+    if (exceedsR0)
         {
-        if (exceedsR0[cur_gpu])
-            {
-            cerr << endl << "***Error! FENE bond length exceeds maximum permitted" << endl << endl;
-            throw std::runtime_error("Error in fene bond calculation");
-            }
+        cerr << endl << "***Error! FENE bond length exceeds maximum permitted" << endl << endl;
+        throw std::runtime_error("Error in fene bond calculation");
         }
         
     // the force data is now only up to date on the gpu

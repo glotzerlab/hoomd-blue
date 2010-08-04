@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "gpu_settings.h"
 #include "ConstraintSphereGPU.cuh"
 #include "EvaluatorConstraint.h"
 #include "EvaluatorConstraintSphere.h"
@@ -156,14 +155,6 @@ cudaError_t gpu_compute_constraint_sphere_forces(const gpu_force_data_arrays& fo
                                                                     r,
                                                                     deltaT);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

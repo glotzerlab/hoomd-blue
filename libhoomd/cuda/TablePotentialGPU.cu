@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "gpu_settings.h"
 #include "TablePotentialGPU.cuh"
 
 #include "Index1D.h"
@@ -265,16 +264,7 @@ cudaError_t gpu_compute_table_forces(const gpu_force_data_arrays& force_data,
         
     gpu_compute_table_forces_kernel<<< grid, threads, sizeof(float4)*table_index.getNumElements() >>>(force_data, pdata, box, nlist, d_params, ntypes, table_width);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-        
+    return cudaSuccess;
     }
 
 // vim:syntax=cpp

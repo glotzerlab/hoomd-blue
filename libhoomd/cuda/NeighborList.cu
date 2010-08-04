@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "NeighborList.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -131,15 +130,7 @@ cudaError_t gpu_nlist_needs_update_check(gpu_pdata_arrays *pdata,
     if (error == cudaSuccess)
         {
         gpu_nlist_needs_update_check_kernel<<< grid, threads >>>(*pdata, *nlist, r_buffsq, *box);
-        if (!g_gpu_error_checking)
-            {
-            error = cudaSuccess;
-            }
-        else
-            {
-            cudaThreadSynchronize();
-            error = cudaGetLastError();
-            }
+        error = cudaSuccess;
         }
         
     if (error == cudaSuccess)

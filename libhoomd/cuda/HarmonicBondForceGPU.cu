@@ -43,7 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "gpu_settings.h"
 #include "HarmonicBondForceGPU.cuh"
 
 #ifdef WIN32
@@ -190,14 +189,6 @@ cudaError_t gpu_compute_harmonic_bond_forces(const gpu_force_data_arrays& force_
     // run the kernel
     gpu_compute_harmonic_bond_forces_kernel<<< grid, threads>>>(force_data, pdata, box, btable);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

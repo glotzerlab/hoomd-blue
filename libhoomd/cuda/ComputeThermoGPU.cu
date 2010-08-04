@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "ComputeThermoGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -273,14 +272,6 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                     group_size);
 
         
-    if (g_gpu_error_checking)
-        {
-        cudaThreadSynchronize();
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess)
-            return err;
-        }
-
     // setup the grid to run the final kernel
     int final_block_size = 512;
     grid = dim3(1, 1, 1);
@@ -296,14 +287,6 @@ cudaError_t gpu_compute_thermo(float *d_properties,
                                                                    group_size,
                                                                    args.n_blocks);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
