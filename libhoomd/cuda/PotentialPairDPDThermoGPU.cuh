@@ -11,8 +11,6 @@
 #include "EvaluatorPairDPDThermo.h"
 #include "Index1D.h"
 #include <cassert>
-#include "gpu_settings.h"
-
 
 //! args struct for passing additional options to gpu_compute_dpd_forces
 struct dpd_pair_args
@@ -94,7 +92,7 @@ __global__ void gpu_compute_dpd_forces_kernel(gpu_force_data_arrays force_data,
     // start by identifying which particle we are to handle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= pdata.local_num)
+    if (idx >= pdata.N)
         return;
         
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
@@ -226,7 +224,7 @@ cudaError_t gpu_compute_dpd_forces(const gpu_force_data_arrays& force_data,
     assert(ntypes > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( pdata.local_num / args.block_size + 1, 1, 1);
+    dim3 grid( pdata.N / args.block_size + 1, 1, 1);
     dim3 threads(args.block_size, 1, 1);
     
     // bind the position texture
@@ -253,15 +251,7 @@ cudaError_t gpu_compute_dpd_forces(const gpu_force_data_arrays& force_data,
               <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, args.seed, args.timestep, args.deltaT, args.T, ntypes);
 
         
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+	return cudaSuccess;
     }
 
 #endif
