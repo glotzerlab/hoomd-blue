@@ -1473,7 +1473,7 @@ class morse(pair):
 #
 # The command pair.dpd specifies that a DPD %pair %force and thermostat should be added to every
 # non-bonded particle %pair in the simulation.
-#
+#   
 # \f{eqnarray*}
 # V_{\mathrm{DPD-C}}(r) = & V_{\mathrm{DPD-C}}(r) = A \cdot \left( r_{\mathrm{cut}} - r \right) 
 #						- \frac{1}{2} \cdot \frac{a}{r_{\mathrm{cut}}} \cdot \left(r_{\mathrm{cut}}^2 - r^2 \right)
@@ -1537,17 +1537,15 @@ class dpd(pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairDPDThermoDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDThermoDPD;
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairDPDThermoDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDThermoDPDGPU;
             self.cpp_force.setBlockSize(64);
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating dpdthermo pair force");
+
                 
         globals.system.addCompute(self.cpp_force, self.force_name);
         
@@ -1614,17 +1612,14 @@ class dpd_conservative(pair):
         neighbor_list.subscribe(lambda: self.log*self.get_max_rcut())
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_force = hoomd.PotentialPairDPD(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDT;
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             neighbor_list.cpp_nlist.setStorageMode(hoomd.NeighborList.storageMode.full);
             self.cpp_force = hoomd.PotentialPairDPDGPU(globals.system_definition, neighbor_list.cpp_nlist, self.name);
             self.cpp_class = hoomd.PotentialPairDPDGPU;
             self.cpp_force.setBlockSize(64);
-        else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating dpdthermo pair force");
                 
         globals.system.addCompute(self.cpp_force, self.force_name);
         

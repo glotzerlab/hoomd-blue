@@ -220,7 +220,18 @@ cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
                                                         ntypes,
                                                         args);
     }
+/*! This is just a driver function for gpu_compute_dpd_forces<EvaluatorPairDPDThermo>(). See it for details.
 
+    \param force_data Device memory array to write calculated forces to
+    \param pdata Particle data on the GPU to calculate forces on
+    \param box Box dimensions used to implement periodic boundary conditions
+    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_params Parameters for the potential, stored per type pair
+    \param d_rcutsq rcut squared, stored per type pair
+    \param d_ronsq ron squared, stored per type pair
+    \param ntypes Number of types in the simulation
+    \param args Additional arguments specific to DPD 
+*/
 cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_pdata_arrays &pdata,
                                       const gpu_boxsize &box,
@@ -241,6 +252,18 @@ cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_d
     }                                          
 
 
+/*! This is just a driver function for gpu_compute_compute_forces<EvaluatorPairDPDThermo>(). See it for details.
+
+    \param force_data Device memory array to write calculated forces to
+    \param pdata Particle data on the GPU to calculate forces on
+    \param box Box dimensions used to implement periodic boundary conditions
+    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_params Parameters for the potential, stored per type pair
+    \param d_rcutsq rcut squared, stored per type pair
+    \param d_ronsq ron squared, stored per type pair
+    \param ntypes Number of types in the simulation
+    \param args Additional arguments
+*/
 cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_pdata_arrays &pdata,
                                       const gpu_boxsize &box,

@@ -107,7 +107,7 @@ cudaError_t gpu_compute_morse_forces(const gpu_force_data_arrays& force_data,
                                       float *d_ronsq,
                                       int ntypes,
                                       const pair_args& args);
-
+//!  Compute dpd thermostat on GPU with PairEvaluatorDPDThermo 
 cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_pdata_arrays &pdata,
                                       const gpu_boxsize &box,
@@ -116,7 +116,7 @@ cudaError_t gpu_compute_dpdthermodpd_forces(const gpu_force_data_arrays& force_d
                                       float *d_rcutsq,
                                       int ntypes,
                                       const dpd_pair_args& args);                                               
-
+//! Compute dpd conservative force on GPU with PairEvaluatorDPDThermo
 cudaError_t gpu_compute_dpdthermo_forces(const gpu_force_data_arrays& force_data,
                                       const gpu_pdata_arrays &pdata,
                                       const gpu_boxsize &box,

@@ -269,13 +269,10 @@ class EvaluatorPairDPDThermo
                 //  Random Force 
                 force_divr += RSQRT(m_deltaT/(m_T*gamma*Scalar(6.0)))*(rinv - rcutinv)*alpha;
                 
-                //conservative energie only
+                //conservative energy only
                 pair_eng = a * (rcut - r) - Scalar(1.0/2.0) * a * rcutinv * (rcutsq - rsq);  
 
-                //if (energy_shift)
-                    //{
-                    // do nothing in energy_shift mode: DPD-C goes to 0 at the cutoff
-                    //}
+ 
                 return true;
                 }
             else

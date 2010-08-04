@@ -84,17 +84,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - Logging methods are provided for the energy
      - And all the details about looping through the particles, computing dr, computing the virial, etc. are handled
     
-    
-    <b>Implementation details</b>
-    
-    rcutsq, ronsq, and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
-    show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
-    and indexing with Index2DUpperTriangular. All of these values are stored in GPUArray
-    for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
-    potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
-    element of the parameters.
-    
-    
     \sa export_PotentialPairDPDThermo()
 */
 template < class evaluator >
@@ -211,6 +200,7 @@ void PotentialPairDPDThermo< evaluator >::computeForces(unsigned int timestep)
         Scalar vzi = arrays.vz[i];
 
         unsigned int typei = arrays.type[i];
+
         // sanity check
         assert(typei < this->m_pdata->getNTypes());
         
