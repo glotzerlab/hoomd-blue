@@ -551,7 +551,7 @@ void export_ExecutionConfiguration()
     scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
                          ("ExecutionConfiguration", init< bool, bool >())
                          .def(init<ExecutionConfiguration::executionMode, int, bool, bool>())
-                         .def_readonly("exec_mode", &ExecutionConfiguration::exec_mode)
+                         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
 #ifdef ENABLE_CUDA
                          .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)

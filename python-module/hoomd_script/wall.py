@@ -103,13 +103,7 @@ class lj(force._force):
         force._force.__init__(self);
         
         # create the c++ mirror class
-        #if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
         self.cpp_force = hoomd.LJWallForceCompute(globals.system_definition, r_cut);
-        #elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-        #    self.cpp_force = hoomd.LJWallForceComputeGPU(globals.system_definition, f_cut);
-        #else:
-        #    print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-        #    raise RuntimeError("Error creating wall.lj forces");
         
         # variable for tracking which particle type coefficients have been set
         self.particle_types_set = [];

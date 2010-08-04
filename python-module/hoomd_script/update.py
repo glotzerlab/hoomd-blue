@@ -271,7 +271,7 @@ class sort(_updater):
         
         default_period = 300;
         # change default period to 100 on the CPU
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             default_period = 100;
             
         self.setupUpdater(default_period);
@@ -411,9 +411,9 @@ class enforce2d(_updater):
         _updater.__init__(self);
         
         # create the c++ mirror class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_updater = hoomd.Enforce2DUpdater(globals.system_definition);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
+        else:
             self.cpp_updater = hoomd.Enforce2DUpdaterGPU(globals.system_definition);
         self.setupUpdater(period);
         
