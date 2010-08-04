@@ -77,18 +77,16 @@ void gpu_compute_harmonic_improper_forces_kernel(gpu_force_data_arrays force_dat
                                                  gpu_dihedraltable_array tlist)
     {
     // start by identifying which particle we are to handle
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
-    
-    
-    if (idx_local >= pdata.local_num)
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        
+    if (idx >= pdata.N)
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_impropers = tlist.n_dihedrals[idx_local];
+    int n_impropers = tlist.n_dihedrals[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx_global);  // we can be either a, b, or c in the a-b-c-d quartet
+    float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx);  // we can be either a, b, or c in the a-b-c-d quartet
     float4 a_pos,b_pos,c_pos, d_pos; // allocate space for the a,b, and c atoms in the a-b-c-d quartet
     
     // initialize the force to 0
@@ -102,12 +100,12 @@ void gpu_compute_harmonic_improper_forces_kernel(gpu_force_data_arrays force_dat
         {
         // the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
 #ifdef _DEVICEEMU
-        uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx_local];
-        uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx_local];
+        uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx];
+        uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx];
 #else
         // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx_local];
-        volatile uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx_local];
+        volatile uint4 cur_improper = tlist.dihedrals[tlist.pitch*improper_idx + idx];
+        volatile uint1 cur_ABCD = tlist.dihedralABCD[tlist.pitch*improper_idx + idx];
 #endif
         
         int cur_improper_x_idx = cur_improper.x;
@@ -291,8 +289,8 @@ void gpu_compute_harmonic_improper_forces_kernel(gpu_force_data_arrays force_dat
         }
         
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    force_data.force[idx_local] = force_idx;
-    force_data.virial[idx_local] = virial_idx;
+    force_data.force[idx] = force_idx;
+    force_data.virial[idx] = virial_idx;
     }
 
 /*! \param force_data Force data on GPU to write forces to
@@ -320,7 +318,7 @@ cudaError_t gpu_compute_harmonic_improper_forces(const gpu_force_data_arrays& fo
     assert(d_params);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures

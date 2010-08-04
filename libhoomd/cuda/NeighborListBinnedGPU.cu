@@ -163,8 +163,7 @@ texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
 */
 __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
                                                 float4 *d_pos,
-                                                unsigned int local_beg,
-                                                unsigned int local_num,
+                                                unsigned int N,
                                                 gpu_boxsize box,
                                                 gpu_bin_array bins,
                                                 float r_maxsq,
@@ -175,10 +174,10 @@ __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     
     // quit early if we are past the end of the array
-    if (idx >= local_num)
+    if (idx >= N)
         return;
 
-    int my_pidx = nlist.thread_mapping[idx + local_beg];
+    int my_pidx = nlist.thread_mapping[idx];
     
     // first, determine which bin this particle belongs to
     // MEM TRANSFER: 32 bytes
@@ -285,7 +284,7 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
     assert(block_size > 0);
     
     // setup the grid to run the kernel
-    int nblocks = (int)ceil((double)pdata.local_num/ (double)block_size);
+    int nblocks = (int)ceil((double)pdata.N/ (double)block_size);
     
     dim3 grid(nblocks, 1, 1);
     dim3 threads(block_size, 1, 1);
@@ -313,7 +312,7 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
         return error;
         
     // run the kernel
-    gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, d_bin_ids);
+    gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.N, box, bins, r_maxsq, curNmax, d_bin_ids);
         
     return cudaSuccess;
     }
@@ -392,14 +391,14 @@ cudaError_t gpu_compute_bin_ids(unsigned int *d_bin_ids,
     {
     // setup the grid to run the kernel
     unsigned int block_size=128;
-    int nblocks = (int)ceil((double)pdata.local_num/ (double)block_size);
+    int nblocks = (int)ceil((double)pdata.N/ (double)block_size);
     
     dim3 grid(nblocks, 1, 1);
     dim3 threads(block_size, 1, 1);
     
     gpu_compute_bin_ids_kernel<<< grid, threads>>>(d_bin_ids,
                                                    pdata.pos,
-                                                   pdata.local_num,
+                                                   pdata.N,
                                                    box,
                                                    Mx,
                                                    My,

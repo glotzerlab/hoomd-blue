@@ -69,22 +69,21 @@ texture<float4, 1, cudaReadModeElementType> pdata_accel_tex;
 extern "C" __global__ 
 void gpu_enforce2d_kernel(gpu_pdata_arrays pdata)
     {
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx_local < pdata.local_num)
+    if (idx < pdata.N)
         {        
         // read the particle's velocity and acceleration (MEM TRANSFER: 32 bytes)
-        float4 vel = tex1Dfetch(pdata_vel_tex, idx_global);
-        float4 accel = tex1Dfetch(pdata_accel_tex, idx_global);
+        float4 vel = tex1Dfetch(pdata_vel_tex, idx);
+        float4 accel = tex1Dfetch(pdata_accel_tex, idx);
                 
         // zero the z-velocity and z-acceleration(FLOPS: ?)
         vel.z = 0.0f;
         accel.z = 0.0f;
                 
         // write out the results (MEM_TRANSFER: 32 bytes)
-        pdata.vel[idx_global] = vel;
-        pdata.accel[idx_global] = accel;
+        pdata.vel[idx] = vel;
+        pdata.accel[idx] = accel;
         }
     }
 
@@ -94,7 +93,7 @@ cudaError_t gpu_enforce2d(const gpu_pdata_arrays &pdata)
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid( (pdata.local_num/block_size) + 1, 1, 1);
+    dim3 grid( (pdata.N/block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
             
     cudaError_t error = cudaBindTexture(0, pdata_vel_tex, pdata.vel, sizeof(float4) * pdata.N);

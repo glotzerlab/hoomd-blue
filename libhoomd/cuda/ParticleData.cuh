@@ -68,8 +68,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 struct gpu_pdata_arrays
     {
     unsigned int N;         //!< Number of particles in the arrays
-    unsigned int local_beg; //!< Index of the first particle local to this GPU
-    unsigned int local_num; //!< Number of particles local to this GPU
     
     float4 *pos;        //!< Particle position in \c x,\c y,\c z, particle type as an int in \c w
     float4 *vel;        //!< Particle velocity in \c x, \c y, \c z, nothing in \c w

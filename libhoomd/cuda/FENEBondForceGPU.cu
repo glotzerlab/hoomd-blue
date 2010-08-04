@@ -80,20 +80,19 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
                                          int *d_checkr)
     {
     // start by identifying which particle we are to handle
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx_local >= pdata.local_num)
+    if (idx >= pdata.N)
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_bonds = blist.n_bonds[idx_local];
+    int n_bonds = blist.n_bonds[idx];
     
     // read in the position of our particle. (MEM TRANSFER: 16 bytes)
-    float4 pos = tex1Dfetch(pdata_pos_tex, idx_global);
+    float4 pos = tex1Dfetch(pdata_pos_tex, idx);
     
     // read in the diameter of our particle.
-    float diam = tex1Dfetch(pdata_diam_tex, idx_global);
+    float diam = tex1Dfetch(pdata_diam_tex, idx);
     
     // initialize the force to 0
     float4 force = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -106,10 +105,10 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
         // MEM TRANSFER: 8 bytes
         // the volatile fails to compile in device emulation mode
 #ifdef _DEVICEEMU
-        uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_local];
+        uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx];
 #else
         // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx_local];
+        volatile uint2 cur_bond = blist.bonds[blist.pitch*bond_idx + idx];
 #endif
         
         int cur_bond_idx = cur_bond.x;
@@ -191,8 +190,8 @@ void gpu_compute_fene_bond_forces_kernel(gpu_force_data_arrays force_data,
     force.w *= 0.5f;
     
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes);
-    force_data.force[idx_local] = force;
-    force_data.virial[idx_local] = virial;
+    force_data.force[idx] = force;
+    force_data.virial[idx] = virial;
     }
 
 
@@ -227,7 +226,7 @@ cudaError_t gpu_compute_fene_bond_forces(const gpu_force_data_arrays& force_data
     assert(block_size != 0);
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures

@@ -213,7 +213,7 @@ void gpu_npt_boxscale_kernel(gpu_pdata_arrays pdata,
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     // scale ALL particles in the box
-    if (idx < pdata.local_num)
+    if (idx < pdata.N)
         {
         // fetch particle position
         float4 pos = tex1Dfetch(pdata_pos_tex, idx);
@@ -274,7 +274,7 @@ cudaError_t gpu_npt_boxscale(const gpu_pdata_arrays &pdata,
     {
     // setup the grid to run the kernel
     unsigned int block_size=256;
-    dim3 grid( (pdata.local_num / block_size) + 1, 1, 1);
+    dim3 grid( (pdata.N / block_size) + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     float box_len_scale = exp(Eta*deltaT);  // box length dilatation factor

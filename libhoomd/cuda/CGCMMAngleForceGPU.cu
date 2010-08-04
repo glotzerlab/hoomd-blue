@@ -82,18 +82,16 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_
                                                                  gpu_angletable_array alist)
     {
     // start by identifying which particle we are to handle
-    int idx_local = blockIdx.x * blockDim.x + threadIdx.x;
-    int idx_global = idx_local + pdata.local_beg;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;    
     
-    
-    if (idx_local >= pdata.local_num)
+    if (idx >= pdata.N)
         return;
         
     // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
-    int n_angles = alist.n_angles[idx_local];
+    int n_angles = alist.n_angles[idx];
     
     // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
-    float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx_global);  // we can be either a, b, or c in the a-b-c triplet
+    float4 idx_pos = tex1Dfetch(pdata_pos_tex, idx);  // we can be either a, b, or c in the a-b-c triplet
     float4 a_pos,b_pos,c_pos; // allocate space for the a,b, and c atom in the a-b-c triplet
     
     // initialize the force to 0
@@ -110,10 +108,10 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_
         {
         // the volatile fails to compile in device emulation mode (MEM TRANSFER: 8 bytes)
 #ifdef _DEVICEEMU
-        uint4 cur_angle = alist.angles[alist.pitch*angle_idx + idx_local];
+        uint4 cur_angle = alist.angles[alist.pitch*angle_idx + idx];
 #else
         // the volatile is needed to force the compiler to load the uint2 coalesced
-        volatile uint4 cur_angle = alist.angles[alist.pitch*angle_idx + idx_local];
+        volatile uint4 cur_angle = alist.angles[alist.pitch*angle_idx + idx];
 #endif
         
         int cur_angle_x_idx = cur_angle.x;
@@ -286,8 +284,8 @@ extern "C" __global__ void gpu_compute_CGCMM_angle_forces_kernel(gpu_force_data_
         }
         
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    force_data.force[idx_local] = force_idx;
-    force_data.virial[idx_local] = virial_idx;
+    force_data.force[idx] = force_idx;
+    force_data.virial[idx] = virial_idx;
     
     
     
@@ -325,7 +323,7 @@ cudaError_t gpu_compute_CGCMM_angle_forces(const gpu_force_data_arrays& force_da
     
     
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)pdata.local_num / (double)block_size), 1, 1);
+    dim3 grid( (int)ceil((double)pdata.N / (double)block_size), 1, 1);
     dim3 threads(block_size, 1, 1);
     
     // bind the textures

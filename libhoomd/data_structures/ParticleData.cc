@@ -791,9 +791,6 @@ void ParticleData::allocate(unsigned int N)
         
         cudaHostAlloc(&m_h_staging, sizeof(float4)*N, cudaHostAllocPortable);
         CHECK_CUDA_ERROR();
-        
-        m_gpu_pdata.local_beg = 0;
-        m_gpu_pdata.local_num = N;
         }
         
 #endif
