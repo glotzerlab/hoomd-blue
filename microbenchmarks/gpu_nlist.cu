@@ -708,6 +708,8 @@ texture<float4, 2, cudaReadModeElementType> nlist_coord_idxlist_tex;
 //! Texture for reading the bins adjacent to a given bin
 texture<unsigned int, 2, cudaReadModeElementType> bin_adj_tex;
 
+texture<unsigned int, 1, cudaReadModeElementType> bin_adj_linear_tex;
+
 texture<unsigned int, 1, cudaReadModeElementType> bin_size_tex;
 
 #define EMPTY_BIN 0xffffffff
@@ -756,7 +758,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
     
     // each thread will determine the neighborlist of a single particle
     int n_neigh = 0;    // count number of neighbors found so far
-    
+
     // loop over all adjacent bins
     for (unsigned int cur_adj = 0; cur_adj < 27; cur_adj++)
         {
@@ -770,6 +772,11 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             neigh_bin = d_bin_adj[my_bin + cur_adj*bin_adj_width];
         else
             neigh_bin = d_bin_adj[cur_adj + my_bin*bin_adj_width];
+        
+        /*if (transpose_bin_adj)
+            neigh_bin = tex1Dfetch(bin_adj_linear_tex, my_bin + cur_adj*bin_adj_width);
+        else
+            neigh_bin = tex1Dfetch(bin_adj_linear_tex, cur_adj + my_bin*bin_adj_width);*/
             
         //unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
         unsigned int size = d_bin_size[neigh_bin];
@@ -797,12 +804,11 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             
             // FLOPS: 15
             float dx = my_pos.x - neigh_pos.x;
-            dx = dx - Lx * rintf(dx * Lxinv);
-            
             float dy = my_pos.y - neigh_pos.y;
-            dy = dy - Ly * rintf(dy * Lyinv);
-            
             float dz = my_pos.z - neigh_pos.z;
+            
+            dx = dx - Lx * rintf(dx * Lxinv);
+            dy = dy - Ly * rintf(dy * Lyinv);
             dz = dz - Lz * rintf(dz * Lzinv);
             
             // FLOPS: 5
@@ -811,15 +817,13 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             // FLOPS: 1 / MEM TRANSFER total = N * estimated number of neighbors * 4
             if (dr <= r_maxsq && my_pidx != cur_neigh)
                 {
-                if (n_neigh < neigh_max)
-                    {
-                    d_nlist[my_pidx + n_neigh*nlist_pitch] = cur_neigh;
-                    n_neigh++;
-                    }
+                d_nlist[my_pidx + min(n_neigh,neigh_max)*nlist_pitch] = cur_neigh;
+                n_neigh++;
                 }
             }
         }
-        
+    
+
     d_n_neigh[my_pidx] = n_neigh;
     }
 
@@ -843,6 +847,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_
     CUT_CHECK_ERROR("error binding texture");
     
     cudaBindTexture(0, bin_size_tex, bin_size, sizeof(unsigned int)*Mx*My*Mz);
+    cudaBindTexture(0, bin_adj_linear_tex, d_bin_adj, sizeof(unsigned int)*Mx*My*Mz*27);
     
     // make even bin dimensions
     float binx = (Lx) / float(Mx);
@@ -904,7 +909,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
     
     float min_t = 10000.0f;
     unsigned int fastest_block_size = 0;
-    for (unsigned int block_size=128; block_size<=128; block_size+=32)
+    for (unsigned int block_size=32; block_size<=512; block_size+=32)
         {
         // benchmarks
         timeval start;
