@@ -79,7 +79,7 @@ float g_Lz;
 float g_rcut;
 const unsigned int g_Nmax = 64;    // Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
-const unsigned int g_neigh_max = 512;
+const unsigned int g_neigh_max = 137;
 
 //*************** data structures
 float4 *gh_pos, *gd_pos;            // particle positions
@@ -783,6 +783,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
                 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, neigh_bin, cur_offset);
             else
                 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, cur_offset, neigh_bin);*/
+            
             if (transpose_idxlist_coord)
                 cur_neigh_blob = d_idxlist_coord[cur_offset * idxlist_coord_width + neigh_bin];
             else
@@ -822,10 +823,8 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
     d_n_neigh[my_pidx] = n_neigh;
     }
 
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_nlist_binned(unsigned int *nlist, unsigned int *n_neigh, unsigned int nlist_pitch, float r_cut_sq, unsigned int neigh_max, cudaArray *idxlist_coord, unsigned int *bin_size, uint4 *bin_coords, cudaArray *bin_adj, float4 *pos, float4 *d_idxlist_coord, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, unsigned int *d_bin_adj)
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_nlist_binned(unsigned int *nlist, unsigned int *n_neigh, unsigned int nlist_pitch, float r_cut_sq, unsigned int neigh_max, cudaArray *idxlist_coord, unsigned int *bin_size, uint4 *bin_coords, cudaArray *bin_adj, float4 *pos, float4 *d_idxlist_coord, unsigned int N, float Lx, float Ly, float Lz, unsigned int Mx, unsigned int My, unsigned int Mz, unsigned int Nmax, unsigned int *d_bin_adj, unsigned int block_size)
     {
-    const int block_size = 64;
-    
     // setup the grid to run the kernel
     int nblocks = (int)ceil((double)N/ (double)block_size);
     
@@ -890,39 +889,50 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
         
     // warm up
     CUDA_SAFE_CALL(cudaFuncSetCacheConfig(gpu_compute_nlist_binned_kernel<transpose_idxlist_coord, transpose_bin_adj>, cudaFuncCachePreferL1));
-    gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj);
+    gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj, 128);
     CUT_CHECK_ERROR("kernel failed");
     
     // copy results back
     CUDA_SAFE_CALL(cudaMemcpy(gh_n_neigh, gd_n_neigh, g_N*sizeof(unsigned int), cudaMemcpyDeviceToHost));
    
     // verify results
-    /*if (!verify())
+    if (!verify())
         {
         printf("Invalid results in device bmark!\n");
         return 0.0f;
-        }*/
-        
-    // benchmarks
-    timeval start;
-    cudaThreadSynchronize();
-    gettimeofday(&start, NULL);
-    
-    unsigned int iters = 100;
-    for (unsigned int i = 0; i < iters; i++)
-        {
-        gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj);
         }
+    
+    float min_t = 10000.0f;
+    unsigned int fastest_block_size = 0;
+    for (unsigned int block_size=128; block_size<=128; block_size+=32)
+        {
+        // benchmarks
+        timeval start;
+        cudaThreadSynchronize();
+        gettimeofday(&start, NULL);
+    
+        unsigned int iters = 100;
+        for (unsigned int i = 0; i < iters; i++)
+            {
+            gpu_compute_nlist_binned<transpose_idxlist_coord, transpose_bin_adj>(gd_nlist, gd_n_neigh, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, idxlist_coord_array, gd_bin_size, gd_bin_coords, bin_adj_array, gd_pos, d_idxlist_coord, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, d_bin_adj, block_size);
+            }
         
-    cudaThreadSynchronize();
-    timeval end;
-    gettimeofday(&end, NULL);
-    float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
-    float avg_t = t/float(iters);
+        cudaThreadSynchronize();
+        timeval end;
+        gettimeofday(&end, NULL);
+        float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
+        float avg_t = t/float(iters);
+
+        if (avg_t < min_t)
+            {
+            min_t = avg_t;
+            fastest_block_size = block_size;
+            }
+        }
     
     printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
-    printf("%f ms\n", avg_t);
-    return avg_t;
+    printf("%f ms, %d blk\n", min_t, fastest_block_size);
+    return min_t;
     }
 
 void bmark_grid()
@@ -1122,10 +1132,10 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, false>();
     bmark_host_nlist<true, true>();*/
     
-    bmark_device_nlist<false, false>();
-    bmark_device_nlist<false, true>();
-    bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();
+    //bmark_device_nlist<false, false>();
+   // bmark_device_nlist<false, true>();
+   // bmark_device_nlist<true, false>();
+   // bmark_device_nlist<true, true>();
     
     printf("sorting bin_adj:\n");
     sort_bin_adj();
@@ -1136,9 +1146,9 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, true>();*/
     
     bmark_device_nlist<false, false>();
-    bmark_device_nlist<false, true>();
-    bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();
+    //bmark_device_nlist<false, true>();
+    //bmark_device_nlist<true, false>();
+    //bmark_device_nlist<true, true>();
     
     free_data();
 
