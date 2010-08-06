@@ -43,11 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include "GPUArray.h"
@@ -139,6 +134,26 @@ class CellList : public Compute
             m_max_cells = max_cells;
             m_params_changed = true;
             }
+        //! Specify if the TDB cell list is to be computed
+        void setComputeTDB(bool compute_tdb)
+            {
+            m_compute_tdb = compute_tdb;
+            m_params_changed = true;
+            }
+        
+        //! Specify that the flag is to be filled with the particle charge
+        void setFlagCharge()
+            {
+            m_flag_charge = true;
+            m_params_changed = true;
+            }
+        
+        //! Specify that the flag is to be the particle index (encoded as an integer in the float variable)
+        void setFlagIndex()
+            {
+            m_flag_index = false;
+            m_params_changed = true;
+            }
         
         //! Get an indexer to identify cell indices
         const Index3D& getCellIndexer()
@@ -182,24 +197,6 @@ class CellList : public Compute
             return m_tdb;
             }
             
-        //! Specify if the TDB cell list is to be computed
-        void setComputeTDB(bool compute_tdb)
-            {
-            m_compute_tdb = compute_tdb;
-            }
-        
-        //! Specify that the flag is to be filled with the particle charge
-        void setFlagCharge()
-            {
-            m_flag_charge = true;
-            }
-        
-        //! Specify that the flag is to be the particle index (encoded as an integer in the float variable)
-        void setFlagIndex()
-            {
-            m_flag_index = false;
-            }
-        
         //! Compute the cell list given the current particle positions
         void compute(unsigned int timestep);
         
@@ -213,19 +210,24 @@ class CellList : public Compute
         
         // parameters determined by initialize
         Scalar3 m_width;             //!< Actual width
+        uint3 m_dim;                 //!< Current dimensions
         Index3D m_cell_indexer;      //!< Indexes cells from i,j,k
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
         bool m_params_changed;       //!< Set to true when parameters are changed
         
-        // values computed by Compute
+        // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
         GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,body,diameter
         
+        //! Computes what the dimensions should me
+        uint3 computeDimensions();
+        
         //! Initialize width and indexers, allocates memory
         void initialize();
+        
     }
 
 #endif
