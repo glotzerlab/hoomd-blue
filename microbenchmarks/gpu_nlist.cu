@@ -79,7 +79,7 @@ float g_Lz;
 float g_rcut;
 const unsigned int g_Nmax = 64;    // Maximum number of particles each cell can hold
 const float tweak_dist = 0.1f;
-const unsigned int g_neigh_max = 137;
+const unsigned int g_neigh_max = 192;
 
 //*************** data structures
 float4 *gh_pos, *gd_pos;            // particle positions
@@ -128,9 +128,12 @@ void allocate_data()
     g_Mx = int((g_Lx) / (g_rcut));
     g_My = int((g_Ly) / (g_rcut));
     g_Mz = int((g_Lz) / (g_rcut));
-    g_Mx = std::min(g_Mx, (unsigned)30);
-    g_My = std::min(g_My, (unsigned)30);
-    g_Mz = std::min(g_Mz, (unsigned)30);
+    g_Mx = std::min(g_Mx, (unsigned)40);
+    g_My = std::min(g_My, (unsigned)40);
+    g_Mz = std::min(g_Mz, (unsigned)40);
+    g_Mx = std::max(g_Mx, (unsigned)1);
+    g_My = std::max(g_My, (unsigned)1);
+    g_Mz = std::max(g_Mz, (unsigned)1);
 
     // allocate bins
     unsigned int Nbins = g_Mx * g_My * g_Mz;
@@ -1122,8 +1125,18 @@ void bmark_N()
         sort_bin_adj();
 
         // normally, data in HOOMD is not perfectly sorted:
-        for (unsigned int k = 0; k < 100; k++)
-            tweak_data();
+        //for (unsigned int k = 0; k < 100; k++)
+            //tweak_data();
+
+        rebin_particles_host(gh_idxlist_coord, gh_idxlist_coord_trans, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
+        // copy it to the device
+        CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_array, 0, 0, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpyToArray(gd_idxlist_coord_trans_array, 0, 0, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord, gh_idxlist_coord, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));
+        CUDA_SAFE_CALL(cudaMemcpy(gd_idxlist_coord_trans, gh_idxlist_coord_trans, g_Mx*g_My*g_Mz*g_Nmax*sizeof(float4), cudaMemcpyHostToDevice));    CUDA_SAFE_CALL(cudaMemcpy(gd_bin_size, gh_bin_size, g_Mx*g_My*g_Mz*sizeof(unsigned int), cudaMemcpyHostToDevice));
+    
+        // generate the reference data
+        neighbor_particles_host<false, false>(gh_nlist_ref, gh_n_neigh_ref, g_nlist_pitch, g_rcut*g_rcut, g_neigh_max, gh_idxlist_coord, gh_bin_size, gh_bin_coords, gh_bin_adj, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
 
         //float time = bmark_device_nlist<false, false>(true);
         float time = bmark_host_nlist<false, false>(true);
@@ -1178,7 +1191,7 @@ int main(int argc, char **argv)
     
     // normally, data in HOOMD is not perfectly sorted:
     //for (unsigned int i = 0; i < 100; i++)
-    //  tweak_data();
+      //tweak_data();
     
     // prepare the binned data
     rebin_particles_host(gh_idxlist_coord, gh_idxlist_coord_trans, gh_bin_size, gh_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax);
@@ -1199,22 +1212,22 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, true>();*/
     
     bmark_device_nlist<false, false>();
-    bmark_device_nlist<false, true>();
+    /*bmark_device_nlist<false, true>();
     bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();
+    bmark_device_nlist<true, true>();*/
     
     printf("sorting bin_adj:\n");
     sort_bin_adj();
     
-    /*bmark_host_nlist<false, false>();
-    bmark_host_nlist<false, true>();
+    //bmark_host_nlist<false, false>();
+    /*bmark_host_nlist<false, true>();
     bmark_host_nlist<true, false>();
     bmark_host_nlist<true, true>();*/
     
-    bmark_device_nlist<false, false>();
-    bmark_device_nlist<false, true>();
+    //bmark_device_nlist<false, false>();
+    /*bmark_device_nlist<false, true>();
     bmark_device_nlist<true, false>();
-    bmark_device_nlist<true, true>();
+    bmark_device_nlist<true, true>();*/
     
     free_data();
 #endif
