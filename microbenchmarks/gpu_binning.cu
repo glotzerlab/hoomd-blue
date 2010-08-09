@@ -796,7 +796,7 @@ void rebin_particles_simple_sort(unsigned int *idxlist, unsigned int *bin_size, 
     }
 
 // benchmark the device rebinning
-void bmark_simple_sort_rebinning(unsigned int block_size)
+float bmark_simple_sort_rebinning(unsigned int block_size, bool quiet=false)
     {
     // warm up
     rebin_particles_simple_sort(gd_idxlist, gd_bin_size, gd_pos, g_N, g_Lx, g_Ly, g_Lz, g_Mx, g_My, g_Mz, g_Nmax, block_size);
@@ -809,7 +809,7 @@ void bmark_simple_sort_rebinning(unsigned int block_size)
     if (!verify())
         {
         printf("Invalid results in GPU/simple/sort bmark!\n");
-        return;
+        return 0.0f;
         }
         
     // benchmarks
@@ -842,11 +842,15 @@ void bmark_simple_sort_rebinning(unsigned int block_size)
     if (!verify())
         {
         printf("Invalid results at end of GPU/simple/sort bmark!\n");
-        return;
+        return 0.0f;
         }
-        
-    printf("GPU/simple/sort/%3d : ", block_size);
-    printf("%f ms\n", avg_t);
+    
+    if (!quiet)
+        {
+        printf("GPU/simple/sort/%3d : ", block_size);
+        printf("%f ms\n", avg_t);
+        }
+    return avg_t;
     }
 
 
@@ -1134,7 +1138,8 @@ void bmark_N()
         for (unsigned int k = 0; k < 100; k++)
             tweak_data();
     
-        float time = bmark_host_rebinning(true, true);
+        //float time = bmark_host_rebinning(true, true);
+        float time = bmark_simple_sort_rebinning(64, true);
         std::cout << time << " ";
 
         free_data();
