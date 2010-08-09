@@ -134,7 +134,7 @@ void allocate_data()
 
     // allocate bins
     unsigned int Nbins = g_Mx * g_My * g_Mz;
-    std::cout << "Allocating " << g_Mx << "x" << g_My << "x" << g_Mz << " = " << Nbins << " bins" << std::endl;
+//    std::cout << "Allocating " << g_Mx << "x" << g_My << "x" << g_Mz << " = " << Nbins << " bins" << std::endl;
     gh_idxlist_coord = (float4 *)malloc(Nbins * g_Nmax * sizeof(float4));
     gh_idxlist_coord_trans = (float4 *)malloc(Nbins * g_Nmax * sizeof(float4));
     cudaChannelFormatDesc channelDescFloat4 = cudaCreateChannelDesc<float4>();
@@ -658,7 +658,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void neighbor_par
 
 
 // benchmark the host neighborlist
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_host_nlist()
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_host_nlist(bool quiet=false)
     {
     float4 *idxlist_coord;
     if (transpose_idxlist_coord)
@@ -679,7 +679,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_host_n
     if (!verify())
         {
         printf("Invalid results in host bmark!\n");
-        return;
+        return 0.0f;
         }
         
     // benchmarks
@@ -697,8 +697,12 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void bmark_host_n
     float t = (end.tv_sec - start.tv_sec)*1000.0f + (end.tv_usec - start.tv_usec)/1000.0f;
     float avg_t = t/float(iters);
     
-    printf("Host<%1d,%1d>            : ", transpose_idxlist_coord, transpose_bin_adj);
-    printf("%f ms\n", avg_t);
+    if (!quiet)
+        {
+        printf("Host<%1d,%1d>            : ", transpose_idxlist_coord, transpose_bin_adj);
+        printf("%f ms\n", avg_t);
+        }
+    return avg_t;
     }
 
 
@@ -864,7 +868,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> void gpu_compute_
     }
 
 // benchmark the device neighborlist
-template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_device_nlist()
+template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_device_nlist(bool quiet=false)
     {
     cudaArray *idxlist_coord_array;
     float4 *d_idxlist_coord;
@@ -909,7 +913,7 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
     
     float min_t = 10000.0f;
     unsigned int fastest_block_size = 0;
-    for (unsigned int block_size=32; block_size<=512; block_size+=32)
+    for (unsigned int block_size=128; block_size<=128; block_size+=32)
         {
         // benchmarks
         timeval start;
@@ -935,8 +939,11 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> float bmark_devic
             }
         }
     
-    printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
-    printf("%f ms, %d blk\n", min_t, fastest_block_size);
+    if (!quiet)
+        {
+        printf("Device<%1d,%1d>          : ", transpose_idxlist_coord, transpose_bin_adj);
+        printf("%f ms, %d blk\n", min_t, fastest_block_size);
+        }
     return min_t;
     }
 
@@ -1076,10 +1083,64 @@ void bmark_line()
     std::cout << "];" << std::endl;
     }
 
+void bmark_N()
+    {
+    g_rcut = 3.1f;
+    float phi = 0.20f;
+
+    std::vector<unsigned int> N_list;
+    for (unsigned int power = 2; power < 6 ; power++)
+        {
+        N_list.push_back(1*pow(10.0f,float(power)));
+        N_list.push_back(2*pow(10.0f,float(power)));
+        N_list.push_back(3*pow(10.0f,float(power)));
+        N_list.push_back(4*pow(10.0f,float(power)));
+        N_list.push_back(5*pow(10.0f,float(power)));
+        N_list.push_back(6*pow(10.0f,float(power)));
+        N_list.push_back(7*pow(10.0f,float(power)));
+        N_list.push_back(8*pow(10.0f,float(power)));
+        N_list.push_back(9*pow(10.0f,float(power)));
+        }
+
+
+    std::cout << "N = [";
+    for (unsigned int i = 0; i < N_list.size(); i++)
+        std::cout << N_list[i] << " ";
+    std::cout << "];" << std::endl;
+
+    std::cout << "btim = [";
+    for (unsigned int i = 0; i < N_list.size(); i++)
+        {
+        g_N = N_list[i];
+        float L = pow(float(M_PI/6.0)*float(g_N) / phi, 1.0f/3.0f);
+        g_Lx = g_Ly = g_Lz = L;
+
+        // setup
+        allocate_data();
+        initialize_data();
+        sort_data();
+        sort_bin_adj();
+
+        // normally, data in HOOMD is not perfectly sorted:
+        for (unsigned int k = 0; k < 100; k++)
+            tweak_data();
+
+        //float time = bmark_device_nlist<false, false>(true);
+        float time = bmark_host_nlist<false, false>(true);
+        
+        std::cout << time << " ";
+
+        free_data();
+        }
+    std::cout << "];" << std::endl;
+    }
+
 int main(int argc, char **argv)
     {
 //    bmark_line();
+    bmark_N();
 
+#if 0
     float phi;
     if (argc == 1)
         {
@@ -1137,10 +1198,10 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, false>();
     bmark_host_nlist<true, true>();*/
     
-    //bmark_device_nlist<false, false>();
-   // bmark_device_nlist<false, true>();
-   // bmark_device_nlist<true, false>();
-   // bmark_device_nlist<true, true>();
+    bmark_device_nlist<false, false>();
+    bmark_device_nlist<false, true>();
+    bmark_device_nlist<true, false>();
+    bmark_device_nlist<true, true>();
     
     printf("sorting bin_adj:\n");
     sort_bin_adj();
@@ -1151,12 +1212,12 @@ int main(int argc, char **argv)
     bmark_host_nlist<true, true>();*/
     
     bmark_device_nlist<false, false>();
-    //bmark_device_nlist<false, true>();
-    //bmark_device_nlist<true, false>();
-    //bmark_device_nlist<true, true>();
+    bmark_device_nlist<false, true>();
+    bmark_device_nlist<true, false>();
+    bmark_device_nlist<true, true>();
     
     free_data();
-
+#endif
     return 0;
     }
 
