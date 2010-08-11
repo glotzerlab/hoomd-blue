@@ -128,14 +128,14 @@ void ComputeThermoGPU::computeProperties()
     
     // perform the computation on the GPU
     gpu_compute_thermo( d_properties.data,
-						d_pdata,
-						d_index_array.data,
-						group_size,
-						box,
-						args);
-	
-	if (exec_conf->isCUDAErrorCheckingEnabled())
-		CHECK_CUDA_ERROR();
+                        d_pdata,
+                        d_index_array.data,
+                        group_size,
+                        box,
+                        args);
+    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
 

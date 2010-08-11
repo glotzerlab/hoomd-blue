@@ -106,7 +106,7 @@ __global__ void gpu_compute_table_forces_kernel(gpu_force_data_arrays force_data
     
     if (idx >= pdata.N)
         return;
-	
+    
     // load in the length of the list
     unsigned int n_neigh = nlist.n_neigh[idx];
     

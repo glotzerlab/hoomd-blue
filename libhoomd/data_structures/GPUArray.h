@@ -247,8 +247,8 @@ template<class T> class GPUArray
         
         mutable bool m_acquired;                //!< Tracks whether the data has been aquired
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
-		boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
-		
+        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+        
 #ifdef ENABLE_CUDA
         mutable T* d_data;      //!< Pointer to allocated device memory
 #endif
@@ -452,7 +452,7 @@ template<class T> void GPUArray<T>::allocate()
         {
         cudaHostAlloc(&h_data, m_num_elements*sizeof(T), cudaHostAllocDefault);
         cudaMalloc(&d_data, m_num_elements*sizeof(T));
-		CHECK_CUDA_ERROR();
+        CHECK_CUDA_ERROR();
         }
     else
         {
@@ -483,7 +483,7 @@ template<class T> void GPUArray<T>::deallocate()
         assert(d_data);
         cudaFreeHost(h_data);
         cudaFree(d_data);
-		CHECK_CUDA_ERROR();
+        CHECK_CUDA_ERROR();
         }
     else
         {

@@ -28,3 +28,4 @@ fig = pyplot.figure();
 pyplot.plot(r_med, tps_med, r_data[0:10], tps_data[0:10], r_data[11:21], tps_data[11:21], r_data[22:32], tps_data[22:32])
 
 pyplot.show()
+

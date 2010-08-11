@@ -39,8 +39,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// $Id: gpu_nlist.cu 3212 2010-07-13 15:39:48Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/microbenchmarks/gpu_nlist.cu $
+// $Id$
+// $URL$
 // Maintainer: joaander
 
 #include <stdio.h>
