@@ -166,6 +166,7 @@ texture<unsigned int, 1, cudaReadModeElementType> pdata_body_tex;
 */
 __global__ void gpu_compute_nlist_binned_kernel(gpu_nlist_array nlist,
                                                 float4 *d_pos,
+                                                unsigned int *d_body,
                                                 unsigned int N,
                                                 gpu_boxsize box,
                                                 gpu_bin_array bins,
@@ -341,7 +342,7 @@ cudaError_t gpu_compute_nlist_binned(const gpu_nlist_array &nlist,
         return error;
         
     // run the kernel
-    gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.local_beg, pdata.local_num, box, bins, r_maxsq, curNmax, d_bin_ids, exclude_same_body);
+    gpu_compute_nlist_binned_kernel<<< grid, threads>>>(nlist, pdata.pos, pdata.body, pdata.N, box, bins, r_maxsq, curNmax, d_bin_ids, exclude_same_body);
         
     return cudaSuccess;
     }

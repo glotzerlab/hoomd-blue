@@ -76,9 +76,9 @@ TwoStepBDNVTRigidGPU::TwoStepBDNVTRigidGPU(boost::shared_ptr<SystemDefinition> s
     : TwoStepBDNVTRigid(sysdef, group, T, seed, gamma_diam)
     {
     // only one GPU is supported
-    if (exec_conf.gpu.size() != 1)
+    if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepBDNVTRigidGPU with 0 or more than one GPUs" << endl << endl;
+        cerr << endl << "***Error! Creating a TwoStepBDNVTRigidGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepBDNVTRigidGPU");
         }
     }
@@ -107,7 +107,7 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "BD NVT rigid step 1");
     
     // access all the needed data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
@@ -166,16 +166,16 @@ void TwoStepBDNVTRigidGPU::integrateStepOne(unsigned int timestep)
     d_rdata.conjqm = conjqm_handle.data;
     
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);    
-    exec_conf.gpu[0]->call(bind(gpu_nve_rigid_step_one, 
-                                d_pdata[0],
-                                d_rdata, 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                box,
-                                m_deltaT));
+    gpu_nve_rigid_step_one(d_pdata,
+                           d_rdata, 
+                           d_index_array.data,
+                           group_size,
+                           d_net_force.data,
+                           box,
+                           m_deltaT);
 
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
     
@@ -203,7 +203,7 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     // get the dimensionality of the system
     const Scalar D = Scalar(m_sysdef->getNDimensions());
     
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
@@ -266,39 +266,40 @@ void TwoStepBDNVTRigidGPU::integrateStepTwo(unsigned int timestep)
     args.timestep = timestep;
     args.seed = m_seed;
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_bdnvt_force,
-                                d_pdata[0], 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                args,
-                                m_deltaT,
-                                D)); 
+    gpu_bdnvt_force(d_pdata,
+                    d_index_array.data,
+                    group_size,
+                    d_net_force.data,
+                    args,
+                    m_deltaT,
+                    D);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_rigid_force, 
-                                d_pdata[0], 
-                                d_rdata, 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                box, 
-                                m_deltaT)); 
+    gpu_rigid_force(d_pdata, 
+                    d_rdata, 
+                    d_index_array.data,
+                    group_size,
+                    d_net_force.data,
+                    box, 
+                    m_deltaT);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
                                 
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_nve_rigid_step_two, 
-                                d_pdata[0], 
-                                d_rdata, 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                d_net_virial.data,
-                                box, 
-                                m_deltaT)); 
-                               
-   
+    gpu_nve_rigid_step_two(d_pdata,
+                           d_rdata, 
+                           d_index_array.data,
+                           group_size,
+                           d_net_force.data,
+                           d_net_virial.data,
+                           box, 
+                           m_deltaT);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    
     m_pdata->release();
     
     // done profiling

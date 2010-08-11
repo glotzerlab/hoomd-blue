@@ -45,7 +45,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TwoStepBDNVTGPU.cuh"
 #include "TwoStepBDNVTRigidGPU.cuh"
-#include "gpu_settings.h"
 
 #include "saruprngCUDA.h"
 
@@ -239,14 +238,6 @@ cudaError_t gpu_bdnvt_force(const gpu_pdata_arrays &pdata,
                                                    deltaT,
                                                    D);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

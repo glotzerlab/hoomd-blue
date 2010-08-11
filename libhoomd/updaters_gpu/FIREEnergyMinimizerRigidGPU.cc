@@ -77,9 +77,9 @@ FIREEnergyMinimizerRigidGPU::FIREEnergyMinimizerRigidGPU(boost::shared_ptr<Syste
     :   FIREEnergyMinimizerRigid(sysdef, group, dt, false) 
     {    
     // only one GPU is supported
-    if (exec_conf.gpu.size() != 1)
+    if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a FIREEnergyMinimizerRigidGPU with 0 or more than one GPUs" << endl << endl;
+        cerr << endl << "***Error! Creating a FIREEnergyMinimizerRigidGPU with no GPUs in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing FIREEnergyMinimizerRigidGPU");
         }
     
@@ -132,7 +132,9 @@ void FIREEnergyMinimizerRigidGPU::reset()
     d_rdata.vel = vel_handle.data;
     d_rdata.angmom = angmom_handle.data;
     
-    exec_conf.gpu[0]->call(bind(gpu_fire_rigid_zero_v, d_rdata));
+    gpu_fire_rigid_zero_v(d_rdata);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
    
     setDeltaT(m_deltaT_set);
     }
@@ -167,7 +169,7 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "FIRE rigid compute total energy");
     
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
     
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::read);
     ArrayHandle<float> d_partial_sum_pe(m_partial_sum_pe, access_location::device, access_mode::overwrite);
@@ -175,15 +177,17 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getIndexArray().getNumElements();
         
-    exec_conf.gpu[0]->call(bind(gpu_fire_compute_sum_pe, 
-                                d_pdata[0], 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data, 
-                                d_sum_pe.data, 
-                                d_partial_sum_pe.data, 
-                                m_block_size, 
-                                m_num_blocks));
+    gpu_fire_compute_sum_pe(d_pdata, 
+                            d_index_array.data,
+                            group_size,
+                            d_net_force.data, 
+                            d_sum_pe.data, 
+                            d_partial_sum_pe.data, 
+                            m_block_size, 
+                            m_num_blocks);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
     
@@ -228,10 +232,12 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
 
     ArrayHandle<float> d_sum_Pt(m_sum_Pt, access_location::device, access_mode::overwrite);
     ArrayHandle<float> d_sum_Pr(m_sum_Pr, access_location::device, access_mode::overwrite);
-    exec_conf.gpu[0]->call(bind(gpu_fire_rigid_compute_sum_all, 
-                                    d_rdata, 
-                                    d_sum_Pt.data, 
-                                    d_sum_Pr.data));
+    gpu_fire_rigid_compute_sum_all(d_rdata, 
+                                   d_sum_Pt.data, 
+                                   d_sum_Pr.data);
+                                   
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     if (m_prof)
         m_prof->pop(exec_conf);            
@@ -298,11 +304,13 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         factor_r = Scalar(1.0); 
         
     
-    exec_conf.gpu[0]->call(bind(gpu_fire_rigid_update_v, 
-                                            d_rdata, 
-                                            m_alpha, 
-                                            factor_t,
-                                            factor_r));
+    gpu_fire_rigid_update_v(d_rdata, 
+                            m_alpha, 
+                            factor_t,
+                            factor_r);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     
     if (m_prof)
@@ -342,7 +350,9 @@ void FIREEnergyMinimizerRigidGPU::update(unsigned int timestep)
         d_rdata.vel = vel_handle.data;
         d_rdata.angmom = angmom_handle.data;
         
-        exec_conf.gpu[0]->call(bind(gpu_fire_rigid_zero_v, d_rdata));
+        gpu_fire_rigid_zero_v(d_rdata);
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         
         if (m_prof)
             m_prof->pop(exec_conf);        

@@ -40,7 +40,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 
 #include "RigidData.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>

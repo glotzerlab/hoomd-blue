@@ -87,16 +87,9 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
     
-    // only initialize the rigid body data if we are not running on multiple GPUs
-    // this is a temporary hack only while GPUArray doesn't support multiple GPUs
-#ifdef ENABLE_CUDA
-    if (exec_conf.gpu.size() <= 1)
-#endif
-        {
-        m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
-        m_rigid_data->initializeData();
-        }
-        
+    m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
+    m_rigid_data->initializeData();
+
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
     m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_improper_types));
@@ -122,23 +115,16 @@ SystemDefinition::SystemDefinition(const ParticleDataInitializer& init, boost::s
     m_wall_data = boost::shared_ptr<WallData>(new WallData());
     init.initWallData(m_wall_data);
     
-    // only initialize the rigid body data if we are not running on multiple GPUs
-    // this is a temporary hack only while GPUArray doesn't support multiple GPUs
-#ifdef ENABLE_CUDA
-    if (exec_conf.gpu.size() <= 1)
-#endif
-        {
-        m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
-        
-        // the follwing calls may cause confusion, but their tasks are completely different
-        // This makes sure that the rigid bodies are initialized correctly based on the particle data (body flags)
-        // It computes relevant static data, i.e. body mass, body size, inertia of momentia, particle pos, and particle indices.
-        m_rigid_data->initializeData();
-        
-        // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images; 
-        // otherwise, nothing is done here.
-        init.initRigidData(m_rigid_data);
-        }
+    m_rigid_data = boost::shared_ptr<RigidData>(new RigidData(m_particle_data));
+    
+    // the follwing calls may cause confusion, but their tasks are completely different
+    // This makes sure that the rigid bodies are initialized correctly based on the particle data (body flags)
+    // It computes relevant static data, i.e. body mass, body size, inertia of momentia, particle pos, and particle indices.
+    m_rigid_data->initializeData();
+    
+    // If the initializer is from a binary file, then this reads in the body COM, velocities, angular momenta and body images; 
+    // otherwise, nothing is done here.
+    init.initRigidData(m_rigid_data);
         
     m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, init.getNumAngleTypes()));
     init.initAngleData(m_angle_data);

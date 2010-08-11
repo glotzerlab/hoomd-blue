@@ -84,9 +84,9 @@ TwoStepNPTRigidGPU::TwoStepNPTRigidGPU(boost::shared_ptr<SystemDefinition> sysde
     : TwoStepNPTRigid(sysdef, group, thermo_group, thermo_all, tau, tauP, T, P, skip_restart)
     {
     // only one GPU is supported
-    if (exec_conf.gpu.size() != 1)
+    if (!exec_conf->isCUDAEnabled())
         {
-        cerr << endl << "***Error! Creating a TwoStepNPTRigidGPU with 0 or more than one GPUs" << endl << endl;
+        cerr << endl << "***Error! Creating a TwoStepNPTRigidGPU with no GPU in the execution configuration" << endl << endl;
         throw std::runtime_error("Error initializing TwoStepNPTRigidGPU");
         }
     
@@ -174,7 +174,7 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
         m_prof->push(exec_conf, "NPT rigid step 1");
     
     // access all the needed data
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::read);
@@ -253,19 +253,19 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_npt_rdata.dilation = dilation;
     
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);    
-    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_step_one, 
-                                d_pdata[0],
-                                d_rdata, 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                box,
-                                d_npt_rdata,
-                                m_deltaT));
+    gpu_npt_rigid_step_one(d_pdata,
+                           d_rdata, 
+                           d_index_array.data,
+                           group_size,
+                           d_net_force.data,
+                           box,
+                           d_npt_rdata,
+                           m_deltaT);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     m_pdata->release();
-    
     }
     
     // set new box
@@ -294,7 +294,9 @@ void TwoStepNPTRigidGPU::integrateStepOne(unsigned int timestep)
     d_npt_rdata.Ksum_t = Ksum_t_handle.data;
     d_npt_rdata.Ksum_r = Ksum_r_handle.data;
 
-    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_ksum, d_npt_rdata));
+    gpu_npt_rigid_reduce_ksum(d_npt_rdata);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     if (m_prof)
         m_prof->pop(exec_conf);
@@ -334,7 +336,7 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(exec_conf, "NPT rigid step 2");
     
-    vector<gpu_pdata_arrays>& d_pdata = m_pdata->acquireReadWriteGPU();
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadWriteGPU();
     gpu_boxsize box = m_pdata->getBoxGPU();
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
@@ -405,29 +407,30 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_npt_rdata.partial_Ksum_t = partial_Ksum_t_handle.data;
     d_npt_rdata.partial_Ksum_r = partial_Ksum_r_handle.data;
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_rigid_force, 
-                                d_pdata[0], 
-                                d_rdata, 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                box, 
-                                m_deltaT)); 
+    gpu_rigid_force(d_pdata,
+                    d_rdata, 
+                    d_index_array.data,
+                    group_size,
+                    d_net_force.data,
+                    box, 
+                    m_deltaT);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
                                 
     // perform the update on the GPU
-    exec_conf.tagAll(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_step_two, 
-                                d_pdata[0], 
-                                d_rdata, 
-                                d_index_array.data,
-                                group_size,
-                                d_net_force.data,
-                                d_net_virial.data,
-                                box,
-                                d_npt_rdata, 
-                                m_deltaT)); 
-                                
+    gpu_npt_rigid_step_two(d_pdata,
+                           d_rdata, 
+                           d_index_array.data,
+                           group_size,
+                           d_net_force.data,
+                           d_net_virial.data,
+                           box,
+                           d_npt_rdata, 
+                           m_deltaT);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
    
     m_pdata->release();
     }
@@ -449,7 +452,9 @@ void TwoStepNPTRigidGPU::integrateStepTwo(unsigned int timestep)
     d_npt_rdata.Ksum_t = Ksum_t_handle.data;
     d_npt_rdata.Ksum_r = Ksum_r_handle.data;
 
-    exec_conf.gpu[0]->call(bind(gpu_npt_rigid_reduce_ksum, d_npt_rdata));
+    gpu_npt_rigid_reduce_ksum(d_npt_rdata);
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     
     if (m_prof)
         m_prof->pop(exec_conf);

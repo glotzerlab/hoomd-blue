@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: ndtrung
 
 #include "FIREEnergyMinimizerRigidGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -131,15 +130,7 @@ cudaError_t gpu_fire_rigid_zero_v(gpu_rigid_data_arrays rdata)
     // run the kernel
     gpu_fire_rigid_zero_v_kernel<<< grid, threads >>>(rdata.vel, rdata.angmom, n_group_bodies, n_bodies);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 #pragma mark SUMMING_POWER_KERNEL
@@ -354,15 +345,7 @@ cudaError_t gpu_fire_rigid_compute_sum_all(const gpu_rigid_data_arrays& rdata,
     gpu_fire_rigid_reduce_Pr_kernel<<< grid, threads, 3 * block_size * sizeof(float) >>>(d_sum_Pr, n_group_bodies, n_bodies);
 
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 
@@ -468,14 +451,6 @@ cudaError_t gpu_fire_rigid_update_v(gpu_rigid_data_arrays rdata,
                                                     n_bodies,
                                                     local_beg);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

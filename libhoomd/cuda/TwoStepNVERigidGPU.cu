@@ -41,7 +41,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: ndtrung
 
 #include "TwoStepNVERigidGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -1037,16 +1036,7 @@ cudaError_t gpu_nve_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      deltaT);
         }
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-        
+    return cudaSuccess;
     }
 
     
@@ -1403,15 +1393,7 @@ cudaError_t gpu_rigid_force(const gpu_pdata_arrays &pdata,
                                                                                              box);       
 		}
 	
-	if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 
@@ -1894,13 +1876,5 @@ cudaError_t gpu_nve_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                         deltaT);
         }            
            
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }

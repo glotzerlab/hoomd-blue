@@ -41,7 +41,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: ndtrung
 
 #include "TwoStepNPTRigidGPU.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -1145,16 +1144,7 @@ cudaError_t gpu_npt_rigid_step_one(const gpu_pdata_arrays& pdata,
                                                                      deltaT);
         }
                                                                     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
-        
+    return cudaSuccess;
     }
 
 #pragma mark RIGID_STEP_TWO_KERNEL
@@ -1661,15 +1651,7 @@ cudaError_t gpu_npt_rigid_step_two(const gpu_pdata_arrays &pdata,
                                                         deltaT);
         } 
                                                                                                                                              
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 #pragma mark RIGID_KINETIC_ENERGY_REDUCTION
@@ -1747,14 +1729,6 @@ cudaError_t gpu_npt_rigid_reduce_ksum(const gpu_npt_rigid_data& npt_rdata)
     // run the kernel: double the block size to accomodate Ksum_t and Ksum_r
     gpu_npt_rigid_reduce_ksum_kernel<<< grid, threads, 2 * block_size * sizeof(float) >>>(npt_rdata);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
