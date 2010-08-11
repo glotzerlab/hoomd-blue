@@ -16,3 +16,4 @@ integrate.nvt(group=all, T=1.2, tau=0.5)
 analyze.log(filename='test_thermo.log', quantities=['temperature', 'pressure', 'kinetic_energy', 'potential_energy', 'num_particles', 'ndof'], period=10)
 
 run(1000)
+

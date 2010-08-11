@@ -75,12 +75,8 @@ typedef boost::function<shared_ptr<LJWallForceCompute> (shared_ptr<SystemDefinit
                                                         Scalar r_cut)> ljwallforce_creator;
 
 //! Test the ability of the lj wall force compute to actually calculate forces
-void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, ExecutionConfiguration exec_conf)
+void ljwall_force_particle_test(ljwallforce_creator ljwall_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // this 3 particle test will check proper wall force computation among all 3 axes
     shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
@@ -177,7 +173,7 @@ shared_ptr<LJWallForceCompute> base_class_ljwall_creator(shared_ptr<SystemDefini
 BOOST_AUTO_TEST_CASE( LJWallForce_particle )
     {
     ljwallforce_creator ljwall_creator_base = bind(base_class_ljwall_creator, _1, _2);
-    ljwall_force_particle_test(ljwall_creator_base, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    ljwall_force_particle_test(ljwall_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef WIN32

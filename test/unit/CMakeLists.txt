@@ -80,11 +80,6 @@ set(TEST_LIST
     test_constraint_sphere
     )
 
-if(ENABLE_CUDA)
-    set(TEST_LIST ${TEST_LIST}
-    test_gpu_worker)
-endif(ENABLE_CUDA)
-
     # put the longest tests last
     set(TEST_LIST ${TEST_LIST}
     test_bdnvt_integrator

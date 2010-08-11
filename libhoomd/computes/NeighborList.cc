@@ -67,10 +67,6 @@ using namespace boost::python;
 using namespace boost;
 using namespace std;
 
-#ifdef ENABLE_CUDA
-#include "gpu_settings.h"
-#endif
-
 /*! \file NeighborList.cc
     \brief Defines the NeighborList class
 */
@@ -127,14 +123,11 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_every = 0;
     
 #ifdef ENABLE_CUDA
-    // setup the memory pointer list for all GPUs
-    m_gpu_nlist.resize(exec_conf.gpu.size());
-    
     // initialize the GPU and CPU mirror structures
     // there really should be a better way to determine the initial height, but we will just
     // choose a given value for now (choose it initially small to test the auto-expansion
     // code
-    if (!exec_conf.gpu.empty())
+    if (exec_conf->isCUDAEnabled())
         {
         allocateGPUData(32);
         m_data_location = cpugpu;
@@ -156,7 +149,7 @@ NeighborList::~NeighborList()
     delete[] m_last_z;
     
 #ifdef ENABLE_CUDA
-    if (!exec_conf.gpu.empty())
+    if (exec_conf->isCUDAEnabled())
         freeGPUData();
 #endif
         
@@ -169,62 +162,57 @@ void NeighborList::allocateGPUData(int height)
     size_t pitch;
     const int N = m_pdata->getN();
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        // allocate and zero device memory
-        // alloate one extra row so that compute kernels can safely prefetch "past" the end
-        // without causing memory errors
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocPitchHack, (void**)((void*)&m_gpu_nlist[cur_gpu].list), &pitch, N*sizeof(unsigned int), height + 1));
-        // want pitch in elements, not bytes
-        m_gpu_nlist[cur_gpu].pitch = (int)pitch / sizeof(int);
-        m_gpu_nlist[cur_gpu].height = height;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].list, 0, pitch * height));
-        
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].n_neigh), pitch));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].n_neigh, 0, pitch));
-        
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].last_updated_pos), m_gpu_nlist[cur_gpu].pitch*sizeof(float4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*)m_gpu_nlist[cur_gpu].last_updated_pos, 0, m_gpu_nlist[cur_gpu].pitch * sizeof(float4)));
-        
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].needs_update), sizeof(int)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].overflow), sizeof(int)));
-        
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
+    // allocate and zero device memory
+    // alloate one extra row so that compute kernels can safely prefetch "past" the end
+    // without causing memory errors
+    cudaMallocPitch(&m_gpu_nlist.list, &pitch, N*sizeof(unsigned int), height + 1);
+    // want pitch in elements, not bytes
+    m_gpu_nlist.pitch = (int)pitch / sizeof(int);
+    m_gpu_nlist.height = height;
+    cudaMemset(m_gpu_nlist.list, 0, pitch * height);
+    
+    cudaMalloc(&m_gpu_nlist.n_neigh, pitch);
+    cudaMemset(m_gpu_nlist.n_neigh, 0, pitch);
+    
+    cudaMalloc(&m_gpu_nlist.last_updated_pos, m_gpu_nlist.pitch*sizeof(float4));
+    cudaMemset(m_gpu_nlist.last_updated_pos, 0, m_gpu_nlist.pitch * sizeof(float4));
+    
+    cudaMalloc(&m_gpu_nlist.needs_update, sizeof(int));
+    cudaMalloc(&m_gpu_nlist.overflow, sizeof(int));
+    
+    cudaMalloc(&m_gpu_nlist.exclusions, m_gpu_nlist.pitch*sizeof(uint4));
+    cudaMemset(m_gpu_nlist.exclusions, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
 #if defined(LARGE_EXCLUSION_LIST)
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions2), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions2, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions3), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions3, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMallocHack, (void**)((void*)&m_gpu_nlist[cur_gpu].exclusions4), m_gpu_nlist[cur_gpu].pitch*sizeof(uint4)));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemset, (void*) m_gpu_nlist[cur_gpu].exclusions4, 0xff, m_gpu_nlist[cur_gpu].pitch * sizeof(uint4)));
+    cudaMalloc(&m_gpu_nlist.exclusions2), m_gpu_nlist.pitch*sizeof(uint4));
+    cudaMemset(m_gpu_nlist.exclusions2, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
+    cudaMalloc(&m_gpu_nlist.exclusions3, m_gpu_nlist.pitch*sizeof(uint4));
+    cudaMemset(m_gpu_nlist.exclusions3, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
+    cudaMalloc(&m_gpu_nlist.exclusions4, m_gpu_nlist.pitch*sizeof(uint4));
+    cudaMemset(m_gpu_nlist.exclusions4, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
 #endif
-        }
         
     // allocate and zero host memory
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_nlist), pitch * height, cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_nlist, pitch * height, cudaHostAllocPortable);
     memset((void*)m_host_nlist, 0, pitch*height);
     
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_neigh), N * sizeof(unsigned int), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_n_neigh, N * sizeof(unsigned int), cudaHostAllocPortable);
     memset((void*)m_host_n_neigh, 0, N * sizeof(unsigned int));
     
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions), N * sizeof(uint4), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_exclusions, N * sizeof(uint4), cudaHostAllocPortable);
     memset((void*)m_host_exclusions, 0xff, N * sizeof(uint4));
 #if defined(LARGE_EXCLUSION_LIST)
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions2), N * sizeof(uint4), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_exclusions2, N * sizeof(uint4), cudaHostAllocPortable);
     memset((void*)m_host_exclusions2, 0xff, N * sizeof(uint4));
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions3), N * sizeof(uint4), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_exclusions3, N * sizeof(uint4), cudaHostAllocPortable);
     memset((void*)m_host_exclusions3, 0xff, N * sizeof(uint4));
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_exclusions4), N * sizeof(uint4), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_exclusions4, N * sizeof(uint4), cudaHostAllocPortable);
     memset((void*)m_host_exclusions4, 0xff, N * sizeof(uint4));
 #endif
+    CHECK_CUDA_ERROR();
     }
 
 void NeighborList::freeGPUData()
     {
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    
     assert(m_host_nlist);
     assert(m_host_exclusions);
 #if defined(LARGE_EXCLUSION_LIST)
@@ -234,56 +222,54 @@ void NeighborList::freeGPUData()
 #endif
     assert(m_host_n_neigh);
     
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_nlist));
+    cudaFreeHost(m_host_nlist);
     m_host_nlist = NULL;
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_n_neigh));
+    cudaFreeHost(m_host_n_neigh);
     m_host_n_neigh = NULL;
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions));
+    cudaFreeHost(m_host_exclusions);
     m_host_exclusions = NULL;
 #if defined(LARGE_EXCLUSION_LIST)
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions2));
+    cudaFreeHost(m_host_exclusions2);
     m_host_exclusions2 = NULL;
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions3));
+    cudaFreeHost(m_host_exclusions3);
     m_host_exclusions3 = NULL;
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_exclusions4));
+    cudaFreeHost(m_host_exclusions4);
     m_host_exclusions4 = NULL;
 #endif
+    CHECK_CUDA_ERROR();
     
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        assert(m_gpu_nlist[cur_gpu].list);
-        assert(m_gpu_nlist[cur_gpu].n_neigh);
-        assert(m_gpu_nlist[cur_gpu].exclusions);
+    assert(m_gpu_nlist.list);
+    assert(m_gpu_nlist.n_neigh);
+    assert(m_gpu_nlist.exclusions);
 #if defined(LARGE_EXCLUSION_LIST)
-        assert(m_gpu_nlist[cur_gpu].exclusions2);
-        assert(m_gpu_nlist[cur_gpu].exclusions3);
-        assert(m_gpu_nlist[cur_gpu].exclusions4);
+    assert(m_gpu_nlist.exclusions2);
+    assert(m_gpu_nlist.exclusions3);
+    assert(m_gpu_nlist.exclusions4);
 #endif
-        assert(m_gpu_nlist[cur_gpu].last_updated_pos);
-        assert(m_gpu_nlist[cur_gpu].needs_update);
+    assert(m_gpu_nlist.last_updated_pos);
+    assert(m_gpu_nlist.needs_update);
         
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].n_neigh));
-        m_gpu_nlist[cur_gpu].n_neigh = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].list));
-        m_gpu_nlist[cur_gpu].list = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions));
-        m_gpu_nlist[cur_gpu].exclusions = NULL;
+    cudaFree(m_gpu_nlist.n_neigh);
+    m_gpu_nlist.n_neigh = NULL;
+    cudaFree(m_gpu_nlist.list);
+    m_gpu_nlist.list = NULL;
+    cudaFree(m_gpu_nlist.exclusions);
+    m_gpu_nlist.exclusions = NULL;
 #if defined(LARGE_EXCLUSION_LIST)
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions2));
-        m_gpu_nlist[cur_gpu].exclusions2 = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions3));
-        m_gpu_nlist[cur_gpu].exclusions3 = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].exclusions4));
-        m_gpu_nlist[cur_gpu].exclusions4 = NULL;
+    cudaFree(m_gpu_nlist.exclusions2);
+    m_gpu_nlist.exclusions2 = NULL;
+    cudaFree(m_gpu_nlist.exclusions3);
+    m_gpu_nlist.exclusions3 = NULL;
+    cudaFree(m_gpu_nlist.exclusions4);
+    m_gpu_nlist.exclusions4 = NULL;
 #endif
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].last_updated_pos));
-        m_gpu_nlist[cur_gpu].last_updated_pos = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].needs_update));
-        m_gpu_nlist[cur_gpu].needs_update = NULL;
-        exec_conf.gpu[cur_gpu]->call(bind(cudaFree, m_gpu_nlist[cur_gpu].overflow));
-        m_gpu_nlist[cur_gpu].overflow = NULL;
-        }
+    cudaFree(m_gpu_nlist.last_updated_pos);
+    m_gpu_nlist.last_updated_pos = NULL;
+    cudaFree(m_gpu_nlist.needs_update);
+    m_gpu_nlist.needs_update = NULL;
+    cudaFree(m_gpu_nlist.overflow);
+    m_gpu_nlist.overflow = NULL;
+    CHECK_CUDA_ERROR();
     }
 #endif
 
@@ -333,7 +319,11 @@ double NeighborList::benchmark(unsigned int num_iters)
     buildNlist();;
     
 #ifdef ENABLE_CUDA
-    exec_conf.callAll(bind(cudaThreadSynchronize));
+    if (exec_conf->isCUDAEnabled())
+        {
+        cudaThreadSynchronize();
+        CHECK_CUDA_ERROR();
+        }
 #endif
     
     // benchmark
@@ -342,7 +332,8 @@ double NeighborList::benchmark(unsigned int num_iters)
         buildNlist();
         
 #ifdef ENABLE_CUDA
-    exec_conf.callAll(bind(cudaThreadSynchronize));
+    if (exec_conf->isCUDAEnabled())
+        cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
     
@@ -450,7 +441,7 @@ Scalar NeighborList::estimateNNeigh()
     in a very time consuming copy to the device. It is meant only as a debugging/testing
     path and not for production simulations.
 */
-vector<gpu_nlist_array>& NeighborList::getListGPU()
+gpu_nlist_array& NeighborList::getListGPU()
     {
     // this is the complicated graphics card version, need to do some work
     // switch based on the current location of the data
@@ -489,8 +480,7 @@ void NeighborList::hostToDeviceCopy()
     // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
     // if (m_prof) m_prof->push("NLIST C2G");
     
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    assert(exec_conf.gpu.size() >= 1);
+    assert(exec_conf->isCUDAEnabled());
     
     // start by determining if we need to make the device list larger or not
     // find the maximum neighborlist height
@@ -504,7 +494,7 @@ void NeighborList::hostToDeviceCopy()
     // if the largest nlist is bigger than the capacity of the device nlist,
     // make it 10% bigger (note that the capacity of the device list is height-1 since
     // the number of neighbors is stored in the first row)
-    if (max_h > m_gpu_nlist[0].height)
+    if (max_h > m_gpu_nlist.height)
         {
         freeGPUData();
         allocateGPUData((unsigned int)(float(max_h)*1.1));
@@ -512,7 +502,7 @@ void NeighborList::hostToDeviceCopy()
         
     // now we are good to copy the data over
     // start by zeroing the list
-    memset(m_host_nlist, 0, sizeof(unsigned int) * m_gpu_nlist[0].pitch * m_gpu_nlist[0].height);
+    memset(m_host_nlist, 0, sizeof(unsigned int) * m_gpu_nlist.pitch * m_gpu_nlist.height);
     memset(m_host_n_neigh, 0, sizeof(unsigned int) *m_pdata->getN());
     
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -522,21 +512,20 @@ void NeighborList::hostToDeviceCopy()
         
         // now fill out the data
         for (unsigned int j = 0; j < m_list[i].size(); j++)
-            m_host_nlist[j*m_gpu_nlist[0].pitch + i] = m_list[i][j];
+            m_host_nlist[j*m_gpu_nlist.pitch + i] = m_list[i][j];
         }
         
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        // now that the host array is filled out, copy it to the card
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].list, m_host_nlist,
-                                          sizeof(unsigned int) * m_gpu_nlist[cur_gpu].height * m_gpu_nlist[cur_gpu].pitch,
-                                          cudaMemcpyHostToDevice));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].n_neigh, m_host_n_neigh,
-                                          sizeof(unsigned int) * m_pdata->getN(),
-                                          cudaMemcpyHostToDevice));
-        }
-        
+    // now that the host array is filled out, copy it to the card
+    cudaMemcpy(m_gpu_nlist.list, m_host_nlist,
+               sizeof(unsigned int) * m_gpu_nlist.height * m_gpu_nlist.pitch,
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(m_gpu_nlist.n_neigh, m_host_n_neigh,
+               sizeof(unsigned int) * m_pdata->getN(),
+               cudaMemcpyHostToDevice);
+    
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    
     // if (m_prof) m_prof->pop();
     }
 
@@ -552,27 +541,26 @@ void NeighborList::deviceToHostCopy()
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         m_list[i].clear();
         
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        // copy data back from the card
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_host_nlist, m_gpu_nlist[cur_gpu].list,
-                                          sizeof(unsigned int) * m_gpu_nlist[cur_gpu].height * m_gpu_nlist[cur_gpu].pitch,
-                                          cudaMemcpyDeviceToHost));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_host_n_neigh, m_gpu_nlist[cur_gpu].n_neigh,
-                                          sizeof(unsigned int) * m_pdata->getN(),
-                                          cudaMemcpyDeviceToHost));
+    // copy data back from the card
+    cudaMemcpy(m_host_nlist, m_gpu_nlist.list,
+               sizeof(unsigned int) * m_gpu_nlist.height * m_gpu_nlist.pitch,
+               cudaMemcpyDeviceToHost);
+    cudaMemcpy(m_host_n_neigh, m_gpu_nlist.n_neigh,
+               sizeof(unsigned int) * m_pdata->getN(),
+               cudaMemcpyDeviceToHost);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
                                           
-        // fill out host version of the list
-        for (unsigned int i = m_pdata->getLocalBeg(cur_gpu); i < m_pdata->getLocalBeg(cur_gpu) + m_pdata->getLocalNum(cur_gpu); i++)
-            {
-            // now loop over all elements in the array
-            unsigned int size = m_host_n_neigh[i];
-            for (unsigned int j = 0; j < size; j++)
-                m_list[i].push_back(m_host_nlist[j*m_gpu_nlist[0].pitch + i]);
-            }
+    // fill out host version of the list
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        // now loop over all elements in the array
+        unsigned int size = m_host_n_neigh[i];
+        for (unsigned int j = 0; j < size; j++)
+            m_list[i].push_back(m_host_nlist[j*m_gpu_nlist.pitch + i]);
         }
-        
+
     // if (m_prof) m_prof->pop();
     }
 
@@ -582,7 +570,7 @@ void NeighborList::deviceToHostCopy()
 void NeighborList::updateExclusionData()
     {
     // cannot update unless we are running on a GPU
-    if (exec_conf.gpu.empty())
+    if (!exec_conf->isCUDAEnabled())
         return;
         
     ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
@@ -674,24 +662,22 @@ void NeighborList::updateExclusionData()
 #endif
         }
         
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions, m_host_exclusions,
-                                          sizeof(uint4) * m_pdata->getN(),
-                                          cudaMemcpyHostToDevice));
+    cudaMemcpy(m_gpu_nlist.exclusions, m_host_exclusions,
+               sizeof(uint4) * m_pdata->getN(),
+               cudaMemcpyHostToDevice);
 #if defined(LARGE_EXCLUSION_LIST)
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions2, m_host_exclusions2,
-                                          sizeof(uint4) * m_pdata->getN(),
-                                          cudaMemcpyHostToDevice));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions3, m_host_exclusions3,
-                                          sizeof(uint4) * m_pdata->getN(),
-                                          cudaMemcpyHostToDevice));
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_nlist[cur_gpu].exclusions4, m_host_exclusions4,
-                                          sizeof(uint4) * m_pdata->getN(),
-                                          cudaMemcpyHostToDevice));
+    cudaMemcpy(m_gpu_nlist.exclusions2, m_host_exclusions2,
+               sizeof(uint4) * m_pdata->getN(),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(m_gpu_nlist.exclusions3, m_host_exclusions3,
+               sizeof(uint4) * m_pdata->getN(),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(m_gpu_nlist.exclusions4, m_host_exclusions4,
+               sizeof(uint4) * m_pdata->getN(),
+               cudaMemcpyHostToDevice));
 #endif
-        }
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
         
     m_pdata->release();
     }

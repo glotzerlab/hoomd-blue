@@ -45,11 +45,14 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __EXECUTION_CONFIGURATION__
 #define __EXECUTION_CONFIGURATION__
 
-#include "GPUWorker.h"
-
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
+
+#ifdef ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
 
 /*! \file ExecutionConfiguration.h
     \brief Declares ExecutionConfiguration and related classes
@@ -57,72 +60,78 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //! Defines the execution configuration for the simulation
 /*! \ingroup data_structs
-    ExecutionConfiguration is a data structure needed to support HOOMD's unorthodox
-    multi-GPU usage model. One GPUWorker thread is launched for each GPU that the run
-    will execute on. The list of worker threads is maintained in ExecutionConfiguration::gpu.
-    All calls to these GPUs must go through the corresponding worker thread in the list
-    (see GPUWorker for examples).
-
-    A few handy methods are defined to make working with more than one GPU simpler:
-        - syncAll() calls sync() on each GPUWorker thread
-        - callAll() makes a call() on each GPUWorker thread
-        - tagAll()  tags the current position on each GPUWorker thread
+    ExecutionConfiguration is a data structure needed to support the hybrid CPU/GPU code. It initializes the CUDA GPU
+    (if requested), stores information about the GPU on which this simulation is executing, and the number of CPUs
+    utilized in the CPU mode. 
 
     The execution configuration is determined at the beginning of the run and must
     remain static for the entire run. It can be accessed from the ParticleData of the
-    system. As to which particles/forces/etc go to which GPU in a multi-GPU environment,
-    that is not determined here. See ParticleData and ForceCompute for a basic rundown
-    on how that is broken up.
+    system. DO NOT construct additional exeuction configurations. Only one is to be created for each run.
 
     The execution mode is specified in exec_mode. This is only to be taken as a hint,
-    different compute classes are free to execute on either the CPU or GPU. The only
-    requirement is that those executing on the GPU must use the gpu workers in the vector.
+    different compute classes are free to fall back on CPU implementations if no GPU is available. However,
+    <b>ABSOLUTELY NO</b> CUDA calls should be made if exec_mode is set to CPU - making a CUDA call will initialize a
+    GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
+    interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct ExecutionConfiguration
+struct ExecutionConfiguration : boost::noncopyable
     {
     //! Simple enum for the execution modes
     enum executionMode
         {
         GPU,    //!< Execute on the GPU
-        CPU //!< Execute on the CPU
+        CPU,    //!< Execute on the CPU
         };
         
     //! Default constructor
-    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false, bool empty=false);
+    ExecutionConfiguration(bool min_cpu=false, bool ignore_display=false);
     
-    //! Single GPU selection constructor
-    ExecutionConfiguration(executionMode mode, bool min_cpu=false, bool ignore_display=false);
+    //! Force a mode selection
+    ExecutionConfiguration(executionMode mode, int gpu_id=-1, bool min_cpu=false, bool ignore_display=false);
     
-    //! Excplicit GPU selection constructor
-    ExecutionConfiguration(const std::vector<int>& gpu_ids, bool min_cpu=false, bool ignore_display=false);
+    ~ExecutionConfiguration();
     
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
+    bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
+
+    //! Returns true if CUDA is enabled
+    bool isCUDAEnabled() const
+        {
+        return (exec_mode == GPU);
+        }
     
+    //! Returns true if CUDA error checking is enabled
+    bool isCUDAErrorCheckingEnabled() const
+        {
+        #ifdef NDEBUG
+        return true;
+        #else
+        return m_cuda_error_checking;
+        #endif
+        }
+    
+    //! Sets the cuda error checking mode
+    void setCUDAErrorChecking(bool cuda_error_checking)
+        {
+        m_cuda_error_checking = cuda_error_checking;
+        }
+
 #ifdef ENABLE_CUDA
-    //! Sets tags for all GPUWorkers
-    void tagAll(const std::string &file, unsigned int line) const;
-    
-    //! Syncs all GPUWorkers
-    void syncAll() const;
-    
-    //! Calls a function on all GPUs
-    void callAll(const boost::function< cudaError_t (void) > &func) const;
-    
-    std::vector< boost::shared_ptr<GPUWorker> > gpu;    //!< GPUs to execute on
-    
-    static int getDefaultGPU(); //!< returns the default GPU to run on
-    static std::vector< int > getDefaultGPUList();  //!< returns the list of default GPUs to run on
-    
-    //! Checks all GPUs in the execution configuration to see if they meet the CUDA_ARCH min req.
-    void checkCudaArch();
+    cudaDeviceProp dev_prop;    //!< Cached device properties
     
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapability();
+
+    //! Handle cuda error message
+    static void handleCUDAError(cudaError_t err, const char *file, unsigned int line);
+    
+    //! Check for cuda errors
+    static void checkCUDAError(const char *file, unsigned int line);
     
 private:
-    //! Actually initializes the workers with the given list of GPUs
-    void initializeGPUs(const std::vector<int>& gpu_ids, bool min_cpu);
+    //! Initialize the GPU with the given id
+    void initializeGPU(int gpu_id, bool min_cpu);
     
     //! Print out stats on the chosen GPUs
     void printGPUStats();
@@ -150,6 +159,9 @@ private:
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
     };
+
+//! Macro for easy checking of CUDA errors - enabled all the time
+#define CHECK_CUDA_ERROR() ExecutionConfiguration::checkCUDAError(__FILE__, __LINE__);
 
 //! Exports ExecutionConfiguration to python
 void export_ExecutionConfiguration();

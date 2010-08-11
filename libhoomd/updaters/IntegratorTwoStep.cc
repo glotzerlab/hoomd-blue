@@ -154,7 +154,7 @@ void IntegratorTwoStep::update(unsigned int timestep)
     
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
-    if (exec_conf.exec_mode == ExecutionConfiguration::GPU)
+    if (exec_conf->exec_mode == ExecutionConfiguration::GPU)
         computeNetForceGPU(timestep+1, "Integrate");
     else
 #endif

@@ -70,10 +70,6 @@ using namespace boost;
 //! Perform some basic tests on the boxdim structure
 BOOST_AUTO_TEST_CASE( BoxDim_test )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     Scalar tol = Scalar(1e-6);
     
     // test default constructor
@@ -131,12 +127,8 @@ BOOST_AUTO_TEST_CASE( BoxDim_test )
 //! Test operation of the particle data class
 BOOST_AUTO_TEST_CASE( ParticleData_test )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     BoxDim box(10.0, 30.0, 50.0);
-    ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     ParticleData a(1, box, 1, exec_conf);
     
     Scalar tol = Scalar(1e-6);
@@ -268,10 +260,6 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
 //! Tests the ability of the ParticleData class to copy data between CPU <-> GPU
 BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     Scalar tol = Scalar(1e-6);
     
     // This set of tests will actually check that the ParticleData class is working
@@ -279,7 +267,7 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
     // the data being on the CPU to -on the GPU to on both, etc.... so we will just check
     // basic functionality here. Any subtle bugs will just have to show up when
     // unit tests are done that compare simulation runs on the cpu to those on the GPU
-    ExecutionConfiguration exec_conf(ExecutionConfiguration::GPU);
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));
     BoxDim box(10.0,30.0,50.0);
     int N = 500;
     ParticleData pdata(N, box, 1, exec_conf);
@@ -308,13 +296,11 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
         }
     pdata.release();
     // try accessing the data on the GPU
-    gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU()[0];
-    BOOST_REQUIRE_EQUAL(exec_conf.gpu.size(), (unsigned int)1);
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
-    exec_conf.gpu[0]->call(bind(gpu_pdata_texread_test, d_pdata));
+    gpu_pdata_arrays d_pdata = pdata.acquireReadWriteGPU();
+    gpu_pdata_texread_test(d_pdata);
+    CHECK_CUDA_ERROR();
     pdata.release();
     
-    exec_conf.gpu[0]->setTag(__FILE__, __LINE__);
     pdata.acquireReadOnly();
     for (unsigned int i = 0; i < (unsigned int)N; i++)
         {
@@ -354,14 +340,10 @@ BOOST_AUTO_TEST_CASE( ParticleData_gpu_tests )
 //! Test operation of the simple cubic initializer class
 BOOST_AUTO_TEST_CASE( SimpleCubic_test )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     Scalar tol = Scalar(1e-6);
     
     // make a simple one-particle box
-    ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     SimpleCubicInitializer one(1, 2.0, "ABC");
     ParticleData one_data(one, exec_conf);
     ParticleDataArraysConst arrays_const = one_data.acquireReadOnly();
@@ -411,12 +393,8 @@ BOOST_AUTO_TEST_CASE( SimpleCubic_test )
 //! Tests the RandomParticleInitializer class
 BOOST_AUTO_TEST_CASE( Random_test )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // create a fairly dense system with a minimum distance of 0.8
-    ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     Scalar min_dist = Scalar(0.8);
     RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
     ParticleData pdata(rand_init, exec_conf);

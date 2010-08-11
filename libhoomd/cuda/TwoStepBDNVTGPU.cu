@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "TwoStepBDNVTGPU.cuh"
-#include "gpu_settings.h"
 
 #include "saruprngCUDA.h"
 
@@ -365,14 +364,6 @@ cudaError_t gpu_bdnvt_step_two(const gpu_pdata_arrays &pdata,
 
                                                    
                                                    
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 

@@ -61,10 +61,6 @@ using namespace boost;
 #include <stdexcept>
 using namespace std;
 
-#ifdef ENABLE_CUDA
-#include "gpu_settings.h"
-#endif
-
 /*! \file AngleData.cc
     \brief Defines AngleData.
  */
@@ -78,7 +74,7 @@ using namespace std;
     around.
 */
 AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle_types)
-        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata)
+        : m_n_angle_types(n_angle_types), m_angles_dirty(false), m_pdata(pdata), exec_conf(m_pdata->getExecConf())
     {
     assert(pdata);
     
@@ -97,23 +93,16 @@ AngleData::AngleData(boost::shared_ptr<ParticleData> pdata, unsigned int n_angle
         }
         
 #ifdef ENABLE_CUDA
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // init pointers
     m_host_angles = NULL;
     m_host_n_angles = NULL;
-    m_gpu_angledata.resize(exec_conf.gpu.size());
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        {
-        m_gpu_angledata[cur_gpu].angles = NULL;
-        m_gpu_angledata[cur_gpu].n_angles = NULL;
-        m_gpu_angledata[cur_gpu].height = 0;
-        m_gpu_angledata[cur_gpu].pitch = 0;
-        }
+    m_gpu_angledata.angles = NULL;
+    m_gpu_angledata.n_angles = NULL;
+    m_gpu_angledata.height = 0;
+    m_gpu_angledata.pitch = 0;
         
     // allocate memory on the GPU if there is a GPU in the execution configuration
-    if (exec_conf.gpu.size() >= 1)
+    if (exec_conf->isCUDAEnabled())
         {
         allocateAngleTable(1);
         }
@@ -125,8 +114,7 @@ AngleData::~AngleData()
     m_sort_connection.disconnect();
     
 #ifdef ENABLE_CUDA
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    if (!exec_conf.gpu.empty())
+    if (exec_conf->isCUDAEnabled())
         {
         freeAngleTable();
         }
@@ -226,7 +214,7 @@ std::string AngleData::getNameByType(unsigned int type)
 
 /*! Updates the angle data on the GPU if needed and returns the data structure needed to access it.
 */
-std::vector<gpu_angletable_array>& AngleData::acquireGPU()
+gpu_angletable_array& AngleData::acquireGPU()
     {
     if (m_angles_dirty)
         {
@@ -277,7 +265,7 @@ void AngleData::updateAngleTable()
         }
         
     // re allocate memory if needed
-    if (num_angles_max > m_gpu_angledata[0].height)
+    if (num_angles_max > m_gpu_angledata.height)
         {
         reallocateAngleTable(num_angles_max);
         }
@@ -351,64 +339,52 @@ void AngleData::allocateAngleTable(int height)
     
     unsigned int N = m_pdata->getN();
     
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // allocate device memory
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(&gpu_angletable_array::allocate, &m_gpu_angledata[cur_gpu], m_pdata->getLocalNum(cur_gpu), height));
-        
+    m_gpu_angledata.allocate(m_pdata->getN(), height);
+    CHECK_CUDA_ERROR();
         
     // allocate and zero host memory
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_n_angles), N*sizeof(int), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_n_angles, N*sizeof(int), cudaHostAllocPortable);
     memset((void*)m_host_n_angles, 0, N*sizeof(int));
     
-    exec_conf.gpu[0]->call(bind(cudaHostAllocHack, (void**)((void*)&m_host_angles), N * height * sizeof(uint4), cudaHostAllocPortable));
+    cudaHostAlloc(&m_host_angles, N * height * sizeof(uint4), cudaHostAllocPortable);
     memset((void*)m_host_angles, 0, N*height*sizeof(uint4));
+    CHECK_CUDA_ERROR();
     }
 
 void AngleData::freeAngleTable()
     {
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
     // free device memory
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
-        exec_conf.gpu[cur_gpu]->call(bind(&gpu_angletable_array::deallocate, &m_gpu_angledata[cur_gpu]));
+    m_gpu_angledata.deallocate();
+    CHECK_CUDA_ERROR();
         
     // free host memory
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_angles));
+    cudaFreeHost(m_host_angles);
     m_host_angles = NULL;
-    exec_conf.gpu[0]->call(bind(cudaFreeHost, m_host_n_angles));
+    cudaFreeHost(m_host_n_angles);
     m_host_n_angles = NULL;
+    CHECK_CUDA_ERROR();
     }
 
 //! Copies the angle table to the device
 void AngleData::copyAngleTable()
     {
-    // get the execution configuration
-    const ExecutionConfiguration& exec_conf = m_pdata->getExecConf();
-    
-    exec_conf.tagAll(__FILE__, __LINE__);
-    for (unsigned int cur_gpu = 0; cur_gpu < exec_conf.gpu.size(); cur_gpu++)
+    // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
+    for (unsigned int row = 0; row < m_gpu_angledata.height; row++)
         {
-        // we need to copy the table row by row since cudaMemcpy2D has severe pitch limitations
-        for (unsigned int row = 0; row < m_gpu_angledata[0].height; row++)
-            {
-            exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_angledata[cur_gpu].angles + m_gpu_angledata[cur_gpu].pitch*row,
-                                              m_host_angles + row * m_pdata->getN() + m_pdata->getLocalBeg(cur_gpu),
-                                              sizeof(uint4) * m_pdata->getLocalNum(cur_gpu),
-                                              cudaMemcpyHostToDevice));
-                                              
-            }
-            
-        exec_conf.gpu[cur_gpu]->call(bind(cudaMemcpy, m_gpu_angledata[cur_gpu].n_angles,
-                                          m_host_n_angles + m_pdata->getLocalBeg(cur_gpu),
-                                          sizeof(unsigned int) * m_pdata->getLocalNum(cur_gpu),
-                                          cudaMemcpyHostToDevice));
+        cudaMemcpy(m_gpu_angledata.angles + m_gpu_angledata.pitch*row,
+                   m_host_angles + row * m_pdata->getN(),
+                   sizeof(uint4) * m_pdata->getN(),
+                   cudaMemcpyHostToDevice);
         }
+            
+    cudaMemcpy(m_gpu_angledata.n_angles,
+               m_host_n_angles,
+               sizeof(unsigned int) * m_pdata->getN(),
+               cudaMemcpyHostToDevice);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
     }
 #endif
 

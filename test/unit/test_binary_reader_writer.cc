@@ -77,10 +77,6 @@ using namespace std;
 //! Performs low level tests of HOOMDDumpWriter
 BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     // start by creating a single particle system: see it the correct file is written
     Scalar Lx(2.5), Ly(4.5), Lz(12.1);
     
@@ -92,7 +88,7 @@ BOOST_AUTO_TEST_CASE( HOOMDBinaryReaderWriterBasicTests )
     int n_dihedral_types = 1;
     int n_improper_types = 1;
    
-    ExecutionConfiguration exec_conf(ExecutionConfiguration::CPU);
+    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(n_atom, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types, exec_conf));
     shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
     

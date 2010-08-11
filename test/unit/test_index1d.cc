@@ -99,6 +99,53 @@ BOOST_AUTO_TEST_CASE( Index2D_3 )
     BOOST_CHECK_EQUAL(a(2,2), (unsigned int)8);
     }
 
+//! boost test case for 2x2x2 Index3D
+BOOST_AUTO_TEST_CASE( Index3D_2 )
+    {
+    Index3D a(2);
+    BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)8);
+    BOOST_CHECK_EQUAL(a(0,0,0), (unsigned int)0);
+    BOOST_CHECK_EQUAL(a(1,0,0), (unsigned int)1);
+    BOOST_CHECK_EQUAL(a(0,1,0), (unsigned int)2);
+    BOOST_CHECK_EQUAL(a(1,1,0), (unsigned int)3);
+    BOOST_CHECK_EQUAL(a(0,0,1), (unsigned int)4);
+    BOOST_CHECK_EQUAL(a(1,0,1), (unsigned int)5);
+    BOOST_CHECK_EQUAL(a(0,1,1), (unsigned int)6);
+    BOOST_CHECK_EQUAL(a(1,1,1), (unsigned int)7);
+    }
+    
+//! boost test case for 4x3x2 Index3D
+BOOST_AUTO_TEST_CASE( Index3D_432 )
+    {
+    Index3D a(4,3,2);
+    BOOST_CHECK_EQUAL(a.getNumElements(), (unsigned int)24);
+    BOOST_CHECK_EQUAL(a(0,0,0), (unsigned int)0);
+    BOOST_CHECK_EQUAL(a(1,0,0), (unsigned int)1);
+    BOOST_CHECK_EQUAL(a(2,0,0), (unsigned int)2);
+    BOOST_CHECK_EQUAL(a(3,0,0), (unsigned int)3);
+    BOOST_CHECK_EQUAL(a(0,1,0), (unsigned int)4);
+    BOOST_CHECK_EQUAL(a(1,1,0), (unsigned int)5);
+    BOOST_CHECK_EQUAL(a(2,1,0), (unsigned int)6);
+    BOOST_CHECK_EQUAL(a(3,1,0), (unsigned int)7);
+    BOOST_CHECK_EQUAL(a(0,2,0), (unsigned int)8);
+    BOOST_CHECK_EQUAL(a(1,2,0), (unsigned int)9);
+    BOOST_CHECK_EQUAL(a(2,2,0), (unsigned int)10);
+    BOOST_CHECK_EQUAL(a(3,2,0), (unsigned int)11);
+
+    BOOST_CHECK_EQUAL(a(0,0,1), (unsigned int)12);
+    BOOST_CHECK_EQUAL(a(1,0,1), (unsigned int)13);
+    BOOST_CHECK_EQUAL(a(2,0,1), (unsigned int)14);
+    BOOST_CHECK_EQUAL(a(3,0,1), (unsigned int)15);
+    BOOST_CHECK_EQUAL(a(0,1,1), (unsigned int)16);
+    BOOST_CHECK_EQUAL(a(1,1,1), (unsigned int)17);
+    BOOST_CHECK_EQUAL(a(2,1,1), (unsigned int)18);
+    BOOST_CHECK_EQUAL(a(3,1,1), (unsigned int)19);
+    BOOST_CHECK_EQUAL(a(0,2,1), (unsigned int)20);
+    BOOST_CHECK_EQUAL(a(1,2,1), (unsigned int)21);
+    BOOST_CHECK_EQUAL(a(2,2,1), (unsigned int)22);
+    BOOST_CHECK_EQUAL(a(3,2,1), (unsigned int)23);
+    }
+
 //! boost test case for 20x20 Index2D
 BOOST_AUTO_TEST_CASE( Index2D_20 )
     {

@@ -54,6 +54,9 @@
 # "globals." to the variable name. For example, to access the 
 # global SystemDefinition, a user script can access \c globals.system_definition .
 
+## Global variable that holds the execution configuration for reference by the python API
+exec_conf = None;
+
 ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
 system_definition = None;
 
@@ -89,8 +92,9 @@ group_all = None;
 # \details called by hoomd_script.reset()
 def clear():
     global system_definition, system, forces, constraint_forces, integration_methods, integrator, neighbor_list, loggers, thermos;
-    global group_all;
+    global group_all, exec_conf;
     
+    exec_conf = None;
     system_definition = None;
     system = None;
     forces = [];

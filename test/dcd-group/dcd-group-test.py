@@ -40,3 +40,4 @@ xml.set_params(all=True)
 xml.write(filename='test.xml')
 
 run(10000)
+

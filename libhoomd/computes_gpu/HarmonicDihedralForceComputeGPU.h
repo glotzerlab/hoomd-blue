@@ -94,7 +94,7 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
         
     protected:
         int m_block_size;               //!< Block size to run calculation on
-        vector<float4 *> m_gpu_params;  //!< Parameters stored on the GPU (k,sign,m)
+        float4 * m_gpu_params;          //!< Parameters stored on the GPU (k,sign,m)
         float4 *m_host_params;          //!< Host parameters -- padded to float4
         
         //! Actually compute the forces

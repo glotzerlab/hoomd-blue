@@ -45,7 +45,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "NeighborListNsqGPU.cuh"
 #include "ParticleData.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -247,15 +246,7 @@ cudaError_t gpu_compute_nlist_nsq(const gpu_nlist_array &nlist,
         
     // run the kernel
     gpu_compute_nlist_nsq_kernel<<< grid, threads >>>(nlist, pdata, box, r_maxsq, exclude_same_body);
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 // vim:syntax=cpp

@@ -196,7 +196,7 @@ class IntegrationMethodTwoStep : boost::noncopyable
         const boost::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
         const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this method is associated with
         boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
-        const ExecutionConfiguration& exec_conf;            //!< Cached reference to the execution configuration
+        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Cached reference to the execution configuration
         Scalar m_deltaT;                                    //!< The time step
         
         //! helper function to get the integrator variables from the particle data

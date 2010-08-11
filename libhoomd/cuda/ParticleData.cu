@@ -44,7 +44,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "ParticleData.cuh"
-#include "gpu_settings.h"
 
 #ifdef WIN32
 #include <cassert>
@@ -115,15 +114,7 @@ cudaError_t gpu_uninterleave_float4(float *d_out, float4 *d_in, int N, int pitch
     const int M = 64;
     uninterleave_float4_kernel<<< N/M+1, M >>>(d_out, d_in, N, pitch);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 //! Kernel for interleaving float input into float4 output
@@ -173,15 +164,7 @@ cudaError_t gpu_interleave_float4(float4 *d_out, float *d_in, int N, int pitch)
     const int M = 64;
     interleave_float4_kernel<<< N/M+1, M >>>(d_out, d_in, N, pitch);
     
-    if (!g_gpu_error_checking)
-        {
-        return cudaSuccess;
-        }
-    else
-        {
-        cudaThreadSynchronize();
-        return cudaGetLastError();
-        }
+    return cudaSuccess;
     }
 
 ////////////////////////////////////////////////////////////////////
@@ -254,12 +237,11 @@ __global__ void pdata_texread_test(gpu_pdata_arrays pdata)
     {
     // start by identifying the particle index of this particle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int pidx = idx + pdata.local_beg;
     
-    if (idx < pdata.local_num)
+    if (idx < pdata.N)
         {
-        float4 pos = tex1Dfetch(pdata_pos_tex, pidx);
-        pdata.vel[pidx] = pos;
+        float4 pos = tex1Dfetch(pdata_pos_tex, idx);
+        pdata.vel[idx] = pos;
         }
     }
 
@@ -274,7 +256,7 @@ cudaError_t gpu_pdata_texread_test(const gpu_pdata_arrays &pdata)
     {
     // setup the grid to run the kernel
     int M = 128;
-    dim3 grid(pdata.local_num/M+1, 1, 1);
+    dim3 grid(pdata.N/M+1, 1, 1);
     dim3 threads(M, 1, 1);
     
     // bind the textures

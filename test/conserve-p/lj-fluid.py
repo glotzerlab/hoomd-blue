@@ -13,3 +13,4 @@ integrate.nvt(group=all, T=1.2, tau=0.5)
 analyze.log(filename = 'thermo.log', quantities = ['potential_energy', 'kinetic_energy', 'nvt_reservoir_energy','momentum'], period=1000) 
 
 run(100e6)
+
