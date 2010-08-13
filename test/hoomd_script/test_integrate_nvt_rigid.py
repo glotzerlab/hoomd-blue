@@ -22,13 +22,13 @@ class integrate_nvt_rigid_tests (unittest.TestCase):
     def test_basic(self):
         all = group.all();
         integrate.mode_standard(dt=0.005);
-        integrate.nvt_rigid(all, T=1.2);
+        integrate.nvt_rigid(all, T=1.2, tau=0.5);
         run(100);
 
     # test set_params
     def test_set_params(self):
         all = group.all();
-        nvt = integrate.nvt_rigid(all, T=1.2);
+        nvt = integrate.nvt_rigid(all, T=1.2, tau=0.5);
         nvt.set_params(T=1.3);
 
     def tearDown(self):
@@ -45,7 +45,7 @@ class integrate_nvt_rigid_nobody_tests (unittest.TestCase):
     def test_empty(self):
         empty = group.cuboid(name="empty", xmin=-100, xmax=-100, ymin=-100, ymax=-100, zmin=-100, zmax=-100)
         mode = integrate.mode_standard(dt=0.005);
-        nve = integrate.nvt_rigid(group=empty, T=1.2)
+        nve = integrate.nvt_rigid(group=empty, T=1.2, tau=0.5)
         run(1);
 
     def tearDown(self):
