@@ -97,36 +97,6 @@ class TwoStepNVERigid : public IntegrationMethodTwoStep
         //! Set velocities for particles in rigid bodies at the second step
         void set_v(unsigned int timestep);
         
-        //! Convert quaternion to rotation matrix
-        void exyzFromQuaternion(Scalar4 &quat, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space);
-        
-        //! Compute angular velocity from angular momentum and rotation matrix
-        void computeAngularVelocity(Scalar4 &angmom, Scalar4 &moment_inertia, Scalar4 &ex_space, Scalar4 &ey_space, Scalar4 &ez_space,Scalar4 &angvel);
-        
-        //! Update quaternion using the Richardson iteration
-        void advanceQuaternion(Scalar4& angmom, Scalar4 &moment_inertia, Scalar4 &angvel, Scalar4& ex_space, Scalar4& ey_space, Scalar4& ez_space, Scalar4 &quat);
-                                        
-        //! Update quaternion momenta
-        void no_squish_rotate(unsigned int k, Scalar4& p, Scalar4& q, Scalar4& inertia, Scalar dt);
-    
-        //! Vector-quaternion multiply
-        void vec_multiply(Scalar4 &a, Scalar4 &b, Scalar4 &c);
-        
-        //! Quaternion multiply
-        void quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
-        
-        //! Inverse quaternion multiply
-        void inv_quat_multiply(Scalar4& a, Scalar4& b, Scalar4& c);
-        
-        //! Matrix multiply
-        void matrix_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
-        
-        //! Transposed matrix multiply
-        void transpose_dot(Scalar4& ax, Scalar4& ay, Scalar4& az, Scalar4& b, Scalar4& c);
-         
-        //! Quaternion normalize
-        void normalize(Scalar4 &q);
-        
         unsigned int m_n_bodies;                    //!< Number of rigid bodies
         boost::shared_ptr<RigidData> m_rigid_data;  //!< Pointer to rigid data
         boost::shared_ptr<ParticleData> m_pdata;    //!< Pointer to particle data

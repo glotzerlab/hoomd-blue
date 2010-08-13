@@ -52,11 +52,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#include "QuaternionMath.h"
 #include "TwoStepNVTRigid.h"
 #include <math.h>
-
-//! Tolerance for zero principle moments
-#define EPSILON 1.0e-7
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
  \param group The group of particles this integration method is to work on

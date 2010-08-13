@@ -170,5 +170,10 @@ inline int isfinite(float x)
 
 #endif
 
+// constants
+
+//! Small epsilon value
+const Scalar EPSILON=1.0e-6;
+
 #endif // __HOOMD_MATH_H__
 

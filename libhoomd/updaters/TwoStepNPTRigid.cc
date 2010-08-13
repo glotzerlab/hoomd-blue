@@ -51,11 +51,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/python.hpp>
 using namespace boost::python;
 
+#include "QuaternionMath.h"
 #include "TwoStepNPTRigid.h"
 #include <math.h>
-
-//! Tolerance for zero principle moments
-#define EPSILON 1.0e-7
  
 /*! \file TwoStepNPTRigid.cc
     \brief Contains code for the TwoStepNPTRigid class

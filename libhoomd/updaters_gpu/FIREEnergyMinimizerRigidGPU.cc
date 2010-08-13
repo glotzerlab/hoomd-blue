@@ -48,8 +48,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning( disable : 4244 )
 #endif
 
-#define EPSILON 1e-6
-
 #include <boost/python.hpp>
 using namespace boost::python;
 #include <boost/bind.hpp>
