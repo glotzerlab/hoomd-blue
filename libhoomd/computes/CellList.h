@@ -47,6 +47,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/signals.hpp>
 #include "GPUArray.h"
 
+#include "Index1D.h"
 #include "Compute.h"
 
 /*! \file CellList.h
@@ -114,10 +115,15 @@ class CellList : public Compute
         //! Construct a cell list
         CellList(boost::shared_ptr<SystemDefinition> sysdef);
         
+        virtual ~CellList() {}
+
+        //! \name Set parameters
+        // @{
+
         //! Set the minimum cell width in any dimension
         void setNominalWidth(Scalar width)
             {
-            m_nominalWidth = width;
+            m_nominal_width = width;
             m_params_changed = true;
             }
         
@@ -134,6 +140,7 @@ class CellList : public Compute
             m_max_cells = max_cells;
             m_params_changed = true;
             }
+        
         //! Specify if the TDB cell list is to be computed
         void setComputeTDB(bool compute_tdb)
             {
@@ -151,8 +158,24 @@ class CellList : public Compute
         //! Specify that the flag is to be the particle index (encoded as an integer in the float variable)
         void setFlagIndex()
             {
-            m_flag_index = false;
+            m_flag_charge = false;
             m_params_changed = true;
+            }
+
+        // @}
+        //! \name Get properties
+        // @{
+
+        //! Get the actual width of the cells
+        const Scalar3& getWidth()
+            {
+            return m_width;
+            }
+        
+        //! Get the dimensions of the cell list
+        const uint3& getDim()
+            {
+            return m_dim;
             }
         
         //! Get an indexer to identify cell indices
@@ -172,6 +195,10 @@ class CellList : public Compute
             {
             return m_cell_adj_indexer;
             }
+        
+        // @}
+        //! \name Get data
+        // @{
         
         //! Get the array of cell sizes
         const GPUArray<unsigned int>& getCellSizeArray()
@@ -200,6 +227,8 @@ class CellList : public Compute
         //! Compute the cell list given the current particle positions
         void compute(unsigned int timestep);
         
+        // @}
+        
     private:
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
@@ -207,6 +236,7 @@ class CellList : public Compute
         unsigned int m_max_cells;    //!< Maximum number of cells to allocate
         bool m_compute_tdb;          //!< true if the tdb list should be computed
         bool m_flag_charge;          //!< true if the flag should be set to the charge, it will be index otherwise
+        bool m_params_changed;       //!< Set to true when parameters are changed
         
         // parameters determined by initialize
         Scalar3 m_width;             //!< Actual width
@@ -214,7 +244,6 @@ class CellList : public Compute
         Index3D m_cell_indexer;      //!< Indexes cells from i,j,k
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
-        bool m_params_changed;       //!< Set to true when parameters are changed
         
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
@@ -227,7 +256,6 @@ class CellList : public Compute
         
         //! Initialize width and indexers, allocates memory
         void initialize();
-        
-    }
+    };
 
 #endif
