@@ -253,12 +253,8 @@ void neighborlist_exclusion_tests(nlist_creator_typ nlist_creator, boost::shared
     }
 
 //! Tests the ability of the neighbor list to exclude particles belonging to the same rigid body
-void neighborlist_body_exclusion_tests(nlist_creator_typ nlist_creator, ExecutionConfiguration exec_conf)
-    {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
+void neighborlist_body_exclusion_tests(nlist_creator_typ nlist_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {    
     shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     
@@ -408,9 +404,9 @@ shared_ptr<NeighborList> gpu_binned_nlist_creator(shared_ptr<SystemDefinition> s
 BOOST_AUTO_TEST_CASE( NeighborList_tests )
     {
     nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
-    neighborlist_basic_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
-    neighborlist_exclusion_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
-    neighborlist_body_exclusion_tests(base_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    neighborlist_basic_tests(base_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_exclusion_tests(base_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_body_exclusion_tests(base_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! boost test case for BinnedNeighborList
@@ -419,10 +415,10 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborList_tests )
     nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
     nlist_creator_typ binned_creator = bind(binned_nlist_creator, _1, _2, _3);
     
-    neighborlist_basic_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
-    neighborlist_exclusion_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
-    neighborlist_body_exclusion_tests(binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
-    neighborlist_comparison_test(base_creator, binned_creator, ExecutionConfiguration(ExecutionConfiguration::CPU));
+    neighborlist_basic_tests(binned_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_exclusion_tests(binned_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_body_exclusion_tests(binned_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    neighborlist_comparison_test(base_creator, binned_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -432,10 +428,10 @@ BOOST_AUTO_TEST_CASE( NeighborListNsqGPU_tests )
     nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
     nlist_creator_typ gpu_creator = bind(gpu_nsq_nlist_creator, _1, _2, _3);
     
-    neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_body_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    neighborlist_basic_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_exclusion_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_body_exclusion_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test(base_creator, gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! boost test case for BinnedNeighborListGPU
@@ -444,10 +440,10 @@ BOOST_AUTO_TEST_CASE( BinnedNeighborListGPU_tests )
     nlist_creator_typ base_creator = bind(base_class_nlist_creator, _1, _2, _3);
     nlist_creator_typ gpu_creator = bind(gpu_binned_nlist_creator, _1, _2, _3);
     
-    neighborlist_basic_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_body_exclusion_tests(gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
-    neighborlist_comparison_test(base_creator, gpu_creator, ExecutionConfiguration(ExecutionConfiguration::GPU));
+    neighborlist_basic_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_exclusion_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_body_exclusion_tests(gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    neighborlist_comparison_test(base_creator, gpu_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif
