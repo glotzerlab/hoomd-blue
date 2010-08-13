@@ -794,13 +794,10 @@ class nve_rigid(_integration_method):
         _integration_method.__init__(self);
         
         # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNVERigid(globals.system_definition, group.cpp_group);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNVERigidGPU(globals.system_definition, group.cpp_group);
         else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating NVE integration method for rigid bodies");
+            self.cpp_method = hoomd.TwoStepNVERigidGPU(globals.system_definition, group.cpp_group);
 
 ## NVT Integration for rigid bodies
 #
@@ -843,13 +840,10 @@ class nvt_rigid(_integration_method):
         thermo = compute._get_unique_thermo(group=group);
         
         # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNVTRigid(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
         else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating NVT rigid integrator");
+            self.cpp_method = hoomd.TwoStepNVTRigidGPU(globals.system_definition, group.cpp_group, thermo.cpp_compute, T.cpp_variant);
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
@@ -926,13 +920,10 @@ class bdnvt_rigid(_integration_method):
         T = variant._setup_variant_input(T);
         
         # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepBDNVTRigid(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
         else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating BD NVT integrator for rigid bodies");
+            self.cpp_method = hoomd.TwoStepBDNVTRigidGPU(globals.system_definition, group.cpp_group, T.cpp_variant, seed, gamma_diam);
         
     
     ## Changes parameters of an existing integrator
@@ -1037,13 +1028,10 @@ class npt_rigid(_integration_method):
         thermo_all = compute._get_unique_thermo(group=globals.group_all);
         
         # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_method = hoomd.TwoStepNPTRigid(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_method = hoomd.TwoStepNPTRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
         else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating NPT rigid integrator");
+            self.cpp_method = hoomd.TwoStepNPTRigidGPU(globals.system_definition, group.cpp_group, thermo_group.cpp_compute, thermo_all.cpp_compute, tau, tauP, T.cpp_variant, P.cpp_variant);
     
     ## Changes parameters of an existing integrator
     # \param T New temperature (if set)
@@ -1209,13 +1197,10 @@ class mode_minimize_rigid_fire(_integrator):
         _integrator.__init__(self);
         
         # initialize the reflected c++ class
-        if globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.CPU:
+        if not globals.exec_conf.isCUDAEnabled():
             self.cpp_integrator = hoomd.FIREEnergyMinimizerRigid(globals.system_definition, group.cpp_group, dt);
-        elif globals.system_definition.getParticleData().getExecConf().exec_mode == hoomd.ExecutionConfiguration.executionMode.GPU:
-            self.cpp_integrator = hoomd.FIREEnergyMinimizerRigidGPU(globals.system_definition, group.cpp_group, dt);
         else:
-            print >> sys.stderr, "\n***Error! Invalid execution mode\n";
-            raise RuntimeError("Error creating FIRE Energy Minimizer");
+            self.cpp_integrator = hoomd.FIREEnergyMinimizerRigidGPU(globals.system_definition, group.cpp_group, dt);
 
         self.supports_methods = False;
         
