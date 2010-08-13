@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE( Index3D_2 )
     BOOST_CHECK_EQUAL(a(0,1,1), (unsigned int)6);
     BOOST_CHECK_EQUAL(a(1,1,1), (unsigned int)7);
     }
-	
+    
 //! boost test case for 4x3x2 Index3D
 BOOST_AUTO_TEST_CASE( Index3D_432 )
     {

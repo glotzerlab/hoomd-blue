@@ -108,7 +108,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     }
 
 /*! \param mode Execution mode to set (cpu or gpu)
-	\param gpu_id ID of the GPU on which to run, or -1 for automatic selection
+    \param gpu_id ID of the GPU on which to run, or -1 for automatic selection
     \param min_cpu If set to true, cudaDeviceBlockingSync is set to keep the CPU usage of HOOMD to a minimum
     \param ignore_display If set to true, try to ignore GPUs attached to the display
 
@@ -116,7 +116,7 @@ ExecutionConfiguration::ExecutionConfiguration(bool min_cpu, bool ignore_display
     is made by not calling cudaSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode, int gpu_id, bool min_cpu, bool ignore_display)
-	: m_cuda_error_checking(false)
+    : m_cuda_error_checking(false)
     {
     exec_mode = mode;
     
@@ -155,31 +155,31 @@ std::string ExecutionConfiguration::getComputeCapability()
         
     return s.str();
     }
-	
+    
 void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line)
-	{
+    {
     // if there was an error
     if (err != cudaSuccess)
         {
-		// remove HOOMD_SOURCE_DIR from the front of the file
-		if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
-			file += strlen(HOOMD_SOURCE_DIR);
-		
-		// print an error message
-		cerr << endl << "***Error! " << string(cudaGetErrorString(err)) << " before " 
-			 << file << ":" << line << endl << endl;
+        // remove HOOMD_SOURCE_DIR from the front of the file
+        if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
+            file += strlen(HOOMD_SOURCE_DIR);
+        
+        // print an error message
+        cerr << endl << "***Error! " << string(cudaGetErrorString(err)) << " before " 
+             << file << ":" << line << endl << endl;
 
         // throw an error exception
         throw(runtime_error("CUDA Error"));
         }
-	}
-	
+    }
+    
 void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line)
-	{
-	cudaThreadSynchronize();
-	cudaError_t err = cudaGetLastError();
-	handleCUDAError(err, file, line);
-	}
+    {
+    cudaThreadSynchronize();
+    cudaError_t err = cudaGetLastError();
+    handleCUDAError(err, file, line);
+    }
 
 /*! \param gpu_id Index for the GPU to initialize, set to -1 for automatic selection
     \param min_cpu If set to true, the cudaDeviceBlockingSync device flag is set
@@ -188,7 +188,7 @@ void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line)
 
     initializeGPU will loop through the specified list of GPUs, validate that each one is available for CUDA use
     and then setup CUDA to use the given GPU. After initialzeGPU completes, cuda calls can be made by the main
-	application.
+    application.
 */
 void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     {        
@@ -210,42 +210,42 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         flags = cudaDeviceBlockingSync;
         }
         
-	if (gpu_id < -1)
-		{
-		cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is invalid." << endl << endl;
-		throw runtime_error("Error initializing execution configuration");
-		}
-		
-	if (gpu_id >= (int)getNumTotalGPUs())
-		{
-		cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is not present in the system." << endl
-			 << "CUDA reports only " << getNumTotalGPUs() << endl << endl;
-		throw runtime_error("Error initializing execution configuration");
-		}
-		
-	if (!isGPUAvailable(gpu_id))
-		{
-		cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is not available for executing HOOMD."
-			 << endl << "See the notice printed above to determine the reason." << endl << endl;
-		throw runtime_error("Error initializing execution configuration");
-		}
-	
-	#if (CUDA_VERSION >= 2020)
-	cudaSetDeviceFlags(flags);
-	cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
-	#endif
+    if (gpu_id < -1)
+        {
+        cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is invalid." << endl << endl;
+        throw runtime_error("Error initializing execution configuration");
+        }
+        
+    if (gpu_id >= (int)getNumTotalGPUs())
+        {
+        cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is not present in the system." << endl
+             << "CUDA reports only " << getNumTotalGPUs() << endl << endl;
+        throw runtime_error("Error initializing execution configuration");
+        }
+        
+    if (!isGPUAvailable(gpu_id))
+        {
+        cout << endl << "***Error! The specified GPU id (" << gpu_id << ") is not available for executing HOOMD."
+             << endl << "See the notice printed above to determine the reason." << endl << endl;
+        throw runtime_error("Error initializing execution configuration");
+        }
+    
+    #if (CUDA_VERSION >= 2020)
+    cudaSetDeviceFlags(flags);
+    cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
+    #endif
    
-	if (gpu_id != -1)
-		{
-		cudaSetDevice(gpu_id);
-		}
-	else
-		{
-		// initialize the default CUDA context
-		cudaFree(0);
-		}
-	CHECK_CUDA_ERROR();
-	}
+    if (gpu_id != -1)
+        {
+        cudaSetDevice(gpu_id);
+        }
+    else
+        {
+        // initialize the default CUDA context
+        cudaFree(0);
+        }
+    CHECK_CUDA_ERROR();
+    }
 
 /*! Prints out a status line for the selected GPU
 */
@@ -253,36 +253,36 @@ void ExecutionConfiguration::printGPUStats()
     {
     cout << "HOOMD-blue is running on the following GPU:" << endl;
             
-	// build a status line
-	ostringstream s;
-	
-	// start with the device ID and name
-	int dev;
-	cudaGetDevice(&dev);
-	s << " [" << dev << "]";
-	s << setw(22) << dev_prop.name;
-	
-	// then print the SM count and version
-	s << setw(4) << dev_prop.multiProcessorCount << " SM_" << dev_prop.major << "." << dev_prop.minor;
-	
-	// and the clock rate
-	float ghz = float(dev_prop.clockRate)/1e6;
-	s.precision(3);
-	s.fill('0');
-	s << " @ " << setw(4) << ghz << " GHz";
-	s.fill(' ');
-	
-	// and the total amount of memory
-	int mib = int(float(dev_prop.totalGlobalMem) / float(1024*1024));
-	s << ", " << setw(4) << mib << " MiB DRAM";
+    // build a status line
+    ostringstream s;
+    
+    // start with the device ID and name
+    int dev;
+    cudaGetDevice(&dev);
+    s << " [" << dev << "]";
+    s << setw(22) << dev_prop.name;
+    
+    // then print the SM count and version
+    s << setw(4) << dev_prop.multiProcessorCount << " SM_" << dev_prop.major << "." << dev_prop.minor;
+    
+    // and the clock rate
+    float ghz = float(dev_prop.clockRate)/1e6;
+    s.precision(3);
+    s.fill('0');
+    s << " @ " << setw(4) << ghz << " GHz";
+    s.fill(' ');
+    
+    // and the total amount of memory
+    int mib = int(float(dev_prop.totalGlobalMem) / float(1024*1024));
+    s << ", " << setw(4) << mib << " MiB DRAM";
         
-	// follow up with some flags to signify device features
+    // follow up with some flags to signify device features
 #if CUDART_VERSION > 2010
-	if (dev_prop.kernelExecTimeoutEnabled)
-		s << ", DIS";
+    if (dev_prop.kernelExecTimeoutEnabled)
+        s << ", DIS";
 #endif
             
-	cout << s.str() << endl;
+    cout << s.str() << endl;
     }
 
 //! Element in a priority sort of GPUs
@@ -522,9 +522,9 @@ void ExecutionConfiguration::setupStats()
     #ifdef ENABLE_CUDA
     if (exec_mode == GPU)
         {
-		int dev;
-		cudaGetDevice(&dev);
-		cudaGetDeviceProperties(&dev_prop, dev);
+        int dev;
+        cudaGetDevice(&dev);
+        cudaGetDeviceProperties(&dev_prop, dev);
         printGPUStats();
         }
     #endif

@@ -38,3 +38,4 @@ bdnvt = integrate.bdnvt(group=all, T=T, tally=True)
 analyze.log(filename='bdnvt.log', quantities=['potential_energy', 'kinetic_energy', 'temperature', 'bdnvt_reservoir_energy_all'], period=100, overwrite=True)
 
 run(10000)
+

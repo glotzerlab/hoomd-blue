@@ -178,8 +178,8 @@ std::ostream& operator<<(std::ostream &o, Profiler& prof);
 inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
     {
 #ifdef ENABLE_CUDA
-	if (exec_conf->isCUDAEnabled())
-		cudaThreadSynchronize();
+    if (exec_conf->isCUDAEnabled())
+        cudaThreadSynchronize();
 #endif
     push(name);
     }
@@ -187,8 +187,8 @@ inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_
 inline void Profiler::pop(boost::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
     {
 #ifdef ENABLE_CUDA
-	if (exec_conf->isCUDAEnabled())
-		cudaThreadSynchronize();
+    if (exec_conf->isCUDAEnabled())
+        cudaThreadSynchronize();
 #endif
     pop(flop_count, byte_count);
     }

@@ -125,7 +125,7 @@ class Index3D
         //! Calculate an index
         /*! \param i column index (along width)
             \param j row index (along height)
-			\param k plane index (along depth)
+            \param k plane index (along depth)
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
         */
         HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j, unsigned int k)

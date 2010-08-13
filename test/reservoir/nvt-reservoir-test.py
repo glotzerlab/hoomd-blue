@@ -36,3 +36,4 @@ run(10000)
 analyze.log(filename='nvt.log', quantities=['potential_energy', 'kinetic_energy', 'temperature', 'nvt_reservoir_energy_all'], period=100, overwrite=True)
 
 run(10000)
+
