@@ -72,7 +72,7 @@ class Index2D
         //! Contstructor
         /*! \param w Width of the square 2D array
         */
-        HOSTDEVICE inline Index2D(unsigned int w) : m_w(w), m_h(w) {}
+        HOSTDEVICE inline Index2D(unsigned int w=0) : m_w(w), m_h(w) {}
         
         //! Contstructor
         /*! \param w Width of the rectangular 2D array
@@ -113,7 +113,7 @@ class Index3D
         //! Contstructor
         /*! \param w Width of the square 3D array
         */
-        HOSTDEVICE inline Index3D(unsigned int w) : m_w(w), m_h(w), m_d(w) {}
+        HOSTDEVICE inline Index3D(unsigned int w=0) : m_w(w), m_h(w), m_d(w) {}
         
         //! Contstructor
         /*! \param w Width of the rectangular 3D array
@@ -157,7 +157,7 @@ class Index2DUpperTriangular
         //! Contstructor
         /*! \param w Width of the 2D upper triangular array
         */
-        HOSTDEVICE inline Index2DUpperTriangular(unsigned int w) : m_w(w)
+        HOSTDEVICE inline Index2DUpperTriangular(unsigned int w=0) : m_w(w)
             {
             m_term = 2*m_w - 1;
             }
