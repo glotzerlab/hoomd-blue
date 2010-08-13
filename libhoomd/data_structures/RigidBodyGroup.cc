@@ -61,6 +61,10 @@ RigidBodyGroup::RigidBodyGroup(boost::shared_ptr<SystemDefinition> sysdef, boost
       m_pdata(sysdef->getParticleData()),
       m_is_member(m_rdata->getNumBodies())
     {
+    // don't generate the body group unless there are bodies in the simulation
+    if (m_rdata->getNumBodies() == 0)
+        return;
+    
     // start by initializing a count of the number of particles in the group that belong to each body
     vector<unsigned int> particle_count(m_rdata->getNumBodies());
     particle_count.assign(m_rdata->getNumBodies(), 0);
