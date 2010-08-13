@@ -127,12 +127,8 @@ typedef boost::function<shared_ptr<TwoStepBDNVTRigid> (shared_ptr<SystemDefiniti
                             shared_ptr<ParticleGroup> group, Scalar T, unsigned int seed)> bdnvtup_creator;
 
 
-void bd_updater_lj_tests(bdnvtup_creator bdup_creator, const ExecutionConfiguration& exec_conf)
+void bd_updater_lj_tests(bdnvtup_creator bdup_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-#ifdef ENABLE_CUDA
-    g_gpu_error_checking = true;
-#endif
-    
     unsigned int nbodies = 800;
     unsigned int nparticlesperbuildingblock = 5;
     unsigned int nbondsperbuildingblock;
@@ -355,7 +351,7 @@ shared_ptr<TwoStepBDNVTRigid> gpu_bdnvt_creator(shared_ptr<SystemDefinition> sys
 BOOST_AUTO_TEST_CASE( BDRigidGPU_rod_tests )
     {
     bdnvtup_creator bdnvt_creator_gpu = bind(gpu_bdnvt_creator, _1, _2, _3, _4);
-    bd_updater_lj_tests(bdnvt_creator_gpu, ExecutionConfiguration());
+    bd_updater_lj_tests(bdnvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 
