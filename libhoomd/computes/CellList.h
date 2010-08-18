@@ -247,7 +247,7 @@ class CellList : public Compute
         
         // @}
         
-    private:
+    protected:
         // user specified parameters
         Scalar m_nominal_width;      //!< Minimum width of cell in any direction
         unsigned int m_radius;       //!< Radius of adjacency bins to list
@@ -270,7 +270,7 @@ class CellList : public Compute
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
         GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
-        GPUArray<Scalar4> m_tdb;             //!< Cell list with type,body,diameter
+        GPUArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
         
         boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal

@@ -219,7 +219,7 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     ParticleDataArrays arrays = pdata_3->acquireReadWrite();
     arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
     arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
-    arrays.x[2] = Scalar(2.0); arrays.y[2] = arrays.z[2] = 0.0;
+    arrays.x[2] = Scalar(1.25); arrays.y[2] = arrays.z[2] = 0.0;
     pdata_3->release();
     
     // ********* initialize a basic cell list *********
@@ -286,4 +286,339 @@ void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 BOOST_AUTO_TEST_CASE( CellList_adj )
     {
     celllist_adj_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
+//! Validate that the cell list itself is computed properly
+template <class CL>
+void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    // start with a simple simulation a non-cubic box
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8, BoxDim(3, 5, 7), 4, 0, 0, 0, 0, exec_conf));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    ParticleDataArrays arrays = pdata->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.type[0] = 1;
+    arrays.charge[0] = 1.0f;
+    arrays.diameter[0] = 0.5f;
+    arrays.body[0] = 2;
+    
+    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
+    arrays.type[1] = 2;
+    arrays.charge[1] = 2.0f;
+    arrays.diameter[1] = 1.0f;
+    arrays.body[1] = 3;
+    
+    arrays.x[2] = Scalar(-1.0); arrays.y[2] = arrays.z[2] = 0.0;
+    arrays.type[2] = 3;
+    arrays.charge[2] = 3.0f;
+    arrays.diameter[2] = 1.5f;
+    arrays.body[2] = 0;
+
+    arrays.x[3] = Scalar(1.0); arrays.y[3] = Scalar(2.0); arrays.z[3] = 0.0;
+    arrays.type[3] = 0;
+    arrays.charge[3] = 4.0f;
+    arrays.diameter[3] = 2.0f;
+    arrays.body[3] = 1;
+    
+    arrays.x[4] = Scalar(0.25); arrays.y[4] = Scalar(0.25); arrays.z[4] = 0.0;
+    arrays.type[4] = 1;
+    arrays.charge[4] = 5.0f;
+    arrays.diameter[4] = 2.5f;
+    arrays.body[4] = 2;
+    
+    arrays.x[5] = Scalar(1.25); arrays.y[5] = Scalar(2.25); arrays.z[5] = 0.0;
+    arrays.type[5] = 2;
+    arrays.charge[5] = 6.0f;
+    arrays.diameter[5] = 3.0f;
+    arrays.body[5] = 3;
+
+    arrays.x[6] = Scalar(0.25); arrays.y[6] = Scalar(-2.0); arrays.z[6] = 3.0;
+    arrays.type[6] = 3;
+    arrays.charge[6] = 7.0f;
+    arrays.diameter[6] = 3.5f;
+    arrays.body[6] = 0;
+
+    arrays.x[7] = Scalar(-0.25); arrays.y[7] = Scalar(-2.0); arrays.z[7] = -3.0;
+    arrays.type[7] = 0;
+    arrays.charge[7] = 8.0f;
+    arrays.diameter[7] = 4.0f;
+    arrays.body[7] = 1;
+
+    pdata->release();
+    
+    // ********* initialize a cell list *********
+    shared_ptr<CellList> cl(new CL(sysdef));
+    cl->setNominalWidth(Scalar(1.0));
+    cl->setRadius(1);
+    cl->setFlagIndex();
+    cl->compute(0);
+    
+    // verify the indexers
+    Index3D ci = cl->getCellIndexer();
+    BOOST_REQUIRE_EQUAL_UINT(ci.getNumElements(), 3*5*7);
+    BOOST_REQUIRE_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 3*5*7);
+    
+    Index2D cli = cl->getCellListIndexer();
+    BOOST_REQUIRE_EQUAL_UINT(cli.getNumElements(), 3*5*7*cl->getNmax());
+    BOOST_REQUIRE_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 3*5*7*cl->getNmax());
+    BOOST_REQUIRE_EQUAL_UINT(cl->getTDBArray().getNumElements(), 0);
+    
+    // verify the cell contents
+        {
+        Scalar4 val;
+        
+        ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
+        
+        // verify cell 2,2,3
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
+        val = h_xyzf.data[cli(0, ci(2,2,3))];
+        MY_BOOST_CHECK_CLOSE(val.x, 1.0f, tol);
+        MY_BOOST_CHECK_SMALL(val.y, tol_small);
+        MY_BOOST_CHECK_SMALL(val.z, tol_small);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 1);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
+        val = h_xyzf.data[cli(0, ci(0,2,3))];
+        MY_BOOST_CHECK_CLOSE(val.x, -1.0f, tol);
+        MY_BOOST_CHECK_SMALL(val.y, tol_small);
+        MY_BOOST_CHECK_SMALL(val.z, tol_small);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 2);
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
+        val = h_xyzf.data[cli(0, ci(1,0,6))];
+        MY_BOOST_CHECK_CLOSE(val.x, 0.25f, tol);
+        MY_BOOST_CHECK_CLOSE(val.y, -2.0f, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.z, 3.0f, tol_small);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 6);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
+        val = h_xyzf.data[cli(0, ci(1,0,0))];
+        MY_BOOST_CHECK_CLOSE(val.x, -0.25f, tol);
+        MY_BOOST_CHECK_CLOSE(val.y, -2.0f, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.z, -3.0f, tol_small);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 7);
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
+        for (unsigned int i = 0; i < 2; i++)
+            {
+            val = h_xyzf.data[cli(i, ci(1,2,3))];
+            
+            // particles can be in any order in the cell list
+            bool ok = false;
+            if (__scalar_as_int(val.w) == 0)
+                {
+                ok = (fabs(val.x - 0.0f) < tol &&
+                      fabs(val.y - 0.0f) < tol &&
+                      fabs(val.z - 0.0f) < tol);
+                }
+            else if (__scalar_as_int(val.w) == 4)
+                {
+                ok = (fabs(val.x - 0.25f) < tol &&
+                      fabs(val.y - 0.25f) < tol &&
+                      fabs(val.z - 0.0f) < tol);
+                }
+            BOOST_CHECK(ok);
+            }
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
+        for (unsigned int i = 0; i < 2; i++)
+            {
+            val = h_xyzf.data[cli(i, ci(2,4,3))];
+            
+            // particles can be in any order in the cell list
+            bool ok = false;
+            if (__scalar_as_int(val.w) == 3)
+                {
+                ok = (fabs(val.x - 1.0f) < tol &&
+                      fabs(val.y - 2.0f) < tol &&
+                      fabs(val.z - 0.0f) < tol);
+                }
+            else if (__scalar_as_int(val.w) == 5)
+                {
+                ok = (fabs(val.x - 1.25f) < tol &&
+                      fabs(val.y - 2.25f) < tol &&
+                      fabs(val.z - 0.0f) < tol);
+                }
+            BOOST_CHECK(ok);
+            }
+        }
+
+    // enable charge and TDB options and test that they work properly
+    cl->setFlagCharge();
+    cl->setComputeTDB(true);
+    cl->compute(0);
+
+    BOOST_REQUIRE_EQUAL_UINT(cl->getTDBArray().getNumElements(), 3*5*7*cl->getNmax());
+
+        {
+        ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_tdb(cl->getTDBArray(), access_location::host, access_mode::read);
+        
+        Scalar4 val;
+        
+        // verify cell 2,2,3
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,2,3)], 1);
+        val = h_xyzf.data[cli(0, ci(2,2,3))];
+        MY_BOOST_CHECK_CLOSE(val.x, 1.0f, tol);
+        MY_BOOST_CHECK_SMALL(val.y, tol_small);
+        MY_BOOST_CHECK_SMALL(val.z, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.w, 2.0f, tol);
+        val = h_tdb.data[cli(0, ci(2,2,3))];
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 2);
+        MY_BOOST_CHECK_CLOSE(val.y, 1.0f, tol);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 3);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
+        val = h_xyzf.data[cli(0, ci(0,2,3))];
+        MY_BOOST_CHECK_CLOSE(val.x, -1.0f, tol);
+        MY_BOOST_CHECK_SMALL(val.y, tol_small);
+        MY_BOOST_CHECK_SMALL(val.z, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.w, 3.0f, tol);
+        val = h_tdb.data[cli(0, ci(0,2,3))];
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 3);
+        MY_BOOST_CHECK_CLOSE(val.y, 1.5f, tol);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 0);
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
+        val = h_xyzf.data[cli(0, ci(1,0,6))];
+        MY_BOOST_CHECK_CLOSE(val.x, 0.25f, tol);
+        MY_BOOST_CHECK_CLOSE(val.y, -2.0f, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.z, 3.0f, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.w, 7.0f, tol);
+        val = h_tdb.data[cli(0, ci(1,0,6))];
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 3);
+        MY_BOOST_CHECK_CLOSE(val.y, 3.5f, tol);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 0);
+
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
+        val = h_xyzf.data[cli(0, ci(1,0,0))];
+        MY_BOOST_CHECK_CLOSE(val.x, -0.25f, tol);
+        MY_BOOST_CHECK_CLOSE(val.y, -2.0f, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.z, -3.0f, tol_small);
+        MY_BOOST_CHECK_CLOSE(val.w, 8.0f, tol);
+        val = h_tdb.data[cli(0, ci(1,0,0))];
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 0);
+        MY_BOOST_CHECK_CLOSE(val.y, 4.0f, tol);
+        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 1);
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
+        for (unsigned int i = 0; i < 2; i++)
+            {
+            val = h_xyzf.data[cli(i, ci(1,2,3))];
+            Scalar4 val_tdb = h_tdb.data[cli(i, ci(1,2,3))];
+            
+            // particles can be in any order in the cell list
+            bool ok = false;
+            if (fabs(val.w - 1.0f) < tol)
+                {
+                ok = (fabs(val.x - 0.0f) < tol &&
+                      fabs(val.y - 0.0f) < tol &&
+                      fabs(val.z - 0.0f) < tol &&
+                      __scalar_as_int(val_tdb.x) == 1 &&
+                      fabs(val_tdb.y - 0.5f) < tol &&
+                      __scalar_as_int(val_tdb.z) == 2);
+                }
+            else if (fabs(val.w - 5.0f) < tol)
+                {
+                ok = (fabs(val.x - 0.25f) < tol &&
+                      fabs(val.y - 0.25f) < tol &&
+                      fabs(val.z - 0.0f) < tol &&
+                      __scalar_as_int(val_tdb.x) == 1 &&
+                      fabs(val_tdb.y - 2.5f) < tol &&
+                      __scalar_as_int(val_tdb.z) == 2);
+
+                }
+            BOOST_CHECK(ok);
+            }
+        
+        BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(2,4,3)], 2);
+        for (unsigned int i = 0; i < 2; i++)
+            {
+            val = h_xyzf.data[cli(i, ci(2,4,3))];
+            Scalar4 val_tdb = h_tdb.data[cli(i, ci(2,4,3))];
+            
+            // particles can be in any order in the cell list
+            bool ok = false;
+            if (fabs(val.w - 4.0f) < tol)
+                {
+                ok = (fabs(val.x - 1.0f) < tol &&
+                      fabs(val.y - 2.0f) < tol &&
+                      fabs(val.z - 0.0f) < tol &&
+                      __scalar_as_int(val_tdb.x) == 0 &&
+                      fabs(val_tdb.y - 2.0f) < tol &&
+                      __scalar_as_int(val_tdb.z) == 1);
+                }
+            else if (fabs(val.w - 6.0f) < tol)
+                {
+                ok = (fabs(val.x - 1.25f) < tol &&
+                      fabs(val.y - 2.25f) < tol &&
+                      fabs(val.z - 0.0f) < tol &&
+                      __scalar_as_int(val_tdb.x) == 2 &&
+                      fabs(val_tdb.y - 3.0f) < tol &&
+                      __scalar_as_int(val_tdb.z) == 3);
+                }
+            BOOST_CHECK(ok);
+            }
+        }
+    }
+
+//! boost test case for celllist_small_test
+BOOST_AUTO_TEST_CASE( CellList_small )
+    {
+    celllist_small_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+    
+//! Validate that the cell list itself can be computed for a large system of particles
+template <class CL>
+void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    unsigned int N = 10000;
+    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(rand_init, exec_conf));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+
+    // ********* initialize a cell list *********
+    shared_ptr<CellList> cl(new CL(sysdef));
+    cl->setNominalWidth(Scalar(1.0));
+    cl->setRadius(1);
+    cl->setFlagIndex();
+    cl->compute(0);
+    
+    // verify that the sum of the cell sizes adds up to N
+    ArrayHandle<unsigned int> h_cell_size(cl->getCellSizeArray(), access_location::host, access_mode::read);
+    unsigned int total = 0;
+    unsigned int ncell = cl->getCellIndexer().getNumElements();
+    for (unsigned int cell = 0; cell < ncell; cell++)
+        total += h_cell_size.data[cell];
+    
+    BOOST_CHECK_EQUAL_UINT(total, N);
+    
+    // verify that every particle appears once in the cell list
+    vector<bool> present(N);
+    for (unsigned int p = 0; p < N; p++)
+        present[p] = false;
+    
+    Index2D cli = cl->getCellListIndexer();
+    ArrayHandle<Scalar4> h_xyzf(cl->getXYZFArray(), access_location::host, access_mode::read);
+
+    for (unsigned int cell = 0; cell < ncell; cell++)
+        {
+        for (unsigned int offset = 0; offset < h_cell_size.data[cell]; offset++)
+            {
+            unsigned int p = __scalar_as_int(h_xyzf.data[cli(offset, cell)].w);
+            present[p] = true;
+            }
+        }
+    
+    for (unsigned int p = 0; p < N; p++)
+        BOOST_CHECK(present[p]);
+    }
+
+//! boost test case for celllist_large_test
+BOOST_AUTO_TEST_CASE( CellList_large )
+    {
+    celllist_large_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }

@@ -287,5 +287,88 @@ void CellList::initializeCellAdj()
 
 void CellList::computeCellList()
     {
+    if (m_prof)
+        m_prof->push("compute");
     
+    // precompute scale factor
+    Scalar3 scale = make_scalar3(Scalar(1.0) / m_width.x,
+                                 Scalar(1.0) / m_width.y,
+                                 Scalar(1.0) / m_width.z);
+    
+    // acquire the particle data
+    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
+    const BoxDim& box = m_pdata->getBox();
+    
+    // access the cell list data arrays
+    ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_xyzf(m_xyzf, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_tdb(m_tdb, access_location::host, access_mode::overwrite);
+    
+    // shorthand copies of the indexers
+    Index3D ci = m_cell_indexer;
+    Index2D cli = m_cell_list_indexer;
+    
+    // clear the bin sizes to 0
+    memset(h_cell_size.data, 0, sizeof(unsigned int) * m_cell_indexer.getNumElements());
+    
+    // for each particle
+    for (unsigned int n = 0; n < arrays.nparticles; n++)
+        {
+        if (isnan(arrays.x[n]) || isnan(arrays.y[n]) || isnan(arrays.z[n]))
+            {
+            cerr << endl << "***Error! Particle " << n << " has NaN for its position." << endl << endl;
+            throw runtime_error("Error computing cell list");
+            }
+            
+        // find the bin each particle belongs in
+        unsigned int ib = (unsigned int)((arrays.x[n]-box.xlo)*scale.x);
+        unsigned int jb = (unsigned int)((arrays.y[n]-box.ylo)*scale.y);
+        unsigned int kb = (unsigned int)((arrays.z[n]-box.zlo)*scale.z);
+        
+        // need to handle the case where the particle is exactly at the box hi
+        if (ib == m_dim.x)
+            ib = 0;
+        if (jb == m_dim.y)
+            jb = 0;
+        if (kb == m_dim.z)
+            kb = 0;
+            
+        // sanity check
+        assert(ib < (unsigned int)(m_dim.x) && jb < (unsigned int)(m_dim.y) && kb < (unsigned int)(m_dim.z));
+        
+        // record its bin
+        unsigned int bin = ci(ib, jb, kb);
+        // check if the particle is inside the dimensions
+        if (bin >= ci.getNumElements())
+            {
+            cerr << endl << "***Error! Elvis has left the building (particle " << n << " is no longer in the simulation box)." << endl << endl;
+            throw runtime_error("Error computing cell list");
+            }
+
+        // setup the flag value to store
+        Scalar flag;
+        if (m_flag_charge)
+            flag = arrays.charge[n];
+        else
+            flag = __int_as_scalar(n);
+
+        // store the bin entries
+        unsigned int offset = h_cell_size.data[bin];
+        h_xyzf.data[cli(offset, bin)] = make_scalar4(arrays.x[n], arrays.y[n], arrays.z[n], flag);
+        if (m_compute_tdb)
+            {
+            h_tdb.data[cli(offset, bin)] = make_scalar4(__int_as_scalar(arrays.type[n]),
+                                                        arrays.diameter[n],
+                                                        __int_as_scalar(arrays.body[n]),
+                                                        Scalar(0.0));
+            }
+        
+        // increment the cell occupancy counter
+        h_cell_size.data[bin]++;
+        }
+        
+    m_pdata->release();
+    
+    if (m_prof)
+        m_prof->pop();
     }
