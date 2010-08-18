@@ -161,39 +161,51 @@ class CellList : public Compute
             m_flag_charge = false;
             m_params_changed = true;
             }
+        
+        //! Notification of a particle resort
+        void signalParticlesSorted();
+        
+        //! Notification of a box size change
+        void signalBoxChanged();
 
         // @}
         //! \name Get properties
         // @{
 
         //! Get the actual width of the cells
-        const Scalar3& getWidth()
+        const Scalar3& getWidth() const
             {
             return m_width;
             }
         
         //! Get the dimensions of the cell list
-        const uint3& getDim()
+        const uint3& getDim() const
             {
             return m_dim;
             }
         
         //! Get an indexer to identify cell indices
-        const Index3D& getCellIndexer()
+        const Index3D& getCellIndexer() const
             {
             return m_cell_indexer;
             }
         
         //! Get an indexer to index into the cell lists
-        const Index2D& getCellListIndexer()
+        const Index2D& getCellListIndexer() const
             {
             return m_cell_list_indexer;
             }
         
         //! Get an indexer to index into the adjacency list
-        const Index2D& getCellAdjIndexer()
+        const Index2D& getCellAdjIndexer() const
             {
             return m_cell_adj_indexer;
+            }
+        
+        //! Get number of memory slots allocated for each cell
+        const unsigned int getNmax() const
+            {
+            return m_Nmax;
             }
         
         // @}
@@ -201,25 +213,25 @@ class CellList : public Compute
         // @{
         
         //! Get the array of cell sizes
-        const GPUArray<unsigned int>& getCellSizeArray()
+        const GPUArray<unsigned int>& getCellSizeArray() const
             {
             return m_cell_size;
             }
         
         //! Get the adjacency list
-        const GPUArray<unsigned int>& getCellAdjArray()
+        const GPUArray<unsigned int>& getCellAdjArray() const
             {
             return m_cell_adj;
             }
         
         //! Get the cell list containing x,y,z,flag
-        const GPUArray<Scalar4>& getXYZFArray()
+        const GPUArray<Scalar4>& getXYZFArray() const
             {
             return m_xyzf;
             }
         
         //! Get the cell list containting t,d,b
-        const GPUArray<Scalar4>& getTDBArray()
+        const GPUArray<Scalar4>& getTDBArray() const
             {
             return m_tdb;
             }
@@ -244,12 +256,15 @@ class CellList : public Compute
         Index3D m_cell_indexer;      //!< Indexes cells from i,j,k
         Index2D m_cell_list_indexer; //!< Indexes elements in the cell list
         Index2D m_cell_adj_indexer;  //!< Indexes elements in the cell adjacency list
+        unsigned int m_Nmax;         //!< Numer of spaces reserved for particles in each cell
         
         // values computed by compute()
         GPUArray<unsigned int> m_cell_size;  //!< Number of members in each cell
         GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,body,diameter
+        
+        boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         
         //! Computes what the dimensions should me
         uint3 computeDimensions();

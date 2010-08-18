@@ -89,6 +89,7 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // initialize a cell list
     shared_ptr<CellList> cl(new CL(sysdef_3));
     cl->setNominalWidth(Scalar(1.0));
+    cl->setRadius(1);
     cl->compute(0);
     
     // verify the dimensions
@@ -101,6 +102,66 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     BOOST_CHECK_EQUAL_UINT(dim.x, 10);
     BOOST_CHECK_EQUAL_UINT(dim.y, 10);
     BOOST_CHECK_EQUAL_UINT(dim.z, 10);
+    
+    // verify the indexers
+    Index3D ci = cl->getCellIndexer();
+    BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 10*10*10);
+    
+    Index2D cli = cl->getCellListIndexer();
+    BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 10*10*10*cl->getNmax());
+    
+    Index2D adji = cl->getCellAdjIndexer();
+    BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 10*10*10*27);
+    
+    // change the box size and verify the results
+    pdata_3->setBox(BoxDim(5.5f));
+    cl->compute(0);
+    
+    // verify the dimensions
+    width = cl->getWidth();
+    MY_BOOST_CHECK_CLOSE(width.x, 1.1f, tol);
+    MY_BOOST_CHECK_CLOSE(width.y, 1.1f, tol);
+    MY_BOOST_CHECK_CLOSE(width.z, 1.1f, tol);
+    
+    dim = cl->getDim();
+    BOOST_CHECK_EQUAL_UINT(dim.x, 5);
+    BOOST_CHECK_EQUAL_UINT(dim.y, 5);
+    BOOST_CHECK_EQUAL_UINT(dim.z, 5);
+    
+    // verify the indexers
+    ci = cl->getCellIndexer();
+    BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 5*5*5);
+    
+    cli = cl->getCellListIndexer();
+    BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 5*5*5*cl->getNmax());
+    
+    adji = cl->getCellAdjIndexer();
+    BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 5*5*5*27);
+    
+    // change the nominal width and verify the reusults
+    cl->setNominalWidth(Scalar(0.5));
+    cl->compute(0);
+    
+    // verify the dimensions
+    width = cl->getWidth();
+    MY_BOOST_CHECK_CLOSE(width.x, 0.5f, tol);
+    MY_BOOST_CHECK_CLOSE(width.y, 0.5f, tol);
+    MY_BOOST_CHECK_CLOSE(width.z, 0.5f, tol);
+    
+    dim = cl->getDim();
+    BOOST_CHECK_EQUAL_UINT(dim.x, 11);
+    BOOST_CHECK_EQUAL_UINT(dim.y, 11);
+    BOOST_CHECK_EQUAL_UINT(dim.z, 11);
+    
+    // verify the indexers
+    ci = cl->getCellIndexer();
+    BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 11*11*11);
+    
+    cli = cl->getCellListIndexer();
+    BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 11*11*11*cl->getNmax());
+    
+    adji = cl->getCellAdjIndexer();
+    BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 11*11*11*27);
     }
 
 //! boost test case for cell list test on the CPU

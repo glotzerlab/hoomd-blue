@@ -56,7 +56,17 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     // allocation is deferred until the first compute() call - initialize values to dummy variables
     m_width = make_scalar3(0.0, 0.0, 0.0);
     m_dim = make_uint3(0,0,0);
+    m_Nmax = 32;
     m_params_changed = true;
+    
+    m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::signalParticlesSorted, this));
+    m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::signalBoxChanged, this));
+    }
+
+CellList::~CellList()
+    {
+    m_sort_connection.disconnect();
+    m_boxchange_connection.disconnect();
     }
 
 /*! \returns Cell dimensions that match with the current width, box dimension, and max_cells setting
@@ -103,16 +113,28 @@ uint3 CellList::computeDimensions()
 void CellList::compute(unsigned int timestep)
     {
     if (m_params_changed)
+        {
         initialize();
+        m_params_changed = false;
+        }
     }
     
 void CellList::initialize()
     {
     // initialize dimensions and width
+    uint3 old_dim = m_dim;
     m_dim = computeDimensions();
 
     const BoxDim& box = m_pdata->getBox();
     m_width.x = (box.xhi - box.xlo) / Scalar(m_dim.x);
     m_width.y = (box.yhi - box.ylo) / Scalar(m_dim.y);
     m_width.z = (box.zhi - box.zlo) / Scalar(m_dim.z);
+    
+    // estimate Nmax
+    // TODO
+    
+    // initialize indexers
+    m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
+    m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
+    m_cell_adj_indexer = Index2D((m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1), m_cell_indexer.getNumElements());
     }
