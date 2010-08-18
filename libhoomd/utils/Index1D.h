@@ -97,6 +97,18 @@ class Index2D
             {
             return m_w*m_h;
             }
+        
+        //! Get the width of the 2D array
+        HOSTDEVICE inline unsigned int getW() const
+            {
+            return m_w;
+            }
+        
+        //! Get the height of the 2D array
+        HOSTDEVICE inline unsigned int getH() const
+            {
+            return m_h;
+            }
             
     private:
         unsigned int m_w;   //!< Width of the 2D array
@@ -141,6 +153,23 @@ class Index3D
             return m_w * m_h * m_d;
             }
             
+        //! Get the width of the 3D array
+        HOSTDEVICE inline unsigned int getW() const
+            {
+            return m_w;
+            }
+        
+        //! Get the height of the 3D array
+        HOSTDEVICE inline unsigned int getH() const
+            {
+            return m_h;
+            }
+        
+        //! Get the depth of the 3D array
+        HOSTDEVICE inline unsigned int getD() const
+            {
+            return m_d;
+            }
     private:
         unsigned int m_w;   //!< Width of the 3D array
         unsigned int m_h;   //!< Height of the 3D array
