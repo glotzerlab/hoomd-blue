@@ -82,17 +82,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        list.
     
     A given cell cuboid with x,y,z indices of i,j,k has a unique cell index. This index can be obtained from the Index3D
-    object returned by ____
+    object returned by getCellIndexer()
     \code
-    Index3D cell_indexer = ___
-    cidx = cell_indexer(i,j,k)
+    Index3D cell_indexer = cl->getCellIndexer();
+    cidx = cell_indexer(i,j,k);
     \endcode
     
     The other arrays are 2D (or 4D if you include i,j,k) in nature. They can be indexed with the appropriate Index2D
-    from ____ or ____. 
+    from getCellListIndexer() or getCellAdjIndexer(). 
     \code
-    Index2D cell_list_indexer = ____
-    Index2D cell_adj_indexer = ____
+    Index2D cell_list_indexer = cl->getCellListIndexer();
+    Index2D cell_adj_indexer = cl->getCellAdjIndexer();
     \endcode
     
      - <code>cell_size[cidx]</code> is the number of particles in the cell with index \c cidx
@@ -100,7 +100,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        \c offset in cell \c cidx (\c offset can vary from 0 to <code>cell_size[cidx]-1</code>)
      - \c tbd is structured identically to \c xyzf
      - <code>cell_adj[cell_adj_indexer(offset,cidx)]</code> is the cell index for neighboring cell \c offset to \c cidx.
-       \c offset can vary from 9 to (radius*2+1)^3-1 (typically 26 with radius 1)
+       \c offset can vary from 0 to (radius*2+1)^3-1 (typically 26 with radius 1)
      
     <b>Parameters:</b>
      - \c width - minimum width of a cell in any x,y,z direction
