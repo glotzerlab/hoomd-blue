@@ -45,10 +45,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <limits.h>
 #include <boost/bind.hpp>
+#include <algorithm>
 
 #include "CellList.h"
 
 using namespace boost;
+using namespace std;
 
 /*! \param sysdef system to compute the cell list of
 */
@@ -195,7 +197,9 @@ void CellList::initializeMemory()
         m_prof->push("init");
     
     // estimate Nmax
-    // TODO
+    unsigned int estimated_Nmax = (unsigned int)(ceilf(float(m_pdata->getN()*1.1f / float(m_dim.x*m_dim.y*m_dim.z))));
+    // round up to the nearest multiple of 32
+    m_Nmax = estimated_Nmax + 32 - (estimated_Nmax & 31);
     
     // initialize indexers
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
@@ -203,8 +207,80 @@ void CellList::initializeMemory()
     m_cell_adj_indexer = Index2D((m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1), m_cell_indexer.getNumElements());
     
     // allocate memory
-    // TODO
+    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), exec_conf);
+    m_cell_size.swap(cell_size);
 
+    GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), exec_conf);
+    m_cell_adj.swap(cell_adj);
+    
+    GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), exec_conf);
+    m_xyzf.swap(xyzf);
+    
+    if (m_compute_tdb)
+        {
+        GPUArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), exec_conf);
+        m_tdb.swap(tdb);
+        }
+    else
+        {
+        // array is no longer needed, discard it
+        GPUArray<Scalar4> tdb;
+        m_tdb.swap(tdb);
+        }
+
+    if (m_prof)
+        m_prof->pop();
+    
+    initializeCellAdj();
+    }
+
+void CellList::initializeCellAdj()
+    {
+    if (m_prof)
+        m_prof->push("init");
+    
+    ArrayHandle<unsigned int> h_cell_adj(m_cell_adj, access_location::host, access_mode::overwrite);
+    
+    // loop over all cells
+    for (int k = 0; k < int(m_dim.z); k++)
+        for (int j = 0; j < int(m_dim.y); j++)
+            for (int i = 0; i < int(m_dim.x); i++)
+                {
+                unsigned int cur_cell = m_cell_indexer(i,j,k);
+                unsigned int offset = 0;
+                
+                // loop over neighboring cells
+                // need signed integer values for performing index calculations with negative values
+                int r = int(m_radius);
+                int mx = int(m_dim.x);
+                int my = int(m_dim.y);
+                int mz = int(m_dim.z);
+                for (int nk = k-r; nk <= k+r; nk++)
+                    for (int nj = j-r; nj <= j+r; nj++)
+                        for (int ni = i-r; ni <= i+r; ni++)
+                            {
+                            int wrapi = ni % mx;
+                            if (wrapi < 0)
+                                wrapi += mx;
+                            
+                            int wrapj = nj % my;
+                            if (wrapj < 0)
+                                wrapj += my;
+                            
+                            int wrapk = nk % mz;
+                            if (wrapk < 0)
+                                wrapk += mz;
+                            
+                            unsigned int neigh_cell = m_cell_indexer(wrapi, wrapj, wrapk);
+                            h_cell_adj.data[m_cell_adj_indexer(offset, cur_cell)] = neigh_cell;
+                            offset++;
+                            }
+                
+                // sort the adj list for each cell
+                sort(&h_cell_adj.data[m_cell_adj_indexer(0, cur_cell)],
+                     &h_cell_adj.data[m_cell_adj_indexer(offset, cur_cell)]);
+                }
+    
     if (m_prof)
         m_prof->pop();
     }

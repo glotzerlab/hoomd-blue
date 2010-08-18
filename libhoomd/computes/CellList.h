@@ -287,6 +287,9 @@ class CellList : public Compute
         //! Initialize indexers and allocate memory
         void initializeMemory();
         
+        //! Initializes values in the cell_adj array
+        void initializeCellAdj();
+        
         //! Compute the cell list
         virtual void computeCellList();
     };

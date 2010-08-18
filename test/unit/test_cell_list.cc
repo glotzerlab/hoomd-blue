@@ -86,7 +86,7 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     arrays.x[2] = Scalar(2.0); arrays.y[2] = arrays.z[2] = 0.0;
     pdata_3->release();
     
-    // initialize a cell list
+    // ********* initialize a cell list *********
     shared_ptr<CellList> cl(new CL(sysdef_3));
     cl->setNominalWidth(Scalar(1.0));
     cl->setRadius(1);
@@ -106,14 +106,17 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // verify the indexers
     Index3D ci = cl->getCellIndexer();
     BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 10*10*10);
+    BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 10*10*10);
     
     Index2D cli = cl->getCellListIndexer();
     BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 10*10*10*cl->getNmax());
+    BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 10*10*10*cl->getNmax());
     
     Index2D adji = cl->getCellAdjIndexer();
     BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 10*10*10*27);
+    BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 10*10*10*27);
     
-    // change the box size and verify the results
+    // ********* change the box size and verify the results *********
     pdata_3->setBox(BoxDim(5.5f));
     cl->compute(0);
     
@@ -131,14 +134,17 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // verify the indexers
     ci = cl->getCellIndexer();
     BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 5*5*5);
+    BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 5*5*5);
     
     cli = cl->getCellListIndexer();
     BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 5*5*5*cl->getNmax());
+    BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 5*5*5*cl->getNmax());
     
     adji = cl->getCellAdjIndexer();
     BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 5*5*5*27);
-    
-    // change the nominal width and verify the reusults
+    BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*5*5*27);
+
+    // ********* change the nominal width and verify the reusults *********
     cl->setNominalWidth(Scalar(0.5));
     cl->compute(0);
     
@@ -156,16 +162,128 @@ void celllist_dimension_test(boost::shared_ptr<ExecutionConfiguration> exec_conf
     // verify the indexers
     ci = cl->getCellIndexer();
     BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 11*11*11);
+    BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 11*11*11);
     
     cli = cl->getCellListIndexer();
     BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 11*11*11*cl->getNmax());
+    BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 11*11*11*cl->getNmax());
     
     adji = cl->getCellAdjIndexer();
     BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 11*11*11*27);
+    BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 11*11*11*27);
+    
+    // ********* change the box size to a non cube and verify the results *********
+    cl->setNominalWidth(Scalar(1.0));
+    pdata_3->setBox(BoxDim(5.5f, 3.0f, 10.5f));
+    cl->compute(0);
+    
+    // verify the dimensions
+    width = cl->getWidth();
+    MY_BOOST_CHECK_CLOSE(width.x, 1.1f, tol);
+    MY_BOOST_CHECK_CLOSE(width.y, 1.0f, tol);
+    MY_BOOST_CHECK_CLOSE(width.z, 1.05f, tol);
+    
+    dim = cl->getDim();
+    BOOST_CHECK_EQUAL_UINT(dim.x, 5);
+    BOOST_CHECK_EQUAL_UINT(dim.y, 3);
+    BOOST_CHECK_EQUAL_UINT(dim.z, 10);
+    
+    // verify the indexers
+    ci = cl->getCellIndexer();
+    BOOST_CHECK_EQUAL_UINT(ci.getNumElements(), 5*3*10);
+    BOOST_CHECK_EQUAL_UINT(cl->getCellSizeArray().getNumElements(), 5*3*10);
+    
+    cli = cl->getCellListIndexer();
+    BOOST_CHECK_EQUAL_UINT(cli.getNumElements(), 5*3*10*cl->getNmax());
+    BOOST_CHECK_EQUAL_UINT(cl->getXYZFArray().getNumElements(), 5*3*10*cl->getNmax());
+    
+    adji = cl->getCellAdjIndexer();
+    BOOST_CHECK_EQUAL_UINT(adji.getNumElements(), 5*3*10*27);
+    BOOST_CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*3*10*27);
     }
 
-//! boost test case for cell list test on the CPU
+//! boost test case for cell list dimension test on the CPU
 BOOST_AUTO_TEST_CASE( CellList_dimension )
     {
     celllist_dimension_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+
+//! Test the ability of CellList to initialize the adj array
+template <class CL>
+void celllist_adj_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    // start with a simple simulation box size 3
+    shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(3.0), 1, 0, 0, 0, 0, exec_conf));
+    shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    
+    ParticleDataArrays arrays = pdata_3->acquireReadWrite();
+    arrays.x[0] = arrays.y[0] = arrays.z[0] = 0.0;
+    arrays.x[1] = Scalar(1.0); arrays.y[1] = arrays.z[1] = 0.0;
+    arrays.x[2] = Scalar(2.0); arrays.y[2] = arrays.z[2] = 0.0;
+    pdata_3->release();
+    
+    // ********* initialize a basic cell list *********
+    shared_ptr<CellList> cl(new CL(sysdef_3));
+    cl->setNominalWidth(Scalar(1.0));
+    cl->setRadius(1);
+    cl->compute(0);
+    
+    // verify the indexer
+    Index3D ci = cl->getCellIndexer();
+    BOOST_REQUIRE_EQUAL_UINT(ci.getNumElements(), 3*3*3);
+    
+    Index2D adji = cl->getCellAdjIndexer();
+    BOOST_REQUIRE_EQUAL_UINT(adji.getNumElements(), 3*3*3*27);
+    BOOST_REQUIRE_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 3*3*3*27);
+    
+    // verify all the cell adj values
+    // note that in a 3x3x3 box, ALL cells should have adj from 0-26
+        {
+        ArrayHandle<unsigned int> h_cell_adj(cl->getCellAdjArray(), access_location::host, access_mode::read);
+    
+        for (unsigned int cidx = 0; cidx < ci.getNumElements(); cidx++)
+            {
+            for (unsigned int offset = 0; offset < 27; offset++)
+                {
+                unsigned int adjidx = h_cell_adj.data[adji(offset, cidx)];
+                BOOST_REQUIRE_EQUAL(adjidx, offset);
+                }
+            }
+        }
+    
+    // ********** Test adj array with a radius ***********
+    // use a 5x5x5 box with radius 2
+    cl->setRadius(2);
+    pdata_3->setBox(BoxDim(5.0f));
+    
+    cl->compute(0);
+    
+    // verify the indexer
+    ci = cl->getCellIndexer();
+    BOOST_REQUIRE_EQUAL_UINT(ci.getNumElements(), 5*5*5);
+    
+    adji = cl->getCellAdjIndexer();
+    BOOST_REQUIRE_EQUAL_UINT(adji.getNumElements(), 5*5*5*125);
+    BOOST_REQUIRE_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*5*5*125);
+    
+    // verify all the cell adj values
+    // note that in a 5x5x5 box, ALL cells should have adj from 0-124
+        {
+        ArrayHandle<unsigned int> h_cell_adj(cl->getCellAdjArray(), access_location::host, access_mode::read);
+    
+        for (unsigned int cidx = 0; cidx < ci.getNumElements(); cidx++)
+            {
+            for (unsigned int offset = 0; offset < 125; offset++)
+                {
+                unsigned int adjidx = h_cell_adj.data[adji(offset, cidx)];
+                BOOST_REQUIRE_EQUAL(adjidx, offset);
+                }
+            }
+        }
+    }
+
+//! boost test case for cell list adj test on the CPU
+BOOST_AUTO_TEST_CASE( CellList_adj )
+    {
+    celllist_adj_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
