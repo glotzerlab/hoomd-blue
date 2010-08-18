@@ -582,7 +582,7 @@ void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     // ********* initialize a cell list *********
     shared_ptr<CellList> cl(new CL(sysdef));
-    cl->setNominalWidth(Scalar(1.0));
+    cl->setNominalWidth(Scalar(3.0));
     cl->setRadius(1);
     cl->setFlagIndex();
     cl->compute(0);

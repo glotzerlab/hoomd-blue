@@ -65,6 +65,7 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_params_changed = true;
     m_particles_sorted = false;
     m_box_changed = false;
+    m_overflowed = false;
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
@@ -160,7 +161,15 @@ void CellList::compute(unsigned int timestep)
     // only update if we need to
     if (shouldCompute(timestep) || force)
         {
+        m_overflowed = false;
         computeCellList();
+        
+        if (m_overflowed)
+            {
+            cerr << endl << "***Error! CellList overflowed - more than " << m_Nmax << " particles in one cell"
+                 << endl << endl;
+            throw runtime_error("Error computing cell list");
+            }
         }
     
     if (m_prof)
@@ -354,13 +363,21 @@ void CellList::computeCellList()
 
         // store the bin entries
         unsigned int offset = h_cell_size.data[bin];
-        h_xyzf.data[cli(offset, bin)] = make_scalar4(arrays.x[n], arrays.y[n], arrays.z[n], flag);
-        if (m_compute_tdb)
+        
+        if (offset < m_Nmax)
             {
-            h_tdb.data[cli(offset, bin)] = make_scalar4(__int_as_scalar(arrays.type[n]),
-                                                        arrays.diameter[n],
-                                                        __int_as_scalar(arrays.body[n]),
-                                                        Scalar(0.0));
+            h_xyzf.data[cli(offset, bin)] = make_scalar4(arrays.x[n], arrays.y[n], arrays.z[n], flag);
+            if (m_compute_tdb)
+                {
+                h_tdb.data[cli(offset, bin)] = make_scalar4(__int_as_scalar(arrays.type[n]),
+                                                            arrays.diameter[n],
+                                                            __int_as_scalar(arrays.body[n]),
+                                                            Scalar(0.0));
+                }
+            }
+        else
+            {
+            m_overflowed = true;
             }
         
         // increment the cell occupancy counter
