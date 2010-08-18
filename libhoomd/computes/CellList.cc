@@ -44,8 +44,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include <limits.h>
+#include <boost/bind.hpp>
 
 #include "CellList.h"
+
+using namespace boost;
 
 /*! \param sysdef system to compute the cell list of
 */
@@ -58,9 +61,11 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_dim = make_uint3(0,0,0);
     m_Nmax = 32;
     m_params_changed = true;
+    m_particles_sorted = false;
+    m_box_changed = false;
     
-    m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::signalParticlesSorted, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::signalBoxChanged, this));
+    m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
+    m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
     }
 
 CellList::~CellList()
@@ -112,23 +117,82 @@ uint3 CellList::computeDimensions()
 
 void CellList::compute(unsigned int timestep)
     {
+    bool force = false;
+    
+    if (m_prof)
+        m_prof->push("Cell");
+    
     if (m_params_changed)
         {
-        initialize();
+        // need to fully reinitialize on any parameter change
+        initializeAll();
         m_params_changed = false;
+        force = true;
         }
-    }
     
-void CellList::initialize()
+    if (m_box_changed)
+        {
+        uint3 new_dim = computeDimensions();
+        if (new_dim.x == m_dim.x && new_dim.y == m_dim.y && new_dim.z == m_dim.z)
+            {
+            // number of bins has not changed, only need to update width
+            initializeWidth();
+            }
+        else
+            {
+            // number of bins has changed, need to fully reinitialize memory
+            initializeAll();
+            }
+        
+        m_box_changed = false;
+        force = true;
+        }
+    
+    if (m_particles_sorted)
+        {
+        // sorted particles simply need a forced update to get the proper indices in the data structure
+        m_particles_sorted = false;
+        force = true;
+        }
+    
+    // only update if we need to
+    if (shouldCompute(timestep) || force)
+        {
+        computeCellList();
+        }
+    
+    if (m_prof)
+        m_prof->pop();
+    }
+
+void CellList::initializeAll()
     {
+    initializeWidth();
+    initializeMemory();
+    }
+
+void CellList::initializeWidth()
+    {
+    if (m_prof)
+        m_prof->push("init");
+    
     // initialize dimensions and width
-    uint3 old_dim = m_dim;
     m_dim = computeDimensions();
 
     const BoxDim& box = m_pdata->getBox();
     m_width.x = (box.xhi - box.xlo) / Scalar(m_dim.x);
     m_width.y = (box.yhi - box.ylo) / Scalar(m_dim.y);
     m_width.z = (box.zhi - box.zlo) / Scalar(m_dim.z);
+
+    if (m_prof)
+        m_prof->pop();
+
+    }
+
+void CellList::initializeMemory()
+    {
+    if (m_prof)
+        m_prof->push("init");
     
     // estimate Nmax
     // TODO
@@ -137,4 +201,15 @@ void CellList::initialize()
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
     m_cell_adj_indexer = Index2D((m_radius*2+1)*(m_radius*2+1)*(m_radius*2+1), m_cell_indexer.getNumElements());
+    
+    // allocate memory
+    // TODO
+
+    if (m_prof)
+        m_prof->pop();
+    }
+
+void CellList::computeCellList()
+    {
+    
     }

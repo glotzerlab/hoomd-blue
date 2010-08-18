@@ -115,7 +115,7 @@ class CellList : public Compute
         //! Construct a cell list
         CellList(boost::shared_ptr<SystemDefinition> sysdef);
         
-        virtual ~CellList() {}
+        virtual ~CellList();
 
         //! \name Set parameters
         // @{
@@ -163,10 +163,16 @@ class CellList : public Compute
             }
         
         //! Notification of a particle resort
-        void signalParticlesSorted();
+        void slotParticlesSorted()
+            {
+            m_particles_sorted = true;
+            }
         
         //! Notification of a box size change
-        void signalBoxChanged();
+        void slotBoxChanged()
+            {
+            m_box_changed = true;
+            }
 
         // @}
         //! \name Get properties
@@ -249,6 +255,8 @@ class CellList : public Compute
         bool m_compute_tdb;          //!< true if the tdb list should be computed
         bool m_flag_charge;          //!< true if the flag should be set to the charge, it will be index otherwise
         bool m_params_changed;       //!< Set to true when parameters are changed
+        bool m_particles_sorted;     //!< Set to true when the particles have been sorted
+        bool m_box_changed;          //!< Set to ttrue when the box size has changed
         
         // parameters determined by initialize
         Scalar3 m_width;             //!< Actual width
@@ -264,13 +272,23 @@ class CellList : public Compute
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,body,diameter
         
-        boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
+        boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
+        boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         
         //! Computes what the dimensions should me
         uint3 computeDimensions();
         
         //! Initialize width and indexers, allocates memory
-        void initialize();
+        void initializeAll();
+        
+        //! Initialize width
+        void initializeWidth();
+        
+        //! Initialize indexers and allocate memory
+        void initializeMemory();
+        
+        //! Compute the cell list
+        virtual void computeCellList();
     };
 
 #endif
