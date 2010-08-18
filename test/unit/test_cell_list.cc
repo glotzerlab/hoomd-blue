@@ -58,6 +58,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CellList.h"
 #include "Initializers.h"
 
+#ifdef ENABLE_CUDA
+#include "CellListGPU.h"
+#endif
+
 #include <math.h>
 
 using namespace std;
@@ -570,6 +574,14 @@ BOOST_AUTO_TEST_CASE( CellList_small )
     {
     celllist_small_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+
+#ifdef ENABLE_CUDA
+//! boost test case for celllist_small_test on the GPU
+BOOST_AUTO_TEST_CASE( CellListGPU_small )
+    {
+    celllist_small_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+#endif
     
 //! Validate that the cell list itself can be computed for a large system of particles
 template <class CL>
@@ -592,7 +604,9 @@ void celllist_large_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     unsigned int total = 0;
     unsigned int ncell = cl->getCellIndexer().getNumElements();
     for (unsigned int cell = 0; cell < ncell; cell++)
+        {
         total += h_cell_size.data[cell];
+        }
     
     BOOST_CHECK_EQUAL_UINT(total, N);
     
@@ -622,3 +636,11 @@ BOOST_AUTO_TEST_CASE( CellList_large )
     {
     celllist_large_test<CellList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+
+#ifdef ENABLE_CUDA
+//! boost test case for celllist_large_test on the GPU
+BOOST_AUTO_TEST_CASE( CellListGPU_large )
+    {
+    celllist_large_test<CellListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+#endif
