@@ -85,7 +85,7 @@ class Index2D
             \param j row index
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
         */
-        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j)
+        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j) const
             {
             return j*m_w + i;
             }
@@ -93,7 +93,7 @@ class Index2D
         //! Get the number of 1D elements stored
         /*! \returns Number of elements stored in the underlying 1D array
         */
-        HOSTDEVICE inline unsigned int getNumElements()
+        HOSTDEVICE inline unsigned int getNumElements() const
             {
             return m_w*m_h;
             }
@@ -128,7 +128,7 @@ class Index3D
             \param k plane index (along depth)
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
         */
-        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j, unsigned int k)
+        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j, unsigned int k) const
             {
             return (k*m_h + j)*m_w + i;
             }
@@ -136,7 +136,7 @@ class Index3D
         //! Get the number of 1D elements stored
         /*! \returns Number of elements stored in the underlying 1D array
         */
-        HOSTDEVICE inline unsigned int getNumElements()
+        HOSTDEVICE inline unsigned int getNumElements() const
             {
             return m_w * m_h * m_d;
             }
@@ -168,7 +168,7 @@ class Index2DUpperTriangular
             \returns 1D array index corresponding to the 2D index (\a i, \a j) in row major order
             \note Forumla adapted from: http://www.itl.nist.gov/div897/sqg/dads/HTML/upperTriangularMatrix.html
         */
-        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j)
+        HOSTDEVICE inline unsigned int operator()(unsigned int i, unsigned int j) const
             {
             // swap if j > i
             if (j > i)
@@ -183,7 +183,7 @@ class Index2DUpperTriangular
         //! Get the number of 1D elements stored
         /*! \returns Number of elements stored in the underlying 1D array
         */
-        HOSTDEVICE inline unsigned int getNumElements()
+        HOSTDEVICE inline unsigned int getNumElements() const
             {
             return m_w*(m_w+1) / 2;
             }
