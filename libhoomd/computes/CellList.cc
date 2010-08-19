@@ -45,11 +45,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <limits.h>
 #include <boost/bind.hpp>
+#include <boost/python.hpp>
 #include <algorithm>
 
 #include "CellList.h"
 
 using namespace boost;
+using namespace boost::python;
 using namespace std;
 
 /*! \param sysdef system to compute the cell list of
@@ -174,6 +176,44 @@ void CellList::compute(unsigned int timestep)
     
     if (m_prof)
         m_prof->pop();
+    }
+
+/*! \param num_iters Number of iterations to average for the benchmark
+    \returns Milliseconds of execution time per calculation
+
+    Calls computeCellList repeatedly to benchmark the compute
+*/
+double CellList::benchmark(unsigned int num_iters)
+    {
+    ClockSource t;
+    
+    // ensure that any changed parameters have been propagaged and memory allocated
+    compute(0);
+    
+    // warm up run
+    computeCellList();
+    
+#ifdef ENABLE_CUDA
+    if (exec_conf->isCUDAEnabled())
+        {
+        cudaThreadSynchronize();
+        CHECK_CUDA_ERROR();
+        }
+#endif
+    
+    // benchmark
+    uint64_t start_time = t.getTime();
+    for (unsigned int i = 0; i < num_iters; i++)
+        computeCellList();
+        
+#ifdef ENABLE_CUDA
+    if (exec_conf->isCUDAEnabled())
+        cudaThreadSynchronize();
+#endif
+    uint64_t total_time_ns = t.getTime() - start_time;
+    
+    // convert the run time to milliseconds
+    return double(total_time_ns) / 1e6 / double(num_iters);
     }
 
 void CellList::initializeAll()
@@ -388,4 +428,21 @@ void CellList::computeCellList()
     
     if (m_prof)
         m_prof->pop();
+    }
+
+void export_CellList()
+    {
+    class_<CellList, boost::shared_ptr<CellList>, bases<Compute>, boost::noncopyable >
+        ("CellList", init< boost::shared_ptr<SystemDefinition> >())
+        .def("setNominalWidth", &CellList::setNominalWidth)
+        .def("setRadius", &CellList::setRadius)
+        .def("setMaxCells", &CellList::setMaxCells)
+        .def("setComputeTDB", &CellList::setComputeTDB)
+        .def("setFlagCharge", &CellList::setFlagCharge)
+        .def("setFlagIndex", &CellList::setFlagIndex)
+        .def("getWidth", &CellList::getWidth, return_internal_reference<>())
+        .def("getDim", &CellList::getDim, return_internal_reference<>())
+        .def("getNmax", &CellList::getNmax)
+        .def("benchmark", &CellList::benchmark)
+        ;
     }

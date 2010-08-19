@@ -62,6 +62,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDBinaryInitializer.h"
 #include "RandomGenerator.h"
 #include "Compute.h"
+#include "CellList.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
@@ -108,6 +109,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // include GPU classes
 #ifdef ENABLE_CUDA
+#include "CellListGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
@@ -373,6 +375,7 @@ BOOST_PYTHON_MODULE(hoomd)
     
     // computes
     export_Compute();
+    export_CellList();
     export_ForceCompute();
     export_ForceConstraint();
     export_ConstForceCompute();
@@ -395,6 +398,7 @@ BOOST_PYTHON_MODULE(hoomd)
     export_BinnedNeighborList();
     export_ConstraintSphere();
 #ifdef ENABLE_CUDA
+    export_CellListGPU();
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();
     export_CGCMMForceComputeGPU();

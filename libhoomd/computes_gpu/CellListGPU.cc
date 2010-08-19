@@ -43,8 +43,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
+#include <boost/python.hpp>
+
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
+
+using namespace boost::python;
 
 /*! \param sysdef system to compute the cell list of
 */
@@ -99,4 +103,11 @@ void CellListGPU::computeCellList()
     
     if (m_prof)
         m_prof->pop(exec_conf);
+    }
+
+void export_CellListGPU()
+    {
+    class_<CellListGPU, boost::shared_ptr<CellListGPU>, bases<CellList>, boost::noncopyable >
+        ("CellListGPU", init< boost::shared_ptr<SystemDefinition> >())
+        ;
     }

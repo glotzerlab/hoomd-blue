@@ -245,6 +245,9 @@ class CellList : public Compute
         //! Compute the cell list given the current particle positions
         void compute(unsigned int timestep);
         
+        //! Benchmark the computation
+        double benchmark(unsigned int num_iters);
+        
         // @}
         
     protected:
@@ -294,5 +297,8 @@ class CellList : public Compute
         //! Compute the cell list
         virtual void computeCellList();
     };
+
+//! Export the CellList class to python
+void export_CellList();
 
 #endif
