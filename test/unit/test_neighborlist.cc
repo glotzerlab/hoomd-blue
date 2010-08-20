@@ -62,6 +62,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 #include "NeighborListNsqGPU.h"
 #include "BinnedNeighborListGPU.h"
+#include "NeighborListGPU.h"
+#include "NeighborListGPUBinned.h"
 #endif
 
 using namespace std;
@@ -370,12 +372,52 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
         }
     }
 
-//! boost test case for base class
-BOOST_AUTO_TEST_CASE( NeighborList_tests )
+//! basic test case for base class
+BOOST_AUTO_TEST_CASE( NeighborList_basic )
     {
     neighborlist_basic_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! exclusion test case for base class
+BOOST_AUTO_TEST_CASE( NeighborList_exclusion )
+    {
     neighborlist_exclusion_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+
+#ifdef ENABLE_CUDA
+
+//! basic test case for GPU class
+BOOST_AUTO_TEST_CASE( NeighborListGPU_basic )
+    {
+    neighborlist_basic_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! exclusion test case for GPU class
+BOOST_AUTO_TEST_CASE( NeighborListGPU_exclusion )
+    {
+    neighborlist_exclusion_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! comparison test case for GPU class
+BOOST_AUTO_TEST_CASE( NeighborListGPU_comparison )
+    {
+    neighborlist_comparison_test<NeighborList, NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+
+//! basic test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_basic )
+    {
+    neighborlist_basic_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! exclusion test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_exclusion )
+    {
+    neighborlist_exclusion_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! comparison test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
+    {
+    neighborlist_comparison_test<NeighborList, NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+
+#endif
 
 /*//! boost test case for BinnedNeighborList
 BOOST_AUTO_TEST_CASE( BinnedNeighborList_tests )
