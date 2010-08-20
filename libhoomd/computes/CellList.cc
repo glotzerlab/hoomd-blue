@@ -246,7 +246,7 @@ void CellList::initializeMemory()
         m_prof->push("init");
     
     // estimate Nmax
-    unsigned int estimated_Nmax = (unsigned int)(ceilf(float(m_pdata->getN()*1.1f / float(m_dim.x*m_dim.y*m_dim.z))));
+    unsigned int estimated_Nmax = (unsigned int)(ceilf(float(m_pdata->getN()*2.0f / float(m_dim.x*m_dim.y*m_dim.z))));
     // round up to the nearest multiple of 32
     m_Nmax = estimated_Nmax + 32 - (estimated_Nmax & 31);
     
