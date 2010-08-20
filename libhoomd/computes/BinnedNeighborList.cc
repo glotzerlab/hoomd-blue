@@ -92,7 +92,7 @@ void BinnedNeighborList::buildNlist()
     
 #ifdef ENABLE_CUDA
     // after computing, the device now resides on the CPU
-    m_data_location = cpu;
+    // m_data_location = cpu;
 #endif
     }
 
@@ -265,8 +265,8 @@ void BinnedNeighborList::updateListFromBins()
     Scalar scalez = Scalar(1.0) / binz;
     
     // start by clearing the entire list
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        m_list[i].clear();
+    /*for (unsigned int i = 0; i < arrays.nparticles; i++)
+        m_list[i].clear();*/
         
     // now we can loop over all particles in a binned fashion and build the list
 #pragma omp parallel for schedule(dynamic, 100)
@@ -276,12 +276,12 @@ void BinnedNeighborList::updateListFromBins()
         Scalar xn = arrays.x[n];
         Scalar yn = arrays.y[n];
         Scalar zn = arrays.z[n];
-        const ExcludeList &excludes = m_exclusions[arrays.tag[n]];
+/*        const ExcludeList &excludes = m_exclusions[arrays.tag[n]];
 #if defined(LARGE_EXCLUSION_LIST)
         const ExcludeList &excludes2 = m_exclusions2[arrays.tag[n]];
         const ExcludeList &excludes3 = m_exclusions3[arrays.tag[n]];
         const ExcludeList &excludes4 = m_exclusions4[arrays.tag[n]];
-#endif
+#endif*/
         
         // find the bin each particle belongs in
         int ib = int((xn-box.xlo)*scalex);
@@ -362,7 +362,7 @@ void BinnedNeighborList::updateListFromBins()
                         Scalar rsq = dx*dx + dy*dy + dz*dz;
                         if (rsq < rmaxsq)
                             {
-#if !defined(LARGE_EXCLUSION_LIST)
+/*#if !defined(LARGE_EXCLUSION_LIST)
                             // if not excluded
                             if (!(excludes.e1 == bin_list_tag[k] || excludes.e2 == bin_list_tag[k] ||
                                     excludes.e3 == bin_list_tag[k] || excludes.e4 == bin_list_tag[k]))
@@ -386,7 +386,7 @@ void BinnedNeighborList::updateListFromBins()
                                 if (m_storage_mode == full || n < m)
                                     m_list[n].push_back(m);
                                 }
-#endif
+#endif*/
                             }
                         }
                     }

@@ -317,24 +317,24 @@ void BinnedNeighborListGPU::buildNlist()
     updateListFromBins();
     
     int overflow = 0;
-    cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
+//    cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
         
     while (overflow)
         {
-        int new_height = (int)(Scalar(m_gpu_nlist.height) * 1.2);
+//        int new_height = (int)(Scalar(m_gpu_nlist.height) * 1.2);
         // cout << "Notice: Neighborlist overflowed on GPU, expanding to " << new_height << " neighbors per particle..." << endl;
-        freeGPUData();
-        allocateGPUData(new_height);
-        updateExclusionData();
+//        freeGPUData();
+//        allocateGPUData(new_height);
+//        updateExclusionData();
         
         updateListFromBins();
-        cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
+//        cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
         }
     
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     
-    m_data_location = gpu;
+//    m_data_location = gpu;
     }
 
 /*! Particles are copied to the CPU and the binning step is done, putting the index of each particle
@@ -545,8 +545,8 @@ void BinnedNeighborListGPU::updateListFromBins()
     ArrayHandle<unsigned int> d_bin_ids(m_bin_ids, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_thread_mapping(m_thread_mapping, access_location::device, access_mode::read);
 
-    m_gpu_nlist.thread_mapping = d_thread_mapping.data;
-    gpu_compute_nlist_binned(m_gpu_nlist, pdata, box, m_gpu_bin_data, d_bin_ids.data, r_max_sq, m_curNmax, m_block_size);
+//    m_gpu_nlist.thread_mapping = d_thread_mapping.data;
+//    gpu_compute_nlist_binned(m_gpu_nlist, pdata, box, m_gpu_bin_data, d_bin_ids.data, r_max_sq, m_curNmax, m_block_size);
         
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -577,7 +577,7 @@ bool BinnedNeighborListGPU::distanceCheck()
     Scalar r_buffsq = (m_r_buff/Scalar(2.0)) * (m_r_buff/Scalar(2.0));
     
     int result = 0;
-    gpu_nlist_needs_update_check(&pdata, &box, &m_gpu_nlist, r_buffsq, &result);
+//    gpu_nlist_needs_update_check(&pdata, &box, &m_gpu_nlist, r_buffsq, &result);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
