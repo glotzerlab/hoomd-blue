@@ -201,7 +201,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     // it there if needed
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
-    Index2D nli = this->m_nlist->getNlistIndexer();
+    Index2D nli = this->m_nlist->getNListIndexer();
     
     // access the particle data
     gpu_pdata_arrays& pdata = m_pdata->acquireReadOnlyGPU();

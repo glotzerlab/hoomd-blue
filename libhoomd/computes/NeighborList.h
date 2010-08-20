@@ -199,7 +199,10 @@ class NeighborList : public Compute
             }
         
         //! Get the neighbor list indexer
-        const Index2D& getNlistIndexer()
+        /*! \note Do not save indexers across calls. Get a new indexer after every call to compute() - they will
+            change.
+        */
+        const Index2D& getNListIndexer()
             {
             return m_nlist_indexer;
             }
@@ -286,6 +289,9 @@ class NeighborList : public Compute
         
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
+        
+        //! Allocate the nlist array
+        void allocateNlist();
     };
 
 //! Exports NeighborList to python

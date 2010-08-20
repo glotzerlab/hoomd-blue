@@ -216,7 +216,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     // access the neighbor list
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    Index2D nli = m_nlist->getNlistIndexer();
+    Index2D nli = m_nlist->getNListIndexer();
     
     // access the particle data
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();

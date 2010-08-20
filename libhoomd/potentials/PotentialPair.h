@@ -317,7 +317,7 @@ void PotentialPair< evaluator >::computeForces(unsigned int timestep)
     // access the neighbor list, particle data, and system box
     ArrayHandle<unsigned int> h_n_neigh(m_nlist->getNNeighArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_nlist(m_nlist->getNListArray(), access_location::host, access_mode::read);
-    Index2D nli = m_nlist->getNlistIndexer();
+    Index2D nli = m_nlist->getNListIndexer();
     
     const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
     const BoxDim& box = m_pdata->getBox();
