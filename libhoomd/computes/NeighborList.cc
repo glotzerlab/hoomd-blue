@@ -43,11 +43,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4244 )
-#endif
-
 #include <boost/python.hpp>
 using namespace boost::python;
 
@@ -96,189 +91,17 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
         throw runtime_error("Error initializing NeighborList");
         }
         
-    // allocate the list memory
-    m_list.resize(m_pdata->getN());
-    m_exclusions.resize(m_pdata->getN());
-#if defined(LARGE_EXCLUSION_LIST)
-    m_exclusions2.resize(m_pdata->getN());
-    m_exclusions3.resize(m_pdata->getN());
-    m_exclusions4.resize(m_pdata->getN());
-#endif
-    
-    // allocate memory for storing the last particle positions
-    m_last_x = new Scalar[m_pdata->getN()];
-    m_last_y = new Scalar[m_pdata->getN()];
-    m_last_z = new Scalar[m_pdata->getN()];
-    
-    assert(m_last_x);
-    assert(m_last_y);
-    assert(m_last_z);
-    
-    // zero data
-    memset((void*)m_last_x, 0, sizeof(Scalar)*m_pdata->getN());
-    memset((void*)m_last_y, 0, sizeof(Scalar)*m_pdata->getN());
-    memset((void*)m_last_z, 0, sizeof(Scalar)*m_pdata->getN());
-    
+    // initialize values
     m_last_updated_tstep = 0;
     m_every = 0;
+    m_Nmax = 1;
     
-#ifdef ENABLE_CUDA
-    // initialize the GPU and CPU mirror structures
-    // there really should be a better way to determine the initial height, but we will just
-    // choose a given value for now (choose it initially small to test the auto-expansion
-    // code
-    if (exec_conf->isCUDAEnabled())
-        {
-        allocateGPUData(32);
-        m_data_location = cpugpu;
-        hostToDeviceCopy();
-        }
-    else
-        {
-        m_data_location = cpu;
-        }
-#endif
-        
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
     }
 
 NeighborList::~NeighborList()
     {
-    delete[] m_last_x;
-    delete[] m_last_y;
-    delete[] m_last_z;
-    
-#ifdef ENABLE_CUDA
-    if (exec_conf->isCUDAEnabled())
-        freeGPUData();
-#endif
-        
     m_sort_connection.disconnect();
-    }
-
-#ifdef ENABLE_CUDA
-void NeighborList::allocateGPUData(int height)
-    {
-    size_t pitch;
-    const int N = m_pdata->getN();
-    
-    // allocate and zero device memory
-    // alloate one extra row so that compute kernels can safely prefetch "past" the end
-    // without causing memory errors
-    cudaMallocPitch(&m_gpu_nlist.list, &pitch, N*sizeof(unsigned int), height + 1);
-    // want pitch in elements, not bytes
-    m_gpu_nlist.pitch = (int)pitch / sizeof(int);
-    m_gpu_nlist.height = height;
-    cudaMemset(m_gpu_nlist.list, 0, pitch * height);
-    
-    cudaMalloc(&m_gpu_nlist.n_neigh, pitch);
-    cudaMemset(m_gpu_nlist.n_neigh, 0, pitch);
-    
-    cudaMalloc(&m_gpu_nlist.last_updated_pos, m_gpu_nlist.pitch*sizeof(float4));
-    cudaMemset(m_gpu_nlist.last_updated_pos, 0, m_gpu_nlist.pitch * sizeof(float4));
-    
-    cudaMalloc(&m_gpu_nlist.needs_update, sizeof(int));
-    cudaMalloc(&m_gpu_nlist.overflow, sizeof(int));
-    
-    cudaMalloc(&m_gpu_nlist.exclusions, m_gpu_nlist.pitch*sizeof(uint4));
-    cudaMemset(m_gpu_nlist.exclusions, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
-#if defined(LARGE_EXCLUSION_LIST)
-    cudaMalloc(&m_gpu_nlist.exclusions2), m_gpu_nlist.pitch*sizeof(uint4));
-    cudaMemset(m_gpu_nlist.exclusions2, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
-    cudaMalloc(&m_gpu_nlist.exclusions3, m_gpu_nlist.pitch*sizeof(uint4));
-    cudaMemset(m_gpu_nlist.exclusions3, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
-    cudaMalloc(&m_gpu_nlist.exclusions4, m_gpu_nlist.pitch*sizeof(uint4));
-    cudaMemset(m_gpu_nlist.exclusions4, 0xff, m_gpu_nlist.pitch * sizeof(uint4));
-#endif
-        
-    // allocate and zero host memory
-    cudaHostAlloc(&m_host_nlist, pitch * height, cudaHostAllocPortable);
-    memset((void*)m_host_nlist, 0, pitch*height);
-    
-    cudaHostAlloc(&m_host_n_neigh, N * sizeof(unsigned int), cudaHostAllocPortable);
-    memset((void*)m_host_n_neigh, 0, N * sizeof(unsigned int));
-    
-    cudaHostAlloc(&m_host_exclusions, N * sizeof(uint4), cudaHostAllocPortable);
-    memset((void*)m_host_exclusions, 0xff, N * sizeof(uint4));
-#if defined(LARGE_EXCLUSION_LIST)
-    cudaHostAlloc(&m_host_exclusions2, N * sizeof(uint4), cudaHostAllocPortable);
-    memset((void*)m_host_exclusions2, 0xff, N * sizeof(uint4));
-    cudaHostAlloc(&m_host_exclusions3, N * sizeof(uint4), cudaHostAllocPortable);
-    memset((void*)m_host_exclusions3, 0xff, N * sizeof(uint4));
-    cudaHostAlloc(&m_host_exclusions4, N * sizeof(uint4), cudaHostAllocPortable);
-    memset((void*)m_host_exclusions4, 0xff, N * sizeof(uint4));
-#endif
-    CHECK_CUDA_ERROR();
-    }
-
-void NeighborList::freeGPUData()
-    {
-    assert(m_host_nlist);
-    assert(m_host_exclusions);
-#if defined(LARGE_EXCLUSION_LIST)
-    assert(m_host_exclusions2);
-    assert(m_host_exclusions3);
-    assert(m_host_exclusions4);
-#endif
-    assert(m_host_n_neigh);
-    
-    cudaFreeHost(m_host_nlist);
-    m_host_nlist = NULL;
-    cudaFreeHost(m_host_n_neigh);
-    m_host_n_neigh = NULL;
-    cudaFreeHost(m_host_exclusions);
-    m_host_exclusions = NULL;
-#if defined(LARGE_EXCLUSION_LIST)
-    cudaFreeHost(m_host_exclusions2);
-    m_host_exclusions2 = NULL;
-    cudaFreeHost(m_host_exclusions3);
-    m_host_exclusions3 = NULL;
-    cudaFreeHost(m_host_exclusions4);
-    m_host_exclusions4 = NULL;
-#endif
-    CHECK_CUDA_ERROR();
-    
-    assert(m_gpu_nlist.list);
-    assert(m_gpu_nlist.n_neigh);
-    assert(m_gpu_nlist.exclusions);
-#if defined(LARGE_EXCLUSION_LIST)
-    assert(m_gpu_nlist.exclusions2);
-    assert(m_gpu_nlist.exclusions3);
-    assert(m_gpu_nlist.exclusions4);
-#endif
-    assert(m_gpu_nlist.last_updated_pos);
-    assert(m_gpu_nlist.needs_update);
-        
-    cudaFree(m_gpu_nlist.n_neigh);
-    m_gpu_nlist.n_neigh = NULL;
-    cudaFree(m_gpu_nlist.list);
-    m_gpu_nlist.list = NULL;
-    cudaFree(m_gpu_nlist.exclusions);
-    m_gpu_nlist.exclusions = NULL;
-#if defined(LARGE_EXCLUSION_LIST)
-    cudaFree(m_gpu_nlist.exclusions2);
-    m_gpu_nlist.exclusions2 = NULL;
-    cudaFree(m_gpu_nlist.exclusions3);
-    m_gpu_nlist.exclusions3 = NULL;
-    cudaFree(m_gpu_nlist.exclusions4);
-    m_gpu_nlist.exclusions4 = NULL;
-#endif
-    cudaFree(m_gpu_nlist.last_updated_pos);
-    m_gpu_nlist.last_updated_pos = NULL;
-    cudaFree(m_gpu_nlist.needs_update);
-    m_gpu_nlist.needs_update = NULL;
-    cudaFree(m_gpu_nlist.overflow);
-    m_gpu_nlist.overflow = NULL;
-    CHECK_CUDA_ERROR();
-    }
-#endif
-
-/*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
-    to require a neighbor list upate.
-*/
-void NeighborList::setEvery(unsigned int every)
-    {
-    m_every = every;
     }
 
 /*! Updates the neighborlist if it has not yet been updated this times step
@@ -294,13 +117,16 @@ void NeighborList::compute(unsigned int timestep)
     
 #ifdef ENABLE_CUDA
     // update the exclusion data if this is a forced update
-    if (m_force_update)
-        updateExclusionData();
+    //if (m_force_update)
+        //updateExclusionData();
 #endif
         
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
+        {
         buildNlist();
+        setLastUpdatedPos();
+        }
         
     if (m_prof) m_prof->pop();
     }
@@ -312,11 +138,11 @@ void NeighborList::compute(unsigned int timestep)
 */
 double NeighborList::benchmark(unsigned int num_iters)
     {
-    if (m_prof) m_prof->push("Neighbor");
-    
     ClockSource t;
     // warm up run
-    buildNlist();;
+    forceUpdate();
+    compute(0);
+    buildNlist();
     
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
@@ -336,8 +162,6 @@ double NeighborList::benchmark(unsigned int num_iters)
         cudaThreadSynchronize();
 #endif
     uint64_t total_time_ns = t.getTime() - start_time;
-    
-    if (m_prof) m_prof->pop();
     
     // convert the run time to milliseconds
     return double(total_time_ns) / 1e6 / double(num_iters);
@@ -369,50 +193,6 @@ void NeighborList::setRCut(Scalar r_cut, Scalar r_buff)
     forceUpdate();
     }
 
-/*! \return Reference to the neighbor list table
-    If the neighbor list was last updated on the GPU, it is copied to the CPU first.
-    This copy operation is only intended for debugging and status information purposes.
-    It is not optimized in any way, and is quite slow.
-*/
-const std::vector< std::vector<unsigned int> >& NeighborList::getList()
-    {
-#ifdef ENABLE_CUDA
-    
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is solely on the cpu, life is easy, return the data arrays
-            // and stay in the same state
-            return m_list;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, life is easy, return
-            // the data arrays and stay in the same state
-            return m_list;
-            break;
-        case gpu:
-            // if the data resides on the gpu, it needs to be copied back to the cpu
-            // this changes to the cpugpu state since the data is now fully up to date on
-            // both
-            deviceToHostCopy();
-            m_data_location = cpugpu;
-            return m_list;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_list;
-            break;
-        }
-        
-#else
-        
-    return m_list;
-#endif
-    }
-
 /*! \returns an estimate of the number of neighbors per particle
     This mean-field estimate may be very bad dending on how clustered particles are.
     Derived classes can override this method to provide better estimates.
@@ -435,268 +215,6 @@ Scalar NeighborList::estimateNNeigh()
     return n_dens * vol_cut;
     }
 
-#ifdef ENABLE_CUDA
-/*! \returns Neighbor list data structure stored on the GPU.
-    If the neighbor list was last updated on the CPU, calling this routine will result
-    in a very time consuming copy to the device. It is meant only as a debugging/testing
-    path and not for production simulations.
-*/
-gpu_nlist_array& NeighborList::getListGPU()
-    {
-    // this is the complicated graphics card version, need to do some work
-    // switch based on the current location of the data
-    switch (m_data_location)
-        {
-        case cpu:
-            // if the data is on the cpu, we need to copy it over to the gpu
-            hostToDeviceCopy();
-            // now we are in the cpugpu state
-            m_data_location = cpugpu;
-            return m_gpu_nlist;
-            break;
-        case cpugpu:
-            // if the data is up to date on both the cpu and gpu, life is easy
-            // state remains the same
-            return m_gpu_nlist;
-            break;
-        case gpu:
-            // if the data resides on the gpu, life is easy, just make sure that
-            // state remains the same
-            return m_gpu_nlist;
-            break;
-        default:
-            // anything other than the above is an undefined state!
-            assert(false);
-            return m_gpu_nlist;
-            break;
-        }
-    }
-
-/*! \post The entire neighbor list is copied from the CPU to the GPU.
-    The copy is not optimized in any fashion and will be quite slow.
-*/
-void NeighborList::hostToDeviceCopy()
-    {
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    // if (m_prof) m_prof->push("NLIST C2G");
-    
-    assert(exec_conf->isCUDAEnabled());
-    
-    // start by determining if we need to make the device list larger or not
-    // find the maximum neighborlist height
-    unsigned int max_h = 0;
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
-        if (m_list[i].size() > max_h)
-            max_h = (unsigned int)m_list[i].size();
-        }
-        
-    // if the largest nlist is bigger than the capacity of the device nlist,
-    // make it 10% bigger (note that the capacity of the device list is height-1 since
-    // the number of neighbors is stored in the first row)
-    if (max_h > m_gpu_nlist.height)
-        {
-        freeGPUData();
-        allocateGPUData((unsigned int)(float(max_h)*1.1));
-        }
-        
-    // now we are good to copy the data over
-    // start by zeroing the list
-    memset(m_host_nlist, 0, sizeof(unsigned int) * m_gpu_nlist.pitch * m_gpu_nlist.height);
-    memset(m_host_n_neigh, 0, sizeof(unsigned int) *m_pdata->getN());
-    
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
-        // fill out the first row with the length of each list
-        m_host_n_neigh[i] = (unsigned int)m_list[i].size();
-        
-        // now fill out the data
-        for (unsigned int j = 0; j < m_list[i].size(); j++)
-            m_host_nlist[j*m_gpu_nlist.pitch + i] = m_list[i][j];
-        }
-        
-    // now that the host array is filled out, copy it to the card
-    cudaMemcpy(m_gpu_nlist.list, m_host_nlist,
-               sizeof(unsigned int) * m_gpu_nlist.height * m_gpu_nlist.pitch,
-               cudaMemcpyHostToDevice);
-    cudaMemcpy(m_gpu_nlist.n_neigh, m_host_n_neigh,
-               sizeof(unsigned int) * m_pdata->getN(),
-               cudaMemcpyHostToDevice);
-    
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    
-    // if (m_prof) m_prof->pop();
-    }
-
-/*! \post The entire neighbor list is copied from the GPU to the CPU.
-    The copy is not optimized in any fashion and will be quite slow.
-*/
-void NeighborList::deviceToHostCopy()
-    {
-    // commenting profiling: enable when benchmarking suspected slow portions of the code. This isn't needed all the time
-    // if (m_prof) m_prof->push("NLIST G2C");
-    
-    // clear out host version of the list
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        m_list[i].clear();
-        
-    // copy data back from the card
-    cudaMemcpy(m_host_nlist, m_gpu_nlist.list,
-               sizeof(unsigned int) * m_gpu_nlist.height * m_gpu_nlist.pitch,
-               cudaMemcpyDeviceToHost);
-    cudaMemcpy(m_host_n_neigh, m_gpu_nlist.n_neigh,
-               sizeof(unsigned int) * m_pdata->getN(),
-               cudaMemcpyDeviceToHost);
-
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-                                          
-    // fill out host version of the list
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
-        {
-        // now loop over all elements in the array
-        unsigned int size = m_host_n_neigh[i];
-        for (unsigned int j = 0; j < size; j++)
-            m_list[i].push_back(m_host_nlist[j*m_gpu_nlist.pitch + i]);
-        }
-
-    // if (m_prof) m_prof->pop();
-    }
-
-/*! \post The exclusion list is converted from tags to indicies and then copied up to the
-    GPU.
-*/
-void NeighborList::updateExclusionData()
-    {
-    // cannot update unless we are running on a GPU
-    if (!exec_conf->isCUDAEnabled())
-        return;
-        
-    ParticleDataArraysConst arrays = m_pdata->acquireReadOnly();
-    
-    // setup each of the exclusions
-    for (unsigned int tag_i = 0; tag_i < m_pdata->getN(); tag_i++)
-        {
-        unsigned int i = arrays.rtag[tag_i];
-        if (m_exclusions[tag_i].e1 == EXCLUDE_EMPTY)
-            m_host_exclusions[i].x = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions[i].x = arrays.rtag[m_exclusions[tag_i].e1];
-            
-        if (m_exclusions[tag_i].e2 == EXCLUDE_EMPTY)
-            m_host_exclusions[i].y = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions[i].y = arrays.rtag[m_exclusions[tag_i].e2];
-            
-        if (m_exclusions[tag_i].e3 == EXCLUDE_EMPTY)
-            m_host_exclusions[i].z = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions[i].z = arrays.rtag[m_exclusions[tag_i].e3];
-            
-        if (m_exclusions[tag_i].e4 == EXCLUDE_EMPTY)
-            m_host_exclusions[i].w = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions[i].w = arrays.rtag[m_exclusions[tag_i].e4];
-            
-#if defined(LARGE_EXCLUSION_LIST)
-        if (m_exclusions2[tag_i].e1 == EXCLUDE_EMPTY)
-            m_host_exclusions2[i].x = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions2[i].x = arrays.rtag[m_exclusions2[tag_i].e1];
-            
-        if (m_exclusions2[tag_i].e2 == EXCLUDE_EMPTY)
-            m_host_exclusions2[i].y = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions2[i].y = arrays.rtag[m_exclusions2[tag_i].e2];
-            
-        if (m_exclusions2[tag_i].e3 == EXCLUDE_EMPTY)
-            m_host_exclusions2[i].z = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions2[i].z = arrays.rtag[m_exclusions2[tag_i].e3];
-            
-        if (m_exclusions2[tag_i].e4 == EXCLUDE_EMPTY)
-            m_host_exclusions2[i].w = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions2[i].w = arrays.rtag[m_exclusions2[tag_i].e4];
-            
-        if (m_exclusions3[tag_i].e1 == EXCLUDE_EMPTY)
-            m_host_exclusions3[i].x = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions3[i].x = arrays.rtag[m_exclusions3[tag_i].e1];
-            
-        if (m_exclusions3[tag_i].e2 == EXCLUDE_EMPTY)
-            m_host_exclusions3[i].y = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions3[i].y = arrays.rtag[m_exclusions3[tag_i].e2];
-            
-        if (m_exclusions3[tag_i].e3 == EXCLUDE_EMPTY)
-            m_host_exclusions3[i].z = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions3[i].z = arrays.rtag[m_exclusions3[tag_i].e3];
-            
-        if (m_exclusions3[tag_i].e4 == EXCLUDE_EMPTY)
-            m_host_exclusions3[i].w = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions3[i].w = arrays.rtag[m_exclusions3[tag_i].e4];
-            
-        if (m_exclusions4[tag_i].e1 == EXCLUDE_EMPTY)
-            m_host_exclusions4[i].x = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions4[i].x = arrays.rtag[m_exclusions4[tag_i].e1];
-            
-        if (m_exclusions4[tag_i].e2 == EXCLUDE_EMPTY)
-            m_host_exclusions4[i].y = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions4[i].y = arrays.rtag[m_exclusions4[tag_i].e2];
-            
-        if (m_exclusions4[tag_i].e3 == EXCLUDE_EMPTY)
-            m_host_exclusions4[i].z = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions4[i].z = arrays.rtag[m_exclusions4[tag_i].e3];
-            
-        if (m_exclusions4[tag_i].e4 == EXCLUDE_EMPTY)
-            m_host_exclusions4[i].w = EXCLUDE_EMPTY;
-        else
-            m_host_exclusions4[i].w = arrays.rtag[m_exclusions4[tag_i].e4];
-#endif
-        }
-        
-    cudaMemcpy(m_gpu_nlist.exclusions, m_host_exclusions,
-               sizeof(uint4) * m_pdata->getN(),
-               cudaMemcpyHostToDevice);
-#if defined(LARGE_EXCLUSION_LIST)
-    cudaMemcpy(m_gpu_nlist.exclusions2, m_host_exclusions2,
-               sizeof(uint4) * m_pdata->getN(),
-               cudaMemcpyHostToDevice);
-    cudaMemcpy(m_gpu_nlist.exclusions3, m_host_exclusions3,
-               sizeof(uint4) * m_pdata->getN(),
-               cudaMemcpyHostToDevice);
-    cudaMemcpy(m_gpu_nlist.exclusions4, m_host_exclusions4,
-               sizeof(uint4) * m_pdata->getN(),
-               cudaMemcpyHostToDevice));
-#endif
-    if (exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-        
-    m_pdata->release();
-    }
-
-#endif
-
-/*! \param mode Storage mode to set
-    - half only stores neighbors where i < j
-    - full stores all neighbors
-
-    The neighborlist is not immediately updated to reflect this change. It will take effect
-    when compute is called for the next timestep.
-*/
-void NeighborList::setStorageMode(storageMode mode)
-    {
-    m_storage_mode = mode;
-    forceUpdate();
-    }
-
 /*! \param tag1 TAG (not index) of the first particle in the pair
     \param tag2 TAG (not index) of the second particle in the pair
     \post The pair \a tag1, \a tag2 will not appear in the neighborlist
@@ -707,7 +225,7 @@ void NeighborList::setStorageMode(storageMode mode)
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
-    if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
+    /*if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
         {
         cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
         throw runtime_error("Error setting exclusion in NeighborList");
@@ -799,14 +317,14 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         cerr << endl << "***Error! Exclusion list full for particle with tag: " << tag2 << endl << endl;
         throw runtime_error("Error setting exclusion in NeighborList");
         }
-    forceUpdate();
+    forceUpdate();*/
     }
 
 /*! \post No particles are excluded from the neighbor list
 */
 void NeighborList::clearExclusions()
     {
-    for (unsigned int i = 0; i < m_exclusions.size(); i++)
+    /*for (unsigned int i = 0; i < m_exclusions.size(); i++)
         {
         m_exclusions[i].e1 = EXCLUDE_EMPTY;
         m_exclusions[i].e2 = EXCLUDE_EMPTY;
@@ -836,14 +354,14 @@ void NeighborList::clearExclusions()
         m_exclusions4[i].e4 = EXCLUDE_EMPTY;
         }
 #endif
-    forceUpdate();
+    forceUpdate();*/
     }
 
 /*! \post Gather some statistics about exclusions usage.
 */
 void NeighborList::countExclusions()
     {
-    unsigned int excluded_count[MAX_NUM_EXCLUDED+1];
+    /*unsigned int excluded_count[MAX_NUM_EXCLUDED+1];
     unsigned int num_excluded, max_num_excluded;
     
     max_num_excluded = 0;
@@ -888,7 +406,7 @@ void NeighborList::countExclusions()
     cout << "-- Neighborlist exclusion statistics:" << endl;
     cout << "Max. number of exclusions: " << max_num_excluded << endl;
     for (unsigned int i=0; i <= max_num_excluded; ++i)
-        cout << "Particles with " << i << " exclusions: " << excluded_count[i] << endl;
+        cout << "Particles with " << i << " exclusions: " << excluded_count[i] << endl;*/
     }
 
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be
@@ -943,7 +461,7 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
-    if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
+    /*if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
         {
         cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
         throw runtime_error("Error setting exclusion in NeighborList");
@@ -983,7 +501,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     if (m_exclusions4[tag1].e4 == tag2)
         return true;
 #endif
-    return false;
+    return false;*/
     }
 
 /*! Add topologically derived exclusions for angles
@@ -1176,13 +694,15 @@ bool NeighborList::distanceCheck()
     Scalar Ly = box.yhi - box.ylo;
     Scalar Lz = box.zhi - box.zlo;
     
+    ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::read);
+    
     // actually scan the array looking for values over 1/2 the buffer distance
     Scalar maxsq = (m_r_buff/Scalar(2.0))*(m_r_buff/Scalar(2.0));
     for (unsigned int i = 0; i < arrays.nparticles; i++)
         {
-        Scalar dx = arrays.x[i] - m_last_x[i];
-        Scalar dy = arrays.y[i] - m_last_y[i];
-        Scalar dz = arrays.z[i] - m_last_z[i];
+        Scalar dx = arrays.x[i] - h_last_pos.data[i].x;
+        Scalar dy = arrays.y[i] - h_last_pos.data[i].y;
+        Scalar dz = arrays.z[i] - h_last_pos.data[i].z;
         
         // if the vector crosses the box, pull it back
         if (dx >= box.xhi)
@@ -1225,10 +745,12 @@ void NeighborList::setLastUpdatedPos()
     // profile
     if (m_prof) m_prof->push("Dist check");
     
-    // if we are updating, update the last position arrays
-    memcpy((void *)m_last_x, arrays.x, sizeof(Scalar)*arrays.nparticles);
-    memcpy((void *)m_last_y, arrays.y, sizeof(Scalar)*arrays.nparticles);
-    memcpy((void *)m_last_z, arrays.z, sizeof(Scalar)*arrays.nparticles);
+    // update the last position arrays
+    ArrayHandle<Scalar4> h_last_pos(m_last_pos, access_location::host, access_mode::overwrite);
+    for (unsigned int i = 0; i < arrays.nparticles; i++)
+        {
+        h_last_pos.data[i] = make_scalar4(arrays.x[i], arrays.y[i], arrays.z[i], 0.0f);
+        }
     
     if (m_prof) m_prof->pop();
     m_pdata->release();
@@ -1283,11 +805,6 @@ bool NeighborList::needsUpdating(unsigned int timestep)
             }
         }
         
-    // need to update teh last position so it is ready for the next call to this
-    // method
-    if (result)
-        setLastUpdatedPos();
-        
     // warn the user if this is a dangerous build
     if (result && dangerous)
         {
@@ -1307,15 +824,9 @@ void NeighborList::printStats()
     cout << "-- Neighborlist stats:" << endl;
     cout << m_updates << " normal updates / " << m_forced_updates << " forced updates / " << m_dangerous_updates << " dangerous updates" << endl;
     
-    // copy the list back from the device if we need to
-#ifdef ENABLE_CUDA
-    if (m_data_location == gpu)
-        {
-        deviceToHostCopy();
-        m_data_location = cpugpu;
-        }
-#endif
-        
+    // access the number of neighbors to generate stats
+    ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::read);
+    
     // build some simple statistics of the number of neighbors
     unsigned int n_neigh_min = m_pdata->getN();
     unsigned int n_neigh_max = 0;
@@ -1323,7 +834,7 @@ void NeighborList::printStats()
     
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        unsigned int n_neigh = (unsigned int)m_list[i].size();
+        unsigned int n_neigh = (unsigned int)h_n_neigh.data[i];
         if (n_neigh < n_neigh_min)
             n_neigh_min = n_neigh;
         if (n_neigh > n_neigh_max)
@@ -1336,23 +847,6 @@ void NeighborList::printStats()
     n_neigh_avg /= Scalar(m_pdata->getN());
     
     cout << "n_neigh_min: " << n_neigh_min << " / n_neigh_max: " << n_neigh_max << " / n_neigh_avg: " << n_neigh_avg << endl;
-    
-    // lets dump out the nlist to a file
-    /*ofstream f("nlist.m");
-    f << "nlist_data2 = [";
-    for (int j = 0; j < n_neigh_max; j++)
-        {
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            if (j < m_list[i].size())
-                f << m_list[i][j] << " ";
-            else
-                f << "-1 ";
-            }
-        f << ";" << endl;
-        }
-    
-    f << "];" << endl;*/
     }
 
 void NeighborList::resetStats()
@@ -1388,6 +882,10 @@ void NeighborList::buildNlist()
         throw runtime_error("Error updating neighborlist bins");
         }
         
+    // access the nlist data
+    ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
+    
     // simple algorithm follows:
     
     // start by creating a temporary copy of r_cut sqaured
@@ -1403,41 +901,19 @@ void NeighborList::buildNlist()
     
     
     // start by clearing the entire list
-    for (unsigned int i = 0; i < arrays.nparticles; i++)
-        m_list[i].clear();
-        
+    memset(h_n_neigh.data, 0, sizeof(unsigned int)*arrays.nparticles);
+    
     // now we can loop over all particles in n^2 fashion and build the list
-    unsigned int n_neigh = 0;
-#pragma omp parallel for schedule(dynamic, 100) reduction(+:n_neigh)
+#pragma omp parallel for schedule(dynamic, 100)
     for (int i = 0; i < (int)arrays.nparticles; i++)
         {
         Scalar xi = arrays.x[i];
         Scalar yi = arrays.y[i];
         Scalar zi = arrays.z[i];
-        const ExcludeList &excludes = m_exclusions[arrays.tag[i]];
-#if defined(LARGE_EXCLUSION_LIST)
-        const ExcludeList &excludes2 = m_exclusions2[arrays.tag[i]];
-        const ExcludeList &excludes3 = m_exclusions3[arrays.tag[i]];
-        const ExcludeList &excludes4 = m_exclusions4[arrays.tag[i]];
-#endif
         
         // for each other particle with i < j
         for (unsigned int j = i + 1; j < arrays.nparticles; j++)
             {
-            // early out if these are excluded pairs
-            if (excludes.e1 == arrays.tag[j] || excludes.e2 == arrays.tag[j] ||
-                    excludes.e3 == arrays.tag[j] || excludes.e4 == arrays.tag[j])
-                continue;
-#if defined(LARGE_EXCLUSION_LIST)
-            if (excludes2.e1 == arrays.tag[j] || excludes2.e2 == arrays.tag[j] ||
-                    excludes2.e3 == arrays.tag[j] || excludes2.e4 == arrays.tag[j] ||
-                    excludes3.e1 == arrays.tag[j] || excludes3.e2 == arrays.tag[j] ||
-                    excludes3.e3 == arrays.tag[j] || excludes3.e4 == arrays.tag[j] ||
-                    excludes4.e1 == arrays.tag[j] || excludes4.e2 == arrays.tag[j] ||
-                    excludes4.e3 == arrays.tag[j] || excludes4.e4 == arrays.tag[j])
-                continue;
-#endif
-                
             // calculate dr
             Scalar dx = arrays.x[j] - xi;
             Scalar dy = arrays.y[j] - yi;
@@ -1472,15 +948,20 @@ void NeighborList::buildNlist()
                     {
                     #pragma omp critical
                         {
-                        n_neigh += 2;
-                        m_list[i].push_back(j);
-                        m_list[j].push_back(i);
+                        int posi = h_n_neigh.data[i];
+                        h_nlist.data[m_nlist_indexer(i, posi)] = j;
+                        h_n_neigh.data[i]++;
+                        
+                        int posj = h_n_neigh.data[j];
+                        h_nlist.data[m_nlist_indexer(j, posj)] = i;
+                        h_n_neigh.data[j]++;
                         }
                     }
                 else
                     {
-                    n_neigh += 1;
-                    m_list[i].push_back(j);
+                    int pos = h_n_neigh.data[i];
+                    h_nlist.data[m_nlist_indexer(i, pos)] = j;
+                    h_n_neigh.data[i]++;
                     }
                 }
             }
@@ -1488,28 +969,7 @@ void NeighborList::buildNlist()
         
     m_pdata->release();
     
-#ifdef ENABLE_CUDA
-    // after computing, the device now resides on the CPU
-    m_data_location = cpu;
-#endif
-    
-    // upate the profile
-    // the number of evaluations made is the number of pairs which is = N(N-1)/2
-    // each evalutation transfers 3*sizeof(Scalar) bytes for the particle access
-    // and performs approximately 15 FLOPs
-    // there are an additional N * 3 * sizeof(Scalar) accesses for the xj lookup
-    uint64_t N = arrays.nparticles;
-    if (m_prof) m_prof->pop(15*N*(N-1)/2, 3*sizeof(Scalar)*N*(N-1)/2 + N*3*sizeof(Scalar) + uint64_t(n_neigh)*sizeof(unsigned int));
-    }
-
-
-//! helper function for accessing an element of the neighbor list vector: python __getitem__
-/*! \param nlist Neighbor list to extract a column from
-    \param i item to extract
-*/
-const vector<unsigned int> & getNlistList(std::vector< std::vector<unsigned int> >* nlist, unsigned int i)
-    {
-    return (*nlist)[i];
+    if (m_prof) m_prof->pop();
     }
 
 //! helper function for accessing an elemeng of the neighb rlist: python __getitem__
@@ -1523,11 +983,6 @@ unsigned int getNlistItem(std::vector<unsigned int>* list, unsigned int i)
 
 void export_NeighborList()
     {
-    class_< std::vector< std::vector<unsigned int> > >("std_vector_std_vector_uint")
-    .def("__len__", &std::vector< std::vector<unsigned int> >::size)
-    .def("__getitem__", &getNlistList, return_internal_reference<>())
-    ;
-    
     class_< std::vector<unsigned int> >("std_vector_uint")
     .def("__len__", &std::vector<unsigned int>::size)
     .def("__getitem__", &getNlistItem)
@@ -1538,7 +993,6 @@ void export_NeighborList()
                      ("NeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("setRCut", &NeighborList::setRCut)
                      .def("setEvery", &NeighborList::setEvery)
-                     .def("getList", &NeighborList::getList, return_internal_reference<>())
                      .def("setStorageMode", &NeighborList::setStorageMode)
                      .def("addExclusion", &NeighborList::addExclusion)
                      .def("clearExclusions", &NeighborList::clearExclusions)
@@ -1557,8 +1011,3 @@ void export_NeighborList()
     .value("full", NeighborList::full)
     ;
     }
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-

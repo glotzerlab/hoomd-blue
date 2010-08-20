@@ -43,20 +43,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning( disable : 4103 )
-#endif
-
 #include <boost/shared_ptr.hpp>
 #include <boost/signals.hpp>
 #include <vector>
 
 #include "Compute.h"
-
-#ifdef ENABLE_CUDA
-#include "NeighborList.cuh"
-#endif
+#include "GPUArray.h"
+#include "Index1D.h"
 
 /*! \file NeighborList.h
     \brief Declares the NeighborList class
@@ -66,7 +59,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __NEIGHBORLIST_H__
 
 //! Computes a Neibhorlist from the particles
-/*! Specification: A particle \c i is a neighbor of particle \c j if the distance between
+/*! \b Overview:
+
+    A particle \c i is a neighbor of particle \c j if the distance between
     particle them is less than or equal to \c r_cut. The neighborlist for a given particle
     \c i includes all of these neighbors at a minimum. Other particles particles are included
     in the list: those up to \c r_max which includes a buffer distance so that the neighbor list
@@ -75,18 +70,38 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     There are two ways of storing this information. One is to store only half of the
     neighbors (only those with i < j), and the other is to store all neighbors. There are
     potential tradeoffs between number of computations and memory access complexity for
-    each method. Since the goal of HOOMD is to explore all these possibilities, the
-    NeighborLists will support both of these modes via a switch: setStorageMode();
+    each method. NeighborList supports both of these modes via a switch: setStorageMode();
 
-    In particular, classes such as LJForceCompute can work with
-    either setting, full or half, but they are faster with the half setting. However,
-    LJForceComputeGPU requires that the neighbor list storage mode is set to full.
+    Some classes with either setting, full or half, but they are faster with the half setting. However,
+    others may require that the neighbor list storage mode is set to full.
+    
+    <b>Data access:</b>
+    
+    Up to Nmax neighbors can be stored for each particle. Data is stored in a 2D matrix array in memory. Each element
+    in the matrix stores the index of the neighbor with the highest bits reserved for flags. An indexer for accessing
+    elements can be gotten with getNlistIndexer() and the array itself can be accessed with getNlistArray().
+
+    The number of neighbors for each particle is stored in an auxilliary array accessed with getNNeighArray().
+    
+     - <code>jf = nlist[nlist_indexer(i,n)]</code> is the index of neighbor \a n of particle \a i, where \a n can vary from
+       0 to <code>n_neigh[i] - 1</a>
+    
+    \a jf includes flags in the highest bits. The format and use of these flags are yet to be determined.
+    
+    \b Filtering:
+    
+    By default, a neighbor list includes all particles within a single cutoff distance r_cut. Various filters can be
+    applied to remove unwanted neighbors from the list.
+     - setFilterBody() prevents two particles of the same body from being neighbors
+     - setFilterRcutType() enables individual r_cut values for each pair of particle types
+     - setFilterDiameter() enables slj type diameter filtering (TODO: need to specify exactly what this does)
+    
+    \b Algorithms:
 
     This base class supplys a dumb O(N^2) algorithm for generating this list. It is very
-    slow, but functional. For a more efficient implementation on the CPU, create a
-    BinnedNeighborList, which is a subclass of this class and is used through the
-    same interface documented here. Similarly, BinnedNeighborlistGPU will compute neighbor lists
-    on the GPU.
+    slow, but functional. Derived classes implement O(N) efficient straetegies using the CellList.
+
+    <b>Needs updage check:</b>
 
     When compute() is called, the neighbor list is updated, but only if it needs to be. Checks
     are performed to see if any particle has moved more than half of the buffer distance, and
@@ -94,15 +109,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     steps by calling setEvery(). If the caller wants to forces a full update, forceUpdate()
     can be called before compute() to do so. Note that if the particle data is resorted,
     an update is automatically forced.
-
-    Particles pairs can be excluded from the list by calling addExclusion(). Each particle can
-    exclude up to 4 others from appearing in its list. copyExclusionsFromBonds() adds an
-    exclusion for every bond specified in the ParticleData. \b NOTE: this is a one time thing.
-    Any dynamic bonds added after calling copyExclusionsFromBonds() will not be added to the
-    neighborlist exclusions: this must be done by hand.
-
-    The calculated neighbor list can be read using getList().
-
+    
+    \b Exclusions:
+    
+     TODO: Document new exclusions method
+    
     \ingroup computes
 */
 class NeighborList : public Compute
@@ -114,38 +125,56 @@ class NeighborList : public Compute
             half,   //!< Only neighbors i,j are stored where i < j
             full    //!< All neighbors are stored
             };
-#if !defined(LARGE_EXCLUSION_LIST)
-        static const unsigned int MAX_NUM_EXCLUDED = 4;  //!< Maximum number of allowed exclusions per atom
-#else
-        static const unsigned int MAX_NUM_EXCLUDED = 16; //!< Maximum number of allowed exclusions per atom
-#endif
-        static const unsigned int EXCLUDE_EMPTY = 0xffffffff; //!< Signifies this element of the exclude list is empty
-        //! Simple data structure for storing excluded tags
-        /*! We only need to exclude up to 4 beads for typical molecular systems with bonds only, or bonds
-            and angles, if the molecules are linear. For regular systems with angles, dihedrals and/or impropers,
-            HOOMD needs to be recompiled with -DLARGE_EXCLUSION_LIST. NOTE: this is a temporary hack until
-            neighbor lists and exclusions are re-implemented to handle this in a better way.
-            Initialized to empty for all elements. Empty is defined to be the maximum sized unsigned int.
-            Since it isn't likely we will be performing 4 billion pariticle sims anytime soon, this is OK.
         
-            \note The elements of this list are particle TAGS, not indices into the particle array. This is done
-                to support particle list reordering.
-        */
-        struct ExcludeList
-            {
-            //! Constructs an empty ExcludeList
-            ExcludeList() : e1(EXCLUDE_EMPTY), e2(EXCLUDE_EMPTY), e3(EXCLUDE_EMPTY), e4(EXCLUDE_EMPTY) {}
-            unsigned int e1; //!< Exclusion tag 1
-            unsigned int e2; //!< Exclusion tag 2
-            unsigned int e3; //!< Exclusion tag 3
-            unsigned int e4; //!< Exclusion tag 4
-            };
-            
         //! Constructs the compute
         NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff);
         
         //! Destructor
         virtual ~NeighborList();
+        
+        //! \name Set parameters
+        // @{
+        
+        //! Change the cuttoff radius
+        void setRCut(Scalar r_cut, Scalar r_buff);
+        
+        //! Change how many timesteps before checking to see if the list should be rebuilt
+        /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
+                   to require a neighbor list upate.
+        */
+        void setEvery(unsigned int every)
+            {
+            m_every = every;
+            forceUpdate();
+            }
+        
+        //! Set the storage mode
+        /*! \param mode Storage mode to set
+            - half only stores neighbors where i < j
+            - full stores all neighbors
+
+            The neighborlist is not immediately updated to reflect this change. It will take effect
+            when compute is called for the next timestep.
+        */
+        void setStorageMode(storageMode mode)
+            {
+            m_storage_mode = mode;
+            forceUpdate();
+            }
+        
+        // @}
+        //! \name Get properties
+        // @{
+        
+        //! Get the storage mode
+        storageMode getStorageMode()
+            {
+            return m_storage_mode;
+            }
+        
+        // @}
+        //! \name Statistics
+        // @{
         
         //! Print statistics on the neighborlist
         virtual void printStats();
@@ -153,35 +182,35 @@ class NeighborList : public Compute
         //! Clear the count of updates the neighborlist has performed
         virtual void resetStats();
         
-        //! Computes the NeighborList if it needs updating
-        void compute(unsigned int timestep);
+        // @}
+        //! \name Get data
+        // @{
         
-        //! Benchmark the neighbor list
-        virtual double benchmark(unsigned int num_iters);
-        
-        //! Change the cuttoff radius
-        void setRCut(Scalar r_cut, Scalar r_buff);
-        
-        //! Change how many timesteps before checking to see if the list should be rebuilt
-        void setEvery(unsigned int every);
-        
-        //! Access the calculated neighbor list on the CPU
-        virtual const std::vector< std::vector<unsigned int> >& getList();
-        
-#ifdef ENABLE_CUDA
-        //! Acquire the list on the GPU
-        gpu_nlist_array& getListGPU();
-#endif
-        
-        //! Set the storage mode
-        void setStorageMode(storageMode mode);
-        
-        //! Get the storage mode
-        storageMode getStorageMode()
+        //! Get the number of neighbors array
+        const GPUArray<unsigned int>& getNNeighArray()
             {
-            return m_storage_mode;
+            return m_n_neigh;
             }
-            
+        
+        //! Get the neighbor list
+        const GPUArray<unsigned int>& getNListArray()
+            {
+            return m_nlist;
+            }
+        
+        //! Get the neighbor list indexer
+        const Index2D& getNlistIndexer()
+            {
+            return m_nlist_indexer;
+            }
+        
+        //! Gives an estimate of the number of nearest neighbors per particle
+        virtual Scalar estimateNNeigh();
+        
+        // @}
+        //! \name Handle exclusions
+        // @{
+        
         //! Exclude a pair of particles from being added to the neighbor list
         void addExclusion(unsigned int tag1, unsigned int tag2);
         
@@ -209,61 +238,33 @@ class NeighborList : public Compute
         //! Add an exclusion for every 1,4 pair
         void addOneFourExclusionsFromTopology();
         
+        // @}
+        
+        //! Computes the NeighborList if it needs updating
+        void compute(unsigned int timestep);
+        
+        //! Benchmark the neighbor list
+        virtual double benchmark(unsigned int num_iters);
+        
         //! Forces a full update of the list on the next call to compute()
         void forceUpdate()
             {
             m_force_update = true;
             }
             
-        //! Gives an estimate of the number of nearest neighbors per particle
-        virtual Scalar estimateNNeigh();
-        
     protected:
         Scalar m_r_cut; //!< The cuttoff radius
         Scalar m_r_buff; //!< The buffer around the cuttoff
         
-        std::vector< std::vector<unsigned int> > m_list; //!< The neighbor list itself
         storageMode m_storage_mode; //!< The storage mode
         
+        Index2D m_nlist_indexer;            //!< Indexer for accessing the neighbor list
+        GPUArray<unsigned int> m_nlist;     //!< Neighbor list data
+        GPUArray<unsigned int> m_n_neigh;   //!< Number of neighbors for each particle
+        GPUArray<Scalar4> m_last_pos;       //!< coordinates of last updated particle positions
+        unsigned int m_Nmax;                //!< Maximum number of neighbors that can be held in m_nlist
+        
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        
-        std::vector< ExcludeList > m_exclusions; //!< Stores particle exclusion lists BY TAG
-#if defined(LARGE_EXCLUSION_LIST)
-        std::vector< ExcludeList > m_exclusions2; //!< Stores particle exclusion lists BY TAG
-        std::vector< ExcludeList > m_exclusions3; //!< Stores particle exclusion lists BY TAG
-        std::vector< ExcludeList > m_exclusions4; //!< Stores particle exclusion lists BY TAG
-#endif
-#ifdef ENABLE_CUDA
-        //! Simple type for identifying where the most up to date particle data is
-        enum DataLocation
-            {
-            cpu,    //!< Particle data was last modified on the CPU
-            cpugpu, //!< CPU and GPU contain identical data
-            gpu     //!< Particle data was last modified on the GPU
-            };
-            
-        DataLocation m_data_location;           //!< Where the neighborlist data currently lives
-        gpu_nlist_array m_gpu_nlist;            //!< Stores pointers and dimensions of GPU data structures
-        unsigned int *m_host_nlist;             //!< Stores a temporary copy of the neighbor list on the host
-        unsigned int *m_host_n_neigh;           //!< Stores a temporary count of the number of neighbors on the host
-        uint4 *m_host_exclusions;               //!< Stores a translated copy of the excluded particles on the host
-#if defined(LARGE_EXCLUSION_LIST)
-        uint4 *m_host_exclusions2;              //!< Stores a translated copy of the excluded particles on the host
-        uint4 *m_host_exclusions3;              //!< Stores a translated copy of the excluded particles on the host
-        uint4 *m_host_exclusions4;              //!< Stores a translated copy of the excluded particles on the host
-#endif
-        
-        //! Helper function to move data from the host to the device
-        void hostToDeviceCopy();
-        //! Helper function to move data from the device to the host
-        void deviceToHostCopy();
-        //! Helper function to update the exclusion data on the device
-        void updateExclusionData();
-        //! Helper function to allocate data
-        void allocateGPUData(int height);
-        //! Helper function to free data
-        void freeGPUData();
-#endif
         
         //! Performs the distance check
         virtual bool distanceCheck();
@@ -275,30 +276,19 @@ class NeighborList : public Compute
         virtual void buildNlist();
         
     private:
-        int64_t m_updates;          //!< Number of times the neighbor list has been updated
-        int64_t m_forced_updates;   //!< Number of times the neighbor list has been foribly updated
+        int64_t m_updates;              //!< Number of times the neighbor list has been updated
+        int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
         int64_t m_dangerous_updates;    //!< Number of dangerous builds counted
-        
-        bool m_force_update;    //!< Flag to handle the forcing of neighborlist updates
+        bool m_force_update;            //!< Flag to handle the forcing of neighborlist updates
         
         unsigned int m_last_updated_tstep; //!< Track the last time step we were updated
         unsigned int m_every; //!< No update checks will be performed until m_every steps after the last one
         
-        Scalar *m_last_x;       //!< x coordinates of last updated particle positions
-        Scalar *m_last_y;       //!< y coordinates of last updated particle positions
-        Scalar *m_last_z;       //!< z coordinates of last updated particle positions
-        
         //! Test if the list needs updating
         bool needsUpdating(unsigned int timestep);
-        
     };
 
 //! Exports NeighborList to python
 void export_NeighborList();
 
 #endif
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
-
