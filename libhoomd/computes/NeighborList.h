@@ -84,7 +84,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     The number of neighbors for each particle is stored in an auxilliary array accessed with getNNeighArray().
     
      - <code>jf = nlist[nlist_indexer(i,n)]</code> is the index of neighbor \a n of particle \a i, where \a n can vary from
-       0 to <code>n_neigh[i] - 1</a>
+       0 to <code>n_neigh[i] - 1</code>
     
     \a jf includes flags in the highest bits. The format and use of these flags are yet to be determined.
     
