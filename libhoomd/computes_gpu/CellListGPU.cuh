@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for cell list generation on the GPU
 */
 
-//! Kernel driver for the the first step of the computation called by NPTUpdaterGPU
+//! Kernel driver for the the first step of the computation called by CellListGPU
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
