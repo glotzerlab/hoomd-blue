@@ -62,13 +62,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __POTENTIAL_PAIR_GPU_CUH__
 #define __POTENTIAL_PAIR_GPU_CUH__
 
-//! args struct for passing additional options to gpu_compute_pair_forces
-struct pair_args
-    {
-    int block_size;         //!< block size to execute on
-    unsigned int shift_mode;//!< Shift mode for pair energy
-    };
-
 #ifdef NVCC
 //! Texture for reading particle positions
 texture<float4, 1, cudaReadModeElementType> pdata_pos_tex;
@@ -86,7 +79,9 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
     \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param d_ronsq ron squared, stored per type pair
@@ -109,13 +104,15 @@ texture<float, 1, cudaReadModeElementType> pdata_charge_tex;
 */
 template< class evaluator, unsigned int shift_mode >
 __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
-                                               gpu_pdata_arrays pdata,
-                                               gpu_boxsize box,
-                                               gpu_nlist_array nlist,
-                                               typename evaluator::param_type *d_params,
-                                               float *d_rcutsq,
-                                               float *d_ronsq,
-                                               int ntypes)
+                                               const gpu_pdata_arrays pdata,
+                                               const gpu_boxsize box,
+                                               const unsigned int *d_n_neigh,
+                                               const unsigned int *d_nlist,
+                                               const Index2D nli,
+                                               const typename evaluator::param_type *d_params,
+                                               const float *d_rcutsq,
+                                               const float *d_ronsq,
+                                               const unsigned int ntypes)
     {
     Index2D typpair_idx(ntypes);
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
@@ -147,7 +144,7 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
         return;
         
     // load in the length of the neighbor list (MEM_TRANSFER: 4 bytes)
-    unsigned int n_neigh = nlist.n_neigh[idx];
+    unsigned int n_neigh = d_n_neigh[idx];
     
     // read in the position of our particle. Texture reads of float4's are faster than global reads on compute 1.0 hardware
     // (MEM TRANSFER: 16 bytes)
@@ -171,14 +168,14 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
     
     // prefetch neighbor index
     unsigned int cur_j = 0;
-    unsigned int next_j = nlist.list[idx];
+    unsigned int next_j = d_nlist[nli(idx, 0)];
     
     // loop over neighbors
     // on pre Fermi hardware, there is a bug that causes rare and random ULFs when simply looping over n_neigh
     // the workaround (activated via the template paramter) is to loop over nlist.height and put an if (i < n_neigh)
     // inside the loop
     #if (__CUDA_ARCH__ < 200)
-    for (int neigh_idx = 0; neigh_idx < nlist.height; neigh_idx++)
+    for (int neigh_idx = 0; neigh_idx < nli.getH(); neigh_idx++)
     #else
     for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
     #endif
@@ -190,7 +187,7 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
             // read the current neighbor index (MEM TRANSFER: 4 bytes)
             // prefetch the next value and set the current one
             cur_j = next_j;
-            next_j = nlist.list[nlist.pitch*(neigh_idx+1) + idx];
+            next_j = d_nlist[nli(idx, neigh_idx+1)];
             
             // get the neighbor's position (MEM TRANSFER: 16 bytes)
             float4 posj = tex1Dfetch(pdata_pos_tex, cur_j);
@@ -305,12 +302,15 @@ __global__ void gpu_compute_pair_forces_kernel(gpu_force_data_arrays force_data,
 /*! \param force_data Device memory array to write calculated forces to
     \param pdata Particle data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
-    \param nlist Neigbhor list data on the GPU to use to calculate the forces
+    \param d_n_neigh Device memory array listing the number of neighbors for each particle
+    \param d_nlist Device memory array containing the neighbor list contents
+    \param nli Indexer for indexing \a d_nlist
     \param d_params Parameters for the potential, stored per type pair
     \param d_rcutsq rcut squared, stored per type pair
     \param d_ronsq ron squared, stored per type pair
     \param ntypes Number of types in the simulation
-    \param args Additional options
+    \param block_size Block size to execute on the GPU
+    \param shift_mode Energy shift mode to apply to the potential calculation
     
     This is just a driver function for gpu_compute_pair_forces_kernel(), see it for details.
 */
@@ -318,12 +318,15 @@ template< class evaluator >
 cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
                                     const gpu_pdata_arrays &pdata,
                                     const gpu_boxsize &box,
-                                    const gpu_nlist_array &nlist,
-                                    typename evaluator::param_type *d_params,
-                                    float *d_rcutsq,
-                                    float *d_ronsq,
-                                    int ntypes,
-                                    const pair_args& args)
+                                    const unsigned int *d_n_neigh,
+                                    const unsigned int *d_nlist,
+                                    const Index2D& nli,
+                                    const typename evaluator::param_type *d_params,
+                                    const float *d_rcutsq,
+                                    const float *d_ronsq,
+                                    const int ntypes,
+                                    const unsigned int block_size,
+                                    const unsigned int shift_mode)
     {
     assert(d_params);
     assert(d_rcutsq);
@@ -331,8 +334,8 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
     assert(ntypes > 0);
     
     // setup the grid to run the kernel
-    dim3 grid( pdata.N / args.block_size + 1, 1, 1);
-    dim3 threads(args.block_size, 1, 1);
+    dim3 grid( pdata.N / block_size + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
     
     // bind the position texture
     pdata_pos_tex.normalized = false;
@@ -359,19 +362,19 @@ cudaError_t gpu_compute_pair_forces(const gpu_force_data_arrays& force_data,
                                 * typpair_idx.getNumElements();
     
     // run the kernel
-    switch (args.shift_mode)
+    switch (shift_mode)
         {
         case 0:
             gpu_compute_pair_forces_kernel<evaluator, 0>
-              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
+              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
             break;
         case 1:
             gpu_compute_pair_forces_kernel<evaluator, 1>
-              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
+              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
             break;
         case 2:
             gpu_compute_pair_forces_kernel<evaluator, 2>
-              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, nlist, d_params, d_rcutsq, d_ronsq, ntypes);
+              <<<grid, threads, shared_bytes>>>(force_data, pdata, box, d_n_neigh, d_nlist, nli, d_params, d_rcutsq, d_ronsq, ntypes);
             break;
         default:
             return cudaErrorUnknown;
