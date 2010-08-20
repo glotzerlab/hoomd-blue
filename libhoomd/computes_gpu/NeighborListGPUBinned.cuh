@@ -59,6 +59,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel driver for the the first step of the computation called by CellListGPU
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
+                                     float4 *d_last_updated_pos,
                                      const Index2D& nli,
                                      const float4 *d_pos,
                                      const unsigned int N,
@@ -73,5 +74,8 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const gpu_boxsize& box,
                                      const float r_maxsq,
                                      const unsigned int block_size);
+
+//! Sets up parameters for the kernel call
+cudaError_t gpu_setup_compute_nlist_binned();
 
 #endif

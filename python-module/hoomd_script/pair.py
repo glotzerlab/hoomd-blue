@@ -332,8 +332,11 @@ class nlist:
                 raise RuntimeError("Error creating neighbor list");
         else:
             if mode == "binned":
-                self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
-                self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
+                #self.cpp_nlist = hoomd.BinnedNeighborListGPU(globals.system_definition, r_cut, default_r_buff)
+                #self.cpp_nlist.setBlockSize(tune._get_optimal_block_size('nlist'));
+                cl_g = hoomd.CellListGPU(globals.system_definition);
+                globals.system.addCompute(cl_g, "auto_cl")
+                self.cpp_nlist = hoomd.NeighborListGPUBinned(globals.system_definition, r_cut, default_r_buff, cl_g)
             elif mode == "nsq":
                 self.cpp_nlist = hoomd.NeighborListNsqGPU(globals.system_definition, r_cut, default_r_buff)
             else:

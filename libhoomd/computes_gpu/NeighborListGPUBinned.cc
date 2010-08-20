@@ -63,6 +63,9 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     m_cl->setRadius(1);
     m_cl->setComputeTDB(false);
     m_cl->setFlagIndex();
+
+    gpu_setup_compute_nlist_binned();
+    CHECK_CUDA_ERROR();
     
     // default to full mode
     m_storage_mode = full;
@@ -105,9 +108,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
 
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
 
     gpu_compute_nlist_binned(d_nlist.data,
                              d_n_neigh.data,
+                             d_last_pos.data,
                              m_nlist_indexer,
                              d_pdata.pos,
                              m_pdata->getN(),
@@ -121,7 +126,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                              m_cl->getDim(),
                              box,
                              (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
-                             256);
+                             96);
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();

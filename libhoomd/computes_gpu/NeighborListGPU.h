@@ -63,12 +63,21 @@ class NeighborListGPU : public NeighborList
         NeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
+            GPUArray<unsigned int> flags(1, exec_conf);
+            m_flags.swap(flags);
             }
         
         //! Destructor
         virtual ~NeighborListGPU()
             {
             }
+
+    protected:
+        GPUArray<unsigned int> m_flags;     //!< Storage for device flags on the GPU
+
+        virtual bool distanceCheck();
+        //! GPU nlists set their last updated pos in the compute kernel, this call does nothing
+        virtual void setLastUpdatedPos() { }
     };
 
 //! Exports NeighborListGPU to python

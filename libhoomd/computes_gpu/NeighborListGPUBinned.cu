@@ -54,6 +54,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
+                                                    float4 *d_last_updated_pos,
                                                     const Index2D nli,
                                                     const float4 *d_pos,
                                                     const unsigned int N,
@@ -136,10 +137,12 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
         }
     
     d_n_neigh[my_pidx] = n_neigh;
+    d_last_updated_pos[my_pidx] = my_pos;
     }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
+                                     float4 *d_last_updated_pos,
                                      const Index2D& nli,
                                      const float4 *d_pos,
                                      const unsigned int N,
@@ -159,6 +162,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
     
     gpu_compute_nlist_binned_new_kernel<<<n_blocks, block_size>>>(d_nlist,
                                                                   d_n_neigh,
+                                                                  d_last_updated_pos,
                                                                   nli,
                                                                   d_pos,
                                                                   N,
@@ -174,4 +178,9 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                   r_maxsq);
     
     return cudaSuccess;
+    }
+
+cudaError_t gpu_setup_compute_nlist_binned()
+    {
+    return cudaFuncSetCacheConfig(gpu_compute_nlist_binned_new_kernel, cudaFuncCachePreferL1);
     }
