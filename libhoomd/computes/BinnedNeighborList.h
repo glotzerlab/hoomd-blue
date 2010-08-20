@@ -90,7 +90,7 @@ class BinnedNeighborList : public NeighborList
         void updateListFromBins();
         
         //! Builds the neighbor list
-        virtual void buildNlist();
+        virtual void buildNlist(unsigned int timestep);
         
     };
 

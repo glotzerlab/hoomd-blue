@@ -75,7 +75,7 @@ class NeighborListNsqGPU : public NeighborList
         
     private:
         //! Builds the neighbor list
-        virtual void buildNlist();
+        virtual void buildNlist(unsigned int timestep);
         
         //! Attempts to builds the neighbor list
         virtual void buildNlistAttempt();

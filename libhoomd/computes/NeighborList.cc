@@ -133,7 +133,7 @@ void NeighborList::compute(unsigned int timestep)
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
-        buildNlist();
+        buildNlist(timestep);
         setLastUpdatedPos();
         }
         
@@ -151,7 +151,7 @@ double NeighborList::benchmark(unsigned int num_iters)
     // warm up run
     forceUpdate();
     compute(0);
-    buildNlist();
+    buildNlist(0);
     
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
@@ -164,7 +164,7 @@ double NeighborList::benchmark(unsigned int num_iters)
     // benchmark
     uint64_t start_time = t.getTime();
     for (unsigned int i = 0; i < num_iters; i++)
-        buildNlist();
+        buildNlist(0);
         
 #ifdef ENABLE_CUDA
     if (exec_conf->isCUDAEnabled())
@@ -867,7 +867,7 @@ void NeighborList::resetStats()
     \c r_cut \c + \c r_buff from particle \c i, includes either i < j or all neighbors depending
     on the mode set by setStorageMode()
 */
-void NeighborList::buildNlist()
+void NeighborList::buildNlist(unsigned int timestep)
     {
     // sanity check
     assert(m_pdata);

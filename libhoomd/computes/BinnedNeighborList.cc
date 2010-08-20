@@ -85,7 +85,7 @@ BinnedNeighborList::BinnedNeighborList(boost::shared_ptr<SystemDefinition> sysde
         - Updating the bins
         - Using the bins to update the neighbor list
 */
-void BinnedNeighborList::buildNlist()
+void BinnedNeighborList::buildNlist(unsigned int timestep)
     {
     updateBins();
     updateListFromBins();

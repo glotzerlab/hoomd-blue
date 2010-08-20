@@ -136,7 +136,7 @@ class NeighborList : public Compute
         // @{
         
         //! Change the cuttoff radius
-        void setRCut(Scalar r_cut, Scalar r_buff);
+        virtual void setRCut(Scalar r_cut, Scalar r_buff);
         
         //! Change how many timesteps before checking to see if the list should be rebuilt
         /*! \param every Number of time steps to wait before beignning to check if particles have moved a sufficient distance
@@ -276,7 +276,7 @@ class NeighborList : public Compute
         virtual void setLastUpdatedPos();
         
         //! Builds the neighbor list
-        virtual void buildNlist();
+        virtual void buildNlist(unsigned int timestep);
         
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated

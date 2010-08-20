@@ -92,7 +92,7 @@ NeighborListNsqGPU::~NeighborListNsqGPU()
     This requires attempting to build the list repeatedly, increasing the allocated
     memory each time until the list does not overflow.
 */
-void NeighborListNsqGPU::buildNlist()
+void NeighborListNsqGPU::buildNlist(unsigned int timestep)
     {
     buildNlistAttempt();
     
@@ -107,7 +107,7 @@ void NeighborListNsqGPU::buildNlist()
 //        allocateGPUData(new_height);
 //        updateExclusionData();
         
-        buildNlist();
+        buildNlist(timestep);
 //        cudaMemcpy(&overflow, m_gpu_nlist.overflow, sizeof(int), cudaMemcpyDeviceToHost);
         }
     

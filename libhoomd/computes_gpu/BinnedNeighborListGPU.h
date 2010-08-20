@@ -117,7 +117,7 @@ class BinnedNeighborListGPU : public NeighborList
         GPUArray< unsigned int> m_bin_ids;          //!< Bin ID of each particle computed on the GPU
         
         //! Builds the neighbor list
-        virtual void buildNlist();
+        virtual void buildNlist(unsigned int timestep);
         
         //! Puts the particles into their bins
         void updateBinsUnsorted();

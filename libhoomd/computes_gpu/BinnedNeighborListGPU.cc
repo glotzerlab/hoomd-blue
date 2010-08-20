@@ -279,7 +279,7 @@ void BinnedNeighborListGPU::freeGPUBinData()
     attempting to build the list repeatedly, increasing the allocated
     memory each time until the list does not overflow.
 */
-void BinnedNeighborListGPU::buildNlist()
+void BinnedNeighborListGPU::buildNlist(unsigned int timestep)
     {
     assert(exec_conf->isCUDAEnabled());
     
