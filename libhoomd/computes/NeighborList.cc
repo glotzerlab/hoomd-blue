@@ -94,7 +94,16 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // initialize values
     m_last_updated_tstep = 0;
     m_every = 0;
-    m_Nmax = 1;
+    m_Nmax = 256;
+    
+    // allocate m_n_neigh and m_last_pos
+    GPUArray<unsigned int> n_neigh(m_pdata->getN(), exec_conf);
+    m_n_neigh.swap(n_neigh);
+    GPUArray<Scalar4> last_pos(m_pdata->getN(), exec_conf);
+    m_last_pos.swap(last_pos);
+    
+    // allocate nlist array
+    allocateNlist();
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
     }
@@ -970,6 +979,16 @@ void NeighborList::buildNlist()
     m_pdata->release();
     
     if (m_prof) m_prof->pop();
+    }
+
+void NeighborList::allocateNlist()
+    {
+    // allocate the memory
+    GPUArray<unsigned int> nlist(m_pdata->getN(), m_Nmax+1, exec_conf);
+    m_nlist.swap(nlist);
+    
+    // update the indexer
+    m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
     }
 
 //! helper function for accessing an elemeng of the neighb rlist: python __getitem__
