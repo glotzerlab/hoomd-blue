@@ -44,13 +44,97 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Maintainer: joaander
 
 #include "NeighborListGPUBinned.h"
+#include "NeighborListGPUBinned.cuh"
 
 #include <boost/python.hpp>
 using namespace boost::python;
 
+NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
+                                             Scalar r_cut,
+                                             Scalar r_buff,
+                                             boost::shared_ptr<CellList> cl)
+            : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl)
+    {
+    // create a default cell list if one was not specified
+    if (!m_cl)
+        m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+    
+    m_cl->setNominalWidth(r_cut + r_buff);
+    m_cl->setRadius(1);
+    m_cl->setComputeTDB(false);
+    m_cl->setFlagIndex();
+    
+    // default to full mode
+    m_storage_mode = full;
+    }
+
+void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
+    {
+    NeighborListGPU::setRCut(r_cut, r_buff);
+    
+    m_cl->setNominalWidth(r_cut + r_buff);
+    }
+
+void NeighborListGPUBinned::buildNlist(unsigned int timestep)
+    {
+    if (m_storage_mode != full)
+        {
+        cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
+        throw runtime_error("Error computing neighbor list");
+        }
+
+    m_cl->compute(timestep);
+
+    if (m_prof)
+        m_prof->push(exec_conf, "compute");
+
+    // precompute scale factor
+    Scalar3 width = m_cl->getWidth();
+    Scalar3 scale = make_scalar3(Scalar(1.0) / width.x,
+                                 Scalar(1.0) / width.y,
+                                 Scalar(1.0) / width.z);
+    
+    // acquire the particle data
+    gpu_pdata_arrays& d_pdata = m_pdata->acquireReadOnlyGPU();
+    gpu_boxsize box = m_pdata->getBoxGPU();
+    
+    // access the cell list data arrays
+    ArrayHandle<unsigned int> d_cell_size(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_cell_xyzf(m_cl->getXYZFArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_cell_adj(m_cl->getCellAdjArray(), access_location::device, access_mode::read);
+
+    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
+
+    gpu_compute_nlist_binned(d_nlist.data,
+                             d_n_neigh.data,
+                             m_nlist_indexer,
+                             d_pdata.pos,
+                             m_pdata->getN(),
+                             d_cell_size.data,
+                             d_cell_xyzf.data,
+                             d_cell_adj.data,
+                             m_cl->getCellIndexer(),
+                             m_cl->getCellListIndexer(),
+                             m_cl->getCellAdjIndexer(),
+                             scale,
+                             m_cl->getDim(),
+                             box,
+                             (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
+                             256);
+
+    if (exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_pdata->release();
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
+
 void export_NeighborListGPUBinned()
     {
     class_<NeighborListGPUBinned, boost::shared_ptr<NeighborListGPUBinned>, bases<NeighborListGPU>, boost::noncopyable >
-                     ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+                     ("NeighborListGPUBinned", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList> >())
                      ;
     }

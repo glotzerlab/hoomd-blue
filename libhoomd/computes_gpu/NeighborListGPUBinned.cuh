@@ -43,42 +43,35 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // $URL$
 // Maintainer: joaander
 
-#include "NeighborListGPU.h"
-#include "CellList.h"
+#ifndef __NEIGHBORLOSTGPUBINNED_CUH__
+#define __NEIGHBORLOSTGPUBINNED_CUH__
 
-/*! \file NeighborListGPUBinned.h
-    \brief Declares the NeighborListGPUBinned class
+#include <cuda_runtime.h>
+
+#include "HOOMDMath.h"
+#include "Index1D.h"
+#include "ParticleData.cuh"
+
+/*! \file NeighborListGPUBinned.cuh
+    \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
-#ifndef __NEIGHBORLISTGPUBINNED_H__
-#define __NEIGHBORLISTGPUBINNED_H__
-
-//! Neighbor list build on the GPU
-/*! Implements the O(N) neighbor list build on the GPU using a cell list.
-*/
-class NeighborListGPUBinned : public NeighborListGPU
-    {
-    public:
-        //! Constructs the compute
-        NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
-                              Scalar r_cut,
-                              Scalar r_buff,
-                              boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
-        
-        //! Destructor
-        virtual ~NeighborListGPUBinned() { }
-        
-        //! Change the cuttoff radius
-        virtual void setRCut(Scalar r_cut, Scalar r_buff);
-    
-        //! Builds the neighbor list
-        virtual void buildNlist(unsigned int timestep);
-    
-    protected:
-        boost::shared_ptr<CellList> m_cl;
-    };
-
-//! Exports NeighborListGPUBinned to python
-void export_NeighborListGPUBinned();
+//! Kernel driver for the the first step of the computation called by CellListGPU
+cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
+                                     unsigned int *d_n_neigh,
+                                     const Index2D& nli,
+                                     const float4 *d_pos,
+                                     const unsigned int N,
+                                     const unsigned int *d_cell_size,
+                                     const float4 *d_cell_xyzf,
+                                     const unsigned int *d_cell_adj,
+                                     const Index3D& ci,
+                                     const Index2D& cli,
+                                     const Index2D& cadji,
+                                     const float3& cell_scale,
+                                     const uint3& cell_dim,
+                                     const gpu_boxsize& box,
+                                     const float r_maxsq,
+                                     const unsigned int block_size);
 
 #endif
