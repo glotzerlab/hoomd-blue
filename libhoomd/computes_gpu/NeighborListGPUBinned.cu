@@ -52,21 +52,21 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //! Kernel call for generating neighbor list on the GPU
 /*! \note optimized for Fermi
 */
-__global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
-                                                unsigned int *d_n_neigh,
-                                                const Index2D nli,
-                                                const float4 *d_pos,
-                                                const unsigned int N,
-                                                const unsigned int *d_cell_size,
-                                                const float4 *d_cell_xyzf,
-                                                const unsigned int *d_cell_adj,
-                                                const Index3D ci,
-                                                const Index2D cli,
-                                                const Index2D cadji,
-                                                const float3 cell_scale,
-                                                const uint3 cell_dim,
-                                                const gpu_boxsize box,
-                                                const float r_maxsq)
+__global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
+                                                    unsigned int *d_n_neigh,
+                                                    const Index2D nli,
+                                                    const float4 *d_pos,
+                                                    const unsigned int N,
+                                                    const unsigned int *d_cell_size,
+                                                    const float4 *d_cell_xyzf,
+                                                    const unsigned int *d_cell_adj,
+                                                    const Index3D ci,
+                                                    const Index2D cli,
+                                                    const Index2D cadji,
+                                                    const float3 cell_scale,
+                                                    const uint3 cell_dim,
+                                                    const gpu_boxsize box,
+                                                    const float r_maxsq)
     {
     // each thread is going to compute the neighbor list for a single particle
     int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -157,21 +157,21 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
     
-    gpu_compute_nlist_binned_kernel<<<n_blocks, block_size>>>(d_nlist,
-                                                              d_n_neigh,
-                                                              nli,
-                                                              d_pos,
-                                                              N,
-                                                              d_cell_size,
-                                                              d_cell_xyzf,
-                                                              d_cell_adj,
-                                                              ci,
-                                                              cli,
-                                                              cadji,
-                                                              cell_scale,
-                                                              cell_dim,
-                                                              box,
-                                                              r_maxsq);
+    gpu_compute_nlist_binned_new_kernel<<<n_blocks, block_size>>>(d_nlist,
+                                                                  d_n_neigh,
+                                                                  nli,
+                                                                  d_pos,
+                                                                  N,
+                                                                  d_cell_size,
+                                                                  d_cell_xyzf,
+                                                                  d_cell_adj,
+                                                                  ci,
+                                                                  cli,
+                                                                  cadji,
+                                                                  cell_scale,
+                                                                  cell_dim,
+                                                                  box,
+                                                                  r_maxsq);
     
     return cudaSuccess;
     }
