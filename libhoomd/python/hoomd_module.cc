@@ -114,6 +114,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNVTGPU.h"
 #include "TwoStepBDNVTGPU.h"
 #include "TwoStepNPTGPU.h"
+#include "NeighborListGPU.h"
+#include "NeighborListGPUBinned.h"
 #include "BinnedNeighborListGPU.h"
 #include "NeighborListNsqGPU.h"
 #include "CGCMMForceComputeGPU.h"
@@ -399,6 +401,8 @@ BOOST_PYTHON_MODULE(hoomd)
     export_ConstraintSphere();
 #ifdef ENABLE_CUDA
     export_CellListGPU();
+    export_NeighborListGPU();
+    export_NeighborListGPUBinned();
     export_BinnedNeighborListGPU();
     export_NeighborListNsqGPU();
     export_CGCMMForceComputeGPU();
