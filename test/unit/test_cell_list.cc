@@ -454,6 +454,10 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
     cl->setComputeTDB(true);
     cl->compute(0);
 
+    // update the indexers
+    ci = cl->getCellIndexer();
+    cli = cl->getCellListIndexer();
+
     BOOST_REQUIRE_EQUAL_UINT(cl->getTDBArray().getNumElements(), 3*5*7*cl->getNmax());
 
         {
