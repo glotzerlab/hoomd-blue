@@ -114,6 +114,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     
      TODO: Document new exclusions method
     
+    <b>Overvlow handling:</b>
+    For easy support of derived GPU classes to implement overvlow detectio the overflow condition is storeed in the
+    GPUArray \a d_conditions.
+    
+     - 0: Maximum nlist size (implementations are free to write to this element only in overflow conditions if they
+          choose.)
+     - Further indices may be added to handle other conditions at a later time.
+
+    Condition flags are to be set during the buildNlist() call and will be checked by compute() which will then 
+    take the appropriate action.
+    
     \ingroup computes
 */
 class NeighborList : public Compute
@@ -261,12 +272,13 @@ class NeighborList : public Compute
         
         storageMode m_storage_mode; //!< The storage mode
         
-        Index2D m_nlist_indexer;            //!< Indexer for accessing the neighbor list
-        GPUArray<unsigned int> m_nlist;     //!< Neighbor list data
-        GPUArray<unsigned int> m_n_neigh;   //!< Number of neighbors for each particle
-        GPUArray<Scalar4> m_last_pos;       //!< coordinates of last updated particle positions
-        unsigned int m_Nmax;                //!< Maximum number of neighbors that can be held in m_nlist
-        
+        Index2D m_nlist_indexer;             //!< Indexer for accessing the neighbor list
+        GPUArray<unsigned int> m_nlist;      //!< Neighbor list data
+        GPUArray<unsigned int> m_n_neigh;    //!< Number of neighbors for each particle
+        GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
+        unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
+        GPUArray<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
+
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         
         //! Performs the distance check
@@ -292,6 +304,12 @@ class NeighborList : public Compute
         
         //! Allocate the nlist array
         void allocateNlist();
+        
+        //! Check the status of the conditions
+        bool checkConditions();
+
+        //! Resets the condition status
+        void resetConditions();
     };
 
 //! Exports NeighborList to python

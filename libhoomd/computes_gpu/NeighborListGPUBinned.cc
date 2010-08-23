@@ -109,10 +109,12 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
     gpu_compute_nlist_binned(d_nlist.data,
                              d_n_neigh.data,
                              d_last_pos.data,
+                             d_conditions.data,
                              m_nlist_indexer,
                              d_pdata.pos,
                              m_pdata->getN(),

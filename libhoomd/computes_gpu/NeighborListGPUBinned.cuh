@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      float4 *d_last_updated_pos,
+                                     unsigned int *d_conditions,
                                      const Index2D& nli,
                                      const float4 *d_pos,
                                      const unsigned int N,

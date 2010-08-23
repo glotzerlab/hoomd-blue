@@ -94,13 +94,17 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     // initialize values
     m_last_updated_tstep = 0;
     m_every = 0;
-    m_Nmax = 256;
+    m_Nmax = 0;
     
     // allocate m_n_neigh and m_last_pos
     GPUArray<unsigned int> n_neigh(m_pdata->getN(), exec_conf);
     m_n_neigh.swap(n_neigh);
     GPUArray<Scalar4> last_pos(m_pdata->getN(), exec_conf);
     m_last_pos.swap(last_pos);
+    
+    // allocate conditions array
+    GPUArray<unsigned int> conditions(1, exec_conf);
+    m_conditions.swap(conditions);
     
     // allocate nlist array
     allocateNlist();
@@ -133,7 +137,22 @@ void NeighborList::compute(unsigned int timestep)
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
-        buildNlist(timestep);
+        // rebuild the list until there is no overflow
+        bool overflowed = false;
+        do
+            {
+            buildNlist(timestep);
+            
+            overflowed = checkConditions();
+            // if we overflowed, need to reallocate memory and reset the conditions
+            if (overflowed)
+                {
+                allocateNlist();
+                cout << "Notice: neighbor list overflow, allocating " << m_Nmax << " slots per particle" << endl;
+                resetConditions();
+                }
+            } while (overflowed);
+        
         setLastUpdatedPos();
         }
         
@@ -894,6 +913,7 @@ void NeighborList::buildNlist(unsigned int timestep)
     // access the nlist data
     ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
     
     // simple algorithm follows:
     
@@ -957,19 +977,32 @@ void NeighborList::buildNlist(unsigned int timestep)
                     {
                     #pragma omp critical
                         {
-                        int posi = h_n_neigh.data[i];
-                        h_nlist.data[m_nlist_indexer(i, posi)] = j;
+                        unsigned int posi = h_n_neigh.data[i];
+                        if (posi < m_Nmax)
+                            h_nlist.data[m_nlist_indexer(i, posi)] = j;
+                        else
+                            h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[i]+1);
+                        
                         h_n_neigh.data[i]++;
                         
-                        int posj = h_n_neigh.data[j];
-                        h_nlist.data[m_nlist_indexer(j, posj)] = i;
+                        unsigned int posj = h_n_neigh.data[j];
+                        if (posj < m_Nmax)
+                            h_nlist.data[m_nlist_indexer(j, posj)] = i;
+                        else
+                            h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[j]+1);
+
                         h_n_neigh.data[j]++;
                         }
                     }
                 else
                     {
-                    int pos = h_n_neigh.data[i];
-                    h_nlist.data[m_nlist_indexer(i, pos)] = j;
+                    unsigned int pos = h_n_neigh.data[i];
+                    
+                    if (pos < m_Nmax)
+                        h_nlist.data[m_nlist_indexer(i, pos)] = j;
+                    else
+                        h_conditions.data[0] = max(h_conditions.data[0], h_n_neigh.data[i]+1);
+                    
                     h_n_neigh.data[i]++;
                     }
                 }
@@ -983,12 +1016,40 @@ void NeighborList::buildNlist(unsigned int timestep)
 
 void NeighborList::allocateNlist()
     {
+    // the neighbor list might be large, filling the device memory - maybe we should deallocate the old nlist first
+    // freing a gpu array isn't easy ... oh well, wait until a user complains
+    
+    // round up to the nearest multiple of 8
+    m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
+    
     // allocate the memory
     GPUArray<unsigned int> nlist(m_pdata->getN(), m_Nmax+1, exec_conf);
     m_nlist.swap(nlist);
     
     // update the indexer
     m_nlist_indexer = Index2D(m_nlist.getPitch(), m_Nmax);
+    }
+
+bool NeighborList::checkConditions()
+    {
+    bool result = false;
+
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::read);
+
+    // up m_Nmax to the overflow value, reallocate memory and set the overflow condition
+    if (h_conditions.data[0] > m_Nmax)
+        {
+        m_Nmax = h_conditions.data[0];
+        result = true;
+        }
+
+    return result;
+    }
+
+void NeighborList::resetConditions()
+    {
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+    h_conditions.data[0] = 0;
     }
 
 //! helper function for accessing an elemeng of the neighb rlist: python __getitem__

@@ -55,6 +55,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     unsigned int *d_n_neigh,
                                                     float4 *d_last_updated_pos,
+                                                    unsigned int *d_conditions,
                                                     const Index2D nli,
                                                     const float4 *d_pos,
                                                     const unsigned int N,
@@ -130,7 +131,11 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
             
             if (drsq <= r_maxsq && my_pidx != cur_neigh)
                 {
-                d_nlist[nli(my_pidx, min(n_neigh,nli.getH()))] = cur_neigh;
+                if (n_neigh < nli.getH())
+                    d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
+                else
+                    atomicMax(&d_conditions[0], n_neigh+1);
+                
                 n_neigh++;
                 }
             }
@@ -143,6 +148,7 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      float4 *d_last_updated_pos,
+                                     unsigned int *d_conditions,
                                      const Index2D& nli,
                                      const float4 *d_pos,
                                      const unsigned int N,
@@ -163,6 +169,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
     gpu_compute_nlist_binned_new_kernel<<<n_blocks, block_size>>>(d_nlist,
                                                                   d_n_neigh,
                                                                   d_last_updated_pos,
+                                                                  d_conditions,
                                                                   nli,
                                                                   d_pos,
                                                                   N,
