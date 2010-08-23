@@ -381,28 +381,28 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         MY_BOOST_CHECK_CLOSE(val.x, 1.0f, tol);
         MY_BOOST_CHECK_SMALL(val.y, tol_small);
         MY_BOOST_CHECK_SMALL(val.z, tol_small);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 1);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.w), 1);
 
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(0,2,3))];
         MY_BOOST_CHECK_CLOSE(val.x, -1.0f, tol);
         MY_BOOST_CHECK_SMALL(val.y, tol_small);
         MY_BOOST_CHECK_SMALL(val.z, tol_small);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 2);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.w), 2);
         
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,6))];
         MY_BOOST_CHECK_CLOSE(val.x, 0.25f, tol);
         MY_BOOST_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_BOOST_CHECK_CLOSE(val.z, 3.0f, tol_small);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 6);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.w), 6);
 
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,0))];
         MY_BOOST_CHECK_CLOSE(val.x, -0.25f, tol);
         MY_BOOST_CHECK_CLOSE(val.y, -2.0f, tol_small);
         MY_BOOST_CHECK_CLOSE(val.z, -3.0f, tol_small);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.w), 7);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.w), 7);
         
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
@@ -471,9 +471,9 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         MY_BOOST_CHECK_SMALL(val.z, tol_small);
         MY_BOOST_CHECK_CLOSE(val.w, 2.0f, tol);
         val = h_tdb.data[cli(0, ci(2,2,3))];
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 2);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.x), 2);
         MY_BOOST_CHECK_CLOSE(val.y, 1.0f, tol);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 3);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.z), 3);
 
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(0,2,3)], 1);
         val = h_xyzf.data[cli(0, ci(0,2,3))];
@@ -482,9 +482,9 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         MY_BOOST_CHECK_SMALL(val.z, tol_small);
         MY_BOOST_CHECK_CLOSE(val.w, 3.0f, tol);
         val = h_tdb.data[cli(0, ci(0,2,3))];
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 3);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.x), 3);
         MY_BOOST_CHECK_CLOSE(val.y, 1.5f, tol);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 0);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.z), 0);
         
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,6)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,6))];
@@ -493,9 +493,9 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         MY_BOOST_CHECK_CLOSE(val.z, 3.0f, tol_small);
         MY_BOOST_CHECK_CLOSE(val.w, 7.0f, tol);
         val = h_tdb.data[cli(0, ci(1,0,6))];
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 3);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.x), 3);
         MY_BOOST_CHECK_CLOSE(val.y, 3.5f, tol);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 0);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.z), 0);
 
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,0,0)], 1);
         val = h_xyzf.data[cli(0, ci(1,0,0))];
@@ -504,9 +504,9 @@ void celllist_small_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         MY_BOOST_CHECK_CLOSE(val.z, -3.0f, tol_small);
         MY_BOOST_CHECK_CLOSE(val.w, 8.0f, tol);
         val = h_tdb.data[cli(0, ci(1,0,0))];
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.x), 0);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.x), 0);
         MY_BOOST_CHECK_CLOSE(val.y, 4.0f, tol);
-        BOOST_CHECK_EQUAL_UINT(__scalar_as_int(val.z), 1);
+        BOOST_CHECK_EQUAL(__scalar_as_int(val.z), 1);
         
         BOOST_REQUIRE_EQUAL_UINT(h_cell_size.data[ci(1,2,3)], 2);
         for (unsigned int i = 0; i < 2; i++)
