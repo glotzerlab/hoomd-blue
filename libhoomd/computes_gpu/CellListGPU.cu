@@ -131,7 +131,7 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     else
         {
         // handle overflow
-        atomicMax(&d_conditions[0], size);
+        atomicMax(&d_conditions[0], size+1);
         }
     }
 

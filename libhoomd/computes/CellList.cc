@@ -173,8 +173,8 @@ void CellList::compute(unsigned int timestep)
             // if we overflowed, need to reallocate memory and reset the conditions
             if (overflowed)
                 {
-                cout << "Notice: cell list overflow, allocating " << m_Nmax << " slots per cell" << endl;
                 initializeAll();
+                cout << "Notice: cell list overflow, allocating " << m_Nmax << " slots per cell" << endl;
                 resetConditions();
                 }
             } while (overflowed);
@@ -431,7 +431,7 @@ void CellList::computeCellList()
             }
         else
             {
-            h_conditions.data[0] = max(h_conditions.data[0], offset);
+            h_conditions.data[0] = max(h_conditions.data[0], offset+1);
             }
         
         // increment the cell occupancy counter
