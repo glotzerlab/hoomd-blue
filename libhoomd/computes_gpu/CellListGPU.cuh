@@ -60,6 +60,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
+                                  unsigned int *d_conditions,
                                   const float4 *d_pos,
                                   const float *d_charge,
                                   const float *d_diameter,

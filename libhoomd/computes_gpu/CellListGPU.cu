@@ -56,6 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              float4 *d_xyzf,
                                              float4 *d_tdb,
+                                             unsigned int *d_conditions,
                                              const float4 *d_pos,
                                              const float *d_charge,
                                              const float *d_diameter,
@@ -89,6 +90,13 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         flag = d_charge[idx];
     else
         flag = __int_as_float(idx);
+
+    // check for nan pos
+    if (isnan(pos.x) || isnan(pos.y) || isnan(pos.z))
+        {
+        d_conditions[1] = idx;
+        return;
+        }
     
     // determine which bin it belongs in
     unsigned int ib = (unsigned int)((pos.x+box.Lx/2.0f)*scale.x);
@@ -104,6 +112,14 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         kb = 0;
         
     unsigned int bin = ci(ib, jb, kb);
+
+    // check if the particle is inside the dimensions
+    if (bin >= ci.getNumElements())
+        {
+        d_conditions[2] = idx;
+        return;
+        }
+    
     unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
     if (size < Nmax)
         {
@@ -114,13 +130,15 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         }
     else
         {
-        // TODO - handle overflows
+        // handle overflow
+        atomicMax(&d_conditions[0], size);
         }
     }
 
 cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   float4 *d_xyzf,
                                   float4 *d_tdb,
+                                  unsigned int *d_conditions,
                                   const float4 *d_pos,
                                   const float *d_charge,
                                   const float *d_diameter,
@@ -145,6 +163,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
     gpu_compute_cell_list_kernel<<<n_blocks, block_size>>>(d_cell_size,
                                                            d_xyzf,
                                                            d_tdb,
+                                                           d_conditions,
                                                            d_pos,
                                                            d_charge,
                                                            d_diameter,

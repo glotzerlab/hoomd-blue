@@ -80,10 +80,12 @@ void CellListGPU::computeCellList()
     ArrayHandle<unsigned int> d_cell_size(m_cell_size, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_xyzf(m_xyzf, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_tdb(m_tdb, access_location::device, access_mode::overwrite);
+    ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
     gpu_compute_cell_list(d_cell_size.data,
                           d_xyzf.data,
                           d_tdb.data,
+                          d_conditions.data,
                           d_pdata.pos,
                           d_pdata.charge,
                           d_pdata.diameter,

@@ -63,11 +63,12 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     // allocation is deferred until the first compute() call - initialize values to dummy variables
     m_width = make_scalar3(0.0, 0.0, 0.0);
     m_dim = make_uint3(0,0,0);
-    m_Nmax = 32;
+    m_Nmax = 0;
     m_params_changed = true;
     m_particles_sorted = false;
     m_box_changed = false;
-    m_overflowed = false;
+    GPUArray<unsigned int> conditions(3, exec_conf);
+    m_conditions.swap(conditions);
     
     m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
     m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
@@ -163,15 +164,20 @@ void CellList::compute(unsigned int timestep)
     // only update if we need to
     if (shouldCompute(timestep) || force)
         {
-        m_overflowed = false;
-        computeCellList();
-        
-        if (m_overflowed)
+        bool overflowed = false;
+        do
             {
-            cerr << endl << "***Error! CellList overflowed - more than " << m_Nmax << " particles in one cell"
-                 << endl << endl;
-            throw runtime_error("Error computing cell list");
-            }
+            computeCellList();
+            
+            overflowed = checkConditions();
+            // if we overflowed, need to reallocate memory and reset the conditions
+            if (overflowed)
+                {
+                cout << "Notice: cell list overflow, allocating " << m_Nmax << " slots per cell" << endl;
+                initializeAll();
+                resetConditions();
+                }
+            } while (overflowed);
         }
     
     if (m_prof)
@@ -245,10 +251,17 @@ void CellList::initializeMemory()
     if (m_prof)
         m_prof->push("init");
     
-    // estimate Nmax
-    unsigned int estimated_Nmax = (unsigned int)(ceilf(float(m_pdata->getN()*2.0f / float(m_dim.x*m_dim.y*m_dim.z))));
-    // round up to the nearest multiple of 32
-    m_Nmax = estimated_Nmax + 32 - (estimated_Nmax & 31);
+    // if it is still set at 0, estimate Nmax
+    if (m_Nmax == 0)
+        {
+        unsigned int estim_Nmax = (unsigned int)(ceilf(float(m_pdata->getN()*1.0f / float(m_dim.x*m_dim.y*m_dim.z))));
+        m_Nmax = estim_Nmax + 8 - (estim_Nmax & 7);
+        }
+    else
+        {
+        // otherwise, round up to the nearest multiple of 8
+        m_Nmax = m_Nmax + 8 - (m_Nmax & 7);
+        }
     
     // initialize indexers
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
@@ -352,6 +365,7 @@ void CellList::computeCellList()
     ArrayHandle<unsigned int> h_cell_size(m_cell_size, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_xyzf(m_xyzf, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_tdb(m_tdb, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::readwrite);
     
     // shorthand copies of the indexers
     Index3D ci = m_cell_indexer;
@@ -365,8 +379,8 @@ void CellList::computeCellList()
         {
         if (isnan(arrays.x[n]) || isnan(arrays.y[n]) || isnan(arrays.z[n]))
             {
-            cerr << endl << "***Error! Particle " << n << " has NaN for its position." << endl << endl;
-            throw runtime_error("Error computing cell list");
+            h_conditions.data[1] = n;
+            continue;
             }
             
         // find the bin each particle belongs in
@@ -390,8 +404,8 @@ void CellList::computeCellList()
         // check if the particle is inside the dimensions
         if (bin >= ci.getNumElements())
             {
-            cerr << endl << "***Error! Elvis has left the building (particle " << n << " is no longer in the simulation box)." << endl << endl;
-            throw runtime_error("Error computing cell list");
+            h_conditions.data[2] = n;
+            continue;
             }
 
         // setup the flag value to store
@@ -417,7 +431,7 @@ void CellList::computeCellList()
             }
         else
             {
-            m_overflowed = true;
+            h_conditions.data[0] = max(h_conditions.data[0], offset);
             }
         
         // increment the cell occupancy counter
@@ -429,6 +443,49 @@ void CellList::computeCellList()
     if (m_prof)
         m_prof->pop();
     }
+                
+bool CellList::checkConditions()            
+    {
+    bool result = false;
+
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::read);
+
+    // up m_Nmax to the overflow value, reallocate memory and set the overflow condition
+    if (h_conditions.data[0] > m_Nmax)
+        {
+        m_Nmax = h_conditions.data[0];
+        result = true;
+        }                 
+
+    // detect nan position errors
+    if (h_conditions.data[1])
+        {
+        unsigned int n = h_conditions.data[1] - 1;
+        cerr << endl << "***Error! Particle " << n << " has NaN for its position." << endl << endl;
+        throw runtime_error("Error computing cell list");
+        }
+
+    // detect particles leaving box errors
+    if (h_conditions.data[2])
+        {
+        unsigned int n = h_conditions.data[1] - 1;
+        cerr << endl << "***Error! Particle " << n << " is no longer in the simulation box." << endl
+             << endl;
+        throw runtime_error("Error computing cell list");
+        }
+
+    return result;
+    }
+
+void CellList::resetConditions()
+    {
+    ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+    h_conditions.data[0] = 0;
+    h_conditions.data[1] = 0;
+    h_conditions.data[2] = 0;
+    }
+
+
 
 void export_CellList()
     {

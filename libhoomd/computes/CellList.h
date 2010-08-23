@@ -108,6 +108,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      - \c max_cells - maximum number of cells to allocate
      
     After a set call is made to adjust a parameter, changes do not take effect until the next call to compute().
+
+    <b>Overvlow and error flag handling:</b>
+    For easy support of derived GPU classes to implement overvlow detection and error handling, all error flags are
+    stored in the GPUArray \a d_conditions.
+     - 0: Maximum cell size (implementations are free to write to this element only in overflow conditions if they
+          choose.)
+     - 1: Set to non-zero if any particle has nan coordinates
+     - 2: Set to non-zero if any particle is outside of the addressable bins
+
+    Condition flags are to be set during the computeCellList() call and will be checked by compute() which will then 
+    take the appropriate action. If possible, flags 1 and 2 should be set to the index of the particle causing the
+    flag plus 1.
 */
 class CellList : public Compute
     {
@@ -274,7 +286,7 @@ class CellList : public Compute
         GPUArray<unsigned int> m_cell_adj;   //!< Cell adjacency list
         GPUArray<Scalar4> m_xyzf;            //!< Cell list with position and flags
         GPUArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
-        bool m_overflowed;                   //!< Set to true if any cell has overflowed Nmax
+        GPUArray<unsigned int> m_conditions; //!< Condition flags set during the computeCellList() call
         
         boost::signals::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         boost::signals::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
@@ -296,6 +308,12 @@ class CellList : public Compute
         
         //! Compute the cell list
         virtual void computeCellList();
+
+        //! Check the status of the conditions
+        bool checkConditions();
+
+        //! Resets the condition status
+        void resetConditions();
     };
 
 //! Export the CellList class to python
