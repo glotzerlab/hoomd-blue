@@ -278,6 +278,12 @@ class NeighborList : public Compute
         GPUArray<Scalar4> m_last_pos;        //!< coordinates of last updated particle positions
         unsigned int m_Nmax;                 //!< Maximum number of neighbors that can be held in m_nlist
         GPUArray<unsigned int> m_conditions; //!< Condition flags set during the buildNlist() call
+        
+        GPUArray<unsigned int> m_ex_list_tag;  //!< List of excluded particles referenced by tag
+        GPUArray<unsigned int> m_ex_list_idx;  //!< List of excluded particles referenced by index
+        GPUArray<unsigned int> m_n_ex_tag;     //!< Number of exclusions for a given particle tag
+        GPUArray<unsigned int> m_n_ex_idx;     //!< Number of exclusions for a given particle index
+        Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         
@@ -310,6 +316,9 @@ class NeighborList : public Compute
 
         //! Resets the condition status
         void resetConditions();
+        
+        //! Grow the exclusions list memory capacity by one row
+        void growExclusionList();
     };
 
 //! Exports NeighborList to python

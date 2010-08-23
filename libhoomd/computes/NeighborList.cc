@@ -106,6 +106,17 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     GPUArray<unsigned int> conditions(1, exec_conf);
     m_conditions.swap(conditions);
     
+    // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
+    GPUArray<unsigned int> n_ex_tag(m_pdata->getN(), exec_conf);
+    m_n_ex_tag.swap(n_ex_tag);
+    GPUArray<unsigned int> n_ex_idx(m_pdata->getN(), exec_conf);
+    m_n_ex_idx.swap(n_ex_idx);
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getN(), 1, exec_conf);
+    m_ex_list_tag.swap(ex_list_tag);
+    GPUArray<unsigned int> ex_list_idx(m_pdata->getN(), 1, exec_conf);
+    m_ex_list_idx.swap(ex_list_idx);
+    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), 1);
+    
     // allocate nlist array
     allocateNlist();
     
@@ -247,194 +258,109 @@ Scalar NeighborList::estimateNNeigh()
     \param tag2 TAG (not index) of the second particle in the pair
     \post The pair \a tag1, \a tag2 will not appear in the neighborlist
     \note This only takes effect on the next call to compute() that updates the list
-    \note Only 4 particles can be excluded from a single particle's neighbor list,
-    \note unless the code is compiled with the option LARGE_EXCLUSION_LIST, in which
-    \note case the maximum is 16 exclusions. Duplicates are checked for and not added.
+    \note Duplicates are checked for and not added.
 */
 void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
-    /*if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
-        {
-        cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
-        throw runtime_error("Error setting exclusion in NeighborList");
-        }
-    // don't add an exclusion twice and waste space in the memory restricted exclusion lists.
+    assert(tag1 < m_pdata->getN());
+    assert(tag2 < m_pdata->getN());
+
+    // don't add an exclusion twice
     if (isExcluded(tag1, tag2))
         return;
-        
-    // add tag2 to tag1's exculsion list
-    if (m_exclusions[tag1].e1 == EXCLUDE_EMPTY)
-        m_exclusions[tag1].e1 = tag2;
-    else if (m_exclusions[tag1].e2 == EXCLUDE_EMPTY)
-        m_exclusions[tag1].e2 = tag2;
-    else if (m_exclusions[tag1].e3 == EXCLUDE_EMPTY)
-        m_exclusions[tag1].e3 = tag2;
-    else if (m_exclusions[tag1].e4 == EXCLUDE_EMPTY)
-        m_exclusions[tag1].e4 = tag2;
-#if defined(LARGE_EXCLUSION_LIST)
-    else if (m_exclusions2[tag1].e1 == EXCLUDE_EMPTY)
-        m_exclusions2[tag1].e1 = tag2;
-    else if (m_exclusions2[tag1].e2 == EXCLUDE_EMPTY)
-        m_exclusions2[tag1].e2 = tag2;
-    else if (m_exclusions2[tag1].e3 == EXCLUDE_EMPTY)
-        m_exclusions2[tag1].e3 = tag2;
-    else if (m_exclusions2[tag1].e4 == EXCLUDE_EMPTY)
-        m_exclusions2[tag1].e4 = tag2;
-    else if (m_exclusions3[tag1].e1 == EXCLUDE_EMPTY)
-        m_exclusions3[tag1].e1 = tag2;
-    else if (m_exclusions3[tag1].e2 == EXCLUDE_EMPTY)
-        m_exclusions3[tag1].e2 = tag2;
-    else if (m_exclusions3[tag1].e3 == EXCLUDE_EMPTY)
-        m_exclusions3[tag1].e3 = tag2;
-    else if (m_exclusions3[tag1].e4 == EXCLUDE_EMPTY)
-        m_exclusions3[tag1].e4 = tag2;
-    else if (m_exclusions4[tag1].e1 == EXCLUDE_EMPTY)
-        m_exclusions4[tag1].e1 = tag2;
-    else if (m_exclusions4[tag1].e2 == EXCLUDE_EMPTY)
-        m_exclusions4[tag1].e2 = tag2;
-    else if (m_exclusions4[tag1].e3 == EXCLUDE_EMPTY)
-        m_exclusions4[tag1].e3 = tag2;
-    else if (m_exclusions4[tag1].e4 == EXCLUDE_EMPTY)
-        m_exclusions4[tag1].e4 = tag2;
-#endif
-    else
+    
+    // this is clunky, but needed due to the fact that we cannot have an array handle in scope when
+    // calling grow exclusion list
+    bool grow = false;
         {
-        // error: exclusion list full
-        cerr << endl << "***Error! Exclusion list full for particle with tag: " << tag1 << endl << endl;
-        throw runtime_error("Error setting exclusion in NeighborList");
+        // access arrays
+        ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
+    
+        // grow the list if necessary
+        if (h_n_ex_tag.data[tag1] == m_ex_list_indexer.getH())
+            grow = true;
+        
+        if (h_n_ex_tag.data[tag2] == m_ex_list_indexer.getH())
+            grow = true;
         }
         
-    // add tag1 to tag2's exclusion list
-    if (m_exclusions[tag2].e1 == EXCLUDE_EMPTY)
-        m_exclusions[tag2].e1 = tag1;
-    else if (m_exclusions[tag2].e2 == EXCLUDE_EMPTY)
-        m_exclusions[tag2].e2 = tag1;
-    else if (m_exclusions[tag2].e3 == EXCLUDE_EMPTY)
-        m_exclusions[tag2].e3 = tag1;
-    else if (m_exclusions[tag2].e4 == EXCLUDE_EMPTY)
-        m_exclusions[tag2].e4 = tag1;
-#if defined(LARGE_EXCLUSION_LIST)
-    else if (m_exclusions2[tag2].e1 == EXCLUDE_EMPTY)
-        m_exclusions2[tag2].e1 = tag1;
-    else if (m_exclusions2[tag2].e2 == EXCLUDE_EMPTY)
-        m_exclusions2[tag2].e2 = tag1;
-    else if (m_exclusions2[tag2].e3 == EXCLUDE_EMPTY)
-        m_exclusions2[tag2].e3 = tag1;
-    else if (m_exclusions2[tag2].e4 == EXCLUDE_EMPTY)
-        m_exclusions2[tag2].e4 = tag1;
-    else if (m_exclusions3[tag2].e1 == EXCLUDE_EMPTY)
-        m_exclusions3[tag2].e1 = tag1;
-    else if (m_exclusions3[tag2].e2 == EXCLUDE_EMPTY)
-        m_exclusions3[tag2].e2 = tag1;
-    else if (m_exclusions3[tag2].e3 == EXCLUDE_EMPTY)
-        m_exclusions3[tag2].e3 = tag1;
-    else if (m_exclusions3[tag2].e4 == EXCLUDE_EMPTY)
-        m_exclusions3[tag2].e4 = tag1;
-    else if (m_exclusions4[tag2].e1 == EXCLUDE_EMPTY)
-        m_exclusions4[tag2].e1 = tag1;
-    else if (m_exclusions4[tag2].e2 == EXCLUDE_EMPTY)
-        m_exclusions4[tag2].e2 = tag1;
-    else if (m_exclusions4[tag2].e3 == EXCLUDE_EMPTY)
-        m_exclusions4[tag2].e3 = tag1;
-    else if (m_exclusions4[tag2].e4 == EXCLUDE_EMPTY)
-        m_exclusions4[tag2].e4 = tag1;
-#endif
-    else
-        {
-        // error: exclusion list full
-        cerr << endl << "***Error! Exclusion list full for particle with tag: " << tag2 << endl << endl;
-        throw runtime_error("Error setting exclusion in NeighborList");
+    if (grow)
+        growExclusionList();
+
+       {
+        // access arrays
+        ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
+    
+        // add tag2 to tag1's exculsion list
+        unsigned int pos1 = h_n_ex_tag.data[tag1];
+        assert(pos1 < m_ex_list_indexer.getH());
+        h_ex_list_tag.data[m_ex_list_indexer(tag1, pos1)] = tag2;
+        h_n_ex_tag.data[tag1]++;
+        
+        // add tag1 to tag2's exclusion list
+        unsigned int pos2 = h_n_ex_tag.data[tag2];
+        assert(pos2 < m_ex_list_indexer.getH());
+        h_ex_list_tag.data[m_ex_list_indexer(tag2, pos2)] = tag1;
+        h_n_ex_tag.data[tag2]++;
         }
-    forceUpdate();*/
+    
+    // TODO: need more fine grain control over force update?
+    forceUpdate();
     }
 
 /*! \post No particles are excluded from the neighbor list
 */
 void NeighborList::clearExclusions()
     {
-    /*for (unsigned int i = 0; i < m_exclusions.size(); i++)
-        {
-        m_exclusions[i].e1 = EXCLUDE_EMPTY;
-        m_exclusions[i].e2 = EXCLUDE_EMPTY;
-        m_exclusions[i].e3 = EXCLUDE_EMPTY;
-        m_exclusions[i].e4 = EXCLUDE_EMPTY;
-        }
-#if defined(LARGE_EXCLUSION_LIST)
-    for (unsigned int i = 0; i < m_exclusions2.size(); i++)
-        {
-        m_exclusions2[i].e1 = EXCLUDE_EMPTY;
-        m_exclusions2[i].e2 = EXCLUDE_EMPTY;
-        m_exclusions2[i].e3 = EXCLUDE_EMPTY;
-        m_exclusions2[i].e4 = EXCLUDE_EMPTY;
-        }
-    for (unsigned int i = 0; i < m_exclusions3.size(); i++)
-        {
-        m_exclusions3[i].e1 = EXCLUDE_EMPTY;
-        m_exclusions3[i].e2 = EXCLUDE_EMPTY;
-        m_exclusions3[i].e3 = EXCLUDE_EMPTY;
-        m_exclusions3[i].e4 = EXCLUDE_EMPTY;
-        }
-    for (unsigned int i = 0; i < m_exclusions4.size(); i++)
-        {
-        m_exclusions4[i].e1 = EXCLUDE_EMPTY;
-        m_exclusions4[i].e2 = EXCLUDE_EMPTY;
-        m_exclusions4[i].e3 = EXCLUDE_EMPTY;
-        m_exclusions4[i].e4 = EXCLUDE_EMPTY;
-        }
-#endif
-    forceUpdate();*/
+    ArrayHandle<unsigned int> h_n_ex_tag(m_ex_list_tag, access_location::host, access_mode::overwrite);
+
+    memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getN());
+
+    forceUpdate();
     }
 
 /*! \post Gather some statistics about exclusions usage.
 */
 void NeighborList::countExclusions()
     {
-    /*unsigned int excluded_count[MAX_NUM_EXCLUDED+1];
+    unsigned int MAX_COUNT_EXCLUDED = 16;
+    unsigned int excluded_count[MAX_COUNT_EXCLUDED+2];
     unsigned int num_excluded, max_num_excluded;
     
+    ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
+    
     max_num_excluded = 0;
-    for (unsigned int c=0; c <= MAX_NUM_EXCLUDED; ++c)
+    for (unsigned int c=0; c <= MAX_COUNT_EXCLUDED+1; ++c)
         excluded_count[c] = 0;
         
-#if !defined(LARGE_EXCLUSION_LIST)
-    for (unsigned int i = 0; i < m_exclusions.size(); i++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-        num_excluded = 0;
-        if (m_exclusions[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
-        if (num_excluded > max_num_excluded) max_num_excluded = num_excluded;
+        num_excluded = h_n_ex_tag.data[i];
+        
+        if (num_excluded > max_num_excluded)
+            max_num_excluded = num_excluded;
+        
+        if (num_excluded > MAX_COUNT_EXCLUDED)
+            num_excluded = MAX_COUNT_EXCLUDED + 1;
+        
         excluded_count[num_excluded] += 1;
         }
-#else
-    for (unsigned int i = 0; i < m_exclusions.size(); i++)
-        {
-        num_excluded = 0;
-        if (m_exclusions[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions2[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions2[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions2[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions2[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions3[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions3[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions3[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions3[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions4[i].e1 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions4[i].e2 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions4[i].e3 != EXCLUDE_EMPTY) ++num_excluded;
-        if (m_exclusions4[i].e4 != EXCLUDE_EMPTY) ++num_excluded;
-        if (num_excluded > max_num_excluded) max_num_excluded = num_excluded;
-        excluded_count[num_excluded] += 1;
-        }
-#endif
+
     cout << "-- Neighborlist exclusion statistics:" << endl;
     cout << "Max. number of exclusions: " << max_num_excluded << endl;
-    for (unsigned int i=0; i <= max_num_excluded; ++i)
-        cout << "Particles with " << i << " exclusions: " << excluded_count[i] << endl;*/
+    for (unsigned int i=0; i <= MAX_COUNT_EXCLUDED; ++i)
+        {
+        if (excluded_count[i] > 0)
+            cout << "Particles with " << i << " exclusions: " << excluded_count[i] << endl;
+        }
+
+    if (excluded_count[MAX_COUNT_EXCLUDED+1])
+        {
+        cout << "Particles with more than " << MAX_COUNT_EXCLUDED << " exclusions: "
+             << excluded_count[MAX_COUNT_EXCLUDED+1] << endl;
+        }
     }
 
 /*! After calling addExclusionFromBonds() all bonds specified in the attached ParticleData will be
@@ -489,47 +415,20 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
     {
-    /*if (tag1 >= m_pdata->getN() || tag2 >= m_pdata->getN())
-        {
-        cerr << endl << "***Error! Particle tag out of bounds when attempting to add neighborlist exclusion: " << tag1 << "," << tag2 << endl << endl;
-        throw runtime_error("Error setting exclusion in NeighborList");
-        }
+    assert(tag1 < m_pdata->getN());
+    assert(tag2 < m_pdata->getN());
         
-    if (m_exclusions[tag1].e1 == tag2)
-        return true;
-    if (m_exclusions[tag1].e2 == tag2)
-        return true;
-    if (m_exclusions[tag1].e3 == tag2)
-        return true;
-    if (m_exclusions[tag1].e4 == tag2)
-        return true;
-#if defined(LARGE_EXCLUSION_LIST)
-    if (m_exclusions2[tag1].e1 == tag2)
-        return true;
-    if (m_exclusions2[tag1].e2 == tag2)
-        return true;
-    if (m_exclusions2[tag1].e3 == tag2)
-        return true;
-    if (m_exclusions2[tag1].e4 == tag2)
-        return true;
-    if (m_exclusions3[tag1].e1 == tag2)
-        return true;
-    if (m_exclusions3[tag1].e2 == tag2)
-        return true;
-    if (m_exclusions3[tag1].e3 == tag2)
-        return true;
-    if (m_exclusions3[tag1].e4 == tag2)
-        return true;
-    if (m_exclusions4[tag1].e1 == tag2)
-        return true;
-    if (m_exclusions4[tag1].e2 == tag2)
-        return true;
-    if (m_exclusions4[tag1].e3 == tag2)
-        return true;
-    if (m_exclusions4[tag1].e4 == tag2)
-        return true;
-#endif
-    return false;*/
+    ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
+    
+    unsigned int n_ex = h_n_ex_tag.data[tag1];
+    for (unsigned int i = 0; i < n_ex; i++)
+        {
+        if (h_ex_list_tag.data[m_ex_list_indexer(tag1, i)] == tag2)
+            return true;
+        }
+    
+    return false;
     }
 
 /*! Add topologically derived exclusions for angles
@@ -1050,6 +949,33 @@ void NeighborList::resetConditions()
     {
     ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
     h_conditions.data[0] = 0;
+    }
+
+void NeighborList::growExclusionList()
+    {
+    unsigned int new_height = m_ex_list_indexer.getH() + 1;
+    
+    // allocate the two new arrays
+    GPUArray<unsigned int> ex_list_tag(m_pdata->getN(), new_height, exec_conf);
+    GPUArray<unsigned int> ex_list_idx(m_pdata->getN(), new_height, exec_conf);
+
+    // copy the data across to the new arrays
+        {
+        ArrayHandle<unsigned int> h_ex_list_tag_old(m_ex_list_tag, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_ex_list_idx_old(m_ex_list_idx, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_ex_list_tag_new(ex_list_tag, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_ex_list_idx_new(ex_list_idx, access_location::host, access_mode::overwrite);
+        
+        memcpy(h_ex_list_tag_new.data, h_ex_list_tag_old.data, sizeof(unsigned int)*m_ex_list_indexer.getNumElements());
+        memcpy(h_ex_list_idx_new.data, h_ex_list_idx_old.data, sizeof(unsigned int)*m_ex_list_indexer.getNumElements());
+        }
+
+    // swap the new arrays for the old
+    m_ex_list_tag.swap(ex_list_tag);
+    m_ex_list_tag.swap(ex_list_idx);
+
+    // update the indexer
+    m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), new_height);
     }
 
 //! helper function for accessing an elemeng of the neighb rlist: python __getitem__
