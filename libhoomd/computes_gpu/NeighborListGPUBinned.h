@@ -81,6 +81,9 @@ class NeighborListGPUBinned : public NeighborListGPU
         uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
         unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
         
+        //! Test if the cuda arrays need reallocation
+        bool needReallocateCudaArrays();
+        
         //! Updates the cudaArray allocations
         void allocateCudaArrays();
 

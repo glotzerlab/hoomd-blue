@@ -49,6 +49,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU
 */
 
+//! Texture for reading d_cell_adj
+texture<unsigned int, 2, cudaReadModeElementType> cell_adj_tex;
+//! Texture for reading d_cell_size
+texture<unsigned int, 1, cudaReadModeElementType> cell_size_tex;
+
 //! Kernel call for generating neighbor list on the GPU
 /*! \note optimized for Fermi
 */
@@ -61,7 +66,6 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
                                                     const unsigned int N,
                                                     const unsigned int *d_cell_size,
                                                     const float4 *d_cell_xyzf,
-                                                    const unsigned int *d_cell_adj,
                                                     const Index3D ci,
                                                     const Index2D cli,
                                                     const Index2D cadji,
@@ -102,8 +106,10 @@ __global__ void gpu_compute_nlist_binned_new_kernel(unsigned int *d_nlist,
     // loop over all adjacent bins
     for (unsigned int cur_adj = 0; cur_adj < cadji.getW(); cur_adj++)
         {
-        int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
-        unsigned int size = d_cell_size[neigh_cell];
+        /*int neigh_cell = d_cell_adj[cadji(cur_adj, my_cell)];
+        unsigned int size = d_cell_size[neigh_cell];*/
+        int neigh_cell = tex2D(cell_adj_tex, cur_adj, my_cell);
+        unsigned int size = tex1Dfetch(cell_size_tex, neigh_cell);
         
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
@@ -154,7 +160,7 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const unsigned int N,
                                      const unsigned int *d_cell_size,
                                      const float4 *d_cell_xyzf,
-                                     const unsigned int *d_cell_adj,
+                                     const cudaArray *dca_cell_adj,
                                      const Index3D& ci,
                                      const Index2D& cli,
                                      const Index2D& cadji,
@@ -165,7 +171,15 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const unsigned int block_size)
     {
     int n_blocks = (int)ceil(float(N)/(float)block_size);
+
+    cudaError_t err = cudaBindTextureToArray(cell_adj_tex, dca_cell_adj);
+    if (err != cudaSuccess)
+        return err;
     
+    err = cudaBindTexture(0, cell_size_tex, d_cell_size, sizeof(unsigned int)*cell_dim.x*cell_dim.y*cell_dim.z);
+    if (err != cudaSuccess)
+        return err;
+
     gpu_compute_nlist_binned_new_kernel<<<n_blocks, block_size>>>(d_nlist,
                                                                   d_n_neigh,
                                                                   d_last_updated_pos,
@@ -175,7 +189,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                                                   N,
                                                                   d_cell_size,
                                                                   d_cell_xyzf,
-                                                                  d_cell_adj,
                                                                   ci,
                                                                   cli,
                                                                   cadji,
@@ -189,10 +202,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
 
 //! Texture for reading d_cell_xyzf
 texture<float4, 2, cudaReadModeElementType> cell_xyzf_tex;
-//! Texture for reading d_cell_adj
-texture<unsigned int, 2, cudaReadModeElementType> cell_adj_tex;
-//! Texture for reading d_cell_size
-texture<unsigned int, 1, cudaReadModeElementType> cell_size_tex;
 
 //! Kernel call for generating neighbor list on the GPU
 /*! \note optimized for compute 1.x devices

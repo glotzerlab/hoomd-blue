@@ -139,6 +139,15 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     // take optimized code paths for different GPU generations
     if (exec_conf->getComputeCapability() > 200)
         {
+        unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
+
+        // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
+        if (needReallocateCudaArrays())
+            {
+            allocateCudaArrays();
+            cudaMemcpyToArray(dca_cell_adj, 0, 0, d_cell_adj.data, sizeof(unsigned int)*ncell*27, cudaMemcpyDeviceToDevice);
+            }
+        
         gpu_compute_nlist_binned(d_nlist.data,
                                  d_n_neigh.data,
                                  d_last_pos.data,
@@ -148,7 +157,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                                  m_pdata->getN(),
                                  d_cell_size.data,
                                  d_cell_xyzf.data,
-                                 d_cell_adj.data,
+                                 dca_cell_adj,
                                  m_cl->getCellIndexer(),
                                  m_cl->getCellListIndexer(),
                                  m_cl->getCellAdjIndexer(),
@@ -160,12 +169,16 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         }
     else
         {
+        unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
+
         // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
-        allocateCudaArrays();
-        
+        if (needReallocateCudaArrays())
+            {
+            allocateCudaArrays();
+            cudaMemcpyToArray(dca_cell_adj, 0, 0, d_cell_adj.data, sizeof(unsigned int)*ncell*27, cudaMemcpyDeviceToDevice);
+            }
+
         // update the values in those arrays
-        unsigned int ncell = m_last_dim.x * m_last_dim.y * m_last_dim.z;
-        cudaMemcpyToArray(dca_cell_adj, 0, 0, d_cell_adj.data, sizeof(unsigned int)*ncell*27, cudaMemcpyDeviceToDevice);
         cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(float4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
         
         if (exec_conf->isCUDAErrorCheckingEnabled())
@@ -198,7 +211,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         m_prof->pop(exec_conf);
     }
 
-void NeighborListGPUBinned::allocateCudaArrays()
+bool NeighborListGPUBinned::needReallocateCudaArrays()
     {
     // quit now if the dimensions are the same as the last allocation
     uint3 cur_dim = m_cl->getDim();
@@ -211,8 +224,19 @@ void NeighborListGPUBinned::allocateCudaArrays()
         dca_cell_adj != NULL &&
         dca_cell_xyzf != NULL)
         {
-        return;
+        return false;
         }
+    else
+        {
+        return true;
+        }
+    }
+
+void NeighborListGPUBinned::allocateCudaArrays()
+    {
+    // quit now if the dimensions are the same as the last allocation
+    uint3 cur_dim = m_cl->getDim();
+    unsigned int cur_cell_Nmax = m_cl->getNmax();
     
     m_last_dim = cur_dim;
     m_last_cell_Nmax = cur_cell_Nmax;
