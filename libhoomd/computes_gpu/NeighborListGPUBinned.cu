@@ -187,6 +187,151 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
     return cudaSuccess;
     }
 
+//! Texture for reading d_cell_xyzf
+texture<float4, 2, cudaReadModeElementType> cell_xyzf_tex;
+//! Texture for reading d_cell_adj
+texture<unsigned int, 2, cudaReadModeElementType> cell_adj_tex;
+//! Texture for reading d_cell_size
+texture<unsigned int, 1, cudaReadModeElementType> cell_size_tex;
+
+//! Kernel call for generating neighbor list on the GPU
+/*! \note optimized for compute 1.x devices
+*/
+__global__ void gpu_compute_nlist_binned_1x_kernel(unsigned int *d_nlist,
+                                                   unsigned int *d_n_neigh,
+                                                   float4 *d_last_updated_pos,
+                                                   unsigned int *d_conditions,
+                                                   const Index2D nli,
+                                                   const float4 *d_pos,
+                                                   const unsigned int N,
+                                                   const Index3D ci,
+                                                   const float3 cell_scale,
+                                                   const uint3 cell_dim,
+                                                   const gpu_boxsize box,
+                                                   const float r_maxsq)
+    {
+    // each thread is going to compute the neighbor list for a single particle
+    int my_pidx = blockDim.x * blockIdx.x + threadIdx.x;
+    
+    // quit early if we are past the end of the array
+    if (my_pidx >= N)
+        return;
+    
+    // first, determine which bin this particle belongs to
+    float4 my_pos = d_pos[my_pidx];
+    
+    // FLOPS: 9
+    unsigned int ib = (unsigned int)((my_pos.x+box.Lx/2.0f)*cell_scale.x);
+    unsigned int jb = (unsigned int)((my_pos.y+box.Ly/2.0f)*cell_scale.y);
+    unsigned int kb = (unsigned int)((my_pos.z+box.Lz/2.0f)*cell_scale.z);
+    
+    // need to handle the case where the particle is exactly at the box hi
+    if (ib == cell_dim.x)
+        ib = 0;
+    if (jb == cell_dim.y)
+        jb = 0;
+    if (kb == cell_dim.z)
+        kb = 0;
+        
+    int my_cell = ci(ib,jb,kb);
+    
+    // each thread will determine the neighborlist of a single particle
+    // count number of neighbors found so far in n_neigh
+    int n_neigh = 0;
+
+    // loop over all adjacent bins
+    for (unsigned int cur_adj = 0; cur_adj < 27; cur_adj++)
+        {
+        int neigh_cell = tex2D(cell_adj_tex, cur_adj, my_cell);
+        unsigned int size = tex1Dfetch(cell_size_tex, neigh_cell);
+        
+        // now, we are set to loop through the array
+        for (int cur_offset = 0; cur_offset < size; cur_offset++)
+            {
+            float4 cur_xyzf = tex2D(cell_xyzf_tex, cur_offset, neigh_cell);
+            
+            float3 neigh_pos;
+            neigh_pos.x = cur_xyzf.x;
+            neigh_pos.y = cur_xyzf.y;
+            neigh_pos.z = cur_xyzf.z;
+            int cur_neigh = __float_as_int(cur_xyzf.w);
+            
+            // compute the distance between the two particles
+            float dx = my_pos.x - neigh_pos.x;
+            float dy = my_pos.y - neigh_pos.y;
+            float dz = my_pos.z - neigh_pos.z;
+            
+            // wrap the periodic boundary conditions
+            dx = dx - box.Lx * rintf(dx * box.Lxinv);
+            dy = dy - box.Ly * rintf(dy * box.Lyinv);
+            dz = dz - box.Lz * rintf(dz * box.Lzinv);
+            
+            // compute dr squared
+            float drsq = dx*dx + dy*dy + dz*dz;
+            
+            if (drsq <= r_maxsq && my_pidx != cur_neigh)
+                {
+                if (n_neigh < nli.getH())
+                    d_nlist[nli(my_pidx, n_neigh)] = cur_neigh;
+                else
+                    atomicMax(&d_conditions[0], n_neigh+1);
+                
+                n_neigh++;
+                }
+            }
+        }
+    
+    d_n_neigh[my_pidx] = n_neigh;
+    d_last_updated_pos[my_pidx] = my_pos;
+    }
+
+cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
+                                        unsigned int *d_n_neigh,
+                                        float4 *d_last_updated_pos,
+                                        unsigned int *d_conditions,
+                                        const Index2D& nli,
+                                        const float4 *d_pos,
+                                        const unsigned int N,
+                                        const unsigned int *d_cell_size,
+                                        const cudaArray *dca_cell_xyzf,
+                                        const cudaArray *dca_cell_adj,
+                                        const Index3D& ci,
+                                        const float3& cell_scale,
+                                        const uint3& cell_dim,
+                                        const gpu_boxsize& box,
+                                        const float r_maxsq,
+                                        const unsigned int block_size)
+    {
+    int n_blocks = (int)ceil(float(N)/(float)block_size);
+    
+    cudaError_t err = cudaBindTextureToArray(cell_adj_tex, dca_cell_adj);
+    if (err != cudaSuccess)
+        return err;
+    
+    err = cudaBindTextureToArray(cell_xyzf_tex, dca_cell_xyzf);
+    if (err != cudaSuccess)
+        return err;
+    
+    err = cudaBindTexture(0, cell_size_tex, d_cell_size, sizeof(unsigned int)*cell_dim.x*cell_dim.y*cell_dim.z);
+    if (err != cudaSuccess)
+        return err;
+    
+    gpu_compute_nlist_binned_1x_kernel<<<n_blocks, block_size>>>(d_nlist,
+                                                                 d_n_neigh,
+                                                                 d_last_updated_pos,
+                                                                 d_conditions,
+                                                                 nli,
+                                                                 d_pos,
+                                                                 N,
+                                                                 ci,
+                                                                 cell_scale,
+                                                                 cell_dim,
+                                                                 box,
+                                                                 r_maxsq);
+    
+    return cudaSuccess;
+    }
+
 cudaError_t gpu_setup_compute_nlist_binned()
     {
     return cudaFuncSetCacheConfig(gpu_compute_nlist_binned_new_kernel, cudaFuncCachePreferL1);

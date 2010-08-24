@@ -66,7 +66,7 @@ class NeighborListGPUBinned : public NeighborListGPU
                               boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
         
         //! Destructor
-        virtual ~NeighborListGPUBinned() { }
+        virtual ~NeighborListGPUBinned();
         
         //! Change the cuttoff radius
         virtual void setRCut(Scalar r_cut, Scalar r_buff);
@@ -75,7 +75,15 @@ class NeighborListGPUBinned : public NeighborListGPU
         virtual void buildNlist(unsigned int timestep);
     
     protected:
-        boost::shared_ptr<CellList> m_cl;
+        boost::shared_ptr<CellList> m_cl;   //!< The cell list
+        cudaArray *dca_cell_adj;            //!< CUDA array for tex2D access to d_cell_adj
+        cudaArray *dca_cell_xyzf;           //!< CUDA array for tex2D access to d_cell_xyzf
+        uint3 m_last_dim;                   //!< The last dimensions allocated for the cell list tex2D arrays
+        unsigned int m_last_cell_Nmax;      //!< The last Nmax allocated for the cell list tex2D arrays
+        
+        //! Updates the cudaArray allocations
+        void allocateCudaArrays();
+
     };
 
 //! Exports NeighborListGPUBinned to python

@@ -69,6 +69,23 @@ NeighborListGPUBinned::NeighborListGPUBinned(boost::shared_ptr<SystemDefinition>
     
     // default to full mode
     m_storage_mode = full;
+    
+    // default to 0 last allocated quantities
+    m_last_dim = make_uint3(0,0,0);
+    m_last_cell_Nmax = 0;
+    dca_cell_adj = NULL;
+    dca_cell_xyzf = NULL;
+    }
+
+NeighborListGPUBinned::~NeighborListGPUBinned()
+    {
+    // free the old arrays
+    if (dca_cell_adj != NULL)
+        cudaFreeArray(dca_cell_adj);
+    if (dca_cell_xyzf != NULL)
+        cudaFreeArray(dca_cell_xyzf);
+    
+    CHECK_CUDA_ERROR();
     }
 
 void NeighborListGPUBinned::setRCut(Scalar r_cut, Scalar r_buff)
@@ -119,24 +136,58 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> d_last_pos(m_last_pos, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
-    gpu_compute_nlist_binned(d_nlist.data,
-                             d_n_neigh.data,
-                             d_last_pos.data,
-                             d_conditions.data,
-                             m_nlist_indexer,
-                             d_pdata.pos,
-                             m_pdata->getN(),
-                             d_cell_size.data,
-                             d_cell_xyzf.data,
-                             d_cell_adj.data,
-                             m_cl->getCellIndexer(),
-                             m_cl->getCellListIndexer(),
-                             m_cl->getCellAdjIndexer(),
-                             scale,
-                             m_cl->getDim(),
-                             box,
-                             (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
-                             96);
+    // take optimized code paths for different GPU generations
+    if (exec_conf->getComputeCapability() > 200)
+        {
+        gpu_compute_nlist_binned(d_nlist.data,
+                                 d_n_neigh.data,
+                                 d_last_pos.data,
+                                 d_conditions.data,
+                                 m_nlist_indexer,
+                                 d_pdata.pos,
+                                 m_pdata->getN(),
+                                 d_cell_size.data,
+                                 d_cell_xyzf.data,
+                                 d_cell_adj.data,
+                                 m_cl->getCellIndexer(),
+                                 m_cl->getCellListIndexer(),
+                                 m_cl->getCellAdjIndexer(),
+                                 scale,
+                                 m_cl->getDim(),
+                                 box,
+                                 (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
+                                 96);
+        }
+    else
+        {
+        // upate the cuda array allocations (note, this is smart enough to not reallocate when there has been no change)
+        allocateCudaArrays();
+        
+        // update the values in those arrays
+        unsigned int ncell = m_last_dim.x * m_last_dim.y * m_last_dim.z;
+        cudaMemcpyToArray(dca_cell_adj, 0, 0, d_cell_adj.data, sizeof(unsigned int)*ncell*27, cudaMemcpyDeviceToDevice);
+        cudaMemcpyToArray(dca_cell_xyzf, 0, 0, d_cell_xyzf.data, sizeof(float4)*ncell*m_last_cell_Nmax, cudaMemcpyDeviceToDevice);
+        
+        if (exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+            
+        gpu_compute_nlist_binned_1x(d_nlist.data,
+                                    d_n_neigh.data,
+                                    d_last_pos.data,
+                                    d_conditions.data,
+                                    m_nlist_indexer,
+                                    d_pdata.pos,
+                                    m_pdata->getN(),
+                                    d_cell_size.data,
+                                    dca_cell_xyzf,
+                                    dca_cell_adj,
+                                    m_cl->getCellIndexer(),
+                                    scale,
+                                    m_cl->getDim(),
+                                    box,
+                                    (m_r_cut + m_r_buff)*(m_r_cut + m_r_buff),
+                                    192);
+        }
 
     if (exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -145,6 +196,44 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     
     if (m_prof)
         m_prof->pop(exec_conf);
+    }
+
+void NeighborListGPUBinned::allocateCudaArrays()
+    {
+    // quit now if the dimensions are the same as the last allocation
+    uint3 cur_dim = m_cl->getDim();
+    unsigned int cur_cell_Nmax = m_cl->getNmax();
+    
+    if (cur_dim.x == m_last_dim.x &&
+        cur_dim.y == m_last_dim.y &&
+        cur_dim.z == m_last_dim.z &&
+        cur_cell_Nmax == m_last_cell_Nmax &&
+        dca_cell_adj != NULL &&
+        dca_cell_xyzf != NULL)
+        {
+        return;
+        }
+    
+    m_last_dim = cur_dim;
+    m_last_cell_Nmax = cur_cell_Nmax;
+    
+    // free the old arrays
+    if (dca_cell_adj != NULL)
+        cudaFreeArray(dca_cell_adj);
+    if (dca_cell_xyzf != NULL)
+        cudaFreeArray(dca_cell_xyzf);
+    
+    CHECK_CUDA_ERROR();
+    
+    // allocate the new ones
+    unsigned int ncell = cur_dim.x * cur_dim.y * cur_dim.z;
+    
+    cudaChannelFormatDesc xyzf_desc = cudaCreateChannelDesc< float4 >();
+    cudaMallocArray(&dca_cell_xyzf, &xyzf_desc, cur_cell_Nmax, ncell);
+    cudaChannelFormatDesc adj_desc = cudaCreateChannelDesc< unsigned int >();
+    cudaMallocArray(&dca_cell_adj, &adj_desc, 27, ncell);
+    
+    CHECK_CUDA_ERROR();
     }
 
 void export_NeighborListGPUBinned()

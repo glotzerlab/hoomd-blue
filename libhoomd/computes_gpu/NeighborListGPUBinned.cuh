@@ -56,7 +56,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     \brief Declares GPU kernel code for neighbor list generation on the GPU
 */
 
-//! Kernel driver for the the first step of the computation called by CellListGPU
+//! Kernel driver for the the GPU nlist build
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      unsigned int *d_n_neigh,
                                      float4 *d_last_updated_pos,
@@ -75,6 +75,24 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      const gpu_boxsize& box,
                                      const float r_maxsq,
                                      const unsigned int block_size);
+
+//! Kernel driver for the GPU nlist build, optimized for compute 1.x devices
+cudaError_t gpu_compute_nlist_binned_1x(unsigned int *d_nlist,
+                                        unsigned int *d_n_neigh,
+                                        float4 *d_last_updated_pos,
+                                        unsigned int *d_conditions,
+                                        const Index2D& nli,
+                                        const float4 *d_pos,
+                                        const unsigned int N,
+                                        const unsigned int *d_cell_size,
+                                        const cudaArray *dca_cell_xyzf,
+                                        const cudaArray *dca_cell_adj,
+                                        const Index3D& ci,
+                                        const float3& cell_scale,
+                                        const uint3& cell_dim,
+                                        const gpu_boxsize& box,
+                                        const float r_maxsq,
+                                        const unsigned int block_size);
 
 //! Sets up parameters for the kernel call
 cudaError_t gpu_setup_compute_nlist_binned();
