@@ -85,8 +85,16 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
         cerr << endl << "***Error! Only full mode nlists can be generated on the GPU" << endl << endl;
         throw runtime_error("Error computing neighbor list");
         }
-
+    
     m_cl->compute(timestep);
+    
+    // check that at least 3x3x3 cells are computed
+    uint3 dim = m_cl->getDim();
+    if (dim.x < 3 || dim.y < 3 || dim.z < 3)
+        {
+        cerr << endl << "***Error! NeighborListGPUBinned doesn't work on boxes where r_cut+r_buff is greater than 1/3 any box dimension" << endl << endl;
+        throw runtime_error("Error computing neighbor list");
+        }
 
     if (m_prof)
         m_prof->push(exec_conf, "compute");
