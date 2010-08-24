@@ -230,10 +230,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         throw runtime_error("Error initializing execution configuration");
         }
     
-    #if (CUDA_VERSION >= 2020)
     cudaSetDeviceFlags(flags);
     cudaSetValidDevices(&m_gpu_list[0], (int)m_gpu_list.size());
-    #endif
    
     if (gpu_id != -1)
         {
@@ -277,10 +275,8 @@ void ExecutionConfiguration::printGPUStats()
     s << ", " << setw(4) << mib << " MiB DRAM";
         
     // follow up with some flags to signify device features
-#if CUDART_VERSION > 2010
     if (dev_prop.kernelExecTimeoutEnabled)
         s << ", DIS";
-#endif
             
     cout << s.str() << endl;
     }
@@ -314,38 +310,10 @@ bool operator<(const gpu_elem& a, const gpu_elem& b)
 */
 void ExecutionConfiguration::scanGPUs(bool ignore_display)
     {
-#if CUDART_VERSION >= 2020
     // check the CUDA driver version
     int driverVersion = 0;
     cudaDriverGetVersion(&driverVersion);
     
-#ifndef _DEVICEEMU
-    // device emulation mode doesn't need a driver
-    
-    // first handle the situation where no driver is installed (or it is a CUDA 2.1 or earlier driver)
-    if (driverVersion == 0)
-        {
-        cout << endl << "***Warning! NVIDIA driver not installed or is too old, ignoring any GPUs in the system."
-             << endl << endl;
-        return;
-        }
-        
-    // next, check to see if the driver is capable of running the version of CUDART that HOOMD was compiled against
-    if (driverVersion < CUDART_VERSION)
-        {
-        int driver_major = driverVersion / 1000;
-        int driver_minor = (driverVersion - driver_major * 1000) / 10;
-        int cudart_major = CUDART_VERSION / 1000;
-        int cudart_minor = (CUDART_VERSION - cudart_major * 1000) / 10;
-        
-        cout << endl << "***Warning! The NVIDIA driver only supports CUDA versions up to " << driver_major << "."
-             << driver_minor << ", but HOOMD was built against CUDA " << cudart_major << "." << cudart_minor << endl;
-        cout << "            Ignoring any GPUs in the system." << endl;
-        return;
-        }
-#endif
-#endif
-        
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
     cudaError_t error = cudaGetDeviceCount(&dev_count);
@@ -399,7 +367,6 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
                  << min_minor << " but the GPU is only " << prop.major << "." << prop.minor << endl;
             }
             
-#if CUDART_VERSION > 2010
         // ignore the display gpu if that was requested
         if (m_gpu_available[dev] && ignore_display && prop.kernelExecTimeoutEnabled)
             {
@@ -407,15 +374,7 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             cout << "Notice: GPU id " << dev << " is not available for computation because "
                  << "it appears to be attached to a display" << endl;
             }
-#else
-        if (ignore_display)
-            {
-            cout << endl << "***Warning! --ignore-dispaly-gpu is innefective because this build of HOOMD was compiled"
-                 << " against a CUDA version older than 2.1" << endl << endl;
-            }
-#endif
             
-#if CUDART_VERSION >= 2020
         // exclude a gpu if it is compute-prohibited
         if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeProhibited)
             {
@@ -427,7 +386,6 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
         // count the number of compute-exclusive gpus
         if (m_gpu_available[dev] && prop.computeMode == cudaComputeModeExclusive)
             n_exclusive_gpus++;
-#endif
         }
         
     std::vector<gpu_elem> gpu_priorities;
@@ -450,11 +408,9 @@ void ExecutionConfiguration::scanGPUs(bool ignore_display)
             if (prop.major == 2)
                 priority *= 4.0f;
 
-#if CUDART_VERSION > 2010
             if (prop.kernelExecTimeoutEnabled)
                 priority -= 0.1f;
-#endif
-                
+            
             gpu_priorities.push_back(gpu_elem(priority, dev));
             }
         }
