@@ -372,6 +372,49 @@ void neighborlist_comparison_test(boost::shared_ptr<ExecutionConfiguration> exec
         }
     }
 
+//! Test that a NeighborList can successfully exclude a ridiculously large number of particles
+template <class NL>
+void neighborlist_large_ex_tests(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    // construct the particle system
+    RandomInitializer init(1000, Scalar(0.016778), Scalar(0.9), "A");
+    
+    shared_ptr<SystemDefinition> sysdef(new SystemDefinition(init, exec_conf));
+    shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    
+    shared_ptr<NeighborList> nlist(new NL(sysdef, Scalar(8.0), Scalar(0.4)));
+    nlist->setStorageMode(NeighborList::full);
+    
+    // add every single neighbor as an exclusion
+    nlist->compute(0);
+        {
+        ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_nlist(nlist->getNListArray(), access_location::host, access_mode::read);
+        Index2D nli = nlist->getNListIndexer();
+        
+        for (unsigned int i = 0; i < pdata->getN(); i++)
+            {
+            for (unsigned int neigh = 0; neigh < h_n_neigh.data[i]; neigh++)
+                {
+                unsigned int j = h_nlist.data[nli(i, neigh)];
+                nlist->addExclusion(i,j);
+                }
+            }
+        }
+    
+    // compute the nlist again
+    nlist->compute(0);
+    
+    // verify that there are now 0 neighbors for each particle
+    ArrayHandle<unsigned int> h_n_neigh(nlist->getNNeighArray(), access_location::host, access_mode::read);
+    
+    // check to make sure that every neighbor matches
+    for (unsigned int i = 0; i < pdata->getN(); i++)
+        {
+        BOOST_CHECK_EQUAL(h_n_neigh.data[i], 0);
+        }
+    }
+
 //! basic test case for base class
 BOOST_AUTO_TEST_CASE( NeighborList_basic )
     {
@@ -381,6 +424,11 @@ BOOST_AUTO_TEST_CASE( NeighborList_basic )
 BOOST_AUTO_TEST_CASE( NeighborList_exclusion )
     {
     neighborlist_exclusion_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    }
+//! large exclusion test case for base class
+BOOST_AUTO_TEST_CASE( NeighborList_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborList>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
@@ -394,6 +442,11 @@ BOOST_AUTO_TEST_CASE( NeighborListGPU_basic )
 BOOST_AUTO_TEST_CASE( NeighborListGPU_exclusion )
     {
     neighborlist_exclusion_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! large exclusion test case for GPU class
+BOOST_AUTO_TEST_CASE( NeighborListGPU_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborListGPU>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPU class
 BOOST_AUTO_TEST_CASE( NeighborListGPU_comparison )
@@ -410,6 +463,11 @@ BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_basic )
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_exclusion )
     {
     neighborlist_exclusion_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+//! large exclusion test case for GPUBinned class
+BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_large_ex )
+    {
+    neighborlist_large_ex_tests<NeighborListGPUBinned>(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 //! comparison test case for GPUBinned class
 BOOST_AUTO_TEST_CASE( NeighborListGPUBinned_comparison )
