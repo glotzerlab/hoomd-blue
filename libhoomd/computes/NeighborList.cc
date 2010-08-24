@@ -95,6 +95,7 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_
     m_last_updated_tstep = 0;
     m_every = 0;
     m_Nmax = 0;
+    m_exclusions_set = false;
     
     // allocate m_n_neigh and m_last_pos
     GPUArray<unsigned int> n_neigh(m_pdata->getN(), exec_conf);
@@ -139,12 +140,13 @@ void NeighborList::compute(unsigned int timestep)
         
     if (m_prof) m_prof->push("Neighbor");
     
-#ifdef ENABLE_CUDA
     // update the exclusion data if this is a forced update
-    //if (m_force_update)
-        //updateExclusionData();
-#endif
-        
+    if (m_force_update)
+        {
+        if (m_exclusions_set)
+            updateExListIdx();
+        }
+    
     // check if the list needs to be updated and update it
     if (needsUpdating(timestep))
         {
@@ -163,6 +165,9 @@ void NeighborList::compute(unsigned int timestep)
                 resetConditions();
                 }
             } while (overflowed);
+        
+        if (m_exclusions_set)
+            filterNlist();
         
         setLastUpdatedPos();
         }
@@ -264,6 +269,8 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     {
     assert(tag1 < m_pdata->getN());
     assert(tag2 < m_pdata->getN());
+    
+    m_exclusions_set = true;
 
     // don't add an exclusion twice
     if (isExcluded(tag1, tag2))
@@ -274,7 +281,6 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     bool grow = false;
         {
         // access arrays
-        ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
     
         // grow the list if necessary
@@ -288,7 +294,7 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
     if (grow)
         growExclusionList();
 
-       {
+        {
         // access arrays
         ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::readwrite);
@@ -306,7 +312,6 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         h_n_ex_tag.data[tag2]++;
         }
     
-    // TODO: need more fine grain control over force update?
     forceUpdate();
     }
 
@@ -314,9 +319,12 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
 */
 void NeighborList::clearExclusions()
     {
-    ArrayHandle<unsigned int> h_n_ex_tag(m_ex_list_tag, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
 
     memset(h_n_ex_tag.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    memset(h_n_ex_idx.data, 0, sizeof(unsigned int)*m_pdata->getN());
+    m_exclusions_set = false;
 
     forceUpdate();
     }
@@ -913,6 +921,98 @@ void NeighborList::buildNlist(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
+/*! Translates the exclusions set in \c m_n_ex_tag and \c m_ex_list_tag to indices in \c m_n_ex_idx and \c m_ex_list_idx
+*/
+void NeighborList::updateExListIdx()
+    {
+    if (m_prof)
+        m_prof->push("update-ex");
+    // access data
+    const ParticleDataArraysConst& arrays = m_pdata->acquireReadOnly();
+    
+    ArrayHandle<unsigned int> h_n_ex_tag(m_n_ex_tag, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_ex_list_tag(m_ex_list_tag, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx, access_location::host, access_mode::overwrite);
+    
+    // translate the number and exclusions from one array to the other
+    for (unsigned int tag = 0; tag < arrays.nparticles; tag++)
+        {
+        // get the index for this tag
+        unsigned int idx = arrays.rtag[tag];
+        
+        // copy the number of exclusions over
+        unsigned int n = h_n_ex_tag.data[tag];
+        h_n_ex_idx.data[idx] = n;
+        
+        // copy the exclusion list
+        for (unsigned int offset = 0; offset < n; offset++)
+            {
+            unsigned int ex_tag = h_ex_list_tag.data[m_ex_list_indexer(tag, offset)];
+            unsigned int ex_idx = arrays.rtag[ex_tag];
+            h_ex_list_idx.data[m_ex_list_indexer(idx, offset)] = ex_idx;
+            }
+        }
+    
+    m_pdata->release();
+    if (m_prof)
+        m_prof->pop();
+    }
+
+/*! Loops through the neighbor list and filters out any excluded pairs
+*/
+void NeighborList::filterNlist()
+    {
+    if (m_prof)
+        m_prof->push("filter");
+    
+    // access data
+    
+    ArrayHandle<unsigned int> h_n_ex_idx(m_n_ex_idx, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_ex_list_idx(m_ex_list_idx, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_n_neigh(m_n_neigh, access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_nlist(m_nlist, access_location::host, access_mode::readwrite);
+    
+    // for each particle's neighbor list
+    for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
+        {
+        unsigned int n_neigh = h_n_neigh.data[idx];
+        unsigned int n_ex = h_n_ex_idx.data[idx];
+        unsigned int new_n_neigh = 0;
+        
+        // loop over the list, regenerating it as we go
+        for (unsigned int cur_neigh_idx = 0; cur_neigh_idx < n_neigh; cur_neigh_idx++)
+            {
+            unsigned int cur_neigh = h_nlist.data[m_nlist_indexer(idx, cur_neigh_idx)];
+            
+            // test if excluded
+            bool excluded = false;
+            for (unsigned int cur_ex_idx = 0; cur_ex_idx < n_ex; cur_ex_idx++)
+                {
+                unsigned int cur_ex = h_ex_list_idx.data[m_ex_list_indexer(idx, cur_ex_idx)];
+                if (cur_ex == cur_neigh)
+                    {
+                    excluded = true;
+                    break;
+                    }
+                }
+            
+            // add it back to the list if it is not excluded
+            if (!excluded)
+                {
+                h_nlist.data[m_nlist_indexer(idx, new_n_neigh)] = cur_neigh;
+                new_n_neigh++;
+                }
+            }
+        
+        // update the number of neighbors
+        h_n_neigh.data[idx] = new_n_neigh;
+        }
+
+    if (m_prof)
+        m_prof->pop();
+    }
+
 void NeighborList::allocateNlist()
     {
     // the neighbor list might be large, filling the device memory - maybe we should deallocate the old nlist first
@@ -962,20 +1062,20 @@ void NeighborList::growExclusionList()
     // copy the data across to the new arrays
         {
         ArrayHandle<unsigned int> h_ex_list_tag_old(m_ex_list_tag, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_ex_list_idx_old(m_ex_list_idx, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_ex_list_tag_new(ex_list_tag, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_ex_list_idx_new(ex_list_idx, access_location::host, access_mode::overwrite);
         
         memcpy(h_ex_list_tag_new.data, h_ex_list_tag_old.data, sizeof(unsigned int)*m_ex_list_indexer.getNumElements());
-        memcpy(h_ex_list_idx_new.data, h_ex_list_idx_old.data, sizeof(unsigned int)*m_ex_list_indexer.getNumElements());
         }
 
     // swap the new arrays for the old
     m_ex_list_tag.swap(ex_list_tag);
-    m_ex_list_tag.swap(ex_list_idx);
+    m_ex_list_idx.swap(ex_list_idx);
 
     // update the indexer
     m_ex_list_indexer = Index2D(m_ex_list_tag.getPitch(), new_height);
+    
+    // we didn't copy data for the new idx list, force an update so it will be correct
+    forceUpdate();
     }
 
 //! helper function for accessing an elemeng of the neighb rlist: python __getitem__

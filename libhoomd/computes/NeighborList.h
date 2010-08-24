@@ -284,6 +284,7 @@ class NeighborList : public Compute
         GPUArray<unsigned int> m_n_ex_tag;     //!< Number of exclusions for a given particle tag
         GPUArray<unsigned int> m_n_ex_idx;     //!< Number of exclusions for a given particle index
         Index2D m_ex_list_indexer;             //!< Indexer for accessing the exclusion list
+        bool m_exclusions_set;                 //!< True if any exclusions have been set
 
         boost::signals::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
         
@@ -295,6 +296,12 @@ class NeighborList : public Compute
         
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
+        
+        //! Updates the idx exlcusion list
+        virtual void updateExListIdx();
+        
+        //! Filter the neighbor list of excluded particles
+        virtual void filterNlist();
         
     private:
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
