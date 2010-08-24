@@ -76,8 +76,12 @@ class NeighborListGPU : public NeighborList
         GPUArray<unsigned int> m_flags;     //!< Storage for device flags on the GPU
 
         virtual bool distanceCheck();
+        
         //! GPU nlists set their last updated pos in the compute kernel, this call does nothing
         virtual void setLastUpdatedPos() { }
+        
+        //! Filter the neighbor list of excluded particles
+        virtual void filterNlist();
     };
 
 //! Exports NeighborListGPU to python

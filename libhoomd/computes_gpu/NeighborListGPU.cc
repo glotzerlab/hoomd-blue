@@ -83,6 +83,33 @@ bool NeighborListGPU::distanceCheck()
         }
     }
 
+/*! Calls gpu_nlsit_filter() to filter the neighbor list on the GPU
+*/
+void NeighborListGPU::filterNlist()
+    {
+    if (m_prof)
+        m_prof->push(exec_conf, "filter");
+    
+    // access data
+    
+    ArrayHandle<unsigned int> d_n_ex_idx(m_n_ex_idx, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_ex_list_idx(m_ex_list_idx, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_n_neigh(m_n_neigh, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_nlist(m_nlist, access_location::device, access_mode::readwrite);
+    
+    gpu_nlist_filter(d_n_neigh.data,
+                     d_nlist.data,
+                     m_nlist_indexer,
+                     d_n_ex_idx.data,
+                     d_ex_list_idx.data,
+                     m_ex_list_indexer,
+                     m_pdata->getN());
+    
+    if (m_prof)
+        m_prof->pop(exec_conf);
+    }
+
+
 void export_NeighborListGPU()
     {
     class_<NeighborListGPU, boost::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
