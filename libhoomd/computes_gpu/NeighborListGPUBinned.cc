@@ -137,7 +137,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     ArrayHandle<unsigned int> d_conditions(m_conditions, access_location::device, access_mode::readwrite);
 
     // take optimized code paths for different GPU generations
-    if (exec_conf->getComputeCapability() > 200)
+    if (exec_conf->getComputeCapability() >= 200)
         {
         unsigned int ncell = m_cl->getDim().x * m_cl->getDim().y * m_cl->getDim().z;
 
