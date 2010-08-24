@@ -785,8 +785,8 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
         else
             neigh_bin = tex1Dfetch(bin_adj_linear_tex, cur_adj + my_bin*bin_adj_width);*/
             
-        //unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
-        unsigned int size = d_bin_size[neigh_bin];
+        unsigned int size = tex1Dfetch(bin_size_tex, neigh_bin);
+        //unsigned int size = d_bin_size[neigh_bin];
         
         // now, we are set to loop through the array
         for (int cur_offset = 0; cur_offset < size; cur_offset++)
@@ -798,10 +798,10 @@ template<bool transpose_idxlist_coord, bool transpose_bin_adj> __global__ void g
             else
                 cur_neigh_blob = tex2D(nlist_coord_idxlist_tex, cur_offset, neigh_bin);
             
-            if (transpose_idxlist_coord)
+            /*if (transpose_idxlist_coord)
                 cur_neigh_blob = d_idxlist_coord[cur_offset * idxlist_coord_width + neigh_bin];
             else
-                cur_neigh_blob = d_idxlist_coord[neigh_bin * idxlist_coord_width + cur_offset];
+                cur_neigh_blob = d_idxlist_coord[neigh_bin * idxlist_coord_width + cur_offset];*/
                 
             float3 neigh_pos;
             neigh_pos.x = cur_neigh_blob.x;
@@ -1154,7 +1154,7 @@ int main(int argc, char **argv)
 //   bmark_N();
 
 #if 1
-//  cudaSetDevice(1);
+//    cudaSetDevice(1);
 
     float phi;
     if (argc == 1)
