@@ -144,7 +144,7 @@ ExecutionConfiguration::~ExecutionConfiguration()
 /*! \returns Compute capability of GPU 0 as a string
     \note Silently returns an emtpy string if no GPUs are specified
 */
-std::string ExecutionConfiguration::getComputeCapability()
+std::string ExecutionConfiguration::getComputeCapabilityAsString() const
     {
     ostringstream s;
     
@@ -154,6 +154,21 @@ std::string ExecutionConfiguration::getComputeCapability()
         }
         
     return s.str();
+    }
+
+/*! \returns Compute capability of the GPU formated as 210 (for compute 2.1 as an example)
+    \note Silently returns 0 if no GPU is being used
+*/
+unsigned int ExecutionConfiguration::getComputeCapability() const
+    {
+    unsigned int result = 0;
+    
+    if (exec_mode == GPU)
+        {
+        result = dev_prop.major * 100 + dev_prop.minor * 10;
+        }
+        
+    return result;
     }
     
 void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, unsigned int line)
@@ -510,7 +525,7 @@ void export_ExecutionConfiguration()
                          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
                          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
 #ifdef ENABLE_CUDA
-                         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
+                         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
                          ;
                          
